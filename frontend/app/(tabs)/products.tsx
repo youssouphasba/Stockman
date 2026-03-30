@@ -120,7 +120,9 @@ export default function ProductsScreen() {
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [filterType, setFilterType] = useState<'all' | 'out_of_stock' | 'low_stock' | 'overstock'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'out_of_stock' | 'low_stock' | 'overstock' | 'deadstock'>('all');
+  const [deadstockIds, setDeadstockIds] = useState<Set<string>>(new Set());
+  const [deadstockCount, setDeadstockCount] = useState(0);
   const [supplierCoverageFilter, setSupplierCoverageFilter] = useState<'all' | 'no_supplier' | 'multi_supplier' | 'missing_primary'>('all');
   const handledReminderProductRef = useRef<string | null>(null);
 
@@ -249,6 +251,7 @@ export default function ProductsScreen() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [showTextImportModal, setShowTextImportModal] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showControlsPanel, setShowControlsPanel] = useState(false);
   const [userSector, setUserSector] = useState('');
   const [currentStore, setCurrentStore] = useState<any>(null);
 
@@ -453,6 +456,17 @@ export default function ProductsScreen() {
           forecast = await salesApi.forecast();
         } catch (forecastError) {
           console.warn('[Products] forecast unavailable', forecastError);
+        }
+
+        // Vague 1: load deadstock analysis
+        try {
+          const ds = await aiApi.deadstockAnalysis();
+          if (ds?.deadstock) {
+            setDeadstockIds(new Set(ds.deadstock.map((d: any) => d.product_id)));
+            setDeadstockCount(ds.deadstock.length);
+          }
+        } catch {
+          console.warn('[Products] deadstock analysis unavailable');
         }
 
         if (isEnterprise) {
@@ -796,6 +810,7 @@ export default function ProductsScreen() {
       if (filterType === 'out_of_stock') matchesFilter = p.quantity === 0;
       else if (filterType === 'low_stock') matchesFilter = p.min_stock > 0 && p.quantity <= p.min_stock;
       else if (filterType === 'overstock') matchesFilter = p.max_stock > 0 && p.quantity >= p.max_stock;
+      else if (filterType === 'deadstock') matchesFilter = deadstockIds.has(p.product_id);
 
       const productLinks = supplierLinksByProduct[p.product_id] || [];
       const hasSupplier = productLinks.length > 0;
@@ -807,12 +822,20 @@ export default function ProductsScreen() {
 
       return matchesSearch && matchesFilter && matchesSupplierCoverage;
     });
-  }, [productList, debouncedSearch, filterType, supplierCoverageFilter, supplierLinksByProduct]);
+  }, [productList, debouncedSearch, filterType, supplierCoverageFilter, supplierLinksByProduct, deadstockIds]);
 
   const serviceRecipes = useMemo(
     () => recipeList.filter((recipe) => recipe.recipe_type !== 'prep'),
     [recipeList]
   );
+
+  const activeProductControlCount = useMemo(() => {
+    let count = 0;
+    if (filterType !== 'all') count += 1;
+    if (supplierCoverageFilter !== 'all') count += 1;
+    if (selectedCategory) count += 1;
+    return count;
+  }, [filterType, selectedCategory, supplierCoverageFilter]);
 
   function getMenuProductionModeLabel(product: Product) {
     switch (product.production_mode) {
@@ -1942,10 +1965,10 @@ export default function ProductsScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View style={{ paddingTop: Spacing.xs, flexDirection: 'row', gap: 8, paddingHorizontal: 4, alignItems: 'center' }}>
+        <View style={styles.headerActionRow}>
           {!isRestaurant && (
             <TouchableOpacity
-              style={[styles.iconBtn, isInventoryMode && { backgroundColor: colors.primary + '20' }]}
+              style={[styles.headerActionChip, isInventoryMode && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
               onPress={() => {
                 setIsInventoryMode(!isInventoryMode);
                 if (!isInventoryMode) {
@@ -1958,28 +1981,36 @@ export default function ProductsScreen() {
               }}
             >
               <Ionicons name="clipboard-outline" size={20} color={isInventoryMode ? colors.primary : colors.text} />
+              <Text style={[styles.headerActionText, isInventoryMode && { color: colors.primary }]}>
+                {isInventoryMode ? 'Inventaire actif' : 'Inventaire'}
+              </Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: colors.success + '18', borderColor: colors.success + '40' }]}
+            style={[styles.headerActionChip, { backgroundColor: colors.success + '18', borderColor: colors.success + '40' }]}
             onPress={handleExportCSV}
           >
             <Ionicons name="download-outline" size={20} color={colors.primary} />
+            <Text style={styles.headerActionText}>Exporter</Text>
           </TouchableOpacity>
           {canWrite && (
             <>
               <TouchableOpacity
-                style={[styles.iconBtn, isSelectionMode && { backgroundColor: colors.primary + '30', borderColor: colors.primary }]}
+                style={[styles.headerActionChip, isSelectionMode && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
                 onPress={() => {
                   setIsSelectionMode(!isSelectionMode);
                   if (isSelectionMode) setSelectedProductIds(new Set());
                 }}
               >
                 <Ionicons name={isSelectionMode ? "close" : "list-outline"} size={20} color={isSelectionMode ? colors.primaryLight : colors.text} />
+                <Text style={[styles.headerActionText, isSelectionMode && { color: colors.primary }]}>
+                  {isSelectionMode ? 'Fermer la sélection' : 'Sélection'}
+                </Text>
               </TouchableOpacity>
               <View style={{ marginLeft: 'auto' }}>
-                <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddMenu(!showAddMenu)}>
+                <TouchableOpacity style={[styles.addBtn, styles.addBtnExtended]} onPress={() => setShowAddMenu(!showAddMenu)}>
                   <Ionicons name={showAddMenu ? "close" : "add"} size={24} color="#fff" />
+                  <Text style={styles.addBtnLabel}>{showAddMenu ? 'Fermer' : 'Ajouter'}</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -2064,6 +2095,72 @@ export default function ProductsScreen() {
         </View>
 
         {!isRestaurant && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickPanelsScroll}>
+            <TouchableOpacity
+              style={styles.quickPanelCard}
+              onPress={() => setShowControlsPanel((current) => !current)}
+              activeOpacity={0.9}
+            >
+              <Ionicons name="options-outline" size={18} color={colors.primary} />
+              <Text style={styles.quickPanelTitle}>Pilotage stock</Text>
+              <Text style={styles.quickPanelDesc}>
+                {activeProductControlCount > 0
+                  ? `${activeProductControlCount} filtre${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}`
+                  : 'Aucun filtre avancé'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickPanelCard}
+              onPress={() => setShowControlsPanel(true)}
+              activeOpacity={0.9}
+            >
+              <Ionicons name="pricetags-outline" size={18} color={colors.info} />
+              <Text style={styles.quickPanelTitle}>Catégories</Text>
+              <Text style={styles.quickPanelDesc}>
+                {selectedCategory
+                  ? (categoryList.find((cat) => cat.category_id === selectedCategory)?.name || 'Catégorie active')
+                  : 'Toutes les catégories'}
+              </Text>
+            </TouchableOpacity>
+
+            {hasEnterpriseLocations && (
+              <TouchableOpacity
+                style={styles.quickPanelCard}
+                onPress={() => router.push('/(tabs)/locations' as never)}
+                activeOpacity={0.9}
+              >
+                <Ionicons name="location-outline" size={18} color={colors.success} />
+                <Text style={styles.quickPanelTitle}>Emplacements</Text>
+                <Text style={styles.quickPanelDesc}>
+                  {locationList.length > 0 ? `${locationList.length} zone${locationList.length > 1 ? 's' : ''}` : 'Configurer les zones'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+        )}
+
+        {!isRestaurant && (
+          <TouchableOpacity
+            style={styles.sectionToggleCard}
+            onPress={() => setShowControlsPanel((current) => !current)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.sectionToggleCopy}>
+              <Text style={styles.sectionToggleTitle}>Filtres, catégories et pilotage</Text>
+              <Text style={styles.sectionToggleDescription}>
+                {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visibles • ${activeProductControlCount > 0 ? `${activeProductControlCount} filtre${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun filtre avancé'}`}
+              </Text>
+            </View>
+            <Ionicons
+              name={showControlsPanel ? 'chevron-up-outline' : 'chevron-down-outline'}
+              size={20}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+        )}
+
+        {!isRestaurant && showControlsPanel && (
           <View style={styles.filterWrapper}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
               <TouchableOpacity
@@ -2090,6 +2187,16 @@ export default function ProductsScreen() {
               >
                 <Text style={[styles.filterChipText, filterType === 'overstock' && styles.filterChipTextActive, { color: filterType === 'overstock' ? '#fff' : colors.info }]}>{t('products.overstock')}</Text>
               </TouchableOpacity>
+              {deadstockCount > 0 && (
+                <TouchableOpacity
+                  style={[styles.filterChip, filterType === 'deadstock' && styles.filterChipActive, { borderColor: colors.warning }]}
+                  onPress={() => setFilterType('deadstock')}
+                >
+                  <Text style={[styles.filterChipText, filterType === 'deadstock' && styles.filterChipTextActive, { color: filterType === 'deadstock' ? '#fff' : colors.warning }]}>
+                    {t('products.deadstock', 'Dormants')} ({deadstockCount})
+                  </Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
               <TouchableOpacity
@@ -2128,6 +2235,7 @@ export default function ProductsScreen() {
           </View>
         )}
 
+        {showControlsPanel && (
         <View style={styles.categoryRow}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.categoryScroll, { flex: 1 }]}>
             <TouchableOpacity
@@ -2162,8 +2270,9 @@ export default function ProductsScreen() {
             </TouchableOpacity>
           )}
         </View>
+        )}
 
-        {!isRestaurant && hasEnterpriseLocations && (
+        {!isRestaurant && hasEnterpriseLocations && showControlsPanel && (
           <TouchableOpacity
             style={styles.locationModuleCard}
             onPress={() => router.push('/(tabs)/locations' as never)}
@@ -2181,7 +2290,7 @@ export default function ProductsScreen() {
         )}
 
         {/* Valuation Card */}
-        {!isRestaurant && (
+        {!isRestaurant && showControlsPanel && (
           <View style={styles.valuationCard}>
             <View style={styles.valuationInfo}>
               <Text style={styles.valuationLabel}>{t('products.total_stock_value_label')}</Text>
@@ -3713,6 +3822,42 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerActionRow: {
+    paddingTop: Spacing.xs,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    flexWrap: 'wrap',
+  },
+  headerActionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  headerActionText: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  addBtnExtended: {
+    width: 'auto',
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  addBtnLabel: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3727,6 +3872,49 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontSize: FontSize.md,
     marginLeft: Spacing.sm,
     marginRight: Spacing.sm,
+  },
+  quickPanelsScroll: {
+    marginBottom: Spacing.md,
+  },
+  quickPanelCard: {
+    ...glassStyle,
+    width: 170,
+    minHeight: 98,
+    padding: Spacing.md,
+    marginRight: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  quickPanelTitle: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  quickPanelDesc: {
+    color: colors.textSecondary,
+    fontSize: FontSize.xs,
+    lineHeight: 17,
+  },
+  sectionToggleCard: {
+    ...glassStyle,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  sectionToggleCopy: {
+    flex: 1,
+  },
+  sectionToggleTitle: {
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  sectionToggleDescription: {
+    color: colors.textSecondary,
+    fontSize: FontSize.sm,
+    marginTop: 4,
   },
   locationModuleCard: {
     ...glassStyle,

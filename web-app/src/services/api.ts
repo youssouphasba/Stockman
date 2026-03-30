@@ -2145,6 +2145,55 @@ export const ai = {
         request<{ report: string; generated_at: string }>(`/ai/monthly-report?lang=${lang}`),
     replenishmentAdvice: (lang: string = 'fr') =>
         request<{ advice: string; priority_count: number }>(`/ai/replenishment-advice?lang=${lang}`),
+    // Vague 1 — algorithmic features
+    businessHealthScore: () =>
+        request<{
+            score: number;
+            color: string;
+            components: { margin: number; rotation: number; debt_recovery: number; trend: number };
+            details: any;
+        }>('/ai/business-health-score'),
+    dashboardPrediction: () =>
+        request<{
+            projected_revenue: number;
+            current_revenue: number;
+            days_elapsed: number;
+            days_in_month: number;
+            delta_vs_last_month: number;
+            confidence: string;
+            method: string;
+        }>('/ai/dashboard-prediction'),
+    salesForecast: (days: number = 7) =>
+        request<{
+            forecasts: Array<{
+                product_id: string;
+                name: string;
+                current_stock: number;
+                velocity_per_day: number;
+                trend_coefficient: number;
+                forecast_7d: number;
+                forecast_30d: number;
+                stock_covers_days: number | null;
+                alert: string | null;
+            }>;
+            period_days: number;
+        }>(`/ai/sales-forecast?days=${days}`),
+    deadstockAnalysis: () =>
+        request<{
+            deadstock: Array<{
+                product_id: string;
+                name: string;
+                category: string;
+                current_stock: number;
+                purchase_price: number;
+                immobilized_value: number;
+                days_without_sale: number;
+                severity: string;
+                suggestions: string[];
+            }>;
+            total_immobilized_value: number;
+            summary: { mild: number; moderate: number; severe: number };
+        }>('/ai/deadstock-analysis'),
 };
 
 export const returns = {

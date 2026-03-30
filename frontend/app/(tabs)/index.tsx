@@ -39,6 +39,7 @@ import {
   stock as stockApi,
   settings as settingsApi,
   inventory,
+  ai as aiApi,
   DashboardData,
   StatisticsData,
   StockMovement,
@@ -157,6 +158,10 @@ export default function DashboardScreen() {
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showDashboardSettings, setShowDashboardSettings] = useState(false);
 
+  // Vague 1: Health Score + Prediction
+  const [healthScore, setHealthScore] = useState<any>(null);
+  const [prediction, setPrediction] = useState<any>(null);
+
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);
   const loadingRef = useRef(false);
@@ -216,9 +221,15 @@ export default function DashboardScreen() {
     } catch { /* ignore */ }
   }, []);
 
-  // Initial load on mount (safety net â€” useFocusEffect may not fire reliably on web)
+  // Initial load on mount (safety net — useFocusEffect may not fire reliably on web)
   useEffect(() => {
     loadData();
+    // Vague 1: load health score + prediction in background
+    Promise.allSettled([aiApi.businessHealthScore(), aiApi.dashboardPrediction()])
+      .then(([healthRes, predRes]) => {
+        if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
+        if (predRes.status === 'fulfilled') setPrediction(predRes.value);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -565,8 +576,12 @@ export default function DashboardScreen() {
   const dashboardGuideSteps = dashboardGuide?.steps ?? [];
   const dashboardGuideTitle = dashboardGuide?.title ?? '';
 
-  const { colors, glassStyle, isDark } = useTheme();
+  const { colors, glassStyle, isDark, setTheme } = useTheme();
   const styles = getStyles(colors, glassStyle);
+
+  const toggleThemeQuick = useCallback(() => {
+    void setTheme(isDark ? 'light' : 'dark');
+  }, [isDark, setTheme]);
 
   if (loading) {
     return (
@@ -617,6 +632,18 @@ export default function DashboardScreen() {
               <Text style={styles.subGreeting}>{t('dashboard.sub_greeting')}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <TouchableOpacity
+                onPress={toggleThemeQuick}
+                style={{
+                  padding: 8,
+                  backgroundColor: colors.glass,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: colors.glassBorder,
+                }}
+              >
+                <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={22} color={colors.text} />
+              </TouchableOpacity>
               {notifications.length > 0 && (
                 <TouchableOpacity
                   onPress={() => setShowNotifModal(true)}
@@ -668,7 +695,86 @@ export default function DashboardScreen() {
 
         {renderKPIs()}
 
-        {/* Rapport du Jour â€” Enterprise */}
+        {/* Vague 1: Health Score + Monthly Prediction */}
+        {(healthScore || prediction) && (
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+            {healthScore && (
+              <View style={{
+                flex: 1,
+                backgroundColor: colors.glass,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: (healthScore.color === 'green' ? colors.success : healthScore.color === 'orange' ? colors.warning : colors.danger) + '30',
+                padding: 16,
+                alignItems: 'center',
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, alignSelf: 'flex-start' }}>
+                  <Ionicons name=”pulse-outline” size={16} color={healthScore.color === 'green' ? colors.success : healthScore.color === 'orange' ? colors.warning : colors.danger} />
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                    {t('dashboard.health_score', 'Santé business')}
+                  </Text>
+                </View>
+                <Text style={{
+                  fontSize: 32,
+                  fontWeight: '900',
+                  color: healthScore.color === 'green' ? colors.success : healthScore.color === 'orange' ? colors.warning : colors.danger,
+                }}>
+                  {healthScore.score}
+                </Text>
+                <Text style={{ fontSize: 10, color: colors.textMuted, fontWeight: '700' }}>/100</Text>
+              </View>
+            )}
+            {prediction && (
+              <View style={{
+                flex: 1,
+                backgroundColor: colors.glass,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.primary + '30',
+                padding: 16,
+                alignItems: 'center',
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, alignSelf: 'flex-start' }}>
+                  <Ionicons name=”analytics-outline” size={16} color={colors.primary} />
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                    {t('dashboard.monthly_prediction', 'Projection')}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: colors.text }} numberOfLines={1}>
+                  {globalFormatCurrency(prediction.projected_revenue, user?.currency)}
+                </Text>
+                <Text style={{ fontSize: 9, color: colors.textMuted, fontWeight: '700', marginTop: 2 }}>
+                  {t('dashboard.estimated_end_month', 'Estimé fin de mois')}
+                </Text>
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  marginTop: 8,
+                  backgroundColor: (prediction.delta_vs_last_month >= 0 ? colors.success : colors.danger) + '15',
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 12,
+                }}>
+                  <Ionicons
+                    name={prediction.delta_vs_last_month >= 0 ? 'trending-up' : 'trending-down'}
+                    size={12}
+                    color={prediction.delta_vs_last_month >= 0 ? colors.success : colors.danger}
+                  />
+                  <Text style={{
+                    fontSize: 11,
+                    fontWeight: '700',
+                    color: prediction.delta_vs_last_month >= 0 ? colors.success : colors.danger,
+                  }}>
+                    {prediction.delta_vs_last_month >= 0 ? '+' : ''}{prediction.delta_vs_last_month?.toFixed(1)}%
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Rapport du Jour — Enterprise */}
         {(user?.plan === 'enterprise' || hasPermission('accounting', 'read')) && data && (
           <View style={styles.section}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

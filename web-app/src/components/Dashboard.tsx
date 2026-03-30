@@ -20,6 +20,8 @@ import {
     X,
     Bell,
     Download,
+    Activity,
+    Target,
 } from 'lucide-react';
 import {
     LineChart as ReLineChart,
@@ -64,6 +66,8 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     const [aiSummary, setAiSummary] = useState<string>('');
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const [anomalies, setAnomalies] = useState<any[]>([]);
+    const [healthScore, setHealthScore] = useState<any>(null);
+    const [prediction, setPrediction] = useState<any>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedSale, setSelectedSale] = useState<any>(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -136,10 +140,14 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                 aiApi.dailySummary(i18n.language),
                 salesApi.forecast(),
                 hasProducts ? aiApi.detectAnomalies(i18n.language) : Promise.resolve({ anomalies: [] }),
-            ]).then(([aiRes, forecastRes, anomaliesRes]) => {
+                aiApi.businessHealthScore(),
+                aiApi.dashboardPrediction(),
+            ]).then(([aiRes, forecastRes, anomaliesRes, healthRes, predictionRes]) => {
                 if (aiRes.status === 'fulfilled') setAiSummary(aiRes.value.summary);
                 if (forecastRes.status === 'fulfilled') setForecast(forecastRes.value);
                 if (anomaliesRes.status === 'fulfilled') setAnomalies(anomaliesRes.value.anomalies || []);
+                if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
+                if (predictionRes.status === 'fulfilled') setPrediction(predictionRes.value);
             });
         }
         void fetchDashboard();
@@ -450,6 +458,113 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                             color="bg-purple-500"
                         />
                     </>)}
+                </div>
+            )}
+
+            {/* Business Health Score + Monthly Prediction */}
+            {(healthScore || prediction) && (
+                <div className={`grid gap-6 mb-10 ${healthScore && prediction ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-1'}`}>
+                    {/* Health Score Gauge */}
+                    {healthScore && (
+                        <div className="glass-card p-6 flex flex-col items-center bg-gradient-to-br from-emerald-500/5 to-transparent border-emerald-500/10">
+                            <div className="flex items-center gap-2 mb-4 self-start">
+                                <Activity size={18} className="text-emerald-400" />
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest">
+                                    {t('dashboard.health_score', 'Santé business')}
+                                </h3>
+                            </div>
+                            {/* Circular gauge */}
+                            <div className="relative w-36 h-36 mb-4">
+                                <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                                    <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10" />
+                                    <circle
+                                        cx="60" cy="60" r="52" fill="none"
+                                        stroke={healthScore.color === 'green' ? '#10B981' : healthScore.color === 'orange' ? '#F59E0B' : '#EF4444'}
+                                        strokeWidth="10"
+                                        strokeLinecap="round"
+                                        strokeDasharray={`${(healthScore.score / 100) * 327} 327`}
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className={`text-3xl font-black ${healthScore.color === 'green' ? 'text-emerald-400' : healthScore.color === 'orange' ? 'text-amber-400' : 'text-rose-400'}`}>
+                                        {healthScore.score}
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">/100</span>
+                                </div>
+                            </div>
+                            {/* Component breakdown */}
+                            <div className="w-full space-y-2">
+                                {[
+                                    { key: 'margin', label: t('dashboard.health_margin', 'Marge'), max: 30 },
+                                    { key: 'rotation', label: t('dashboard.health_rotation', 'Rotation'), max: 20 },
+                                    { key: 'debt_recovery', label: t('dashboard.health_debt', 'Recouvrement'), max: 20 },
+                                    { key: 'trend', label: t('dashboard.health_trend', 'Tendance CA'), max: 30 },
+                                ].map(({ key, label, max }) => {
+                                    const val = healthScore.components?.[key] ?? 0;
+                                    const pct = max > 0 ? (val / max) * 100 : 0;
+                                    return (
+                                        <div key={key} className="flex items-center gap-3">
+                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider w-24 truncate">{label}</span>
+                                            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full ${pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                    style={{ width: `${Math.min(pct, 100)}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-xs text-slate-300 font-bold w-10 text-right">{val.toFixed(0)}/{max}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Monthly Revenue Prediction */}
+                    {prediction && (
+                        <div className="glass-card p-6 flex flex-col bg-gradient-to-br from-violet-500/5 to-transparent border-violet-500/10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Target size={18} className="text-violet-400" />
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest">
+                                    {t('dashboard.monthly_prediction', 'Projection mensuelle')}
+                                </h3>
+                            </div>
+                            <div className="flex-1 flex flex-col justify-center items-center">
+                                <span className="text-3xl font-black text-white mb-1">
+                                    {formatCurrency(prediction.projected_revenue)}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-4">
+                                    {t('dashboard.estimated_end_month', 'Estimé fin de mois')}
+                                </span>
+                                {/* Progress bar current vs projected */}
+                                <div className="w-full mb-3">
+                                    <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                                        <span>{t('dashboard.current', 'Actuel')}: {formatCurrency(prediction.current_revenue)}</span>
+                                        <span>J{prediction.days_elapsed}/{prediction.days_in_month}</span>
+                                    </div>
+                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-violet-500 to-primary rounded-full"
+                                            style={{ width: `${Math.min((prediction.current_revenue / prediction.projected_revenue) * 100, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                {/* Delta vs last month */}
+                                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                                    prediction.delta_vs_last_month >= 0
+                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                }`}>
+                                    <TrendingUp size={14} className={prediction.delta_vs_last_month < 0 ? 'rotate-180' : ''} />
+                                    {prediction.delta_vs_last_month >= 0 ? '+' : ''}{prediction.delta_vs_last_month.toFixed(1)}% {t('dashboard.vs_last_month', 'vs mois dernier')}
+                                </div>
+                                <span className="text-[10px] text-slate-600 mt-2 uppercase tracking-widest">
+                                    {prediction.confidence === 'high' ? t('dashboard.confidence_high', 'Confiance élevée')
+                                        : prediction.confidence === 'medium' ? t('dashboard.confidence_medium', 'Confiance moyenne')
+                                        : t('dashboard.confidence_low', 'Confiance faible')}
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

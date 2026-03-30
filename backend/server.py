@@ -7283,6 +7283,365 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
         logger.error(f"AI voice-to-text error: {e}")
         raise HTTPException(status_code=500, detail=i18n.t("ai.voice_to_text_error", lang_code))
 
+# ===================== VAGUE 1 — ALGORITHMIC AI ENDPOINTS =====================
+
+@api_router.get("/ai/business-health-score")
+@limiter.limit("20/minute")
+async def ai_business_health_score(request: Request, user: User = Depends(require_operational_access)):
+    """Score sante business 0-100. Algo pur, tous plans."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "business_health_score")
+
+    # Cache
+    cached = ai_governance.cache_get(owner_id, "business_health_score", user.active_store_id or "")
+    if cached:
+        return cached
+
+    store_filter: dict = {"user_id": owner_id}
+    if user.active_store_id:
+        store_filter["store_id"] = user.active_store_id
+
+    now = datetime.now(timezone.utc)
+    d30 = now - timedelta(days=30)
+    d60 = now - timedelta(days=60)
+
+    # --- 1. Marge brute (30%) ---
+    sales_30d = await db.sales.find(
+        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": d30}}),
+        {"_id": 0, "total_amount": 1, "items": 1}
+    ).to_list(5000)
+    revenue_30d = sum(s.get("total_amount", 0) for s in sales_30d)
+    cost_30d = 0
+    for sale in sales_30d:
+        for item in (sale.get("items") or []):
+            cost_30d += (item.get("purchase_price") or 0) * (item.get("quantity") or 0)
+    margin_pct = ((revenue_30d - cost_30d) / revenue_30d * 100) if revenue_30d > 0 else 0
+    margin_score = min(max(margin_pct / 50 * 100, 0), 100)  # 50%+ margin = 100
+
+    # --- 2. Rotation stock (20%) ---
+    products = await db.products.find(store_filter, {"_id": 0, "quantity": 1, "purchase_price": 1}).to_list(5000)
+    stock_value = sum(p.get("quantity", 0) * p.get("purchase_price", 0) for p in products)
+    turnover_ratio = (cost_30d / stock_value) if stock_value > 0 else 0
+    rotation_score = min(turnover_ratio / 2 * 100, 100)  # 2x rotation/month = 100
+
+    # --- 3. Recouvrement dettes (20%) ---
+    customers = await db.customers.find(
+        {"user_id": owner_id} if not user.active_store_id else {**store_filter},
+        {"_id": 0, "current_debt": 1}
+    ).to_list(5000)
+    total_debt = sum(max(c.get("current_debt", 0), 0) for c in customers)
+    debt_ratio = (total_debt / revenue_30d) if revenue_30d > 0 else 0
+    debt_score = max(100 - debt_ratio * 200, 0)  # debt = 50% revenue → score 0
+
+    # --- 4. Tendance CA (30%) ---
+    sales_prev = await db.sales.find(
+        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": d60, "$lt": d30}}),
+        {"_id": 0, "total_amount": 1}
+    ).to_list(5000)
+    revenue_prev = sum(s.get("total_amount", 0) for s in sales_prev)
+    if revenue_prev > 0:
+        trend_pct = ((revenue_30d - revenue_prev) / revenue_prev) * 100
+    else:
+        trend_pct = 100 if revenue_30d > 0 else 0
+    trend_score = min(max(50 + trend_pct, 0), 100)  # 0% growth = 50, +50% = 100
+
+    # --- Composite ---
+    score = round(margin_score * 0.30 + rotation_score * 0.20 + debt_score * 0.20 + trend_score * 0.30)
+    score = min(max(score, 0), 100)
+
+    result = {
+        "score": score,
+        "grade": "excellent" if score >= 80 else "bon" if score >= 60 else "moyen" if score >= 40 else "critique",
+        "breakdown": {
+            "margin": {"score": round(margin_score), "value": round(margin_pct, 1), "label": "Marge brute", "weight": 30},
+            "rotation": {"score": round(rotation_score), "value": round(turnover_ratio, 2), "label": "Rotation stock", "weight": 20},
+            "debt": {"score": round(debt_score), "value": round(total_debt), "label": "Dettes clients", "weight": 20},
+            "trend": {"score": round(trend_score), "value": round(trend_pct, 1), "label": "Tendance CA 30j", "weight": 30},
+        },
+        "revenue_30d": round(revenue_30d),
+        "stock_value": round(stock_value),
+    }
+
+    ai_governance.cache_set(owner_id, "business_health_score", result, user.active_store_id or "")
+    await track_ai_usage(user.user_id, "business_health_score", plan=plan, ai_enhanced=False)
+    return result
+
+
+@api_router.get("/ai/dashboard-prediction")
+@limiter.limit("10/minute")
+async def ai_dashboard_prediction(request: Request, user: User = Depends(require_operational_access)):
+    """Projection CA fin de mois. Algo pur, Pro+Enterprise."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "dashboard_prediction")
+
+    cached = ai_governance.cache_get(owner_id, "dashboard_prediction", user.active_store_id or "")
+    if cached:
+        return cached
+
+    store_filter: dict = {"user_id": owner_id}
+    if user.active_store_id:
+        store_filter["store_id"] = user.active_store_id
+
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    days_elapsed = max((now - month_start).days, 1)
+    days_in_month = 30  # simplified
+
+    # Current month revenue
+    current_month_sales = await db.sales.find(
+        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": month_start}}),
+        {"_id": 0, "total_amount": 1}
+    ).to_list(10000)
+    current_revenue = sum(s.get("total_amount", 0) for s in current_month_sales)
+
+    # Previous 2 months for weighted average
+    m1_start = (month_start - timedelta(days=1)).replace(day=1)
+    m2_start = (m1_start - timedelta(days=1)).replace(day=1)
+
+    prev1_sales = await db.sales.find(
+        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": m1_start, "$lt": month_start}}),
+        {"_id": 0, "total_amount": 1}
+    ).to_list(10000)
+    prev1_revenue = sum(s.get("total_amount", 0) for s in prev1_sales)
+
+    prev2_sales = await db.sales.find(
+        apply_completed_sales_scope({**store_filter, "created_at": {"$gte": m2_start, "$lt": m1_start}}),
+        {"_id": 0, "total_amount": 1}
+    ).to_list(10000)
+    prev2_revenue = sum(s.get("total_amount", 0) for s in prev2_sales)
+
+    # Linear projection from current pace
+    daily_pace = current_revenue / days_elapsed
+    linear_projection = daily_pace * days_in_month
+
+    # Weighted average of prev months (more weight on recent)
+    if prev1_revenue > 0 or prev2_revenue > 0:
+        weighted_avg = prev1_revenue * 0.6 + prev2_revenue * 0.4
+        # Blend: 60% current pace, 40% historical
+        projected = linear_projection * 0.6 + weighted_avg * 0.4
+    else:
+        projected = linear_projection
+
+    # Delta vs last month
+    delta_pct = ((projected - prev1_revenue) / prev1_revenue * 100) if prev1_revenue > 0 else 0
+
+    result = {
+        "projected_revenue": round(projected),
+        "current_revenue": round(current_revenue),
+        "daily_pace": round(daily_pace),
+        "days_elapsed": days_elapsed,
+        "days_remaining": days_in_month - days_elapsed,
+        "prev_month_revenue": round(prev1_revenue),
+        "delta_pct": round(delta_pct, 1),
+        "confidence": "high" if days_elapsed >= 15 else "medium" if days_elapsed >= 7 else "low",
+    }
+
+    ai_governance.cache_set(owner_id, "dashboard_prediction", result, user.active_store_id or "")
+    await track_ai_usage(user.user_id, "dashboard_prediction", plan=plan, ai_enhanced=False)
+    return result
+
+
+@api_router.get("/ai/sales-forecast")
+@limiter.limit("10/minute")
+async def ai_sales_forecast(request: Request, user: User = Depends(require_operational_access)):
+    """Prevision ventes J+7/J+30 par produit. Algo pur, Pro+Enterprise."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "sales_forecast")
+
+    cached = ai_governance.cache_get(owner_id, "sales_forecast", user.active_store_id or "")
+    if cached:
+        return cached
+
+    store_filter: dict = {"user_id": owner_id}
+    if user.active_store_id:
+        store_filter["store_id"] = user.active_store_id
+
+    now = datetime.now(timezone.utc)
+    d30 = now - timedelta(days=30)
+    d60 = now - timedelta(days=60)
+
+    # Get products
+    products = await db.products.find(
+        {**store_filter, "is_active": {"$ne": False}},
+        {"_id": 0, "product_id": 1, "name": 1, "quantity": 1, "purchase_price": 1, "selling_price": 1, "min_stock": 1}
+    ).to_list(2000)
+    product_map = {p["product_id"]: p for p in products}
+
+    # Aggregate sales by product over last 30d and prev 30d
+    pipeline_period = lambda gte, lt: [
+        {"$match": apply_completed_sales_scope({**store_filter, "created_at": {"$gte": gte, "$lt": lt}})},
+        {"$unwind": "$items"},
+        {"$group": {"_id": "$items.product_id", "qty": {"$sum": "$items.quantity"}}},
+    ]
+
+    sales_30d = {r["_id"]: r["qty"] for r in await db.sales.aggregate(pipeline_period(d30, now)).to_list(5000)}
+    sales_prev = {r["_id"]: r["qty"] for r in await db.sales.aggregate(pipeline_period(d60, d30)).to_list(5000)}
+
+    forecasts = []
+    alerts = []
+    for pid, prod in product_map.items():
+        qty_30d = sales_30d.get(pid, 0)
+        qty_prev = sales_prev.get(pid, 0)
+
+        # Velocity (units/day)
+        velocity_30d = qty_30d / 30
+        velocity_prev = qty_prev / 30 if qty_prev > 0 else 0
+
+        # Trend coefficient
+        if velocity_prev > 0:
+            trend = velocity_30d / velocity_prev
+        else:
+            trend = 1.0
+        trend = min(max(trend, 0.5), 2.0)  # cap at 0.5x - 2x
+
+        predicted_7d = round(velocity_30d * trend * 7, 1)
+        predicted_30d = round(velocity_30d * trend * 30, 1)
+
+        stock = prod.get("quantity", 0)
+        days_of_stock = round(stock / velocity_30d) if velocity_30d > 0 else 999
+
+        forecast = {
+            "product_id": pid,
+            "name": prod.get("name", ""),
+            "current_stock": stock,
+            "velocity_day": round(velocity_30d, 2),
+            "trend": "up" if trend > 1.1 else "down" if trend < 0.9 else "stable",
+            "predicted_7d": predicted_7d,
+            "predicted_30d": predicted_30d,
+            "days_of_stock": min(days_of_stock, 999),
+        }
+        forecasts.append(forecast)
+
+        # Alert if stock won't last 7 days
+        if velocity_30d > 0 and days_of_stock < 7:
+            alerts.append({
+                "product_id": pid,
+                "name": prod.get("name", ""),
+                "days_of_stock": days_of_stock,
+                "predicted_7d": predicted_7d,
+                "shortage": round(predicted_7d - stock, 1),
+            })
+
+    # Sort by velocity desc
+    forecasts.sort(key=lambda f: f["velocity_day"], reverse=True)
+    alerts.sort(key=lambda a: a["days_of_stock"])
+
+    result = {
+        "products": forecasts[:100],
+        "stock_alerts": alerts[:20],
+        "total_products": len(forecasts),
+        "products_with_sales": len([f for f in forecasts if f["velocity_day"] > 0]),
+    }
+
+    ai_governance.cache_set(owner_id, "sales_forecast", result, user.active_store_id or "")
+    await track_ai_usage(user.user_id, "sales_forecast", plan=plan, ai_enhanced=False)
+    return result
+
+
+@api_router.get("/ai/deadstock-analysis")
+@limiter.limit("10/minute")
+async def ai_deadstock_analysis(request: Request, user: User = Depends(require_operational_access)):
+    """Produits dormants / a destocker. Algo pur, tous plans."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "deadstock_analysis")
+
+    cached = ai_governance.cache_get(owner_id, "deadstock_analysis", user.active_store_id or "")
+    if cached:
+        return cached
+
+    store_filter: dict = {"user_id": owner_id}
+    if user.active_store_id:
+        store_filter["store_id"] = user.active_store_id
+
+    now = datetime.now(timezone.utc)
+
+    # Get active products with stock > 0
+    products = await db.products.find(
+        {**store_filter, "is_active": {"$ne": False}, "quantity": {"$gt": 0}},
+        {"_id": 0, "product_id": 1, "name": 1, "quantity": 1, "purchase_price": 1, "selling_price": 1, "category_id": 1}
+    ).to_list(5000)
+    product_ids = [p["product_id"] for p in products]
+
+    if not product_ids:
+        result = {"deadstock": [], "total_value_blocked": 0, "total_products": 0}
+        ai_governance.cache_set(owner_id, "deadstock_analysis", result, user.active_store_id or "")
+        return result
+
+    # Find last sale date per product (last 90 days)
+    d90 = now - timedelta(days=90)
+    pipeline = [
+        {"$match": apply_completed_sales_scope({**store_filter, "created_at": {"$gte": d90}})},
+        {"$unwind": "$items"},
+        {"$match": {"items.product_id": {"$in": product_ids}}},
+        {"$group": {
+            "_id": "$items.product_id",
+            "last_sale": {"$max": "$created_at"},
+            "total_sold_90d": {"$sum": "$items.quantity"},
+        }},
+    ]
+    sales_data = {r["_id"]: r for r in await db.sales.aggregate(pipeline).to_list(5000)}
+
+    deadstock = []
+    total_blocked = 0
+    for p in products:
+        pid = p["product_id"]
+        sale_info = sales_data.get(pid)
+        last_sale = sale_info["last_sale"] if sale_info else None
+        total_sold = sale_info["total_sold_90d"] if sale_info else 0
+
+        if last_sale:
+            days_since = (now - last_sale).days
+        else:
+            days_since = 90  # no sale found in 90d window
+
+        if days_since < 30:
+            continue  # not dormant
+
+        stock_value = p.get("quantity", 0) * p.get("purchase_price", 0)
+        total_blocked += stock_value
+
+        severity = "critical" if days_since >= 60 else "warning"
+        suggestion = "promo" if p.get("selling_price", 0) > 0 else "demarque"
+        if days_since >= 90 and total_sold == 0:
+            suggestion = "retour_fournisseur"
+
+        deadstock.append({
+            "product_id": pid,
+            "name": p.get("name", ""),
+            "quantity": p.get("quantity", 0),
+            "purchase_price": p.get("purchase_price", 0),
+            "selling_price": p.get("selling_price", 0),
+            "stock_value": round(stock_value),
+            "days_since_last_sale": days_since,
+            "total_sold_90d": total_sold,
+            "severity": severity,
+            "suggestion": suggestion,
+            "category_id": p.get("category_id"),
+        })
+
+    deadstock.sort(key=lambda d: d["stock_value"], reverse=True)
+
+    result = {
+        "deadstock": deadstock[:50],
+        "total_value_blocked": round(total_blocked),
+        "total_products": len(deadstock),
+        "by_severity": {
+            "critical": len([d for d in deadstock if d["severity"] == "critical"]),
+            "warning": len([d for d in deadstock if d["severity"] == "warning"]),
+        },
+    }
+
+    ai_governance.cache_set(owner_id, "deadstock_analysis", result, user.active_store_id or "")
+    await track_ai_usage(user.user_id, "deadstock_analysis", plan=plan, ai_enhanced=False)
+    return result
+
+
+# ===================== END VAGUE 1 =====================
+
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
     """List all disputes with optional filters"""

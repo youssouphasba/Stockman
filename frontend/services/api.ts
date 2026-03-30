@@ -902,7 +902,7 @@ export const stock = {
 // Alerts
 export const alerts = {
   list: (skip = 0, limit = 50) =>
-    request<PaginatedResponse<Alert>>(`/alerts?skip=${skip}&limit=${limit}`),
+    request<PaginatedResponse<Alert> & { unread: number }>(`/alerts?skip=${skip}&limit=${limit}`),
   markRead: (id: string) =>
     request<{ message: string }>(`/alerts/${id}/read`, { method: 'PUT' }),
   dismiss: (id: string) =>
@@ -1125,6 +1125,7 @@ export const supplierInvoices = {
 // Notifications
 export const notifications = {
   registerToken: (token: string) => request<{ message: string }>('/notifications/register-token', { method: 'POST', body: { token } }),
+  testPush: () => request<{ message: string }>('/notifications/test-push', { method: 'POST' }),
 };
 
 // Marketplace (CAS 1)
@@ -1403,7 +1404,7 @@ export const ai = {
   support: (message: string, history: any[], language: string = 'fr') =>
     request<{ response: string }>('/ai/support', {
       method: 'POST',
-      body: { message, history, language },
+      body: { message, history, language, platform: 'mobile' },
     }),
   getHistory: () => request<{ messages: { role: string; content: string; timestamp: string }[] }>('/ai/history'),
   clearHistory: () => request<{ message: string }>('/ai/history', { method: 'DELETE' }),
@@ -1443,6 +1444,15 @@ export const ai = {
       method: 'POST',
       body: { audio: audioBase64, language },
     }),
+  // Vague 1 — algorithmic features
+  businessHealthScore: () =>
+    request<any>('/ai/business-health-score'),
+  dashboardPrediction: () =>
+    request<any>('/ai/dashboard-prediction'),
+  salesForecast: (days: number = 7) =>
+    request<any>(`/ai/sales-forecast?days=${days}`),
+  deadstockAnalysis: () =>
+    request<any>('/ai/deadstock-analysis'),
 };
 
 export type InvoiceScanResult = {
