@@ -163,6 +163,9 @@ export default function DashboardScreen() {
   const [prediction, setPrediction] = useState<any>(null);
   // Vague 6: Contextual tips
   const [contextualTips, setContextualTips] = useState<any[]>([]);
+  // Vague 4: Multi-store
+  const [rebalance, setRebalance] = useState<any>(null);
+  const [storeBenchmark, setStoreBenchmark] = useState<any>(null);
 
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);
@@ -226,13 +229,20 @@ export default function DashboardScreen() {
   // Initial load on mount (safety net — useFocusEffect may not fire reliably on web)
   useEffect(() => {
     loadData();
-    // Vague 1+6: load health score, prediction, and contextual tips in background
-    Promise.allSettled([aiApi.businessHealthScore(), aiApi.dashboardPrediction(), aiApi.contextualTips()])
-      .then(([healthRes, predRes, tipsRes]) => {
-        if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
-        if (predRes.status === 'fulfilled') setPrediction(predRes.value);
-        if (tipsRes.status === 'fulfilled') setContextualTips(tipsRes.value?.tips || []);
-      });
+    // Vague 1+4+6: load health, prediction, tips, multi-store in background
+    Promise.allSettled([
+      aiApi.businessHealthScore(),
+      aiApi.dashboardPrediction(),
+      aiApi.contextualTips(),
+      aiApi.rebalanceSuggestions(),
+      aiApi.storeBenchmark(),
+    ]).then(([healthRes, predRes, tipsRes, rebalRes, benchRes]) => {
+      if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
+      if (predRes.status === 'fulfilled') setPrediction(predRes.value);
+      if (tipsRes.status === 'fulfilled') setContextualTips(tipsRes.value?.tips || []);
+      if (rebalRes.status === 'fulfilled' && (rebalRes.value?.suggestions?.length ?? 0) > 0) setRebalance(rebalRes.value);
+      if (benchRes.status === 'fulfilled' && (benchRes.value?.stores?.length ?? 0) >= 2) setStoreBenchmark(benchRes.value);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -802,6 +812,45 @@ export default function DashboardScreen() {
                   <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>{tip.title}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>{tip.message}</Text>
                 </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Vague 4: Multi-store Rebalance */}
+        {rebalance && rebalance.suggestions?.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Rééquilibrage suggéré</Text>
+            {rebalance.suggestions.slice(0, 3).map((s: any, i: number) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }} numberOfLines={1}>{s.product_name}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
+                    <Text style={{ color: '#f59e0b' }}>{s.from_store_name}</Text>
+                    {' → '}
+                    <Text style={{ color: '#10b981' }}>{s.to_store_name}</Text>
+                  </Text>
+                </View>
+                <Text style={{ color: colors.text, fontWeight: '800', fontSize: 14 }}>×{s.transfer_quantity}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Vague 4: Store Benchmark */}
+        {storeBenchmark && storeBenchmark.stores?.length >= 2 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Performance boutiques</Text>
+            {storeBenchmark.stores.map((s: any) => (
+              <View key={s.store_id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>{s.store_name}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 1 }}>
+                    Marge <Text style={{ color: s.gross_margin_pct >= 30 ? '#10b981' : s.gross_margin_pct >= 15 ? '#f59e0b' : '#ef4444', fontWeight: '700' }}>{s.gross_margin_pct}%</Text>
+                    {'  ·  '}Rotation {s.stock_rotation}×
+                  </Text>
+                </View>
+                <Text style={{ color: colors.primary, fontWeight: '800', fontSize: 13 }}>{s.performance_score}</Text>
               </View>
             ))}
           </View>

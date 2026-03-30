@@ -1472,6 +1472,14 @@ export const ai = {
     request<any>('/ai/contextual-tips'),
   categorizeExpense: (description: string, amount?: number) =>
     request<any>('/ai/categorize-expense', { method: 'POST', body: { description, amount: amount ?? 0 } }),
+  // Vague 5
+  productCorrelations: (minSupport?: number) =>
+    request<any>(`/ai/product-correlations${minSupport ? `?min_support=${minSupport}` : ''}`),
+  // Vague 4
+  rebalanceSuggestions: () =>
+    request<any>('/ai/rebalance-suggestions'),
+  storeBenchmark: () =>
+    request<any>('/ai/store-benchmark'),
 };
 
 export type InvoiceScanResult = {

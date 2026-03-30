@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { BarChart3, Boxes, Search, TrendingUp } from 'lucide-react';
-import { analytics as analyticsApi, AnalyticsStockAbc, AnalyticsStockAbcItem } from '../services/api';
+import { BarChart3, Boxes, Search, TrendingUp, Link2 } from 'lucide-react';
+import { analytics as analyticsApi, AnalyticsStockAbc, AnalyticsStockAbcItem, ai as aiApi } from '../services/api';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
@@ -19,6 +19,7 @@ export default function AbcAnalysis() {
     const [abcData, setAbcData] = useState<AnalyticsStockAbc | null>(null);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [correlations, setCorrelations] = useState<any>(null);
     const { filters } = useAnalyticsFilters();
     const hasCustomRange = filters.useCustomRange && !!filters.startDate && !!filters.endDate;
     const analyticsFilters = {
@@ -45,6 +46,8 @@ export default function AbcAnalysis() {
         } finally {
             setLoading(false);
         }
+        // Vague 5: load product correlations in background
+        aiApi.productCorrelations().then(res => setCorrelations(res)).catch(() => {});
     };
 
     if (loading && !abcData) {
@@ -230,6 +233,36 @@ export default function AbcAnalysis() {
                     </table>
                 </div>
             </div>
+
+            {/* Vague 5: Product Correlations */}
+            {correlations && correlations.pairs?.length > 0 && (
+                <div className="glass-card p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <Link2 size={20} className="text-primary" />
+                        <div>
+                            <h2 className="text-lg font-black text-white">Produits souvent achetés ensemble</h2>
+                            <p className="text-xs text-slate-500">{correlations.total_baskets} paniers analysés sur 90 jours · Lift ≥ 1.5×</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {correlations.pairs.slice(0, 9).map((pair: any) => (
+                            <div key={`${pair.product_a_id}-${pair.product_b_id}`} className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-white font-semibold text-sm truncate flex-1">{pair.product_a_name}</span>
+                                    <Link2 size={12} className="text-primary shrink-0" />
+                                    <span className="text-white font-semibold text-sm truncate flex-1 text-right">{pair.product_b_name}</span>
+                                </div>
+                                <div className="flex justify-between text-[10px]">
+                                    <span className="text-slate-500">{pair.co_occurrence} paniers communs</span>
+                                    <span className={`font-black ${pair.lift >= 3 ? 'text-emerald-400' : pair.lift >= 2 ? 'text-primary' : 'text-amber-400'}`}>
+                                        Lift {pair.lift}×
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

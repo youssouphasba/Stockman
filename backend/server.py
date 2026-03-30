@@ -8774,6 +8774,330 @@ async def get_contextual_tips(user: User = Depends(get_current_user)):
 
 # ===================== END VAGUE 6 =====================
 
+# ===================== VAGUE 5 — PRODUCT CORRELATIONS =====================
+
+@ai_router.get("/product-correlations")
+async def get_product_correlations(
+    min_support: int = 3,
+    user: User = Depends(get_current_user)
+):
+    """
+    Find product pairs frequently bought together (market basket analysis).
+    Uses co-occurrence in sales with ≥2 items. Computes lift score.
+    Enterprise only.
+    """
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    check_ai_limit(owner_id, "product_correlations", plan)
+
+    cache_key = f"product_correlations:{owner_id}"
+    cached = _ai_cache.get(cache_key)
+    if cached and (datetime.now(timezone.utc).timestamp() - _ai_cache_ts.get(cache_key, 0)) < 86400:
+        return cached
+
+    ninety_days_ago = datetime.now(timezone.utc) - timedelta(days=90)
+
+    # Fetch multi-item sales
+    sales = await db.sales.find(
+        {"user_id": owner_id, "created_at": {"$gte": ninety_days_ago}, f"items.1": {"$exists": True}},
+        {"items.product_id": 1, "items.name": 1}
+    ).to_list(2000)
+
+    if not sales:
+        return {"pairs": [], "total_baskets": 0}
+
+    # Build co-occurrence matrix
+    from itertools import combinations
+    co_occurrence: Dict[tuple, int] = {}
+    product_freq: Dict[str, int] = {}
+    total_baskets = len(sales)
+
+    product_names: Dict[str, str] = {}
+
+    for sale in sales:
+        items = sale.get("items", [])
+        pids = []
+        for item in items:
+            pid = item.get("product_id")
+            if pid:
+                pids.append(pid)
+                product_freq[pid] = product_freq.get(pid, 0) + 1
+                if pid not in product_names and item.get("name"):
+                    product_names[pid] = item["name"]
+
+        pids = list(set(pids))  # deduplicate within basket
+        for pair in combinations(sorted(pids), 2):
+            co_occurrence[pair] = co_occurrence.get(pair, 0) + 1
+
+    # Filter by min_support and compute lift
+    pairs = []
+    for (pid_a, pid_b), count in co_occurrence.items():
+        if count < min_support:
+            continue
+        freq_a = product_freq.get(pid_a, 1)
+        freq_b = product_freq.get(pid_b, 1)
+        support = count / total_baskets
+        expected = (freq_a / total_baskets) * (freq_b / total_baskets)
+        lift = support / expected if expected > 0 else 0
+        if lift >= 1.5:
+            pairs.append({
+                "product_a_id": pid_a,
+                "product_a_name": product_names.get(pid_a, pid_a),
+                "product_b_id": pid_b,
+                "product_b_name": product_names.get(pid_b, pid_b),
+                "co_occurrence": count,
+                "lift": round(lift, 2),
+                "support": round(support * 100, 1),
+            })
+
+    pairs.sort(key=lambda x: x["lift"], reverse=True)
+    pairs = pairs[:20]
+
+    track_ai_usage(owner_id, "product_correlations", plan)
+
+    result = {
+        "pairs": pairs,
+        "total_baskets": total_baskets,
+        "analysis_window_days": 90,
+        "min_lift": 1.5,
+    }
+
+    _ai_cache[cache_key] = result
+    _ai_cache_ts[cache_key] = datetime.now(timezone.utc).timestamp()
+    return result
+
+
+# ===================== END VAGUE 5 =====================
+
+# ===================== VAGUE 4 — MULTI-STORE INTELLIGENCE =====================
+
+@ai_router.get("/rebalance-suggestions")
+async def get_rebalance_suggestions(user: User = Depends(get_current_user)):
+    """
+    Suggest stock transfers between stores based on stock level vs sales velocity.
+    Enterprise only.
+    """
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    check_ai_limit(owner_id, "rebalance_suggestions", plan)
+
+    cache_key = f"rebalance:{owner_id}"
+    cached = _ai_cache.get(cache_key)
+    if cached and (datetime.now(timezone.utc).timestamp() - _ai_cache_ts.get(cache_key, 0)) < 3600:
+        return cached
+
+    # Get all stores
+    stores = await db.stores.find({"user_id": owner_id}, {"_id": 0}).to_list(20)
+    if len(stores) < 2:
+        return {"suggestions": [], "stores_count": len(stores), "message": "Nécessite au moins 2 boutiques"}
+
+    store_ids = [s["store_id"] for s in stores]
+    store_names = {s["store_id"]: s["name"] for s in stores}
+
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+
+    # Get stock per product per store
+    all_products = await db.products.find(
+        {"user_id": owner_id},
+        {"product_id": 1, "name": 1, "store_id": 1, "stock_quantity": 1, "reorder_point": 1, "cost_price": 1}
+    ).to_list(500)
+
+    # Build stock map: {product_id: {store_id: stock}}
+    # Group by base product name to match across stores
+    product_by_name: Dict[str, list] = {}
+    for p in all_products:
+        key = (p.get("name") or "").lower().strip()
+        if key:
+            if key not in product_by_name:
+                product_by_name[key] = []
+            product_by_name[key].append(p)
+
+    # Sales velocity per product per store (last 30 days)
+    velocity_agg = await db.sales.aggregate([
+        {"$match": {"user_id": owner_id, "created_at": {"$gte": thirty_days_ago}}},
+        {"$unwind": "$items"},
+        {"$group": {
+            "_id": {"product_id": "$items.product_id", "store_id": "$store_id"},
+            "qty_sold": {"$sum": "$items.quantity"}
+        }}
+    ]).to_list(2000)
+
+    velocity_map: Dict[str, Dict[str, float]] = {}
+    for v in velocity_agg:
+        pid = v["_id"]["product_id"]
+        sid = v["_id"].get("store_id", "")
+        if pid not in velocity_map:
+            velocity_map[pid] = {}
+        velocity_map[pid][sid] = v["qty_sold"] / 30  # daily velocity
+
+    suggestions = []
+    for name, variants in product_by_name.items():
+        if len(variants) < 2:
+            continue
+
+        # Find overstocked (stock >> velocity) and understocked (stock << velocity) pairs
+        scored = []
+        for p in variants:
+            sid = p.get("store_id", "")
+            stock = p.get("stock_quantity", 0)
+            vel = velocity_map.get(p["product_id"], {}).get(sid, 0)
+            days_cover = stock / vel if vel > 0 else 9999
+            scored.append({**p, "velocity": vel, "days_cover": days_cover})
+
+        # Sort by days of coverage
+        scored.sort(key=lambda x: x["days_cover"])
+        understocked = scored[0]   # lowest coverage
+        overstocked = scored[-1]   # highest coverage
+
+        if understocked["store_id"] == overstocked["store_id"]:
+            continue
+        if understocked["days_cover"] >= 14:
+            continue  # not urgent
+        if overstocked["days_cover"] <= 14:
+            continue  # source store also needs stock
+        if overstocked["stock_quantity"] <= 0:
+            continue
+
+        # How much to transfer: enough to give 14 days to understocked
+        needed = max(0, round((14 * understocked["velocity"]) - understocked["stock_quantity"]))
+        available = max(0, overstocked["stock_quantity"] - round(14 * overstocked["velocity"]))
+        transfer_qty = min(needed, available)
+
+        if transfer_qty <= 0:
+            continue
+
+        suggestions.append({
+            "product_id_from": overstocked["product_id"],
+            "product_id_to": understocked["product_id"],
+            "product_name": overstocked.get("name", name),
+            "from_store_id": overstocked["store_id"],
+            "from_store_name": store_names.get(overstocked["store_id"], overstocked["store_id"]),
+            "to_store_id": understocked["store_id"],
+            "to_store_name": store_names.get(understocked["store_id"], understocked["store_id"]),
+            "transfer_quantity": int(transfer_qty),
+            "from_stock": overstocked["stock_quantity"],
+            "to_stock": understocked["stock_quantity"],
+            "from_days_cover": round(overstocked["days_cover"]),
+            "to_days_cover": round(understocked["days_cover"]) if understocked["days_cover"] < 9999 else 0,
+            "estimated_value": round(transfer_qty * (overstocked.get("cost_price") or 0), 2),
+        })
+
+    suggestions.sort(key=lambda x: x["to_days_cover"])
+    suggestions = suggestions[:15]
+
+    track_ai_usage(owner_id, "rebalance_suggestions", plan)
+
+    result = {
+        "suggestions": suggestions,
+        "stores_count": len(stores),
+        "total_found": len(suggestions),
+    }
+
+    _ai_cache[cache_key] = result
+    _ai_cache_ts[cache_key] = datetime.now(timezone.utc).timestamp()
+    return result
+
+
+@ai_router.get("/store-benchmark")
+async def get_store_benchmark(user: User = Depends(get_current_user)):
+    """
+    Compare performance metrics across all stores: revenue, margin, stock rotation.
+    Enterprise only.
+    """
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    check_ai_limit(owner_id, "store_benchmark", plan)
+
+    cache_key = f"store_benchmark:{owner_id}"
+    cached = _ai_cache.get(cache_key)
+    if cached and (datetime.now(timezone.utc).timestamp() - _ai_cache_ts.get(cache_key, 0)) < 21600:
+        return cached
+
+    stores = await db.stores.find({"user_id": owner_id}, {"_id": 0}).to_list(20)
+    if len(stores) < 2:
+        return {"stores": [], "message": "Nécessite au moins 2 boutiques"}
+
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+
+    store_stats = []
+    for store in stores:
+        sid = store["store_id"]
+        store_query = {"user_id": owner_id, "store_id": sid}
+
+        # Revenue + gross margin
+        sales_agg = await db.sales.aggregate([
+            {"$match": {**store_query, "created_at": {"$gte": thirty_days_ago}}},
+            {"$group": {
+                "_id": None,
+                "revenue": {"$sum": "$total_amount"},
+                "cost": {"$sum": "$cost_total"},
+                "count": {"$sum": 1}
+            }}
+        ]).to_list(1)
+
+        revenue = sales_agg[0]["revenue"] if sales_agg else 0
+        cost = sales_agg[0]["cost"] if sales_agg else 0
+        sales_count = sales_agg[0]["count"] if sales_agg else 0
+        gross_margin = revenue - cost
+        gross_margin_pct = round((gross_margin / revenue * 100) if revenue > 0 else 0, 1)
+
+        # Stock value
+        stock_agg = await db.products.aggregate([
+            {"$match": store_query},
+            {"$group": {"_id": None, "total": {"$sum": {"$multiply": ["$stock_quantity", {"$ifNull": ["$cost_price", 0]}]}}}}
+        ]).to_list(1)
+        stock_value = stock_agg[0]["total"] if stock_agg else 0
+
+        # Stock rotation = revenue / avg_stock_value (simplified)
+        rotation = round(revenue / stock_value if stock_value > 0 else 0, 2)
+
+        # Product count
+        product_count = await db.products.count_documents(store_query)
+
+        store_stats.append({
+            "store_id": sid,
+            "store_name": store["name"],
+            "revenue_30d": round(revenue, 2),
+            "gross_margin": round(gross_margin, 2),
+            "gross_margin_pct": gross_margin_pct,
+            "sales_count": sales_count,
+            "stock_value": round(stock_value, 2),
+            "stock_rotation": rotation,
+            "product_count": product_count,
+            "avg_basket": round(revenue / sales_count if sales_count > 0 else 0, 2),
+        })
+
+    # Rank stores
+    if store_stats:
+        max_rev = max(s["revenue_30d"] for s in store_stats) or 1
+        max_margin = max(s["gross_margin_pct"] for s in store_stats) or 1
+        max_rotation = max(s["stock_rotation"] for s in store_stats) or 1
+        for s in store_stats:
+            s["performance_score"] = round(
+                (s["revenue_30d"] / max_rev * 40) +
+                (s["gross_margin_pct"] / max_margin * 40) +
+                (s["stock_rotation"] / max_rotation * 20), 1
+            )
+        store_stats.sort(key=lambda x: x["performance_score"], reverse=True)
+        store_stats[0]["rank_label"] = "top"
+        if len(store_stats) > 1:
+            store_stats[-1]["rank_label"] = "bottom"
+
+    track_ai_usage(owner_id, "store_benchmark", plan)
+
+    result = {
+        "stores": store_stats,
+        "period_days": 30,
+        "total_stores": len(store_stats),
+    }
+
+    _ai_cache[cache_key] = result
+    _ai_cache_ts[cache_key] = datetime.now(timezone.utc).timestamp()
+    return result
+
+
+# ===================== END VAGUE 4 =====================
+
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
     """List all disputes with optional filters"""

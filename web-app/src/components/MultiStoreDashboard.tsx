@@ -16,7 +16,7 @@ import {
     Store,
     TrendingUp,
 } from 'lucide-react';
-import { analytics as analyticsApi, AnalyticsKpiDetail, AnalyticsStoreComparison, stores as storesApi, User } from '../services/api';
+import { analytics as analyticsApi, AnalyticsKpiDetail, AnalyticsStoreComparison, stores as storesApi, User, ai as aiApi } from '../services/api';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
@@ -46,6 +46,9 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
     const [detailLoading, setDetailLoading] = useState(false);
     const [detail, setDetail] = useState<AnalyticsKpiDetail | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
+    // Vague 4: AI rebalance + benchmark
+    const [rebalance, setRebalance] = useState<any>(null);
+    const [benchmark, setBenchmark] = useState<any>(null);
     const { filters } = useAnalyticsFilters();
     const hasCustomRange = filters.useCustomRange && !!filters.startDate && !!filters.endDate;
     const analyticsFilters = {
@@ -75,6 +78,12 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
 
     useEffect(() => {
         load();
+        // Vague 4: load AI features in background
+        Promise.allSettled([aiApi.rebalanceSuggestions(), aiApi.storeBenchmark()])
+            .then(([rebalRes, benchRes]) => {
+                if (rebalRes.status === 'fulfilled') setRebalance(rebalRes.value);
+                if (benchRes.status === 'fulfilled') setBenchmark(benchRes.value);
+            });
     }, [load]);
 
     const handleSwitch = async (storeId: string) => {
@@ -400,6 +409,86 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                                 {creating ? 'Creation...' : 'Creer la boutique'}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Vague 4: Store Benchmark */}
+            {benchmark && benchmark.stores?.length >= 2 && (
+                <div className="glass-card p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <TrendingUp size={20} className="text-primary" />
+                        <h2 className="text-lg font-black text-white">Benchmark boutiques — 30 derniers jours</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead>
+                                <tr className="border-b border-white/10">
+                                    <th className="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Boutique</th>
+                                    <th className="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">CA 30j</th>
+                                    <th className="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Marge brute</th>
+                                    <th className="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Rotation</th>
+                                    <th className="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {benchmark.stores.map((s: any) => (
+                                    <tr key={s.store_id} className="hover:bg-white/5 transition-colors">
+                                        <td className="py-3 pr-4">
+                                            <span className="text-white font-bold">{s.store_name}</span>
+                                            {s.rank_label === 'top' && <span className="ml-2 text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full font-black">TOP</span>}
+                                            {s.rank_label === 'bottom' && <span className="ml-2 text-[9px] bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded-full font-black">À améliorer</span>}
+                                        </td>
+                                        <td className="py-3 pr-4 text-white font-semibold">{formatCurrency(s.revenue_30d)}</td>
+                                        <td className="py-3 pr-4">
+                                            <span className={s.gross_margin_pct >= 30 ? 'text-emerald-400 font-bold' : s.gross_margin_pct >= 15 ? 'text-amber-400 font-bold' : 'text-rose-400 font-bold'}>
+                                                {s.gross_margin_pct}%
+                                            </span>
+                                        </td>
+                                        <td className="py-3 pr-4 text-slate-300">{s.stock_rotation}×</td>
+                                        <td className="py-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-16 h-1.5 rounded-full bg-white/10">
+                                                    <div className="h-full rounded-full bg-primary" style={{ width: `${s.performance_score}%` }} />
+                                                </div>
+                                                <span className="text-primary font-black text-xs">{s.performance_score}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Vague 4: Rebalance Suggestions */}
+            {rebalance && rebalance.suggestions?.length > 0 && (
+                <div className="glass-card p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <Repeat size={20} className="text-amber-400" />
+                        <div>
+                            <h2 className="text-lg font-black text-white">Rééquilibrage suggéré</h2>
+                            <p className="text-xs text-slate-500">{rebalance.total_found} transfert(s) pour optimiser la couverture stock</p>
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        {rebalance.suggestions.slice(0, 8).map((s: any, i: number) => (
+                            <div key={i} className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/5">
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-white font-semibold text-sm truncate">{s.product_name}</p>
+                                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                                        <span className="text-amber-400 font-bold">{s.from_store_name}</span>
+                                        <ArrowRight size={12} />
+                                        <span className="text-emerald-400 font-bold">{s.to_store_name}</span>
+                                    </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <p className="text-white font-black text-sm">× {s.transfer_quantity}</p>
+                                    <p className="text-[10px] text-slate-500">{s.to_days_cover}j restants</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

@@ -2210,6 +2210,14 @@ export const ai = {
             method: 'POST',
             body: { description, amount: amount ?? 0 },
         }),
+    // Vague 5
+    productCorrelations: (minSupport?: number) =>
+        request<any>(`/ai/product-correlations${minSupport ? `?min_support=${minSupport}` : ''}`),
+    // Vague 4
+    rebalanceSuggestions: () =>
+        request<any>('/ai/rebalance-suggestions'),
+    storeBenchmark: () =>
+        request<any>('/ai/store-benchmark'),
 };
 
 export const returns = {

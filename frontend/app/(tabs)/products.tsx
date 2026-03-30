@@ -125,6 +125,8 @@ export default function ProductsScreen() {
   const [deadstockCount, setDeadstockCount] = useState(0);
   const [seasonalityMap, setSeasonalityMap] = useState<Record<string, any>>({});
   const [duplicatesCount, setDuplicatesCount] = useState(0);
+  // Vague 5: product correlations map {product_id: [{name, lift}]}
+  const [correlationsMap, setCorrelationsMap] = useState<Record<string, Array<{name: string; lift: number}>>>({});
   const [supplierCoverageFilter, setSupplierCoverageFilter] = useState<'all' | 'no_supplier' | 'multi_supplier' | 'missing_primary'>('all');
   const handledReminderProductRef = useRef<string | null>(null);
 
@@ -460,12 +462,13 @@ export default function ProductsScreen() {
           console.warn('[Products] forecast unavailable', forecastError);
         }
 
-        // Vague 1+2: load deadstock, seasonality, duplicates
+        // Vague 1+2+5: load deadstock, seasonality, duplicates, correlations
         Promise.allSettled([
           aiApi.deadstockAnalysis(),
           aiApi.seasonalityAlerts(),
           aiApi.detectDuplicates('products'),
-        ]).then(([dsRes, seasonRes, dupsRes]) => {
+          aiApi.productCorrelations(),
+        ]).then(([dsRes, seasonRes, dupsRes, corrRes]) => {
           if (dsRes.status === 'fulfilled' && dsRes.value?.deadstock) {
             setDeadstockIds(new Set(dsRes.value.deadstock.map((d: any) => d.product_id)));
             setDeadstockCount(dsRes.value.deadstock.length);
@@ -477,6 +480,16 @@ export default function ProductsScreen() {
           }
           if (dupsRes.status === 'fulfilled') {
             setDuplicatesCount(dupsRes.value?.total_found || 0);
+          }
+          if (corrRes.status === 'fulfilled' && corrRes.value?.pairs) {
+            const cmap: Record<string, Array<{name: string; lift: number}>> = {};
+            for (const pair of corrRes.value.pairs) {
+              if (!cmap[pair.product_a_id]) cmap[pair.product_a_id] = [];
+              if (!cmap[pair.product_b_id]) cmap[pair.product_b_id] = [];
+              cmap[pair.product_a_id].push({ name: pair.product_b_name, lift: pair.lift });
+              cmap[pair.product_b_id].push({ name: pair.product_a_name, lift: pair.lift });
+            }
+            setCorrelationsMap(cmap);
           }
         });
 
@@ -2523,6 +2536,19 @@ export default function ProductsScreen() {
                         <Text style={styles.detailValue}>{formatUserCurrency(product.quantity * product.purchase_price, user)}</Text>
                       </View>
                     </View>
+                    )}
+
+                    {/* Vague 5: Product Correlations badge */}
+                    {correlationsMap[product.product_id]?.length > 0 && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, marginBottom: 8, flexWrap: 'wrap' }}>
+                        <Ionicons name="link-outline" size={13} color={colors.primary} />
+                        <Text style={{ fontSize: 11, color: colors.textMuted }}>Acheté avec : </Text>
+                        {correlationsMap[product.product_id].slice(0, 3).map((c, i) => (
+                          <View key={i} style={{ backgroundColor: colors.primary + '15', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{c.name}</Text>
+                          </View>
+                        ))}
+                      </View>
                     )}
 
                     {/* Seasonality alert badge */}
