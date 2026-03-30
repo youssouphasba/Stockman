@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -84,7 +84,7 @@ export default function TrialBanner() {
     const { bg, text, icon } = VARIANT_STYLES[variant];
 
     const label = remainingDays === 1
-        ? t('trial.banner_one', { defaultValue: '⚠️ Dernier jour d\'essai gratuit' })
+        ? t('trial.banner_one', { defaultValue: 'âš ï¸ Dernier jour d\'essai gratuit' })
         : t('trial.banner', { days: remainingDays, defaultValue: `{{days}} jours d'essai gratuit restants` });
 
     return (

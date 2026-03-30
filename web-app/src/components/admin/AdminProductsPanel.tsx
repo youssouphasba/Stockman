@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, RefreshCw, ShieldCheck, ShieldOff, Store, Trash2 } from 'lucide-react';

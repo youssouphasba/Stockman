@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextStyle, Animated, Easing, Platform, StyleProp } from 'react-native';
 import { formatNumber } from '../utils/format';
 

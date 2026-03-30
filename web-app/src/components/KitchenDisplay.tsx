@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     ChefHat, Clock, RefreshCw, CheckCircle2, CheckCheck,
     Utensils, Zap, Coffee, Salad, Beef,
 } from 'lucide-react';
 
-// ─── API helper (request not exported from api.ts) ────────────────────────────
+// â”€â”€â”€ API helper (request not exported from api.ts) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const API_URL = '';
 
@@ -25,12 +25,12 @@ async function apiRequest<T>(
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Erreur serveur' }));
-        throw new Error(err.detail ?? 'Erreur serveur');
+        throw new Error(err.detail || 'Erreur serveur');
     }
     return res.json();
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface KitchenItem {
     product_id?: string;
@@ -55,7 +55,7 @@ interface KitchenTicket {
     _served?: boolean;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const URGENCY_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -77,7 +77,7 @@ const STATION_COLORS: Record<string, string> = {
     default: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getStationBadgeClass(station?: string): string {
     if (!station) return STATION_COLORS.default;
@@ -109,7 +109,7 @@ function formatElapsedShort(ms: number): string {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// ─── Live Elapsed Clock ───────────────────────────────────────────────────────
+// â”€â”€â”€ Live Elapsed Clock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function LiveClock({ since, urgent }: { since: string; urgent: boolean }) {
     const [ms, setMs] = useState(() => elapsedMs(since));
@@ -127,7 +127,7 @@ function LiveClock({ since, urgent }: { since: string; urgent: boolean }) {
     );
 }
 
-// ─── Ticket Card ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Ticket Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface TicketCardProps {
     ticket: KitchenTicket;
@@ -171,7 +171,7 @@ function TicketCard({ ticket, readyItems, onItemReady, onServed }: TicketCardPro
             <div className={`px-4 py-3 flex justify-between items-center ${urgent ? 'bg-rose-500/10' : allReady ? 'bg-emerald-500/10' : 'bg-white/5'}`}>
                 <div className="flex items-center gap-2 min-w-0">
                     <span className="text-white font-bold text-sm truncate">
-                        {ticket.table_name ?? (ticket.table_id ? `Table ${ticket.table_id}` : 'À emporter')}
+                        {ticket.table_name ? (ticket.table_id ? `Table ${ticket.table_id}` : 'À emporter') : 'À emporter'}
                     </span>
                     {ticket.covers != null && ticket.covers > 0 && (
                         <span className="text-xs text-slate-500 shrink-0">{ticket.covers} cvt</span>
@@ -197,7 +197,7 @@ function TicketCard({ ticket, readyItems, onItemReady, onServed }: TicketCardPro
             {/* Notes globales */}
             {ticket.notes && (
                 <div className="mx-4 mt-2 p-2 bg-amber-500/10 rounded-lg text-amber-300 text-xs flex items-start gap-1.5 border border-amber-500/20">
-                    <span className="shrink-0 mt-0.5">⚠</span>
+                    <span className="shrink-0 mt-0.5">âš </span>
                     <span>{ticket.notes}</span>
                 </div>
             )}
@@ -293,7 +293,7 @@ function TicketCard({ ticket, readyItems, onItemReady, onServed }: TicketCardPro
     );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function KitchenDisplay() {
     const [tickets, setTickets] = useState<KitchenTicket[]>([]);
@@ -305,7 +305,7 @@ export default function KitchenDisplay() {
     const loadingRef = useRef(false);
     const prevTicketCount = useRef(0);
 
-    // ── Data loading ─────────────────────────────────────────────────────────
+    // â”€â”€ Data loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     const load = useCallback(async (silent = false) => {
         if (loadingRef.current) return;
@@ -350,7 +350,7 @@ export default function KitchenDisplay() {
         return () => clearInterval(interval);
     }, [load]);
 
-    // ── Item ready toggle ─────────────────────────────────────────────────────
+    // â”€â”€ Item ready toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     const handleItemReady = useCallback(async (saleId: string, itemIdx: number, checked: boolean) => {
         // Optimistic update
@@ -371,7 +371,7 @@ export default function KitchenDisplay() {
         }
     }, []);
 
-    // ── Ticket served ─────────────────────────────────────────────────────────
+    // â”€â”€ Ticket served â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     const handleServed = useCallback((saleId: string) => {
         setTickets(prev => prev.filter(t => t.sale_id !== saleId));
@@ -382,7 +382,7 @@ export default function KitchenDisplay() {
         });
     }, []);
 
-    // ── Station filtering ─────────────────────────────────────────────────────
+    // â”€â”€ Station filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     const filteredTickets = activeStation === 'all'
         ? tickets
@@ -396,7 +396,7 @@ export default function KitchenDisplay() {
     // Count urgents
     const urgentCount = tickets.filter(t => elapsedMs(t.kitchen_sent_at) >= URGENCY_THRESHOLD_MS).length;
 
-    // ── Render ────────────────────────────────────────────────────────────────
+    // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden bg-[#0F172A]">

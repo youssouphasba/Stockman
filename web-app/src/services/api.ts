@@ -1,4 +1,4 @@
-import { syncService } from './syncService';
+﻿import { syncService } from './syncService';
 
 // In the browser, always go through the Next.js rewrite proxy so auth cookies stay same-origin.
 // On the server, keep the env fallback for non-browser execution contexts.
@@ -284,7 +284,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
 }
 
-// ─── Shared Types ───
+// â”€â”€â”€ Shared Types â”€â”€â”€
 
 export type UserFeatures = {
     has_production: boolean;
@@ -1271,7 +1271,7 @@ export type VerificationStatus = {
     user: User;
 };
 
-// ─── Production Types ───
+// â”€â”€â”€ Production Types â”€â”€â”€
 
 export type RecipeIngredient = {
     product_id: string;
@@ -2483,7 +2483,7 @@ export const admin = {
     },
 };
 
-// ── Chat / Messagerie ────────────────────────────────────────────────────────
+// â”€â”€ Chat / Messagerie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type ChatMessage = {
     message_id: string;

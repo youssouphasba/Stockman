@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -558,7 +558,7 @@ export default function Home() {
 
     return (
       <main className="min-h-screen bg-[#0F172A] overflow-y-auto">
-        {/* ── HERO ── */}
+        {/* â”€â”€ HERO â”€â”€ */}
         <div className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-primary/10 to-transparent">
           <div className="max-w-6xl mx-auto px-6 py-14 text-center">
             <div className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-400 text-xs font-bold px-4 py-2 rounded-full border border-amber-500/20 mb-6">
@@ -612,7 +612,7 @@ export default function Home() {
 
         <div className="max-w-6xl mx-auto px-6 py-12 space-y-16">
 
-          {/* ── MODULES ── */}
+          {/* â”€â”€ MODULES â”€â”€ */}
           <section>
             <div className="text-center mb-10">
               <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">{t('home.upsell.modules_eyebrow')}</p>
@@ -648,7 +648,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ── COMPARISON TABLE ── */}
+          {/* â”€â”€ COMPARISON TABLE â”€â”€ */}
           <section>
             <div className="text-center mb-8">
               <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">{t('home.upsell.compare_eyebrow')}</p>
@@ -685,7 +685,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ── FINAL CTA ── */}
+          {/* â”€â”€ FINAL CTA â”€â”€ */}
           <section className="rounded-2xl border border-primary/30 bg-primary/5 p-8 text-center">
             <Star size={32} className="text-primary mx-auto mb-4" />
             <h2 className="text-2xl font-black text-white mb-2">{t('home.upsell.cta_final_title')}</h2>

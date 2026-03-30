@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     TrendingUp,
@@ -436,7 +436,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                         />
                         <StatCard
                             label={`Tables occupées (${restaurantStats?.tables_occupied || 0}/${restaurantStats?.tables_total || 0})`}
-                            value={restaurantStats?.kitchen_pending ? `🍳 ${restaurantStats.kitchen_pending} en cuisine` : 'Cuisine vide'}
+                            value={restaurantStats?.kitchen_pending ? `ðŸ³ ${restaurantStats.kitchen_pending} en cuisine` : 'Cuisine vide'}
                             icon={Package}
                             color="bg-purple-500"
                         />

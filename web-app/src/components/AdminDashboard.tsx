@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -51,7 +51,7 @@ function formatAdminMoney(amount: any, currency: string) {
     if (amount === null || amount === undefined || amount === '') return '—';
     const numeric = Number(amount);
     if (!Number.isFinite(numeric)) return `${amount} ${currency || ''}`.trim();
-    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} â‚¬`;
     const suffix = currency === 'XOF' || currency === 'XAF' ? 'FCFA' : (currency || '');
     return `${numeric.toLocaleString('fr-FR')} ${suffix}`.trim();
 }
@@ -388,7 +388,7 @@ export default function AdminDashboard() {
             setSecurityStats(statsRes);
             setVerificationEvents(verificationRes.items || []);
             setVerificationEventsTotal(verificationRes.total || 0);
-            setActiveSessions(Array.isArray(sessionsRes) asessionsRes : []);
+            setActiveSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
         } finally { setRefreshing(false); }
     };
 
@@ -401,7 +401,7 @@ export default function AdminDashboard() {
     const loadBroadcastHistory = async () => {
         setRefreshing(true);
         try {
-            const response = await adminApi.listMessages(messageTypeFilter === 'all' aundefined : messageTypeFilter, 0, 80);
+            const response = await adminApi.listMessages(messageTypeFilter === 'all' ? undefined : messageTypeFilter, 0, 80);
             setMessageHistory(response.items || []);
             setMessageHistoryTotal(response.total || 0);
         } finally {
@@ -455,8 +455,8 @@ export default function AdminDashboard() {
         setTogglingUser(userId);
         try {
             await adminApi.toggleUser(userId);
-            setUsers(prev => prev.map(u => u.user_id === userId a{ ...u, is_active: !currentStatus } : u));
-            showToast(currentStatus a'Utilisateur banni.' : 'Utilisateur réactivé.');
+            setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, is_active: !currentStatus } : u));
+            showToast(currentStatus ? 'Utilisateur banni.' : 'Utilisateur réactivé.');
         } catch {
             showToast('Erreur lors de la modification.', 'error');
         } finally {
@@ -508,7 +508,7 @@ export default function AdminDashboard() {
 
     const filteredDisputes = useMemo(() => {
         if (disputeFilter === 'all') return disputes;
-        return disputes.filter(d => disputeFilter === 'open' ad.status === 'open' : d.status !== 'open');
+        return disputes.filter(d => disputeFilter === 'open' ? d.status === 'open' : d.status !== 'open');
     }, [disputes, disputeFilter]);
 
     const filteredSubscriptionAccounts = useMemo(() => {
@@ -650,7 +650,7 @@ export default function AdminDashboard() {
             activeAlerts:
                 (securityStats.blocked_users || 0)
                 + riskyActors.length
-                + (securityStats.failed_logins_24h || 0 > 10 a1 : 0),
+                + ((securityStats.failed_logins_24h || 0) > 10 ? 1 : 0),
         };
     }, [securityEvents, securityStats]);
 
@@ -659,16 +659,16 @@ export default function AdminDashboard() {
         const accounts = filteredSubscriptionAccounts || [];
         const events = filteredSubscriptionEvents || [];
 
-        const mrrRows = Array.isArray(overview.mrr_estimate) aoverview.mrr_estimate : [];
+        const mrrRows = Array.isArray(overview.mrr_estimate) ? overview.mrr_estimate : [];
         const primaryMrr = mrrRows[0] || null;
-        const primaryArr = primaryMrr.amount aNumber(primaryMrr.amount) * 12 : null;
-        const paymentVolumeRows = Array.isArray(overview.payment_volume_30d) aoverview.payment_volume_30d : [];
+        const primaryArr = primaryMrr?.amount ? Number(primaryMrr.amount) * 12 : null;
+        const paymentVolumeRows = Array.isArray(overview.payment_volume_30d) ? overview.payment_volume_30d : [];
         const paymentVolumePrimary = paymentVolumeRows[0] || null;
 
         const activePaidAccounts = Number(overview.active_paid_accounts || 0);
         const paymentsCount30d = Number(overview.payments_count_30d || 0);
         const averagePaymentValue = paymentVolumePrimary && paymentsCount30d > 0
-            aNumber(paymentVolumePrimary.amount || 0) / paymentsCount30d
+            ? Number(paymentVolumePrimary.amount || 0) / paymentsCount30d
             : null;
 
         const plans = Object.entries(overview.by_plan || {}) as [string, number][];
@@ -783,7 +783,7 @@ export default function AdminDashboard() {
                                 disabled={!!deletingUser}
                                 className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/30 transition-all disabled:opacity-40"
                             >
-                                {deletingUser a'Suppression...' : 'Supprimer définitivement'}
+                                {deletingUser ? 'Suppression...' : 'Supprimer définitivement'}
                             </button>
                         </div>
                     </div>
@@ -796,9 +796,9 @@ export default function AdminDashboard() {
                     <p className="text-slate-400 text-sm">Supervision globale du système Stockman.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold uppercase tracking-widest ${['ok', 'online', 'healthy'].includes(String(health.status || '')) a'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold uppercase tracking-widest ${['ok', 'online', 'healthy'].includes(String(health.status || '')) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
                         <Activity size={16} />
-                        {['ok', 'online', 'healthy'].includes(String(health.status || '')) a'Opérationnel' : 'Erreur'}
+                        {['ok', 'online', 'healthy'].includes(String(health.status || '')) ? 'Opérationnel' : 'Erreur'}
                     </div>
                     <button onClick={() => {
                         if (activeSection === 'subscriptions' || activeSection === 'finance') loadSubscriptions();
@@ -829,7 +829,7 @@ export default function AdminDashboard() {
                     <button
                         key={tab.id}
                         onClick={() => setActiveSection(tab.id as any)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap border ${activeSection === tab.id a'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white'}`}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap border ${activeSection === tab.id ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white'}`}
                     >
                         <tab.icon size={16} />
                         {tab.label}
@@ -844,20 +844,20 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                         <StatCard label="Shopkeepers" value={stats.users_by_role.shopkeeper || 0} icon={Users} color="bg-primary" sub={`+${stats.signups_today || 0} aujourd'hui`} />
                         <StatCard label="CA Global (30j)" value={`${(stats.revenue_month || 0).toLocaleString()} F`} icon={TrendingUp} color="bg-emerald-500" sub={`Aujourd'hui : ${(stats.revenue_today || 0).toLocaleString()} F`} />
-                        <StatCard label="Tickets Ouverts" value={stats.open_tickets || 0} icon={MessageSquare} color="bg-amber-500" />
+                        <StatCard label="Tickets Ouverts" value={stats.open_tickets || 0} icon={MessageSquare} color="bg-amber-500" sub="Support en cours" />
                         <StatCard label="Pays Couverts" value={Object.keys(stats.users_by_country || {}).length} icon={Globe} color="bg-blue-400" sub={`${stats.recent_signups || 0} inscrits (7j)`} />
                     </div>
 
                     {/* KPI Row 2 — Plans & Trials */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                        <StatCard label="Enterprise" value={stats.users_by_plan.enterprise || 0} icon={Crown} color="bg-purple-500" />
-                        <StatCard label="Pro" value={stats.users_by_plan.pro || 0} icon={Zap} color="bg-blue-500" />
-                        <StatCard label="Starter" value={stats.users_by_plan.starter || 0} icon={Package} color="bg-emerald-500" />
+                        <StatCard label="Enterprise" value={stats.users_by_plan.enterprise || 0} icon={Crown} color="bg-purple-500" sub="Comptes actifs" />
+                        <StatCard label="Pro" value={stats.users_by_plan.pro || 0} icon={Zap} color="bg-blue-500" sub="Comptes actifs" />
+                        <StatCard label="Starter" value={stats.users_by_plan.starter || 0} icon={Package} color="bg-emerald-500" sub="Comptes actifs" />
                         <StatCard
                             label="Trials expirant (7j)"
                             value={stats.trials_expiring_soon || 0}
                             icon={Clock}
-                            color={stats.trials_expiring_soon > 0 a'bg-rose-500' : 'bg-slate-500'}
+                            color={stats.trials_expiring_soon > 0 ? 'bg-rose-500' : 'bg-slate-500'}
                             sub="Relance recommandée"
                         />
                     </div>
@@ -887,7 +887,7 @@ export default function AdminDashboard() {
                             <h3 className="text-base font-black text-white mb-5 flex items-center gap-2 uppercase tracking-tighter">
                                 <BarChart2 size={18} className="text-primary" /> Top Boutiques (CA)
                             </h3>
-                            {(stats.top_stores || []).length > 0 a(
+                            {(stats.top_stores || []).length > 0 ? (
                                 <div className="space-y-3">
                                     {stats.top_stores.map((s: any, i: number) => (
                                         <div key={s.store_id} className="flex items-center gap-3">
@@ -1041,12 +1041,12 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
-                        <StatCard label="MRR principal" value={financeSummary.primaryMrr aformatAdminMoney(financeSummary.primaryMrr.amount, financeSummary.primaryMrr.currency) : '—'} icon={TrendingUp} color="bg-emerald-500" sub={financeSummary.primaryMrr.currency || 'Aucune devise'} />
-                        <StatCard label="ARR estimé" value={financeSummary.primaryArr aformatAdminMoney(financeSummary.primaryArr, financeSummary.primaryMrr.currency) : '—'} icon={BarChart2} color="bg-sky-500" sub="Projection annuelle" />
+                        <StatCard label="MRR principal" value={financeSummary.primaryMrr ? formatAdminMoney(financeSummary.primaryMrr.amount, financeSummary.primaryMrr.currency) : "-"} icon={TrendingUp} color="bg-emerald-500" sub={financeSummary.primaryMrr?.currency || "Aucune devise"} />
+                        <StatCard label="ARR estime" value={financeSummary.primaryArr ? formatAdminMoney(financeSummary.primaryArr, financeSummary.primaryMrr?.currency) : "-"} icon={BarChart2} color="bg-sky-500" sub="Projection annuelle" />
                         <StatCard label="Comptes payants" value={subscriptionOverview.active_paid_accounts || 0} icon={Wallet} color="bg-primary" sub="Actifs" />
                         <StatCard label="Trials actifs" value={subscriptionOverview.active_trials || 0} icon={Clock} color="bg-amber-500" sub={`${subscriptionOverview.trials_expiring_3d || 0} expirent sous 3 jours`} />
-                        <StatCard label="Panier paiement" value={financeSummary.averagePaymentValue !== null aformatAdminMoney(financeSummary.averagePaymentValue, financeSummary.paymentVolumePrimary.currency) : '—'} icon={CreditCard} color="bg-violet-500" sub="Moyenne 30 jours" />
-                        <StatCard label="Alertes recouvrement" value={subscriptionAlerts.summary.total || 0} icon={Bell} color={(subscriptionAlerts.summary.critical || 0) > 0 a'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts.summary.critical || 0} critiques`} />
+                        <StatCard label="Panier paiement" value={financeSummary.averagePaymentValue !== null ? formatAdminMoney(financeSummary.averagePaymentValue, financeSummary.paymentVolumePrimary?.currency) : "-"} icon={CreditCard} color="bg-violet-500" sub="Moyenne 30 jours" />
+                        <StatCard label="Alertes recouvrement" value={subscriptionAlerts.summary.total || 0} icon={Bell} color={(subscriptionAlerts.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts.summary.critical || 0} critiques`} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -1056,23 +1056,23 @@ export default function AdminDashboard() {
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Par plan</p>
                                     <div className="space-y-2">
-                                        {financeSummary.plans.length afinanceSummary.plans.map(([plan, count]) => (
+                                        {financeSummary.plans.length ? financeSummary.plans.map(([plan, count]) => (
                                             <div key={plan} className="flex items-center justify-between text-sm">
                                                 <span className="text-slate-300 capitalize">{plan}</span>
                                                 <strong className="text-white">{Number(count)}</strong>
                                             </div>
-                                        )) : <p className="text-sm text-slate-500">Aucune donnée.</p>}
+                                        )) : <p className="text-sm text-slate-500">Aucune donnee.</p>}
                                     </div>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Par provider</p>
                                     <div className="space-y-2">
-                                        {financeSummary.providers.length afinanceSummary.providers.map(([provider, count]) => (
+                                        {financeSummary.providers.length ? financeSummary.providers.map(([provider, count]) => (
                                             <div key={provider} className="flex items-center justify-between text-sm">
                                                 <span className="text-slate-300 capitalize">{provider || 'none'}</span>
                                                 <strong className="text-white">{Number(count)}</strong>
                                             </div>
-                                        )) : <p className="text-sm text-slate-500">Aucune donnée.</p>}
+                                        )) : <p className="text-sm text-slate-500">Aucune donnee.</p>}
                                     </div>
                                 </div>
                             </div>
@@ -1084,23 +1084,23 @@ export default function AdminDashboard() {
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Volume paiements 30 jours</p>
                                     <div className="space-y-2">
-                                        {financeSummary.paymentVolumeRows.length afinanceSummary.paymentVolumeRows.map((row: any) => (
+                                        {financeSummary.paymentVolumeRows.length ? financeSummary.paymentVolumeRows.map((row: any) => (
                                             <div key={row.currency} className="flex items-center justify-between text-sm">
                                                 <span className="text-slate-300">{row.currency}</span>
                                                 <strong className="text-white">{formatAdminMoney(row.amount, row.currency)}</strong>
                                             </div>
-                                        )) : <p className="text-sm text-slate-500">Aucun paiement confirmé sur la fenêtre.</p>}
+                                        )) : <p className="text-sm text-slate-500">Aucun paiement confirme sur la fenetre.</p>}
                                     </div>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Top pays comptes payants / suivis</p>
                                     <div className="space-y-2">
-                                        {financeSummary.byCountry.length afinanceSummary.byCountry.map(([country, count]) => (
+                                        {financeSummary.byCountry.length ? financeSummary.byCountry.map(([country, count]) => (
                                             <div key={country} className="flex items-center justify-between text-sm">
                                                 <span className="text-slate-300">{country}</span>
                                                 <strong className="text-white">{Number(count)}</strong>
                                             </div>
-                                        )) : <p className="text-sm text-slate-500">Aucune donnée pays.</p>}
+                                        )) : <p className="text-sm text-slate-500">Aucune donnee pays.</p>}
                                     </div>
                                 </div>
                             </div>
@@ -1141,7 +1141,7 @@ export default function AdminDashboard() {
                                 </span>
                             </div>
                             <div className="divide-y divide-white/5 max-h-[560px] overflow-y-auto custom-scrollbar">
-                                {financeSummary.accountsAtRisk.length afinanceSummary.accountsAtRisk.slice(0, 12).map((account: any) => (
+                                {financeSummary.accountsAtRisk.length ? financeSummary.accountsAtRisk.slice(0, 12).map((account: any) => (
                                     <div key={account.account_id} className="p-5 hover:bg-white/5 transition-all">
                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                             <div className="space-y-1">
@@ -1151,8 +1151,8 @@ export default function AdminDashboard() {
                                                     {account.country_code || '—'} · {account.currency || '—'} · {formatAccessPhaseLabel(account.subscription_access_phase || 'active')}
                                                 </p>
                                             </div>
-                                            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${account.manual_read_only_enabled a'border-rose-500/20 bg-rose-500/10 text-rose-300' : 'border-amber-500/20 bg-amber-500/10 text-amber-300'}`}>
-                                                {account.manual_read_only_enabled a'Lecture seule' : account.subscription_status || 'Risque'}
+                                            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${account.manual_read_only_enabled ? 'border-rose-500/20 bg-rose-500/10 text-rose-300' : 'border-amber-500/20 bg-amber-500/10 text-amber-300'}`}>
+                                                {account.manual_read_only_enabled ? 'Lecture seule' : account.subscription_status || 'Risque'}
                                             </span>
                                         </div>
                                         <div className="mt-4 flex flex-wrap gap-2">
@@ -1161,14 +1161,14 @@ export default function AdminDashboard() {
                                                 disabled={sendingReminderAccountId === account.account_id}
                                                 className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs font-bold text-sky-200 hover:bg-sky-500/20 disabled:opacity-40"
                                             >
-                                                {sendingReminderAccountId === account.account_id a'...' : 'Envoyer rappel'}
+                                                {sendingReminderAccountId === account.account_id ? '...' : 'Envoyer rappel'}
                                             </button>
                                             <button
                                                 onClick={() => void handleRegeneratePaymentLinks(account.account_id)}
                                                 disabled={refreshingPaymentLinksAccountId === account.account_id}
                                                 className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-xs font-bold text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-40"
                                             >
-                                                {refreshingPaymentLinksAccountId === account.account_id a'...' : 'Régénérer lien'}
+                                                {refreshingPaymentLinksAccountId === account.account_id ? '...' : 'Régénérer lien'}
                                             </button>
                                             <button
                                                 onClick={() => setActiveSection('subscriptions')}
@@ -1195,14 +1195,14 @@ export default function AdminDashboard() {
                                 </span>
                             </div>
                             <div className="divide-y divide-white/5 max-h-[560px] overflow-y-auto custom-scrollbar">
-                                {financeSummary.recentPaymentEvents.length afinanceSummary.recentPaymentEvents.slice(0, 14).map((event: any) => (
+                                {financeSummary.recentPaymentEvents.length ? financeSummary.recentPaymentEvents.slice(0, 14).map((event: any) => (
                                     <div key={event.event_id} className="p-5 hover:bg-white/5 transition-all">
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
                                                 <p className="text-sm font-bold text-white">{formatSubscriptionEventType(event.event_type)}</p>
                                                 <p className="mt-1 text-xs text-slate-500">{event.account_id || '—'} · {event.provider || '—'} · {event.status || '—'}</p>
                                             </div>
-                                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${event.status === 'failed' a'bg-rose-500/10 text-rose-300' : event.event_type === 'checkout_created' a'bg-sky-500/10 text-sky-300' : 'bg-emerald-500/10 text-emerald-300'}`}>
+                                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${event.status === 'failed' ? 'bg-rose-500/10 text-rose-300' : event.event_type === 'checkout_created' ? 'bg-sky-500/10 text-sky-300' : 'bg-emerald-500/10 text-emerald-300'}`}>
                                                 {formatAdminMoney(event.amount, event.currency)}
                                             </span>
                                         </div>
@@ -1210,7 +1210,7 @@ export default function AdminDashboard() {
                                             <span>{event.plan || '—'}</span>
                                             <span>{formatAdminDate(event.created_at)}</span>
                                         </div>
-                                        {event.message a<p className="mt-2 text-xs text-slate-500">{event.message}</p> : null}
+                                        {event.message ? <p className="mt-2 text-xs text-slate-500">{event.message}</p> : null}
                                     </div>
                                 )) : (
                                     <div className="p-12 text-center text-slate-600 text-sm">Aucun flux de paiement récent.</div>
@@ -1233,14 +1233,14 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <StatCard
                             label="MRR estime"
-                            value={subscriptionOverview.mrr_estimate.length aformatAdminMoney(subscriptionOverview.mrr_estimate[0].amount, subscriptionOverview.mrr_estimate[0].currency) : '—'}
+                            value={subscriptionOverview.mrr_estimate.length ? formatAdminMoney(subscriptionOverview.mrr_estimate[0].amount, subscriptionOverview.mrr_estimate[0].currency) : "-"}
                             icon={TrendingUp}
                             color="bg-primary"
-                            sub={subscriptionOverview.mrr_estimate.length > 1 a`+${subscriptionOverview.mrr_estimate.length - 1} devises` : 'Devise principale'}
+                            sub={subscriptionOverview.mrr_estimate.length > 1 ? `+${subscriptionOverview.mrr_estimate.length - 1} devises` : 'Devise principale'}
                         />
-                        <StatCard label="Annuls" value={subscriptionOverview.cancelled_accounts || 0} icon={X} color="bg-slate-500" />
-                        <StatCard label="Expirs" value={subscriptionOverview.expired_accounts || 0} icon={Clock} color="bg-rose-500" />
-                        <StatCard label="Alertes" value={subscriptionAlerts.summary.total || 0} icon={Bell} color={(subscriptionAlerts.summary.critical || 0) > 0 a'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts.summary.critical || 0} critiques`} />
+                        <StatCard label="Annuls" value={subscriptionOverview.cancelled_accounts || 0} icon={X} color="bg-slate-500" sub="Periode active" />
+                        <StatCard label="Expirs" value={subscriptionOverview.expired_accounts || 0} icon={Clock} color="bg-rose-500" sub="Periode active" />
+                        <StatCard label="Alertes" value={subscriptionAlerts.summary.total || 0} icon={Bell} color={(subscriptionAlerts.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlerts.summary.critical || 0} critiques`} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -1272,7 +1272,7 @@ export default function AdminDashboard() {
                                 <div>
                                     <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-3">Volumes 30 jours</p>
                                     <div className="space-y-2">
-                                        {(subscriptionOverview.payment_volume_30d || []).length > 0 a(
+                                        {(subscriptionOverview.payment_volume_30d || []).length > 0 ? (
                                             subscriptionOverview.payment_volume_30d.map((row: any) => (
                                                 <div key={row.currency} className="flex items-center justify-between text-sm">
                                                     <span className="text-slate-300">{row.currency}</span>
@@ -1290,12 +1290,12 @@ export default function AdminDashboard() {
                         <div className="glass-card p-6 xl:col-span-1">
                             <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">Alertes et anomalies</h3>
                             <div className="space-y-3">
-                                {(subscriptionAlerts.items || []).length > 0 a(
+                                {(subscriptionAlerts.items || []).length > 0 ? (
                                     subscriptionAlerts.items.map((alert: any) => (
-                                        <div key={alert.code} className={`rounded-2xl border p-4 ${alert.severity === 'critical' a'border-rose-500/30 bg-rose-500/10' : 'border-amber-500/20 bg-amber-500/10'}`}>
+                                        <div key={alert.code} className={`rounded-2xl border p-4 ${alert.severity === 'critical' ? 'border-rose-500/30 bg-rose-500/10' : 'border-amber-500/20 bg-amber-500/10'}`}>
                                             <div className="flex items-center justify-between gap-3 mb-2">
                                                 <p className="text-sm font-black text-white">{alert.title}</p>
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${alert.severity === 'critical' a'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${alert.severity === 'critical' ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'}`}>
                                                     {alert.count}
                                                 </span>
                                             </div>
@@ -1313,7 +1313,7 @@ export default function AdminDashboard() {
                         <div className="glass-card p-6 xl:col-span-1">
                             <h3 className="text-base font-black text-white mb-5 uppercase tracking-tighter">vnements rcents</h3>
                             <div className="space-y-3 max-h-[520px] overflow-y-auto custom-scrollbar pr-1">
-                                {filteredSubscriptionEvents.length > 0 a(
+                                {filteredSubscriptionEvents.length > 0 ? (
                                     filteredSubscriptionEvents.map((event: any) => (
                                         <div key={event.event_id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                                             <div className="flex items-start justify-between gap-3 mb-2">
@@ -1321,7 +1321,7 @@ export default function AdminDashboard() {
                                                     <p className="text-sm font-black text-white">{formatSubscriptionEventType(event.event_type)}</p>
                                                     <p className="text-[11px] text-slate-500 uppercase tracking-widest">{event.provider} · {event.source}</p>
                                                 </div>
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${event.status === 'failed' a'bg-rose-500/20 text-rose-300' : event.status === 'active' a'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-slate-300'}`}>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${event.status === 'failed' ? 'bg-rose-500/20 text-rose-300' : event.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-slate-300'}`}>
                                                     {event.status || '—'}
                                                 </span>
                                             </div>
@@ -1346,7 +1346,7 @@ export default function AdminDashboard() {
                         <div className="p-5 border-b border-white/5 bg-white/5 flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
                             <div>
                                 <h3 className="text-base font-black text-white uppercase tracking-tighter">
-                                    Comptes abonnes {refreshing a'' : `(${filteredSubscriptionAccounts.length}/${subscriptionAccountsTotal})`}
+                                    Comptes abonnes {refreshing ? '' : `(${filteredSubscriptionAccounts.length}/${subscriptionAccountsTotal})`}
                                 </h3>
                                 <p className="text-xs text-slate-500 mt-1">Source de verite : business_accounts</p>
                             </div>
@@ -1413,7 +1413,7 @@ export default function AdminDashboard() {
                                                     <span className={`w-fit px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${PLAN_COLORS[account.plan] || PLAN_COLORS.starter}`}>
                                                         {account.plan}
                                                     </span>
-                                                    <span className={`w-fit px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${account.subscription_status === 'active' a'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : account.subscription_status === 'cancelled' a'bg-amber-500/10 text-amber-300 border-amber-500/20' : 'bg-rose-500/10 text-rose-300 border-rose-500/20'}`}>
+                                                    <span className={`w-fit px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${account.subscription_status === 'active' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : account.subscription_status === 'cancelled' ? 'bg-amber-500/10 text-amber-300 border-amber-500/20' : 'bg-rose-500/10 text-rose-300 border-rose-500/20'}`}>
                                                         {account.subscription_status}
                                                     </span>
                                                 </div>
@@ -1432,7 +1432,7 @@ export default function AdminDashboard() {
                                                 <p>{formatAccessPhaseLabel(account.subscription_access_phase || 'active')}</p>
                                                 <p>{formatAdminDate(account.subscription_end || account.trial_ends_at)}</p>
                                                 <p className="text-[11px] text-slate-500">
-                                                    {account.manual_access_grace_until a`Grace manuelle jusque ${formatAdminDate(account.manual_access_grace_until)}` : (account.subscription_end a'Abonnement payant' : 'Trial / aucun paiement')}
+                                                    {account.manual_access_grace_until ? `Grace manuelle jusque ${formatAdminDate(account.manual_access_grace_until)}` : (account.subscription_end ? 'Abonnement payant' : 'Trial / aucun paiement')}
                                                 </p>
                                                 {account.manual_read_only_enabled && (
                                                     <p className="mt-1 inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase border bg-rose-500/10 text-rose-300 border-rose-500/20">
@@ -1446,7 +1446,7 @@ export default function AdminDashboard() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col gap-2 text-xs">
-                                                    {account.last_payment_links.stripe_url a(
+                                                    {account.last_payment_links.stripe_url ? (
                                                         <a
                                                             href={account.last_payment_links.stripe_url}
                                                             target="_blank"
@@ -1458,7 +1458,7 @@ export default function AdminDashboard() {
                                                     ) : (
                                                         <span className="text-slate-600">Stripe: —</span>
                                                     )}
-                                                    {account.last_payment_links.flutterwave_url a(
+                                                    {account.last_payment_links.flutterwave_url ? (
                                                         <a
                                                             href={account.last_payment_links.flutterwave_url}
                                                             target="_blank"
@@ -1470,7 +1470,7 @@ export default function AdminDashboard() {
                                                     ) : (
                                                         <span className="text-slate-600">Mobile Money: —</span>
                                                     )}
-                                                    {account.last_payment_links_generated_at a(
+                                                    {account.last_payment_links_generated_at ? (
                                                         <span className="text-[10px] text-slate-500">
                                                             Genere le {formatAdminDate(account.last_payment_links_generated_at)}
                                                         </span>
@@ -1484,14 +1484,14 @@ export default function AdminDashboard() {
                                                         disabled={refreshingPaymentLinksAccountId === account.account_id || sendingReminderAccountId === account.account_id || grantingGraceAction !== null || togglingReadOnlyAccountId === account.account_id}
                                                         className="px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-40"
                                                     >
-                                                        {refreshingPaymentLinksAccountId === account.account_id a'...' : 'Rgnrer'}
+                                                        {refreshingPaymentLinksAccountId === account.account_id ? '...' : 'Rgnrer'}
                                                     </button>
                                                     <button
                                                         onClick={() => void handleSendReminder(account.account_id, 1)}
                                                         disabled={sendingReminderAccountId === account.account_id || refreshingPaymentLinksAccountId === account.account_id || grantingGraceAction !== null || togglingReadOnlyAccountId === account.account_id}
                                                         className="px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs font-bold text-sky-200 hover:bg-sky-500/20 disabled:opacity-40"
                                                     >
-                                                        {sendingReminderAccountId === account.account_id a'...' : 'Envoyer rappel'}
+                                                        {sendingReminderAccountId === account.account_id ? '...' : 'Envoyer rappel'}
                                                     </button>
                                                     {[7, 14, 30].map(days => {
                                                         const actionKey = `${account.account_id}:${days}`;
@@ -1502,7 +1502,7 @@ export default function AdminDashboard() {
                                                                 disabled={grantingGraceAction !== null || togglingReadOnlyAccountId === account.account_id}
                                                                 className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40"
                                                             >
-                                                                {grantingGraceAction === actionKey a'...' : `${days}j`}
+                                                                {grantingGraceAction === actionKey ? '...' : `${days}j`}
                                                             </button>
                                                         );
                                                     })}
@@ -1511,14 +1511,14 @@ export default function AdminDashboard() {
                                                         disabled={togglingReadOnlyAccountId === account.account_id || grantingGraceAction !== null}
                                                         className={`px-3 py-2 rounded-xl border text-xs font-bold disabled:opacity-40 ${
                                                             account.manual_read_only_enabled
-                                                                a'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20'
+                                                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20'
                                                                 : 'bg-rose-500/10 border-rose-500/20 text-rose-300 hover:bg-rose-500/20'
                                                         }`}
                                                     >
                                                         {togglingReadOnlyAccountId === account.account_id
-                                                            a'...'
+                                                            ? '...'
                                                             : account.manual_read_only_enabled
-                                                                a'Retirer lecture seule'
+                                                                ? 'Retirer lecture seule'
                                                                 : 'Passer en lecture seule'}
                                                     </button>
                                                 </div>
@@ -1539,7 +1539,7 @@ export default function AdminDashboard() {
                 <div className="glass-card overflow-hidden">
                     <div className="p-5 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/5">
                         <h3 className="text-base font-black text-white uppercase tracking-tighter">
-                            Utilisateurs {refreshing a'' : `(${filteredUsers.length})`}
+                            Utilisateurs {refreshing ? '' : `(${filteredUsers.length})`}
                         </h3>
                         <div className="relative w-full sm:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
@@ -1589,20 +1589,20 @@ export default function AdminDashboard() {
                                         </td>
                                         <td className="px-6 py-4 text-slate-400 font-mono text-xs">{user.country_code || '—'}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${user.is_active !== false a'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-                                                {user.is_active !== false a'Actif' : 'Banni'}
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${user.is_active !== false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                                                {user.is_active !== false ? 'Actif' : 'Banni'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right flex items-center justify-end gap-1">
                                             <button
                                                 onClick={() => handleToggleUser(user.user_id, user.is_active !== false)}
                                                 disabled={togglingUser === user.user_id}
-                                                className={`p-2 rounded-lg transition-all ${user.is_active !== false a'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10'} disabled:opacity-40`}
-                                                title={user.is_active !== false a'Bannir' : 'Réactiver'}
+                                                className={`p-2 rounded-lg transition-all ${user.is_active !== false ? 'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10'} disabled:opacity-40`}
+                                                title={user.is_active !== false ? 'Bannir' : 'Réactiver'}
                                             >
                                                 {togglingUser === user.user_id
-                                                    a<RefreshCw size={15} className="animate-spin" />
-                                                    : user.is_active !== false a<Lock size={15} /> : <Unlock size={15} />
+                                                    ? <RefreshCw size={15} className="animate-spin" />
+                                                    : user.is_active !== false ? <Lock size={15} /> : <Unlock size={15} />
                                                 }
                                             </button>
                                             <button
@@ -1612,7 +1612,7 @@ export default function AdminDashboard() {
                                                 title="Supprimer le compte"
                                             >
                                                 {deletingUser === user.user_id
-                                                    a<RefreshCw size={15} className="animate-spin" />
+                                                    ? <RefreshCw size={15} className="animate-spin" />
                                                     : <Trash2 size={15} />
                                                 }
                                             </button>
@@ -1633,10 +1633,10 @@ export default function AdminDashboard() {
                 <div className="glass-card overflow-hidden">
                     <div className="p-5 border-b border-white/5 bg-white/5 flex justify-between items-center">
                         <h3 className="text-base font-black text-white uppercase tracking-tighter">
-                            Boutiques {refreshing a'' : `(${stores.length})`}
+                            Boutiques {refreshing ? '' : `(${stores.length})`}
                         </h3>
                         <button onClick={loadStores} className="p-2 text-slate-400 hover:text-white transition-all">
-                            <RefreshCw size={16} className={refreshing a'animate-spin' : ''} />
+                            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
                         </button>
                     </div>
                     <div className="overflow-x-auto">
@@ -1658,9 +1658,9 @@ export default function AdminDashboard() {
                                             <p className="text-[10px] text-slate-500 font-mono">{store.store_id.slice(-8)}</p>
                                         </td>
                                         <td className="px-6 py-4 text-slate-400">{store.owner_name || '—'}</td>
-                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{store.country_code || '—'}</td>
-                                        <td className="px-6 py-4 text-white font-bold">{store.product_count  '—'}</td>
-                                        <td className="px-6 py-4 text-emerald-400 font-black">{store.total_revenue != null a`${store.total_revenue.toLocaleString()} F` : '—'}</td>
+                                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{store.country_code || '-'}</td>
+                                        <td className="px-6 py-4 text-white font-bold">{store.product_count ?? '-'}</td>
+                                        <td className="px-6 py-4 text-emerald-400 font-black">{store.total_revenue != null ? `${store.total_revenue.toLocaleString()} F` : '-'}</td>
                                     </tr>
                                 ))}
                                 {stores.length === 0 && (
@@ -1695,9 +1695,9 @@ export default function AdminDashboard() {
                                 <button
                                     key={f}
                                     onClick={() => setDisputeFilter(f)}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${disputeFilter === f a'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${disputeFilter === f ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
                                 >
-                                    {f === 'all' a'Tous' : f === 'open' a'Ouverts' : 'Résolus'}
+                                    {f === 'all' ? 'Tous' : f === 'open' ? 'Ouverts' : 'Résolus'}
                                 </button>
                             ))}
                         </div>
@@ -1711,7 +1711,7 @@ export default function AdminDashboard() {
                         </span>
                     </div>
                     <div className="overflow-x-auto">
-                        {filteredDisputes.length > 0 a(
+                        {filteredDisputes.length > 0 ? (
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
@@ -1740,7 +1740,7 @@ export default function AdminDashboard() {
                                             <td className="px-6 py-4 text-slate-400">{dispute.user_name}</td>
                                             <td className="px-6 py-4 text-slate-500 text-xs">{new Date(dispute.created_at).toLocaleDateString()}</td>
                                             <td className="px-6 py-4">
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${dispute.status === 'open' a'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${dispute.status === 'open' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
                                                     {dispute.status}
                                                 </span>
                                             </td>
@@ -1754,7 +1754,7 @@ export default function AdminDashboard() {
                         ) : (
                             <div className="p-20 text-center text-slate-600 flex flex-col items-center gap-4">
                                 <CheckCircle2 size={48} className="opacity-20" />
-                                <p className="font-black uppercase tracking-widest text-xs">Aucun litige {disputeFilter !== 'all' a`(${disputeFilter})` : ''}</p>
+                                <p className="font-black uppercase tracking-widest text-xs">Aucun litige {disputeFilter !== 'all' ? `(${disputeFilter})` : ''}</p>
                             </div>
                         )}
                     </div>
@@ -1855,7 +1855,7 @@ export default function AdminDashboard() {
                                 <p className="text-xs text-slate-500 mt-1">Vue admin sur le type, la surface, l'expiration, la capture email et le nettoyage.</p>
                             </div>
                             <button onClick={loadDemos} className="p-2 text-slate-400 hover:text-white transition-all">
-                                <RefreshCw size={16} className={refreshing a'animate-spin' : ''} />
+                                <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
                             </button>
                         </div>
                         <div className="overflow-x-auto">
@@ -1874,7 +1874,7 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {filteredDemoSessions.length > 0 afilteredDemoSessions.map((session: any) => (
+                                    {filteredDemoSessions.length > 0 ? filteredDemoSessions.map((session: any) => (
                                         <tr key={session.demo_session_id} className="hover:bg-white/[0.03]">
                                             <td className="px-6 py-4">
                                                 <div className="text-white font-semibold text-sm">{session.demo_session_id}</div>
@@ -1893,9 +1893,9 @@ export default function AdminDashboard() {
                                             <td className="px-6 py-4">
                                                 <span className={`px-3 py-1 rounded-full border text-xs font-bold ${
                                                     session.status === 'active'
-                                                        a'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
                                                         : session.status === 'expired'
-                                                            a'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                                                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-300'
                                                             : 'bg-slate-500/10 border-slate-500/20 text-slate-300'
                                                 }`}>
                                                     {formatDemoSessionStatus(session.status)}
@@ -1906,7 +1906,7 @@ export default function AdminDashboard() {
                                             <td className="px-6 py-4 text-slate-300 text-sm">{formatRemainingDuration(session.remaining_seconds)}</td>
                                             <td className="px-6 py-4 text-slate-400 text-sm">
                                                 {session.status === 'cleaned'
-                                                    a`${session.cleanup_items_deleted || 0} docs`
+                                                    ? `${session.cleanup_items_deleted || 0} docs`
                                                     : 'En attente'}
                                             </td>
                                         </tr>
@@ -1928,12 +1928,12 @@ export default function AdminDashboard() {
             {activeSection === 'security' && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                        <StatCard label="Echecs connexion (24h)" value={securityStats.failed_logins_24h || 0} icon={Shield} color="bg-rose-500" />
-                        <StatCard label="Connexions reussies" value={securityStats.successful_logins_24h || 0} icon={CheckCircle2} color="bg-emerald-500" />
-                        <StatCard label="Changements MDP (7j)" value={securityStats.password_changes_7d || 0} icon={Lock} color="bg-amber-500" />
-                        <StatCard label="Utilisateurs bloques" value={securityStats.blocked_users || 0} icon={Trash2} color="bg-primary" />
-                        <StatCard label="Verifications" value={verificationEventsTotal} icon={Bell} color="bg-sky-500" />
-                        <StatCard label="Sessions actives" value={activeSessions.length} icon={Activity} color="bg-violet-500" />
+                        <StatCard label="Echecs connexion (24h)" value={securityStats.failed_logins_24h || 0} icon={Shield} color="bg-rose-500" sub="Dernieres 24h" />
+                        <StatCard label="Connexions reussies" value={securityStats.successful_logins_24h || 0} icon={CheckCircle2} color="bg-emerald-500" sub="Dernieres 24h" />
+                        <StatCard label="Changements MDP (7j)" value={securityStats.password_changes_7d || 0} icon={Lock} color="bg-amber-500" sub="Derniers 7 jours" />
+                        <StatCard label="Utilisateurs bloques" value={securityStats.blocked_users || 0} icon={Trash2} color="bg-primary" sub="Etat actuel" />
+                        <StatCard label="Verifications" value={verificationEventsTotal} icon={Bell} color="bg-sky-500" sub="Volume charge" />
+                        <StatCard label="Sessions actives" value={activeSessions.length} icon={Activity} color="bg-violet-500" sub="Etat actuel" />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-[1.15fr,0.85fr] gap-6">
@@ -1965,7 +1965,7 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
                             <div className="mt-5 space-y-3">
-                                {securityInsights.riskyActors.length > 0 asecurityInsights.riskyActors.map(([actor, count]) => (
+                                {securityInsights.riskyActors.length > 0 ? securityInsights.riskyActors.map(([actor, count]) => (
                                     <div key={actor} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center justify-between gap-4">
                                         <div>
                                             <p className="text-sm font-bold text-white">{actor}</p>
@@ -1974,7 +1974,7 @@ export default function AdminDashboard() {
                                         <button
                                             onClick={() => {
                                                 setSecurityView('failed_logins');
-                                                setSecuritySearch(actor === 'unknown' a'' : actor);
+                                                setSecuritySearch(actor === 'unknown' ? '' : actor);
                                             }}
                                             className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-rose-300 transition-all hover:bg-rose-500/15"
                                         >
@@ -2008,7 +2008,7 @@ export default function AdminDashboard() {
                                     <button
                                         key={view.id}
                                         onClick={() => setSecurityView(view.id as typeof securityView)}
-                                        className={`rounded-2xl border px-4 py-3 text-left text-sm font-bold transition-all ${securityView === view.id a'border-primary/40 bg-primary/10 text-white' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}
+                                        className={`rounded-2xl border px-4 py-3 text-left text-sm font-bold transition-all ${securityView === view.id ? 'border-primary/40 bg-primary/10 text-white' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}
                                     >
                                         {view.label}
                                     </button>
@@ -2050,11 +2050,11 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {filteredSecurityEvents.filter(Boolean).length > 0 afilteredSecurityEvents.filter(Boolean).map((event: any, idx: number) => (
+                                    {filteredSecurityEvents.filter(Boolean).length > 0 ? filteredSecurityEvents.filter(Boolean).map((event: any, idx: number) => (
                                         <tr key={idx} className="hover:bg-white/5">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-2 h-2 rounded-full shrink-0 ${String(event.type || '').includes('failed') a'bg-rose-500' : 'bg-emerald-500'}`} />
+                                                    <div className={`w-2 h-2 rounded-full shrink-0 ${String(event.type || '').includes('failed') ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                                                     <span className="text-white font-bold text-xs uppercase tracking-widest">{event.type || 'inconnu'}</span>
                                                 </div>
                                             </td>
@@ -2120,7 +2120,7 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {filteredSecurityVerifications.filter(Boolean).length > 0 afilteredSecurityVerifications.filter(Boolean).map((event: any) => (
+                                    {filteredSecurityVerifications.filter(Boolean).length > 0 ? filteredSecurityVerifications.filter(Boolean).map((event: any) => (
                                         <tr key={event.event_id || `${event.type}-${event.created_at}`} className="hover:bg-white/5">
                                             <td className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">{event.type || '-'}</td>
                                             <td className="px-6 py-4 text-sm text-slate-300">{event.channel || '-'}</td>
@@ -2168,7 +2168,7 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {filteredSecuritySessions.filter(Boolean).length > 0 afilteredSecuritySessions.filter(Boolean).map((session: any) => (
+                                    {filteredSecuritySessions.filter(Boolean).length > 0 ? filteredSecuritySessions.filter(Boolean).map((session: any) => (
                                         <tr key={session.session_id || `${session.user_id}-${session.created_at}`} className="hover:bg-white/5">
                                             <td className="px-6 py-4">
                                                 <div className="space-y-1">
@@ -2225,7 +2225,7 @@ export default function AdminDashboard() {
                             </p>
                         </div>
                         <button onClick={loadTickets} className="p-2 text-slate-400 hover:text-white transition-all">
-                            <RefreshCw size={16} className={refreshing a'animate-spin' : ''} />
+                            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
                         </button>
                     </div>
                     <div className="px-5 py-3 border-b border-white/5 bg-white/[0.03] flex flex-wrap gap-2 text-[11px]">
@@ -2237,12 +2237,12 @@ export default function AdminDashboard() {
                         </span>
                     </div>
                     <div className="divide-y divide-white/5">
-                        {tickets.filter(Boolean).length > 0 atickets.filter(Boolean).map((ticket: any) => (
+                        {tickets.filter(Boolean).length > 0 ? tickets.filter(Boolean).map((ticket: any) => (
                             <div key={ticket.ticket_id}>
                                 <div className="p-5 hover:bg-white/5 transition-all flex justify-between items-center group">
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full shrink-0 ${ticket.status === 'open' a'bg-rose-500' : 'bg-emerald-500'}`} />
+                                            <span className={`w-2 h-2 rounded-full shrink-0 ${ticket.status === 'open' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                                             <h4 className="text-white font-bold">{ticket.subject}</h4>
                                             <span className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-300">
                                                 {ticket.type || 'Assistance'}
@@ -2251,8 +2251,8 @@ export default function AdminDashboard() {
                                         <p className="text-xs text-slate-500">De <span className="text-slate-400 font-semibold">{ticket.user_name}</span> · {new Date(ticket.created_at).toLocaleDateString()}</p>
                                     </div>
                                     <button
-                                        onClick={() => { setReplyTicketId(replyTicketId === ticket.ticket_id anull : ticket.ticket_id); setReplyContent(''); }}
-                                        className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest transition-all ${replyTicketId === ticket.ticket_id a'bg-primary text-white border-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-primary hover:text-white hover:border-primary'}`}
+                                        onClick={() => { setReplyTicketId(replyTicketId === ticket.ticket_id ? null : ticket.ticket_id); setReplyContent(''); }}
+                                        className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest transition-all ${replyTicketId === ticket.ticket_id ? 'bg-primary text-white border-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-primary hover:text-white hover:border-primary'}`}
                                     >
                                         Répondre
                                     </button>
@@ -2273,7 +2273,7 @@ export default function AdminDashboard() {
                                             disabled={replying || !replyContent.trim()}
                                             className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-primary/80 transition-all"
                                         >
-                                            {replying a'...' : 'Envoyer'}
+                                            {replying ? '...' : 'Envoyer'}
                                         </button>
                                     </div>
                                 )}
@@ -2289,8 +2289,8 @@ export default function AdminDashboard() {
             {activeSection === 'leads' && (
                 <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <StatCard label="Contact Messages" value={leadContacts.length} icon={Mail} color="bg-blue-500" />
-                        <StatCard label="Newsletter Subscribers" value={leadSubscribers.length} icon={Newspaper} color="bg-emerald-500" />
+                        <StatCard label="Contact Messages" value={leadContacts.length} icon={Mail} color="bg-blue-500" sub="Leads entrants" />
+                        <StatCard label="Newsletter Subscribers" value={leadSubscribers.length} icon={Newspaper} color="bg-emerald-500" sub="Leads entrants" />
                     </div>
 
                     {leadsLoading && (
@@ -2307,7 +2307,7 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto custom-scrollbar">
-                            {leadContacts.filter(Boolean).length > 0 aleadContacts.filter(Boolean).map((c: any) => (
+                            {leadContacts.filter(Boolean).length > 0 ? leadContacts.filter(Boolean).map((c: any) => (
                                 <div key={c._id || c.email + c.created_at} className="p-5 hover:bg-white/5 transition-all">
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="space-y-1.5 flex-1">
@@ -2328,7 +2328,7 @@ export default function AdminDashboard() {
                                         </span>
                                     </div>
                                 </div>
-                            )) : !leadsLoading a(
+                            )) : !leadsLoading ? (
                                 <div className="p-12 text-center text-slate-600 text-sm">
                                     Aucun message de contact pour le moment.
                                 </div>
@@ -2346,14 +2346,14 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         <div className="divide-y divide-white/5 max-h-[400px] overflow-y-auto custom-scrollbar">
-                            {leadSubscribers.filter(Boolean).length > 0 aleadSubscribers.filter(Boolean).map((s: any) => (
+                            {leadSubscribers.filter(Boolean).length > 0 ? leadSubscribers.filter(Boolean).map((s: any) => (
                                 <div key={s._id || s.email} className="p-4 hover:bg-white/5 transition-all flex items-center justify-between">
                                     <span className="text-sm font-semibold text-white">{s.email}</span>
                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
                                         {formatAdminDate(s.created_at)}
                                     </span>
                                 </div>
-                            )) : !leadsLoading a(
+                            )) : !leadsLoading ? (
                                 <div className="p-12 text-center text-slate-600 text-sm">
                                     Aucun abonné newsletter pour le moment.
                                 </div>
@@ -2409,7 +2409,7 @@ export default function AdminDashboard() {
                                 disabled={saving || !broadcastForm.message.trim()}
                                 className="w-full py-4 rounded-xl bg-primary text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
                             >
-                                {saving a'Envoi en cours…' : 'Diffuser à tous les utilisateurs'}
+                                {saving ? 'Envoi en cours…' : 'Diffuser à tous les utilisateurs'}
                             </button>
                         </div>
                     </div>
@@ -2447,15 +2447,15 @@ export default function AdminDashboard() {
                                 </select>
                             </div>
                             <div className="divide-y divide-white/5 max-h-[520px] overflow-y-auto custom-scrollbar">
-                                {messageHistory.filter(Boolean).length > 0 amessageHistory.filter(Boolean).map((message: any) => (
+                                {messageHistory.filter(Boolean).length > 0 ? messageHistory.filter(Boolean).map((message: any) => (
                                     <div key={message.message_id || `${message.sent_at}-${message.title}`} className="p-5 hover:bg-white/5 transition-all">
                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                             <div className="space-y-2">
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${message.type === 'broadcast'
-                                                        a'border-violet-500/20 bg-violet-500/10 text-violet-300'
+                                                        ? 'border-violet-500/20 bg-violet-500/10 text-violet-300'
                                                         : message.type === 'individual'
-                                                            a'border-sky-500/20 bg-sky-500/10 text-sky-300'
+                                                            ? 'border-sky-500/20 bg-sky-500/10 text-sky-300'
                                                             : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
                                                         }`}>
                                                         {message.type || 'message'}
@@ -2505,7 +2505,7 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    {legalLoading a(
+                    {legalLoading ? (
                         <div className="glass-card p-12 flex items-center justify-center">
                             <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                         </div>
@@ -2538,7 +2538,7 @@ export default function AdminDashboard() {
                                         disabled={legalSaving === 'cgu' || !cguContent.trim()}
                                         className="rounded-xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50"
                                     >
-                                        {legalSaving === 'cgu' a'Enregistrement...' : 'Enregistrer les CGU'}
+                                        {legalSaving === 'cgu' ? 'Enregistrement...' : 'Enregistrer les CGU'}
                                     </button>
                                 </div>
                                 <textarea
@@ -2577,7 +2577,7 @@ export default function AdminDashboard() {
                                         disabled={legalSaving === 'privacy' || !privacyContent.trim()}
                                         className="rounded-xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50"
                                     >
-                                        {legalSaving === 'privacy' a'Enregistrement...' : 'Enregistrer la politique'}
+                                        {legalSaving === 'privacy' ? 'Enregistrement...' : 'Enregistrer la politique'}
                                     </button>
                                 </div>
                                 <textarea
@@ -2614,10 +2614,10 @@ export default function AdminDashboard() {
                             <>
                                 {/* KPIs */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <StatCard label="Appels totaux" value={s.total_calls.toLocaleString('fr-FR')} icon={Activity} color="bg-blue-500" />
-                                    <StatCard label="Cout estime ($)" value={`$${s.total_cost_usd.toFixed(2)}`} icon={Wallet} color="bg-amber-500" />
-                                    <StatCard label="Taux d'echec" value={`${s.failure_rate}%`} icon={AlertTriangle} color={s.failure_rate > 10 a'bg-red-500' : 'bg-emerald-500'} />
-                                    <StatCard label="Latence moy." value={`${Math.round(s.avg_latency_ms)}ms`} icon={Clock} color="bg-purple-500" />
+                                    <StatCard label="Appels totaux" value={s.total_calls.toLocaleString('fr-FR')} icon={Activity} color="bg-blue-500" sub="Periode selectionnee" />
+                                    <StatCard label="Cout estime ($)" value={`$${s.total_cost_usd.toFixed(2)}`} icon={Wallet} color="bg-amber-500" sub="Periode selectionnee" />
+                                    <StatCard label="Taux d'echec" value={`${s.failure_rate}%`} icon={AlertTriangle} color={s.failure_rate > 10 ? 'bg-red-500' : 'bg-emerald-500'} sub="Periode selectionnee" />
+                                    <StatCard label="Latence moy." value={`${Math.round(s.avg_latency_ms)}ms`} icon={Clock} color="bg-purple-500" sub="Periode selectionnee" />
                                 </div>
 
                                 {/* Daily chart (simple bar representation) */}
@@ -2639,8 +2639,8 @@ export default function AdminDashboard() {
                                         })}
                                     </div>
                                     <div className="flex justify-between mt-2 text-[10px] text-slate-500">
-                                        <span>{s.daily.[0].date || ''}</span>
-                                        <span>{s.daily.[s.daily.length - 1].date || ''}</span>
+                                        <span>{s.daily?.[0]?.date || ''}</span>
+                                        <span>{s.daily?.[s.daily.length - 1]?.date || ''}</span>
                                     </div>
                                 </div>
 
@@ -2774,16 +2774,16 @@ export default function AdminDashboard() {
                                                             <p className="text-[10px] text-slate-500">{key}</p>
                                                         </td>
                                                         <td className="p-4">
-                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${f.kind === 'algo' a'bg-emerald-500/10 text-emerald-400' : f.kind === 'hybrid' a'bg-amber-500/10 text-amber-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${f.kind === 'algo' ? 'bg-emerald-500/10 text-emerald-400' : f.kind === 'hybrid' ? 'bg-amber-500/10 text-amber-400' : 'bg-purple-500/10 text-purple-400'}`}>
                                                                 {f.kind}
                                                             </span>
                                                         </td>
                                                         <td className="p-4 text-slate-400">{f.period}</td>
                                                         <td className="p-4 text-slate-400">{f.min_plan || 'starter'}</td>
-                                                        <td className="p-4 text-slate-300">{f.limits.starter  '—'}</td>
-                                                        <td className="p-4 text-slate-300">{f.limits.pro  '—'}</td>
-                                                        <td className="p-4 text-slate-300">{f.limits.enterprise  '—'}</td>
-                                                        <td className="p-4 text-slate-400">{f.cache_ttl_s a`${Math.round(f.cache_ttl_s / 3600)}h` : '—'}</td>
+                                                        <td className="p-4 text-slate-300">{f.limits.starter ?? '-'}</td>
+                                                        <td className="p-4 text-slate-300">{f.limits.pro ?? '-'}</td>
+                                                        <td className="p-4 text-slate-300">{f.limits.enterprise ?? '-'}</td>
+                                                        <td className="p-4 text-slate-400">{f.cache_ttl_s ? `${Math.round(f.cache_ttl_s / 3600)}h` : '-'}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -2798,3 +2798,8 @@ export default function AdminDashboard() {
         </div>
     );
 }
+
+
+
+
+

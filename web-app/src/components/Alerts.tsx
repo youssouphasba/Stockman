@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -49,7 +49,7 @@ function draftRule(template: RuleTemplate, scope: RuleScope, storeId?: string | 
         scope,
         store_id: scope === 'store' ? storeId || null : null,
         enabled: false,
-        threshold_percentage: template.hasThreshold ? template.defaultThreshold ?? 20 : null,
+        threshold_percentage: template.hasThreshold ? (template.defaultThreshold ?? 20) : null,
         notification_channels: ['in_app', ...template.defaultChannels.filter((c) => c !== 'in_app')],
         recipient_keys: template.defaultRecipients,
         recipient_emails: [],

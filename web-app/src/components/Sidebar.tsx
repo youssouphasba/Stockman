@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -142,7 +142,7 @@ export default function Sidebar({
     ];
 
     const menuEntries: SidebarEntry[] = isRestaurant ? [
-        // ── RESTAURANT ──────────────────────────────────────────
+        // â”€â”€ RESTAURANT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'] },
         { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true },
         { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },

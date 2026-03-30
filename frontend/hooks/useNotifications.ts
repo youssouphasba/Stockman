@@ -16,7 +16,7 @@ Notifications.setNotificationHandler({
     }),
 });
 
-export function useNotifications(userId?: string) {
+export function useNotifications(userId?: string, onNotificationsChanged?: () => void) {
     const [expoPushToken, setExpoPushToken] = useState('');
     const notificationListener = useRef<any>(null);
     const responseListener = useRef<any>(null);
@@ -33,12 +33,18 @@ export function useNotifications(userId?: string) {
 
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
             console.log('Notification Received:', notification);
+            onNotificationsChanged?.();
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             const data = response.notification.request.content.data as any;
+            onNotificationsChanged?.();
             if (data?.url) {
                 Linking.openURL(String(data.url)).catch(() => null);
+                return;
+            }
+            if (data?.screen === 'alerts') {
+                router.push('/(tabs)/alerts' as any);
                 return;
             }
             if (data?.screen === 'products') {
@@ -59,7 +65,7 @@ export function useNotifications(userId?: string) {
                 responseListener.current.remove();
             }
         };
-    }, [userId]);
+    }, [userId, onNotificationsChanged]);
 
     return { expoPushToken };
 }
@@ -78,6 +84,15 @@ async function registerForPushNotificationsAsync() {
 
     if (Device.isDevice) {
         try {
+            if (Platform.OS === 'android') {
+                await Notifications.setNotificationChannelAsync('default', {
+                    name: 'default',
+                    importance: Notifications.AndroidImportance.MAX,
+                    vibrationPattern: [0, 250, 250, 250],
+                    lightColor: '#FF231F7C',
+                });
+            }
+
             const { status: existingStatus } = await Notifications.getPermissionsAsync();
             let finalStatus = existingStatus;
             if (existingStatus !== 'granted') {
@@ -85,27 +100,19 @@ async function registerForPushNotificationsAsync() {
                 finalStatus = status;
             }
             if (finalStatus !== 'granted') {
-                console.log('Failed to get push token for push notification!');
+                console.log('Push permission not granted.');
                 return;
             }
             token = (await Notifications.getExpoPushTokenAsync({
                 projectId: Constants.expoConfig?.extra?.eas?.projectId,
             })).data;
+            console.log('Expo push token acquired:', token);
         } catch (error) {
             console.warn('Error fetching push token:', error);
             return null;
         }
     } else {
         console.log('Must use physical device for Push Notifications');
-    }
-
-    if (Platform.OS === 'android') {
-        Notifications.setNotificationChannelAsync('default', {
-            name: 'default',
-            importance: Notifications.AndroidImportance.MAX,
-            vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#FF231F7C',
-        });
     }
 
     return token;

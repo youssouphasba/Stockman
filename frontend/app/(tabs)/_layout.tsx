@@ -1,16 +1,17 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from 'expo-notifications';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { demo as demoApi, settings as settingsApi, DemoSessionInfo, UserSettings } from '../../services/api';
+import { alerts as alertsApi, demo as demoApi, settings as settingsApi, DemoSessionInfo, UserSettings } from '../../services/api';
 
 import { useFocusEffect } from 'expo-router';
 
 import StoreSelector from '../../components/StoreSelector';
-import { Modal, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { DeviceEventEmitter, Modal, Text, TextInput, View, TouchableOpacity } from 'react-native';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
@@ -28,10 +29,24 @@ export default function TabLayout() {
   const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant, hasOperationalAccess, isBillingAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
-  useNotifications(user?.user_id);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const settingsLoadedRef = useRef(false);
+  const [unreadAlertCount, setUnreadAlertCount] = useState(0);
+
+  const refreshAlertCount = useCallback(async () => {
+    if (!user?.user_id || !hasOperationalAccess || isRestaurant || !hasPermission('stock', 'read')) {
+      setUnreadAlertCount(0);
+      return;
+    }
+    try {
+      const result = await alertsApi.list(0, 1);
+      setUnreadAlertCount(result?.unread || 0);
+    } catch {
+      setUnreadAlertCount(0);
+    }
+  }, [hasOperationalAccess, hasPermission, isRestaurant, user?.user_id]);
+
+  useNotifications(user?.user_id, refreshAlertCount);
 
   useEffect(() => {
     if (user && !settingsLoadedRef.current) {
@@ -40,15 +55,33 @@ export default function TabLayout() {
     }
   }, [user?.user_id]);
 
+  useEffect(() => {
+    refreshAlertCount();
+  }, [refreshAlertCount]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshAlertCount();
+    }, [refreshAlertCount])
+  );
+
+  useEffect(() => {
+    Notifications.setBadgeCountAsync(unreadAlertCount).catch(() => null);
+  }, [unreadAlertCount]);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('alerts:changed', refreshAlertCount);
+    return () => subscription.remove();
+  }, [refreshAlertCount]);
+
   const modules = userSettings?.modules ?? {};
-  const simpleMode = userSettings?.simple_mode ?? false;
   const billingOnly = isBillingAdmin && !hasOperationalAccess;
 
   const hideAlerts = isRestaurant || modules.alerts === false || !hasPermission('stock', 'read');
   const hideStock = isRestaurant || modules.stock_management === false || !hasPermission('stock', 'read');
-  const hideAccounting = simpleMode || modules.accounting === false || !hasPermission('accounting', 'read');
-  const hideSuppliers = isRestaurant || simpleMode || modules.suppliers === false || !hasPermission('suppliers', 'read');
-  const hideOrders = isRestaurant || simpleMode || modules.orders === false || !hasPermission('stock', 'read');
+  const hideAccounting = modules.accounting === false || !hasPermission('accounting', 'read');
+  const hideSuppliers = isRestaurant || modules.suppliers === false || !hasPermission('suppliers', 'read');
+  const hideOrders = isRestaurant || modules.orders === false || !hasPermission('stock', 'read');
   const hidePos = !hasPermission('pos', 'read');
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
 
@@ -206,8 +239,30 @@ export default function TabLayout() {
                 </TouchableOpacity>
               )}
               {hasOperationalAccess && (
-                <TouchableOpacity onPress={() => router.push('/alerts')} style={{ padding: 4 }}>
+                <TouchableOpacity onPress={() => router.push('/alerts')} style={{ padding: 4, position: 'relative' }}>
                   <Ionicons name="notifications-outline" size={24} color={colors.text} />
+                  {unreadAlertCount > 0 && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -2,
+                        right: -6,
+                        minWidth: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        backgroundColor: colors.danger,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingHorizontal: 4,
+                        borderWidth: 1.5,
+                        borderColor: colors.bgDark,
+                      }}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '800' }}>
+                        {unreadAlertCount > 99 ? '99+' : unreadAlertCount}
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={() => setShowHelpCenter(true)} style={{ padding: 4 }}>

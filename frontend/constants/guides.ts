@@ -1,4 +1,4 @@
-import { GuideStep } from "../components/ScreenGuide";
+﻿import { GuideStep } from "../components/ScreenGuide";
 
 export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     dashboard: {
@@ -201,7 +201,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             },
             {
                 icon: "information-circle-outline",
-                title: "KPIs avec Explications",
+                title: "KPIs avec explications",
                 description: "6 cartes KPI : CA, Bénéfice brut, Dépenses, Bénéfice net, Articles vendus, Panier moyen. Touchez l'icône (i) pour comprendre chaque indicateur."
             },
             {
@@ -316,7 +316,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             },
             {
                 icon: "add-circle",
-                title: "Nouvelle Commande",
+                title: "Nouvelle commande",
                 description: "Créez une commande en choisissant le fournisseur, puis ajoutez les articles avec quantités et prix. Relisez la date de livraison prévue et les notes avant de valider."
             },
             {
@@ -336,7 +336,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             },
             {
                 icon: "camera-outline",
-                title: "Facture fournisseur",
+                title: "Importer une facture",
                 description: "Importez une image de facture depuis la caméra ou la galerie pour l'archiver et préremplir certaines informations utiles au suivi de commande."
             }
         ]
@@ -362,7 +362,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "notifications",
                 title: "Notifications Push",
-                description: "Recevez une notification instantanée sur votre téléphone dès qu'un produit passe en rupture ou en stock bas."
+                description: "Les alertes non lues remontent maintenant sur l'icône d'alertes dans l'en-tête. Les notifications push peuvent aussi ouvrir directement l'écran Alertes si elles sont autorisées sur l'appareil."
             },
             {
                 icon: "checkmark-done",
@@ -472,7 +472,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "notifications-outline",
                 title: "Alertes, rappels et facturation",
-                description: "Définissez ici comment vous recevez les alertes, à qui elles sont envoyées, quelles règles automatiques sont actives et où retrouver les informations d'abonnement."
+                description: "Définissez ici comment vous recevez les alertes, à qui elles sont envoyées, quelles règles automatiques sont actives et testez l'envoi d'une notification push depuis votre appareil."
             },
             {
                 icon: "help-circle-outline",
@@ -518,6 +518,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "shield-checkmark-outline",
                 title: "Vérifier les liens légaux",
                 description: "Depuis l'écran d'abonnement, ouvrez toujours les conditions d'utilisation et la politique de confidentialité si vous voulez relire les règles de renouvellement, d'annulation et de traitement des données."
+            },
+            {
+                icon: "sparkles-outline",
+                title: "Comprendre les limites IA",
+                description: "Certaines fonctions IA dépendent du plan actif. Le résumé quotidien reste limité à une fois par jour, tandis que la détection d'anomalies, la suggestion de prix ou la génération de description peuvent être réservées à des formules supérieures."
             }
         ]
     },
@@ -672,3 +677,4 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         ]
     }
 };
+

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+﻿import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
-import { settings as settingsApi, UserSettings, ReminderRuleSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
+import { notifications as notificationsApi, settings as settingsApi, UserSettings, ReminderRuleSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
 import ReminderRulesSettingsComponent from '../../components/ReminderRulesSettings';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -91,6 +91,16 @@ type SettingsSectionKey =
   | 'security'
   | 'legal'
   | 'data';
+
+const SETTINGS_SECTION_GROUPS: SettingsSectionKey[][] = [
+  ['accountAppGroup', 'storeGroup', 'organizationGroup', 'alertsGroup', 'supportGroup', 'securityGroup'],
+  ['billing', 'profile'],
+  ['team', 'enterpriseHub', 'organization'],
+  ['storeIdentity', 'storeDocuments', 'storeEmpty'],
+  ['accountAlerts', 'storeAlerts', 'tax', 'reminders', 'sync'],
+  ['support', 'incident'],
+  ['security', 'legal', 'data'],
+];
 
 type SettingsAccordionSectionProps = {
   title: string;
@@ -171,7 +181,7 @@ export default function SettingsScreen() {
     storeDocuments: false,
     storeEmpty: true,
     storeAlerts: false,
-    billing: false,
+    billing: true,
     accountAlerts: false,
     tax: false,
     reminders: false,
@@ -187,6 +197,7 @@ export default function SettingsScreen() {
   const [notificationContacts, setNotificationContacts] = useState(DEFAULT_NOTIFICATION_CONTACTS);
   const [storeNotificationContacts, setStoreNotificationContacts] = useState(DEFAULT_NOTIFICATION_CONTACTS);
   const [notificationPreferences, setNotificationPreferences] = useState(DEFAULT_NOTIFICATION_PREFERENCES);
+  const [testPushSending, setTestPushSending] = useState(false);
   const [currentStore, setCurrentStore] = useState<Store | null>(null);
   const [storeName, setStoreName] = useState('');
   const [storeAddress, setStoreAddress] = useState('');
@@ -290,10 +301,31 @@ export default function SettingsScreen() {
   );
 
   function toggleSection(section: SettingsSectionKey) {
-    setExpandedSections((current) => ({
-      ...current,
-      [section]: !current[section],
-    }));
+    setExpandedSections((current) => {
+      const isCurrentlyExpanded = current[section];
+      if (isCurrentlyExpanded) {
+        return {
+          ...current,
+          [section]: false,
+        };
+      }
+
+      const nextState = { ...current, [section]: true };
+
+      for (const group of SETTINGS_SECTION_GROUPS) {
+        if (!group.includes(section)) {
+          continue;
+        }
+
+        for (const sibling of group) {
+          if (sibling !== section) {
+            nextState[sibling] = false;
+          }
+        }
+      }
+
+      return nextState;
+    });
   }
 
   async function toggleModule(key: string) {
@@ -301,16 +333,6 @@ export default function SettingsScreen() {
     const newModules = { ...settingsData.modules, [key]: !settingsData.modules[key] };
     try {
       const updated = await settingsApi.update({ modules: newModules });
-      setSettingsData(updated);
-    } catch {
-      // ignore
-    }
-  }
-
-  async function toggleSimpleMode() {
-    if (!settingsData) return;
-    try {
-      const updated = await settingsApi.update({ simple_mode: !settingsData.simple_mode });
       setSettingsData(updated);
     } catch {
       // ignore
@@ -372,6 +394,18 @@ export default function SettingsScreen() {
       setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(updated?.notification_preferences || {}) });
     } catch {
       Alert.alert(t('common.error'), 'Impossible de mettre à jour vos notifications.');
+    }
+  }
+
+  async function sendTestPush() {
+    setTestPushSending(true);
+    try {
+      const result = await notificationsApi.testPush();
+      Alert.alert('Test push lance', result?.message || 'Une notification de test a ete envoyee.');
+    } catch (err: any) {
+      Alert.alert('Test push impossible', err?.message || "Impossible d'envoyer la notification de test.");
+    } finally {
+      setTestPushSending(false);
     }
   }
 
@@ -510,7 +544,7 @@ export default function SettingsScreen() {
 
         <SettingsAccordionSection
           title="Compte et application"
-          description="Préférences personnelles, apparence, langue et réglages de votre appareil."
+          description="Abonnement, préférences personnelles et réglages de votre appareil."
           icon="settings-outline"
           accentColor={colors.primary}
           expanded={expandedSections.accountAppGroup}
@@ -518,9 +552,77 @@ export default function SettingsScreen() {
           styles={styles}
           colors={colors}
         >
+        {canManageBillingSettings && (
         <SettingsAccordionSection
-          title="Profil et application"
-          description="Préférences personnelles, apparence, langue et accès au compte."
+          title="Abonnement et facturation"
+          description="Plan actuel, changement de formule et contact de facturation."
+          icon="card-outline"
+          accentColor={colors.warning}
+          expanded={expandedSections.billing}
+          onToggle={() => toggleSection('billing')}
+          styles={styles}
+          colors={colors}
+          variant="nested"
+        >
+          <Text style={styles.sectionTitle}>Abonnement</Text>
+          <TouchableOpacity
+            style={styles.supportRow}
+            onPress={() => router.push('/subscription')}
+          >
+            <View style={[styles.supportIconWrapper, { backgroundColor: '#F59E0B' }]}>
+              <Ionicons name="card-outline" size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>{t('settings.my_subscription')}</Text>
+              <Text style={styles.settingDesc}>Consultez votre plan actuel, comparez les offres et restaurez vos achats.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm, borderBottomWidth: 0, marginTop: Spacing.md }]}>
+            <Text style={styles.settingLabel}>Contact de facturation</Text>
+            <Text style={styles.settingDesc}>Reçoit les mises à jour et informations d'abonnement du compte.</Text>
+            <TextInput
+              style={styles.input}
+              value={billingContactName}
+              onChangeText={setBillingContactName}
+              placeholder="Nom du contact"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TextInput
+              style={styles.input}
+              value={billingContactEmail}
+              onChangeText={setBillingContactEmail}
+              placeholder="email@entreprise.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor={colors.textMuted}
+            />
+            <TouchableOpacity
+              style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch' }]}
+              onPress={async () => {
+                try {
+                  const updated = await settingsApi.update({
+                    billing_contact_name: billingContactName,
+                    billing_contact_email: billingContactEmail,
+                  } as any);
+                  setSettingsData(updated);
+                  setBillingContactName(updated?.billing_contact_name || '');
+                  setBillingContactEmail(updated?.billing_contact_email || '');
+                } catch {}
+              }}
+            >
+              <Ionicons name="save-outline" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                Enregistrer le contact
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SettingsAccordionSection>
+        )}
+        <SettingsAccordionSection
+          title="Profil et apparence"
+          description="Profil, thème, langue et accès au compte."
           icon="person-outline"
           accentColor={colors.primary}
           expanded={expandedSections.profile}
@@ -545,19 +647,6 @@ export default function SettingsScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>{t('settings.simple_mode')}</Text>
-              <Text style={styles.settingDesc}>{t('settings.simple_mode_desc')}</Text>
-            </View>
-            <Switch
-              value={settingsData?.simple_mode ?? true}
-              onValueChange={toggleSimpleMode}
-              trackColor={{ false: colors.divider, true: colors.primary + '60' }}
-              thumbColor={settingsData?.simple_mode ? colors.primary : colors.textMuted}
-            />
-          </View>
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>{t('settings.notifications')}</Text>
               <Text style={styles.settingDesc}>{t('settings.notifications_desc')}</Text>
             </View>
@@ -572,8 +661,8 @@ export default function SettingsScreen() {
           {(isOrgAdmin || isBillingAdmin) && (
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Zone manager</Text>
-                <Text style={styles.settingDesc}>Affiche ou masque les réglages avancés de gestion sur mobile.</Text>
+                <Text style={styles.settingLabel}>Outils de gestion avancés</Text>
+                <Text style={styles.settingDesc}>Affiche ou masque les réglages avancés liés à l'organisation, à la boutique et au pilotage.</Text>
               </View>
               <Switch
                 value={settingsData?.mobile_preferences?.show_manager_zone ?? true}
@@ -1157,6 +1246,21 @@ export default function SettingsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={[styles.outlineButton, { marginTop: Spacing.md, opacity: testPushSending ? 0.7 : 1 }]}
+            onPress={sendTestPush}
+            disabled={testPushSending}
+          >
+            {testPushSending ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="paper-plane-outline" size={18} color={colors.primary} />
+            )}
+            <Text style={styles.outlineButtonText}>
+              {testPushSending ? 'Envoi en cours...' : 'Envoyer une notification de test'}
+            </Text>
+          </TouchableOpacity>
         </SettingsAccordionSection>
         )}
 
@@ -1261,80 +1365,11 @@ export default function SettingsScreen() {
           </View>
         </SettingsAccordionSection>
 
-        {/* Subscription */}
-        {canManageBillingSettings && (
-        <SettingsAccordionSection
-          title="Abonnement et facturation"
-          description="Plan actif, espace d'abonnement et contact de facturation."
-          icon="card-outline"
-          accentColor={colors.warning}
-          expanded={expandedSections.billing}
-          onToggle={() => toggleSection('billing')}
-          styles={styles}
-          colors={colors}
-          variant="nested"
-        >
-          <Text style={styles.sectionTitle}>{t('settings.application')}</Text>
-          <TouchableOpacity
-            style={styles.supportRow}
-            onPress={() => router.push('/subscription')}
-          >
-            <View style={[styles.supportIconWrapper, { backgroundColor: '#F59E0B' }]}>
-              <Ionicons name="card-outline" size={20} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>{t('settings.my_subscription')}</Text>
-              <Text style={styles.settingDesc}>{t('settings.subscription_desc')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-
-          <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm, borderBottomWidth: 0, marginTop: Spacing.md }]}>
-            <Text style={styles.settingLabel}>Contact de facturation</Text>
-            <Text style={styles.settingDesc}>Reoit les changes et informations d'abonnement du compte.</Text>
-            <TextInput
-              style={styles.input}
-              value={billingContactName}
-              onChangeText={setBillingContactName}
-              placeholder="Nom du contact"
-              placeholderTextColor={colors.textMuted}
-            />
-            <TextInput
-              style={styles.input}
-              value={billingContactEmail}
-              onChangeText={setBillingContactEmail}
-              placeholder="email@entreprise.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor={colors.textMuted}
-            />
-            <TouchableOpacity
-              style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch' }]}
-              onPress={async () => {
-                try {
-                  const updated = await settingsApi.update({
-                    billing_contact_name: billingContactName,
-                    billing_contact_email: billingContactEmail,
-                  } as any);
-                  setSettingsData(updated);
-                  setBillingContactName(updated?.billing_contact_name || '');
-                  setBillingContactEmail(updated?.billing_contact_email || '');
-                } catch {}
-              }}
-            >
-              <Ionicons name="save-outline" size={18} color={colors.primary} />
-              <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-                Enregistrer le contact
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </SettingsAccordionSection>
-        )}
         </SettingsAccordionSection>
 
         <SettingsAccordionSection
-          title="Aide et support"
-          description="Guides, assistance, contact et signalement d'un problème."
+          title="Support et incidents"
+          description="Guides, assistance, contact et signalement d'un incident."
           icon="help-circle-outline"
           accentColor={colors.info}
           expanded={expandedSections.supportGroup}
@@ -1344,7 +1379,7 @@ export default function SettingsScreen() {
         >
         {/* Support */}
         <SettingsAccordionSection
-          title="Aide et support"
+          title="Assistance"
           description="Centre d'aide, assistant IA et contact rapide."
           icon="help-circle-outline"
           accentColor={colors.info}
@@ -1385,9 +1420,9 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </SettingsAccordionSection>
 
-        {/* Signaler un problème */}
+        {/* Signaler un incident */}
         <SettingsAccordionSection
-          title="Signaler un problème"
+          title="Déclarer un incident"
           description="Déclare un incident de paiement, produit, service ou livraison."
           icon="warning-outline"
           accentColor={colors.danger}
@@ -1440,7 +1475,7 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
 
         <SettingsAccordionSection
-          title="Sécurité et données"
+          title="Sécurité, légal et données"
           description="Protection de l'accès, informations légales et opérations sensibles."
           icon="shield-checkmark-outline"
           accentColor={colors.warning}
@@ -1819,6 +1854,23 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
+  },
+  outlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+    backgroundColor: colors.primary + '12',
+  },
+  outlineButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: colors.primary,
   },
   toggle: {
     width: 44,

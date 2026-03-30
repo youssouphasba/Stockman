@@ -1,10 +1,10 @@
-import { User } from '../services/api';
+﻿import { User } from '../services/api';
 
 /**
  * Centrally formats an amount according to the user's currency.
  * @param amount Number to format
  * @param currency Currency code (XOF, EUR, etc.)
- * @returns Formatted string (e.g. "1 500 FCFA" or "1 500 €")
+ * @returns Formatted string (e.g. "1 500 FCFA" or "1 500 â‚¬")
  */
 export function formatCurrency(amount: number | string | null | undefined, currency: string = 'XOF'): string {
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -27,7 +27,7 @@ export function getCurrencySymbol(currency: string | null | undefined = 'XOF'): 
     const code = (currency || 'XOF').toUpperCase();
     switch (code) {
         case 'EUR':
-            return '€';
+            return 'â‚¬';
         case 'USD':
             return '$';
         case 'GBP':

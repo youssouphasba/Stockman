@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+﻿import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -501,7 +501,7 @@ export default function POSScreen() {
             const uri = voiceRecorder.uri;
             if (!uri) throw new Error('No recording URI');
             const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-            const result = await aiApi.voiceToCart(base64, i18n.language, activeSession.storeId || undefined);
+            const result = await aiApi.voiceToCart(base64, i18n.language, user?.active_store_id || undefined);
             setVoiceTranscription(result?.transcription || '');
             setVoiceItems(result?.items || []);
         } catch (err) {
@@ -1640,7 +1640,7 @@ export default function POSScreen() {
                             {/* Results */}
                             {!isVoiceRecording && !isVoiceProcessing && voiceTranscription !== '' && (
                                 <View style={{ paddingHorizontal: 4 }}>
-                                    <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+                                    <View style={{ backgroundColor: colors.glass, borderRadius: 12, padding: 12, marginBottom: 16 }}>
                                         <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 4 }}>Vous avez dit</Text>
                                         <Text style={{ fontSize: 13, color: colors.text, fontStyle: 'italic' }}>"{voiceTranscription}"</Text>
                                     </View>

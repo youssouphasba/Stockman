@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useEffect } from 'react';
 import { Plus, Phone, Users, CalendarDays, Check } from 'lucide-react';
 import { reservations as reservationsApi, tables as tablesApi } from '../services/api';

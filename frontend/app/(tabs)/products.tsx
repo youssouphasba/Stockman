@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -1811,7 +1811,7 @@ export default function ProductsScreen() {
           <div class="grid">
             ${list.map(p => `
               <div class="card">
-                ${p.image ? `<img src="${uploads.getFullUrl(p.image) || p.image}" />` : '<div class="placeholder">📦</div>'}
+                ${p.image ? `<img src="${uploads.getFullUrl(p.image) || p.image}" />` : '<div class="placeholder">ðŸ“¦</div>'}
                 <div class="name">${p.name}</div>
                 <div class="price">${formatUserCurrency(p.selling_price, user)}</div>
               </div>

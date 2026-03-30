@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Scan, Trash2, Package, RefreshCw, Layers, CheckCircle2 } from 'lucide-react';
@@ -127,7 +127,7 @@ export default function BatchScanModal({ onClose }: Props) {
                     </div>
 
                 ) : phase === 'scan' ? (
-                    /* ── Phase 1 : Scan ── */
+                    /* â”€â”€ Phase 1 : Scan â”€â”€ */
                     <div className="flex flex-col gap-5 p-6 overflow-y-auto custom-scrollbar">
 
                         {/* Keyboard wedge input */}
@@ -226,7 +226,7 @@ export default function BatchScanModal({ onClose }: Props) {
                     </div>
 
                 ) : (
-                    /* ── Phase 2 : Action ── */
+                    /* â”€â”€ Phase 2 : Action â”€â”€ */
                     <div className="flex flex-col gap-6 p-6 overflow-y-auto custom-scrollbar">
                         <div className="text-center py-2">
                             <span className="text-5xl font-black text-primary">{scannedCodes.length}</span>

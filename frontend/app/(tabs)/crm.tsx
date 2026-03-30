@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -44,7 +44,7 @@ import { formatCurrency, getCurrencySymbol, formatNumber } from '../../utils/for
 import PremiumGate from '../../components/PremiumGate';
 
 
-// ─── Tier helpers ───
+// â”€â”€â”€ Tier helpers â”€â”€â”€
 const TIER_CONFIG: Record<string, { color: string; icon: string; labelKey: string; min: number; next: number }> = {
     bronze: { color: '#CD7F32', icon: 'shield-outline', labelKey: 'crm.tier_bronze', min: 0, next: 5 },
     argent: { color: '#C0C0C0', icon: 'shield-half-outline', labelKey: 'crm.tier_silver', min: 5, next: 15 },
@@ -777,7 +777,7 @@ export default function CRMScreen() {
         );
     }
 
-    // ─── RENDER ───
+    // â”€â”€â”€ RENDER â”€â”€â”€
     return (
         <PremiumGate
             featureName={t('premium.features.crm.title')}
@@ -1596,102 +1596,6 @@ export default function CRMScreen() {
                                                     )}
                                                 </View>
 
-                                                {/* AI Customer Summary */}
-                                                <View style={{ marginTop: Spacing.lg, padding: Spacing.md, backgroundColor: '#7c3aed15', borderRadius: 16, borderWidth: 1, borderColor: '#7c3aed40' }}>
-                                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm }}>
-                                                        <Text style={{ fontSize: 10, fontWeight: '900', color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 1 }}>Résumé IA</Text>
-                                                        <TouchableOpacity
-                                                            onPress={async () => {
-                                                                setCustomerSummaryLoading(true);
-                                                                setCustomerSummaryText(null);
-                                                                try {
-                                                                    const res = await aiApi.customerSummary(detailCustomer.customer_id);
-                                                                    setCustomerSummaryText(res?.summary || null);
-                                                                } catch {
-                                                                    setCustomerSummaryText(null);
-                                                                } finally {
-                                                                    setCustomerSummaryLoading(false);
-                                                                }
-                                                            }}
-                                                            disabled={customerSummaryLoading}
-                                                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#7c3aed30', borderRadius: 10, opacity: customerSummaryLoading ? 0.5 : 1 }}
-                                                        >
-                                                            <Ionicons name="flash" size={12} color="#a78bfa" />
-                                                            <Text style={{ fontSize: 10, fontWeight: '900', color: '#a78bfa', textTransform: 'uppercase' }}>Analyser</Text>
-                                                        </TouchableOpacity>
-                                                    </View>
-                                                    {customerSummaryLoading && (
-                                                        <ActivityIndicator size="small" color="#a78bfa" />
-                                                    )}
-                                                    {customerSummaryText ? (
-                                                        <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20 }}>{customerSummaryText}</Text>
-                                                    ) : !customerSummaryLoading ? (
-                                                        <Text style={{ fontSize: 12, color: colors.textMuted, fontStyle: 'italic' }}>Appuyez sur Analyser pour générer un résumé IA.</Text>
-                                                    ) : null}
-                                                </View>
-
-                                                {/* AI Message Generator */}
-                                                <View style={{ marginTop: Spacing.lg, padding: Spacing.md, backgroundColor: colors.success + '10', borderRadius: 16, borderWidth: 1, borderColor: colors.success + '30' }}>
-                                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm }}>
-                                                        <Text style={{ fontSize: 10, fontWeight: '900', color: colors.success, textTransform: 'uppercase', letterSpacing: 1 }}>Message IA</Text>
-                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                                            {/* Type selector */}
-                                                            {(['promo', 'reengagement', 'debt_reminder', 'birthday'] as const).map(type => (
-                                                                <TouchableOpacity
-                                                                    key={type}
-                                                                    onPress={() => { setMessageType(type); setGeneratedMessage(null); }}
-                                                                    style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: messageType === type ? colors.success + '30' : colors.surface, borderWidth: 1, borderColor: messageType === type ? colors.success : colors.border }}
-                                                                >
-                                                                    <Text style={{ fontSize: 9, fontWeight: '700', color: messageType === type ? colors.success : colors.textMuted, textTransform: 'uppercase' }}>
-                                                                        {type === 'promo' ? 'Promo' : type === 'reengagement' ? 'Réactiv.' : type === 'debt_reminder' ? 'Dette' : 'Anniv.'}
-                                                                    </Text>
-                                                                </TouchableOpacity>
-                                                            ))}
-                                                        </View>
-                                                    </View>
-                                                    <TouchableOpacity
-                                                        onPress={async () => {
-                                                            setMessageLoading(true);
-                                                            setGeneratedMessage(null);
-                                                            try {
-                                                                const res = await aiApi.generateCustomerMessage(detailCustomer.customer_id, messageType);
-                                                                setGeneratedMessage(res?.message || null);
-                                                            } catch {
-                                                                setGeneratedMessage(null);
-                                                            } finally {
-                                                                setMessageLoading(false);
-                                                            }
-                                                        }}
-                                                        disabled={messageLoading}
-                                                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, backgroundColor: colors.success + '20', borderRadius: 10, marginBottom: Spacing.sm, opacity: messageLoading ? 0.5 : 1 }}
-                                                    >
-                                                        {messageLoading ? <ActivityIndicator size="small" color={colors.success} /> : <Ionicons name="flash" size={14} color={colors.success} />}
-                                                        <Text style={{ fontSize: 11, fontWeight: '900', color: colors.success, textTransform: 'uppercase' }}>Générer le message</Text>
-                                                    </TouchableOpacity>
-                                                    {generatedMessage ? (
-                                                        <View>
-                                                            <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20, marginBottom: Spacing.sm }}>{generatedMessage}</Text>
-                                                            <View style={{ flexDirection: 'row', gap: 8 }}>
-                                                                <TouchableOpacity
-                                                                    onPress={() => Share.share({ message: generatedMessage })}
-                                                                    style={{ flex: 1, paddingVertical: 7, backgroundColor: colors.surface, borderRadius: 10, alignItems: 'center' }}
-                                                                >
-                                                                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text }}>Partager</Text>
-                                                                </TouchableOpacity>
-                                                                {detailCustomer.phone && (
-                                                                    <TouchableOpacity
-                                                                        onPress={() => Linking.openURL(`https://wa.me/${detailCustomer.phone!.replace(/\D/g, '')}?text=${encodeURIComponent(generatedMessage)}`)}
-                                                                        style={{ flex: 1, paddingVertical: 7, backgroundColor: '#25D36620', borderRadius: 10, alignItems: 'center' }}
-                                                                    >
-                                                                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#25D366' }}>WhatsApp</Text>
-                                                                    </TouchableOpacity>
-                                                                )}
-                                                            </View>
-                                                        </View>
-                                                    ) : !messageLoading ? (
-                                                        <Text style={{ fontSize: 12, color: colors.textMuted, fontStyle: 'italic' }}>Sélectionnez un type et appuyez sur Générer.</Text>
-                                                    ) : null}
-                                                </View>
                                             )}
                                     </ScrollView>
                                 </>

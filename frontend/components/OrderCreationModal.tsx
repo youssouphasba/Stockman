@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -30,7 +30,7 @@ import {
   OrderCreate,
 } from '../services/api';
 
-// ── Types ──────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type SelectedSupplier = {
   id: string;
   name: string;
@@ -60,7 +60,7 @@ const STEP_LABELS = [
   'orders.confirmation'
 ];
 
-// ── Component ──────────────────────────────────────────
+// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function OrderCreationModal({
   visible,
   onClose,
@@ -95,7 +95,7 @@ export default function OrderCreationModal({
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // ── Reset on open/close ──
+  // â”€â”€ Reset on open/close â”€â”€
   useEffect(() => {
     if (visible) {
       if (preSelectedSupplier) {
@@ -130,7 +130,7 @@ export default function OrderCreationModal({
     });
   }, [visible, preSelectedProductId, products]);
 
-  // ── Data loaders ──
+  // â”€â”€ Data loaders â”€â”€
   async function loadSuppliers() {
     setSuppliersLoading(true);
     try {
@@ -202,7 +202,7 @@ export default function OrderCreationModal({
     setProductsLoading(false);
   }
 
-  // ── Supplier selection ──
+  // â”€â”€ Supplier selection â”€â”€
   function selectSupplier(sup: SelectedSupplier) {
     setSelectedSupplier(sup);
     setQuantities({});
@@ -211,7 +211,7 @@ export default function OrderCreationModal({
     loadProducts(sup);
   }
 
-  // ── Quantity helpers ──
+  // â”€â”€ Quantity helpers â”€â”€
   function updateQty(id: string, qty: number) {
     setQuantities((prev) => {
       const next = { ...prev };
@@ -221,7 +221,7 @@ export default function OrderCreationModal({
     });
   }
 
-  // ── Computed values ──
+  // â”€â”€ Computed values â”€â”€
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return products;
     const q = productSearch.toLowerCase();
@@ -267,7 +267,7 @@ export default function OrderCreationModal({
     confirmDiscardChanges(onClose);
   };
 
-  // ── Submit ──
+  // â”€â”€ Submit â”€â”€
   async function handleSubmit() {
     if (!selectedSupplier || selectedItems.length === 0) return;
 
@@ -323,21 +323,21 @@ export default function OrderCreationModal({
     }
   }
 
-  // ── Navigation ──
+  // â”€â”€ Navigation â”€â”€
   function goBack() {
     if (step === 3) setStep(2);
     else if (step === 2 && !preSelectedSupplier) setStep(1);
     else requestClose();
   }
 
-  // ── Filtered suppliers ──
+  // â”€â”€ Filtered suppliers â”€â”€
   const filteredManual = useMemo(() => {
     if (!supplierSearch.trim()) return manualSuppliers;
     const q = supplierSearch.toLowerCase();
     return manualSuppliers.filter((s) => s.name.toLowerCase().includes(q));
   }, [manualSuppliers, supplierSearch]);
 
-  // ── Render helpers ──
+  // â”€â”€ Render helpers â”€â”€
   const renderProductRow = useCallback(
     ({ item }: { item: ProductItem }) => {
       const qty = quantities[item.id] || 0;
@@ -366,7 +366,7 @@ export default function OrderCreationModal({
     [quantities, s]
   );
 
-  // ═══════════════ RENDER ═══════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RENDER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   if (!visible) return null;
 
   return (
@@ -394,7 +394,7 @@ export default function OrderCreationModal({
 
             <StepProgressBar currentStep={step} totalSteps={3} labels={STEP_LABELS.map(key => t(key))} />
 
-            {/* ═══ STEP 1: Supplier ═══ */}
+            {/* â•â•â• STEP 1: Supplier â•â•â• */}
             {step === 1 && (
               <View style={s.stepContent}>
                 {/* Tabs */}
@@ -505,7 +505,7 @@ export default function OrderCreationModal({
               </View>
             )}
 
-            {/* ═══ STEP 2: Products ═══ */}
+            {/* â•â•â• STEP 2: Products â•â•â• */}
             {step === 2 && (
               <View style={s.stepContent}>
                 {/* Supplier badge */}
@@ -577,7 +577,7 @@ export default function OrderCreationModal({
               </View>
             )}
 
-            {/* ═══ STEP 3: Review ═══ */}
+            {/* â•â•â• STEP 3: Review â•â•â• */}
             {step === 3 && (
               <FlatList
                 data={selectedItems}
@@ -652,7 +652,7 @@ export default function OrderCreationModal({
   );
 }
 
-// ── Styles ─────────────────────────────────────────────
+// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const getStyles = (colors: any, glassStyle: any) =>
   StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },

@@ -162,7 +162,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "Ã  l'instant";
+    if (diffMins < 1) return "à l'instant";
     if (diffMins < 60) return `${diffMins}min`;
     const diffHours = Math.floor(diffMins / 60);
     if (diffHours < 24) return `${diffHours}h`;
@@ -218,7 +218,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
               </Text>
               {view === 'chat' && activeConvo && (
                 <Text style={{ fontSize: 10, color: colors.textMuted }}>
-                  {user?.user_id === activeConvo.shopkeeper_id ? 'Fournisseur' : 'CommerÃ§ant'}
+                  {user?.user_id === activeConvo.shopkeeper_id ? 'Fournisseur' : 'Commerçant'}
                 </Text>
               )}
             </View>
@@ -240,7 +240,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
                   Aucune conversation
                 </Text>
                 <Text style={{ color: colors.textMuted, fontSize: FontSize.sm, textAlign: 'center', marginTop: Spacing.xs }}>
-                  Ouvrez le profil d'un fournisseur sur la Marketplace pour dÃ©marrer une conversation
+                  Ouvrez le profil d'un fournisseur sur la Marketplace pour démarrer une conversation
                 </Text>
               </View>
             ) : (
@@ -309,7 +309,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
               <View style={[styles.inputBar, { backgroundColor: colors.bgDark, borderTopColor: colors.divider }]}>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.glass, color: colors.text, borderColor: colors.glassBorder }]}
-                  placeholder="Ã‰crire un message..."
+                  placeholder="Écrire un message..."
                   placeholderTextColor={colors.textMuted}
                   value={newMessage}
                   onChangeText={setNewMessage}

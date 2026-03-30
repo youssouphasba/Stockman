@@ -1,4 +1,4 @@
-export type MeasurementType = 'unit' | 'weight' | 'volume';
+﻿export type MeasurementType = 'unit' | 'weight' | 'volume';
 
 type MeasurementAwareProduct = {
   unit?: string;
@@ -14,8 +14,6 @@ const UNIT_ALIASES: Record<string, string> = {
   piece: 'piece',
   pieces: 'piece',
   piecee: 'piece',
-  'pi�ce': 'piece',
-  'pi�ces': 'piece',
   'pièce': 'piece',
   'pièces': 'piece',
   unite: 'piece',

@@ -1,4 +1,4 @@
-import { syncService, type QueuedRequest } from './syncService';
+﻿import { syncService, type QueuedRequest } from './syncService';
 
 function toNumber(value: unknown, fallback = 0) {
     const parsed = Number(value);

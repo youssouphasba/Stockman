@@ -29,6 +29,7 @@ const PLAN_META: Record<PlanId, { icon: typeof Smartphone; color: string; bg: st
         icon: Smartphone,
         color: 'text-blue-400',
         bg: 'bg-blue-500/10',
+        popular: false,
         features: [
             'Application mobile complete',
             '1 boutique',
@@ -40,6 +41,7 @@ const PLAN_META: Record<PlanId, { icon: typeof Smartphone; color: string; bg: st
         icon: Zap,
         color: 'text-amber-400',
         bg: 'bg-amber-500/10',
+        popular: false,
         features: [
             'Application mobile complete',
             '2 boutiques',
@@ -179,6 +181,13 @@ export default function Subscription() {
             </div>
         );
     }
+    if (!subDetails) {
+        return (
+            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A] text-slate-300">
+                Impossible de charger les informations d'abonnement.
+            </div>
+        );
+    }
 
     const currentPlan = (subDetails.plan || 'starter') as PlanId;
     const isActive = subDetails.status === 'active';
@@ -199,20 +208,20 @@ export default function Subscription() {
 
     const subscriptionSteps: GuideStep[] = [
         {
-            title: "RÃ´le de cet Ã©cran",
-            content: "Cet Ã©cran vous permet de suivre votre formule, votre statut d'accÃ¨s, votre devise de facturation et le bon canal de paiement. C'est l'endroit Â· consulter avant un renouvellement, un changement de formule ou un contrÃ´le de facturation.",
+            title: "R?le de cet ?cran",
+            content: "Cet ?cran vous permet de suivre votre formule, votre statut d'acc?s, votre devise de facturation et le bon canal de paiement. C'est l'endroit ? consulter avant un renouvellement, un changement de formule ou un contr?le de facturation.",
         },
         {
             title: 'Comprendre votre statut actuel',
-            content: "Le grand bloc du haut vous indique si votre abonnement est actif, s'il arrive Ã  Ã©chÃ©ance ou si une continuitÃ© d'activitÃ© est en cours. Commencez toujours ici pour savoir si vous devez agir immÃ©diatement ou non.",
+            content: "Le grand bloc du haut vous indique si votre abonnement est actif, s'il arrive ? ?ch?ance ou si une continuit? d'activit? est en cours. Commencez toujours ici pour savoir si vous devez agir imm?diatement ou non.",
             details: [
-                { label: 'Plan actuel', description: "Affiche la formule active sur votre compte pour Ã©viter toute confusion avant un paiement.", type: 'card' },
-                { label: 'Dates importantes', description: "Montre les Ã©chÃ©ances de fin de pÃ©riode, de grÃ¢ce ou de passage en lecture seule quand elles existent.", type: 'info' },
+                { label: 'Plan actuel', description: "Affiche la formule active sur votre compte pour ?viter toute confusion avant un paiement.", type: 'card' },
+                { label: 'Dates importantes', description: "Montre les ?ch?ances de fin de p?riode, de gr?ce ou de passage en lecture seule quand elles existent.", type: 'info' },
             ],
         },
         {
-            title: 'VÃ©rifier pays et devise',
-            content: "La carte Â« Pays et devise de facturation Â« vous rappelle le cadre tarifaire appliquÃ© Ã  votre compte. Utilisez-la pour confirmer que les prix affichÃ©s et les canaux de paiement correspondent bien Ã  votre contexte.",
+            title: 'V?rifier pays et devise',
+            content: "La carte ? Pays et devise de facturation ? vous rappelle le cadre tarifaire appliqu? ? votre compte. Utilisez-la pour confirmer que les prix affich?s et les canaux de paiement correspondent bien ? votre contexte.",
         },
         {
             title: 'Comparer les formules',
@@ -276,7 +285,7 @@ export default function Subscription() {
                                 : 'Votre essai ou votre abonnement arrive a terme. Choisissez un plan ci-dessous pour continuer.'}
                         </p>
                         <p className="text-slate-500 text-xs mt-1">
-                            Devise : {currency} Â« Region : {subDetails.pricing_region || 'fallback'}
+                            Devise : {currency} ? Region : {subDetails.pricing_region || 'fallback'}
                         </p>
                     </div>
                 </div>
@@ -291,9 +300,9 @@ export default function Subscription() {
                         <div>
                             <h3 className="text-lg font-black text-white mb-2">Session demo active</h3>
                             <p className="text-sm text-slate-300 leading-relaxed">
-                                Type: <strong className="text-white">{formatDemoTypeLabel(subDetails.demo_type)}</strong>
-                                {' Â« '}Surface: <strong className="text-white">{subDetails.demo_surface || 'mobile'}</strong>
-                                {' Â« '}Expiration: <strong className="text-white">{subDetails.demo_expires_at anew Date(subDetails.demo_expires_at).toLocaleString('fr-FR') : 'â€”'}</strong>
+                                    Type: <strong className="text-white">{formatDemoTypeLabel(subDetails.demo_type ?? null)}</strong>
+                                {' - '}Surface: <strong className="text-white">{subDetails.demo_surface || 'mobile'}</strong>
+                                {' - '}Expiration: <strong className="text-white">{subDetails.demo_expires_at ? new Date(subDetails.demo_expires_at).toLocaleString('fr-FR') : '-'}</strong>
                             </p>
                         </div>
                     </div>
@@ -307,12 +316,12 @@ export default function Subscription() {
                             <AlertCircle size={22} />
                         </div>
                         <div>
-                            <h3 className="text-lg font-black text-white mb-2">ContinuitÃ© d&apos;activitÃ© activÃ©e</h3>
+                            <h3 className="text-lg font-black text-white mb-2">Continuit? d&apos;activit? activ?e</h3>
                             <p className="text-sm text-slate-300 leading-relaxed">
                                 Votre compte est actuellement en phase <strong className="text-white capitalize">{accessPhase}</strong>.
-                                Vous pouvez toujours rÃ©gulariser l&apos;abonnement sans perdre vos donnÃ©es.
-                                {subDetails.grace_until a` Fin de grÃ¢ce : ${new Date(subDetails.grace_until).toLocaleDateString('fr-FR')}.` : ''}
-                                {subDetails.read_only_after a` Passage en lecture seule : ${new Date(subDetails.read_only_after).toLocaleDateString('fr-FR')}.` : ''}
+                                Vous pouvez toujours regulariser l&apos;abonnement sans perdre vos donnees.
+                                {subDetails.grace_until ? ` Fin de grace : ${new Date(subDetails.grace_until).toLocaleDateString('fr-FR')}.` : ''}
+                                {subDetails.read_only_after ? ` Passage en lecture seule : ${new Date(subDetails.read_only_after).toLocaleDateString('fr-FR')}.` : ''}
                             </p>
                         </div>
                     </div>
@@ -357,7 +366,7 @@ export default function Subscription() {
                     <div
                         key={plan.id}
                         className={`glass-card p-8 flex flex-col gap-8 relative overflow-hidden group border-2 ${
-                            plan.popular a'border-primary/30 shadow-2xl shadow-primary/10' : 'border-white/5'
+                            plan.popular ? 'border-primary/30 shadow-2xl shadow-primary/10' : 'border-white/5'
                         }`}
                     >
                         {plan.popular && (
@@ -388,7 +397,7 @@ export default function Subscription() {
                             ))}
                         </div>
 
-                        {plan.id === currentPlan && isActive a(
+                        {plan.id === currentPlan && isActive ? (
                             <div className="w-full py-4 rounded-xl flex items-center justify-center gap-3 font-bold bg-white/5 text-slate-500 border border-white/5">
                                 <CheckCircle2 size={18} />
                                 Plan actuel
@@ -400,16 +409,16 @@ export default function Subscription() {
                                     disabled={!!purchasing}
                                     className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold btn-primary shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                                 >
-                                    {purchasing === 'stripe' a<RefreshCw className="animate-spin" size={18} /> : <CreditCard size={18} />}
+                                    {purchasing === 'stripe' ? <RefreshCw className="animate-spin" size={18} /> : <CreditCard size={18} />}
                                     Payer par carte bancaire ({currency}) <ArrowRight size={16} />
                                 </button>
-                                {canUseMobileMoney a(
+                                {canUseMobileMoney ? (
                                     <button
                                         onClick={() => void handleFlutterwave(plan.id)}
                                         disabled={!!purchasing}
                                         className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold bg-emerald-500/90 text-white shadow-xl shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
                                     >
-                                        {purchasing === 'flutterwave' a<RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
+                                        {purchasing === 'flutterwave' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
                                         Payer via Mobile Money ({currency})
                                     </button>
                                 ) : (
@@ -455,7 +464,7 @@ export default function Subscription() {
                     className="btn-primary mt-8 px-6 py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
                 >
                     <Save size={18} />
-                    {savingBillingContact a'Enregistrement...' : 'Mettre a jour le contact'}
+                    {savingBillingContact ? 'Enregistrement...' : 'Mettre a jour le contact'}
                 </button>
             </div>
 

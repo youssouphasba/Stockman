@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -224,7 +224,7 @@ export default function POS() {
         const normalizedProduct = normalizeProductMeasurement(product);
         setWeightedDraftProduct({ ...product, ...normalizedProduct });
         setWeightedEditingCartKey(existingItem?.cart_key || null);
-        setWeightedQuantityInput(String(existingItem?.sold_quantity_input ?? existingItem?.quantity ?? 1));
+        setWeightedQuantityInput(String(existingItem?.sold_quantity_input ? existingItem?.quantity : 1));
         setWeightedUnit(existingItem?.sold_unit || normalizedProduct.pricing_unit || normalizedProduct.unit || 'g');
         setShowWeightedModal(true);
     };
@@ -999,7 +999,7 @@ export default function POS() {
                                     <option value="">{t('pos.no_table')}</option>
                                     {tableList.map(t => (
                                         <option key={t.table_id} value={t.table_id}>
-                                            {t.name} ({t.capacity} pers.) {t.status === 'occupied' ? '🔴' : t.status === 'reserved' ? '🔵' : '🟢'}
+                                            {t.name} ({t.capacity} pers.) {t.status === 'occupied' ? 'ðŸ”´' : t.status === 'reserved' ? 'ðŸ”µ' : 'ðŸŸ¢'}
                                         </option>
                                     ))}
                                 </select>

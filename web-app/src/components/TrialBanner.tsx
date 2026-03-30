@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useEffect, useState } from 'react';
 import { Clock, AlertTriangle, AlertOctagon, ChevronRight } from 'lucide-react';
 import { subscription as subscriptionApi } from '../services/api';

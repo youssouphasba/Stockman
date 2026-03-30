@@ -201,11 +201,11 @@ export default function Inventory() {
                 product_id: stockModalProduct.product_id,
                 type: stockMovType,
                 quantity: qty,
-                reason: stockMovReason || (stockMovType === 'in' a'EntrÃ©e stock' : 'Sortie stock'),
+                reason: stockMovReason || (stockMovType === 'in' ? 'Entree stock' : 'Sortie stock'),
             });
             setProducts(prev => prev.map(p =>
                 p.product_id === stockModalProduct.product_id
-                    a{ ...p, quantity: stockMovType === 'in' ap.quantity + qty : Math.max(0, p.quantity - qty) }
+                    ? { ...p, quantity: stockMovType === 'in' ? p.quantity + qty : Math.max(0, p.quantity - qty) }
                     : p
             ));
             setPendingInventorySummary(getPendingInventorySummary());
@@ -220,19 +220,19 @@ export default function Inventory() {
         }
     };
 
-    const fetchProducts = async (locationFilter: string) => {
+    const fetchProducts = async (locationFilter?: string) => {
         setLoading(true);
         setError(null);
         try {
             const resolvedLocation = locationFilter !== undefined
-                a(locationFilter || undefined)
+                ? (locationFilter || undefined)
                 : (selectedLocation || undefined);
-            const offlineLocationKey = locationFilter !== undefined alocationFilter : selectedLocation;
+            const offlineLocationKey = locationFilter !== undefined ? locationFilter : selectedLocation;
             let partialError = false;
             const [prodsRes, catsRes, locsRes, suppliersRes, linksRes] = await Promise.allSettled([
                 productsApi.list(undefined, 0, 500, resolvedLocation),
                 categoriesApi.list(),
-                hasEnterpriseLocations alocationsApi.list() : Promise.resolve([]),
+                hasEnterpriseLocations ? locationsApi.list() : Promise.resolve([]),
                 suppliersApi.list(),
                 supplierProductsApi.list(),
             ]);
@@ -264,7 +264,7 @@ export default function Inventory() {
 
             if (suppliersRes.status === 'fulfilled') {
                 const supplierRows = Array.isArray(suppliersRes.value)
-                    asuppliersRes.value
+                    ? suppliersRes.value
                     : (suppliersRes.value as any).items || [];
                 setSuppliersList(supplierRows);
             } else {
@@ -273,7 +273,7 @@ export default function Inventory() {
             }
 
             if (linksRes.status === 'fulfilled') {
-                const grouped = (Array.isArray(linksRes.value) alinksRes.value : []).reduce((acc: Record<string, any[]>, link: any) => {
+                const grouped = (Array.isArray(linksRes.value) ? linksRes.value : []).reduce((acc: Record<string, any[]>, link: any) => {
                     if (!link.product_id) return acc;
                     if (!acc[link.product_id]) acc[link.product_id] = [];
                     acc[link.product_id].push(link);
@@ -285,7 +285,7 @@ export default function Inventory() {
                 console.warn('Inventory supplier links unavailable', linksRes.reason);
             }
             if (partialError) {
-                setError(t('inventory.partial_load_error', { defaultValue: 'Certaines donnÃ©es annexes du stock sont temporairement indisponibles.' }));
+                setError(t('inventory.partial_load_error', { defaultValue: 'Certaines donn?es annexes du stock sont temporairement indisponibles.' }));
             }
         } catch (err) {
             console.error('Error fetching inventory data', err);
@@ -397,20 +397,20 @@ export default function Inventory() {
     };
 
     const handleImportCatalog = async () => {
-        const sector = currentFeatures.sector;
+        const sector = currentFeatures?.sector;
         if (!sector) {
-            alert("Aucun type d'activitÃ© n'est dÃ©fini pour ce compte.");
+            alert("Aucun type d'activit? n'est d?fini pour ce compte.");
             return;
         }
         setShowCreateMenu(false);
         setCatalogImportLoading(true);
         try {
             const result = await catalogApi.importAll(sector, currentUser.country_code);
-            alert(`${result.imported || 0} produits ont Ã©tÃ© importÃ©s pour ${currentFeatures.sector_label || sector}.`);
+            alert(`${result.imported || 0} produits ont ete importes pour ${currentFeatures?.sector_label || sector}.`);
             await fetchProducts();
             await loadStockHealth();
         } catch (err: any) {
-            alert(err.message || "Erreur lors de l'import du catalogue mÃ©tier");
+            alert(err.message || "Erreur lors de l'import du catalogue m?tier");
         } finally {
             setCatalogImportLoading(false);
         }
@@ -439,7 +439,7 @@ export default function Inventory() {
             measurement_type: product.measurement_type || inferMeasurementType(product.unit),
             display_unit: product.display_unit || product.unit || 'piece',
             pricing_unit: product.pricing_unit || product.unit || 'piece',
-            allows_fractional_sale: product.allows_fractional_sale  inferMeasurementType(product.unit) !== 'unit',
+            allows_fractional_sale: product.allows_fractional_sale ?? (inferMeasurementType(product.unit) !== 'unit'),
             has_variants: product.has_variants || false,
             variants: product.variants || []
         });
@@ -516,7 +516,7 @@ export default function Inventory() {
                             supplier_price: Number(supplierPickerProduct.purchase_price) || existing.supplier_price || 0,
                         });
                     } catch (err: any) {
-                        syncErrors.push(err.message || `Impossible de mettre Ã  jour le fournisseur ${getSupplierName(supplierId)}.`);
+                        syncErrors.push(err.message || `Impossible de mettre ? jour le fournisseur ${getSupplierName(supplierId)}.`);
                     }
                 } else {
                     try {
@@ -636,7 +636,7 @@ export default function Inventory() {
         if (!product.product_id || deletingProductId) return;
 
         const confirmed = window.confirm(
-            `Supprimer dÃ©finitivement le produit "${product.name}" `,
+            `Supprimer d?finitivement le produit "${product.name}" `,
         );
 
         if (!confirmed) {
@@ -684,7 +684,7 @@ export default function Inventory() {
                 allows_fractional_sale: measurement.allows_fractional_sale,
                 quantity_precision: measurement.quantity_precision,
                 variants: form.has_variants
-                    aform.variants
+                    ? form.variants
                         .filter((variant: any) => String(variant.name || '').trim())
                         .map((variant: any) => ({
                             ...variant,
@@ -730,7 +730,7 @@ export default function Inventory() {
                             });
                         } catch (err: any) {
                             supplierSyncErrors.push(
-                                err.message || `Impossible de mettre Ã  jour le fournisseur ${getSupplierName(supplierId)}.`,
+                                err.message || `Impossible de mettre ? jour le fournisseur ${getSupplierName(supplierId)}.`,
                             );
                         }
                     } else {
@@ -751,7 +751,7 @@ export default function Inventory() {
 
                 if (supplierSyncErrors.length > 0) {
                     alert(
-                        `Le produit a bien Ã©tÃ© enregistrÃ©, mais certaines liaisons fournisseurs ont Ã©chouÃ©.\n\n${supplierSyncErrors[0]}`,
+                        `Le produit a bien ?t? enregistr?, mais certaines liaisons fournisseurs ont ?chou?.\n\n${supplierSyncErrors[0]}`,
                     );
                 }
             }
@@ -809,7 +809,7 @@ export default function Inventory() {
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files.[0];
+        const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -868,27 +868,27 @@ export default function Inventory() {
         });
     };
 
-    const rankedSuppliersForForm = [...(Array.isArray(suppliersList) asuppliersList : [])]
+    const rankedSuppliersForForm = [...(Array.isArray(suppliersList) ? suppliersList : [])]
         .map((supplier: any) => {
             const supplied = normalizeMatchText(supplier.products_supplied || '');
             const tokens = normalizeMatchText(`${form.name} ${form.category_id}`)
                 .split(' ')
                 .filter((token) => token.length >= 3);
-            const score = tokens.reduce((acc, token) => (supplied.includes(token) aacc + 1 : acc), 0);
-            return { supplier, score };
+            const normalizedScore = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
+            return { supplier, score: normalizedScore };
         })
         .sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
             return (a.supplier.name || '').localeCompare(b.supplier.name || '');
         });
 
-    const rankedSuppliersForPicker = [...(Array.isArray(suppliersList) asuppliersList : [])]
+    const rankedSuppliersForPicker = [...(Array.isArray(suppliersList) ? suppliersList : [])]
         .map((supplier: any) => {
             const supplied = normalizeMatchText(supplier.products_supplied || '');
             const tokens = normalizeMatchText(`${supplierPickerProduct.name || ''} ${supplierPickerProduct.category_id || ''}`)
                 .split(' ')
                 .filter((token) => token.length >= 3);
-            const score = tokens.reduce((acc, token) => (supplied.includes(token) aacc + 1 : acc), 0);
+            const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
             return { supplier, score };
         })
         .filter(({ supplier, score }) => score > 0 || pickerSupplierIds.includes(supplier.supplier_id))
@@ -898,18 +898,18 @@ export default function Inventory() {
         });
 
     const getSupplierName = (supplierId: string | null) =>
-        (Array.isArray(suppliersList) asuppliersList : []).find((supplier: any) => supplier.supplier_id === supplierId).name || 'Fournisseur';
+        (Array.isArray(suppliersList) ? suppliersList : []).find((supplier: any) => supplier.supplier_id === supplierId)?.name || 'Fournisseur';
 
     const getProductSupplyMeta = (productId: string | null) => {
-        const links = productId a(supplierLinksByProduct[productId] || []) : [];
+        const links = productId ? (supplierLinksByProduct[productId] || []) : [];
         const primaryLink = links.find((link) => link.is_preferred) || null;
-        const primaryName = primaryLink agetSupplierName(primaryLink.supplier_id) : '';
+        const primaryName = primaryLink ? getSupplierName(primaryLink.supplier_id) : '';
 
         if (links.length === 0) {
             return {
                 tone: 'rose',
                 status: 'Aucun fournisseur',
-                subtitle: 'Ajoutez un fournisseur pour prÃ©parer le rÃ©approvisionnement.',
+                subtitle: 'Ajoutez un fournisseur pour pr?parer le r?approvisionnement.',
             };
         }
 
@@ -917,29 +917,29 @@ export default function Inventory() {
             return {
                 tone: 'sky',
                 status: 'Principal manquant',
-                subtitle: `${links.length} fournisseur(s) liÃ©(s), aucun principal dÃ©fini.`,
+                subtitle: `${links.length} fournisseur(s) li?(s), aucun principal d?fini.`,
             };
         }
 
         return {
             tone: 'emerald',
-            status: links.length > 1 a'Approvisionnement sÃ©curisÃ©' : 'Approvisionnement prÃªt',
+            status: links.length > 1 ? 'Approvisionnement securise' : 'Approvisionnement pret',
             subtitle: links.length > 1
-                a`Principal : ${primaryName} Â« ${links.length - 1} alternative(s)`
+                ? `Principal : ${primaryName} + ${links.length - 1} alternative(s)`
                 : `Principal : ${primaryName}`,
         };
     };
 
     const supplierCoverageStats = {
-        noSupplier: (Array.isArray(products) aproducts : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length === 0).length,
-        multiSupplier: (Array.isArray(products) aproducts : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length > 1).length,
-        missingPrimary: (Array.isArray(products) aproducts : []).filter((product) => {
+        noSupplier: (Array.isArray(products) ? products : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length === 0).length,
+        multiSupplier: (Array.isArray(products) ? products : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length > 1).length,
+        missingPrimary: (Array.isArray(products) ? products : []).filter((product) => {
             const links = supplierLinksByProduct[product.product_id] || [];
             return links.length > 0 && !links.some((link) => link.is_preferred);
         }).length,
     };
 
-    const filteredProducts = (Array.isArray(products) aproducts : []).filter((p) => {
+    const filteredProducts = (Array.isArray(products) ? products : []).filter((p) => {
         const matchesSearch =
             (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
             p.sku.toLowerCase().includes(search.toLowerCase());
@@ -974,7 +974,7 @@ export default function Inventory() {
                         onClick={() => void fetchProducts()}
                         className="btn-primary px-6 py-3"
                     >
-                        {t('common.retry', { defaultValue: 'RÃ©essayer' })}
+                        {t('common.retry', { defaultValue: 'R?essayer' })}
                     </button>
                 </div>
             </div>
@@ -983,35 +983,35 @@ export default function Inventory() {
 
     const inventorySteps: GuideStep[] = [
         {
-            title: t('guide.inventory.role_title', "RÃ´le de l'inventaire"),
-            content: t('guide.inventory.role_content', "L'inventaire regroupe tous vos produits actifs. C'est ici que vous crÃ©ez, modifiez, suivez, importez et exportez votre stock. Chaque mouvement est tracÃ© et toutes les donnÃ©es affichÃ©es dÃ©pendent de la boutique active."),
+            title: t('guide.inventory.role_title', "R?le de l'inventaire"),
+            content: t('guide.inventory.role_content', "L'inventaire regroupe tous vos produits actifs. C'est ici que vous cr?ez, modifiez, suivez, importez et exportez votre stock. Chaque mouvement est trac? et toutes les donn?es affich?es d?pendent de la boutique active."),
         },
         {
-            title: t('guide.inventory.header_title', "Barre d'en-tÃªte"),
-            content: t('guide.inventory.header_content', "Les boutons du haut servent Ã  crÃ©er des produits, importer en lot, lancer un scan, exporter le stock et ouvrir les actions utiles sans quitter l'Ã©cran."),
+            title: t('guide.inventory.header_title', "Barre d'en-t?te"),
+            content: t('guide.inventory.header_content', "Les boutons du haut servent ? cr?er des produits, importer en lot, lancer un scan, exporter le stock et ouvrir les actions utiles sans quitter l'?cran."),
             details: [
-                { label: t('guide.inventory.btn_add', "Nouveau produit"), description: t('guide.inventory.btn_add_desc', "Ouvre la fiche complÃ¨te de crÃ©ation : nom, SKU, quantitÃ© initiale, unitÃ©, prix, seuils, catÃ©gorie, emplacement et description."), type: 'button' },
-                { label: t('guide.inventory.btn_import_csv', "Import CSV"), description: t('guide.inventory.btn_import_csv_desc', "Utilisez cet import pour crÃ©er plusieurs produits d'un coup. PrÃ©parez votre fichier avec les bonnes colonnes, vÃ©rifiez l'aperÃ§u puis validez la crÃ©ation."), type: 'button' },
-                { label: t('guide.inventory.btn_import_text', "Import texte"), description: t('guide.inventory.btn_import_text_desc', "Collez une liste brute quand vous n'avez pas encore un fichier propre. Relisez toujours le rÃ©sultat avant d'enregistrer pour Ã©viter une crÃ©ation incorrecte."), type: 'button' },
-                { label: t('guide.inventory.btn_scan', "Scan en lot"), description: t('guide.inventory.btn_scan_desc', "Le scan en sÃ©rie accÃ©lÃ¨re les entrÃ©es de stock, les rÃ©ceptions et certains contrÃ´les. Il est utile quand vous manipulez beaucoup d'articles en peu de temps."), type: 'button' },
-                { label: t('guide.inventory.btn_export_xls', "Exporter Excel"), description: t('guide.inventory.btn_export_xls_desc', "Exporte le stock affichÃ© avec ses colonnes utiles pour le contrÃ´le, la comptabilitÃ©, le partage interne ou le travail hors application."), type: 'button' },
-                { label: t('guide.inventory.btn_export_pdf', "Exporter PDF"), description: t('guide.inventory.btn_export_pdf_desc', "GÃ©nÃ¨re un document plus lisible pour l'impression, la validation terrain ou le partage rapide."), type: 'button' },
+                { label: t('guide.inventory.btn_add', "Nouveau produit"), description: t('guide.inventory.btn_add_desc', "Ouvre la fiche compl?te de cr?ation : nom, SKU, quantit? initiale, unit?, prix, seuils, cat?gorie, emplacement et description."), type: 'button' },
+                { label: t('guide.inventory.btn_import_csv', "Import CSV"), description: t('guide.inventory.btn_import_csv_desc', "Utilisez cet import pour cr?er plusieurs produits d'un coup. Pr?parez votre fichier avec les bonnes colonnes, v?rifiez l'aper?u puis validez la cr?ation."), type: 'button' },
+                { label: t('guide.inventory.btn_import_text', "Import texte"), description: t('guide.inventory.btn_import_text_desc', "Collez une liste brute quand vous n'avez pas encore un fichier propre. Relisez toujours le r?sultat avant d'enregistrer pour ?viter une cr?ation incorrecte."), type: 'button' },
+                { label: t('guide.inventory.btn_scan', "Scan en lot"), description: t('guide.inventory.btn_scan_desc', "Le scan en s?rie acc?l?re les entr?es de stock, les r?ceptions et certains contr?les. Il est utile quand vous manipulez beaucoup d'articles en peu de temps."), type: 'button' },
+                { label: t('guide.inventory.btn_export_xls', "Exporter Excel"), description: t('guide.inventory.btn_export_xls_desc', "Exporte le stock affich? avec ses colonnes utiles pour le contr?le, la comptabilit?, le partage interne ou le travail hors application."), type: 'button' },
+                { label: t('guide.inventory.btn_export_pdf', "Exporter PDF"), description: t('guide.inventory.btn_export_pdf_desc', "G?n?re un document plus lisible pour l'impression, la validation terrain ou le partage rapide."), type: 'button' },
             ],
         },
         {
             title: t('guide.inventory.search_title', "Recherche et filtres"),
-            content: t('guide.inventory.search_content', "La recherche et les filtres servent Ã  retrouver vite un article, Ã  isoler une zone du stock ou Ã  concentrer l'analyse sur un type prÃ©cis de produit."),
+            content: t('guide.inventory.search_content', "La recherche et les filtres servent ? retrouver vite un article, ? isoler une zone du stock ou ? concentrer l'analyse sur un type pr?cis de produit."),
             details: [
                 { label: t('guide.inventory.search_bar', "Barre de recherche"), description: t('guide.inventory.search_bar_desc', "Recherche par nom, SKU ou code d'identification. C'est le plus rapide pour retrouver un article avant une correction ou une commande."), type: 'filter' },
-                { label: t('guide.inventory.filter_location', "Filtre emplacement"), description: t('guide.inventory.filter_location_desc', "Affiche uniquement les produits rangÃ©s dans une zone donnÃ©e. Utilisez-le pendant les comptages, les transferts internes et les contrÃ´les physiques."), type: 'filter' },
-                { label: t('guide.inventory.filter_toggle', "Filtres de couverture fournisseur"), description: t('guide.inventory.filter_toggle_desc', "Isolez les produits sans fournisseur, avec plusieurs fournisseurs ou sans principal dÃ©fini. Cette lecture est utile pour sÃ©curiser le rÃ©approvisionnement."), type: 'filter' },
+                { label: t('guide.inventory.filter_location', "Filtre emplacement"), description: t('guide.inventory.filter_location_desc', "Affiche uniquement les produits rang?s dans une zone donn?e. Utilisez-le pendant les comptages, les transferts internes et les contr?les physiques."), type: 'filter' },
+                { label: t('guide.inventory.filter_toggle', "Filtres de couverture fournisseur"), description: t('guide.inventory.filter_toggle_desc', "Isolez les produits sans fournisseur, avec plusieurs fournisseurs ou sans principal d?fini. Cette lecture est utile pour s?curiser le r?approvisionnement."), type: 'filter' },
             ],
         },
         {
             title: t('guide.inventory.product_list_title', "Liste des produits"),
-            content: t('guide.inventory.product_list_content', "Chaque ligne rÃ©sume l'Ã©tat opÃ©rationnel d'un produit : quantitÃ©, prix, catÃ©gorie, emplacement, couverture fournisseur et actions disponibles."),
+            content: t('guide.inventory.product_list_content', "Chaque ligne r?sume l'?tat op?rationnel d'un produit : quantit?, prix, cat?gorie, emplacement, couverture fournisseur et actions disponibles."),
             details: [
-                { label: t('guide.inventory.col_name', "Produit"), description: t('guide.inventory.col_name_desc', "Le nom ouvre la fiche complÃ¨te. Utilisez cette fiche pour corriger les donnÃ©es, relier des fournisseurs, changer un emplacement ou complÃ©ter la description."), type: 'card' },
+                { label: t('guide.inventory.col_name', "Produit"), description: t('guide.inventory.col_name_desc', "Le nom ouvre la fiche compl?te. Utilisez cette fiche pour corriger les donn?es, relier des fournisseurs, changer un emplacement ou compl?ter la description."), type: 'card' },
                 { label: t('guide.inventory.col_sku', "SKU"), description: t('guide.inventory.col_sku_desc', "Le SKU sert de référence interne pour l'import, l'export, la recherche et certains contrôles terrain."), type: 'info' },
                 { label: t('guide.inventory.col_qty', "Quantité"), description: t('guide.inventory.col_qty_desc', "La quantité affichée est votre stock disponible actuel. Comparez-la toujours avec le seuil minimum et l'état de couverture fournisseur avant une décision."), type: 'card' },
                 { label: t('guide.inventory.col_price', "Prix"), description: t('guide.inventory.col_price_desc', "Les prix d'achat et de vente servent au suivi de marge et à la préparation des décisions d'achat ou de repositionnement."), type: 'info' },
@@ -1092,7 +1092,7 @@ export default function Inventory() {
                         >
                             <Download size={16} />
                             Exporter
-                            <ChevronDown size={14} className={`transition-transform ${showExportMenu a'rotate-180' : ''}`} />
+                            <ChevronDown size={14} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
                         </button>
                         {showExportMenu && (
                             <div className="absolute right-0 top-full mt-1 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
@@ -1119,8 +1119,8 @@ export default function Inventory() {
                             className="btn-primary py-2 px-6 flex items-center gap-2"
                         >
                             <Plus size={20} />
-                            CrÃ©er / importer
-                            <ChevronDown size={14} className={`transition-transform ${showCreateMenu a'rotate-180' : ''}`} />
+                            Cr?er / importer
+                            <ChevronDown size={14} className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} />
                         </button>
                         {showCreateMenu && (
                             <div className="absolute right-0 top-full z-50 mt-1 min-w-[260px] overflow-hidden rounded-2xl border border-white/10 bg-[#1E293B] shadow-2xl">
@@ -1130,7 +1130,7 @@ export default function Inventory() {
                                 >
                                     <Plus size={16} className="text-primary" />
                                     <div>
-                                        <p className="font-bold">CrÃ©er manuellement</p>
+                                        <p className="font-bold">Cr?er manuellement</p>
                                         <p className="text-xs text-slate-400">Formulaire complet avec aide IA dans la fiche produit.</p>
                                     </div>
                                 </button>
@@ -1144,7 +1144,7 @@ export default function Inventory() {
                                     <Sparkles size={16} className="text-violet-400" />
                                     <div>
                                         <p className="font-bold">Importer depuis un texte</p>
-                                        <p className="text-xs text-slate-400">Colle une liste libre, l'IA structure et crÃ©e les produits.</p>
+                                        <p className="text-xs text-slate-400">Colle une liste libre, l'IA structure et cr?e les produits.</p>
                                     </div>
                                 </button>
                                 <button
@@ -1162,17 +1162,17 @@ export default function Inventory() {
                                 </button>
                                 <button
                                     onClick={handleImportCatalog}
-                                    disabled={catalogImportLoading || !currentFeatures.sector}
+                                    disabled={catalogImportLoading || !currentFeatures?.sector}
                                     className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <Layers size={16} className="text-amber-400" />
                                     <div>
                                         <p className="font-bold">
                                             {catalogImportLoading
-                                                a'Import du catalogueâ€¦'
-                                                : `Importer le catalogue ${currentFeatures.sector_label || 'du mÃ©tier'}`}
+                                                ? 'Import du catalogue?'
+                                            : `Importer le catalogue ${currentFeatures?.sector_label || 'du metier'}`}
                                         </p>
-                                        <p className="text-xs text-slate-400">PrÃ©charge un catalogue adaptÃ© Ã  ton type d'activitÃ©.</p>
+                                        <p className="text-xs text-slate-400">Pr?charge un catalogue adapt? ? ton type d'activit?.</p>
                                     </div>
                                 </button>
                             </div>
@@ -1191,7 +1191,7 @@ export default function Inventory() {
                         className="glass-card px-4 py-2 text-sm font-medium text-violet-400 border border-violet-500/30 hover:bg-violet-500/10 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                         <Sparkles size={16} />
-                        {replenishLoading a'Analyse...' : 'IA RÃ©appro'}
+                        {replenishLoading ? 'Analyse...' : 'IA R?appro'}
                     </button>
                 </div>
             </header>
@@ -1206,16 +1206,16 @@ export default function Inventory() {
                             <Sparkles size={20} className="text-violet-400 shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <p className="text-violet-300 font-bold text-sm mb-1">
-                                    IA Â· Conseils de rÃ©approvisionnement
+                                    IA ? Conseils de r?approvisionnement
                                     {replenishAdvice && ` (${replenishAdvice.priority_count} produits prioritaires)`}
                                 </p>
-                                {replenishLoading a(
+                                {replenishLoading ? (
                                     <div className="flex items-center gap-2 text-slate-400 text-sm">
                                         <div className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
                                         Analyse en cours...
                                     </div>
                                 ) : (
-                                    <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{replenishAdvice.advice}</p>
+                                    <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{replenishAdvice?.advice || ''}</p>
                                 )}
                             </div>
                         </div>
@@ -1252,8 +1252,8 @@ export default function Inventory() {
                                     onClick={() => setShowDeadstock(!showDeadstock)}
                                     className="mt-2 text-amber-200 text-xs font-bold hover:underline flex items-center gap-1"
                                 >
-                                    {showDeadstock at('common.hide', 'Masquer') : t('inventory.show_deadstock', 'Voir les produits dormants')}
-                                    {showDeadstock a<ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    {showDeadstock ? t('common.hide', 'Masquer') : t('inventory.show_deadstock', 'Voir les produits dormants')}
+                                    {showDeadstock ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </button>
                                 {showDeadstock && (
                                     <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
@@ -1264,7 +1264,7 @@ export default function Inventory() {
                                                     <span className="text-[10px] text-slate-500">{d.category || t('common.uncategorized', 'Non catégorisé')} · {d.current_stock} unités</span>
                                                 </div>
                                                 <div className="flex flex-col items-end shrink-0 ml-3">
-                                                    <span className={`text-xs font-bold ${d.severity === 'critical' a'text-rose-400' : 'text-amber-300'}`}>
+                                                    <span className={`text-xs font-bold ${d.severity === 'critical' ? 'text-rose-400' : 'text-amber-300'}`}>
                                                         {d.days_since_last_sale}j sans vente
                                                     </span>
                                                     <span className="text-[10px] text-slate-500">{(d.stock_value || 0).toLocaleString('fr-FR')} F</span>
@@ -1301,8 +1301,8 @@ export default function Inventory() {
                                     onClick={() => setShowDuplicates(!showDuplicates)}
                                     className="mt-2 text-violet-200 text-xs font-bold hover:underline flex items-center gap-1"
                                 >
-                                    {showDuplicates at('common.hide', 'Masquer') : t('inventory.show_duplicates', 'Voir les doublons')}
-                                    {showDuplicates a<ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    {showDuplicates ? t('common.hide', 'Masquer') : t('inventory.show_duplicates', 'Voir les doublons')}
+                                    {showDuplicates ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </button>
                                 {showDuplicates && (
                                     <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
@@ -1353,7 +1353,7 @@ export default function Inventory() {
                 <div className="flex flex-wrap gap-2 mb-6">
                     <button
                         onClick={() => { setSelectedLocation(''); fetchProducts(''); }}
-                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === '' a'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === '' ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
                     >
                         <MapPin size={12} /> Tous
                     </button>
@@ -1361,7 +1361,7 @@ export default function Inventory() {
                         <button
                             key={loc.location_id}
                             onClick={() => { setSelectedLocation(loc.location_id); fetchProducts(loc.location_id); }}
-                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === loc.location_id a'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
+                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${selectedLocation === loc.location_id ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:border-primary/40 hover:text-white'}`}
                         >
                             <MapPin size={12} /> {getLocationLabel(loc.location_id)}
                         </button>
@@ -1375,7 +1375,7 @@ export default function Inventory() {
                     onClick={() => setSupplierCoverageFilter('no_supplier')}
                     className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-left transition-colors hover:bg-rose-500/15"
                 >
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-300">Ã  traiter</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-300">? traiter</p>
                     <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.noSupplier}</p>
                     <p className="mt-1 text-sm text-slate-300">Produits sans fournisseur</p>
                 </button>
@@ -1393,7 +1393,7 @@ export default function Inventory() {
                     onClick={() => setSupplierCoverageFilter('missing_primary')}
                     className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 text-left transition-colors hover:bg-sky-500/15"
                 >
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">Ã  complÃ©ter</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">? compl?ter</p>
                     <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.missingPrimary}</p>
                     <p className="mt-1 text-sm text-slate-300">Produits sans principal</p>
                 </button>
@@ -1402,25 +1402,25 @@ export default function Inventory() {
             <div className="mb-6 flex flex-wrap gap-2">
                 <button
                     onClick={() => setSupplierCoverageFilter('all')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'all' a'border-primary bg-primary text-white' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'all' ? 'border-primary bg-primary text-white' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}
                 >
                     Tous
                 </button>
                 <button
                     onClick={() => setSupplierCoverageFilter('no_supplier')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'no_supplier' a'border-rose-500 bg-rose-500 text-white' : 'border-rose-500/40 bg-rose-500/10 text-rose-300 hover:text-white'}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'no_supplier' ? 'border-rose-500 bg-rose-500 text-white' : 'border-rose-500/40 bg-rose-500/10 text-rose-300 hover:text-white'}`}
                 >
                     Sans fournisseur
                 </button>
                 <button
                     onClick={() => setSupplierCoverageFilter('multi_supplier')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'multi_supplier' a'border-amber-500 bg-amber-500 text-white' : 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:text-white'}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'multi_supplier' ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:text-white'}`}
                 >
                     Plusieurs fournisseurs
                 </button>
                 <button
                     onClick={() => setSupplierCoverageFilter('missing_primary')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'missing_primary' a'border-sky-500 bg-sky-500 text-white' : 'border-sky-500/40 bg-sky-500/10 text-sky-300 hover:text-white'}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${supplierCoverageFilter === 'missing_primary' ? 'border-sky-500 bg-sky-500 text-white' : 'border-sky-500/40 bg-sky-500/10 text-sky-300 hover:text-white'}`}
                 >
                     Principal manquant
                 </button>
@@ -1432,7 +1432,7 @@ export default function Inventory() {
                     <thead>
                         <tr className="border-b border-white/10 text-slate-400 text-sm bg-white/5 uppercase tracking-wider">
                             <th className="py-4 px-6 font-semibold">Produit</th>
-                            <th className="py-4 px-6 font-semibold">CatÃ©gorie</th>
+                            <th className="py-4 px-6 font-semibold">Cat?gorie</th>
                             <th className="py-4 px-6 font-semibold">Fournisseurs</th>
                             <th className="py-4 px-6 font-semibold text-center">Stock</th>
                             <th className="py-4 px-6 font-semibold text-center">{t('inventory.forecast_7d', 'Prév. 7j')}</th>
@@ -1452,7 +1452,7 @@ export default function Inventory() {
                                 <tr key={p.product_id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-4">
-                                            {p.image a(
+                                            {p.image ? (
                                                 <img src={p.image} className="w-10 h-10 rounded-lg object-cover" alt={p.name} />
                                             ) : (
                                                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-primary font-bold">
@@ -1469,7 +1469,7 @@ export default function Inventory() {
                                                     )}
                                                 </span>
                                                 <span className="text-xs text-slate-500 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
-                                                <span className={`mt-1 text-[11px] font-semibold ${supplyMeta.tone === 'rose' a'text-rose-300' : supplyMeta.tone === 'sky' a'text-sky-300' : 'text-emerald-300'}`}>
+                                                <span className={`mt-1 text-[11px] font-semibold ${supplyMeta.tone === 'rose' ? 'text-rose-300' : supplyMeta.tone === 'sky' ? 'text-sky-300' : 'text-emerald-300'}`}>
                                                     {supplyMeta.status}
                                                 </span>
                                                 {hasEnterpriseLocations && p.location_id && (
@@ -1486,7 +1486,7 @@ export default function Inventory() {
                                         </span>
                                     </td>
                                     <td className="py-4 px-6">
-                                        {productLinks.length === 0 a(
+                                        {productLinks.length === 0 ? (
                                             <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2">
                                                 <p className="text-xs font-bold text-rose-300">Aucun fournisseur</p>
                                                 <button
@@ -1497,12 +1497,12 @@ export default function Inventory() {
                                                     <Plus size={12} />
                                                     Associer un fournisseur
                                                 </button>
-                                                <p className="mt-1 text-[11px] text-slate-300">Produit non prÃ©parÃ© pour le rÃ©approvisionnement.</p>
+                                                <p className="mt-1 text-[11px] text-slate-300">Produit non pr?par? pour le r?approvisionnement.</p>
                                             </div>
                                         ) : (
                                             <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                                                 <span className="text-xs font-bold text-white">
-                                                    {hasPrimary a`${productLinks.length} fournisseur(s) â€¢ principal dÃ©fini` : `${productLinks.length} fournisseur(s) â€¢ principal manquant`}
+                                                    {hasPrimary ? `${productLinks.length} fournisseur(s) - principal defini` : `${productLinks.length} fournisseur(s) - principal manquant`}
                                                 </span>
                                                 {!hasPrimary && (
                                                     <span className="mt-1 block text-[11px] text-sky-300">Choisissez un fournisseur principal dans la fiche produit.</span>
@@ -1520,7 +1520,7 @@ export default function Inventory() {
                                     </td>
                                     <td className="py-4 px-6">
                                         <div className="flex flex-col items-center gap-1">
-                                            <span className={`text-lg font-bold ${isOut a'text-red-400' : matchesMin a'text-amber-400' : 'text-emerald-400'}`}>
+                                            <span className={`text-lg font-bold ${isOut ? 'text-red-400' : matchesMin ? 'text-amber-400' : 'text-emerald-400'}`}>
                                                 {formatMeasurementQuantity(p.quantity, p.display_unit || p.unit)}
                                             </span>
                                             {matchesMin && (
@@ -1537,12 +1537,12 @@ export default function Inventory() {
                                             const season = seasonalityMap[p.product_id];
                                             return (
                                                 <div className="flex flex-col items-center gap-0.5">
-                                                    {fc a(
+                                                    {fc ? (
                                                         <>
                                                             <span className="text-sm font-bold text-emerald-400">+{fc.forecast_7d}</span>
                                                             <span className="text-[10px] text-slate-500">{fc.velocity_per_day.toFixed(1)}/j</span>
                                                             {fc.alert && (
-                                                                <span className="text-[9px] text-rose-400 font-bold uppercase">{fc.alert === 'stock_insufficient_7d' a'⚠ Rupture <7j' : '⚠ Rupture <30j'}</span>
+                                                                <span className="text-[9px] text-rose-400 font-bold uppercase">{fc.alert === 'stock_insufficient_7d' ? '⚠ Rupture <7j' : '⚠ Rupture <30j'}</span>
                                                             )}
                                                         </>
                                                     ) : <span className="text-slate-600 text-xs">—</span>}
@@ -1567,7 +1567,7 @@ export default function Inventory() {
                                             <button
                                                 onClick={() => { setStockModalProduct(p); setStockMovType('in'); setStockMovQty(''); setStockMovReason(''); setStockModalOpen(true); }}
                                                 className="p-1.5 bg-emerald-500/15 hover:bg-emerald-500/30 rounded-lg text-emerald-400 transition-colors"
-                                                title="EntrÃ©e stock"
+                                                title="Entr?e stock"
                                             >
                                                 <Plus size={16} />
                                             </button>
@@ -1591,7 +1591,7 @@ export default function Inventory() {
                                                     <button
                                                         onClick={() => handleOpenLocationTransfer(p)}
                                                         className="p-2 hover:bg-emerald-500/10 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
-                                                        title="TransfÃ©rer d'emplacement"
+                                                        title="Transf?rer d'emplacement"
                                                     >
                                                         <MapPin size={18} />
                                                     </button>
@@ -1600,7 +1600,7 @@ export default function Inventory() {
                                                     <button
                                                         onClick={() => handleOpenTransfer(p)}
                                                         className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-400 transition-colors"
-                                                        title="TransfÃ©rer vers une autre boutique"
+                                                        title="Transf?rer vers une autre boutique"
                                                     >
                                                         <ArrowLeftRight size={18} />
                                                     </button>
@@ -1634,15 +1634,15 @@ export default function Inventory() {
             <Modal
                 isOpen={stockModalOpen}
                 onClose={() => setStockModalOpen(false)}
-                title={stockMovType === 'in' a' EntrÃ©e de stock' : ' Sortie de stock'}
+                title={stockMovType === 'in' ? ' Entr?e de stock' : ' Sortie de stock'}
                 maxWidth="sm"
             >
                 {stockModalProduct && (
                     <div className="space-y-5">
                         {/* Product info */}
-                        <div className={`p-4 rounded-xl flex items-center gap-3 ${stockMovType === 'in' a'bg-emerald-500/10 border border-emerald-500/20' : 'bg-orange-500/10 border border-orange-500/20'}`}>
-                            <div className={`p-2 rounded-lg ${stockMovType === 'in' a'bg-emerald-500/20 text-emerald-400' : 'bg-orange-500/20 text-orange-400'}`}>
-                                {stockMovType === 'in' a<TrendingUp size={20} /> : <TrendingDown size={20} />}
+                        <div className={`p-4 rounded-xl flex items-center gap-3 ${stockMovType === 'in' ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-orange-500/10 border border-orange-500/20'}`}>
+                            <div className={`p-2 rounded-lg ${stockMovType === 'in' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-orange-500/20 text-orange-400'}`}>
+                                {stockMovType === 'in' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                             </div>
                             <div>
                                 <p className="font-bold text-white text-sm">{stockModalProduct.name}</p>
@@ -1666,11 +1666,11 @@ export default function Inventory() {
                             {stockMovQty && !isNaN(parseFloat(stockMovQty)) && (
                                 <p className="text-xs mt-1.5 text-slate-400">
                                     Nouveau stock :{' '}
-                                    <span className={`font-bold ${stockMovType === 'in' a'text-emerald-400' : 'text-orange-400'}`}>
+                                    <span className={`font-bold ${stockMovType === 'in' ? 'text-emerald-400' : 'text-orange-400'}`}>
                                         {stockMovType === 'in'
-                                            astockModalProduct.quantity + parseFloat(stockMovQty)
+                                            ? stockModalProduct.quantity + parseFloat(stockMovQty)
                                             : Math.max(0, stockModalProduct.quantity - parseFloat(stockMovQty))}
-                                    </span> {stockModalProduct.unit || 'unitÃ©(s)'}
+                                    </span> {stockModalProduct.unit || 'unite(s)'}
                                 </p>
                             )}
                         </div>
@@ -1682,7 +1682,7 @@ export default function Inventory() {
                                 type="text"
                                 value={stockMovReason}
                                 onChange={e => setStockMovReason(e.target.value)}
-                                placeholder={stockMovType === 'in' a'Ex: RÃ©approvisionnement' : 'Ex: Casse, vol, correction'}
+                                placeholder={stockMovType === 'in' ? 'Ex: R?approvisionnement' : 'Ex: Casse, vol, correction'}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
                             />
                         </div>
@@ -1691,11 +1691,11 @@ export default function Inventory() {
                         <button
                             onClick={handleStockMovement}
                             disabled={stockMovLoading || !stockMovQty || parseFloat(stockMovQty) <= 0}
-                            className={`w-full py-3 rounded-xl font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${stockMovType === 'in' a'bg-emerald-500 hover:bg-emerald-600' : 'bg-orange-500 hover:bg-orange-600'}`}
+                            className={`w-full py-3 rounded-xl font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${stockMovType === 'in' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-orange-500 hover:bg-orange-600'}`}
                         >
                             {stockMovLoading
-                                a<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                : stockMovType === 'in' a<><Plus size={18} /> Valider l'entrÃ©e</> : <><Minus size={18} /> Valider la sortie</>
+                                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                : stockMovType === 'in' ? <><Plus size={18} /> Valider l'entree</> : <><Minus size={18} /> Valider la sortie</>
                             }
                         </button>
                     </div>
@@ -1710,19 +1710,19 @@ export default function Inventory() {
                     setIsSupplierPickerOpen(false);
                     setSupplierPickerProduct(null);
                 }}
-                title={supplierPickerProduct a`Fournisseurs pour ${supplierPickerProduct.name}` : 'Associer un fournisseur'}
+                title={supplierPickerProduct ? `Fournisseurs pour ${supplierPickerProduct.name}` : 'Associer un fournisseur'}
                 maxWidth="lg"
             >
                 <div className="space-y-4">
                     <p className="text-sm text-slate-300">
-                        Choisis ici les fournisseurs qui vendent ce produit, puis dÃ©finis le fournisseur principal.
+                        Choisis ici les fournisseurs qui vendent ce produit, puis d?finis le fournisseur principal.
                     </p>
-                    {rankedSuppliersForPicker.length > 0 a(
+                    {rankedSuppliersForPicker.length > 0 ? (
                         <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
                             {rankedSuppliersForPicker.map(({ supplier, score }) => {
                                 const selected = pickerSupplierIds.includes(supplier.supplier_id);
                                 return (
-                                    <div key={supplier.supplier_id} className={`rounded-xl border px-4 py-3 ${selected a'border-primary/60 bg-primary/10' : 'border-white/10 bg-white/5'}`}>
+                                    <div key={supplier.supplier_id} className={`rounded-xl border px-4 py-3 ${selected ? 'border-primary/60 bg-primary/10' : 'border-white/10 bg-white/5'}`}>
                                         <div className="flex items-center justify-between gap-3">
                                             <label className="flex items-center gap-3 text-sm text-white">
                                                 <input
@@ -1739,7 +1739,7 @@ export default function Inventory() {
                                             )}
                                         </div>
                                         <div className="mt-2 text-xs text-slate-400">
-                                            {supplier.city || 'Ville non renseignÃ©e'}{supplier.products_supplied a` â€¢ ${supplier.products_supplied}` : ''}
+                                            {supplier.city || 'Ville non renseignee'}{supplier.products_supplied ? ` - ${supplier.products_supplied}` : ''}
                                         </div>
                                         {selected && (
                                             <label className="mt-3 flex items-center gap-2 text-xs text-slate-300">
@@ -1758,7 +1758,7 @@ export default function Inventory() {
                         </div>
                     ) : (
                         <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-slate-400">
-                            Aucun fournisseur pertinent nâ€™a Ã©tÃ© trouvÃ© pour ce produit.
+                            Aucun fournisseur pertinent n?a ?t? trouv? pour ce produit.
                         </div>
                     )}
                     <div className="flex justify-end gap-3">
@@ -1778,7 +1778,7 @@ export default function Inventory() {
                             disabled={supplierPickerSaving}
                             className="rounded-lg bg-primary px-5 py-2 font-medium text-white disabled:opacity-60"
                         >
-                            {supplierPickerSaving a'Enregistrement...' : 'Enregistrer les liaisons'}
+                            {supplierPickerSaving ? 'Enregistrement...' : 'Enregistrer les liaisons'}
                         </button>
                     </div>
                 </div>
@@ -1787,7 +1787,7 @@ export default function Inventory() {
             <Modal
                 isOpen={isProductModalOpen}
                 onClose={() => setIsProductModalOpen(false)}
-                title={editingProduct at('catalog.edit_product') : t('catalog.add_product')}
+                title={editingProduct ? t('catalog.edit_product') : t('catalog.add_product')}
                 maxWidth="2xl"
             >
                 <form onSubmit={handleSubmitProduct} className="space-y-6">
@@ -1796,7 +1796,7 @@ export default function Inventory() {
                         <div className="md:col-span-1 space-y-4">
                             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">Image du produit</label>
                             <div className="aspect-square rounded-2xl bg-white/5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center relative overflow-hidden group">
-                                {form.image a(
+                                {form.image ? (
                                     <>
                                         <img src={form.image} className="w-full h-full object-cover" alt="Preview" />
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -1833,7 +1833,7 @@ export default function Inventory() {
                                     className="p-2 glass-card text-primary hover:bg-white/10 disabled:opacity-50"
                                     title="IA Categorisation"
                                 >
-                                    <Sparkles size={20} className={aiLoading.category a'animate-pulse' : ''} />
+                                    <Sparkles size={20} className={aiLoading.category ? 'animate-pulse' : ''} />
                                 </button>
                             </div>
 
@@ -1879,7 +1879,7 @@ export default function Inventory() {
                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
                                 >
                                     <option value="standard">Produit fini / Plat</option>
-                                    <option value="raw_material">IngrÃ©dient / MatiÃ¨re premiÃ¨re</option>
+                                    <option value="raw_material">Ingr?dient / Mati?re premi?re</option>
                                 </select>
                             </div>
 
@@ -1894,7 +1894,7 @@ export default function Inventory() {
                                         <option value="">Aucun emplacement</option>
                                         {formLocationOptions.map(loc => (
                                             <option key={loc.location_id} value={loc.location_id}>
-                                                {getLocationLabel(loc.location_id)}{loc.is_active === false a' (archivÃ©)' : ''}
+                                                {getLocationLabel(loc.location_id)}{loc.is_active === false ? ' (archiv?)' : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -1905,29 +1905,29 @@ export default function Inventory() {
                                 <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-300">Approvisionnement</label>
-                                        <p className="mt-1 text-xs text-slate-400">Associez ici un ou plusieurs fournisseurs Ã  ce produit. DÃ©finissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
+                                        <p className="mt-1 text-xs text-slate-400">Associez ici un ou plusieurs fournisseurs ? ce produit. D?finissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
                                         <div className={`mt-3 inline-flex rounded-full border px-3 py-1 text-[11px] font-bold ${
                                             formSupplierIds.length === 0
-                                                a'border-rose-500/40 bg-rose-500/10 text-rose-300'
+                                                ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
                                                 : !formPrimarySupplierId
-                                                    a'border-sky-500/40 bg-sky-500/10 text-sky-300'
+                                                    ? 'border-sky-500/40 bg-sky-500/10 text-sky-300'
                                                     : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
                                         }`}>
                                             {formSupplierIds.length === 0
-                                                a'Aucun fournisseur'
+                                                ? 'Aucun fournisseur'
                                                 : !formPrimarySupplierId
-                                                    a'Principal Â· dÃ©finir'
+                                                    ? 'Principal ? d?finir'
                                                     : `Principal : ${getSupplierName(formPrimarySupplierId)}`}
                                         </div>
                                     </div>
                                     <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs text-slate-200">
-                                        Cochez les fournisseurs Ã  associer Ã  ce produit, puis marquez-en un comme fournisseur principal. Cette liaison servira aux suggestions de rÃ©approvisionnement et aux commandes.
+                                        Cochez les fournisseurs ? associer ? ce produit, puis marquez-en un comme fournisseur principal. Cette liaison servira aux suggestions de r?approvisionnement et aux commandes.
                                     </div>
                                     <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
                                         {rankedSuppliersForForm.map(({ supplier, score }) => {
                                             const selected = formSupplierIds.includes(supplier.supplier_id);
                                             return (
-                                                <div key={supplier.supplier_id} className={`rounded-lg border px-3 py-2 ${selected a'border-primary/60 bg-primary/10' : 'border-white/10 bg-transparent'}`}>
+                                                <div key={supplier.supplier_id} className={`rounded-lg border px-3 py-2 ${selected ? 'border-primary/60 bg-primary/10' : 'border-white/10 bg-transparent'}`}>
                                                     <div className="flex items-center justify-between gap-2">
                                                         <label className="flex items-center gap-2 text-sm text-white">
                                                             <input
@@ -1973,7 +1973,7 @@ export default function Inventory() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300">UnitÃ© de prix / stock</label>
+                                    <label className="block text-sm font-medium text-slate-300">Unit? de prix / stock</label>
                                     <select
                                         value={form.unit}
                                         onChange={(e) => {
@@ -2054,7 +2054,7 @@ export default function Inventory() {
                                     <label className="block text-sm font-medium text-slate-300 flex justify-between">
                                         {t('common.selling_price')}
                                         <button type="button" onClick={handleAiSuggestPrice} disabled={aiLoading.price} className="text-primary hover:underline text-[10px] flex items-center gap-1 font-bold italic">
-                                            <Sparkles size={10} className={aiLoading.price a'animate-pulse' : ''} /> Suggestion IA
+                                            <Sparkles size={10} className={aiLoading.price ? 'animate-pulse' : ''} /> Suggestion IA
                                         </button>
                                     </label>
                                     <input
@@ -2126,8 +2126,8 @@ export default function Inventory() {
                                 disabled={aiLoading.description}
                                 className="text-xs text-primary flex items-center gap-1 hover:underline disabled:opacity-50"
                             >
-                                <Sparkles size={14} className={aiLoading.description a'animate-pulse' : ''} />
-                                GÃ©nÃ©rer par IA
+                                <Sparkles size={14} className={aiLoading.description ? 'animate-pulse' : ''} />
+                                G?n?rer par IA
                             </button>
                         </div>
                         <textarea
@@ -2249,7 +2249,7 @@ export default function Inventory() {
                                 className="btn-primary px-6 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
                             >
                                 {locationTransferring && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
-                                {locationTransferring a'Transfert...' : 'Confirmer'}
+                                {locationTransferring ? 'Transfert...' : 'Confirmer'}
                             </button>
                         </div>
                     </div>
@@ -2315,7 +2315,7 @@ export default function Inventory() {
                                 disabled={!transferDest || transferQty <= 0 || transferring}
                                 className="flex-1 py-2 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl transition-all disabled:opacity-50"
                             >
-                                {transferring a'Transfert...' : 'Confirmer'}
+                                {transferring ? 'Transfert...' : 'Confirmer'}
                             </button>
                         </div>
                         <button
@@ -2345,11 +2345,11 @@ export default function Inventory() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
-                            {transferHistoryLoading a(
+                            {transferHistoryLoading ? (
                                 <div className="flex justify-center py-10">
                                     <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
                                 </div>
-                            ) : transferHistory.length === 0 a(
+                            ) : transferHistory.length === 0 ? (
                                 <div className="text-center py-10">
                                     <ArrowLeftRight size={40} className="mx-auto text-slate-700 mb-3" />
                                     <p className="text-sm text-slate-500 font-bold">{t('inventory.no_transfers')}</p>
@@ -2362,11 +2362,11 @@ export default function Inventory() {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-white truncate">{tr.product_name}</p>
                                                 <p className="text-xs text-slate-400 mt-1">
-                                                    {tr.from_store_name} a{tr.to_store_name}
+                                                    {tr.from_store_name} ? {tr.to_store_name}
                                                 </p>
                                                 <p className="text-[10px] text-slate-600 mt-1">
-                                                    {new Date(tr.created_at).toLocaleString()} Â· {tr.transferred_by}
-                                                    {tr.note a` Â· ${tr.note}` : ''}
+                                                    {new Date(tr.created_at).toLocaleString()} ? {tr.transferred_by}
+                                                    {tr.note ? ` - ${tr.note}` : ''}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Modal, Platform, TextInput } from 'react-native';
 import { admin, CollectionInfo, CollectionData } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -96,7 +96,7 @@ export default function DataExplorer() {
                             <Ionicons name="arrow-back" size={18} color={colors.text} />
                         </TouchableOpacity>
                         <View>
-                            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>📊 {t('admin.data_explorer.title')}</Text>
+                            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>ðŸ“Š {t('admin.data_explorer.title')}</Text>
                             <Text style={{ color: headerSubtle, fontSize: 12, marginTop: 2 }}>
                                 {collections.length} collections • {selectedCollection || t('admin.data_explorer.select_hint')}
                             </Text>
@@ -192,7 +192,7 @@ export default function DataExplorer() {
                                                 </View>
                                             ))}
                                             <View style={{ width: 60, padding: 10, alignItems: 'center' }}>
-                                                <Text style={{ color: isDark ? '#A5B4FC' : '#E2E8F0', fontWeight: '700', fontSize: 12 }}>👁️</Text>
+                                                <Text style={{ color: isDark ? '#A5B4FC' : '#E2E8F0', fontWeight: '700', fontSize: 12 }}>ðŸ‘ï¸</Text>
                                             </View>
                                         </View>
 
@@ -236,7 +236,7 @@ export default function DataExplorer() {
                 <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
                     <View style={{ width: '90%', maxWidth: 600, maxHeight: '85%', backgroundColor: modalSurface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: colors.glassBorder }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>📄 Document JSON</Text>
+                            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>ðŸ“„ Document JSON</Text>
                             <TouchableOpacity onPress={() => setSelectedDocument(null)} style={{ backgroundColor: '#EF444422', padding: 6, borderRadius: 8 }}>
                                 <Ionicons name="close" size={18} color="#EF4444" />
                             </TouchableOpacity>

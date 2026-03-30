@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -656,7 +656,7 @@ export default function CRM({ user }: CRMProps) {
                     <div className="flex-1">
                         <span className="text-amber-400 font-bold text-sm">
                             {birthdays.length === 1
-                                ? `🎂 Anniversaire dans 7 jours : ${birthdays[0].name}`
+                                ? `ðŸŽ‚ Anniversaire dans 7 jours : ${birthdays[0].name}`
                                 : `🎂 ${birthdays.length} anniversaires à venir : ${birthdays.filter(Boolean).slice(0, 3).map((b: any) => b.name || '—').join(', ')}${birthdays.length > 3 ? '…' : ''}`
                             }
                         </span>
@@ -667,7 +667,7 @@ export default function CRM({ user }: CRMProps) {
                         }}
                         className="text-xs font-black text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl hover:bg-amber-500/20 transition-all shrink-0"
                     >
-                        Envoyer vœux
+                        Envoyer vÅ“ux
                     </button>
                 </div>
             )}
@@ -928,10 +928,10 @@ export default function CRM({ user }: CRMProps) {
                 {/* Tier filter */}
                 {[
                     { key: 'all', label: 'Tous' },
-                    { key: 'bronze', label: '🥉 Bronze' },
-                    { key: 'argent', label: '🥈 Argent' },
-                    { key: 'or', label: '🥇 Or' },
-                    { key: 'platine', label: '💎 Platine' },
+                    { key: 'bronze', label: 'ðŸ¥‰ Bronze' },
+                    { key: 'argent', label: 'ðŸ¥ˆ Argent' },
+                    { key: 'or', label: 'ðŸ¥‡ Or' },
+                    { key: 'platine', label: 'ðŸ’Ž Platine' },
                 ].map(t => (
                     <button key={t.key} onClick={() => setFilterTier(t.key)}
                         className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${filterTier === t.key ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white hover:border-primary/40'}`}>

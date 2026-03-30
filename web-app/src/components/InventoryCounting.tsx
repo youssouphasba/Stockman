@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -211,8 +211,8 @@ export default function InventoryCounting() {
                                             </span>
                                         </div>
                                         <div className="flex flex-col items-end shrink-0 ml-3">
-                                            <span className={`text-sm font-black ${d.status === 'loss' a'text-rose-400' : 'text-emerald-400'}`}>
-                                                {d.difference > 0 a'+' : ''}{d.difference}
+                                            <span className={`text-sm font-black ${d.status === 'loss' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                                {d.difference > 0 ? '+' : ''}{d.difference}
                                             </span>
                                             <span className="text-[10px] text-slate-500">{formatCurrency(d.value_impact)}</span>
                                         </div>
@@ -268,7 +268,7 @@ export default function InventoryCounting() {
                                     disabled={submitting === task.task_id}
                                     className="w-full btn-primary py-4 rounded-xl font-black flex items-center justify-center gap-2 group shadow-xl shadow-primary/20"
                                 >
-                                    {submitting === task.task_id a(
+                                    {submitting === task.task_id ? (
                                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                     ) : (
                                         <>

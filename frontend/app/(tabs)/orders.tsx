@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -92,6 +92,7 @@ export default function OrdersScreen() {
   const [supplierFilter, setSupplierFilter] = useState<string | null>(null);
   const [orderSearch, setOrderSearch] = useState('');
   const [returnStatusFilter, setReturnStatusFilter] = useState<string | null>(null);
+  const [showControlsPanel, setShowControlsPanel] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>(30);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -692,6 +693,28 @@ export default function OrdersScreen() {
     });
   }, [returnsList, orderSearch, returnStatusFilter]);
 
+  const activeOrderFilterCount = (() => {
+    let count = 0;
+    if (statusFilter) count += 1;
+    if (supplierFilter) count += 1;
+    if (selectedPeriod !== 30) count += 1;
+    if (selectedPeriod === 'custom' && (appliedStart || appliedEnd)) count += 1;
+    return count;
+  })();
+
+  const orderPanelSummary = activeTab === 'orders'
+    ? `${activeOrderFilterCount > 0 ? `${activeOrderFilterCount} filtre${activeOrderFilterCount > 1 ? 's' : ''} actif${activeOrderFilterCount > 1 ? 's' : ''}` : 'Aucun filtre avancé'}${selectedPeriod === 30 ? ' • 30 jours' : ''}`
+    : `${returnStatusFilter ? 'Statut filtré' : 'Tous les retours'}${orderSearch ? ' • recherche active' : ''}`;
+
+  const orderFilterSnapshot = useMemo(() => {
+    let count = 0;
+    if (statusFilter) count += 1;
+    if (supplierFilter) count += 1;
+    if (selectedPeriod !== 30) count += 1;
+    if (selectedPeriod === 'custom' && (appliedStart || appliedEnd)) count += 1;
+    return count;
+  }, [appliedEnd, appliedStart, selectedPeriod, statusFilter, supplierFilter]);
+
   function openRating(order: OrderFull) {
     if (!order.supplier_user_id) return;
     setRatingOrderId(order.order_id);
@@ -765,9 +788,9 @@ export default function OrdersScreen() {
                   : t('orders.returns_count', { count: returnsList.length })}
               </Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={styles.headerActionsRow}>
               <TouchableOpacity
-                style={[styles.addBtn, { backgroundColor: colors.primary + '15' }]}
+                style={[styles.headerActionChip, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}
                 onPress={handleScanInvoice}
                 disabled={scanLoading}
               >
@@ -776,15 +799,18 @@ export default function OrdersScreen() {
                 ) : (
                   <Ionicons name="scan-outline" size={22} color={colors.primary} />
                 )}
+                <Text style={[styles.headerActionText, { color: colors.primary }]}>Importer une facture</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.addBtn} onPress={exportOrdersPdf}>
+              <TouchableOpacity style={styles.headerActionChip} onPress={exportOrdersPdf}>
                 <Ionicons name="document-text-outline" size={22} color={colors.text} />
+                <Text style={styles.headerActionText}>Exporter</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.addBtn} onPress={() => setShowGuide(true)}>
+              <TouchableOpacity style={styles.headerActionChip} onPress={() => setShowGuide(true)}>
                 <Ionicons name="help-circle-outline" size={24} color={colors.text} />
+                <Text style={styles.headerActionText}>Guide</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.addBtn}
+                style={[styles.addBtn, styles.addBtnExtended]}
                 onPress={() => {
                   if (activeTab === 'orders') {
                     setPreSelectedProductId(null);
@@ -794,7 +820,8 @@ export default function OrdersScreen() {
                   openCreateReturn();
                 }}
               >
-                <Ionicons name="add" size={24} color={colors.text} />
+                <Ionicons name="add" size={24} color="#fff" />
+                <Text style={styles.addBtnText}>{activeTab === 'orders' ? 'Nouvelle commande' : 'Nouveau retour'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -860,7 +887,23 @@ export default function OrdersScreen() {
             )}
           </View>
 
-          {activeTab === 'orders' && (<>
+          <TouchableOpacity
+            style={styles.sectionToggleCard}
+            onPress={() => setShowControlsPanel((current) => !current)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.sectionToggleCopy}>
+              <Text style={styles.sectionToggleTitle}>Filtres et pilotage</Text>
+              <Text style={styles.sectionToggleDescription}>{orderPanelSummary}</Text>
+            </View>
+            <Ionicons
+              name={showControlsPanel ? 'chevron-up-outline' : 'chevron-down-outline'}
+              size={20}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+
+          {activeTab === 'orders' && showControlsPanel && (<>
             {/* Date Filter */}
             <View style={{ marginBottom: Spacing.md, paddingHorizontal: Spacing.xs }}>
               <PeriodSelector
@@ -1062,7 +1105,7 @@ export default function OrdersScreen() {
           </>)}
 
           {/* Returns Tab */}
-          {activeTab === 'returns' && (
+          {activeTab === 'returns' && showControlsPanel && (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 2 }}>
                 {['all', 'pending', 'approved', 'completed', 'rejected'].map((status) => {
@@ -1995,13 +2038,70 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   headerRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md,
   },
+  headerActionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: Spacing.sm,
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  headerActionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  headerActionText: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
   pageTitle: { fontSize: FontSize.xl, fontWeight: '700', color: colors.text },
   subtitle: { fontSize: FontSize.sm, color: colors.textSecondary, marginTop: Spacing.xs },
   addBtn: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center',
   },
+  addBtnExtended: {
+    width: 'auto',
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  addBtnText: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
   filterScroll: { marginBottom: Spacing.md },
+  sectionToggleCard: {
+    ...glassStyle,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  sectionToggleCopy: {
+    flex: 1,
+  },
+  sectionToggleTitle: {
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  sectionToggleDescription: {
+    color: colors.textSecondary,
+    fontSize: FontSize.sm,
+    marginTop: 4,
+  },
   filterChip: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,

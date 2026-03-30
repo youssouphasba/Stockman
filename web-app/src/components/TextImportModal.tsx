@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,7 +44,7 @@ export default function TextImportModal({ isOpen, onClose, onSuccess }: TextImpo
         setError(null);
         try {
             const result = await productsApi.importText(text, true);
-            const count = result.created ?? result.count ?? result.products?.length ?? 0;
+            const count = (typeof result.created === 'number' ? result.created : undefined) ?? result.count ?? result.products?.length ?? 0;
             window.alert(t('products.import_text_success', { count }));
             reset();
             onSuccess();

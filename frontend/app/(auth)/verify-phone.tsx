@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -30,9 +30,17 @@ const RESEND_COOLDOWN = 60; // seconds
 
 export default function VerifyPhoneScreen() {
     const { t } = useTranslation();
-    const { colors, glassStyle } = useTheme();
+    const { colors, glassStyle, isDark, setTheme } = useTheme();
     const { verifyPhone, user, logout } = useAuth();
     const router = useRouter();
+    const authText = {
+        title: 'Vérification du téléphone',
+        label: 'Code à 6 chiffres',
+        placeholder: '000000',
+        verify: 'Vérifier le numéro',
+        resend: 'Renvoyer le code',
+        useEmail: 'Recevoir le code par email',
+    };
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
@@ -41,6 +49,10 @@ export default function VerifyPhoneScreen() {
     const [cooldown, setCooldown] = useState(0);
     const [switching, setSwitching] = useState(false);
     const styles = createStyles(colors, glassStyle);
+
+    function toggleThemeQuick() {
+        void setTheme(isDark ? 'light' : 'dark');
+    }
 
     const handleExit = async () => {
         try {
@@ -158,12 +170,15 @@ export default function VerifyPhoneScreen() {
                         <TouchableOpacity style={styles.backBtn} onPress={handleExit}>
                             <Ionicons name="arrow-back" size={22} color={colors.text} />
                         </TouchableOpacity>
+                        <TouchableOpacity style={styles.themeBtn} onPress={toggleThemeQuick} activeOpacity={0.85}>
+                            <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={colors.text} />
+                        </TouchableOpacity>
                         <View style={styles.iconCircle}>
                             <Ionicons name="shield-checkmark" size={40} color={colors.primary} />
                         </View>
-                        <Text style={styles.title}>{t('auth.verifyPhone.title')}</Text>
+                        <Text style={styles.title}>{authText.title}</Text>
                         <Text style={styles.subtitle}>
-                            {t('auth.verifyPhone.sentTo', { phone: user?.phone || t('common.none') })}
+                            {`Un code a été envoyé au ${user?.phone || t('common.none')}.`}
                         </Text>
                     </View>
 
@@ -183,11 +198,11 @@ export default function VerifyPhoneScreen() {
                         ) : null}
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('auth.verifyPhone.label')}</Text>
+                            <Text style={styles.label}>{authText.label}</Text>
                             <View style={styles.inputWrapper}>
                                 <TextInput
                                     style={[styles.otpInput, { letterSpacing: 10 }]}
-                                    placeholder={t('auth.verifyPhone.placeholder')}
+                                    placeholder={authText.placeholder}
                                     placeholderTextColor={colors.textMuted}
                                     value={otp}
                                     onChangeText={setOtp}
@@ -206,7 +221,7 @@ export default function VerifyPhoneScreen() {
                             {loading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.buttonText}>{t('auth.verifyPhone.verify')}</Text>
+                                <Text style={styles.buttonText}>{authText.verify}</Text>
                             )}
                         </TouchableOpacity>
 
@@ -220,8 +235,8 @@ export default function VerifyPhoneScreen() {
                             ) : (
                                 <Text style={styles.resendText}>
                                     {cooldown > 0
-                                        ? `${t('auth.verifyPhone.resendCode')} (${cooldown}s)`
-                                        : t('auth.verifyPhone.resendCode')}
+                                        ? `${authText.resend} (${cooldown}s)`
+                                        : authText.resend}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -234,7 +249,7 @@ export default function VerifyPhoneScreen() {
                             {switching ? (
                                 <ActivityIndicator size="small" color={colors.primary} />
                             ) : (
-                                <Text style={styles.switchText}>{t('auth.verifyPhone.useEmail')}</Text>
+                                <Text style={styles.switchText}>{authText.useEmail}</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -261,6 +276,19 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         left: 0,
         top: 0,
         padding: 6,
+    },
+    themeBtn: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.glass,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     iconCircle: {
         width: 80,

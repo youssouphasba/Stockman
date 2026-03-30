@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -132,6 +132,9 @@ export default function AccountingScreen() {
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [showAllPerf, setShowAllPerf] = useState(false);
     const [showAllExpenses, setShowAllExpenses] = useState(false);
+    const [activeKpiDetail, setActiveKpiDetail] = useState<
+        'revenue' | 'gross_profit' | 'expenses' | 'net_profit' | 'stock' | 'losses' | 'items' | 'purchases' | 'tax' | null
+    >(null);
     const [accessDenied, setAccessDenied] = useState(false);
     const [pendingSummary, setPendingSummary] = useState({ pendingInvoices: 0, pendingExpenses: 0, pendingTotal: 0 });
     const [invoiceClient, setInvoiceClient] = useState('');
@@ -336,8 +339,8 @@ export default function AccountingScreen() {
 
     const getSaleStatusLabel = (sale: AccountingSaleHistoryItem) =>
         sale.status === 'cancelled'
-            ? t('accounting.sale_status_cancelled', { defaultValue: 'Annulee' })
-            : t('accounting.sale_status_completed', { defaultValue: 'Completee' });
+            ? t('accounting.sale_status_cancelled', { defaultValue: 'Annulée' })
+            : t('accounting.sale_status_completed', { defaultValue: 'Complétée' });
 
     const getSaleStatusTone = (sale: AccountingSaleHistoryItem) =>
         sale.status === 'cancelled'
@@ -502,6 +505,115 @@ export default function AccountingScreen() {
             minute: '2-digit'
         });
     };
+
+    const revenueSeries = stats?.daily_revenue ?? [];
+    const visibleRevenueLabels = revenueSeries.map((entry, index) => {
+        if (revenueSeries.length <= 6) {
+            const parts = entry.date.split('-');
+            return `${parts[2]}/${parts[1]}`;
+        }
+        const stride = Math.ceil(revenueSeries.length / 5);
+        const isFirst = index === 0;
+        const isLast = index === revenueSeries.length - 1;
+        if (!isFirst && !isLast && index % stride !== 0) return '';
+        const parts = entry.date.split('-');
+        return `${parts[2]}/${parts[1]}`;
+    });
+    const topLossEntries = Object.entries(stats?.loss_breakdown ?? {})
+        .map(([reason, amount]) => ({ reason, amount }))
+        .sort((a, b) => b.amount - a.amount);
+    const topExpenseCategories = (stats?.top_expense_categories ?? [])
+        .slice()
+        .sort((a, b) => b.amount - a.amount);
+    const totalLossAmount = topLossEntries.reduce((sum, item) => sum + item.amount, 0);
+    const firstRevenuePoint = revenueSeries[0]?.revenue ?? 0;
+    const lastRevenuePoint = revenueSeries[revenueSeries.length - 1]?.revenue ?? 0;
+    const revenueDelta = lastRevenuePoint - firstRevenuePoint;
+    const bestRevenueDay = revenueSeries.reduce<{ date: string; revenue: number } | null>((best, item) => {
+        if (!best || item.revenue > best.revenue) {
+            return { date: item.date, revenue: item.revenue };
+        }
+        return best;
+    }, null);
+    const kpiModalTitle = {
+        revenue: "Chiffre d'affaires",
+        gross_profit: 'Marge brute',
+        expenses: 'Dépenses et frais',
+        net_profit: 'Résultat net',
+        stock: 'Valeur du stock',
+        losses: 'Détails des pertes',
+        items: 'Articles vendus',
+        purchases: 'Achats fournisseurs',
+        tax: 'Taxes collectées',
+    } as const;
+
+    function getLossLabel(reason: string) {
+        const normalized = reason.trim().toLowerCase();
+        if (normalized === 'lost' || normalized === 'perdu') return 'Perte non attribuée';
+        if (normalized === 'inventory_adjustment' || normalized === 'inventaire physique') return "Écart d'inventaire";
+        if (normalized === 'expired' || normalized === 'expiration') return 'Péremption';
+        if (normalized === 'broken' || normalized === 'casse') return 'Casse';
+        if (normalized === 'theft' || normalized === 'vol') return 'Vol';
+        return reason;
+    }
+
+    function getKpiInsight(kind: NonNullable<typeof activeKpiDetail>) {
+        switch (kind) {
+            case 'revenue':
+                return [
+                    `Période analysée : ${stats?.period_label || 'non définie'}`,
+                    `Variation sur la période : ${formatCurrency(revenueDelta)}`,
+                    bestRevenueDay ? `Meilleure journée : ${new Date(bestRevenueDay.date).toLocaleDateString(i18n.language)} (${formatCurrency(bestRevenueDay.revenue)})` : null,
+                ].filter(Boolean) as string[];
+            case 'gross_profit':
+                return [
+                    `Marge brute : ${formatCurrency(stats?.gross_profit ?? 0)}`,
+                    `Coût d'achat total : ${formatCurrency(stats?.cogs ?? 0)}`,
+                    `Taux de marge brute : ${((stats?.gross_margin_pct ?? marginPercentage) || 0).toFixed(1)} %`,
+                ];
+            case 'expenses':
+                return [
+                    `Total des dépenses : ${formatCurrency(stats?.expenses ?? 0)}`,
+                    `Catégories suivies : ${topExpenseCategories.length || Object.keys(stats?.expenses_breakdown ?? {}).length}`,
+                    `Poids des dépenses : ${((stats?.expense_ratio ?? 0) * 100).toFixed(1)} % du chiffre d'affaires`,
+                ];
+            case 'net_profit':
+                return [
+                    `Résultat net : ${formatCurrency(stats?.net_profit ?? 0)}`,
+                    `Marge nette : ${((stats?.net_margin_pct ?? 0) * 100).toFixed(1)} %`,
+                    `Pertes comptabilisées : ${formatCurrency(stats?.total_losses ?? 0)}`,
+                ];
+            case 'stock':
+                return [
+                    `Valeur d'achat : ${formatCurrency(stats?.stock_value ?? 0)}`,
+                    `Potentiel de vente : ${formatCurrency(stats?.stock_selling_value ?? 0)}`,
+                    `Écart potentiel : ${formatCurrency((stats?.stock_selling_value ?? 0) - (stats?.stock_value ?? 0))}`,
+                ];
+            case 'losses':
+                return [
+                    `Pertes totales : ${formatCurrency(stats?.total_losses ?? 0)}`,
+                    `Motifs suivis : ${topLossEntries.length}`,
+                    topLossEntries[0] ? `Motif principal : ${getLossLabel(topLossEntries[0].reason)}` : 'Aucun motif dominant',
+                ];
+            case 'items':
+                return [
+                    `Articles vendus : ${(stats?.total_items_sold ?? 0).toString()}`,
+                    `Ventes réalisées : ${(stats?.sales_count ?? 0).toString()}`,
+                    `Panier moyen : ${formatCurrency(stats?.avg_sale ?? 0)}`,
+                ];
+            case 'purchases':
+                return [
+                    `Achats fournisseurs : ${formatCurrency(stats?.total_purchases ?? 0)}`,
+                    `Réapprovisionnements : ${(stats?.purchases_count ?? 0).toString()}`,
+                    `Montant moyen par achat : ${formatCurrency((stats?.total_purchases ?? 0) / Math.max(stats?.purchases_count ?? 1, 1))}`,
+                ];
+            case 'tax':
+                return [
+                    `Taxes collectées : ${formatCurrency((stats as any)?.tax_collected ?? 0)}`,
+                    `Taux sur l'activité : ${((stats?.tax_ratio ?? 0) * 100).toFixed(1)} %`,
+                ];
+        }
+    }
 
     const handleExportCSV = async () => {
         const token = await getToken();
@@ -869,64 +981,69 @@ export default function AccountingScreen() {
 
                         {/* KPI Grid */}
                         <View style={styles.kpiGrid}>
-                            <View style={[styles.kpiCard, { borderColor: colors.success + '40' }]}>
+                            <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.success + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('revenue')}>
                                 <KpiInfoButton info={t('accounting.info_revenue')} />
                                 <View style={styles.kpiHeader}>
                                     <Ionicons name="cash-outline" size={20} color={colors.success} />
+                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
                                 </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.revenue')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.success }]}>
                                     {formatCurrency(stats?.revenue ?? 0)}
                                 </Text>
                                 <Text style={styles.kpiSubValue}>{t('accounting.sales_count_value', { count: stats?.sales_count ?? 0 })}</Text>
-                            </View>
+                            </TouchableOpacity>
 
-                            <View style={[styles.kpiCard, { borderColor: colors.primary + '40' }]}>
+                            <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.primary + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('gross_profit')}>
                                 <KpiInfoButton info={t('accounting.info_gross_profit')} />
                                 <View style={styles.kpiHeader}>
                                     <Ionicons name="trending-up-outline" size={20} color={colors.primary} />
+                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
                                 </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.margin_on_sales')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.primary }]}>
                                     {formatCurrency(stats?.gross_profit ?? 0)}
                                 </Text>
                                 <Text style={styles.kpiSubValue}>{t('accounting.margin_percentage', { percentage: marginPercentage.toFixed(1) })}</Text>
-                            </View>
+                            </TouchableOpacity>
 
-                            <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
+                            <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.warning + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('expenses')}>
                                 <KpiInfoButton info={t('accounting.info_expenses')} />
                                 <View style={styles.kpiHeader}>
                                     <Ionicons name="calculator-outline" size={20} color={colors.warning} />
+                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
                                 </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.total_expenses')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.warning }]}>
                                     {formatCurrency(stats?.expenses ?? 0)}
                                 </Text>
                                 <Text style={styles.kpiSubValue}>{t('accounting.expense_lines', { count: expensesList.length })}</Text>
-                            </View>
+                            </TouchableOpacity>
 
-                            <View style={[styles.kpiCard, { borderColor: (stats?.net_profit ?? 0) >= 0 ? colors.info + '40' : colors.danger + '40' }]}>
+                            <TouchableOpacity style={[styles.kpiCard, { borderColor: (stats?.net_profit ?? 0) >= 0 ? colors.info + '40' : colors.danger + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('net_profit')}>
                                 <KpiInfoButton info={t('accounting.info_net_profit')} />
                                 <View style={styles.kpiHeader}>
                                     <Ionicons name="checkmark-circle-outline" size={20} color={(stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger} />
+                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
                                 </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.net_profit')}</Text>
                                 <Text style={[styles.kpiValue, { color: (stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger }]}>
                                     {formatCurrency(stats?.net_profit ?? 0)}
                                 </Text>
-                            </View>
+                            </TouchableOpacity>
 
                             {(stats as any)?.tax_collected > 0 && (
-                                <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
+                                <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.warning + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('tax')}>
                                     <View style={styles.kpiHeader}>
                                         <Ionicons name="receipt-outline" size={20} color={colors.warning} />
+                                        <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
                                     </View>
                                     <Text style={styles.kpiLabel}>{t('accounting.tax_collected')}</Text>
                                     <Text style={[styles.kpiValue, { color: colors.warning }]}>
                                         {formatCurrency((stats as any)?.tax_collected ?? 0)}
                                     </Text>
                                     <Text style={styles.kpiSubValue}>TVA</Text>
-                                </View>
+                                </TouchableOpacity>
                             )}
                         </View>
 
@@ -962,7 +1079,7 @@ export default function AccountingScreen() {
                                                 <View style={styles.expenseInfo}>
                                                     <Text style={styles.expenseCategory}>
                                                         {t(`accounting.expenses_categories.${exp.category}`, { defaultValue: exp.category })}
-                                                        {(exp as any).offline_pending ? `  • ${t('common.pending', { defaultValue: 'En attente' })}` : ''}
+                                                        {(exp as any).offline_pending ? ` • ${t('common.pending', { defaultValue: 'En attente' })}` : ''}
                                                     </Text>
                                                     <Text style={styles.expenseDate}>{formatDate(exp.created_at)}</Text>
                                                     {exp.description && <Text style={styles.expenseDesc}>{exp.description}</Text>}
@@ -993,18 +1110,24 @@ export default function AccountingScreen() {
 
                         {/* KPI Grid 2: Stock & Losses */}
                         <View style={[styles.kpiGrid, { marginTop: 10 }]}>
-                            <View style={[styles.kpiCard, { borderColor: colors.warning + '40' }]}>
+                            <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.warning + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('stock')}>
                                 <KpiInfoButton info={t('accounting.info_stock_purchase')} />
-                                <Ionicons name="cube-outline" size={20} color={colors.warning} />
+                                <View style={styles.kpiHeader}>
+                                    <Ionicons name="cube-outline" size={20} color={colors.warning} />
+                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
+                                </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.stock_value_purchase')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.warning }]}>
                                     {formatCurrency(stats?.stock_value ?? 0)}
                                 </Text>
                                 <Text style={styles.kpiSubValue}>{t('accounting.stock_value_selling', { value: formatCurrency(stats?.stock_selling_value ?? 0) })}</Text>
-                            </View>
+                            </TouchableOpacity>
 
-                            <View style={[styles.kpiCard, { borderColor: colors.danger + '40' }]}>
-                                <Ionicons name="flame-outline" size={20} color={colors.danger} />
+                            <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.danger + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('losses')}>
+                                <View style={styles.kpiHeader}>
+                                    <Ionicons name="flame-outline" size={20} color={colors.danger} />
+                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
+                                </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.losses')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.danger }]}>
                                     {formatCurrency(stats?.total_losses ?? 0)}
@@ -1012,29 +1135,35 @@ export default function AccountingScreen() {
                                 <Text style={styles.kpiSubValue}>
                                     {t('accounting.loss_reasons', { count: Object.keys(stats?.loss_breakdown ?? {}).length })}
                                 </Text>
-                            </View>
+                            </TouchableOpacity>
                         </View>
 
                         {/* KPI Grid 3: Items & Purchases */}
                         <View style={[styles.kpiGrid, { marginTop: 10 }]}>
-                            <View style={[styles.kpiCard, { borderColor: colors.success + '40' }]}>
+                            <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.success + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('items')}>
                                 <KpiInfoButton info={t('accounting.info_sales_count')} />
-                                <Ionicons name="cart-outline" size={20} color={colors.success} />
+                                <View style={styles.kpiHeader}>
+                                    <Ionicons name="cart-outline" size={20} color={colors.success} />
+                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
+                                </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.items_sold')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.success }]}>
                                     {stats?.total_items_sold ?? 0}
                                 </Text>
                                 <Text style={styles.kpiSubValue}>{t('accounting.avg_sale', { value: formatCurrency(stats?.avg_sale ?? 0) })}</Text>
-                            </View>
+                            </TouchableOpacity>
 
-                            <View style={[styles.kpiCard, { borderColor: colors.info + '40' }]}>
-                                <Ionicons name="bag-handle-outline" size={20} color={colors.info} />
+                            <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.info + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('purchases')}>
+                                <View style={styles.kpiHeader}>
+                                    <Ionicons name="bag-handle-outline" size={20} color={colors.info} />
+                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
+                                </View>
                                 <Text style={styles.kpiLabel}>{t('accounting.supplier_purchases')}</Text>
                                 <Text style={[styles.kpiValue, { color: colors.info }]}>
                                     {formatCurrency(stats?.total_purchases ?? 0)}
                                 </Text>
                                 <Text style={styles.kpiSubValue}>{t('accounting.purchases_count', { count: stats?.purchases_count ?? 0 })}</Text>
-                            </View>
+                            </TouchableOpacity>
                         </View>
 
 
@@ -1043,13 +1172,15 @@ export default function AccountingScreen() {
                             stats && stats.daily_revenue && stats.daily_revenue.length > 1 && (
                                 <View style={styles.section}>
                                     <Text style={styles.sectionTitle}>{t('accounting.revenue_trend')}</Text>
+                                    <Text style={styles.sectionSubtitle}>
+                                        {revenueSeries.length > 1
+                                            ? `Variation sur la période : ${revenueDelta >= 0 ? '+' : ''}${formatCurrency(revenueDelta)}${bestRevenueDay ? ` • pic le ${new Date(bestRevenueDay.date).toLocaleDateString(i18n.language)}` : ''}`
+                                            : "Suivi quotidien du chiffre d'affaires sur la période."}
+                                    </Text>
                                     <View style={styles.chartContainer}>
                                         <LineChart
                                             data={{
-                                                labels: stats.daily_revenue.map(d => {
-                                                    const parts = d.date.split('-');
-                                                    return `${parts[2]}/${parts[1]}`;
-                                                }),
+                                                labels: visibleRevenueLabels,
                                                 datasets: [{
                                                     data: stats.daily_revenue.map(d => d.revenue || 0),
                                                     color: () => colors.success,
@@ -1070,7 +1201,10 @@ export default function AccountingScreen() {
                                                 labelColor: () => isDark ? colors.textSecondary : '#334155',
                                                 propsForDots: { r: '3', strokeWidth: '1', stroke: colors.success },
                                             }}
-                                            bezier
+                                            withInnerLines={false}
+                                            withOuterLines={true}
+                                            withVerticalLabels={true}
+                                            withHorizontalLabels={true}
                                             style={{ borderRadius: BorderRadius.md }}
                                         />
                                     </View>
@@ -1152,17 +1286,51 @@ export default function AccountingScreen() {
                             stats && Object.keys(stats.loss_breakdown).length > 0 && (
                                 <View style={styles.section}>
                                     <Text style={styles.sectionTitle}>{t('accounting.loss_details')}</Text>
+                                    <Text style={styles.sectionSubtitle}>
+                                        {topLossEntries[0]
+                                            ? `Motif principal : ${getLossLabel(topLossEntries[0].reason)}`
+                                            : 'Aucune perte enregistrée sur la période.'}
+                                    </Text>
                                     <View style={styles.tableContainer}>
-                                        {Object.entries(stats.loss_breakdown).map(([reason, value]) => (
-                                            <View key={reason} style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>{reason}</Text>
-                                                <Text style={styles.tableDanger}>{formatCurrency(value)}</Text>
+                                        {topLossEntries.map(({ reason, amount }) => {
+                                            const ratio = totalLossAmount > 0 ? amount / totalLossAmount : 0;
+                                            return (
+                                            <View key={reason} style={styles.lossRow}>
+                                                <View style={styles.lossRowHeader}>
+                                                    <Text style={styles.tableLabel}>{getLossLabel(reason)}</Text>
+                                                    <Text style={styles.tableDanger}>{formatCurrency(amount)}</Text>
+                                                </View>
+                                                <View style={styles.lossBarTrack}>
+                                                    <View style={[styles.lossBarFill, { width: `${Math.max(ratio * 100, 6)}%`, backgroundColor: colors.danger }]} />
+                                                </View>
+                                                <Text style={styles.lossMeta}>{`${(ratio * 100).toFixed(0)} % des pertes`}</Text>
                                             </View>
-                                        ))}
+                                        )})}
                                     </View>
                                 </View>
                             )
                         }
+
+                        {topExpenseCategories.length > 0 && (
+                            <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>Dépenses dominantes</Text>
+                                <Text style={styles.sectionSubtitle}>Les catégories qui pèsent le plus sur la période.</Text>
+                                <View style={styles.tableContainer}>
+                                    {topExpenseCategories.slice(0, 4).map((category) => (
+                                        <View key={category.category} style={styles.lossRow}>
+                                            <View style={styles.lossRowHeader}>
+                                                <Text style={styles.tableLabel}>{category.label || category.category}</Text>
+                                                <Text style={styles.tableDanger}>{formatCurrency(category.amount)}</Text>
+                                            </View>
+                                            <View style={styles.lossBarTrack}>
+                                                <View style={[styles.lossBarFill, { width: `${Math.max(category.ratio * 100, 6)}%`, backgroundColor: colors.warning }]} />
+                                            </View>
+                                            <Text style={styles.lossMeta}>{`${(category.ratio * 100).toFixed(0)} % des dépenses`}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        )}
 
                         {/* Performance par Produit */}
                         {stats && stats.product_performance && stats.product_performance.length > 0 && (
@@ -1248,10 +1416,10 @@ export default function AccountingScreen() {
                                                 <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
                                                     {sale.items.map(i => i.product_name).join(', ') || t('accounting.articles_count', { count: sale.items.length })}
                                                 </Text>
-                                                <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} · {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}</Text>
+                                                <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} • {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}</Text>
                                                 {(sale as any).offline_pending_invoice && (
                                                     <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
-                                                        {t('common.pending', { defaultValue: 'En attente' })} · facture hors ligne
+                                                        {t('common.pending', { defaultValue: 'En attente' })} • facture hors ligne
                                                     </Text>
                                                 )}
                                             </View>
@@ -1323,7 +1491,7 @@ export default function AccountingScreen() {
                                                         ]}
                                                     >
                                                         {t('accounting.cancelled_on', {
-                                                            defaultValue: 'Annulee le {{date}}',
+                                                            defaultValue: 'Annulée le {{date}}',
                                                             date: formatDate(sale.cancelled_at),
                                                         })}
                                                     </Text>
@@ -1352,7 +1520,7 @@ export default function AccountingScreen() {
                                                     {invoice.customer_name || t('accounting.client_diverse')}
                                                 </Text>
                                                 <Text style={styles.saleMeta}>
-                                                    {(invoice.invoice_label || 'Facture')} · {formatDate(invoice.issued_at)}
+                                                    {(invoice.invoice_label || 'Facture')} • {formatDate(invoice.issued_at)}
                                                 </Text>
                                                 {(invoice as any).offline_pending && (
                                                     <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
@@ -1600,6 +1768,168 @@ export default function AccountingScreen() {
                     </View>
                 </Modal>}
 
+                {activeKpiDetail && (
+                    <Modal visible={!!activeKpiDetail} animationType="slide" transparent onRequestClose={() => setActiveKpiDetail(null)}>
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHeader}>
+                                    <Text style={styles.modalTitle}>{kpiModalTitle[activeKpiDetail]}</Text>
+                                    <TouchableOpacity onPress={() => setActiveKpiDetail(null)}>
+                                        <Ionicons name="close" size={24} color={colors.text} />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <ScrollView>
+                                    <View style={styles.kpiDetailSummary}>
+                                        {getKpiInsight(activeKpiDetail).map((line) => (
+                                            <View key={line} style={styles.kpiDetailBullet}>
+                                                <Ionicons name="ellipse" size={8} color={colors.primary} />
+                                                <Text style={styles.kpiDetailText}>{line}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+
+                                    {activeKpiDetail === 'revenue' && revenueSeries.length > 0 && (
+                                        <View style={styles.kpiDetailBlock}>
+                                            {revenueSeries.slice().sort((a, b) => a.date.localeCompare(b.date)).map((entry) => (
+                                                <View key={entry.date} style={styles.tableRow}>
+                                                    <Text style={styles.tableLabel}>{new Date(entry.date).toLocaleDateString(i18n.language)}</Text>
+                                                    <Text style={[styles.tableLabel, { color: colors.success, fontWeight: '700' }]}>{formatCurrency(entry.revenue)}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    )}
+
+                                    {activeKpiDetail === 'gross_profit' && (stats?.product_performance?.length ?? 0) > 0 && (
+                                        <View style={styles.kpiDetailBlock}>
+                                            {stats?.product_performance?.slice()
+                                                .slice()
+                                                .sort((a, b) => (b.gross_profit ?? (b.revenue - b.cogs)) - (a.gross_profit ?? (a.revenue - a.cogs)))
+                                                .slice(0, 6)
+                                                .map((item) => (
+                                                    <View key={item.id} style={styles.tableRow}>
+                                                        <Text style={styles.tableLabel}>{item.name}</Text>
+                                                        <Text style={[styles.tableLabel, { color: colors.primary, fontWeight: '700' }]}>
+                                                            {formatCurrency(item.gross_profit ?? (item.revenue - item.cogs))}
+                                                        </Text>
+                                                    </View>
+                                                ))}
+                                        </View>
+                                    )}
+
+                                    {activeKpiDetail === 'expenses' && (
+                                        <View style={styles.kpiDetailBlock}>
+                                            {(topExpenseCategories.length > 0
+                                                ? topExpenseCategories.map((category) => ({
+                                                    key: category.category,
+                                                    label: category.label || category.category,
+                                                    amount: category.amount,
+                                                }))
+                                                : Object.entries(stats?.expenses_breakdown ?? {}).map(([category, amount]) => ({
+                                                    key: category,
+                                                    label: category,
+                                                    amount,
+                                                }))
+                                            ).map((item) => (
+                                                <View key={item.key} style={styles.tableRow}>
+                                                    <Text style={styles.tableLabel}>{item.label}</Text>
+                                                    <Text style={[styles.tableLabel, { color: colors.warning, fontWeight: '700' }]}>{formatCurrency(item.amount)}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    )}
+
+                                    {activeKpiDetail === 'net_profit' && (
+                                        <View style={styles.kpiDetailBlock}>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Chiffre d'affaires</Text>
+                                                <Text style={styles.tableLabel}>{formatCurrency(stats?.revenue ?? 0)}</Text>
+                                            </View>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Coût d'achat</Text>
+                                                <Text style={styles.tableLabel}>{formatCurrency(stats?.cogs ?? 0)}</Text>
+                                            </View>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Dépenses</Text>
+                                                <Text style={styles.tableLabel}>{formatCurrency(stats?.expenses ?? 0)}</Text>
+                                            </View>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Pertes</Text>
+                                                <Text style={styles.tableLabel}>{formatCurrency(stats?.total_losses ?? 0)}</Text>
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {activeKpiDetail === 'stock' && (
+                                        <View style={styles.kpiDetailBlock}>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Valeur d'achat</Text>
+                                                <Text style={styles.tableLabel}>{formatCurrency(stats?.stock_value ?? 0)}</Text>
+                                            </View>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Potentiel de vente</Text>
+                                                <Text style={styles.tableLabel}>{formatCurrency(stats?.stock_selling_value ?? 0)}</Text>
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {activeKpiDetail === 'losses' && (
+                                        <View style={styles.kpiDetailBlock}>
+                                            {topLossEntries.map(({ reason, amount }) => (
+                                                <View key={reason} style={styles.tableRow}>
+                                                    <Text style={styles.tableLabel}>{getLossLabel(reason)}</Text>
+                                                    <Text style={[styles.tableLabel, { color: colors.danger, fontWeight: '700' }]}>{formatCurrency(amount)}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    )}
+
+                                    {activeKpiDetail === 'items' && (stats?.product_performance?.length ?? 0) > 0 && (
+                                        <View style={styles.kpiDetailBlock}>
+                                            {stats?.product_performance?.slice()
+                                                .slice()
+                                                .sort((a, b) => b.qty_sold - a.qty_sold)
+                                                .slice(0, 8)
+                                                .map((item) => (
+                                                    <View key={item.id} style={styles.tableRow}>
+                                                        <Text style={styles.tableLabel}>{item.name}</Text>
+                                                        <Text style={[styles.tableLabel, { color: colors.success, fontWeight: '700' }]}>{item.qty_sold}</Text>
+                                                    </View>
+                                                ))}
+                                        </View>
+                                    )}
+
+                                    {activeKpiDetail === 'purchases' && (
+                                        <View style={styles.kpiDetailBlock}>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Montant total</Text>
+                                                <Text style={styles.tableLabel}>{formatCurrency(stats?.total_purchases ?? 0)}</Text>
+                                            </View>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Réapprovisionnements</Text>
+                                                <Text style={styles.tableLabel}>{stats?.purchases_count ?? 0}</Text>
+                                            </View>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Moyenne par achat</Text>
+                                                <Text style={styles.tableLabel}>{formatCurrency((stats?.total_purchases ?? 0) / Math.max(stats?.purchases_count ?? 1, 1))}</Text>
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {activeKpiDetail === 'tax' && (
+                                        <View style={styles.kpiDetailBlock}>
+                                            <View style={styles.tableRow}>
+                                                <Text style={styles.tableLabel}>Taxes collectées</Text>
+                                                <Text style={styles.tableLabel}>{formatCurrency((stats as any)?.tax_collected ?? 0)}</Text>
+                                            </View>
+                                        </View>
+                                    )}
+                                </ScrollView>
+                            </View>
+                        </View>
+                    </Modal>
+                )}
+
             </View >
         </PremiumGate>
     );
@@ -1712,6 +2042,34 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     },
     tableLabel: { color: colors.text, fontSize: FontSize.sm },
     tableDanger: { color: colors.danger, fontSize: FontSize.sm, fontWeight: '600' },
+    lossRow: {
+        paddingVertical: Spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.divider,
+        gap: 6,
+    },
+    lossRowHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: Spacing.sm,
+    },
+    lossBarTrack: {
+        width: '100%',
+        height: 8,
+        borderRadius: 999,
+        backgroundColor: colors.glass,
+        overflow: 'hidden',
+    },
+    lossBarFill: {
+        height: '100%',
+        borderRadius: 999,
+    },
+    lossMeta: {
+        color: colors.textMuted,
+        fontSize: FontSize.xs,
+        fontWeight: '600',
+    },
 
     // Sales
     saleRow: {
@@ -1826,4 +2184,27 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     saveBtn: { backgroundColor: colors.primary, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.md },
     saveBtnText: { color: '#fff', fontWeight: 'bold' },
     modalFooter: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.xl },
+    kpiDetailSummary: {
+        ...glassStyle,
+        padding: Spacing.md,
+        marginBottom: Spacing.md,
+        gap: Spacing.sm,
+    },
+    kpiDetailBullet: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: Spacing.sm,
+    },
+    kpiDetailText: {
+        flex: 1,
+        color: colors.text,
+        fontSize: FontSize.sm,
+        lineHeight: 20,
+    },
+    kpiDetailBlock: {
+        ...glassStyle,
+        padding: Spacing.md,
+        marginBottom: Spacing.md,
+    },
 });
+

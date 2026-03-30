@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -26,7 +26,6 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { useTheme } from '../../contexts/ThemeContext';
 import auth from '@react-native-firebase/auth';
 import * as Google from 'expo-auth-session/providers/google';
-
 import { useTranslation } from 'react-i18next';
 
 const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
@@ -53,9 +52,27 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const { colors, glassStyle } = useTheme();
+  const { colors, glassStyle, isDark, setTheme } = useTheme();
   const { login, loginWithSocial, isBiometricsEnabled, restoreSession } = useAuth();
   const router = useRouter();
+  const styles = React.useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
+  const authText = {
+    title: 'Stockman',
+    subtitle: 'Connectez-vous pour continuer.',
+    email: 'Email',
+    password: 'Mot de passe',
+    emailPlaceholder: 'votre@email.com',
+    passwordPlaceholder: 'Votre mot de passe',
+    rememberMe: 'Se souvenir de moi',
+    signIn: 'Se connecter',
+    noAccount: 'Pas encore de compte ?',
+    signUp: "S'inscrire",
+    orContinue: 'Ou continuer avec',
+    continueGoogle: 'Continuer avec Google',
+    tryDemo: 'Essayer la démo gratuite',
+    demoHint: "Explorez l'application sans inscription.",
+  };
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -64,14 +81,18 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [demoType, setDemoType] = useState<string | null>(null);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const [isAppleAvailable, setIsAppleAvailable] = useState(false);
-  const styles = React.useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
+
+  function toggleThemeQuick() {
+    void setTheme(isDark ? 'light' : 'dark');
+  }
 
   React.useEffect(() => {
     loadSavedCredentials();
-    checkBiometrics();
-    checkAppleAvailability();
+    void checkBiometrics();
+    void checkAppleAvailability();
   }, []);
 
   const googleClientIds = React.useMemo(() => {
@@ -83,7 +104,8 @@ export default function LoginScreen() {
       android: androidClientId,
       default: webClientId,
     });
-    const fallbackClientId = platformClientId || webClientId || androidClientId || iosClientId || GOOGLE_CLIENT_ID_PLACEHOLDER;
+    const fallbackClientId =
+      platformClientId || webClientId || androidClientId || iosClientId || GOOGLE_CLIENT_ID_PLACEHOLDER;
 
     return {
       webClientId: webClientId || fallbackClientId,
@@ -117,7 +139,7 @@ export default function LoginScreen() {
       return;
     }
     void handleGoogleToken(idToken);
-  }, [googleResponse]);
+  }, [googleResponse, t]);
 
   async function checkBiometrics() {
     try {
@@ -149,10 +171,9 @@ export default function LoginScreen() {
         setEmail(savedEmail);
         setRememberMe(true);
       }
-      // Security: clean up any legacy saved passwords
       await SecureStore.deleteItemAsync('user_password');
     } catch (e) {
-      console.error("Failed to load credentials", e);
+      console.error('Failed to load credentials', e);
     }
   }
 
@@ -223,7 +244,7 @@ export default function LoginScreen() {
     setSocialLoading('google');
     try {
       await promptGoogle();
-    } catch (e) {
+    } catch {
       setError(t('auth.login.socialError'));
       setSocialLoading(null);
     }
@@ -259,10 +280,7 @@ export default function LoginScreen() {
     setSocialLoading('apple');
     try {
       const rawNonce = Crypto.randomUUID();
-      const hashedNonce = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        rawNonce,
-      );
+      const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
 
       const appleCredential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -277,10 +295,7 @@ export default function LoginScreen() {
         return;
       }
 
-      const credential = (auth as any).AppleAuthProvider.credential(
-        appleCredential.identityToken,
-        rawNonce,
-      );
+      const credential = (auth as any).AppleAuthProvider.credential(appleCredential.identityToken, rawNonce);
       const firebaseUser = await auth().signInWithCredential(credential);
       const firebaseIdToken = await firebaseUser.user.getIdToken();
       const loggedInUser = await loginWithSocial(firebaseIdToken, 'mobile');
@@ -305,19 +320,16 @@ export default function LoginScreen() {
     }
   }
 
-
-  const [demoType, setDemoType] = useState<string | null>(null);
-
   async function handleDemo(type: 'retail' | 'restaurant' | 'enterprise') {
     if (type === 'enterprise') {
       if (Platform.OS !== 'web') {
         Alert.alert(
           'Démo Enterprise',
-          'Utilisez un ordinateur pour tester pleinement cet outil',
+          'Utilisez un ordinateur pour tester pleinement cet outil.',
           [
             { text: 'Annuler', style: 'cancel' },
             { text: 'OK', onPress: () => { void Linking.openURL(ENTERPRISE_DEMO_URL); } },
-          ]
+          ],
         );
         return;
       }
@@ -348,17 +360,17 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
+            <TouchableOpacity style={styles.themeBtn} onPress={toggleThemeQuick} activeOpacity={0.85}>
+              <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={colors.text} />
+            </TouchableOpacity>
             <View style={styles.iconCircle}>
               <Ionicons name="cube" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.title}>{t('auth.login.title')}</Text>
-            <Text style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
+            <Text style={styles.title}>{authText.title}</Text>
+            <Text style={styles.subtitle}>{authText.subtitle}</Text>
           </View>
 
           <View style={styles.card}>
@@ -370,12 +382,12 @@ export default function LoginScreen() {
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('auth.login.email')}</Text>
+              <Text style={styles.label}>{authText.email}</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="mail-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder={t('auth.login.emailPlaceholder')}
+                  placeholder={authText.emailPlaceholder}
                   placeholderTextColor={colors.textMuted}
                   value={email}
                   onChangeText={setEmail}
@@ -387,12 +399,12 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('auth.login.password')}</Text>
+              <Text style={styles.label}>{authText.password}</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder={t('auth.login.passwordPlaceholder')}
+                  placeholder={authText.passwordPlaceholder}
                   placeholderTextColor={colors.textMuted}
                   value={password}
                   onChangeText={setPassword}
@@ -400,53 +412,33 @@ export default function LoginScreen() {
                   autoComplete="password"
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={colors.textMuted}
-                  />
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.rememberRow}
-              onPress={() => setRememberMe(!rememberMe)}
-              activeOpacity={0.7}
-            >
+            <TouchableOpacity style={styles.rememberRow} onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7}>
               <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
                 {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-              <Text style={styles.rememberText}>{t('auth.login.rememberMe')}</Text>
+              <Text style={styles.rememberText}>{authText.rememberMe}</Text>
             </TouchableOpacity>
 
-            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-              <TouchableOpacity
-                style={[styles.button, { flex: 1 }, loading && styles.buttonDisabled]}
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>{t('auth.login.signIn')}</Text>
-                )}
+            <View style={styles.primaryActionsRow}>
+              <TouchableOpacity style={[styles.button, styles.primaryButton, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{authText.signIn}</Text>}
               </TouchableOpacity>
 
-              {isBiometricAvailable && (
-                <TouchableOpacity
-                  style={[styles.button, { width: 56, backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.primary }]}
-                  onPress={handleBiometricLogin}
-                  disabled={loading}
-                >
+              {isBiometricAvailable ? (
+                <TouchableOpacity style={styles.biometricButton} onPress={handleBiometricLogin} disabled={loading}>
                   <Ionicons name="finger-print" size={24} color={colors.primary} />
                 </TouchableOpacity>
-              )}
+              ) : null}
             </View>
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('auth.login.orContinue')}</Text>
+              <Text style={styles.dividerText}>{authText.orContinue}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -460,7 +452,7 @@ export default function LoginScreen() {
               ) : (
                 <>
                   <Ionicons name="logo-google" size={18} color={colors.primary} />
-                  <Text style={styles.socialButtonText}>{t('auth.login.continueGoogle')}</Text>
+                  <Text style={styles.socialButtonText}>{authText.continueGoogle}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -483,18 +475,16 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
-            
-
             <View style={styles.footer}>
-              <Text style={styles.footerText}>{t('auth.login.noAccount')} </Text>
+              <Text style={styles.footerText}>{authText.noAccount} </Text>
               <Link href="/(auth)/register" asChild>
                 <TouchableOpacity>
-                  <Text style={styles.footerLink}>{t('auth.login.signUp')}</Text>
+                  <Text style={styles.footerLink}>{authText.signUp}</Text>
                 </TouchableOpacity>
               </Link>
             </View>
 
-            <Text style={styles.demoTitle}>{t('auth.login.tryDemo')}</Text>
+            <Text style={styles.demoTitle}>{authText.tryDemo}</Text>
             <View style={styles.demoRow}>
               <TouchableOpacity
                 style={[styles.demoButton, { flex: 1 }, demoType === 'retail' && styles.buttonDisabled]}
@@ -525,16 +515,13 @@ export default function LoginScreen() {
                 )}
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.demoEnterpriseButton}
-              onPress={() => handleDemo('enterprise')}
-              disabled={demoLoading || loading}
-            >
+
+            <TouchableOpacity style={styles.demoEnterpriseButton} onPress={() => handleDemo('enterprise')} disabled={demoLoading || loading}>
               <Ionicons name="globe-outline" size={18} color={colors.text} />
               <Text style={styles.demoEnterpriseText}>{t('auth.login.demoEnterprise')}</Text>
               <Ionicons name="open-outline" size={14} color={colors.textMuted} />
             </TouchableOpacity>
-            <Text style={styles.demoHint}>{t('auth.login.demoHint')}</Text>
+            <Text style={styles.demoHint}>{authText.demoHint}</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -542,234 +529,271 @@ export default function LoginScreen() {
   );
 }
 
-const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
-  gradient: { flex: 1 },
-  container: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.glass,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  title: {
-    fontSize: FontSize.xxl,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: FontSize.md,
-    color: colors.textSecondary,
-  },
-  card: {
-    ...glassStyle,
-    padding: Spacing.lg,
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.sm,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: FontSize.sm,
-    flex: 1,
-  },
-  inputGroup: {
-    marginBottom: Spacing.md,
-  },
-  label: {
-    color: colors.textSecondary,
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    marginBottom: Spacing.xs,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.inputBg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.divider,
-  },
-  inputIcon: {
-    paddingLeft: Spacing.md,
-  },
-  input: {
-    flex: 1,
-    color: colors.text,
-    fontSize: FontSize.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  eyeBtn: {
-    padding: Spacing.md,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: Spacing.lg,
-  },
-  footerText: {
-    color: colors.textSecondary,
-    fontSize: FontSize.sm,
-  },
-  footerLink: {
-    color: colors.primary,
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
-  rememberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-    alignSelf: 'flex-start',
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: colors.divider,
-    marginRight: Spacing.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.inputBg,
-  },
-  checkboxActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  rememberText: {
-    color: colors.textSecondary,
-    fontSize: FontSize.sm,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.divider,
-  },
-  dividerText: {
-    color: colors.textMuted,
-    fontSize: FontSize.sm,
-    marginHorizontal: Spacing.sm,
-  },
-  socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.sm + 2,
-    backgroundColor: colors.inputBg,
-    marginBottom: Spacing.sm,
-  },
-  socialButtonText: {
-    color: colors.text,
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
-  appleButtonWrapper: {
-    marginBottom: Spacing.sm,
-  },
-  appleButton: {
-    width: '100%',
-    height: 46,
-  },
-  appleLoadingButton: {
-    height: 46,
-    borderRadius: BorderRadius.md,
-    backgroundColor: '#111827',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  demoTitle: {
-    color: colors.textSecondary,
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
-  demoRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  demoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.sm + 2,
-    backgroundColor: colors.primary + '12',
-  },
-  demoButtonText: {
-    color: colors.primary,
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
-  demoEnterpriseButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.sm + 2,
-    backgroundColor: colors.inputBg,
-    marginTop: Spacing.sm,
-  },
-  demoEnterpriseText: {
-    color: colors.text,
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
-  demoHint: {
-    color: colors.textMuted,
-    fontSize: FontSize.xs,
-    textAlign: 'center',
-    marginTop: Spacing.xs,
-  },
-});
+const createStyles = (colors: any, glassStyle: any) =>
+  StyleSheet.create({
+    gradient: { flex: 1 },
+    container: { flex: 1 },
+    scroll: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: Spacing.lg,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: Spacing.xl,
+    },
+    themeBtn: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.glass,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconCircle: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: colors.glass,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+    },
+    title: {
+      fontSize: FontSize.xxl,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: Spacing.xs,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: FontSize.md,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    card: {
+      ...glassStyle,
+      padding: Spacing.lg,
+    },
+    errorBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+      borderRadius: BorderRadius.sm,
+      padding: Spacing.sm,
+      marginBottom: Spacing.md,
+      gap: Spacing.sm,
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: FontSize.sm,
+      flex: 1,
+    },
+    inputGroup: {
+      marginBottom: Spacing.md,
+    },
+    label: {
+      color: colors.textSecondary,
+      fontSize: FontSize.sm,
+      fontWeight: '600',
+      marginBottom: Spacing.xs,
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.inputBg,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.divider,
+    },
+    inputIcon: {
+      paddingLeft: Spacing.md,
+    },
+    input: {
+      flex: 1,
+      color: colors.text,
+      fontSize: FontSize.md,
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.sm,
+    },
+    eyeBtn: {
+      padding: Spacing.md,
+    },
+    primaryActionsRow: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+    },
+    button: {
+      borderRadius: BorderRadius.md,
+      paddingVertical: Spacing.md,
+      alignItems: 'center',
+      marginTop: Spacing.sm,
+      justifyContent: 'center',
+    },
+    primaryButton: {
+      backgroundColor: colors.primary,
+      flex: 1,
+    },
+    biometricButton: {
+      width: 56,
+      marginTop: Spacing.sm,
+      borderRadius: BorderRadius.md,
+      backgroundColor: colors.inputBg,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      color: '#fff',
+      fontSize: FontSize.md,
+      fontWeight: '700',
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: Spacing.lg,
+      flexWrap: 'wrap',
+    },
+    footerText: {
+      color: colors.textSecondary,
+      fontSize: FontSize.sm,
+    },
+    footerLink: {
+      color: colors.primary,
+      fontSize: FontSize.sm,
+      fontWeight: '600',
+    },
+    rememberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: Spacing.lg,
+      alignSelf: 'flex-start',
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: colors.divider,
+      marginRight: Spacing.sm,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.inputBg,
+    },
+    checkboxActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    rememberText: {
+      color: colors.textSecondary,
+      fontSize: FontSize.sm,
+    },
+    divider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: Spacing.lg,
+      marginBottom: Spacing.md,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.divider,
+    },
+    dividerText: {
+      color: colors.textMuted,
+      fontSize: FontSize.sm,
+      marginHorizontal: Spacing.sm,
+    },
+    socialButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: BorderRadius.md,
+      paddingVertical: Spacing.sm + 2,
+      backgroundColor: colors.inputBg,
+      marginBottom: Spacing.sm,
+    },
+    socialButtonText: {
+      color: colors.text,
+      fontSize: FontSize.sm,
+      fontWeight: '600',
+    },
+    appleButtonWrapper: {
+      marginBottom: Spacing.sm,
+    },
+    appleButton: {
+      width: '100%',
+      height: 46,
+    },
+    appleLoadingButton: {
+      height: 46,
+      borderRadius: BorderRadius.md,
+      backgroundColor: '#111827',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    demoTitle: {
+      color: colors.textSecondary,
+      fontSize: FontSize.sm,
+      fontWeight: '700',
+      textAlign: 'center',
+      marginBottom: Spacing.sm,
+    },
+    demoRow: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+    },
+    demoButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.xs,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: BorderRadius.md,
+      paddingVertical: Spacing.sm + 2,
+      backgroundColor: `${colors.primary}12`,
+    },
+    demoButtonText: {
+      color: colors.primary,
+      fontSize: FontSize.sm,
+      fontWeight: '600',
+    },
+    demoEnterpriseButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.divider,
+      borderRadius: BorderRadius.md,
+      paddingVertical: Spacing.sm + 2,
+      backgroundColor: colors.inputBg,
+      marginTop: Spacing.sm,
+    },
+    demoEnterpriseText: {
+      color: colors.text,
+      fontSize: FontSize.sm,
+      fontWeight: '600',
+    },
+    demoHint: {
+      color: colors.textMuted,
+      fontSize: FontSize.xs,
+      textAlign: 'center',
+      marginTop: Spacing.xs,
+    },
+  });

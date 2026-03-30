@@ -1,4 +1,4 @@
-export type MeasurementType = 'unit' | 'weight' | 'volume';
+﻿export type MeasurementType = 'unit' | 'weight' | 'volume';
 
 type MeasurementAwareProduct = {
     unit?: string;

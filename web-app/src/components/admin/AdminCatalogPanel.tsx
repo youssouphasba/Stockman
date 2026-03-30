@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Bot, CheckCircle2, Copy, Edit3, GitMerge, Layers3, PackagePlus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
@@ -688,7 +688,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
 
             <div className="glass-card p-6">
                 {loading ? (
-                    <div className="py-16 text-center text-slate-400">Chargement du catalogue…</div>
+                    <div className="py-16 text-center text-slate-400">Chargement du catalogue...</div>
                 ) : items.length === 0 ? (
                     <div className="py-16 text-center">
                         <p className="text-lg font-black text-white">Aucun produit catalogue trouvé</p>

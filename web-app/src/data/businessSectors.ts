@@ -1,4 +1,4 @@
-export const BUSINESS_SECTORS = [
+﻿export const BUSINESS_SECTORS = [
     { key: 'epicerie', label: 'Épicerie / Alimentation générale' },
     { key: 'pharmacie', label: 'Pharmacie / Parapharmacie' },
     { key: 'vetements', label: 'Boutique de vêtements' },

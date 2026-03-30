@@ -400,7 +400,7 @@ export default function SupplierOrdersScreen() {
         )}
         </>
         ) : (
-        /* â”€â”€ INVOICES VIEW â”€â”€ */
+        /* ── INVOICES VIEW ── */
         <>
           <View style={styles.headerRow}>
             <Text style={styles.pageTitle}>{t('supplier.invoice_title')}</Text>
@@ -626,7 +626,7 @@ export default function SupplierOrdersScreen() {
                         {order.shopkeeper_name}
                       </Text>
                       <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>
-                        {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''} â€” {getStatusLabel(order.status)}
+                        {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''} — {getStatusLabel(order.status)}
                       </Text>
                     </View>
                     <Text style={{ color: colors.text, fontWeight: '700', fontSize: FontSize.sm }}>

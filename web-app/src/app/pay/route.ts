@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 
 const ALLOWED_HOST_SUFFIXES = ['stripe.com', 'flutterwave.com'];
 

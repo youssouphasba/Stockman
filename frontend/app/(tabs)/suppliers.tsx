@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+﻿import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -2397,7 +2397,7 @@ export default function SuppliersScreen() {
                       }}
                     >
                       <Text style={{ color: mpMinRating === val ? '#fff' : colors.text, fontWeight: '600', fontSize: 12 }}>
-                        {val === 0 ? t('common.all') : `${val}+ ⭐`}
+                        {val === 0 ? t('common.all') : `${val}+ â­`}
                       </Text>
                     </TouchableOpacity>
                   ))}

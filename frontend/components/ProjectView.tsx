@@ -16,23 +16,23 @@ import {
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-// â”€â”€â”€ Types â”€â”€â”€
+// ─── Types ───
 type SubTab = 'projects' | 'materials' | 'situations';
 
 const CORPS_OPTIONS = [
-    { key: 'gros_oeuvre', label: 'Gros Å“uvre', icon: 'ðŸ§±' },
-    { key: 'plomberie', label: 'Plomberie', icon: 'ðŸš¿' },
-    { key: 'electricite', label: 'Ã‰lectricitÃ©', icon: 'âš¡' },
-    { key: 'peinture', label: 'Peinture', icon: 'ðŸŽ¨' },
-    { key: 'carrelage', label: 'Carrelage', icon: 'ðŸ§±' },
-    { key: 'menuiserie', label: 'Menuiserie', icon: 'ðŸª‘' },
-    { key: 'toiture', label: 'Toiture', icon: 'ðŸ ' },
-    { key: 'ferronnerie', label: 'Ferronnerie', icon: 'âš’ï¸' },
-    { key: 'etancheite', label: 'Ã‰tanchÃ©itÃ©', icon: 'ðŸ’§' },
-    { key: 'autre', label: 'Autre', icon: 'ðŸ“¦' },
+    { key: 'gros_oeuvre', label: 'Gros œuvre', icon: '🧱' },
+    { key: 'plomberie', label: 'Plomberie', icon: '🚿' },
+    { key: 'electricite', label: 'Électricité', icon: '⚡' },
+    { key: 'peinture', label: 'Peinture', icon: '🎨' },
+    { key: 'carrelage', label: 'Carrelage', icon: '🧱' },
+    { key: 'menuiserie', label: 'Menuiserie', icon: '🪑' },
+    { key: 'toiture', label: 'Toiture', icon: '🏠' },
+    { key: 'ferronnerie', label: 'Ferronnerie', icon: '⚒️' },
+    { key: 'etancheite', label: 'Étanchéité', icon: '💧' },
+    { key: 'autre', label: 'Autre', icon: '📦' },
 ];
 
-// â”€â”€â”€ Main Component â”€â”€â”€
+// ─── Main Component ───
 export default function ProjectView({ currency }: { currency: string }) {
     const { t } = useTranslation();
     const { colors } = useTheme();
@@ -105,7 +105,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         return n.toFixed(0);
     };
 
-    // â”€â”€â”€ Create project â”€â”€â”€
+    // ─── Create project ───
     const handleCreateProject = async () => {
         if (!newName.trim()) return;
         try {
@@ -124,7 +124,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         }
     };
 
-    // â”€â”€â”€ Start project â”€â”€â”€
+    // ─── Start project ───
     const handleStartProject = async (p: Project) => {
         try {
             await projectsApi.update(p.project_id, { status: 'en_cours' });
@@ -134,15 +134,15 @@ export default function ProjectView({ currency }: { currency: string }) {
         }
     };
 
-    // â”€â”€â”€ Complete project â”€â”€â”€
+    // ─── Complete project ───
     const handleCompleteProject = async (p: Project) => {
         Alert.alert(
-            t('projects.complete_confirm_title', 'ClÃ´turer le chantier ?'),
-            t('projects.complete_confirm_msg', 'Cette action est irrÃ©versible.'),
+            t('projects.complete_confirm_title', 'Clôturer le chantier ?'),
+            t('projects.complete_confirm_msg', 'Cette action est irréversible.'),
             [
                 { text: t('common.cancel', 'Annuler'), style: 'cancel' },
                 {
-                    text: t('projects.complete', 'ClÃ´turer'), onPress: async () => {
+                    text: t('projects.complete', 'Clôturer'), onPress: async () => {
                         try {
                             await projectsApi.complete(p.project_id);
                             loadData();
@@ -153,7 +153,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         );
     };
 
-    // â”€â”€â”€ Allocate material â”€â”€â”€
+    // ─── Allocate material ───
     const handleAllocate = async () => {
         if (!selectedProject || !allocProductId || !allocQty) return;
         try {
@@ -169,7 +169,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         }
     };
 
-    // â”€â”€â”€ Add labor â”€â”€â”€
+    // ─── Add labor ───
     const handleAddLabor = async () => {
         if (!selectedProject || !laborName) return;
         try {
@@ -185,7 +185,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         }
     };
 
-    // â”€â”€â”€ Add situation â”€â”€â”€
+    // ─── Add situation ───
     const handleAddSituation = async () => {
         if (!selectedProject || !sitLabel) return;
         try {
@@ -214,20 +214,20 @@ export default function ProjectView({ currency }: { currency: string }) {
         switch (s) {
             case 'devis': return t('projects.status_devis', 'Devis');
             case 'en_cours': return t('projects.status_en_cours', 'En cours');
-            case 'termine': return t('projects.status_termine', 'TerminÃ©');
-            case 'facture': return t('projects.status_facture', 'FacturÃ©');
+            case 'termine': return t('projects.status_termine', 'Terminé');
+            case 'facture': return t('projects.status_facture', 'Facturé');
             default: return s;
         }
     };
 
-    // â”€â”€â”€ Dashboard KPIs â”€â”€â”€
+    // ─── Dashboard KPIs ───
     const renderDashboard = () => {
         if (!dashboard) return null;
         const kpis = [
-            { label: t('projects.active', 'Actifs'), value: dashboard.active_projects.toString(), icon: 'ðŸ—ï¸' },
-            { label: t('projects.budget', 'Budget'), value: `${fmt(dashboard.total_budget)} ${currency}`, icon: 'ðŸ’°' },
-            { label: t('projects.actual', 'RÃ©el'), value: `${fmt(dashboard.total_actual)} ${currency}`, icon: 'ðŸ“Š' },
-            { label: t('projects.margin', 'Marge'), value: `${dashboard.margin_percent}%`, icon: 'ðŸ“ˆ' },
+            { label: t('projects.active', 'Actifs'), value: dashboard.active_projects.toString(), icon: '🏗️' },
+            { label: t('projects.budget', 'Budget'), value: `${fmt(dashboard.total_budget)} ${currency}`, icon: '💰' },
+            { label: t('projects.actual', 'Réel'), value: `${fmt(dashboard.total_actual)} ${currency}`, icon: '📊' },
+            { label: t('projects.margin', 'Marge'), value: `${dashboard.margin_percent}%`, icon: '📈' },
         ];
         return (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
@@ -246,14 +246,14 @@ export default function ProjectView({ currency }: { currency: string }) {
         );
     };
 
-    // â”€â”€â”€ Sub tabs â”€â”€â”€
+    // ─── Sub tabs ───
     const tabs: { key: SubTab; label: string; icon: string }[] = [
         { key: 'projects', label: t('projects.tab_projects', 'Chantiers'), icon: 'construct-outline' },
-        { key: 'materials', label: t('projects.tab_materials', 'MatÃ©riaux'), icon: 'cube-outline' },
+        { key: 'materials', label: t('projects.tab_materials', 'Matériaux'), icon: 'cube-outline' },
         { key: 'situations', label: t('projects.tab_situations', 'Factures'), icon: 'receipt-outline' },
     ];
 
-    // â”€â”€â”€ Project Card â”€â”€â”€
+    // ─── Project Card ───
     const renderProjectCard = (project: Project) => {
         const budgetUsed = project.budget_estimate > 0
             ? Math.round((project.actual_cost / project.budget_estimate) * 100)
@@ -268,12 +268,12 @@ export default function ProjectView({ currency }: { currency: string }) {
                         <Text style={[s.cardTitle, { color: colors.text }]}>{project.name}</Text>
                         {project.client_name ? (
                             <Text style={[s.cardSub, { color: colors.textSecondary }]}>
-                                ðŸ‘¤ {project.client_name}
+                                👤 {project.client_name}
                             </Text>
                         ) : null}
                         {project.address ? (
                             <Text style={[s.cardSub, { color: colors.textSecondary }]}>
-                                ðŸ“ {project.address}
+                                📍 {project.address}
                             </Text>
                         ) : null}
                     </View>
@@ -306,13 +306,13 @@ export default function ProjectView({ currency }: { currency: string }) {
                 {/* Stats row */}
                 <View style={s.statsRow}>
                     <Text style={[s.statItem, { color: colors.textSecondary }]}>
-                        ðŸ“¦ {project.materials_allocated.length} {t('projects.materials_count', 'matÃ©riaux')}
+                        📦 {project.materials_allocated.length} {t('projects.materials_count', 'matériaux')}
                     </Text>
                     <Text style={[s.statItem, { color: colors.textSecondary }]}>
-                        ðŸ‘· {project.labor_entries.length} {t('projects.labor_count', 'ouvriers')}
+                        👷 {project.labor_entries.length} {t('projects.labor_count', 'ouvriers')}
                     </Text>
                     <Text style={[s.statItem, { color: colors.textSecondary }]}>
-                        ðŸ’° {fmt(totalInvoiced)} {currency} {t('projects.invoiced', 'facturÃ©')}
+                        💰 {fmt(totalInvoiced)} {currency} {t('projects.invoiced', 'facturé')}
                     </Text>
                 </View>
 
@@ -324,7 +324,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                             onPress={() => handleStartProject(project)}
                         >
                             <Ionicons name="play" size={16} color="#fff" />
-                            <Text style={s.actionText}>{t('projects.start', 'DÃ©marrer')}</Text>
+                            <Text style={s.actionText}>{t('projects.start', 'Démarrer')}</Text>
                         </TouchableOpacity>
                     )}
                     {project.status === 'en_cours' && (
@@ -334,7 +334,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                                 onPress={() => { setSelectedProject(project); setShowAllocate(true); }}
                             >
                                 <Ionicons name="cube-outline" size={16} color="#fff" />
-                                <Text style={s.actionText}>{t('projects.allocate', 'MatÃ©riau')}</Text>
+                                <Text style={s.actionText}>{t('projects.allocate', 'Matériau')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[s.actionBtn, { backgroundColor: '#9C27B0' }]}
@@ -355,7 +355,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                                 onPress={() => handleCompleteProject(project)}
                             >
                                 <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
-                                <Text style={s.actionText}>{t('projects.complete', 'ClÃ´turer')}</Text>
+                                <Text style={s.actionText}>{t('projects.complete', 'Clôturer')}</Text>
                             </TouchableOpacity>
                         </>
                     )}
@@ -364,7 +364,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         );
     };
 
-    // â”€â”€â”€ Materials Tab â”€â”€â”€
+    // ─── Materials Tab ───
     const renderMaterials = () => {
         const allMaterials: (ProjectMaterial & { projectName: string })[] = [];
         projectList.forEach(p => {
@@ -377,12 +377,12 @@ export default function ProjectView({ currency }: { currency: string }) {
         if (allMaterials.length === 0) {
             return (
                 <View style={s.emptyCenter}>
-                    <Text style={{ fontSize: 48 }}>ðŸ“¦</Text>
+                    <Text style={{ fontSize: 48 }}>📦</Text>
                     <Text style={[s.emptyTitle, { color: colors.text }]}>
-                        {t('projects.no_materials', 'Aucun matÃ©riau affectÃ©')}
+                        {t('projects.no_materials', 'Aucun matériau affecté')}
                     </Text>
                     <Text style={[s.emptySub, { color: colors.textSecondary }]}>
-                        {t('projects.no_materials_desc', 'Affectez des matÃ©riaux depuis la fiche chantier.')}
+                        {t('projects.no_materials_desc', 'Affectez des matériaux depuis la fiche chantier.')}
                     </Text>
                 </View>
             );
@@ -397,7 +397,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                         <View style={{ flex: 1 }}>
                             <Text style={[s.matName, { color: colors.text }]}>{item.name}</Text>
                             <Text style={[s.matSub, { color: colors.textSecondary }]}>
-                                {item.projectName} Â· {CORPS_OPTIONS.find(c => c.key === item.corps_metier)?.label || item.corps_metier}
+                                {item.projectName} · {CORPS_OPTIONS.find(c => c.key === item.corps_metier)?.label || item.corps_metier}
                             </Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
@@ -410,7 +410,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         );
     };
 
-    // â”€â”€â”€ Situations Tab â”€â”€â”€
+    // ─── Situations Tab ───
     const renderSituations = () => {
         const allSituations: { sit: any; projectName: string }[] = [];
         projectList.forEach(p => {
@@ -423,7 +423,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         if (allSituations.length === 0) {
             return (
                 <View style={s.emptyCenter}>
-                    <Text style={{ fontSize: 48 }}>ðŸ’°</Text>
+                    <Text style={{ fontSize: 48 }}>💰</Text>
                     <Text style={[s.emptyTitle, { color: colors.text }]}>
                         {t('projects.no_situations', 'Aucune situation de travaux')}
                     </Text>
@@ -443,14 +443,14 @@ export default function ProjectView({ currency }: { currency: string }) {
                         <View style={{ flex: 1 }}>
                             <Text style={[s.matName, { color: colors.text }]}>{item.sit.label}</Text>
                             <Text style={[s.matSub, { color: colors.textSecondary }]}>
-                                {item.projectName} Â· {item.sit.percent}%
+                                {item.projectName} · {item.sit.percent}%
                             </Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
                             <Text style={[s.matQty, { color: colors.text }]}>{fmt(item.sit.amount)} {currency}</Text>
                             <View style={[s.statusBadge, { backgroundColor: item.sit.paid ? '#4CAF5022' : '#FF980022' }]}>
                                 <Text style={{ color: item.sit.paid ? '#4CAF50' : '#FF9800', fontSize: 11 }}>
-                                    {item.sit.paid ? t('projects.paid', 'PayÃ©') : t('projects.pending', 'En attente')}
+                                    {item.sit.paid ? t('projects.paid', 'Payé') : t('projects.pending', 'En attente')}
                                 </Text>
                             </View>
                         </View>
@@ -460,7 +460,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         );
     };
 
-    // â”€â”€â”€ Modal: New Project â”€â”€â”€
+    // ─── Modal: New Project ───
     const renderNewProjectModal = () => (
         <Modal visible={showNewProject} transparent animationType="slide">
             <View style={s.modalOverlay}>
@@ -478,7 +478,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                         placeholder={t('projects.address', 'Adresse / Lieu')} placeholderTextColor={colors.textSecondary}
                         value={newAddress} onChangeText={setNewAddress} />
                     <TextInput style={[s.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                        placeholder={t('projects.budget_estimate', 'Budget estimÃ©')} placeholderTextColor={colors.textSecondary}
+                        placeholder={t('projects.budget_estimate', 'Budget estimé')} placeholderTextColor={colors.textSecondary}
                         value={newBudget} onChangeText={setNewBudget} keyboardType="numeric" />
                     <TextInput style={[s.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, height: 80 }]}
                         placeholder={t('projects.description', 'Description / Notes')} placeholderTextColor={colors.textSecondary}
@@ -488,7 +488,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                             <Text style={{ color: colors.text }}>{t('common.cancel', 'Annuler')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[s.modalBtn, { backgroundColor: '#2196F3' }]} onPress={handleCreateProject}>
-                            <Text style={{ color: '#fff', fontWeight: '700' }}>{t('projects.create', 'CrÃ©er')}</Text>
+                            <Text style={{ color: '#fff', fontWeight: '700' }}>{t('projects.create', 'Créer')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -496,13 +496,13 @@ export default function ProjectView({ currency }: { currency: string }) {
         </Modal>
     );
 
-    // â”€â”€â”€ Modal: Allocate Material â”€â”€â”€
+    // ─── Modal: Allocate Material ───
     const renderAllocateModal = () => (
         <Modal visible={showAllocate} transparent animationType="slide">
             <View style={s.modalOverlay}>
                 <View style={[s.modalContent, { backgroundColor: colors.card }]}>
                     <Text style={[s.modalTitle, { color: colors.text }]}>
-                        {t('projects.allocate_title', 'Affecter un matÃ©riau')}
+                        {t('projects.allocate_title', 'Affecter un matériau')}
                     </Text>
                     <Text style={[s.modalSub, { color: colors.textSecondary }]}>
                         {selectedProject?.name}
@@ -524,10 +524,10 @@ export default function ProjectView({ currency }: { currency: string }) {
                     </ScrollView>
 
                     <TextInput style={[s.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                        placeholder={t('projects.quantity', 'QuantitÃ©')} placeholderTextColor={colors.textSecondary}
+                        placeholder={t('projects.quantity', 'Quantité')} placeholderTextColor={colors.textSecondary}
                         value={allocQty} onChangeText={setAllocQty} keyboardType="numeric" />
 
-                    <Text style={[s.fieldLabel, { color: colors.textSecondary }]}>{t('projects.corps_metier', 'Corps de mÃ©tier')} :</Text>
+                    <Text style={[s.fieldLabel, { color: colors.textSecondary }]}>{t('projects.corps_metier', 'Corps de métier')} :</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
                         {CORPS_OPTIONS.map(c => (
                             <TouchableOpacity
@@ -553,19 +553,19 @@ export default function ProjectView({ currency }: { currency: string }) {
         </Modal>
     );
 
-    // â”€â”€â”€ Modal: Labor â”€â”€â”€
+    // ─── Modal: Labor ───
     const renderLaborModal = () => (
         <Modal visible={showLabor} transparent animationType="slide">
             <View style={s.modalOverlay}>
                 <View style={[s.modalContent, { backgroundColor: colors.card }]}>
                     <Text style={[s.modalTitle, { color: colors.text }]}>
-                        {t('projects.add_labor', 'Ajouter main d\'Å“uvre')}
+                        {t('projects.add_labor', 'Ajouter main d\'œuvre')}
                     </Text>
                     <TextInput style={[s.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                         placeholder={t('projects.worker_name', 'Nom')} placeholderTextColor={colors.textSecondary}
                         value={laborName} onChangeText={setLaborName} />
                     <TextInput style={[s.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                        placeholder={t('projects.worker_role', 'RÃ´le (ex: MaÃ§on)')} placeholderTextColor={colors.textSecondary}
+                        placeholder={t('projects.worker_role', 'Rôle (ex: Maçon)')} placeholderTextColor={colors.textSecondary}
                         value={laborRole} onChangeText={setLaborRole} />
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                         <TextInput style={[s.input, { flex: 1, backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
@@ -576,7 +576,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                             value={laborRate} onChangeText={setLaborRate} keyboardType="numeric" />
                     </View>
 
-                    <Text style={[s.fieldLabel, { color: colors.textSecondary }]}>{t('projects.corps_metier', 'Corps de mÃ©tier')} :</Text>
+                    <Text style={[s.fieldLabel, { color: colors.textSecondary }]}>{t('projects.corps_metier', 'Corps de métier')} :</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
                         {CORPS_OPTIONS.map(c => (
                             <TouchableOpacity
@@ -602,7 +602,7 @@ export default function ProjectView({ currency }: { currency: string }) {
         </Modal>
     );
 
-    // â”€â”€â”€ Modal: Situation â”€â”€â”€
+    // ─── Modal: Situation ───
     const renderSituationModal = () => (
         <Modal visible={showSituation} transparent animationType="slide">
             <View style={s.modalOverlay}>
@@ -611,7 +611,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                         {t('projects.add_situation', 'Nouvelle situation de travaux')}
                     </Text>
                     <TextInput style={[s.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                        placeholder={t('projects.sit_label', 'LibellÃ© (ex: Gros Å“uvre terminÃ©)')} placeholderTextColor={colors.textSecondary}
+                        placeholder={t('projects.sit_label', 'Libellé (ex: Gros œuvre terminé)')} placeholderTextColor={colors.textSecondary}
                         value={sitLabel} onChangeText={setSitLabel} />
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                         <TextInput style={[s.input, { flex: 1, backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
@@ -650,7 +650,7 @@ export default function ProjectView({ currency }: { currency: string }) {
             {/* Header */}
             <View style={s.header}>
                 <Text style={[s.headerTitle, { color: colors.text }]}>
-                    ðŸ—ï¸ {t('projects.title', 'Chantiers')}
+                    🏗️ {t('projects.title', 'Chantiers')}
                 </Text>
                 <TouchableOpacity style={s.addBtn} onPress={() => setShowNewProject(true)}>
                     <Ionicons name="add" size={22} color="#fff" />
@@ -684,12 +684,12 @@ export default function ProjectView({ currency }: { currency: string }) {
                 {activeTab === 'projects' && (
                     projectList.length === 0 ? (
                         <View style={s.emptyCenter}>
-                            <Text style={{ fontSize: 48 }}>ðŸ—ï¸</Text>
+                            <Text style={{ fontSize: 48 }}>🏗️</Text>
                             <Text style={[s.emptyTitle, { color: colors.text }]}>
                                 {t('projects.no_projects', 'Aucun chantier')}
                             </Text>
                             <Text style={[s.emptySub, { color: colors.textSecondary }]}>
-                                {t('projects.no_projects_desc', 'CrÃ©ez votre premier chantier pour commencer.')}
+                                {t('projects.no_projects_desc', 'Créez votre premier chantier pour commencer.')}
                             </Text>
                         </View>
                     ) : projectList.map(renderProjectCard)
@@ -707,7 +707,7 @@ export default function ProjectView({ currency }: { currency: string }) {
     );
 }
 
-// â”€â”€â”€ Styles â”€â”€â”€
+// ─── Styles ───
 const s = StyleSheet.create({
     container: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },

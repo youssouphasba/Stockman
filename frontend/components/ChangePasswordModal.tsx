@@ -22,6 +22,15 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    const handleClose = () => {
+        if (loading) return;
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setShowPassword(false);
+        onClose();
+    };
+
     const handleSubmit = async () => {
         if (!oldPassword || !newPassword || !confirmPassword) {
             Alert.alert(t('modals.error'), t('auth.register.errorFillRequired'));
@@ -44,7 +53,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
             Alert.alert(
                 t('modals.success'),
                 t('modals.changePassword.successMessage'),
-                [{ text: 'OK', onPress: () => { onClose(); logout(); } }]
+                [{ text: 'OK', onPress: () => { handleClose(); logout(); } }]
             );
         } catch (error: any) {
             console.error(error);
@@ -56,7 +65,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
     };
 
     return (
-        <Modal visible={visible} animationType="slide" transparent>
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
             <View style={styles.overlay}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -64,7 +73,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
                 >
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: colors.text }]}>{t('modals.changePassword.title')}</Text>
-                        <TouchableOpacity onPress={onClose}>
+                        <TouchableOpacity onPress={handleClose}>
                             <Ionicons name="close" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </View>

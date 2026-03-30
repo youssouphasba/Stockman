@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -24,9 +24,17 @@ const RESEND_COOLDOWN = 60;
 
 export default function VerifyEmailScreen() {
   const { t } = useTranslation();
-  const { colors, glassStyle } = useTheme();
+  const { colors, glassStyle, isDark, setTheme } = useTheme();
   const { verifyEmail, user, logout } = useAuth();
   const router = useRouter();
+  const authText = {
+    title: 'Vérifiez votre email',
+    label: 'Code email',
+    placeholder: '000000',
+    verify: 'Vérifier mon email',
+    resend: 'Renvoyer le code',
+    usePhone: 'Recevoir le code par SMS',
+  };
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -35,6 +43,10 @@ export default function VerifyEmailScreen() {
   const [cooldown, setCooldown] = useState(0);
   const [switching, setSwitching] = useState(false);
   const styles = createStyles(colors, glassStyle);
+
+  function toggleThemeQuick() {
+    void setTheme(isDark ? 'light' : 'dark');
+  }
 
   const handleExit = async () => {
     try {
@@ -116,12 +128,15 @@ export default function VerifyEmailScreen() {
             <TouchableOpacity style={styles.backBtn} onPress={handleExit}>
               <Ionicons name="arrow-back" size={22} color={colors.text} />
             </TouchableOpacity>
+            <TouchableOpacity style={styles.themeBtn} onPress={toggleThemeQuick} activeOpacity={0.85}>
+              <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={colors.text} />
+            </TouchableOpacity>
             <View style={styles.iconCircle}>
               <Ionicons name="mail-open-outline" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.title}>{t('auth.verifyEmail.title')}</Text>
+            <Text style={styles.title}>{authText.title}</Text>
             <Text style={styles.subtitle}>
-              {t('auth.verifyEmail.subtitle', { email: user?.email || t('common.none') })}
+              {`Nous avons envoyé un code à 6 chiffres à ${user?.email || t('common.none')}.`}
             </Text>
           </View>
 
@@ -141,11 +156,11 @@ export default function VerifyEmailScreen() {
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('auth.verifyEmail.label')}</Text>
+              <Text style={styles.label}>{authText.label}</Text>
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={[styles.otpInput, { letterSpacing: 10 }]}
-                  placeholder={t('auth.verifyEmail.placeholder')}
+                  placeholder={authText.placeholder}
                   placeholderTextColor={colors.textMuted}
                   value={otp}
                   onChangeText={setOtp}
@@ -161,7 +176,7 @@ export default function VerifyEmailScreen() {
               onPress={handleVerify}
               disabled={loading || otp.length !== 6}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t('auth.verifyEmail.verify')}</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{authText.verify}</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -173,7 +188,7 @@ export default function VerifyEmailScreen() {
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <Text style={styles.resendText}>
-                  {cooldown > 0 ? `${t('auth.verifyEmail.resend')} (${cooldown}s)` : t('auth.verifyEmail.resend')}
+                  {cooldown > 0 ? `${authText.resend} (${cooldown}s)` : authText.resend}
                 </Text>
               )}
             </TouchableOpacity>
@@ -186,7 +201,7 @@ export default function VerifyEmailScreen() {
               {switching ? (
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Text style={styles.switchText}>{t('auth.verifyEmail.usePhone')}</Text>
+                <Text style={styles.switchText}>{authText.usePhone}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -213,6 +228,19 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     left: 0,
     top: 0,
     padding: 6,
+  },
+  themeBtn: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   iconCircle: {
     width: 80,

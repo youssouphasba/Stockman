@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 
@@ -28,14 +28,14 @@ type RuleConfig = {
 
 const RULE_CONFIGS: RuleConfig[] = [
     { key: 'inventory_check', label: 'Vérification d\'inventaire', description: 'Rappel si aucun inventaire effectué depuis N jours', icon: '📋', unit: 'jours', color: '#F59E0B' },
-    { key: 'dormant_products', label: 'Produits dormants', description: 'Alerter pour les produits sans mouvement depuis N jours', icon: '🌙', unit: 'jours', color: '#F59E0B' },
-    { key: 'late_deliveries', label: 'Livraisons en retard', description: 'Signaler les commandes en retard de plus de N jours', icon: '⚠️', unit: 'jours', color: '#EF4444' },
+    { key: 'dormant_products', label: 'Produits dormants', description: 'Alerter pour les produits sans mouvement depuis N jours', icon: 'ðŸŒ™', unit: 'jours', color: '#F59E0B' },
+    { key: 'late_deliveries', label: 'Livraisons en retard', description: 'Signaler les commandes en retard de plus de N jours', icon: 'âš ï¸', unit: 'jours', color: '#EF4444' },
     { key: 'replenishment', label: 'Réapprovisionnement', description: 'Suggérer automatiquement les produits à réapprovisionner', icon: '🛒', color: '#3B82F6' },
     { key: 'pending_invitations', label: 'Invitations en attente', description: 'Relancer après N jours sans réponse', icon: '📨', unit: 'jours', color: '#3B82F6' },
     { key: 'debt_recovery', label: 'Recouvrement de dettes', description: 'Alerter quand les dettes clients dépassent N (en devise)', icon: '💰', unit: 'F', color: '#8B5CF6' },
     { key: 'client_reactivation', label: 'Réactivation clients', description: 'Identifier les clients inactifs depuis N jours', icon: '👤', unit: 'jours', color: '#8B5CF6' },
-    { key: 'birthdays', label: 'Anniversaires clients', description: 'Rappel N jours avant l\'anniversaire du client', icon: '🎁', unit: 'jours', color: '#8B5CF6' },
-    { key: 'monthly_report', label: 'Rapport mensuel', description: 'Envoyer le bilan N jours avant la fin du mois', icon: '📄', unit: 'jours', color: '#10B981' },
+    { key: 'birthdays', label: 'Anniversaires clients', description: 'Rappel N jours avant l\'anniversaire du client', icon: 'ðŸŽ', unit: 'jours', color: '#8B5CF6' },
+    { key: 'monthly_report', label: 'Rapport mensuel', description: 'Envoyer le bilan N jours avant la fin du mois', icon: 'ðŸ“„', unit: 'jours', color: '#10B981' },
     { key: 'expense_spike', label: 'Pic de dépenses', description: 'Alerter si les dépenses augmentent de plus de N%', icon: '📈', unit: '%', color: '#10B981' },
 ];
 

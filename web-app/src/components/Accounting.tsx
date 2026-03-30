@@ -132,8 +132,8 @@ export default function Accounting() {
     const { i18n } = useTranslation();
 
     const confirmDiscardChanges = (onConfirm: () => void) => {
-        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrÃ©es' });
-        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrÃ©es. Voulez-vous quitter sans enregistrer ' });
+        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistr?es' });
+        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistr?es. Voulez-vous quitter sans enregistrer ' });
         if (window.confirm(`${title}\n\n${message}`)) {
             onConfirm();
         }
@@ -181,7 +181,7 @@ export default function Accounting() {
         }).catch(() => {});
     }, []);
 
-    const loadData = async (sd: string, ed: string) => {
+    const loadData = async (sd: string = '', ed: string = '') => {
         setLoading(true);
         try {
             const [statsRes, expensesRes, salesHistoryRes, invoicesRes] = await Promise.all([
@@ -231,7 +231,7 @@ export default function Accounting() {
             const res = await aiApi.monthlyReport(i18n.language);
             setMonthlyReport(res.report);
         } catch (e) {
-            setMonthlyReport('Erreur lors de la gÃ©nÃ©ration du rapport.');
+            setMonthlyReport('Erreur lors de la g?n?ration du rapport.');
         } finally {
             setReportLoading(false);
         }
@@ -318,7 +318,7 @@ export default function Accounting() {
                 await expensesApi.create(payload);
             }
             setShowExpenseModal(false);
-            loadData(useCustomRange astartDate : undefined, useCustomRange aendDate : undefined);
+            loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err) {
             console.error("Save expense error", err);
         } finally {
@@ -330,13 +330,13 @@ export default function Accounting() {
         if (!confirm(t('accounting.confirm_delete_expense'))) return;
         try {
             await expensesApi.delete(id);
-            loadData(useCustomRange astartDate : undefined, useCustomRange aendDate : undefined);
+            loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err) {
             console.error("Delete expense error", err);
         }
     };
 
-    const handleOpenInvoice = async (invoiceId: string, invoice: CustomerInvoice) => {
+    const handleOpenInvoice = async (invoiceId: string, invoice?: CustomerInvoice) => {
         if (invoice) {
             setSelectedInvoice(invoice);
             return;
@@ -355,7 +355,7 @@ export default function Accounting() {
             const invoice = await accountingApi.createInvoiceFromSale(saleId);
             setSelectedInvoice(invoice);
             setRightTab('invoices');
-            loadData(useCustomRange astartDate : undefined, useCustomRange aendDate : undefined);
+            loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err) {
             console.error('Invoice creation error', err);
         } finally {
@@ -366,7 +366,7 @@ export default function Accounting() {
     const handleScrollToInvoices = () => {
         setRightTab('invoices');
         setTimeout(() => {
-            rightPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            rightPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
     };
 
@@ -396,7 +396,7 @@ export default function Accounting() {
     };
 
     const handleFreeInvItemChange = (idx: number, field: string, value: string) => {
-        setFreeInvItems(prev => prev.map((item, i) => i === idx a{ ...item, [field]: value } : item));
+        setFreeInvItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
     };
 
     const freeInvTotal = freeInvItems.reduce((sum, item) => {
@@ -427,7 +427,7 @@ export default function Accounting() {
             setSelectedInvoice(invoice);
             setShowFreeInvoiceModal(false);
             setRightTab('invoices');
-            loadData(useCustomRange astartDate : undefined, useCustomRange aendDate : undefined);
+            loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err) {
             console.error('Free invoice error', err);
         } finally {
@@ -442,9 +442,9 @@ export default function Accounting() {
         setCancellingSaleId(saleId);
         try {
             await salesApi.cancel(saleId);
-            await loadData(useCustomRange astartDate : undefined, useCustomRange aendDate : undefined);
+            await loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err: any) {
-            alert(err.message || t('accounting.cancel_sale_error', { defaultValue: 'Impossible dâ€™annuler cette vente pour le moment.' }));
+            alert(err.message || t('accounting.cancel_sale_error', { defaultValue: 'Impossible d?annuler cette vente pour le moment.' }));
         } finally {
             setCancellingSaleId(null);
         }
@@ -472,9 +472,9 @@ export default function Accounting() {
         try {
             const response = await accountingApi.getKpiDetails(
                 metric,
-                useCustomRange aundefined : period,
-                useCustomRange astartDate : undefined,
-                useCustomRange aendDate : undefined,
+                useCustomRange ? undefined : period,
+                useCustomRange ? startDate : undefined,
+                useCustomRange ? endDate : undefined,
             );
             setDetail(response);
         } catch (err) {
@@ -502,36 +502,36 @@ export default function Accounting() {
 
     if (!stats) return null;
 
-    // Chart data â€” backend returns daily_revenue array; filter out items with missing date
+    // Chart data ? backend returns daily_revenue array; filter out items with missing date
     const chartData = stats.daily_revenue.filter((d: any) => d.date != null);
 
-    // Product performance â€” top 8 by revenue
+    // Product performance ? top 8 by revenue
     const topProducts = stats.product_performance
         .filter((p: any) => p.revenue > 0)
         .sort((a: any, b: any) => b.revenue - a.revenue)
         .slice(0, 8);
 
-    const marginPct = stats.revenue > 0 a((stats.gross_profit / stats.revenue) * 100) : 0;
-    const netMarginPct = stats.revenue > 0 a((stats.net_profit / stats.revenue) * 100) : 0;
+    const marginPct = stats.revenue > 0 ? ((stats.gross_profit / stats.revenue) * 100) : 0;
+    const netMarginPct = stats.revenue > 0 ? ((stats.net_profit / stats.revenue) * 100) : 0;
 
     const filteredExpenses = expenses.filter(e => filterExpenseCategory === 'all' || e.category === filterExpenseCategory);
 
     const accountingSteps: GuideStep[] = [
         {
-            title: t('guide.accounting.role_title', "RÃ´le de la comptabilitÃ©"),
-            content: t('guide.accounting.role_content', "Cet Ã©cran centralise toute la finance de votre commerce : chiffre d'affaires, marges brute et nette, dÃ©penses, pertes et rÃ©sultat. Les donnÃ©es proviennent de vos ventes POS et des dÃ©penses saisies manuellement."),
+            title: t('guide.accounting.role_title', "R?le de la comptabilit?"),
+            content: t('guide.accounting.role_content', "Cet ?cran centralise toute la finance de votre commerce : chiffre d'affaires, marges brute et nette, d?penses, pertes et r?sultat. Les donn?es proviennent de vos ventes POS et des d?penses saisies manuellement."),
         },
         {
-            title: t('guide.accounting.filters_title', "Filtres de pÃ©riode"),
-            content: t('guide.accounting.filters_content', "Toutes les donnÃ©es s'adaptent Ã  la pÃ©riode sÃ©lectionnÃ©e."),
+            title: t('guide.accounting.filters_title', "Filtres de p?riode"),
+            content: t('guide.accounting.filters_content', "Toutes les donn?es s'adaptent ? la p?riode s?lectionn?e."),
             details: [
-                { label: t('guide.accounting.filter_periods', "Boutons de pÃ©riode"), description: t('guide.accounting.filter_periods_desc', "7 jours Â· 30 jours Â· 90 jours Â· 1 an. Cliquez pour changer la pÃ©riode d'analyse."), type: 'filter' },
-                { label: t('guide.accounting.filter_custom', "IcÃ´ne calendrier â€” plage personnalisÃ©e"), description: t('guide.accounting.filter_custom_desc', "Active les champs de dates pour dÃ©finir une pÃ©riode sur mesure (ex : du 1er au 31 mars). Cliquez OK pour appliquer."), type: 'filter' },
+                { label: t('guide.accounting.filter_periods', "Boutons de p?riode"), description: t('guide.accounting.filter_periods_desc', "7 jours ? 30 jours ? 90 jours ? 1 an. Cliquez pour changer la p?riode d'analyse."), type: 'filter' },
+                { label: t('guide.accounting.filter_custom', "Ic?ne calendrier ? plage personnalis?e"), description: t('guide.accounting.filter_custom_desc', "Active les champs de dates pour d?finir une p?riode sur mesure (ex : du 1er au 31 mars). Cliquez OK pour appliquer."), type: 'filter' },
             ],
         },
         {
-            title: t('guide.accounting.kpi_title', "Cartes KPI financiÃ¨res"),
-            content: t('guide.accounting.kpi_content', "Les 4 cartes en haut rÃ©sument la performance financiÃ¨re de la pÃ©riode."),
+            title: t('guide.accounting.kpi_title', "Cartes KPI financieres"),
+            content: t('guide.accounting.kpi_content', "Les 4 cartes en haut resumant la performance financiere de la periode."),
             details: [
                 { label: t('guide.accounting.kpi_revenue', "Chiffre d'affaires"), description: t('guide.accounting.kpi_revenue_desc', "Total des ventes encaissées. Ouvrez la carte pour relire l'évolution, les jours clés et les détails utiles."), type: 'card' },
                 { label: t('guide.accounting.kpi_gross', "Marge brute"), description: t('guide.accounting.kpi_gross_desc', "Différence entre le chiffre d'affaires et le coût d'achat des produits vendus, exprimée en montant et en pourcentage."), type: 'card' },
@@ -587,7 +587,7 @@ export default function Accounting() {
                                 <button
                                     key={p.value}
                                     onClick={() => setPeriod(p.value)}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${period === p.value a'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${period === p.value ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     {p.label}
                                 </button>
@@ -598,8 +598,8 @@ export default function Accounting() {
                     {/* Custom date range toggle */}
                     <button
                         onClick={() => { setUseCustomRange(v => !v); }}
-                        className={`p-2 rounded-xl border transition-all ${useCustomRange a'bg-primary/20 border-primary/40 text-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}
-                        title="Plage de dates personnalisÃ©e"
+                        className={`p-2 rounded-xl border transition-all ${useCustomRange ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}
+                        title="Plage de dates personnalis?e"
                     >
                         <Calendar size={18} />
                     </button>
@@ -612,7 +612,7 @@ export default function Accounting() {
                                 onChange={e => setStartDate(e.target.value)}
                                 className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-primary/50"
                             />
-                            <span className="text-slate-500 text-sm">â†’</span>
+                            <span className="text-slate-500 text-sm">?</span>
                             <input
                                 type="date"
                                 value={endDate}
@@ -657,7 +657,7 @@ export default function Accounting() {
                         onClick={handleOpenAddExpense}
                         className="btn-primary rounded-xl px-4 py-2 flex items-center gap-2 text-sm shadow-lg shadow-primary/20"
                     >
-                        <Plus size={18} /> Nouvelle DÃ©pense
+                        <Plus size={18} /> Nouvelle D?pense
                     </button>
                 </div>
             </header>
@@ -680,10 +680,10 @@ export default function Accounting() {
                             disabled={aiLoading}
                             className="shrink-0 rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm font-bold text-purple-300 transition-all hover:bg-purple-500/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {aiLoading a'Analyse en cours...' : aiAnalysis a'Relancer le diagnostic IA' : 'Lancer le diagnostic IA'}
+                            {aiLoading ? 'Analyse en cours...' : aiAnalysis ? 'Relancer le diagnostic IA' : 'Lancer le diagnostic IA'}
                         </button>
                     </div>
-                    {aiAnalysis a(
+                    {aiAnalysis ? (
                         <p className="mt-4 text-slate-300 text-sm leading-relaxed">{aiAnalysis}</p>
                     ) : (
                         <p className="mt-4 text-xs font-medium text-slate-500">
@@ -700,15 +700,15 @@ export default function Accounting() {
                         <div className="flex items-center justify-between p-6 border-b border-white/10">
                             <h2 className="text-white font-bold text-lg flex items-center gap-2"><BarChart2 size={20} className="text-purple-400" /> Rapport Mensuel IA</h2>
                             <div className="flex gap-2">
-                                {monthlyReport && <button onClick={handleDownloadReport} className="text-xs text-primary hover:underline flex items-center gap-1"><Download size={14} /> TÃ©lÃ©charger</button>}
+                                {monthlyReport && <button onClick={handleDownloadReport} className="text-xs text-primary hover:underline flex items-center gap-1"><Download size={14} /> T?l?charger</button>}
                                 <button onClick={() => setShowMonthlyReport(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                             </div>
                         </div>
                         <div className="p-6 overflow-y-auto custom-scrollbar">
-                            {reportLoading a(
+                            {reportLoading ? (
                                 <div className="flex items-center justify-center py-10 gap-3">
                                     <div className="w-6 h-6 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin"></div>
-                                    <span className="text-slate-400 text-sm">GÃ©nÃ©ration en coursâ€¦</span>
+                                    <span className="text-slate-400 text-sm">G?n?ration en cours?</span>
                                 </div>
                             ) : (
                                 <pre className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-sans">{monthlyReport}</pre>
@@ -724,7 +724,7 @@ export default function Accounting() {
                         <div>
                             <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Finance avancee</p>
                             <h2 className="mt-2 text-2xl font-black text-white">Vue rentabilite et pilotage</h2>
-                            {stats.scope_label a(
+                            {stats.scope_label ? (
                                 <p className="mt-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
                                     {stats.scope_label}
                                 </p>
@@ -734,12 +734,12 @@ export default function Accounting() {
                             </p>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
-                            {[
-                                { label: 'Marge brute', value: formatPercent(stats.gross_margin_pct) },
-                                { label: 'Marge nette', value: formatPercent(stats.net_margin_pct) },
-                                { label: 'Poids des charges', value: formatPercent(stats.expense_ratio) },
-                                { label: 'Poids des pertes', value: formatPercent(stats.loss_ratio) },
-                            ].map((item) => (
+                                {[
+                                    { label: 'Marge brute', value: formatPercent(stats.gross_margin_pct ?? 0) },
+                                    { label: 'Marge nette', value: formatPercent(stats.net_margin_pct ?? 0) },
+                                    { label: 'Poids des charges', value: formatPercent(stats.expense_ratio ?? 0) },
+                                    { label: 'Poids des pertes', value: formatPercent(stats.loss_ratio ?? 0) },
+                                ].map((item) => (
                                 <div key={item.label} className="rounded-2xl border border-white/10 bg-[#111827]/85 px-4 py-4">
                                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
                                     <p className="mt-3 text-2xl font-black text-white">{item.value}</p>
@@ -747,7 +747,7 @@ export default function Accounting() {
                             ))}
                         </div>
                     </div>
-                    {stats.recommendations && stats.recommendations.length > 0 a(
+                    {stats.recommendations && stats.recommendations.length > 0 ? (
                         <div className="mt-6 grid grid-cols-1 gap-3 xl:grid-cols-2">
                             {stats.recommendations.map((recommendation, index) => (
                                 <div
@@ -759,7 +759,7 @@ export default function Accounting() {
                             ))}
                         </div>
                     ) : null}
-                    {stats.top_expense_categories && stats.top_expense_categories.length > 0 a(
+                    {stats.top_expense_categories && stats.top_expense_categories.length > 0 ? (
                         <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
                             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Postes de charges dominants</p>
                             <div className="mt-4 space-y-3">
@@ -800,7 +800,7 @@ export default function Accounting() {
                     label="Charges"
                     icon={Wallet}
                     value={formatCurrency(stats.expenses || 0)}
-                    hint={`${formatPercent(stats.expense_ratio)} du chiffre`}
+                    hint={`${formatPercent(stats.expense_ratio ?? 0)} du chiffre`}
                     onClick={() => handleOpenFinanceDetail('expenses')}
                 />
                 <KpiCard
@@ -821,7 +821,7 @@ export default function Accounting() {
                     label="Pertes stock"
                     icon={AlertTriangle}
                     value={formatCurrency(stats.total_losses || 0)}
-                    hint={`${formatPercent(stats.loss_ratio)} du chiffre`}
+                    hint={`${formatPercent(stats.loss_ratio ?? 0)} du chiffre`}
                     onClick={() => handleOpenFinanceDetail('total_losses')}
                 />
                 {(stats.tax_collected || 0) > 0 && (
@@ -829,7 +829,7 @@ export default function Accounting() {
                         icon={Receipt}
                         label="TVA collectee"
                         value={formatCurrency(stats.tax_collected || 0)}
-                        hint={`${formatPercent(stats.tax_ratio)} du chiffre`}
+                    hint={`${formatPercent(stats.tax_ratio ?? 0)} du chiffre`}
                         onClick={() => handleOpenFinanceDetail('tax_collected')}
                     />
                 )}
@@ -877,7 +877,7 @@ export default function Accounting() {
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                 <TrendingUp size={18} className="text-primary" />
-                                Ã‰volution FinanciÃ¨re
+                                Evolution Financiere
                                 <span className="text-xs text-slate-500 font-normal ml-1">{stats.period_label}</span>
                             </h3>
                             <div className="flex gap-4 text-xs">
@@ -886,7 +886,7 @@ export default function Accounting() {
                             </div>
                         </div>
                         <div className="h-64">
-                            {chartData.length > 0 a(
+                            {chartData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                     <AreaChart data={chartData}>
                                         <defs>
@@ -903,7 +903,7 @@ export default function Accounting() {
                                         <XAxis dataKey="date" stroke="#475569" fontSize={10} tickLine={false} axisLine={false}
                                             tickFormatter={(str) => { if (!str) return ''; const d = new Date(str); return `${d.getDate()}/${d.getMonth() + 1}`; }} />
                                         <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false}
-                                            tickFormatter={(val) => val == null a'' : val >= 1000 a`${(val / 1000).toFixed(0)}k` : String(val)} />
+                                            tickFormatter={(val) => val == null ? '' : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val)} />
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}
@@ -914,7 +914,7 @@ export default function Accounting() {
                                     </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-full flex items-center justify-center text-slate-600 text-sm">Aucune donnÃ©e sur cette pÃ©riode</div>
+                                <div className="h-full flex items-center justify-center text-slate-600 text-sm">Aucune donn?e sur cette p?riode</div>
                             )}
                         </div>
                     </div>
@@ -924,29 +924,29 @@ export default function Accounting() {
                         <div className="glass-card p-6">
                             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                                 <BarChart2 size={18} className="text-primary" />
-                                Top Produits â€” Performance
+                                Top Produits ? Performance
                             </h3>
                             <div className="space-y-3">
                                 {topProducts.map((p: any, i: number) => {
                                     const margin = typeof p.margin_pct === 'number'
-                                        ap.margin_pct
-                                        : (p.revenue > 0 a((p.revenue - p.cogs) / p.revenue) * 100 : 0);
+                                        ? p.margin_pct
+                                        : (p.revenue > 0 ? ((p.revenue - p.cogs) / p.revenue) * 100 : 0);
                                     return (
                                         <div key={p.id} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition-all">
                                             <span className="text-[10px] font-black text-slate-600 w-5 text-right">#{i + 1}</span>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-white font-bold text-sm truncate">{p.name}</p>
-                                                <p className="text-[10px] text-slate-500">{p.qty_sold} unitÃ©s vendues</p>
+                                                <p className="text-[10px] text-slate-500">{p.qty_sold} unit?s vendues</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-white font-bold text-sm">{formatCurrency(p.revenue)}</p>
-                                                <p className={`text-[10px] font-bold ${margin > 20 a'text-emerald-400' : margin > 0 a'text-amber-400' : 'text-rose-400'}`}>
+                                                <p className={`text-[10px] font-bold ${margin > 20 ? 'text-emerald-400' : margin > 0 ? 'text-amber-400' : 'text-rose-400'}`}>
                                                     marge {margin.toFixed(0)}%
                                                 </p>
                                             </div>
                                             <div className="w-20 h-1.5 bg-white/5 rounded-full overflow-hidden">
                                                 <div
-                                                    className={`h-full rounded-full ${margin > 20 a'bg-emerald-500' : margin > 0 a'bg-amber-500' : 'bg-rose-500'}`}
+                                                    className={`h-full rounded-full ${margin > 20 ? 'bg-emerald-500' : margin > 0 ? 'bg-amber-500' : 'bg-rose-500'}`}
                                                     style={{ width: `${Math.min(Math.abs(margin), 100)}%` }}
                                                 />
                                             </div>
@@ -967,25 +967,25 @@ export default function Accounting() {
                             <div className="relative">
                                 <button
                                     onClick={() => setIsExpenseFilterOpen(prev => !prev)}
-                                    className={`p-2 rounded-lg transition-all ${filterExpenseCategory !== 'all' a'text-primary bg-primary/10' : 'text-slate-400 hover:text-white'}`}
+                                    className={`p-2 rounded-lg transition-all ${filterExpenseCategory !== 'all' ? 'text-primary bg-primary/10' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     <Filter size={18} />
                                 </button>
                                 {isExpenseFilterOpen && (
                                     <div className="absolute top-full right-0 mt-2 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
                                         <button onClick={() => { setFilterExpenseCategory('all'); setIsExpenseFilterOpen(false); }}
-                                            className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === 'all' a'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                            Toutes catÃ©gories
+                                            className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === 'all' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                                            Toutes cat?gories
                                         </button>
                                         {EXPENSE_CATEGORY_KEYS.map(cat => (
                                             <button key={cat.value} onClick={() => { setFilterExpenseCategory(cat.value); setIsExpenseFilterOpen(false); }}
-                                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === cat.value a'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === cat.value ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                                                 {t(cat.labelKey)}
                                             </button>
                                         ))}
                                         {customCategories.filter(c => !EXPENSE_CATEGORY_KEYS.some(k => k.value === c)).map(cat => (
                                             <button key={cat} onClick={() => { setFilterExpenseCategory(cat); setIsExpenseFilterOpen(false); }}
-                                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === cat a'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === cat ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                                                 {cat}
                                             </button>
                                         ))}
@@ -994,8 +994,8 @@ export default function Accounting() {
                             </div>
                         </div>
                         <div className="flex flex-col gap-2">
-                            {filteredExpenses.length === 0 a(
-                                <div className="text-center py-10 text-slate-500 font-medium">Aucune dÃ©pense sur cette pÃ©riode.</div>
+                            {filteredExpenses.length === 0 ? (
+                                <div className="text-center py-10 text-slate-500 font-medium">Aucune d?pense sur cette p?riode.</div>
                             ) : (
                                 filteredExpenses.map((exp: any) => (
                                     <div key={exp.expense_id} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-white/10 transition-all">
@@ -1006,7 +1006,7 @@ export default function Accounting() {
                                             <div>
                                                 <h4 className="text-white font-bold text-sm">{exp.description || exp.category}</h4>
                                                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">
-                                                    {formatDate(exp.created_at)} Â· {(() => { const c = EXPENSE_CATEGORY_KEYS.find(c => c.value === exp.category); return c at(c.labelKey) : exp.category; })()}
+                                                    {formatDate(exp.created_at)} - {(() => { const c = EXPENSE_CATEGORY_KEYS.find(c => c.value === exp.category); return c ? t(c.labelKey) : exp.category; })()}
                                                 </p>
                                             </div>
                                         </div>
@@ -1028,7 +1028,7 @@ export default function Accounting() {
                     </div>
                 </div>
 
-                {/* Right Panel â€” tabs */}
+                {/* Right Panel ? tabs */}
                 <div ref={rightPanelRef} className="flex flex-col gap-6">
                     {/* Tab selector */}
                     <div className="glass-card p-1.5 flex gap-1">
@@ -1041,7 +1041,7 @@ export default function Accounting() {
                             { key: 'invoices', label: 'Factures' },
                         ] as const).map(tab => (
                             <button key={tab.key} onClick={() => setRightTab(tab.key)}
-                                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${rightTab === tab.key a'bg-primary text-white' : 'text-slate-400 hover:text-white'}`}>
+                                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${rightTab === tab.key ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'}`}>
                                 {tab.label}
                             </button>
                         ))}
@@ -1050,7 +1050,7 @@ export default function Accounting() {
                     {/* P&L Tab */}
                     {rightTab === 'profitability' && (
                         <div className="glass-card p-6 flex flex-col items-center">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest self-start mb-6">RentabilitÃ© OpÃ©rationnelle</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest self-start mb-6">Rentabilit? Op?rationnelle</h3>
                             {/* Marge brute circular */}
                             <div className="relative w-44 h-44 mb-6">
                                 <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
@@ -1066,9 +1066,9 @@ export default function Accounting() {
                             <div className="w-full space-y-3">
                                 {[
                                     { label: 'Chiffre d\'affaires', value: stats.revenue || 0, color: 'bg-emerald-500', pct: 100 },
-                                    { label: 'CoÃ»t des ventes', value: stats.cogs || 0, color: 'bg-blue-500', pct: stats.revenue > 0 a(stats.cogs / stats.revenue) * 100 : 0 },
-                                    { label: 'Charges fixes', value: stats.expenses || 0, color: 'bg-rose-500', pct: stats.revenue > 0 a(stats.expenses / stats.revenue) * 100 : 0 },
-                                    { label: 'Pertes stock', value: stats.total_losses || 0, color: 'bg-orange-500', pct: stats.revenue > 0 a(stats.total_losses / stats.revenue) * 100 : 0 },
+                                    { label: 'Co?t des ventes', value: stats.cogs || 0, color: 'bg-blue-500', pct: stats.revenue > 0 ? (stats.cogs / stats.revenue) * 100 : 0 },
+                                    { label: 'Charges fixes', value: stats.expenses || 0, color: 'bg-rose-500', pct: stats.revenue > 0 ? (stats.expenses / stats.revenue) * 100 : 0 },
+                                    { label: 'Pertes stock', value: stats.total_losses || 0, color: 'bg-orange-500', pct: stats.revenue > 0 ? (stats.total_losses / stats.revenue) * 100 : 0 },
                                 ].map(row => (
                                     <div key={row.label} className="bg-white/5 rounded-xl p-3 border border-white/5">
                                         <div className="flex justify-between items-center mb-1.5">
@@ -1082,8 +1082,8 @@ export default function Accounting() {
                                 ))}
                                 <div className="mt-2 p-3 rounded-xl border-2 border-primary/30 bg-primary/5">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs font-black text-primary uppercase tracking-widest">BÃ©nÃ©fice Net</span>
-                                        <span className={`text-sm font-black ${(stats.net_profit || 0) >= 0 a'text-emerald-400' : 'text-rose-400'}`}>
+                                        <span className="text-xs font-black text-primary uppercase tracking-widest">B?n?fice Net</span>
+                                        <span className={`text-sm font-black ${(stats.net_profit || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                             {formatCurrency(stats.net_profit || 0)}
                                         </span>
                                     </div>
@@ -1095,25 +1095,25 @@ export default function Accounting() {
                     {/* Payments Tab */}
                     {rightTab === 'payments' && (
                         <div className="glass-card p-6">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">MÃ©thodes de Paiement</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">M?thodes de Paiement</h3>
                             <div className="space-y-4">
-                                {Object.keys(stats.payment_breakdown || {}).length === 0 a(
-                                    <p className="text-xs text-slate-500 italic text-center py-4">Aucune vente sur cette pÃ©riode.</p>
+                                {Object.keys(stats.payment_breakdown || {}).length === 0 ? (
+                                    <p className="text-xs text-slate-500 italic text-center py-4">Aucune vente sur cette p?riode.</p>
                                 ) : (
                                     Object.entries(stats.payment_breakdown || {}).map(([method, amount]: [string, any]) => (
                                         <div key={method} className="p-4 bg-white/5 rounded-2xl border border-white/5">
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                    {method === 'cash' a'ðŸ’µ EspÃ¨ces' : method === 'credit' a'ðŸ’³ CrÃ©dit' : method === 'mobile_money' a'ðŸ“± Mobile Money' : method}
+                                                    {method === 'cash' ? '?? Esp?ces' : method === 'credit' ? '?? Cr?dit' : method === 'mobile_money' ? '?? Mobile Money' : method}
                                                 </span>
                                                 <span className="text-sm font-black text-white">{formatCurrency(amount)}</span>
                                             </div>
                                             <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                <div className={`h-full rounded-full ${method === 'cash' a'bg-emerald-500' : method === 'credit' a'bg-indigo-500' : 'bg-amber-500'}`}
-                                                    style={{ width: `${stats.revenue > 0 a(amount / stats.revenue) * 100 : 0}%` }} />
+                                                <div className={`h-full rounded-full ${method === 'cash' ? 'bg-emerald-500' : method === 'credit' ? 'bg-indigo-500' : 'bg-amber-500'}`}
+                                                    style={{ width: `${stats.revenue > 0 ? (amount / stats.revenue) * 100 : 0}%` }} />
                                             </div>
                                             <p className="text-[10px] text-slate-600 mt-1 text-right">
-                                                {stats.revenue > 0 a((amount / stats.revenue) * 100).toFixed(1) : 0}%
+                                                {stats.revenue > 0 ? ((amount / stats.revenue) * 100).toFixed(1) : 0}%
                                             </p>
                                         </div>
                                     ))
@@ -1129,8 +1129,8 @@ export default function Accounting() {
                                 <TrendingDown size={16} className="text-rose-400" /> Analyse des Pertes
                             </h3>
                             <div className="space-y-3">
-                                {Object.keys(stats.loss_breakdown || {}).length === 0 a(
-                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune perte enregistrÃ©e. ðŸŽ‰</p>
+                                {Object.keys(stats.loss_breakdown || {}).length === 0 ? (
+                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune perte enregistr?e. ??</p>
                                 ) : (
                                     Object.entries(stats.loss_breakdown || {}).map(([reason, amount]: [string, any]) => (
                                         <div key={reason} className="flex justify-between items-center p-3 bg-rose-500/5 rounded-xl border border-rose-500/10">
@@ -1152,16 +1152,16 @@ export default function Accounting() {
                     {/* Charges breakdown Tab */}
                     {rightTab === 'products' && (
                         <div className="glass-card p-6">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">RÃ©partition des Charges</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">R?partition des Charges</h3>
                             <div className="space-y-3">
-                                {Object.keys(stats.expenses_breakdown || {}).length === 0 a(
-                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune dÃ©pense sur cette pÃ©riode.</p>
+                                {Object.keys(stats.expenses_breakdown || {}).length === 0 ? (
+                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune d?pense sur cette p?riode.</p>
                                 ) : (
                                     Object.entries(stats.expenses_breakdown || {})
                                         .sort(([, a]: any, [, b]: any) => b - a)
                                         .map(([cat, amount]: [string, any]) => {
-                                            const catObj = EXPENSE_CATEGORY_KEYS.find(c => c.value === cat); const label = catObj at(catObj.labelKey) : cat;
-                                            const pct = (stats.expenses || 0) > 0 a(amount / stats.expenses) * 100 : 0;
+                                            const catObj = EXPENSE_CATEGORY_KEYS.find(c => c.value === cat); const label = catObj ? t(catObj.labelKey) : cat;
+                                            const pct = (stats.expenses || 0) > 0 ? (amount / stats.expenses) * 100 : 0;
                                             return (
                                                 <div key={cat} className="p-3 bg-white/5 rounded-xl border border-white/5">
                                                     <div className="flex justify-between items-center mb-1.5">
@@ -1185,7 +1185,7 @@ export default function Accounting() {
                                 <FileClock size={16} className="text-primary" /> Historique des ventes
                             </h3>
                             <div className="space-y-3">
-                                {salesHistory.length === 0 a(
+                                {salesHistory.length === 0 ? (
                                     <p className="text-xs text-slate-500 italic text-center py-6">Aucune vente sur cette periode.</p>
                                 ) : (
                                     salesHistory.map((sale) => (
@@ -1194,7 +1194,7 @@ export default function Accounting() {
                                                 <div className="min-w-0">
                                                     <p className="text-white font-bold truncate">{sale.customer_name || 'Client divers'}</p>
                                                     <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
-                                                        {formatDate(sale.created_at)} Â· {sale.item_count} article(s)
+                                                        {formatDate(sale.created_at)} ? {sale.item_count} article(s)
                                                     </p>
                                                     <p className="text-xs text-slate-400 mt-2 truncate">
                                                         {sale.items.map((item) => item.product_name).filter(Boolean).join(', ') || 'Vente'}
@@ -1213,35 +1213,35 @@ export default function Accounting() {
                                                 </div>
                                             </div>
                                             <div className="flex gap-2 mt-4">
-                                                {sale.invoice_id a(
+                                                {sale.invoice_id ? (
                                                     <button
                                                         onClick={() => handleOpenInvoice(sale.invoice_id!, invoiceHistory.find((invoice) => invoice.invoice_id === sale.invoice_id))}
                                                         className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all"
                                                     >
                                                         Voir {sale.invoice_label || 'facture'}
                                                     </button>
-                                                ) : sale.status !== 'cancelled' a(
+                                                ) : sale.status !== 'cancelled' ? (
                                                     <button
                                                         onClick={() => handleCreateInvoiceFromSale(sale.sale_id)}
                                                         disabled={invoiceBusyId === sale.sale_id}
                                                         className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
                                                     >
-                                                        {invoiceBusyId === sale.sale_id a'Creation...' : 'Creer facture'}
+                                                        {invoiceBusyId === sale.sale_id ? 'Creation...' : 'Creer facture'}
                                                     </button>
                                                 ) : null}
-                                                {sale.status !== 'cancelled' && !sale.invoice_id a(
+                                                {sale.status !== 'cancelled' && !sale.invoice_id ? (
                                                     <button
                                                         onClick={() => void handleCancelSale(sale.sale_id)}
                                                         disabled={cancellingSaleId === sale.sale_id}
                                                         className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
                                                     >
                                                         {cancellingSaleId === sale.sale_id
-                                                            at('accounting.cancelling_sale', { defaultValue: 'Annulation...' })
+                                                            ? t('accounting.cancelling_sale', { defaultValue: 'Annulation...' })
                                                             : t('accounting.cancel_sale', { defaultValue: 'Annuler la vente' })}
                                                     </button>
                                                 ) : null}
                                             </div>
-                                            {sale.status === 'cancelled' && sale.cancelled_at a(
+                                            {sale.status === 'cancelled' && sale.cancelled_at ? (
                                                 <p className="mt-3 text-[11px] text-rose-300">
                                                     {t('accounting.cancelled_on', {
                                                         defaultValue: 'Annulee le {{date}}',
@@ -1270,7 +1270,7 @@ export default function Accounting() {
                                 </button>
                             </div>
                             <div className="space-y-3">
-                                {invoiceHistory.length === 0 a(
+                                {invoiceHistory.length === 0 ? (
                                     <p className="text-xs text-slate-500 italic text-center py-6">Aucune facture sur cette periode.</p>
                                 ) : (
                                     invoiceHistory.map((invoice) => (
@@ -1279,7 +1279,7 @@ export default function Accounting() {
                                                 <div className="min-w-0">
                                                     <p className="text-white font-bold truncate">{invoice.invoice_number}</p>
                                                     <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
-                                                        {(invoice.invoice_label || 'Facture').toUpperCase()} Â· {formatDate(invoice.issued_at)}
+                                                        {(invoice.invoice_label || 'Facture').toUpperCase()} ? {formatDate(invoice.issued_at)}
                                                     </p>
                                                     <p className="text-xs text-slate-400 mt-2 truncate">{invoice.customer_name || 'Client divers'}</p>
                                                 </div>
@@ -1359,7 +1359,7 @@ export default function Accounting() {
                                             </div>
                                             <div className="grid grid-cols-3 gap-3">
                                                 <div>
-                                                    <label className="text-[10px] text-slate-500 mb-1 block">QuantitÃ©</label>
+                                                    <label className="text-[10px] text-slate-500 mb-1 block">Quantit?</label>
                                                     <input
                                                         type="number"
                                                         value={item.quantity}
@@ -1410,7 +1410,7 @@ export default function Accounting() {
                                         type="text"
                                         value={freeInvPaymentTerms}
                                         onChange={e => setFreeInvPaymentTerms(e.target.value)}
-                                        placeholder="Ex: Paiement Ã  30 jours"
+                                        placeholder="Ex: Paiement ? 30 jours"
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:border-primary focus:outline-none"
                                     />
                                 </div>
@@ -1430,7 +1430,7 @@ export default function Accounting() {
 
                             {/* Total preview */}
                             <div className="flex justify-between items-center bg-primary/10 rounded-xl p-4 border border-primary/20">
-                                <span className="text-sm font-bold text-slate-300">Total estimÃ©</span>
+                                <span className="text-sm font-bold text-slate-300">Total estim?</span>
                                 <span className="text-xl font-black text-primary">{freeInvTotal.toLocaleString('fr-FR')} F</span>
                             </div>
                         </div>
@@ -1441,11 +1441,11 @@ export default function Accounting() {
                                 disabled={freeInvSaving || freeInvItems.every(i => !i.description.trim() || !parseFloat(i.unit_price))}
                                 className="w-full btn-primary rounded-xl py-3 font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
                             >
-                                {freeInvSaving a(
+                                {freeInvSaving ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <FileText size={18} /> CrÃ©er la facture
+                                        <FileText size={18} /> Cr?er la facture
                                     </>
                                 )}
                             </button>
@@ -1470,7 +1470,7 @@ export default function Accounting() {
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={requestCloseExpenseModal} />
                     <div className="glass-card w-full max-w-md relative z-10 p-8">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-white">{editingExpense a'Modifier la dÃ©pense' : 'Nouvelle DÃ©pense'}</h2>
+                            <h2 className="text-2xl font-bold text-white">{editingExpense ? 'Modifier la d?pense' : 'Nouvelle D?pense'}</h2>
                             <button onClick={requestCloseExpenseModal} className="p-2 text-slate-500 hover:text-white transition-colors">
                                 <X size={20} />
                             </button>
@@ -1493,7 +1493,7 @@ export default function Accounting() {
                                 <div className="flex gap-2 mt-1">
                                     <input
                                         type="text"
-                                        placeholder={t('accounting.new_category_placeholder') || 'Nouvelle catÃ©gorie...'}
+                                        placeholder={t('accounting.new_category_placeholder') || 'Nouvelle cat?gorie...'}
                                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-primary/50"
                                         value={newCategoryDraft}
                                         onChange={(e) => setNewCategoryDraft(e.target.value)}
@@ -1544,7 +1544,7 @@ export default function Accounting() {
                                 </button>
                                 <button type="submit" disabled={saving}
                                     className="flex-1 btn-primary py-4 rounded-xl font-black shadow-xl shadow-primary/20 flex items-center justify-center gap-2">
-                                    {saving a<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Enregistrer'}
+                                    {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Enregistrer'}
                                 </button>
                             </div>
                         </form>

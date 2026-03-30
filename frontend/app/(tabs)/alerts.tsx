@@ -11,6 +11,7 @@ import {
   TextInput,
   Alert,
   Switch,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -155,6 +156,7 @@ export default function AlertsScreen() {
     try {
       const result = await alertsApi.list();
       setAlertList(result?.items || []);
+      DeviceEventEmitter.emit('alerts:changed');
     } catch {
       // silently fail
     } finally {
@@ -178,9 +180,11 @@ export default function AlertsScreen() {
   async function handleMarkRead(alertId: string) {
     try {
       await alertsApi.markRead(alertId);
-      setAlertList((prev) =>
-        prev.map((a) => (a.alert_id === alertId ? { ...a, is_read: true } : a))
-      );
+      setAlertList((prev) => {
+        const next = prev.map((a) => (a.alert_id === alertId ? { ...a, is_read: true } : a));
+        DeviceEventEmitter.emit('alerts:changed');
+        return next;
+      });
     } catch {
       // ignore
     }
@@ -189,7 +193,11 @@ export default function AlertsScreen() {
   async function handleDismiss(alertId: string) {
     try {
       await alertsApi.dismiss(alertId);
-      setAlertList((prev) => prev.filter((a) => a.alert_id !== alertId));
+      setAlertList((prev) => {
+        const next = prev.filter((a) => a.alert_id !== alertId);
+        DeviceEventEmitter.emit('alerts:changed');
+        return next;
+      });
     } catch {
       // ignore
     }

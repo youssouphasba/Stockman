@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
@@ -15,7 +15,7 @@ const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
 
 export default function AuthEntryScreen() {
   const { t } = useTranslation();
-  const { colors, glassStyle, isDark } = useTheme();
+  const { colors, glassStyle, isDark, setTheme } = useTheme();
   const { restoreSession } = useAuth();
   const router = useRouter();
   const [demoLoading, setDemoLoading] = useState(false);
@@ -23,12 +23,16 @@ export default function AuthEntryScreen() {
   const [error, setError] = useState('');
   const styles = React.useMemo(() => createStyles(colors, glassStyle, isDark), [colors, glassStyle, isDark]);
 
+  function toggleThemeQuick() {
+    void setTheme(isDark ? 'light' : 'dark');
+  }
+
   async function handleDemo(type: 'retail' | 'restaurant' | 'enterprise') {
     if (type === 'enterprise') {
       if (Platform.OS !== 'web') {
         Alert.alert(
           'Démo Enterprise',
-          'Utilisez un ordinateur pour tester pleinement cet outil',
+          'Utilisez un ordinateur pour tester pleinement cet outil.',
           [
             { text: 'Annuler', style: 'cancel' },
             { text: 'OK', onPress: () => { void Linking.openURL(ENTERPRISE_DEMO_URL); } },
@@ -39,6 +43,7 @@ export default function AuthEntryScreen() {
       await Linking.openURL(ENTERPRISE_DEMO_URL);
       return;
     }
+
     setError('');
     setDemoType(type);
     setDemoLoading(true);
@@ -64,6 +69,9 @@ export default function AuthEntryScreen() {
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <View style={styles.container}>
+        <TouchableOpacity style={styles.themeButton} onPress={toggleThemeQuick} activeOpacity={0.85}>
+          <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={colors.text} />
+        </TouchableOpacity>
         <View style={styles.hero}>
           <View style={styles.iconCircle}>
             <Ionicons name="shield-checkmark-outline" size={34} color={colors.primary} />
@@ -89,7 +97,7 @@ export default function AuthEntryScreen() {
 
           <Link href="/(auth)/register" asChild>
             <TouchableOpacity style={[styles.cta, styles.ctaSecondary]}>
-              <Ionicons name="person-add-outline" size={20} color={colors.primaryLight} />
+              <Ionicons name="person-add-outline" size={20} color={colors.primary} />
               <Text style={styles.ctaSecondaryText}>Créer mon compte gratuit</Text>
             </TouchableOpacity>
           </Link>
@@ -143,6 +151,20 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
       justifyContent: 'center',
       gap: Spacing.xl,
     },
+    themeButton: {
+      position: 'absolute',
+      top: 56,
+      right: Spacing.lg,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: colors.glass,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2,
+    },
     hero: {
       alignItems: 'center',
       gap: Spacing.sm,
@@ -151,17 +173,18 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
       width: 72,
       height: 72,
       borderRadius: 36,
-      backgroundColor: 'rgba(255,255,255,0.08)',
+      backgroundColor: colors.glass,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.12)',
+      borderColor: colors.glassBorder,
     },
     title: {
       color: colors.text,
       fontSize: 34,
       fontWeight: '800',
       letterSpacing: 0.4,
+      textAlign: 'center',
     },
     subtitle: {
       color: colors.textSecondary,
@@ -183,11 +206,11 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
       gap: 8,
     },
     ctaPrimary: {
-      backgroundColor: isDark ? colors.primary : colors.text,
+      backgroundColor: colors.primary,
       borderWidth: 1,
-      borderColor: isDark ? colors.primary : colors.text,
-      shadowColor: isDark ? colors.primary : '#0F172A',
-      shadowOpacity: isDark ? 0.28 : 0.16,
+      borderColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOpacity: isDark ? 0.28 : 0.18,
       shadowRadius: 12,
       shadowOffset: { width: 0, height: 6 },
       elevation: 3,
@@ -195,7 +218,7 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
     ctaSecondary: {
       backgroundColor: colors.inputBg,
       borderWidth: 1,
-      borderColor: colors.primary + '66',
+      borderColor: `${colors.primary}66`,
     },
     ctaPrimaryText: {
       color: '#fff',
@@ -203,7 +226,7 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
       fontWeight: '800',
     },
     ctaSecondaryText: {
-      color: colors.primaryLight,
+      color: colors.primary,
       fontSize: FontSize.md,
       fontWeight: '800',
     },
