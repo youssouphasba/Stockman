@@ -144,7 +144,7 @@ export default function Accounting() {
         amount: newExpense.amount,
         description: newExpense.description,
         newCategoryDraft,
-        editingId: editingExpense.expense_id || '',
+        editingId: editingExpense?.expense_id || '',
     });
 
     const requestCloseExpenseModal = () => {
@@ -566,6 +566,15 @@ export default function Accounting() {
                 { label: t('guide.accounting.tab_products', "Onglet Produits"), description: t('guide.accounting.tab_products_desc', "Classement des produits par chiffre d'affaires, marge et quantité vendue sur la période."), type: 'info' },
                 { label: t('guide.accounting.tab_sales', "Onglet Ventes"), description: t('guide.accounting.tab_sales_desc', "Historique de toutes les ventes avec possibilité d'annuler une vente si votre rôle l'autorise."), type: 'info' },
                 { label: t('guide.accounting.tab_invoices', "Onglet Factures"), description: t('guide.accounting.tab_invoices_desc', "Créez et consultez des factures clients, puis téléchargez-les en PDF ou imprimez-les."), type: 'info' },
+            ],
+        },
+        {
+            title: "Utilisation de l'IA",
+            content: "L'IA en comptabilité sert à vous faire gagner du temps de lecture et de saisie. Elle ne remplace pas la validation métier avant décision ou export.",
+            details: [
+                { label: 'Rapport mensuel IA', description: "Ce rapport se lance sur clic et produit une lecture rédigée de la période. Il ne se génère pas tout seul.", type: 'button' },
+                { label: 'Diagnostic IA', description: "Ce diagnostic donne une lecture courte et actionnable du P&L. Il est distinct du rapport mensuel plus complet.", type: 'button' },
+                { label: 'Catégorie suggérée', description: "Dans la modale de dépense, une suggestion peut apparaître sous la description après votre saisie. Elle doit être confirmée manuellement.", type: 'info' },
             ],
         },
     ];

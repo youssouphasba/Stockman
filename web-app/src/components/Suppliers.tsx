@@ -1157,10 +1157,12 @@ export default function Suppliers() {
             .replace(/\s+/g, ' ')
             .trim();
 
-    const filteredManualSuppliers = (Array.isArray(manualSuppliers) ? manualSuppliers : []).filter(s =>
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.contact_name.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredManualSuppliers = (Array.isArray(manualSuppliers) ? manualSuppliers : []).filter((s) => {
+        const supplierName = String(s?.name || '').toLowerCase();
+        const contactName = String(s?.contact_name || '').toLowerCase();
+        const searchValue = search.toLowerCase();
+        return supplierName.includes(searchValue) || contactName.includes(searchValue);
+    });
 
     const marketplaceCitySuggestions = Array.from(
         new Set(
@@ -1261,7 +1263,7 @@ export default function Suppliers() {
     const marketplaceOrderSupplier = isMarketplaceOrder
         ? (
             marketplaceSuppliers.find((supplier: any) => (supplier.supplier_user_id || supplier.user_id) === orderForm.supplier_user_id)
-            || (marketplaceSupplierDetail.profile ? {
+            || (marketplaceSupplierDetail?.profile ? {
                 ...marketplaceSupplierDetail.profile,
                 name: marketplaceSupplierDetail.profile.company_name,
                 supplier_user_id: marketplaceSupplierDetail.profile.user_id,
@@ -1334,6 +1336,16 @@ export default function Suppliers() {
                 { label: t('guide.suppliers.kpi_credit', "Avoirs utilisables"), description: t('guide.suppliers.kpi_credit_desc', "Montant des avoirs encore disponibles après des retours finalisés. Utilisez-le avant de lancer un nouveau paiement ou une nouvelle commande."), type: 'info' as const },
                 { label: t('guide.suppliers.alerts_block', "Alertes et actions prioritaires"), description: t('guide.suppliers.alerts_block_desc', "Cette zone met en avant les urgences : commandes en attente, produits à risque, fournisseurs fragiles ou situations à corriger en premier."), type: 'card' as const },
                 { label: t('guide.suppliers.products_to_secure', "Produits à sécuriser"), description: t('guide.suppliers.products_to_secure_desc', "Cette liste pointe les articles qui approchent d'une situation risquée : stock critique, dépendance à un seul fournisseur ou besoin d'alternative."), type: 'card' as const },
+            ],
+        },
+        {
+            title: "Utilisation de l'IA",
+            content: "L'IA sur la page fournisseurs aide surtout à prioriser les achats et à lire la fiabilité des partenaires. Elle ne passe pas de commande seule sans validation.",
+            details: [
+                { label: 'Score IA fournisseur', description: "Le badge sur les cartes et le détail performance apparaissent seulement quand le fournisseur a assez d'historique analysable.", type: 'card' as const },
+                { label: 'Meilleur jour pour commander', description: "Cette information apparaît dans la fiche fournisseur quand un schéma de livraison exploitable a été trouvé.", type: 'info' as const },
+                { label: 'Commandes auto', description: "Le bouton ouvre des brouillons suggérés dans l'onglet Bons de commande. Il prépare, mais ne valide pas aveuglément.", type: 'button' as const },
+                { label: 'Réapprovisionnement', description: "Les suggestions de réapprovisionnement deviennent plus utiles quand les produits sont bien liés à un fournisseur et que le stock est correctement tenu.", type: 'tip' as const },
             ],
         },
     ];
@@ -1497,10 +1509,10 @@ export default function Suppliers() {
                                         <div className="flex justify-between items-start mb-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                                                    {s.name.charAt(0)}
+                                                    {(s.name || '?').charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{s.name}</h3>
+                                                    <h3 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{s.name || 'Fournisseur sans nom'}</h3>
                                                     <p className="text-sm text-slate-500">{s.contact_name || 'Aucun contact'}</p>
                                                 </div>
                                             </div>

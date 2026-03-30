@@ -1050,6 +1050,16 @@ export default function Inventory() {
                 { label: t('guide.inventory.ai_tip', "Suggestion IA"), description: t('guide.inventory.ai_tip_desc', "La recommandation de réapprovisionnement devient plus fiable quand vous avez au moins quelques semaines de ventes cohérentes et des fournisseurs correctement liés."), type: 'tip' },
             ],
         },
+        {
+            title: "Utilisation de l'IA",
+            content: "L'IA sur cette page sert à prioriser les produits à traiter. Elle ne remplace pas vos décisions de stock, elle vous aide à repérer les urgences.",
+            details: [
+                { label: 'Prév. 7j', description: "La colonne de prévision apparaît produit par produit si une estimation est disponible. Un tiret signifie simplement qu'aucune prévision exploitable n'est encore calculée.", type: 'info' },
+                { label: 'Produits dormants', description: "La bannière s'affiche seulement si des articles sans vente sont détectés. Ouvrez-la pour voir lesquels immobilisent du stock.", type: 'card' },
+                { label: 'Saisonnalité', description: "Le badge saisonnier n'apparaît que sur les produits avec un pic détecté et jugé urgent.", type: 'info' },
+                { label: 'Doublons détectés', description: "Cette alerte n'apparaît que si des produits très proches ont été trouvés dans votre catalogue.", type: 'card' },
+            ],
+        },
     ];
 
     return (

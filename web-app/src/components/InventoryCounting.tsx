@@ -123,6 +123,14 @@ export default function InventoryCounting() {
                 { label: t('guide.counting.all_done', "État 'Tout compté'"), description: t('guide.counting.all_done_desc', "Quand toutes les tâches sont soumises, un écran de confirmation s'affiche avec un bouton pour relancer une nouvelle session."), type: 'info' as const },
             ],
         },
+        {
+            title: "Utilisation de l'IA",
+            content: "L'IA intervient ici à deux moments : au lancement de la session pour choisir quoi compter, puis à la fin pour lire les écarts de stock.",
+            details: [
+                { label: 'Sélection des tâches', description: "Le choix des produits à compter est piloté par les signaux de risque et de rotation. Ce n'est pas un tirage aléatoire.", type: 'info' as const },
+                { label: 'Analyse de la démarque', description: "Le bloc d'analyse n'apparaît qu'une fois le cycle terminé et s'il existe réellement des écarts exploitables.", type: 'card' as const },
+            ],
+        },
     ];
 
     return (

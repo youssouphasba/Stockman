@@ -112,6 +112,14 @@ export default function AbcAnalysis() {
                 { label: "Catégorie / Fournisseur", description: "Focalisez l'analyse sur une catégorie ou un fournisseur spécifique.", type: 'filter' as const },
             ],
         },
+        {
+            title: "Utilisation de l'IA",
+            content: "L'IA complète ici l'analyse ABC avec des corrélations entre produits pour repérer ce qui s'achète souvent ensemble.",
+            details: [
+                { label: 'Corrélations produits', description: "Le bloc en bas de page n'apparaît que si des associations suffisamment fortes ont été trouvées dans vos paniers.", type: 'card' as const },
+                { label: 'Lecture du lift', description: "Plus le lift est élevé, plus l'association est intéressante pour le merchandising, les offres groupées ou le rangement.", type: 'info' as const },
+            ],
+        },
     ];
 
     return (

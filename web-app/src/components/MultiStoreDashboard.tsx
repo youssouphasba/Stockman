@@ -191,6 +191,15 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
             title: 'Ouvrir les détails analytiques',
             content: "Quand vous cliquez sur un KPI, une fenêtre détaillée s'ouvre. Servez-vous-en pour obtenir les lignes explicatives et approfondir une variation avant de prendre une décision.",
         },
+        {
+            title: "Utilisation de l'IA",
+            content: "L'IA multi-boutiques sert à comparer les magasins et à suggérer des transferts utiles. Elle reste un outil d'aide à la décision.",
+            details: [
+                { label: 'Benchmark boutiques', description: "Le benchmark apparaît quand au moins deux boutiques comparables sont disponibles dans le périmètre analysé.", type: 'card' },
+                { label: 'Rééquilibrage suggéré', description: "Les suggestions de transfert apparaissent seulement quand un déséquilibre de couverture stock est détecté entre boutiques.", type: 'card' },
+                { label: 'Validation opérationnelle', description: "Avant d'agir, vérifiez toujours la réalité terrain : stock physique, urgence locale et contraintes logistiques.", type: 'tip' },
+            ],
+        },
     ];
 
     return (

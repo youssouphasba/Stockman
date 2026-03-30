@@ -20,6 +20,7 @@ import { analytics, AnalyticsExecutiveOverview, AnalyticsKpiDetail, ai as aiApi 
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
+import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 interface ExecutiveDashboardProps {
     onNavigate?: (tab: string) => void;
@@ -110,8 +111,24 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
         );
     }
 
-    const { kpis } = overview;
     const currency = overview.currency || 'XOF';
+    const kpis = {
+        revenue: Number(overview.kpis?.revenue || 0),
+        revenue_delta: Number(overview.kpis?.revenue_delta || 0),
+        gross_profit: Number(overview.kpis?.gross_profit || 0),
+        gross_profit_delta: Number(overview.kpis?.gross_profit_delta || 0),
+        sales_count: Number(overview.kpis?.sales_count || 0),
+        average_ticket: Number(overview.kpis?.average_ticket || 0),
+        average_ticket_delta: Number(overview.kpis?.average_ticket_delta || 0),
+        stock_value: Number(overview.kpis?.stock_value || 0),
+        stock_turnover_ratio: Number(overview.kpis?.stock_turnover_ratio || 0),
+        low_stock_count: Number(overview.kpis?.low_stock_count || 0),
+        out_of_stock_count: Number(overview.kpis?.out_of_stock_count || 0),
+        dormant_products_count: Number(overview.kpis?.dormant_products_count || 0),
+        total_products: Number(overview.kpis?.total_products || 0),
+    };
+    const topProducts = Array.isArray(overview.top_products) ? overview.top_products : [];
+    const topCategories = Array.isArray(overview.top_categories) ? overview.top_categories : [];
 
     const openDetail = async (metric: string) => {
         setDetailOpen(true);
@@ -149,9 +166,31 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
         }
     };
 
+    const executiveSteps: GuideStep[] = [
+        {
+            title: 'Rôle du cockpit exécutif',
+            content: "Ce tableau de bord sert à piloter un commerce avec une lecture consolidée du chiffre d'affaires, de la marge, du stock et des priorités d'action.",
+        },
+        {
+            title: "Utilisation de l'IA",
+            content: "Les blocs IA de ce dashboard aident à lire la santé du commerce, estimer la fin de mois, explorer les données en langage naturel et faire ressortir les actions utiles.",
+            details: [
+                { label: 'Santé business', description: "Le score résume plusieurs signaux métier. Il apparaît quand l'analyse peut être calculée à partir de vos données réelles.", type: 'card' },
+                { label: 'Projection fin de mois', description: "Cette carte estime le chiffre d'affaires de fin de mois. Elle devient utile quand l'historique de ventes est suffisant.", type: 'card' },
+                { label: 'Recherche langage naturel', description: "Posez une question libre pour interroger vos données. Le résultat n'apparaît qu'après clic sur Chercher.", type: 'button' },
+                { label: 'Conseils du moment', description: "Les conseils apparaissent seulement quand une situation utile est détectée. L'absence de conseil ne signifie pas une panne.", type: 'tip' },
+            ],
+        },
+        {
+            title: 'KPI et détails',
+            content: "Les cartes KPI du haut donnent la vue de synthèse. Cliquez sur une carte pour ouvrir le détail analytique correspondant.",
+        },
+    ];
+
     return (
         <>
         <div className="flex-1 overflow-y-auto bg-[#0F172A] px-6 pb-8 pt-6 custom-scrollbar">
+            <ScreenGuide guideKey="executive_dashboard_tour" steps={executiveSteps} />
             <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div>
                     <p className="text-xs font-black uppercase tracking-[0.24em] text-primary">Cockpit executif</p>
@@ -455,12 +494,12 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                             <span className="text-right">CA</span>
                             <span className="text-right">Marge</span>
                         </div>
-                        {overview.top_products.length === 0 ? (
+                        {topProducts.length === 0 ? (
                             <div className="px-4 py-8 text-center text-sm text-slate-500">
                                 Aucun produit vendu sur la periode filtree.
                             </div>
                         ) : (
-                            overview.top_products.map((product) => (
+                            topProducts.map((product) => (
                                 <div
                                     key={product.product_id}
                                     className="grid grid-cols-[1.5fr_0.7fr_0.8fr_0.8fr] items-center border-t border-white/5 px-4 py-3 text-sm"
@@ -480,13 +519,13 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                     <h2 className="mt-2 text-xl font-black text-white">Les rayons qui performent</h2>
 
                     <div className="mt-6 space-y-4">
-                        {overview.top_categories.length === 0 ? (
+                        {topCategories.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-slate-500">
                                 Aucune categorie vendue sur cette selection.
                             </div>
                         ) : (
-                            overview.top_categories.map((category, index) => {
-                                const topRevenue = overview.top_categories[0]?.revenue || 1;
+                            topCategories.map((category, index) => {
+                                const topRevenue = topCategories[0]?.revenue || 1;
                                 const width = Math.max(8, Math.round((category.revenue / topRevenue) * 100));
                                 return (
                                     <div key={category.category_id || `${category.name}-${index}`}>

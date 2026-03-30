@@ -500,6 +500,15 @@ export default function CRM({ user }: CRMProps) {
             title: t('guide.crm.campaigns_title', "Onglet Campagnes"),
             content: t('guide.crm.campaigns_content', "Créez des campagnes de communication ciblées. Chaque campagne peut être envoyée via WhatsApp à un segment ou à l'ensemble de vos clients."),
         },
+        {
+            title: "Utilisation de l'IA",
+            content: "L'IA sur le CRM sert à mieux comprendre un client puis à préparer une prise de contact plus pertinente. Elle s'utilise depuis la fiche client.",
+            details: [
+                { label: 'Résumé IA', description: "Le résumé apparaît dans l'onglet Infos d'une fiche client après clic sur Analyser.", type: 'card' as const },
+                { label: 'Message IA', description: "Le message est généré sur clic selon le type choisi : promotion, réactivation, rappel de dette ou anniversaire.", type: 'button' as const },
+                { label: 'Validation humaine', description: "Le texte généré est une base de travail. Relisez-le toujours avant envoi, surtout pour une dette ou une relance sensible.", type: 'tip' as const },
+            ],
+        },
     ];
 
     return (
