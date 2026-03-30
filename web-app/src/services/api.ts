@@ -2179,21 +2179,20 @@ export const ai = {
             period_days: number;
         }>(`/ai/sales-forecast?days=${days}`),
     deadstockAnalysis: () =>
-        request<{
-            deadstock: Array<{
-                product_id: string;
-                name: string;
-                category: string;
-                current_stock: number;
-                purchase_price: number;
-                immobilized_value: number;
-                days_without_sale: number;
-                severity: string;
-                suggestions: string[];
-            }>;
-            total_immobilized_value: number;
-            summary: { mild: number; moderate: number; severe: number };
-        }>('/ai/deadstock-analysis'),
+        request<any>('/ai/deadstock-analysis'),
+    // Vague 2 — intelligence stock
+    seasonalityAlerts: () =>
+        request<any>('/ai/seasonality-alerts'),
+    shrinkageAnalysis: (items: Array<{ product_id: string; counted_quantity: number }>) =>
+        request<any>('/ai/shrinkage-analysis', {
+            method: 'POST',
+            body: { items },
+        }),
+    detectDuplicates: (target: 'products' | 'suppliers' = 'products', threshold: number = 0.7) =>
+        request<any>('/ai/detect-duplicates', {
+            method: 'POST',
+            body: { target, threshold },
+        }),
 };
 
 export const returns = {

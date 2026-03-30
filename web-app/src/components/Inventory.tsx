@@ -155,6 +155,11 @@ export default function Inventory() {
     const [deadstockData, setDeadstockData] = useState<any>(null);
     const [showDeadstock, setShowDeadstock] = useState(false);
 
+    // Vague 2: Seasonality + Duplicates
+    const [seasonalityMap, setSeasonalityMap] = useState<Record<string, any>>({});
+    const [duplicatesData, setDuplicatesData] = useState<any>(null);
+    const [showDuplicates, setShowDuplicates] = useState(false);
+
     // Stock movement modal
     const [stockModalOpen, setStockModalOpen] = useState(false);
     const [stockModalProduct, setStockModalProduct] = useState<any>(null);
@@ -317,18 +322,30 @@ export default function Inventory() {
                 if (featuresRes.status === 'fulfilled') setCurrentFeatures(featuresRes.value);
                 else console.warn('User features unavailable for inventory', featuresRes.reason);
             }).catch(() => {});
-        // Vague 1: load sales forecast + deadstock in background
-        Promise.allSettled([aiApi.salesForecast(), aiApi.deadstockAnalysis()])
-            .then(([forecastRes, deadstockRes]) => {
-                if (forecastRes.status === 'fulfilled' && forecastRes.value?.forecasts) {
-                    const map: Record<string, any> = {};
-                    for (const f of forecastRes.value.forecasts) {
-                        map[f.product_id] = f;
-                    }
-                    setSalesForecastMap(map);
+        // Vague 1+2: load sales forecast, deadstock, seasonality, duplicates in background
+        Promise.allSettled([
+            aiApi.salesForecast(),
+            aiApi.deadstockAnalysis(),
+            aiApi.seasonalityAlerts(),
+            aiApi.detectDuplicates('products'),
+        ]).then(([forecastRes, deadstockRes, seasonRes, dupsRes]) => {
+            if (forecastRes.status === 'fulfilled' && forecastRes.value?.forecasts) {
+                const map: Record<string, any> = {};
+                for (const f of forecastRes.value.forecasts) {
+                    map[f.product_id] = f;
                 }
-                if (deadstockRes.status === 'fulfilled') setDeadstockData(deadstockRes.value);
-            });
+                setSalesForecastMap(map);
+            }
+            if (deadstockRes.status === 'fulfilled') setDeadstockData(deadstockRes.value);
+            if (seasonRes.status === 'fulfilled' && seasonRes.value?.alerts) {
+                const map: Record<string, any> = {};
+                for (const a of seasonRes.value.alerts) {
+                    map[a.product_id] = a;
+                }
+                setSeasonalityMap(map);
+            }
+            if (dupsRes.status === 'fulfilled') setDuplicatesData(dupsRes.value);
+        });
     }, []);
 
     useEffect(() => {
@@ -1225,12 +1242,11 @@ export default function Inventory() {
                                     </span>
                                 </div>
                                 <p className="text-slate-300 text-sm">
-                                    {t('inventory.deadstock_immobilized', { value: deadstockData.total_immobilized_value?.toLocaleString('fr-FR') || '0', defaultValue: 'Valeur immobilisée : {{value}} F' })}
+                                    {t('inventory.deadstock_immobilized', { value: (deadstockData.total_value_blocked || 0).toLocaleString('fr-FR'), defaultValue: 'Valeur immobilisée : {{value}} F' })}
                                 </p>
                                 <div className="flex gap-3 mt-2 text-xs text-slate-400">
-                                    <span className="text-amber-300">{deadstockData.summary?.mild || 0} léger</span>
-                                    <span className="text-orange-400">{deadstockData.summary?.moderate || 0} modéré</span>
-                                    <span className="text-rose-400">{deadstockData.summary?.severe || 0} critique</span>
+                                    <span className="text-amber-300">{deadstockData.by_severity?.warning || 0} modéré</span>
+                                    <span className="text-rose-400">{deadstockData.by_severity?.critical || 0} critique</span>
                                 </div>
                                 <button
                                     onClick={() => setShowDeadstock(!showDeadstock)}
@@ -1248,10 +1264,61 @@ export default function Inventory() {
                                                     <span className="text-[10px] text-slate-500">{d.category || t('common.uncategorized', 'Non catégorisé')} · {d.current_stock} unités</span>
                                                 </div>
                                                 <div className="flex flex-col items-end shrink-0 ml-3">
-                                                    <span className={`text-xs font-bold ${d.severity === 'severe' ? 'text-rose-400' : d.severity === 'moderate' ? 'text-orange-400' : 'text-amber-300'}`}>
-                                                        {d.days_without_sale}j sans vente
+                                                    <span className={`text-xs font-bold ${d.severity === 'critical' ? 'text-rose-400' : 'text-amber-300'}`}>
+                                                        {d.days_since_last_sale}j sans vente
                                                     </span>
-                                                    <span className="text-[10px] text-slate-500">{d.immobilized_value?.toLocaleString('fr-FR')} F</span>
+                                                    <span className="text-[10px] text-slate-500">{(d.stock_value || 0).toLocaleString('fr-FR')} F</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Duplicates Banner */}
+            {duplicatesData && duplicatesData.total_found > 0 && (
+                <div className="mb-6 p-4 bg-violet-500/10 border border-violet-500/30 rounded-2xl">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1">
+                            <Layers size={20} className="text-violet-400 shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-1">
+                                    <p className="text-violet-300 font-bold text-sm">
+                                        {t('inventory.duplicates_title', 'Doublons détectés')}
+                                    </p>
+                                    <span className="text-[10px] font-black uppercase tracking-widest bg-violet-500/20 text-violet-200 px-2 py-0.5 rounded-full">
+                                        {duplicatesData.total_found} {t('inventory.pairs', 'paire(s)')}
+                                    </span>
+                                </div>
+                                <p className="text-slate-300 text-xs">
+                                    {t('inventory.duplicates_desc', 'Des produits avec des noms similaires ont été trouvés. Vérifiez s\'il s\'agit de doublons à fusionner.')}
+                                </p>
+                                <button
+                                    onClick={() => setShowDuplicates(!showDuplicates)}
+                                    className="mt-2 text-violet-200 text-xs font-bold hover:underline flex items-center gap-1"
+                                >
+                                    {showDuplicates ? t('common.hide', 'Masquer') : t('inventory.show_duplicates', 'Voir les doublons')}
+                                    {showDuplicates ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                </button>
+                                {showDuplicates && (
+                                    <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
+                                        {duplicatesData.duplicates.map((d: any, i: number) => (
+                                            <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/5">
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="text-white text-sm font-semibold truncate block">{d.item_a.name}</span>
+                                                    <span className="text-[10px] text-slate-500">{d.item_a.sku || 'Sans REF'} · {d.item_a.quantity} unités · {d.item_a.price} F</span>
+                                                </div>
+                                                <div className="shrink-0 text-center">
+                                                    <ArrowLeftRight size={14} className="text-violet-400 mx-auto" />
+                                                    <span className="text-[9px] text-violet-300 font-bold">{Math.round(d.similarity * 100)}%</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0 text-right">
+                                                    <span className="text-white text-sm font-semibold truncate block">{d.item_b.name}</span>
+                                                    <span className="text-[10px] text-slate-500">{d.item_b.sku || 'Sans REF'} · {d.item_b.quantity} unités · {d.item_b.price} F</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -1467,13 +1534,22 @@ export default function Inventory() {
                                     <td className="py-4 px-6 text-center">
                                         {(() => {
                                             const fc = salesForecastMap[p.product_id];
-                                            if (!fc) return <span className="text-slate-600 text-xs">—</span>;
+                                            const season = seasonalityMap[p.product_id];
                                             return (
                                                 <div className="flex flex-col items-center gap-0.5">
-                                                    <span className="text-sm font-bold text-emerald-400">+{fc.forecast_7d}</span>
-                                                    <span className="text-[10px] text-slate-500">{fc.velocity_per_day?.toFixed(1)}/j</span>
-                                                    {fc.alert && (
-                                                        <span className="text-[9px] text-rose-400 font-bold uppercase">{fc.alert === 'stock_insufficient_7d' ? '⚠ Rupture <7j' : '⚠ Rupture <30j'}</span>
+                                                    {fc ? (
+                                                        <>
+                                                            <span className="text-sm font-bold text-emerald-400">+{fc.forecast_7d}</span>
+                                                            <span className="text-[10px] text-slate-500">{fc.velocity_per_day?.toFixed(1)}/j</span>
+                                                            {fc.alert && (
+                                                                <span className="text-[9px] text-rose-400 font-bold uppercase">{fc.alert === 'stock_insufficient_7d' ? '⚠ Rupture <7j' : '⚠ Rupture <30j'}</span>
+                                                            )}
+                                                        </>
+                                                    ) : <span className="text-slate-600 text-xs">—</span>}
+                                                    {season?.urgency === 'high' && (
+                                                        <span className="text-[9px] text-amber-400 font-bold uppercase mt-0.5" title={`Pic saisonnier ${season.upcoming_peak_name} — prévoir ${season.expected_demand} unités`}>
+                                                            🔥 {t('inventory.season_peak', 'Pic')} {season.upcoming_peak_name}
+                                                        </span>
                                                     )}
                                                 </div>
                                             );

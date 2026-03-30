@@ -123,6 +123,8 @@ export default function ProductsScreen() {
   const [filterType, setFilterType] = useState<'all' | 'out_of_stock' | 'low_stock' | 'overstock' | 'deadstock'>('all');
   const [deadstockIds, setDeadstockIds] = useState<Set<string>>(new Set());
   const [deadstockCount, setDeadstockCount] = useState(0);
+  const [seasonalityMap, setSeasonalityMap] = useState<Record<string, any>>({});
+  const [duplicatesCount, setDuplicatesCount] = useState(0);
   const [supplierCoverageFilter, setSupplierCoverageFilter] = useState<'all' | 'no_supplier' | 'multi_supplier' | 'missing_primary'>('all');
   const handledReminderProductRef = useRef<string | null>(null);
 
@@ -458,16 +460,25 @@ export default function ProductsScreen() {
           console.warn('[Products] forecast unavailable', forecastError);
         }
 
-        // Vague 1: load deadstock analysis
-        try {
-          const ds = await aiApi.deadstockAnalysis();
-          if (ds?.deadstock) {
-            setDeadstockIds(new Set(ds.deadstock.map((d: any) => d.product_id)));
-            setDeadstockCount(ds.deadstock.length);
+        // Vague 1+2: load deadstock, seasonality, duplicates
+        Promise.allSettled([
+          aiApi.deadstockAnalysis(),
+          aiApi.seasonalityAlerts(),
+          aiApi.detectDuplicates('products'),
+        ]).then(([dsRes, seasonRes, dupsRes]) => {
+          if (dsRes.status === 'fulfilled' && dsRes.value?.deadstock) {
+            setDeadstockIds(new Set(dsRes.value.deadstock.map((d: any) => d.product_id)));
+            setDeadstockCount(dsRes.value.deadstock.length);
           }
-        } catch {
-          console.warn('[Products] deadstock analysis unavailable');
-        }
+          if (seasonRes.status === 'fulfilled' && seasonRes.value?.alerts) {
+            const map: Record<string, any> = {};
+            for (const a of seasonRes.value.alerts) map[a.product_id] = a;
+            setSeasonalityMap(map);
+          }
+          if (dupsRes.status === 'fulfilled') {
+            setDuplicatesCount(dupsRes.value?.total_found || 0);
+          }
+        });
 
         if (isEnterprise) {
           try {
@@ -2513,6 +2524,19 @@ export default function ProductsScreen() {
                       </View>
                     </View>
                     )}
+
+                    {/* Seasonality alert badge */}
+                    {!isRestaurant && seasonalityMap[product.product_id]?.urgency === 'high' && (() => {
+                      const season = seasonalityMap[product.product_id];
+                      return (
+                        <View style={{ backgroundColor: colors.warning + '15', borderWidth: 1, borderColor: colors.warning + '30', borderRadius: 12, padding: 10, marginHorizontal: 16, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Ionicons name="flame-outline" size={16} color={colors.warning} />
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.warning, flex: 1 }}>
+                            {t('products.season_peak_alert', { month: season.upcoming_peak_name, demand: season.expected_demand, gap: season.stock_gap, defaultValue: 'Pic saisonnier {{month}} — prévoir {{demand}} unités (manque {{gap}})' })}
+                          </Text>
+                        </View>
+                      );
+                    })()}
 
                     {!isRestaurant && (() => {
                       const supplyMeta = getProductSupplyMeta(product.product_id);

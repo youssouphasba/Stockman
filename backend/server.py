@@ -7642,6 +7642,385 @@ async def ai_deadstock_analysis(request: Request, user: User = Depends(require_o
 
 # ===================== END VAGUE 1 =====================
 
+# ===================== VAGUE 2 — INTELLIGENCE STOCK =====================
+
+
+@api_router.get("/ai/seasonality-alerts")
+@limiter.limit("10/minute")
+async def ai_seasonality_alerts(request: Request, user: User = Depends(require_operational_access)):
+    """Detect seasonal patterns per product. Enterprise only. Pure algo."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "seasonality_alerts")
+
+    cached = ai_governance.cache_get(owner_id, "seasonality_alerts", user.active_store_id or "")
+    if cached:
+        return cached
+
+    store_filter: dict = {"user_id": owner_id}
+    if user.active_store_id:
+        store_filter["store_id"] = user.active_store_id
+
+    now = datetime.now(timezone.utc)
+    d365 = now - timedelta(days=365)
+
+    # Aggregate monthly sales per product over last 12 months
+    pipeline = [
+        {"$match": apply_completed_sales_scope({**store_filter, "created_at": {"$gte": d365}})},
+        {"$unwind": "$items"},
+        {"$group": {
+            "_id": {
+                "product_id": "$items.product_id",
+                "month": {"$month": "$created_at"},
+            },
+            "total_qty": {"$sum": "$items.quantity"},
+            "total_revenue": {"$sum": {"$multiply": ["$items.quantity", "$items.unit_price"]}},
+        }},
+    ]
+    raw = await db.sales.aggregate(pipeline).to_list(50000)
+
+    # Group by product
+    product_monthly: dict = {}
+    for r in raw:
+        pid = r["_id"]["product_id"]
+        month = r["_id"]["month"]
+        if pid not in product_monthly:
+            product_monthly[pid] = {}
+        product_monthly[pid][month] = {"qty": r["total_qty"], "revenue": r["total_revenue"]}
+
+    # Get product names
+    all_pids = list(product_monthly.keys())
+    if not all_pids:
+        result = {"alerts": [], "products_analyzed": 0}
+        ai_governance.cache_set(owner_id, "seasonality_alerts", result, user.active_store_id or "")
+        return result
+
+    prods_cursor = db.products.find(
+        {"product_id": {"$in": all_pids}},
+        {"_id": 0, "product_id": 1, "name": 1, "category_id": 1, "quantity": 1}
+    )
+    prod_map = {p["product_id"]: p async for p in prods_cursor}
+
+    current_month = now.month
+    alerts = []
+
+    for pid, months_data in product_monthly.items():
+        if len(months_data) < 3:
+            continue  # Need at least 3 months of data
+
+        values = [months_data.get(m, {}).get("qty", 0) for m in range(1, 13)]
+        non_zero = [v for v in values if v > 0]
+        if len(non_zero) < 2:
+            continue
+
+        avg = sum(non_zero) / len(non_zero)
+        if avg == 0:
+            continue
+
+        # Detect peaks (months with >1.5x average)
+        peak_months = [m for m in range(1, 13) if months_data.get(m, {}).get("qty", 0) > avg * 1.5]
+
+        if not peak_months:
+            continue
+
+        # Check if we're approaching a peak (within 4 weeks)
+        upcoming_peak = None
+        for pm in peak_months:
+            months_until = (pm - current_month) % 12
+            if 0 < months_until <= 2:
+                upcoming_peak = pm
+                break
+
+        prod_info = prod_map.get(pid, {})
+        peak_month_names = []
+        month_names_fr = ["", "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"]
+        for pm in peak_months:
+            peak_month_names.append(month_names_fr[pm])
+
+        alert_entry = {
+            "product_id": pid,
+            "name": prod_info.get("name", ""),
+            "category_id": prod_info.get("category_id"),
+            "current_stock": prod_info.get("quantity", 0),
+            "avg_monthly_sales": round(avg, 1),
+            "peak_months": peak_months,
+            "peak_month_names": peak_month_names,
+            "peak_factor": round(max(values) / avg, 1) if avg > 0 else 0,
+            "monthly_data": {m: months_data.get(m, {}).get("qty", 0) for m in range(1, 13)},
+        }
+
+        if upcoming_peak:
+            peak_qty = months_data.get(upcoming_peak, {}).get("qty", 0)
+            alert_entry["upcoming_peak_month"] = upcoming_peak
+            alert_entry["upcoming_peak_name"] = month_names_fr[upcoming_peak]
+            alert_entry["expected_demand"] = round(peak_qty)
+            alert_entry["stock_gap"] = max(0, round(peak_qty - prod_info.get("quantity", 0)))
+            alert_entry["urgency"] = "high" if alert_entry["stock_gap"] > 0 else "info"
+        else:
+            alert_entry["urgency"] = "info"
+
+        alerts.append(alert_entry)
+
+    # Sort: high urgency first, then by peak_factor desc
+    alerts.sort(key=lambda a: (0 if a.get("urgency") == "high" else 1, -a.get("peak_factor", 0)))
+
+    result = {
+        "alerts": alerts[:30],
+        "products_analyzed": len(product_monthly),
+        "current_month": current_month,
+    }
+
+    ai_governance.cache_set(owner_id, "seasonality_alerts", result, user.active_store_id or "")
+    await track_ai_usage(user.user_id, "seasonality_alerts", plan=plan, ai_enhanced=False)
+    return result
+
+
+@api_router.post("/ai/shrinkage-analysis")
+@limiter.limit("10/minute")
+async def ai_shrinkage_analysis(
+    request: Request,
+    body: dict = Body(...),
+    user: User = Depends(require_operational_access),
+):
+    """Analyse de la demarque inconnue apres comptage inventaire. Pro+Enterprise."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "shrinkage_analysis")
+
+    store_filter: dict = {"user_id": owner_id}
+    if user.active_store_id:
+        store_filter["store_id"] = user.active_store_id
+
+    # body should contain counted items: [{ product_id, counted_quantity }]
+    counted_items = body.get("items", [])
+    if not counted_items:
+        raise HTTPException(400, "No items provided")
+
+    product_ids = [item["product_id"] for item in counted_items if "product_id" in item]
+    counted_map = {item["product_id"]: item.get("counted_quantity", 0) for item in counted_items}
+
+    # Get theoretical stock from DB
+    products = await db.products.find(
+        {**store_filter, "product_id": {"$in": product_ids}},
+        {"_id": 0, "product_id": 1, "name": 1, "quantity": 1, "purchase_price": 1, "selling_price": 1, "category_id": 1}
+    ).to_list(5000)
+
+    discrepancies = []
+    total_loss_value = 0
+    total_surplus_value = 0
+
+    for p in products:
+        pid = p["product_id"]
+        theoretical = p.get("quantity", 0)
+        counted = counted_map.get(pid, 0)
+        diff = counted - theoretical
+
+        if diff == 0:
+            continue
+
+        purchase_price = p.get("purchase_price", 0)
+        value = abs(diff) * purchase_price
+
+        if diff < 0:
+            total_loss_value += value
+            status = "loss"
+        else:
+            total_surplus_value += value
+            status = "surplus"
+
+        discrepancies.append({
+            "product_id": pid,
+            "name": p.get("name", ""),
+            "category_id": p.get("category_id"),
+            "theoretical_stock": theoretical,
+            "counted_stock": counted,
+            "difference": diff,
+            "abs_difference": abs(diff),
+            "value_impact": round(value),
+            "status": status,
+            "purchase_price": purchase_price,
+            "shrinkage_pct": round(abs(diff) / theoretical * 100, 1) if theoretical > 0 else 0,
+        })
+
+    # Sort by value impact descending
+    discrepancies.sort(key=lambda d: d["value_impact"], reverse=True)
+
+    # Identify suspicious patterns
+    suspects = []
+    for d in discrepancies:
+        if d["status"] == "loss" and d["shrinkage_pct"] > 10:
+            suspects.append({
+                "product_id": d["product_id"],
+                "name": d["name"],
+                "shrinkage_pct": d["shrinkage_pct"],
+                "value_impact": d["value_impact"],
+                "reason": "high_shrinkage_rate",
+            })
+
+    result = {
+        "discrepancies": discrepancies,
+        "total_items_counted": len(counted_items),
+        "items_with_discrepancy": len(discrepancies),
+        "total_loss_value": round(total_loss_value),
+        "total_surplus_value": round(total_surplus_value),
+        "net_impact": round(total_surplus_value - total_loss_value),
+        "shrinkage_rate": round(total_loss_value / (total_loss_value + total_surplus_value) * 100, 1) if (total_loss_value + total_surplus_value) > 0 else 0,
+        "suspects": suspects[:10],
+    }
+
+    await track_ai_usage(user.user_id, "shrinkage_analysis", plan=plan, ai_enhanced=False)
+    return result
+
+
+@api_router.post("/ai/detect-duplicates")
+@limiter.limit("5/minute")
+async def ai_detect_duplicates(
+    request: Request,
+    body: dict = Body(default={}),
+    user: User = Depends(require_operational_access),
+):
+    """Detect duplicate products/suppliers by text similarity. Pro+Enterprise."""
+    owner_id = get_owner_id(user)
+    plan = _resolve_ai_plan(user)
+    await check_ai_limit(user, "detect_duplicates")
+
+    cached = ai_governance.cache_get(owner_id, "detect_duplicates", user.active_store_id or "")
+    if cached:
+        return cached
+
+    store_filter: dict = {"user_id": owner_id}
+    if user.active_store_id:
+        store_filter["store_id"] = user.active_store_id
+
+    target = body.get("target", "products")  # "products" or "suppliers"
+    threshold = body.get("threshold", 0.7)  # similarity threshold 0-1
+
+    def trigrams(s: str) -> set:
+        """Generate character trigrams for similarity comparison."""
+        s = s.lower().strip()
+        if len(s) < 3:
+            return {s}
+        return {s[i:i+3] for i in range(len(s) - 2)}
+
+    def similarity(a: str, b: str) -> float:
+        """Trigram-based similarity (Jaccard index)."""
+        ta, tb = trigrams(a), trigrams(b)
+        if not ta or not tb:
+            return 0.0
+        intersection = len(ta & tb)
+        union = len(ta | tb)
+        return intersection / union if union > 0 else 0.0
+
+    duplicates = []
+
+    if target == "products":
+        products = await db.products.find(
+            {**store_filter, "is_active": {"$ne": False}},
+            {"_id": 0, "product_id": 1, "name": 1, "sku": 1, "category_id": 1, "quantity": 1, "selling_price": 1}
+        ).to_list(2000)
+
+        # Compare all pairs (O(n^2) but capped at 2000)
+        seen_pairs: set = set()
+        for i, a in enumerate(products):
+            for b in products[i+1:]:
+                pair_key = tuple(sorted([a["product_id"], b["product_id"]]))
+                if pair_key in seen_pairs:
+                    continue
+
+                name_sim = similarity(a.get("name", ""), b.get("name", ""))
+
+                # Boost if SKU matches
+                sku_match = False
+                if a.get("sku") and b.get("sku"):
+                    sku_sim = similarity(a["sku"], b["sku"])
+                    if sku_sim > 0.8:
+                        sku_match = True
+                        name_sim = max(name_sim, 0.85)
+
+                if name_sim >= threshold:
+                    seen_pairs.add(pair_key)
+                    duplicates.append({
+                        "item_a": {
+                            "id": a["product_id"],
+                            "name": a.get("name", ""),
+                            "sku": a.get("sku"),
+                            "category_id": a.get("category_id"),
+                            "quantity": a.get("quantity", 0),
+                            "price": a.get("selling_price", 0),
+                        },
+                        "item_b": {
+                            "id": b["product_id"],
+                            "name": b.get("name", ""),
+                            "sku": b.get("sku"),
+                            "category_id": b.get("category_id"),
+                            "quantity": b.get("quantity", 0),
+                            "price": b.get("selling_price", 0),
+                        },
+                        "similarity": round(name_sim, 2),
+                        "sku_match": sku_match,
+                        "same_category": a.get("category_id") == b.get("category_id"),
+                    })
+
+    elif target == "suppliers":
+        suppliers = await db.suppliers.find(
+            {"user_id": owner_id},
+            {"_id": 0, "supplier_id": 1, "name": 1, "phone": 1, "email": 1}
+        ).to_list(1000)
+
+        seen_pairs = set()
+        for i, a in enumerate(suppliers):
+            for b in suppliers[i+1:]:
+                pair_key = tuple(sorted([a["supplier_id"], b["supplier_id"]]))
+                if pair_key in seen_pairs:
+                    continue
+
+                name_sim = similarity(a.get("name", ""), b.get("name", ""))
+
+                # Boost if phone or email matches
+                contact_match = False
+                if a.get("phone") and b.get("phone") and a["phone"] == b["phone"]:
+                    contact_match = True
+                    name_sim = max(name_sim, 0.9)
+                if a.get("email") and b.get("email") and a["email"].lower() == b["email"].lower():
+                    contact_match = True
+                    name_sim = max(name_sim, 0.9)
+
+                if name_sim >= threshold:
+                    seen_pairs.add(pair_key)
+                    duplicates.append({
+                        "item_a": {
+                            "id": a["supplier_id"],
+                            "name": a.get("name", ""),
+                            "phone": a.get("phone"),
+                            "email": a.get("email"),
+                        },
+                        "item_b": {
+                            "id": b["supplier_id"],
+                            "name": b.get("name", ""),
+                            "phone": b.get("phone"),
+                            "email": b.get("email"),
+                        },
+                        "similarity": round(name_sim, 2),
+                        "contact_match": contact_match,
+                    })
+
+    # Sort by similarity desc
+    duplicates.sort(key=lambda d: d["similarity"], reverse=True)
+
+    result = {
+        "duplicates": duplicates[:30],
+        "total_found": len(duplicates),
+        "target": target,
+        "threshold": threshold,
+    }
+
+    ai_governance.cache_set(owner_id, "detect_duplicates", result, user.active_store_id or "")
+    await track_ai_usage(user.user_id, "detect_duplicates", plan=plan, ai_enhanced=False)
+    return result
+
+
+# ===================== END VAGUE 2 =====================
+
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
     """List all disputes with optional filters"""
