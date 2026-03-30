@@ -5097,15 +5097,28 @@ async def admin_onboarding_stats(days: int = 30):
     first_logins = 0
     verification_delays: List[float] = []
 
+    def ensure_utc_datetime(value):
+        if isinstance(value, datetime):
+            return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        if isinstance(value, str):
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+            except ValueError:
+                return None
+        return None
+
     for signup in signups:
         plan_breakdown[normalize_plan(signup.get("plan"))] += 1
         surface_breakdown[signup.get("signup_surface") or "legacy"] += 1
         country_breakdown[signup.get("country_code") or "N/A"] += 1
         business_type_breakdown[signup.get("business_type") or "autre"] += 1
-        if signup.get("verification_completed_at"):
+        created_at = ensure_utc_datetime(signup.get("created_at"))
+        verification_completed_at = ensure_utc_datetime(signup.get("verification_completed_at"))
+        if verification_completed_at and created_at:
             verified_signups += 1
             verification_delays.append(
-                max(0.0, (signup["verification_completed_at"] - signup["created_at"]).total_seconds() / 60.0)
+                max(0.0, (verification_completed_at - created_at).total_seconds() / 60.0)
             )
         if signup.get("first_login_at"):
             first_logins += 1
@@ -5119,7 +5132,11 @@ async def admin_onboarding_stats(days: int = 30):
         {"type": "otp_verified", "created_at": {"$gte": window_start}},
     )
 
-    signups_today = sum(1 for signup in signups if signup.get("created_at") and signup["created_at"] >= today_start)
+    signups_today = sum(
+        1
+        for signup in signups
+        if (created_at := ensure_utc_datetime(signup.get("created_at"))) and created_at >= today_start
+    )
 
     return {
         "window_days": window_days,
@@ -5241,12 +5258,25 @@ async def admin_conversion_stats():
     paying_accounts = 0
     active_trials = 0
     expiring_trials = 0
+
+    def ensure_utc_datetime(value):
+        if isinstance(value, datetime):
+            return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        if isinstance(value, str):
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+            except ValueError:
+                return None
+        return None
+
     for account in accounts:
         normalized_plan = normalize_plan(account.get("plan"))
         by_plan[normalized_plan] += 1
         provider = account.get("subscription_provider") or "none"
-        trial_ends_at = account.get("trial_ends_at")
-        is_paying = provider not in ("none", "", None) or bool(account.get("subscription_end"))
+        trial_ends_at = ensure_utc_datetime(account.get("trial_ends_at"))
+        subscription_end = ensure_utc_datetime(account.get("subscription_end"))
+        is_paying = provider not in ("none", "", None) or bool(subscription_end)
         if is_paying:
             paying_accounts += 1
         elif trial_ends_at and trial_ends_at >= now:
