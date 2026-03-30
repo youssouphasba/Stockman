@@ -98,9 +98,13 @@ export default function CRM({ user }: CRMProps) {
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
     const [detailTab, setDetailTab] = useState<'info' | 'history' | 'purchases'>('info');
-    // Vague 7: AI customer summary
+    // Vague 7: AI customer summary + message generator
     const [customerSummaryText, setCustomerSummaryText] = useState<string | null>(null);
     const [customerSummaryLoading, setCustomerSummaryLoading] = useState(false);
+    const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
+    const [messageLoading, setMessageLoading] = useState(false);
+    const [messageType, setMessageType] = useState<string>('promo');
+    const [messageCopied, setMessageCopied] = useState(false);
     const [debtHistory, setDebtHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [customerForm, setCustomerForm] = useState({
@@ -372,6 +376,10 @@ export default function CRM({ user }: CRMProps) {
         setIsDetailModalOpen(true);
         setLoadingHistory(true);
         setCustomerSales([]);
+        setCustomerSummaryText(null);
+        setGeneratedMessage(null);
+        setMessageType('promo');
+        setMessageCopied(false);
         if (String(customer.customer_id || '').startsWith('offline-customer-')) {
             setDebtHistory([]);
             setLoadingHistory(false);
@@ -1320,6 +1328,78 @@ export default function CRM({ user }: CRMProps) {
                                     )}
                                     {!customerSummaryLoading && !customerSummaryText && (
                                         <p className="text-xs text-slate-600 italic">Cliquez sur Analyser pour générer un résumé IA de ce client.</p>
+                                    )}
+                                </div>
+
+                                {/* AI Message Generator */}
+                                <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                                            <MessageSquare size={12} className="text-emerald-400" />
+                                            Message IA
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <select
+                                                value={messageType}
+                                                onChange={e => { setMessageType(e.target.value); setGeneratedMessage(null); }}
+                                                className="text-[10px] font-bold bg-white/10 border border-white/10 text-slate-300 rounded-lg px-2 py-1 outline-none"
+                                            >
+                                                <option value="promo">Promotion</option>
+                                                <option value="reengagement">Réactivation</option>
+                                                <option value="debt_reminder">Rappel dette</option>
+                                                <option value="birthday">Anniversaire</option>
+                                            </select>
+                                            <button
+                                                onClick={async () => {
+                                                    setMessageLoading(true);
+                                                    setGeneratedMessage(null);
+                                                    setMessageCopied(false);
+                                                    try {
+                                                        const res = await aiApi.generateCustomerMessage(selectedCustomer.customer_id, messageType, i18n.language);
+                                                        setGeneratedMessage(res?.message || null);
+                                                    } catch {
+                                                        setGeneratedMessage(null);
+                                                    } finally {
+                                                        setMessageLoading(false);
+                                                    }
+                                                }}
+                                                disabled={messageLoading}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50"
+                                            >
+                                                {messageLoading ? (
+                                                    <div className="w-3 h-3 border border-emerald-400/40 border-t-emerald-400 rounded-full animate-spin" />
+                                                ) : (
+                                                    <Zap size={11} />
+                                                )}
+                                                Générer
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {messageLoading && (
+                                        <p className="text-xs text-slate-500 italic">Rédaction en cours…</p>
+                                    )}
+                                    {generatedMessage && (
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{generatedMessage}</p>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => { navigator.clipboard.writeText(generatedMessage); setMessageCopied(true); setTimeout(() => setMessageCopied(false), 2000); }}
+                                                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 text-[10px] font-bold transition-all"
+                                                >
+                                                    {messageCopied ? '✓ Copié' : 'Copier'}
+                                                </button>
+                                                <button
+                                                    onClick={() => selectedCustomer.phone && window.open(`https://wa.me/${selectedCustomer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(generatedMessage)}`, '_blank')}
+                                                    disabled={!selectedCustomer.phone}
+                                                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-[10px] font-bold transition-all disabled:opacity-40"
+                                                >
+                                                    WhatsApp
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!messageLoading && !generatedMessage && (
+                                        <p className="text-xs text-slate-600 italic">Choisissez un type et cliquez sur Générer.</p>
                                     )}
                                 </div>
                             </div>

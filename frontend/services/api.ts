@@ -1482,6 +1482,8 @@ export const ai = {
     request<any>('/ai/store-benchmark'),
   customerSummary: (customerId: string, lang?: string) =>
     request<any>(`/ai/customer-summary/${customerId}${lang ? `?lang=${lang}` : ''}`),
+  generateCustomerMessage: (customerId: string, messageType: string, lang?: string, context?: string) =>
+    request<any>('/ai/generate-customer-message', { method: 'POST', body: { customer_id: customerId, message_type: messageType, lang: lang ?? 'fr', context: context ?? '' } }),
 };
 
 export type InvoiceScanResult = {

@@ -9214,6 +9214,125 @@ NOTES : {notes or "Aucune"}
 
 # ===================== END VAGUE 7 (customer summary) =====================
 
+# ===================== VAGUE 7 — generate customer message =====================
+
+@ai_router.post("/generate-customer-message")
+async def generate_customer_message(body: dict = Body(...), user: User = Depends(get_current_user)):
+    """Generate a personalized marketing/communication message for a customer via Gemini."""
+    owner_id = get_owner_id(user)
+    plan = getattr(user, "plan", "starter")
+    if plan not in ("enterprise",):
+        raise HTTPException(status_code=403, detail="Enterprise plan required")
+
+    customer_id = body.get("customer_id", "")
+    message_type = body.get("message_type", "promo")  # promo | reengagement | debt_reminder | birthday | custom
+    context = body.get("context", "")  # optional extra instructions
+    lang = body.get("lang", "fr")
+
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_id required")
+
+    check_ai_limit(owner_id, "customer_message", plan)
+
+    # Fetch customer
+    customer = await db.customers.find_one({"customer_id": customer_id, "owner_id": owner_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    customer_name = customer.get("name", "Client")
+    tier = customer.get("tier", "bronze")
+    current_debt = round(customer.get("current_debt", 0), 2)
+    loyalty_points = customer.get("loyalty_points", 0)
+    total_spent = round(customer.get("total_spent", 0), 2)
+
+    # Fetch recent purchases (last 90 days)
+    since = datetime.now(timezone.utc) - timedelta(days=90)
+    sales = await db.sales.find({
+        "owner_id": owner_id,
+        "customer_id": customer_id,
+        "date": {"$gte": since.isoformat()},
+    }).sort("date", -1).limit(10).to_list(None)
+
+    top_products = []
+    for s in sales:
+        for item in (s.get("items") or []):
+            name = item.get("name") or item.get("product_name")
+            if name and name not in top_products:
+                top_products.append(name)
+            if len(top_products) >= 3:
+                break
+        if len(top_products) >= 3:
+            break
+
+    last_purchase_date = sales[0].get("date", "")[:10] if sales else None
+    days_inactive = None
+    if last_purchase_date:
+        try:
+            lp = datetime.fromisoformat(last_purchase_date)
+            days_inactive = (datetime.now(timezone.utc) - lp.replace(tzinfo=timezone.utc)).days
+        except Exception:
+            pass
+
+    # Build type-specific instructions
+    type_instructions = {
+        "promo": "Write a friendly promotional message announcing an exclusive offer or discount for loyal customers.",
+        "reengagement": "Write a warm re-engagement message to invite the customer back, mentioning it has been a while.",
+        "debt_reminder": "Write a polite, non-aggressive reminder about an outstanding balance, keeping a positive tone.",
+        "birthday": "Write a warm birthday greeting with a special loyalty reward mention.",
+        "custom": f"Write a message following these instructions: {context}" if context else "Write a friendly personalized message.",
+    }.get(message_type, "Write a friendly personalized message.")
+
+    lang_names = {"fr": "French", "en": "English", "es": "Spanish", "ar": "Arabic", "pt": "Portuguese"}
+    lang_name = lang_names.get(lang, "French")
+
+    prompt = f"""You are a marketing assistant for a retail store. Generate a SHORT, warm, personalized message (2-4 sentences max) to send to a customer via WhatsApp or SMS.
+
+Customer profile:
+- Name: {customer_name}
+- Loyalty tier: {tier}
+- Total spent: {total_spent}
+- Loyalty points: {loyalty_points}
+- Current debt: {current_debt}
+- Days since last purchase: {days_inactive if days_inactive is not None else 'unknown'}
+- Favorite products: {', '.join(top_products) if top_products else 'unknown'}
+
+Task: {type_instructions}
+{"Additional context: " + context if context and message_type != "custom" else ""}
+
+Rules:
+- Write in {lang_name}
+- Use the customer's first name if possible (use "{customer_name.split()[0] if customer_name else 'cher client'}")
+- Keep it SHORT (2-4 sentences), warm, and natural — like a real human message
+- Do NOT use generic templates. Make it feel personal.
+- Output ONLY the message text, no quotes, no labels.
+"""
+
+    import google.generativeai as genai
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="AI service not configured")
+
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    response = model.generate_content(prompt)
+    message_text = response.text.strip() if response and response.text else ""
+
+    if not message_text:
+        raise HTTPException(status_code=500, detail="AI generation failed")
+
+    track_ai_usage(owner_id, "customer_message", plan)
+
+    return {
+        "customer_id": customer_id,
+        "customer_name": customer_name,
+        "message_type": message_type,
+        "message": message_text,
+        "lang": lang,
+    }
+
+
+# ===================== END VAGUE 7 (generate customer message) =====================
+
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
     """List all disputes with optional filters"""
