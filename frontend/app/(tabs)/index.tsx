@@ -166,6 +166,10 @@ export default function DashboardScreen() {
   // Vague 4: Multi-store
   const [rebalance, setRebalance] = useState<any>(null);
   const [storeBenchmark, setStoreBenchmark] = useState<any>(null);
+  // Vague 7: Natural language search
+  const [nlQuery, setNlQuery] = useState('');
+  const [nlResult, setNlResult] = useState<any>(null);
+  const [nlLoading, setNlLoading] = useState(false);
 
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);
@@ -786,6 +790,52 @@ export default function DashboardScreen() {
             )}
           </View>
         )}
+
+        {/* Vague 7: Natural Language Search */}
+        <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12 }}>
+              <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+              <TextInput
+                value={nlQuery}
+                onChangeText={t => { setNlQuery(t); setNlResult(null); }}
+                placeholder="Posez une question… ex: top produits"
+                placeholderTextColor={colors.textMuted}
+                style={{ flex: 1, fontSize: 13, color: colors.text, paddingVertical: 10, marginLeft: 8 }}
+                onSubmitEditing={async () => {
+                  if (!nlQuery.trim()) return;
+                  setNlLoading(true);
+                  setNlResult(null);
+                  try {
+                    const res = await aiApi.naturalQuery(nlQuery.trim());
+                    setNlResult(res);
+                  } catch {
+                    setNlResult({ answer: 'Erreur lors de la recherche.', data: [] });
+                  } finally {
+                    setNlLoading(false);
+                  }
+                }}
+                returnKeyType="search"
+              />
+              {nlLoading && <ActivityIndicator size="small" color={colors.primary} />}
+            </View>
+          </View>
+          {nlResult && (
+            <View style={{ marginTop: 10, backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 12 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 8 }}>{nlResult.answer}</Text>
+              {nlResult.data && nlResult.data.length > 0 && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {nlResult.data.slice(0, 8).map((item: any, i: number) => (
+                    <View key={i} style={{ backgroundColor: colors.background, borderRadius: 8, padding: 8, minWidth: 100, borderWidth: 1, borderColor: colors.border }}>
+                      <Text style={{ fontSize: 10, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase' }} numberOfLines={1}>{item.label}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '900', color: colors.text, marginTop: 2 }}>{typeof item.value === 'number' ? item.value.toLocaleString() : item.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+        </View>
 
         {/* Vague 6: Contextual Tips */}
         {contextualTips.length > 0 && (

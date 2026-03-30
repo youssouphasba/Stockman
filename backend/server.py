@@ -9333,6 +9333,250 @@ Rules:
 
 # ===================== END VAGUE 7 (generate customer message) =====================
 
+# ===================== VAGUE 7 — natural language query =====================
+
+# Intent patterns: (regex, intent_key)
+_NL_PATTERNS = [
+    # Revenue / CA
+    (r"(chiffre|ca|revenue|combien.*vendu|ventes?\s*(du\s*)?(jour|mois|semaine|total)|montant.*vente)", "revenue"),
+    # Top products
+    (r"(top|meilleur|plus\s+vendu|mieux.*vendu|best.*sell|produit.*perform|perform.*produit)", "top_products"),
+    # Low stock / ruptures
+    (r"(stock\s*bas|rupture|manque|bient.t\s*fini|presque\s*vide|stock\s*faible|r.approvisionn)", "low_stock"),
+    # Deadstock / dormants
+    (r"(dorm|ne\s*se\s*vend\s*pas|invendu|bloqu|immobilis|sans\s*mouvement)", "deadstock"),
+    # Customers with debt
+    (r"(client.*doit|dette.*client|d.biteur|d.b.*client|qui\s*doit|cr.dit.*client)", "debt_customers"),
+    # Expenses
+    (r"(d.pense|charge|co.t|sortie.*argent|d.caiss)", "expenses"),
+    # Orders / suppliers
+    (r"(commande|fournisseur|livraison|approvisionnement)", "orders"),
+    # Margin / profit
+    (r"(marge|b.n.fice|profit|gain|r.sultat|rentable)", "margin"),
+    # Alerts
+    (r"(alerte|alert|notification|probl.me)", "alerts"),
+    # Inventory count
+    (r"(inventaire|comptage|stock\s*physique)", "inventory"),
+]
+
+import re as _re
+
+def _parse_nl_intent(query: str):
+    """Returns (intent, period_days) from natural language query."""
+    q = query.lower()
+    # Extract period
+    period_days = 30  # default
+    if _re.search(r"(aujourd.hui|ce\s*jour|today)", q):
+        period_days = 1
+    elif _re.search(r"(cette?\s*semaine|7\s*jour|week)", q):
+        period_days = 7
+    elif _re.search(r"(ce\s*mois|30\s*jour|month)", q):
+        period_days = 30
+    elif _re.search(r"(3\s*mois|90\s*jour|trimestre|quarter)", q):
+        period_days = 90
+    elif _re.search(r"(6\s*mois|180\s*jour)", q):
+        period_days = 180
+    elif _re.search(r"(an|ann.e|year|365\s*jour)", q):
+        period_days = 365
+
+    for pattern, intent in _NL_PATTERNS:
+        if _re.search(pattern, q):
+            return intent, period_days
+    return None, period_days
+
+
+async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, store_id: str = None) -> dict:
+    """Execute MongoDB query for resolved intent."""
+    since = (datetime.now(timezone.utc) - timedelta(days=period_days)).isoformat()
+    store_filter = {"store_id": store_id} if store_id else {}
+
+    if intent == "revenue":
+        pipeline = [
+            {"$match": {"owner_id": owner_id, "date": {"$gte": since}, **store_filter}},
+            {"$group": {"_id": None, "total": {"$sum": "$total_amount"}, "count": {"$sum": 1}}},
+        ]
+        rows = await db.sales.aggregate(pipeline).to_list(None)
+        total = rows[0]["total"] if rows else 0
+        count = rows[0]["count"] if rows else 0
+        return {
+            "intent": "revenue",
+            "answer": f"Chiffre d'affaires sur {period_days} jour(s) : {round(total, 2)}",
+            "data": [{"label": "Chiffre d'affaires", "value": round(total, 2)}, {"label": "Nombre de ventes", "value": count}],
+        }
+
+    elif intent == "top_products":
+        pipeline = [
+            {"$match": {"owner_id": owner_id, "date": {"$gte": since}, **store_filter}},
+            {"$unwind": "$items"},
+            {"$group": {"_id": {"$ifNull": ["$items.name", "$items.product_name"]}, "qty": {"$sum": "$items.quantity"}, "revenue": {"$sum": {"$multiply": ["$items.quantity", "$items.unit_price"]}}}},
+            {"$sort": {"qty": -1}},
+            {"$limit": 10},
+        ]
+        rows = await db.sales.aggregate(pipeline).to_list(None)
+        return {
+            "intent": "top_products",
+            "answer": f"Top produits vendus sur {period_days} jour(s)",
+            "data": [{"label": r["_id"] or "?", "value": r["qty"], "revenue": round(r.get("revenue", 0), 2)} for r in rows if r.get("_id")],
+        }
+
+    elif intent == "low_stock":
+        products = await db.products.find(
+            {"owner_id": owner_id, **store_filter, "$expr": {"$lte": ["$quantity", "$alert_threshold"]}}
+        ).limit(20).to_list(None)
+        return {
+            "intent": "low_stock",
+            "answer": f"{len(products)} produit(s) en stock bas ou rupture",
+            "data": [{"label": p.get("name", "?"), "value": p.get("quantity", 0), "threshold": p.get("alert_threshold", 0)} for p in products],
+        }
+
+    elif intent == "deadstock":
+        since_ds = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
+        sold_ids_cursor = db.sales.aggregate([
+            {"$match": {"owner_id": owner_id, "date": {"$gte": since_ds}, **store_filter}},
+            {"$unwind": "$items"},
+            {"$group": {"_id": "$items.product_id"}},
+        ])
+        sold_ids = {r["_id"] async for r in sold_ids_cursor if r.get("_id")}
+        products = await db.products.find({"owner_id": owner_id, **store_filter}).limit(200).to_list(None)
+        dormant = [p for p in products if p.get("product_id") not in sold_ids and p.get("quantity", 0) > 0]
+        dormant.sort(key=lambda p: p.get("quantity", 0) * p.get("price", 0), reverse=True)
+        return {
+            "intent": "deadstock",
+            "answer": f"{len(dormant)} produit(s) sans vente depuis 60 jours",
+            "data": [{"label": p.get("name", "?"), "value": p.get("quantity", 0), "stock_value": round(p.get("quantity", 0) * p.get("price", 0), 2)} for p in dormant[:15]],
+        }
+
+    elif intent == "debt_customers":
+        customers = await db.customers.find(
+            {"owner_id": owner_id, "current_debt": {"$gt": 0}}
+        ).sort("current_debt", -1).limit(15).to_list(None)
+        total_debt = sum(c.get("current_debt", 0) for c in customers)
+        return {
+            "intent": "debt_customers",
+            "answer": f"{len(customers)} client(s) avec dette — total {round(total_debt, 2)}",
+            "data": [{"label": c.get("name", "?"), "value": round(c.get("current_debt", 0), 2)} for c in customers],
+        }
+
+    elif intent == "expenses":
+        pipeline = [
+            {"$match": {"owner_id": owner_id, "date": {"$gte": since}, **store_filter}},
+            {"$group": {"_id": "$category", "total": {"$sum": "$amount"}, "count": {"$sum": 1}}},
+            {"$sort": {"total": -1}},
+        ]
+        rows = await db.expenses.aggregate(pipeline).to_list(None)
+        grand_total = sum(r["total"] for r in rows)
+        return {
+            "intent": "expenses",
+            "answer": f"Dépenses sur {period_days} jour(s) : {round(grand_total, 2)}",
+            "data": [{"label": r["_id"] or "Autre", "value": round(r["total"], 2), "count": r["count"]} for r in rows],
+        }
+
+    elif intent == "orders":
+        orders = await db.orders.find({"owner_id": owner_id, **store_filter}).sort("created_at", -1).limit(10).to_list(None)
+        return {
+            "intent": "orders",
+            "answer": f"{len(orders)} commande(s) récente(s)",
+            "data": [{"label": o.get("supplier_name", "?"), "value": round(o.get("total_amount", 0), 2), "status": o.get("status", "?")} for o in orders],
+        }
+
+    elif intent == "margin":
+        pipeline = [
+            {"$match": {"owner_id": owner_id, "date": {"$gte": since}, **store_filter}},
+            {"$unwind": "$items"},
+            {"$group": {"_id": None,
+                "revenue": {"$sum": {"$multiply": ["$items.quantity", "$items.unit_price"]}},
+                "cost": {"$sum": {"$multiply": ["$items.quantity", {"$ifNull": ["$items.purchase_price", 0]}]}}}},
+        ]
+        rows = await db.sales.aggregate(pipeline).to_list(None)
+        revenue = rows[0]["revenue"] if rows else 0
+        cost = rows[0]["cost"] if rows else 0
+        margin = revenue - cost
+        margin_pct = round(margin / revenue * 100, 1) if revenue else 0
+        return {
+            "intent": "margin",
+            "answer": f"Marge brute sur {period_days} jour(s) : {round(margin, 2)} ({margin_pct}%)",
+            "data": [{"label": "CA", "value": round(revenue, 2)}, {"label": "Coût", "value": round(cost, 2)}, {"label": "Marge", "value": round(margin, 2)}, {"label": "Marge %", "value": margin_pct}],
+        }
+
+    elif intent == "alerts":
+        alerts = await db.alerts.find({"owner_id": owner_id, "is_read": False, **store_filter}).sort("created_at", -1).limit(10).to_list(None)
+        return {
+            "intent": "alerts",
+            "answer": f"{len(alerts)} alerte(s) non lue(s)",
+            "data": [{"label": a.get("message", a.get("title", "?")), "value": a.get("type", "info")} for a in alerts],
+        }
+
+    elif intent == "inventory":
+        products = await db.products.find({"owner_id": owner_id, **store_filter}).limit(20).to_list(None)
+        total_value = sum(p.get("quantity", 0) * p.get("price", 0) for p in products)
+        return {
+            "intent": "inventory",
+            "answer": f"Valeur stock estimée : {round(total_value, 2)} ({len(products)} produits)",
+            "data": [{"label": p.get("name", "?"), "value": p.get("quantity", 0)} for p in products[:15]],
+        }
+
+    return {"intent": "unknown", "answer": "Aucun résultat trouvé.", "data": []}
+
+
+@ai_router.post("/natural-query")
+async def natural_language_query(body: dict = Body(...), user: User = Depends(get_current_user)):
+    """Parse a natural language query and return structured business data."""
+    owner_id = get_owner_id(user)
+    plan = getattr(user, "plan", "starter")
+    if plan not in ("enterprise",):
+        raise HTTPException(status_code=403, detail="Enterprise plan required")
+
+    query = (body.get("query") or "").strip()
+    store_id = body.get("store_id")
+    if not query:
+        raise HTTPException(status_code=400, detail="query required")
+
+    check_ai_limit(owner_id, "natural_query", plan)
+
+    # Step 1: try regex parser
+    intent, period_days = _parse_nl_intent(query)
+
+    # Step 2: Gemini fallback if no intent found
+    if intent is None:
+        try:
+            import google.generativeai as genai
+            api_key = os.environ.get("GEMINI_API_KEY", "")
+            if api_key:
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel("gemini-2.0-flash")
+                prompt = f"""You are a business data assistant. Classify this query into ONE of these intents:
+revenue, top_products, low_stock, deadstock, debt_customers, expenses, orders, margin, alerts, inventory, unknown
+
+Also extract the time period in days (default 30 if not specified).
+
+Query: "{query}"
+
+Reply with JSON only, exactly: {{"intent": "...", "period_days": N}}"""
+                resp = model.generate_content(prompt)
+                if resp and resp.text:
+                    import json as _json
+                    text = resp.text.strip().strip("```json").strip("```").strip()
+                    parsed = _json.loads(text)
+                    intent = parsed.get("intent", "unknown")
+                    period_days = int(parsed.get("period_days", 30))
+        except Exception:
+            intent = "unknown"
+
+    if not intent or intent == "unknown":
+        return {"query": query, "intent": "unknown", "answer": "Je n'ai pas compris cette question. Essayez : 'top produits ce mois', 'stock bas', 'dettes clients', 'dépenses', etc.", "data": [], "resolved_by": "none"}
+
+    resolved_by = "regex" if _parse_nl_intent(query)[0] else "llm"
+    result = await _execute_nl_intent(intent, period_days, owner_id, store_id)
+    result["query"] = query
+    result["period_days"] = period_days
+    result["resolved_by"] = resolved_by
+
+    track_ai_usage(owner_id, "natural_query", plan)
+    return result
+
+
+# ===================== END VAGUE 7 (natural query) =====================
+
 @admin_router.get("/disputes")
 async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] = None, skip: int = 0, limit: int = 50):
     """List all disputes with optional filters"""

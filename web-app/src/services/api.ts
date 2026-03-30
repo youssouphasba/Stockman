@@ -2223,6 +2223,8 @@ export const ai = {
         request<any>(`/ai/customer-summary/${customerId}${lang ? `?lang=${lang}` : ''}`),
     generateCustomerMessage: (customerId: string, messageType: string, lang?: string, context?: string) =>
         request<any>('/ai/generate-customer-message', { method: 'POST', body: { customer_id: customerId, message_type: messageType, lang: lang ?? 'fr', context: context ?? '' } }),
+    naturalQuery: (query: string, storeId?: string) =>
+        request<any>('/ai/natural-query', { method: 'POST', body: { query, store_id: storeId } }),
 };
 
 export const returns = {

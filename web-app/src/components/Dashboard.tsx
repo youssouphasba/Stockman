@@ -22,6 +22,8 @@ import {
     Download,
     Activity,
     Target,
+    Search,
+    Zap,
 } from 'lucide-react';
 import {
     LineChart as ReLineChart,
@@ -69,6 +71,9 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     const [healthScore, setHealthScore] = useState<any>(null);
     const [prediction, setPrediction] = useState<any>(null);
     const [contextualTips, setContextualTips] = useState<any[]>([]);
+    const [nlQuery, setNlQuery] = useState('');
+    const [nlResult, setNlResult] = useState<any>(null);
+    const [nlLoading, setNlLoading] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedSale, setSelectedSale] = useState<any>(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -570,6 +575,68 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                     )}
                 </div>
             )}
+
+            {/* Natural Language Search */}
+            <div className="mb-10">
+                <form
+                    onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!nlQuery.trim()) return;
+                        setNlLoading(true);
+                        setNlResult(null);
+                        try {
+                            const res = await aiApi.naturalQuery(nlQuery.trim());
+                            setNlResult(res);
+                        } catch {
+                            setNlResult({ answer: 'Erreur lors de la recherche.', data: [] });
+                        } finally {
+                            setNlLoading(false);
+                        }
+                    }}
+                    className="flex gap-2"
+                >
+                    <div className="relative flex-1">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                        <input
+                            type="text"
+                            value={nlQuery}
+                            onChange={e => { setNlQuery(e.target.value); setNlResult(null); }}
+                            placeholder={t('dashboard.nl_search_placeholder', 'Posez une question… ex: top produits ce mois, stock bas, dettes clients')}
+                            className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 outline-none focus:border-primary/50 transition-colors"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={nlLoading || !nlQuery.trim()}
+                        className="px-4 py-2.5 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary text-sm font-bold transition-all disabled:opacity-40 flex items-center gap-1.5"
+                    >
+                        {nlLoading ? <div className="w-4 h-4 border border-primary/40 border-t-primary rounded-full animate-spin" /> : <Zap size={14} />}
+                        {t('common.search', 'Chercher')}
+                    </button>
+                </form>
+
+                {nlResult && (
+                    <div className="mt-3 p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+                        <p className="text-sm font-bold text-white">{nlResult.answer}</p>
+                        {nlResult.data && nlResult.data.length > 0 && (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                                {nlResult.data.slice(0, 12).map((item: any, i: number) => (
+                                    <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/5">
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase truncate">{item.label}</p>
+                                        <p className="text-sm font-black text-white mt-0.5">{typeof item.value === 'number' ? item.value.toLocaleString() : item.value}</p>
+                                        {item.revenue != null && <p className="text-[10px] text-slate-500">{item.revenue.toLocaleString()} CA</p>}
+                                        {item.threshold != null && <p className="text-[10px] text-rose-400">seuil : {item.threshold}</p>}
+                                        {item.status && <p className="text-[10px] text-slate-500">{item.status}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {nlResult.resolved_by === 'llm' && (
+                            <p className="text-[10px] text-slate-600 italic">Interprété par IA</p>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {/* Contextual Tips — rule-based proactive advice */}
             {contextualTips.length > 0 && (
