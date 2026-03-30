@@ -3268,7 +3268,7 @@ export default function Suppliers() {
             <Modal
                 isOpen={showSupplierDetails}
                 onClose={() => setShowSupplierDetails(false)}
-                title={selectedSupplier.name || "Fournisseur"}
+                title={selectedSupplier?.name || "Fournisseur"}
                 maxWidth="xl"
             >
                 {selectedSupplier && (
@@ -4100,7 +4100,7 @@ export default function Suppliers() {
             >
                 <div className="space-y-4">
                     <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs text-slate-200">
-                        {selectedSupplier.name
+                        {selectedSupplier?.name
                             ? `Choisissez un produit de votre stock a associer durablement au fournisseur ${selectedSupplier.name}.`
                             : "Choisissez un produit de votre stock a associer durablement a ce fournisseur."}
                     </div>

@@ -112,6 +112,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
     }
 
     const currency = overview.currency || 'XOF';
+    const predictionDelta = Number(prediction?.delta_vs_last_month || 0);
     const kpis = {
         revenue: Number(overview.kpis?.revenue || 0),
         revenue_delta: Number(overview.kpis?.revenue_delta || 0),
@@ -366,12 +367,12 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                                 </div>
                             </div>
                             <div className={`mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black ${
-                                prediction.delta_vs_last_month >= 0
+                                predictionDelta >= 0
                                     ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
                                     : 'border border-rose-500/20 bg-rose-500/10 text-rose-400'
                             }`}>
-                                <TrendingUp size={14} className={prediction.delta_vs_last_month < 0 ? 'rotate-180' : ''} />
-                                {prediction.delta_vs_last_month >= 0 ? '+' : ''}{prediction.delta_vs_last_month.toFixed(1)}% vs mois dernier
+                                <TrendingUp size={14} className={predictionDelta < 0 ? 'rotate-180' : ''} />
+                                {predictionDelta >= 0 ? '+' : ''}{predictionDelta.toFixed(1)}% vs mois dernier
                             </div>
                             <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-600">
                                 {prediction.confidence === 'high'
