@@ -127,7 +127,7 @@ export default function Inventory() {
     const [locationTransferring, setLocationTransferring] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentFeatures, setCurrentFeatures] = useState<UserFeatures | null>(null);
-    const hasEnterpriseLocations = currentUser.role === 'admin' || currentUser.role === 'superadmin' || (currentUser.effective_plan || currentUser.plan) === 'enterprise';
+    const hasEnterpriseLocations = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || (currentUser?.effective_plan || currentUser?.plan) === 'enterprise';
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [showCreateMenu, setShowCreateMenu] = useState(false);
     const [catalogImportLoading, setCatalogImportLoading] = useState(false);
@@ -387,7 +387,7 @@ export default function Inventory() {
     useEffect(() => {
         if (!currentUser) return;
         void fetchProducts();
-    }, [currentUser.effective_plan, currentUser.plan, currentUser.role]);
+    }, [currentUser?.effective_plan, currentUser?.plan, currentUser?.role]);
 
     const handleReplenishAdvice = async () => {
         setReplenishLoading(true);
