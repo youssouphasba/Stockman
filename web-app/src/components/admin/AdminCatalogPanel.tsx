@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, CheckCircle2, Copy, Edit3, GitMerge, Layers3, PackagePlus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
+import { Bot, CheckCircle2, Copy, Download, Edit3, GitMerge, Layers3, PackagePlus, RefreshCw, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
 import { BUSINESS_SECTORS, getBusinessSectorLabel } from '../../data/businessSectors';
 
@@ -246,6 +246,8 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     const [batchText, setBatchText] = useState('');
     const [batchRows, setBatchRows] = useState<BatchRow[]>([]);
     const [batchFileName, setBatchFileName] = useState('');
+    const [batchSubmitting, setBatchSubmitting] = useState(false);
+    const [batchProgress, setBatchProgress] = useState({ total: 0, done: 0 });
     const [variantBaseName, setVariantBaseName] = useState('');
     const [variantValues, setVariantValues] = useState('');
     const [filters, setFilters] = useState({
@@ -262,6 +264,8 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
         publication_status: '' as PublicationStatus | '',
         supplier_hint: '',
     });
+    const [mergeModalOpen, setMergeModalOpen] = useState(false);
+    const [mergeKeepId, setMergeKeepId] = useState('');
 
     const load = async (assistantCatalogId?: string | null) => {
         const params: any = { limit: 200 };
@@ -308,7 +312,6 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     }, [refreshToken, filters, editingEntry?.catalog_id]);
 
     const selectedEntries = useMemo(() => items.filter((item) => selectedIds.has(item.catalog_id)), [items, selectedIds]);
-    const mergeKeepId = selectedEntries[0]?.catalog_id || '';
     const dominantSector = Object.entries(stats?.by_sector || {}).sort((a: any, b: any) => Number(b[1]) - Number(a[1]))[0]?.[0];
     const assistantStats = stats?.assistant || {};
     const assistantSuggestions = assistant?.suggestions || {};
@@ -417,15 +420,35 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
         }
 
         try {
-            await adminApi.bulkUpsertCatalogProducts(rows);
+            const chunkSize = 200;
+            setBatchSubmitting(true);
+            setBatchProgress({ total: rows.length, done: 0 });
+            let createdTotal = 0;
+            let updatedTotal = 0;
+            let errorCount = 0;
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                const slice = rows.slice(i, i + chunkSize);
+                const result = await adminApi.bulkUpsertCatalogProducts(slice);
+                createdTotal += Number(result?.created || 0);
+                updatedTotal += Number(result?.updated || 0);
+                errorCount += Array.isArray(result?.errors) ? result.errors.length : 0;
+                setBatchProgress({ total: rows.length, done: Math.min(rows.length, i + slice.length) });
+            }
             setBatchOpen(false);
             setBatchText('');
             setBatchRows([]);
             setBatchFileName('');
             await load();
-            showToast('Création en lot terminée.');
+            if (errorCount > 0) {
+                showToast(`Création en lot terminée avec ${errorCount} erreur(s).`, 'error');
+            } else {
+                showToast(`Création en lot terminée (${createdTotal} créés, ${updatedTotal} mis à jour).`);
+            }
         } catch (error: any) {
             showToast(error?.message || 'Impossible de créer les produits en lot.', 'error');
+        } finally {
+            setBatchSubmitting(false);
+            setBatchProgress({ total: 0, done: 0 });
         }
     };
 
@@ -527,17 +550,74 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     };
 
     const merge = async () => {
-        if (selectedEntries.length < 2) return;
+        if (selectedEntries.length < 2 || !mergeKeepId) return;
         try {
             await adminApi.mergeCatalogProducts(
                 mergeKeepId,
-                selectedEntries.slice(1).map((item) => item.catalog_id),
+                selectedEntries.filter((item) => item.catalog_id !== mergeKeepId).map((item) => item.catalog_id),
             );
+            setMergeModalOpen(false);
             setSelectedIds(new Set());
             await load();
             showToast('Produits catalogue fusionnés.');
         } catch {
             showToast("Impossible de fusionner ces produits catalogue.", 'error');
+        }
+    };
+
+    const bulkDelete = async () => {
+        const count = selectedIds.size;
+        if (!window.confirm(`Supprimer ${count} produit(s) du catalogue global ? Cette action est irréversible.`)) return;
+        try {
+            await adminApi.bulkDeleteCatalogProducts(Array.from(selectedIds));
+            setSelectedIds(new Set());
+            await load();
+            showToast(`${count} produit(s) supprimé(s) du catalogue.`);
+        } catch {
+            showToast('Impossible de supprimer les produits sélectionnés.', 'error');
+        }
+    };
+
+    const exportCsv = () => {
+        if (!items.length) { showToast('Aucun produit à exporter.', 'error'); return; }
+        const headers = ['catalog_id', 'display_name', 'category', 'sector', 'country_codes', 'barcodes', 'unit', 'tags', 'publication_status', 'reference_price', 'sale_price', 'supplier_hint', 'verified', 'added_by_count'];
+        const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+        const rows = items.map((item) => [
+            item.catalog_id, item.display_name, item.category || '', item.sector || '',
+            (item.country_codes || []).join('|'), (item.barcodes || []).join('|'),
+            item.unit || '', (item.tags || []).join('|'), item.publication_status || 'draft',
+            item.reference_price ?? '', item.sale_price ?? '', item.supplier_hint || '',
+            item.verified ? 'true' : 'false', item.added_by_count ?? 0,
+        ].map(escape).join(';'));
+        const csv = '\uFEFF' + [headers.join(';'), ...rows].join('\n');
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+        const a = document.createElement('a');
+        a.href = url; a.download = `catalogue_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+        URL.revokeObjectURL(url);
+        showToast(`${items.length} produit(s) exportés.`);
+    };
+
+    const bulkVerify = async () => {
+        const count = selectedIds.size;
+        try {
+            await Promise.all(Array.from(selectedIds).map((id) => adminApi.verifyCatalogProduct(id)));
+            setSelectedIds(new Set());
+            await load();
+            showToast(`${count} produit(s) vérifiés.`);
+        } catch {
+            showToast('Impossible de vérifier tous les produits sélectionnés.', 'error');
+        }
+    };
+
+    const bulkPublish = async () => {
+        const count = selectedIds.size;
+        try {
+            await adminApi.bulkUpdateCatalogProducts(Array.from(selectedIds), { publication_status: 'published' });
+            setSelectedIds(new Set());
+            await load();
+            showToast(`${count} produit(s) publiés.`);
+        } catch {
+            showToast('Impossible de publier les produits sélectionnés.', 'error');
         }
     };
 
@@ -554,29 +634,41 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4 xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-9">
                 <div className="glass-card p-5">
-                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Catalogue</div>
+                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Catalogue</div>
                     <div className="text-3xl font-black text-white">{stats?.total_products ?? items.length}</div>
                 </div>
-                <div className="glass-card p-5">
-                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Vérifiés</div>
+                <button type="button" onClick={() => setFilters((f) => ({ ...f, verified: 'verified', assistant_bucket: 'all' }))} className="glass-card cursor-pointer p-5 text-left transition-all hover:border-emerald-500/30">
+                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Vérifiés ↗</div>
                     <div className="text-3xl font-black text-emerald-400">{stats?.verified_products ?? 0}</div>
-                </div>
-                <div className="glass-card p-5">
-                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Incomplets</div>
+                </button>
+                <button type="button" onClick={() => setFilters((f) => ({ ...f, publication_status: 'published', assistant_bucket: 'all' }))} className="glass-card cursor-pointer p-5 text-left transition-all hover:border-emerald-500/30">
+                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Publiés ↗</div>
+                    <div className="text-3xl font-black text-emerald-300">{stats?.published_products ?? 0}</div>
+                </button>
+                <button type="button" onClick={() => setFilters((f) => ({ ...f, assistant_bucket: 'incomplete' }))} className="glass-card cursor-pointer p-5 text-left transition-all hover:border-amber-500/30">
+                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Incomplets ↗</div>
                     <div className="text-3xl font-black text-amber-300">{assistantStats.incomplete ?? 0}</div>
-                </div>
-                <div className="glass-card p-5">
-                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Sans image</div>
+                </button>
+                <button type="button" onClick={() => setFilters((f) => ({ ...f, assistant_bucket: 'missing_image' }))} className="glass-card cursor-pointer p-5 text-left transition-all hover:border-rose-500/30">
+                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Sans image ↗</div>
                     <div className="text-3xl font-black text-rose-300">{assistantStats.missing_image ?? 0}</div>
-                </div>
-                <div className="glass-card p-5">
-                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Sans prix</div>
+                </button>
+                <button type="button" onClick={() => setFilters((f) => ({ ...f, assistant_bucket: 'missing_price' }))} className="glass-card cursor-pointer p-5 text-left transition-all hover:border-sky-500/30">
+                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Sans prix ↗</div>
                     <div className="text-3xl font-black text-sky-300">{assistantStats.missing_price ?? 0}</div>
+                </button>
+                <div className="glass-card p-5">
+                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Total adoptions</div>
+                    <div className="text-3xl font-black text-violet-300">{(stats?.total_adoptions ?? 0).toLocaleString('fr-FR')}</div>
                 </div>
                 <div className="glass-card p-5">
-                    <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Secteur dominant</div>
+                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Score moyen</div>
+                    <div className="text-3xl font-black text-white">{stats?.avg_completeness ?? 0}<span className="text-lg text-slate-400">/100</span></div>
+                </div>
+                <div className="glass-card p-5">
+                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Secteur dominant</div>
                     <div className="text-xl font-black text-white">{dominantSector ? getBusinessSectorLabel(dominantSector) : '—'}</div>
                 </div>
             </div>
@@ -602,6 +694,14 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         </button>
                         <button
                             type="button"
+                            onClick={exportCsv}
+                            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white"
+                        >
+                            <Download size={16} />
+                            Exporter CSV
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => {
                                 setRefreshing(true);
                                 void load().finally(() => setRefreshing(false));
@@ -621,37 +721,53 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                             Assistant catalogue
                         </div>
                         <p className="mt-2 text-sm text-slate-300">
-                            Préremplis rapidement ta fiche produit avec un modèle, puis affine avec les suggestions de catégorie, d’unité, de rapprochement marketplace et de doublons.
+                            Préremplis rapidement ta fiche produit avec un modèle, puis affine avec les suggestions de catégorie, d'unité, de rapprochement marketplace et de doublons.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                             {TEMPLATES.map((template) => (
                                 <button
                                     key={template.id}
                                     type="button"
-                                    onClick={() =>
+                                    onClick={async () => {
+                                        await openCreate();
                                         setForm((current) => ({
                                             ...current,
                                             sector: template.sector,
                                             category: template.category,
                                             unit: template.unit,
                                             tags: template.tags,
-                                        }))
-                                    }
-                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-white/10"
+                                        }));
+                                    }}
+                                    className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-primary/10"
                                 >
-                                    Modèle {template.label}
+                                    + {template.label}
                                 </button>
                             ))}
                         </div>
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-                        <div className="text-sm font-black text-white">Vue d’orchestration</div>
+                        <div className="flex items-center justify-between">
+                            <div className="text-sm font-black text-white">Vue d'orchestration</div>
+                            <div className="text-xs text-slate-500">Clique pour filtrer</div>
+                        </div>
                         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-slate-200"><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Sans image</div><div className="mt-1 text-2xl font-black text-white">{assistantStats.missing_image ?? 0}</div></div>
-                            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-slate-200"><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Sans catégorie</div><div className="mt-1 text-2xl font-black text-white">{assistantStats.missing_category ?? 0}</div></div>
-                            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-slate-200"><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Sans unité</div><div className="mt-1 text-2xl font-black text-white">{assistantStats.missing_unit ?? 0}</div></div>
-                            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-slate-200"><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Doublons probables</div><div className="mt-1 text-2xl font-black text-white">{assistantStats.duplicates_probable ?? 0}</div></div>
+                            <button type="button" onClick={() => setFilters((f) => ({ ...f, assistant_bucket: 'missing_image' }))} className="rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-rose-500/30 hover:bg-rose-500/5">
+                                <div className="text-xs uppercase tracking-widest text-slate-500">Sans image ↗</div>
+                                <div className="mt-1 text-2xl font-black text-rose-300">{assistantStats.missing_image ?? 0}</div>
+                            </button>
+                            <button type="button" onClick={() => setFilters((f) => ({ ...f, assistant_bucket: 'missing_category' }))} className="rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-amber-500/30 hover:bg-amber-500/5">
+                                <div className="text-xs uppercase tracking-widest text-slate-500">Sans catégorie ↗</div>
+                                <div className="mt-1 text-2xl font-black text-amber-300">{assistantStats.missing_category ?? 0}</div>
+                            </button>
+                            <button type="button" onClick={() => setFilters((f) => ({ ...f, assistant_bucket: 'missing_unit' }))} className="rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-sky-500/30 hover:bg-sky-500/5">
+                                <div className="text-xs uppercase tracking-widest text-slate-500">Sans unité ↗</div>
+                                <div className="mt-1 text-2xl font-black text-sky-300">{assistantStats.missing_unit ?? 0}</div>
+                            </button>
+                            <button type="button" onClick={() => setFilters((f) => ({ ...f, assistant_bucket: 'needs_review' }))} className="rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-violet-500/30 hover:bg-violet-500/5">
+                                <div className="text-xs uppercase tracking-widest text-slate-500">Doublons probables ↗</div>
+                                <div className="mt-1 text-2xl font-black text-violet-300">{assistantStats.duplicates_probable ?? 0}</div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -681,7 +797,28 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                     </div>
                     <div className="flex flex-wrap gap-3">
                         <button type="button" onClick={() => void applyBulkEdit()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Appliquer en lot</button>
-                        {selectedEntries.length >= 2 && <button type="button" onClick={() => void merge()} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white"><GitMerge size={16} />Fusionner</button>}
+                        <button type="button" onClick={() => void bulkVerify()} className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 font-semibold text-emerald-300">
+                            <ShieldCheck size={16} />Vérifier ({selectedIds.size})
+                        </button>
+                        <button type="button" onClick={() => void bulkPublish()} className="inline-flex items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-2 font-semibold text-sky-300">
+                            <Sparkles size={16} />Publier ({selectedIds.size})
+                        </button>
+                        {selectedEntries.length >= 2 && (
+                            <button
+                                type="button"
+                                onClick={() => { setMergeKeepId(selectedEntries[0]?.catalog_id || ''); setMergeModalOpen(true); }}
+                                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white"
+                            >
+                                <GitMerge size={16} />Fusionner
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => void bulkDelete()}
+                            className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 font-semibold text-rose-300"
+                        >
+                            <Trash2 size={16} />Supprimer ({selectedIds.size})
+                        </button>
                     </div>
                 </div>
             )}
@@ -700,8 +837,16 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[1280px]">
                             <thead>
-                                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.2em] text-slate-500">
-                                    <th className="py-3 pr-4">Sélection</th>
+                                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-widest text-slate-500">
+                                    <th className="py-3 pr-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={items.length > 0 && items.every((item) => selectedIds.has(item.catalog_id))}
+                                            onChange={() => setSelectedIds(items.every((item) => selectedIds.has(item.catalog_id)) ? new Set() : new Set(items.map((item) => item.catalog_id)))}
+                                            className="h-4 w-4 rounded border-white/20 bg-slate-950 text-primary focus:ring-primary"
+                                            title="Tout sélectionner / désélectionner"
+                                        />
+                                    </th>
                                     <th className="py-3 pr-4">Produit</th>
                                     <th className="py-3 pr-4">Workflow</th>
                                     <th className="py-3 pr-4">Complétude</th>
@@ -783,7 +928,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-2xl font-black text-white">{editingEntry ? 'Modifier le produit catalogue' : 'Nouveau produit catalogue'}</h3>
-                                <p className="mt-1 text-sm text-slate-400">L’IA propose des pistes, mais c’est toi qui valides les catégories, unités et rapprochements.</p>
+                                <p className="mt-1 text-sm text-slate-400">L'IA propose des pistes, mais c'est toi qui valides les catégories, unités et rapprochements.</p>
                             </div>
                             <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>
@@ -813,23 +958,23 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                                     <div className="flex items-center gap-2 font-bold text-white"><Sparkles size={16} className="text-primary" />Suggestions IA</div>
                                     <div className="mt-4 space-y-4 text-sm text-slate-200">
                                         <div>
-                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Catégories suggérées</div>
+                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Catégories suggérées</div>
                                             <div className="flex flex-wrap gap-2">{(assistantSuggestions.category_suggestions || []).slice(0, 6).map((item: any) => <button key={item.value} type="button" onClick={() => setForm((current) => ({ ...current, category: item.value }))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200">{item.value}</button>)}</div>
                                         </div>
                                         <div>
-                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Unités suggérées</div>
+                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Unités suggérées</div>
                                             <div className="flex flex-wrap gap-2">{(assistantSuggestions.unit_suggestions || []).slice(0, 6).map((item: any) => <button key={item.value} type="button" onClick={() => setForm((current) => ({ ...current, unit: item.value }))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200">{item.value}</button>)}</div>
                                         </div>
                                         <div>
-                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Rapprochements marketplace</div>
+                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Rapprochements marketplace</div>
                                             <div className="space-y-2">{(assistantSuggestions.marketplace_matches || []).slice(0, 4).map((item: any) => <div key={item.catalog_id || item.display_name} className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="font-semibold text-white">{item.display_name}</div><div className="text-xs text-slate-400">{item.category || 'Sans catégorie'} • Score {Math.round((item.match_score || 0) * 100)}%</div></div>)}</div>
                                         </div>
                                         <div>
-                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Doublons probables</div>
+                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Doublons probables</div>
                                             <div className="space-y-2">{(assistantSuggestions.duplicate_candidates || []).slice(0, 4).map((item: any) => <div key={item.catalog_id || item.display_name} className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="font-semibold text-white">{item.display_name}</div><div className="text-xs text-slate-400">Score {Math.round((item.match_score || 0) * 100)}%</div></div>)}</div>
                                         </div>
                                         <div>
-                                            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-500">Suggestions fournisseur</div>
+                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Suggestions fournisseur</div>
                                             <div className="space-y-2">{(assistantSuggestions.supplier_suggestions || []).slice(0, 4).map((item: any) => <button key={item.id || item.name} type="button" onClick={() => setForm((current) => ({ ...current, supplier_hint: item.name || item.display_name || '' }))} className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-left"><div className="font-semibold text-white">{item.name || item.display_name}</div><div className="text-xs text-slate-400">{item.city || 'Ville non renseignée'} • Score {Math.round((item.match_score || 0) * 100)}%</div></button>)}</div>
                                         </div>
                                     </div>
@@ -850,6 +995,45 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="mt-6 flex flex-wrap justify-end gap-3">
                             <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
                             <button type="button" onClick={() => void save()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Enregistrer</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {mergeModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+                    <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
+                        <div className="flex items-start justify-between gap-4">
+                            <h3 className="text-xl font-black text-white">Fusionner {selectedEntries.length} produits</h3>
+                            <button type="button" onClick={() => setMergeModalOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
+                        </div>
+                        <p className="mt-2 text-sm text-slate-400">Choisis le produit à conserver. Les autres seront supprimés et leurs données fusionnées dedans.</p>
+                        <div className="mt-4 space-y-2">
+                            {selectedEntries.map((entry) => (
+                                <label
+                                    key={entry.catalog_id}
+                                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${mergeKeepId === entry.catalog_id ? 'border-primary/40 bg-primary/10' : 'border-white/10 bg-white/5'}`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="merge_keep"
+                                        value={entry.catalog_id}
+                                        checked={mergeKeepId === entry.catalog_id}
+                                        onChange={() => setMergeKeepId(entry.catalog_id)}
+                                        className="mt-1 text-primary"
+                                    />
+                                    <div>
+                                        <div className="font-bold text-white">{entry.display_name}</div>
+                                        <div className="text-xs text-slate-400">
+                                            {entry.category || 'Sans catégorie'} · {getBusinessSectorLabel(entry.sector)} · {entry.added_by_count ?? 0} ajouts · complétude {entry.completeness?.score ?? 0}/100
+                                        </div>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button type="button" onClick={() => setMergeModalOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
+                            <button type="button" onClick={() => void merge()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 font-bold text-white"><GitMerge size={16} />Fusionner</button>
                         </div>
                     </div>
                 </div>
@@ -886,6 +1070,11 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                                     <div className="mt-2 text-xs text-emerald-100">
                                         Aperçu : {batchRows.slice(0, 3).map((row) => row.display_name).join(' • ')}
                                     </div>
+                                    {batchSubmitting && (
+                                        <div className="mt-3 text-xs text-emerald-100">
+                                            Import en cours : {batchProgress.done} / {batchProgress.total}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -898,7 +1087,14 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
 
                         <div className="mt-6 flex justify-end gap-3">
                             <button type="button" onClick={() => { setBatchRows([]); setBatchFileName(''); setBatchText(''); setBatchOpen(false); }} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
-                            <button type="button" onClick={() => void createBatch()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Créer les produits</button>
+                            <button
+                                type="button"
+                                onClick={() => void createBatch()}
+                                disabled={batchSubmitting}
+                                className="rounded-xl bg-primary px-4 py-2 font-bold text-white disabled:opacity-60"
+                            >
+                                {batchSubmitting ? 'Import en cours…' : 'Créer les produits'}
+                            </button>
                         </div>
                     </div>
                 </div>

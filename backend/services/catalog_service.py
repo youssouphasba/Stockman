@@ -10,6 +10,7 @@ Gère la collection `global_catalog` :
 import csv
 import io
 import logging
+import re
 import uuid
 import asyncio
 from datetime import datetime, timezone
@@ -392,10 +393,20 @@ class CatalogService:
                     seen_pairs.add(pair)
         assistant["duplicates_probable"] = probable_duplicates
 
+        total_adoptions = sum(doc.get("added_by_count") or 0 for doc in docs)
+        completeness_scores = [
+            self._compute_completeness_flags(doc).get("score", 0) for doc in docs
+        ]
+        avg_completeness = round(sum(completeness_scores) / len(completeness_scores)) if completeness_scores else 0
+        published_count = by_status.get("published", 0)
+
         return {
             "total_products": total,
             "verified_products": verified,
             "unverified_products": total - verified,
+            "published_products": published_count,
+            "total_adoptions": total_adoptions,
+            "avg_completeness": avg_completeness,
             "by_sector": {r["_id"]: r["count"] for r in by_sector},
             "by_country": {r["_id"]: r["count"] for r in by_country},
             "by_status": dict(by_status),
@@ -668,8 +679,21 @@ class CatalogService:
                         created += 1
                         await self.admin_create(row)
                 else:
-                    await self.admin_create(row)
-                    created += 1
+                    # Dedup: check existing by display_name + sector before creating
+                    name = (row.get("display_name") or "").strip()
+                    sector_val = row.get("sector") or ""
+                    existing = None
+                    if name:
+                        existing = await self.db.global_catalog.find_one(
+                            {"display_name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}, "sector": sector_val},
+                            {"catalog_id": 1},
+                        )
+                    if existing:
+                        await self.admin_update(existing["catalog_id"], row)
+                        updated += 1
+                    else:
+                        await self.admin_create(row)
+                        created += 1
             except Exception as exc:
                 errors.append({"index": index, "name": row.get("display_name") or row.get("name"), "error": str(exc)})
         return {"created": created, "updated": updated, "errors": errors}

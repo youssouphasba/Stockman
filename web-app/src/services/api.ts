@@ -2472,14 +2472,21 @@ export const admin = {
     mergeCatalogProducts: (keepId: string, mergeIds: string[]) =>
         request<any>('/admin/catalog/merge', { method: 'POST', body: { keep_id: keepId, merge_ids: mergeIds } }),
     deleteCatalogProduct: (catalogId: string) => request<any>(`/admin/catalog/${catalogId}`, { method: 'DELETE' }),
+    bulkDeleteCatalogProducts: (catalogIds: string[]) =>
+        request<any>('/admin/catalog/bulk-delete', { method: 'POST', body: { catalog_ids: catalogIds } }),
     toggleUser: (id: string) => request<any>(`/admin/users/${id}/toggle`, { method: 'PUT' }),
     deleteUser: (email: string) => request<any>(`/admin/users?email=${encodeURIComponent(email)}`, { method: 'DELETE' }),
+    setUserPlan: (userId: string, plan: string) => request<any>(`/admin/set-plan?user_id=${encodeURIComponent(userId)}&plan=${encodeURIComponent(plan)}`, { method: 'POST' }),
+    bulkSetUserPlan: (userIds: string[], plan: string) => request<any>('/admin/users/bulk-plan', { method: 'POST', body: { user_ids: userIds, plan } }),
+    updateUserNote: (userId: string, note: string) => request<any>(`/admin/users/${userId}/note`, { method: 'PUT', body: { note } }),
+    getUserDetail: (userId: string) => request<any>(`/admin/users/${userId}/detail`),
     toggleProduct: (id: string) => request<any>(`/admin/products/${id}/toggle`, { method: 'PUT' }),
     deleteProduct: (id: string) => request<any>(`/admin/products/${id}`, { method: 'DELETE' }),
     listTickets: (status?: string) => request<any[]>(`/admin/support/tickets${status ? `?status=${status}` : ''}`),
     replyTicket: (id: string, content: string) => request<any>(`/admin/support/tickets/${id}/reply`, { method: 'POST', body: { content } }),
     closeTicket: (id: string) => request<any>(`/admin/support/tickets/${id}/close`, { method: 'POST' }),
     listLogs: (module?: string, skip = 0, limit = 100) => request<any[]>(`/admin/logs?${module ? `module=${module}&` : ''}skip=${skip}&limit=${limit}`),
+    getUserLogs: (userId: string, limit = 50) => request<any[]>(`/admin/logs?user_id=${encodeURIComponent(userId)}&limit=${limit}`),
     // Disputes
     listDisputes: (params?: { status?: string; type?: string; skip?: number; limit?: number }) => {
         const query = toQueryString(params as Record<string, unknown> | undefined);

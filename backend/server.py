@@ -4714,6 +4714,79 @@ async def admin_list_users(skip: int = 0, limit: int = 100, user: User = Depends
     users = await db.users.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return users
 
+@admin_router.get("/users/{user_id}/detail")
+async def admin_user_detail(user_id: str, admin: User = Depends(require_superadmin)):
+    """Panel détaillé d'un utilisateur : stores, ventes, IA, activité récente."""
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    stores = await db.stores.find({"user_id": user_id}, {"_id": 0, "store_id": 1, "name": 1, "created_at": 1}).to_list(20)
+
+    sales_agg = await db.sales.aggregate([
+        {"$match": {"user_id": user_id}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_amount"}, "count": {"$sum": 1}, "last_sale": {"$max": "$created_at"}}},
+    ]).to_list(1)
+
+    product_count = await db.products.count_documents({"user_id": user_id})
+    ai_count = await db.ai_usage_logs.count_documents({"user_id": user_id})
+
+    recent_activity = await db.activity_logs.find(
+        {"user_id": user_id},
+        {"_id": 0, "action": 1, "module": 1, "created_at": 1, "details": 1},
+    ).sort("created_at", -1).limit(8).to_list(8)
+
+    account = await db.business_accounts.find_one(
+        {"account_id": user_id},
+        {"_id": 0, "plan": 1, "subscription_status": 1, "subscription_provider": 1, "subscription_end": 1, "trial_ends_at": 1},
+    )
+
+    return {
+        "user": user_doc,
+        "stores": stores,
+        "sales_total": sales_agg[0]["total"] if sales_agg else 0,
+        "sales_count": sales_agg[0]["count"] if sales_agg else 0,
+        "last_sale_at": sales_agg[0].get("last_sale") if sales_agg else None,
+        "product_count": product_count,
+        "ai_calls": ai_count,
+        "recent_activity": recent_activity,
+        "account": account or {},
+    }
+
+
+class AdminUserNoteRequest(BaseModel):
+    note: str
+
+@admin_router.put("/users/{user_id}/note")
+async def admin_update_user_note(user_id: str, data: AdminUserNoteRequest, admin: User = Depends(require_superadmin)):
+    """Ajouter / modifier une note interne sur un compte utilisateur."""
+    result = await db.users.update_one({"user_id": user_id}, {"$set": {"admin_note": data.note.strip()}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    return {"status": "ok", "user_id": user_id}
+
+
+class AdminBulkPlanRequest(BaseModel):
+    user_ids: List[str]
+    plan: str
+
+@admin_router.post("/users/bulk-plan")
+async def admin_bulk_set_plan(data: AdminBulkPlanRequest, admin: User = Depends(require_superadmin)):
+    """Changer le plan de plusieurs utilisateurs en une fois."""
+    valid_plans = ("starter", "pro", "enterprise")
+    if data.plan not in valid_plans:
+        raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
+    updated = 0
+    for uid in data.user_ids:
+        try:
+            await update_business_account_for_owner(uid, {"plan": data.plan, "subscription_status": "active"})
+            updated += 1
+        except Exception:
+            pass
+    await log_activity(user_id=admin.user_id, module="admin", action="bulk_set_plan", details={"user_ids": data.user_ids, "plan": data.plan, "updated": updated})
+    return {"status": "ok", "updated": updated, "plan": data.plan}
+
+
 @admin_router.get("/products")
 async def admin_list_all_products(
     category_id: Optional[str] = None,
@@ -4907,9 +4980,10 @@ async def admin_list_all_customers(search: Optional[str] = None, skip: int = 0, 
     return {"items": customers, "total": total}
 
 @admin_router.get("/logs")
-async def admin_global_logs(module: Optional[str] = None, skip: int = 0, limit: int = 100, user: User = Depends(require_superadmin)):
+async def admin_global_logs(module: Optional[str] = None, user_id: Optional[str] = None, skip: int = 0, limit: int = 100, user: User = Depends(require_superadmin)):
     query = {}
     if module: query["module"] = module
+    if user_id: query["user_id"] = user_id
     logs = await db.activity_logs.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return logs
 
@@ -5163,7 +5237,7 @@ async def admin_otp_stats(days: int = 30):
     now = datetime.now(timezone.utc)
     window_days = max(1, min(days, 90))
     window_start = now - timedelta(days=window_days)
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start_naive = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     events = await db.verification_events.find(
         {
             "created_at": {"$gte": window_start},
@@ -5171,6 +5245,11 @@ async def admin_otp_stats(days: int = 30):
         },
         {"_id": 0},
     ).to_list(None)
+
+    def _naive_dt(dt: Any):
+        if dt is None:
+            return None
+        return dt.replace(tzinfo=None) if getattr(dt, "tzinfo", None) else dt
 
     def build_provider_stats(provider: str) -> Dict[str, Any]:
         provider_events = [event for event in events if event.get("provider") == provider]
@@ -5188,8 +5267,8 @@ async def admin_otp_stats(days: int = 30):
             "verification_rate": round((verified / sent) * 100, 1) if sent else 0.0,
         }
 
-    sent_today = sum(1 for event in events if event.get("type") == "otp_sent" and event.get("created_at") and event["created_at"] >= today_start)
-    verified_today = sum(1 for event in events if event.get("type") == "otp_verified" and event.get("created_at") and event["created_at"] >= today_start)
+    sent_today = sum(1 for event in events if event.get("type") == "otp_sent" and event.get("created_at") and _naive_dt(event["created_at"]) >= today_start_naive)
+    verified_today = sum(1 for event in events if event.get("type") == "otp_verified" and event.get("created_at") and _naive_dt(event["created_at"]) >= today_start_naive)
 
     return {
         "window_days": window_days,
@@ -5207,8 +5286,8 @@ async def admin_enterprise_signup_stats(days: int = 30):
     now = datetime.now(timezone.utc)
     window_days = max(1, min(days, 90))
     window_start = now - timedelta(days=window_days)
-    day_ago = now - timedelta(days=1)
-    week_ago = now - timedelta(days=7)
+    day_ago_naive = datetime.utcnow() - timedelta(days=1)
+    week_ago_naive = datetime.utcnow() - timedelta(days=7)
     users = await db.users.find(
         {
             "role": "shopkeeper",
@@ -5218,6 +5297,11 @@ async def admin_enterprise_signup_stats(days: int = 30):
         },
         {"_id": 0, "user_id": 1, "created_at": 1, "is_email_verified": 1, "first_login_at": 1, "store_ids": 1},
     ).to_list(None)
+
+    def _naive_dt(dt: Any):
+        if dt is None:
+            return None
+        return dt.replace(tzinfo=None) if getattr(dt, "tzinfo", None) else dt
 
     user_ids = [user["user_id"] for user in users]
     first_sale_rows = await db.sales.aggregate([
@@ -5233,8 +5317,8 @@ async def admin_enterprise_signup_stats(days: int = 30):
         "activated": sum(1 for user in users if user.get("first_login_at")),
         "with_first_store": sum(1 for user in users if user.get("store_ids")),
         "with_first_sale": sum(1 for user in users if user.get("user_id") in users_with_sales),
-        "inactive_after_1d": sum(1 for user in users if user.get("created_at") and user["created_at"] <= day_ago and not user.get("first_login_at")),
-        "inactive_after_7d": sum(1 for user in users if user.get("created_at") and user["created_at"] <= week_ago and not user.get("first_login_at")),
+        "inactive_after_1d": sum(1 for user in users if user.get("created_at") and _naive_dt(user["created_at"]) <= day_ago_naive and not user.get("first_login_at")),
+        "inactive_after_7d": sum(1 for user in users if user.get("created_at") and _naive_dt(user["created_at"]) <= week_ago_naive and not user.get("first_login_at")),
     }
 
 
@@ -11001,6 +11085,28 @@ async def admin_catalog_merge(data: CatalogMergeRequest, user: User = Depends(re
         details={"keep_id": data.keep_id, "merge_ids": data.merge_ids},
     )
     return result
+
+
+class AdminCatalogBulkDeleteRequest(BaseModel):
+    catalog_ids: List[str]
+
+@admin_router.post("/catalog/bulk-delete")
+async def admin_catalog_bulk_delete(
+    data: AdminCatalogBulkDeleteRequest,
+    user: User = Depends(require_superadmin),
+):
+    """Supprimer plusieurs produits du catalogue global en une fois."""
+    deleted = 0
+    for catalog_id in data.catalog_ids:
+        if await catalog_service.admin_delete(catalog_id):
+            deleted += 1
+    await log_activity(
+        user_id=user.user_id,
+        module="admin",
+        action="bulk_delete_catalog_products",
+        details={"total": len(data.catalog_ids), "deleted": deleted},
+    )
+    return {"status": "deleted", "deleted": deleted, "total": len(data.catalog_ids)}
 
 
 @admin_router.delete("/catalog/{catalog_id}")
