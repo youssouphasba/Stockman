@@ -1901,7 +1901,9 @@
       "replied": "Réponse reçue",
       "you": "Vous",
       "replyPlaceholder": "Votre réponse...",
-      "replyError": "Erreur lors de l'envoi de la réponse."
+      "replyError": "Erreur lors de l'envoi de la réponse.",
+      "whatsappBtn": "Discuter sur WhatsApp",
+      "whatsappMessage": "Bonjour, j'ai besoin d'aide avec mon compte Stockman. Mon ID utilisateur est {{id}}."
     },
     "deleteAccount": {
       "dangerZone": "Zone de Danger ⚠️",

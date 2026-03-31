@@ -1556,7 +1556,7 @@ export default function Inventory() {
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
-                                            {categoriesList.find(c => c.category_id === p.category_id).name || t('common.uncategorized')}
+                                            {categoriesList.find(c => c.category_id === p.category_id)?.name || t('common.uncategorized')}
                                         </span>
                                     </td>
                                     <td className="py-4 px-6">

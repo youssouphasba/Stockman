@@ -1326,7 +1326,9 @@
       "messageLabel": "Bataaxal",
       "messagePlaceholder": "Describe your problem in detail...",
       "send": "Yónne bataaxal bi",
-      "successMessage": "Yónne nañu sa bataaxal. Dina ñu tontu ci kanam."
+      "successMessage": "Yónne nañu sa bataaxal. Dina ñu tontu ci kanam.",
+      "whatsappBtn": "Waxtaan ci WhatsApp",
+      "whatsappMessage": "Maangi nuyu, soxla naa ndimbal ci sama compte Stockman. Sama ID kilyan mooy {{id}}."
     },
     "deleteAccount": {
       "dangerZone": "Barabu Musiba ⚠️",

@@ -79,8 +79,19 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
   const sectorRef = useRef<HTMLDivElement>(null);
   const sectorSearchRef = useRef<HTMLInputElement>(null);
 
+  // Country dropdown state
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+  const countryRef = useRef<HTMLDivElement>(null);
+  const countrySearchRef = useRef<HTMLInputElement>(null);
+
+  // How dropdown state
+  const [howOpen, setHowOpen] = useState(false);
+  const howRef = useRef<HTMLDivElement>(null);
+
   const selectedCountry = COUNTRIES.find((c) => c.code === selectedCountryCode) || COUNTRIES[0];
   const selectedSector = SECTORS.find((s) => s.key === businessType);
+  const selectedHow = HOW_OPTIONS.find((o) => o.key === howDidYouHear);
   const passwordStrength = getPasswordStrength(password);
 
   const filteredSectors = useMemo(() => {
@@ -89,19 +100,32 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
     return SECTORS.filter((s) => s.label.toLowerCase().includes(q) || s.key.toLowerCase().includes(q));
   }, [sectorSearch]);
 
-  // Close dropdown on outside click
+  const filteredCountries = useMemo(() => {
+    const q = countrySearch.trim().toLowerCase();
+    if (!q) return COUNTRIES;
+    return COUNTRIES.filter((c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || c.currency.toLowerCase().includes(q));
+  }, [countrySearch]);
+
+  // Close dropdowns on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (sectorRef.current && !sectorRef.current.contains(e.target as Node)) {
         setSectorOpen(false);
       }
+      if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
+        setCountryOpen(false);
+      }
+      if (howRef.current && !howRef.current.contains(e.target as Node)) {
+        setHowOpen(false);
+      }
     }
-    if (sectorOpen) {
+    if (sectorOpen || countryOpen || howOpen) {
       document.addEventListener('mousedown', handleClick);
-      sectorSearchRef.current?.focus();
+      if (sectorOpen) sectorSearchRef.current?.focus();
+      if (countryOpen) countrySearchRef.current?.focus();
     }
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [sectorOpen]);
+  }, [sectorOpen, countryOpen, howOpen]);
 
   const inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm';
   const labelClass = 'block text-xs font-semibold text-slate-400 mb-1';
@@ -195,19 +219,54 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               {/* Country */}
-              <div>
+              <div ref={countryRef} className="relative">
                 <label className={labelClass}>Pays</label>
-                <select
-                  value={selectedCountry.code}
-                  onChange={(e) => setSelectedCountryCode(e.target.value)}
-                  className={`${inputClass} cursor-pointer`}
+                <button
+                  type="button"
+                  onClick={() => { setCountryOpen(!countryOpen); setCountrySearch(''); }}
+                  className={`${inputClass} flex items-center justify-between cursor-pointer text-left text-white`}
                 >
-                  {COUNTRIES.map((country) => (
-                    <option key={country.code} value={country.code} style={{ backgroundColor: '#1a1040' }}>
-                      {country.flag} {country.name} ({country.currency})
-                    </option>
-                  ))}
-                </select>
+                  <span>
+                    {selectedCountry.flag} {selectedCountry.name} ({selectedCountry.currency})
+                  </span>
+                  <ChevronDown size={16} className={`text-white/40 transition-transform ${countryOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {countryOpen && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1a1040] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
+                      <Search size={14} className="text-white/30" />
+                      <input
+                        ref={countrySearchRef}
+                        type="text"
+                        value={countrySearch}
+                        onChange={(e) => setCountrySearch(e.target.value)}
+                        placeholder="Rechercher un pays..."
+                        className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
+                      />
+                    </div>
+                    <div className="max-h-56 overflow-y-auto">
+                      {filteredCountries.map((country) => (
+                        <button
+                          key={country.code}
+                          type="button"
+                          onClick={() => { setSelectedCountryCode(country.code); setCountryOpen(false); }}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors ${
+                            selectedCountryCode === country.code
+                              ? 'bg-primary/20 text-white'
+                              : 'text-slate-300 hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="text-base">{country.flag}</span>
+                          <span>{country.name} ({country.currency})</span>
+                        </button>
+                      ))}
+                      {filteredCountries.length === 0 && (
+                        <p className="text-center text-white/30 text-xs py-4">Aucun pays trouvé</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Name */}
@@ -361,19 +420,39 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
               </div>
 
               {/* How did you hear */}
-              <div>
+              <div ref={howRef} className="relative">
                 <label className={labelClass}>Comment nous avez-vous connu ? (optionnel)</label>
-                <select
-                  value={howDidYouHear}
-                  onChange={(e) => setHowDidYouHear(e.target.value)}
-                  className={`${inputClass} cursor-pointer`}
+                <button
+                  type="button"
+                  onClick={() => setHowOpen(!howOpen)}
+                  className={`${inputClass} flex items-center justify-between cursor-pointer text-left ${
+                    howDidYouHear ? 'text-white' : 'text-white/30'
+                  }`}
                 >
-                  {HOW_OPTIONS.map((opt) => (
-                    <option key={opt.key} value={opt.key} style={{ backgroundColor: '#1a1040' }}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  <span>
+                    {selectedHow ? selectedHow.label : 'Selectionnez...'}
+                  </span>
+                  <ChevronDown size={16} className={`text-white/40 transition-transform ${howOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {howOpen && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1a1040] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                    {HOW_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => { setHowDidYouHear(opt.key); setHowOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors ${
+                          howDidYouHear === opt.key
+                            ? 'bg-primary/20 text-white'
+                            : 'text-slate-300 hover:bg-white/5'
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Terms */}

@@ -1,9 +1,11 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView, FlatList } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView, FlatList, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { support, SupportTicket } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext';
+import { WHATSAPP_SUPPORT_NUMBER, WHATSAPP_SUPPORT_MESSAGE_KEY } from '../constants/support';
 
 interface ContactSupportModalProps {
     visible: boolean;
@@ -13,6 +15,7 @@ interface ContactSupportModalProps {
 export default function ContactSupportModal({ visible, onClose }: ContactSupportModalProps) {
     const { t } = useTranslation();
     const { colors } = useTheme();
+    const { user } = useAuth();
     const [tab, setTab] = useState<'new' | 'tickets'>('new');
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
@@ -75,6 +78,24 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
             Alert.alert(t('modals.error'), t('modals.contactSupport.replyError'));
         } finally {
             setReplyLoading(false);
+        }
+    };
+
+    const handleWhatsAppSupport = async () => {
+        const userId = user?.user_id || 'N/A';
+        const message = t(WHATSAPP_SUPPORT_MESSAGE_KEY, { id: userId });
+        const url = `whatsapp://send?phone=${WHATSAPP_SUPPORT_NUMBER.replace(/\+/g, '')}&text=${encodeURIComponent(message)}`;
+        
+        try {
+            const supported = await Linking.canOpenURL(url);
+            if (supported) {
+                await Linking.openURL(url);
+            } else {
+                const webUrl = `https://wa.me/${WHATSAPP_SUPPORT_NUMBER.replace(/\+/g, '')}?text=${encodeURIComponent(message)}`;
+                await Linking.openURL(webUrl);
+            }
+        } catch (error) {
+            Alert.alert(t('modals.error'), t('crm.error_whatsapp_open'));
         }
     };
 
@@ -214,8 +235,25 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                     </View>
 
                     {tab === 'new' ? (
-                        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+                        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                             <View style={styles.form}>
+                                {/* WhatsApp Integration */}
+                                <TouchableOpacity
+                                    style={[styles.whatsappButton, { borderColor: '#25D366' }]}
+                                    onPress={handleWhatsAppSupport}
+                                >
+                                    <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                                    <Text style={[styles.whatsappText, { color: colors.text }]}>
+                                        {t('modals.contactSupport.whatsappBtn')}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <View style={styles.dividerContainer}>
+                                    <View style={[styles.divider, { backgroundColor: colors.glassBorder }]} />
+                                    <Text style={[styles.dividerText, { color: colors.textMuted }]}>{t('auth.login.or')}</Text>
+                                    <View style={[styles.divider, { backgroundColor: colors.glassBorder }]} />
+                                </View>
+
                                 <Text style={[styles.label, { color: colors.textMuted }]}>{t('modals.contactSupport.subjectLabel')}</Text>
                                 <TextInput
                                     style={[styles.input, { color: colors.text, borderColor: colors.glassBorder }]}
@@ -418,5 +456,34 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    whatsappButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 14,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        gap: 10,
+        marginBottom: 8,
+    },
+    whatsappText: {
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 10,
+        gap: 10,
+    },
+    divider: {
+        flex: 1,
+        height: 1,
+    },
+    dividerText: {
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
     },
 });
