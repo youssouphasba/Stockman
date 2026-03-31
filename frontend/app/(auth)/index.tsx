@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Platform } from 'react-native';
+﻿import React, { useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Platform, Modal, TextInput, FlatList } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -10,6 +10,7 @@ import { ApiError, demo as demoApi, setToken, setRefreshToken } from '../../serv
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
+import { DEMO_COUNTRIES, DemoCountry } from '../../data/demoCurrencies';
 
 const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
 
@@ -21,34 +22,34 @@ export default function AuthEntryScreen() {
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoType, setDemoType] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [pendingDemoType, setPendingDemoType] = useState<'retail' | 'restaurant' | null>(null);
+  const [countrySearch, setCountrySearch] = useState('');
   const styles = React.useMemo(() => createStyles(colors, glassStyle, isDark), [colors, glassStyle, isDark]);
 
   function toggleThemeQuick() {
     void setTheme(isDark ? 'light' : 'dark');
   }
 
-  async function handleDemo(type: 'retail' | 'restaurant' | 'enterprise') {
-    if (type === 'enterprise') {
-      if (Platform.OS !== 'web') {
-        Alert.alert(
-          'Démo Enterprise',
-          'Utilisez un ordinateur pour tester pleinement cet outil.',
-          [
-            { text: 'Annuler', style: 'cancel' },
-            { text: 'OK', onPress: () => { void Linking.openURL(ENTERPRISE_DEMO_URL); } },
-          ]
-        );
-        return;
-      }
-      await Linking.openURL(ENTERPRISE_DEMO_URL);
-      return;
-    }
+  const filteredCountries = useMemo(() => {
+    const q = countrySearch.trim().toLowerCase();
+    if (!q) return DEMO_COUNTRIES;
+    return DEMO_COUNTRIES.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.code.toLowerCase().includes(q) ||
+      c.currencyLabel.toLowerCase().includes(q)
+    );
+  }, [countrySearch]);
 
+  async function launchDemoWithCountry(type: 'retail' | 'restaurant', country: DemoCountry) {
+    setShowCountryPicker(false);
+    setCountrySearch('');
+    setPendingDemoType(null);
     setError('');
     setDemoType(type);
     setDemoLoading(true);
     try {
-      const res = await demoApi.createSession(type);
+      const res = await demoApi.createSession(type, country.code);
       await setToken(res.access_token);
       if (res.refresh_token) {
         await setRefreshToken(res.refresh_token);
@@ -64,6 +65,26 @@ export default function AuthEntryScreen() {
       setDemoLoading(false);
       setDemoType(null);
     }
+  }
+
+  function handleDemo(type: 'retail' | 'restaurant' | 'enterprise') {
+    if (type === 'enterprise') {
+      if (Platform.OS !== 'web') {
+        Alert.alert(
+          'Démo Enterprise',
+          'Utilisez un ordinateur pour tester pleinement cet outil.',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'OK', onPress: () => { void Linking.openURL(ENTERPRISE_DEMO_URL); } },
+          ]
+        );
+        return;
+      }
+      void Linking.openURL(ENTERPRISE_DEMO_URL);
+      return;
+    }
+    setPendingDemoType(type);
+    setShowCountryPicker(true);
   }
 
   return (
@@ -138,9 +159,127 @@ export default function AuthEntryScreen() {
           </View>
         </View>
       </View>
+
+      {showCountryPicker && pendingDemoType && (
+        <Modal transparent animationType="slide" visible onRequestClose={() => { setShowCountryPicker(false); setCountrySearch(''); }}>
+          <View style={pickerStyles.overlay}>
+            <View style={[pickerStyles.sheet, { backgroundColor: colors.background }]}>
+              <View style={[pickerStyles.header, { borderBottomColor: colors.glassBorder }]}>
+                <Text style={[pickerStyles.title, { color: colors.text }]}>Choisissez votre pays</Text>
+                <Text style={[pickerStyles.subtitle, { color: colors.textMuted }]}>La démo utilisera votre devise locale.</Text>
+              </View>
+              <View style={[pickerStyles.searchWrap, { borderBottomColor: colors.glassBorder }]}>
+                <Ionicons name="search-outline" size={16} color={colors.textMuted} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={[pickerStyles.searchInput, { color: colors.text }]}
+                  value={countrySearch}
+                  onChangeText={setCountrySearch}
+                  placeholder="Pays ou devise…"
+                  placeholderTextColor={colors.textMuted}
+                  autoFocus
+                />
+              </View>
+              <FlatList
+                data={filteredCountries}
+                keyExtractor={item => item.code}
+                style={{ flex: 1 }}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={pickerStyles.row}
+                    onPress={() => void launchDemoWithCountry(pendingDemoType, item)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={pickerStyles.flag}>{item.flag}</Text>
+                    <Text style={[pickerStyles.countryName, { color: colors.text }]}>{item.name}</Text>
+                    <Text style={[pickerStyles.currencyBadge, { color: colors.primary }]}>{item.currencyLabel}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+              <TouchableOpacity
+                style={[pickerStyles.cancelBtn, { borderColor: colors.glassBorder }]}
+                onPress={() => { setShowCountryPicker(false); setCountrySearch(''); }}
+              >
+                <Text style={[pickerStyles.cancelText, { color: colors.textMuted }]}>Annuler</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </LinearGradient>
   );
 }
+
+const pickerStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '80%',
+    paddingBottom: 24,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  subtitle: {
+    fontSize: 13,
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 4,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  flag: {
+    fontSize: 22,
+    width: 30,
+  },
+  countryName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  currencyBadge: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  cancelBtn: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});
 
 const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
   StyleSheet.create({

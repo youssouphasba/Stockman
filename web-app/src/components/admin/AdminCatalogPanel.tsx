@@ -1,7 +1,7 @@
 ﻿'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, CheckCircle2, Copy, Download, Edit3, GitMerge, Layers3, PackagePlus, RefreshCw, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Bot, CheckCircle2, ChevronLeft, ChevronRight, Copy, Download, Edit3, GitMerge, Layers3, PackagePlus, RefreshCw, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
 import { BUSINESS_SECTORS, getBusinessSectorLabel } from '../../data/businessSectors';
 
@@ -266,9 +266,13 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     });
     const [mergeModalOpen, setMergeModalOpen] = useState(false);
     const [mergeKeepId, setMergeKeepId] = useState('');
+    const [page, setPage] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+    const PAGE_SIZE = 50;
 
-    const load = async (assistantCatalogId?: string | null) => {
-        const params: any = { limit: 200 };
+    const load = async (assistantCatalogId?: string | null, pageOverride?: number) => {
+        const currentPage = pageOverride ?? page;
+        const params: any = { limit: PAGE_SIZE, skip: currentPage * PAGE_SIZE };
         if (filters.search.trim()) params.search = filters.search.trim();
         if (filters.sector) params.sector = filters.sector;
         if (filters.country.trim()) params.country = filters.country.trim().toUpperCase();
@@ -285,8 +289,14 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
 
         setStats(statsResponse);
         setItems(listResponse?.products || []);
+        setTotalCount(listResponse?.total ?? 0);
         setAssistant(assistantResponse);
     };
+
+    // Reset page to 0 when filters change
+    useEffect(() => {
+        setPage(0);
+    }, [filters]);
 
     useEffect(() => {
         let cancelled = false;
@@ -294,7 +304,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
         const run = async () => {
             try {
                 setLoading(true);
-                await load(editingEntry?.catalog_id);
+                await load(editingEntry?.catalog_id, page);
             } catch {
                 if (!cancelled) showToast('Impossible de charger le catalogue global.', 'error');
             } finally {
@@ -309,7 +319,9 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
         return () => {
             cancelled = true;
         };
-    }, [refreshToken, filters, editingEntry?.catalog_id]);
+    }, [refreshToken, filters, page, editingEntry?.catalog_id]);
+
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
     const selectedEntries = useMemo(() => items.filter((item) => selectedIds.has(item.catalog_id)), [items, selectedIds]);
     const dominantSector = Object.entries(stats?.by_sector || {}).sort((a: any, b: any) => Number(b[1]) - Number(a[1]))[0]?.[0];
@@ -918,6 +930,34 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                                 ))}
                             </tbody>
                         </table>
+                        {totalPages > 1 && (
+                            <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
+                                <span className="text-sm text-slate-400">
+                                    {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} sur {totalCount} produits
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={page === 0}
+                                        onClick={() => setPage((p) => Math.max(0, p - 1))}
+                                        className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronLeft size={16} />Préc.
+                                    </button>
+                                    <span className="min-w-[80px] text-center text-sm font-bold text-white">
+                                        {page + 1} / {totalPages}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        disabled={page >= totalPages - 1}
+                                        onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                                        className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    >
+                                        Suiv.<ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

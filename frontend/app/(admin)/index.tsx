@@ -858,12 +858,55 @@ export default function AdminDashboard() {
             <SearchBar value={demoSearch} onChangeText={setDemoSearch} placeholder="Session, e-mail, compte..." colors={colors} />
 
             {demoOverview && (
-                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <StatCard label="Actives" value={demoOverview.active_sessions || 0} icon="flash" color="#10B981" colors={colors} />
-                    <StatCard label="Expirées" value={demoOverview.expired_sessions || 0} icon="time" color="#F59E0B" colors={colors} />
-                    <StatCard label="Nettoyées" value={demoOverview.cleaned_sessions || 0} icon="trash" color="#8B5CF6" colors={colors} />
-                    <StatCard label="Contacts captés" value={demoOverview.contacts_captured || 0} icon="mail" color="#3B82F6" colors={colors} />
-                </View>
+                <>
+                    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                        <StatCard label="Actives" value={demoOverview.active_sessions || 0} icon="flash" color="#10B981" colors={colors} />
+                        <StatCard label="Expirées" value={demoOverview.expired_sessions || 0} icon="time" color="#F59E0B" colors={colors} />
+                        <StatCard label="Nettoyées" value={demoOverview.cleaned_sessions || 0} icon="trash" color="#8B5CF6" colors={colors} />
+                        <StatCard label="Contacts captés" value={demoOverview.contacts_captured || 0} icon="mail" color="#3B82F6" colors={colors} />
+                    </View>
+
+                    {Object.keys(demoOverview.by_currency || {}).length > 0 && (
+                        <Card colors={colors} style={{ marginBottom: 12 }}>
+                            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 13, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Par devise</Text>
+                            {Object.entries(demoOverview.by_currency as Record<string, number>).map(([currency, count]) => {
+                                const total = demoOverview.total_sessions || 1;
+                                const pct = Math.round((count / total) * 100);
+                                const colorMap: Record<string, string> = { XOF: '#10B981', XAF: '#14B8A6', EUR: '#3B82F6', USD: '#8B5CF6', GNF: '#F59E0B', CDF: '#F97316' };
+                                const barColor = colorMap[currency] || '#6B7280';
+                                return (
+                                    <View key={currency} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                        <Text style={{ color: colors.text, fontWeight: '800', fontSize: 13, width: 36 }}>{currency === 'unknown' ? '—' : currency}</Text>
+                                        <View style={{ flex: 1, height: 6, backgroundColor: colors.glassBorder, borderRadius: 3, overflow: 'hidden' }}>
+                                            <View style={{ width: `${pct}%`, height: '100%', backgroundColor: barColor, borderRadius: 3 }} />
+                                        </View>
+                                        <Text style={{ color: colors.textMuted, fontSize: 12, width: 28, textAlign: 'right' }}>{count}</Text>
+                                        <Text style={{ color: colors.textMuted, fontSize: 11, width: 32 }}>{pct}%</Text>
+                                    </View>
+                                );
+                            })}
+                        </Card>
+                    )}
+
+                    {Object.keys(demoOverview.by_country || {}).length > 0 && (
+                        <Card colors={colors} style={{ marginBottom: 12 }}>
+                            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 13, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Par pays</Text>
+                            {Object.entries(demoOverview.by_country as Record<string, number>).slice(0, 10).map(([country, count]) => {
+                                const total = demoOverview.total_sessions || 1;
+                                const pct = Math.round((count / total) * 100);
+                                return (
+                                    <View key={country} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                        <Text style={{ color: colors.textSecondary, fontWeight: '700', fontSize: 12, width: 36 }}>{country === 'unknown' ? '—' : country}</Text>
+                                        <View style={{ flex: 1, height: 4, backgroundColor: colors.glassBorder, borderRadius: 2, overflow: 'hidden' }}>
+                                            <View style={{ width: `${pct}%`, height: '100%', backgroundColor: colors.primary, borderRadius: 2, opacity: 0.7 }} />
+                                        </View>
+                                        <Text style={{ color: colors.textMuted, fontSize: 12, width: 28, textAlign: 'right' }}>{count}</Text>
+                                    </View>
+                                );
+                            })}
+                        </Card>
+                    )}
+                </>
             )}
 
             <SectionHeader title="Sessions démo" count={demoSessionsTotal || demoSessions.length} colors={colors} />

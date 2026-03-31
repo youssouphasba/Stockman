@@ -2308,9 +2308,19 @@ export const subscription = {
     stripeCheckout: (plan: string) => request<{ checkout_url: string; session_id: string }>(`/billing/stripe-checkout?plan=${plan}`, { method: 'POST' }),
 };
 
+function detectCountryCode(): string | undefined {
+    try {
+        const locale = navigator.language || '';
+        // e.g. "fr-FR" → "FR", "en-US" → "US"
+        const parts = locale.split('-');
+        if (parts.length >= 2) return parts[parts.length - 1].toUpperCase();
+    } catch {}
+    return undefined;
+}
+
 export const demo = {
-    createSession: (demoType: string) =>
-        request<DemoSessionResponse>('/demo/session', { method: 'POST', body: { demo_type: demoType } }),
+    createSession: (demoType: string, countryCode?: string) =>
+        request<DemoSessionResponse>('/demo/session', { method: 'POST', body: { demo_type: demoType, country_code: countryCode ?? detectCountryCode() } }),
     getCurrentSession: () => request<DemoSessionInfo>('/demo/session/me'),
     captureContact: (email: string) =>
         request<DemoSessionInfo>('/demo/session/contact', { method: 'POST', body: { email } }),

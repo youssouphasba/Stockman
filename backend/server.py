@@ -5887,12 +5887,16 @@ async def admin_demo_sessions_overview(days: int = 30):
             "expires_at": 1,
             "contact_email": 1,
             "contact_captured_at": 1,
+            "country_code": 1,
+            "currency": 1,
         },
     ).to_list(None)
 
     by_type: Dict[str, int] = defaultdict(int)
     by_surface: Dict[str, int] = defaultdict(int)
     by_status: Dict[str, int] = defaultdict(int)
+    by_country: Dict[str, int] = defaultdict(int)
+    by_currency: Dict[str, int] = defaultdict(int)
 
     active_sessions = 0
     expired_sessions = 0
@@ -5920,6 +5924,10 @@ async def admin_demo_sessions_overview(days: int = 30):
         by_type[session_type] += 1
         by_surface[surface] += 1
         by_status[derived_status] += 1
+        country = session.get("country_code") or "unknown"
+        currency = session.get("currency") or "unknown"
+        by_country[country] += 1
+        by_currency[currency] += 1
 
         if derived_status == "active":
             active_sessions += 1
@@ -5954,6 +5962,8 @@ async def admin_demo_sessions_overview(days: int = 30):
         "by_type": dict(by_type),
         "by_surface": dict(by_surface),
         "by_status": dict(by_status),
+        "by_country": dict(sorted(by_country.items(), key=lambda x: -x[1])),
+        "by_currency": dict(sorted(by_currency.items(), key=lambda x: -x[1])),
     }
 
 
@@ -6680,6 +6690,10 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         if _user_has_module_access(user, "stock") or _user_has_module_access(user, "pos", "accounting"):
             available_tools["get_seasonal_forecast"] = ai_tools.get_seasonal_forecast
             available_tools["get_metric_methodology"] = ai_tools.get_metric_methodology
+            available_tools["get_business_health_score"] = ai_tools.get_business_health_score
+            available_tools["get_kpi_analysis"] = ai_tools.get_kpi_analysis
+            available_tools["compare_periods"] = ai_tools.compare_periods
+            available_tools["get_top_products_analysis"] = ai_tools.get_top_products_analysis
         if _user_has_module_access(user, "accounting"):
             available_tools["get_accounting_snapshot"] = ai_tools.get_accounting_snapshot
         if _user_has_module_access(user, "crm"):
@@ -6732,6 +6746,12 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         - N'incite a l'upgrade que si cela repond directement a la demande ou a un blocage constate.
         - Si tu as un doute sur l'acces d'une fonctionnalite selon le plan ou la plateforme, utilise l'outil get_feature_access_guidance.
         - Si l'utilisateur demande comment une metrique est calculee, quelles donnees elle prend en compte, pourquoi elle ne change pas ou a quoi elle sert, utilise d'abord l'outil get_metric_methodology si disponible.
+        - Si l'utilisateur pose une question sur le score de sante du business, sa valeur actuelle, ses composantes (marge, rotation, dettes, tendance) ou comment l'ameliorer, utilise OBLIGATOIREMENT l'outil get_business_health_score. Ne devine jamais ce score depuis les donnees brutes. Apres avoir obtenu le resultat, donne le score, le grade, puis analyse chaque composante avec sa valeur reelle et les actions concretes associees.
+        - Si l'utilisateur demande une analyse de ses KPIs, un bilan de periode, ses chiffres sur une periode donnee (semaine, mois, trimestre, dates precises), utilise get_kpi_analysis. Cet outil calcule en un appel : CA, marge, resultat net, depenses, panier moyen, rotation stock, dettes clients, top produits, top categories, et la comparaison automatique avec la periode precedente.
+        - Si l'utilisateur veut comparer deux periodes explicitement ("compare janvier vs fevrier", "ce mois vs le mois dernier", "semaine 1 vs semaine 2"), utilise OBLIGATOIREMENT compare_periods avec les dates exactes. Ne fais jamais cette comparaison toi-meme depuis les donnees brutes.
+        - Si l'utilisateur pose une question sur ses produits (meilleurs produits, produits qui se vendent le moins, marges par produit, produits a risque de rupture, produits dormants), utilise get_top_products_analysis. Cet outil donne par produit : CA, marge, velocite de vente, couverture stock, tendance vs periode precedente.
+        - Apres chaque appel d'outil KPI, fournis toujours : 1) le chiffre demande clairement, 2) une interpretation en contexte, 3) une ou deux actions concretes si la valeur est preoccupante.
+        - Ne dis jamais "je n'ai pas cette information" pour un KPI business si un outil est disponible. Appelle l'outil d'abord.
 
         TU DISPOSES D'OUTILS DE DONNÉES LIMITÉS AUX MODULES AUTORISÉS. UTILISE-LES
         quand la question porte sur des chiffres ou quand tu détectes un problème potentiel.
@@ -22976,6 +22996,393 @@ class AiTools:
             "recent_orders": orders[:5],
         }
 
+    async def get_kpi_analysis(self, days: int = 30, start_date: str = None, end_date: str = None):
+        """
+        Compute ALL business KPIs for a given period: revenue, margin, avg basket, stock turnover, deadstock, customer debt, expenses, top categories, and business health score.
+        Also automatically compares to the previous equivalent period.
+        Args:
+            days: Period length in days (default 30). Ignored if start_date is provided.
+            start_date: Period start date in 'YYYY-MM-DD' format (optional).
+            end_date: Period end date in 'YYYY-MM-DD' format (optional, defaults to today).
+        """
+        now = datetime.now(timezone.utc)
+        if start_date:
+            try:
+                cur_start = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                cur_end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=1) if end_date else now
+            except ValueError:
+                return {"error": "Format de date invalide. Utilise YYYY-MM-DD."}
+        else:
+            days = max(1, min(days, 365))
+            cur_end = now
+            cur_start = now - timedelta(days=days)
+
+        period_len = max(cur_end - cur_start, timedelta(days=1))
+        prev_start = cur_start - period_len
+        prev_end = cur_start
+
+        ru = self.requesting_user
+        can_sales = ru is None or _user_has_module_access(ru, "pos", "accounting")
+        can_stock = ru is None or _user_has_module_access(ru, "stock")
+        can_accounting = ru is None or _user_has_module_access(ru, "accounting")
+        can_crm = ru is None or _user_has_module_access(ru, "crm")
+        can_suppliers = ru is None or _user_has_module_access(ru, "suppliers")
+
+        uid = self.user_id
+        sid = self.store_id
+        base_q: Dict[str, Any] = {"user_id": uid}
+        if sid:
+            base_q["store_id"] = sid
+
+        sales_q_c = {**base_q, "created_at": {"$gte": cur_start, "$lte": cur_end}, "status": {"$in": ["completed", "paid"]}}
+        sales_q_p = {**base_q, "created_at": {"$gte": prev_start, "$lt": prev_end}, "status": {"$in": ["completed", "paid"]}}
+        exp_q_c = {**base_q, "created_at": {"$gte": cur_start, "$lte": cur_end}}
+        exp_q_p = {**base_q, "created_at": {"$gte": prev_start, "$lt": prev_end}}
+        ord_q_c = {**base_q, "created_at": {"$gte": cur_start, "$lte": cur_end}}
+        ord_q_p = {**base_q, "created_at": {"$gte": prev_start, "$lt": prev_end}}
+
+        sales_c = await db.sales.find(sales_q_c, {"_id": 0, "total_amount": 1, "items": 1, "payment_method": 1, "created_at": 1}).to_list(10000) if can_sales else []
+        sales_p = await db.sales.find(sales_q_p, {"_id": 0, "total_amount": 1, "items": 1}).to_list(10000) if can_sales else []
+        expenses_c = await db.expenses.find(exp_q_c, {"_id": 0, "amount": 1, "category": 1}).to_list(5000) if can_accounting else []
+        expenses_p = await db.expenses.find(exp_q_p, {"_id": 0, "amount": 1}).to_list(5000) if can_accounting else []
+        products = await db.products.find(base_q, {"_id": 0, "product_id": 1, "name": 1, "quantity": 1, "purchase_price": 1, "selling_price": 1, "min_stock": 1, "category": 1}).to_list(5000) if can_stock else []
+        customers = await db.customers.find(base_q, {"_id": 0, "current_debt": 1}).to_list(5000) if can_crm else []
+        orders_c = await db.orders.find(ord_q_c, {"_id": 0, "total_amount": 1, "status": 1, "supplier_name": 1, "supplier_id": 1, "items": 1}).to_list(2000) if can_suppliers else []
+        orders_p = await db.orders.find(ord_q_p, {"_id": 0, "total_amount": 1, "status": 1}).to_list(2000) if can_suppliers else []
+        suppliers = await db.suppliers.find(base_q, {"_id": 0, "supplier_id": 1, "name": 1}).to_list(500) if can_suppliers else []
+
+        def _metrics(sales_docs):
+            rev, cost, count = 0.0, 0.0, 0
+            product_sales: Dict[str, dict] = {}
+            cat_rev: Dict[str, float] = defaultdict(float)
+            payment_rev: Dict[str, float] = defaultdict(float)
+            for sale in sales_docs:
+                count += 1
+                pm = sale.get("payment_method") or "cash"
+                for item in (sale.get("items") or []):
+                    qty = float(item.get("quantity") or 0)
+                    sp = float(item.get("selling_price") or 0)
+                    pp = float(item.get("purchase_price") or 0)
+                    item_rev = float(item.get("total") or 0) or sp * qty
+                    item_cost = pp * qty
+                    rev += item_rev
+                    cost += item_cost
+                    pid = item.get("product_id") or ""
+                    cat = item.get("category") or "Sans catégorie"
+                    if pid:
+                        if pid not in product_sales:
+                            product_sales[pid] = {"name": item.get("name") or pid, "revenue": 0.0, "cost": 0.0, "qty": 0.0, "category": cat}
+                        product_sales[pid]["revenue"] += item_rev
+                        product_sales[pid]["cost"] += item_cost
+                        product_sales[pid]["qty"] += qty
+                    cat_rev[cat] += item_rev
+                    payment_rev[pm] += item_rev
+            return rev, cost, count, product_sales, cat_rev, payment_rev
+
+        rev_c, cost_c, count_c, prod_sales_c, cat_rev_c, pay_rev_c = _metrics(sales_c)
+        rev_p, cost_p, count_p, _, _, _ = _metrics(sales_p)
+        exp_c = sum(float(e.get("amount") or 0) for e in expenses_c)
+        exp_p = sum(float(e.get("amount") or 0) for e in expenses_p)
+
+        gross_c = rev_c - cost_c
+        gross_p = rev_p - cost_p
+        margin_pct_c = round(gross_c / rev_c * 100, 1) if rev_c > 0 else 0
+        margin_pct_p = round(gross_p / rev_p * 100, 1) if rev_p > 0 else 0
+        net_c = gross_c - exp_c
+        net_p = gross_p - exp_p
+        avg_basket_c = round(rev_c / count_c) if count_c > 0 else 0
+        avg_basket_p = round(rev_p / count_p) if count_p > 0 else 0
+
+        # --- Fournisseurs ---
+        ord_total_c = sum(float(o.get("total_amount") or 0) for o in orders_c)
+        ord_total_p = sum(float(o.get("total_amount") or 0) for o in orders_p)
+        ord_status_c: Dict[str, int] = defaultdict(int)
+        supplier_spend: Dict[str, float] = defaultdict(float)
+        supplier_name_map: Dict[str, str] = {}
+        for o in orders_c:
+            ord_status_c[o.get("status") or "unknown"] += 1
+            key = o.get("supplier_id") or o.get("supplier_name") or "unknown"
+            supplier_spend[key] += float(o.get("total_amount") or 0)
+            if o.get("supplier_name"):
+                supplier_name_map[key] = o["supplier_name"]
+        top_suppliers_by_spend = sorted(supplier_spend.items(), key=lambda x: -x[1])[:5]
+
+        stock_value = sum(p.get("quantity", 0) * p.get("purchase_price", 0) for p in products)
+        turnover = round(cost_c / stock_value, 2) if stock_value > 0 else 0
+        out_of_stock = [p["name"] for p in products if p.get("quantity", 0) == 0 and p.get("name")]
+        low_stock = [p["name"] for p in products if 0 < p.get("quantity", 0) <= p.get("min_stock", 0) and p.get("name")]
+        deadstock_threshold = period_len.days
+        sold_pids = set(prod_sales_c.keys())
+        deadstock = [p["name"] for p in products if p.get("product_id") not in sold_pids and p.get("quantity", 0) > 0 and p.get("name")]
+
+        total_debt = sum(max(float(c.get("current_debt", 0) or 0), 0) for c in customers)
+        debt_ratio = round(total_debt / rev_c * 100, 1) if rev_c > 0 else 0
+
+        exp_by_cat: Dict[str, float] = defaultdict(float)
+        for e in expenses_c:
+            exp_by_cat[e.get("category") or "Autre"] += float(e.get("amount") or 0)
+
+        top_products = sorted(prod_sales_c.values(), key=lambda x: x["revenue"], reverse=True)[:10]
+        for tp in top_products:
+            tp["margin_pct"] = round((tp["revenue"] - tp["cost"]) / tp["revenue"] * 100, 1) if tp["revenue"] > 0 else 0
+
+        flop_products = sorted(
+            [p for p in products if p.get("name") and p.get("product_id") not in sold_pids and p.get("quantity", 0) > 0],
+            key=lambda p: p.get("quantity", 0) * p.get("purchase_price", 0),
+            reverse=True
+        )[:5]
+
+        def _delta(cur, prev):
+            if prev == 0:
+                return "+∞" if cur > 0 else "0"
+            d = round((cur - prev) / abs(prev) * 100, 1)
+            return f"+{d}%" if d >= 0 else f"{d}%"
+
+        top_cats = sorted(cat_rev_c.items(), key=lambda x: -x[1])[:5]
+        top_payments = sorted(pay_rev_c.items(), key=lambda x: -x[1])
+
+        restricted = [m for m, ok in [("ventes/caisse", can_sales), ("comptabilite", can_accounting), ("stock", can_stock), ("crm", can_crm), ("fournisseurs", can_suppliers)] if not ok]
+        result: Dict[str, Any] = {
+            "period": {"start": cur_start.strftime("%Y-%m-%d"), "end": cur_end.strftime("%Y-%m-%d"), "days": period_len.days},
+            "previous_period": {"start": prev_start.strftime("%Y-%m-%d"), "end": prev_end.strftime("%Y-%m-%d")},
+            "currency": self.currency,
+        }
+        if restricted:
+            result["access_restricted"] = f"Modules non accessibles pour cet utilisateur : {', '.join(restricted)}. Les KPIs correspondants ne sont pas disponibles."
+        if can_sales:
+            result["revenue"] = {"current": round(rev_c), "previous": round(rev_p), "delta": _delta(rev_c, rev_p)}
+            result["gross_margin"] = {"current_amount": round(gross_c), "current_pct": margin_pct_c, "previous_pct": margin_pct_p, "delta": _delta(margin_pct_c, margin_pct_p)}
+            result["sales_count"] = {"current": count_c, "previous": count_p, "delta": _delta(count_c, count_p)}
+            result["avg_basket"] = {"current": avg_basket_c, "previous": avg_basket_p, "currency": self.currency, "delta": _delta(avg_basket_c, avg_basket_p)}
+            result["top_categories"] = [{"category": cat, "revenue": round(rev)} for cat, rev in top_cats]
+            result["payment_methods"] = [{"method": pm, "revenue": round(rev), "pct": round(rev / rev_c * 100, 1) if rev_c > 0 else 0} for pm, rev in top_payments]
+            result["top_products"] = [{"name": p["name"], "revenue": round(p["revenue"]), "qty_sold": round(p["qty"]), "margin_pct": p["margin_pct"], "category": p["category"]} for p in top_products]
+        if can_accounting:
+            result["expenses"] = {"current": round(exp_c), "previous": round(exp_p), "delta": _delta(exp_c, exp_p), "by_category": {k: round(v) for k, v in sorted(exp_by_cat.items(), key=lambda x: -x[1])[:8]}}
+        if can_sales and can_accounting:
+            result["net_profit"] = {"current": round(net_c), "previous": round(net_p), "delta": _delta(net_c, net_p)}
+        if can_stock:
+            result["stock"] = {"total_products": len(products), "stock_value": round(stock_value), "turnover_ratio": turnover, "out_of_stock": len(out_of_stock), "out_of_stock_names": out_of_stock[:10], "low_stock": len(low_stock), "low_stock_names": low_stock[:10], "deadstock_count": len(deadstock), "deadstock_names": deadstock[:10]}
+            result["flop_products"] = [{"name": p.get("name"), "stock": p.get("quantity"), "stock_value": round(p.get("quantity", 0) * p.get("purchase_price", 0))} for p in flop_products]
+        if can_crm:
+            result["customer_debt"] = {"total": round(total_debt), "debt_ratio_pct": debt_ratio, "currency": self.currency}
+        if can_suppliers:
+            ord_delta = _delta(ord_total_c, ord_total_p)
+            ord_count_delta = _delta(len(orders_c), len(orders_p))
+            result["procurement"] = {
+                "orders_count": {"current": len(orders_c), "previous": len(orders_p), "delta": ord_count_delta},
+                "total_spend": {"current": round(ord_total_c), "previous": round(ord_total_p), "delta": ord_delta, "currency": self.currency},
+                "suppliers_count": len(suppliers),
+                "order_statuses": dict(ord_status_c),
+                "top_suppliers_by_spend": [
+                    {"id": sid, "name": supplier_name_map.get(sid, sid), "spend": round(amt)}
+                    for sid, amt in top_suppliers_by_spend
+                ],
+            }
+        return result
+
+    async def compare_periods(self, period_a_start: str, period_a_end: str, period_b_start: str, period_b_end: str):
+        """
+        Compare two arbitrary time periods across all business KPIs: revenue, margin, expenses, basket, stock, debt.
+        Use this whenever the user asks to compare months, weeks, quarters, or any two custom date ranges.
+        Args:
+            period_a_start: Start of period A in 'YYYY-MM-DD' format.
+            period_a_end: End of period A in 'YYYY-MM-DD' format.
+            period_b_start: Start of period B in 'YYYY-MM-DD' format.
+            period_b_end: End of period B in 'YYYY-MM-DD' format.
+        """
+        try:
+            a_start = datetime.strptime(period_a_start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            a_end = datetime.strptime(period_a_end, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=1)
+            b_start = datetime.strptime(period_b_start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            b_end = datetime.strptime(period_b_end, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=1)
+        except ValueError:
+            return {"error": "Format de date invalide. Utilise YYYY-MM-DD."}
+
+        ru = self.requesting_user
+        can_sales = ru is None or _user_has_module_access(ru, "pos", "accounting")
+        can_accounting = ru is None or _user_has_module_access(ru, "accounting")
+        can_suppliers = ru is None or _user_has_module_access(ru, "suppliers")
+
+        uid = self.user_id
+        sid = self.store_id
+        base_q: Dict[str, Any] = {"user_id": uid}
+        if sid:
+            base_q["store_id"] = sid
+
+        async def _period_kpis(p_start, p_end):
+            rev, cost, count, exp_total = 0.0, 0.0, 0, 0.0
+            if can_sales:
+                sales_q = {**base_q, "created_at": {"$gte": p_start, "$lt": p_end}, "status": {"$in": ["completed", "paid"]}}
+                sales = await db.sales.find(sales_q, {"_id": 0, "total_amount": 1, "items": 1}).to_list(10000)
+                for sale in sales:
+                    count += 1
+                    for item in (sale.get("items") or []):
+                        qty = float(item.get("quantity") or 0)
+                        rev += float(item.get("total") or 0) or (float(item.get("selling_price") or 0) * qty)
+                        cost += float(item.get("purchase_price") or 0) * qty
+            if can_accounting:
+                exp_q = {**base_q, "created_at": {"$gte": p_start, "$lt": p_end}}
+                exps = await db.expenses.find(exp_q, {"_id": 0, "amount": 1}).to_list(5000)
+                exp_total = sum(float(e.get("amount") or 0) for e in exps)
+            ord_total, ord_count = 0.0, 0
+            if can_suppliers:
+                ord_q = {**base_q, "created_at": {"$gte": p_start, "$lt": p_end}}
+                ords = await db.orders.find(ord_q, {"_id": 0, "total_amount": 1}).to_list(2000)
+                ord_count = len(ords)
+                ord_total = sum(float(o.get("total_amount") or 0) for o in ords)
+            gross = rev - cost
+            margin_pct = round(gross / rev * 100, 1) if rev > 0 else 0
+            net = gross - exp_total
+            avg_basket = round(rev / count) if count > 0 else 0
+            return {"revenue": round(rev), "cost": round(cost), "gross_margin": round(gross), "margin_pct": margin_pct, "expenses": round(exp_total), "net_profit": round(net), "sales_count": count, "avg_basket": avg_basket, "procurement_spend": round(ord_total), "procurement_orders": ord_count}
+
+        kpis_a, kpis_b = await asyncio.gather(_period_kpis(a_start, a_end), _period_kpis(b_start, b_end))
+
+        def _delta(va, vb):
+            if vb == 0:
+                return "+∞" if va > 0 else "0%"
+            d = round((va - vb) / abs(vb) * 100, 1)
+            return f"+{d}%" if d >= 0 else f"{d}%"
+
+        def _winner(va, vb, higher_is_better=True):
+            if va == vb:
+                return "égal"
+            if higher_is_better:
+                return "A" if va > vb else "B"
+            return "A" if va < vb else "B"
+
+        comparison = {}
+        lower_is_better = {"expenses", "procurement_spend"}
+        for key in kpis_a:
+            va, vb = kpis_a[key], kpis_b[key]
+            higher_better = key not in lower_is_better
+            comparison[key] = {"period_a": va, "period_b": vb, "delta_a_vs_b": _delta(va, vb), "better": _winner(va, vb, higher_better)}
+
+        result: Dict[str, Any] = {
+            "period_a": {"start": period_a_start, "end": period_a_end, "days": (a_end - a_start).days},
+            "period_b": {"start": period_b_start, "end": period_b_end, "days": (b_end - b_start).days},
+            "currency": self.currency,
+            "comparison": comparison,
+            "summary": {
+                "revenue_winner": comparison["revenue"]["better"],
+                "margin_winner": comparison["margin_pct"]["better"],
+                "net_profit_winner": comparison["net_profit"]["better"],
+                "expenses_winner": comparison["expenses"]["better"],
+            },
+        }
+        if not can_suppliers:
+            result["access_restricted_modules"] = (result.get("access_restricted_modules") or []) + ["fournisseurs"]
+        return result
+
+    async def get_top_products_analysis(self, days: int = 30, start_date: str = None, end_date: str = None, top_n: int = 10):
+        """
+        Detailed analysis of top and bottom performing products: revenue, margin, velocity, stock coverage, trend vs previous period.
+        Args:
+            days: Analysis period in days (default 30). Ignored if start_date is provided.
+            start_date: Start date in 'YYYY-MM-DD' format (optional).
+            end_date: End date in 'YYYY-MM-DD' format (optional).
+            top_n: Number of top products to return (default 10, max 20).
+        """
+        now = datetime.now(timezone.utc)
+        if start_date:
+            try:
+                cur_start = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                cur_end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=1) if end_date else now
+            except ValueError:
+                return {"error": "Format de date invalide. Utilise YYYY-MM-DD."}
+        else:
+            days = max(1, min(days, 365))
+            cur_end = now
+            cur_start = now - timedelta(days=days)
+
+        period_len = max(cur_end - cur_start, timedelta(days=1))
+        prev_start = cur_start - period_len
+        prev_end = cur_start
+        top_n = min(max(top_n, 1), 20)
+
+        ru = self.requesting_user
+        can_sales = ru is None or _user_has_module_access(ru, "pos", "accounting")
+        can_stock = ru is None or _user_has_module_access(ru, "stock")
+
+        if not can_sales and not can_stock:
+            return {"error": "Accès insuffisant. Les modules ventes et/ou stock sont requis pour cette analyse."}
+
+        uid = self.user_id
+        sid = self.store_id
+        base_q: Dict[str, Any] = {"user_id": uid}
+        if sid:
+            base_q["store_id"] = sid
+
+        sales_q_c = {**base_q, "created_at": {"$gte": cur_start, "$lte": cur_end}, "status": {"$in": ["completed", "paid"]}}
+        sales_q_p = {**base_q, "created_at": {"$gte": prev_start, "$lt": prev_end}, "status": {"$in": ["completed", "paid"]}}
+        sales_c = await db.sales.find(sales_q_c, {"_id": 0, "items": 1}).to_list(10000) if can_sales else []
+        sales_p = await db.sales.find(sales_q_p, {"_id": 0, "items": 1}).to_list(10000) if can_sales else []
+        products = await db.products.find(base_q, {"_id": 0, "product_id": 1, "name": 1, "quantity": 1, "purchase_price": 1, "selling_price": 1, "min_stock": 1, "category": 1}).to_list(5000) if can_stock else []
+        product_map = {p["product_id"]: p for p in products if p.get("product_id")}
+
+        def _aggregate(sales_docs):
+            agg: Dict[str, dict] = {}
+            for sale in sales_docs:
+                for item in (sale.get("items") or []):
+                    pid = item.get("product_id") or ""
+                    if not pid:
+                        continue
+                    qty = float(item.get("quantity") or 0)
+                    rev = float(item.get("total") or 0) or (float(item.get("selling_price") or 0) * qty)
+                    cost = float(item.get("purchase_price") or 0) * qty
+                    if pid not in agg:
+                        agg[pid] = {"revenue": 0.0, "cost": 0.0, "qty": 0.0, "name": item.get("name") or pid}
+                    agg[pid]["revenue"] += rev
+                    agg[pid]["cost"] += cost
+                    agg[pid]["qty"] += qty
+            return agg
+
+        agg_c = _aggregate(sales_c)
+        agg_p = _aggregate(sales_p)
+        total_rev = sum(v["revenue"] for v in agg_c.values()) or 1
+
+        enriched = []
+        for pid, data in agg_c.items():
+            p_info = product_map.get(pid) or {}
+            stock = p_info.get("quantity", 0)
+            velocity = data["qty"] / period_len.days if period_len.days > 0 else 0
+            days_cover = round(stock / velocity) if velocity > 0 else None
+            margin_pct = round((data["revenue"] - data["cost"]) / data["revenue"] * 100, 1) if data["revenue"] > 0 else 0
+            prev_rev = agg_p.get(pid, {}).get("revenue", 0)
+            trend = round((data["revenue"] - prev_rev) / prev_rev * 100, 1) if prev_rev > 0 else (100.0 if data["revenue"] > 0 else 0.0)
+            enriched.append({
+                "product_id": pid,
+                "name": data["name"],
+                "category": p_info.get("category") or "—",
+                "revenue": round(data["revenue"]),
+                "revenue_share_pct": round(data["revenue"] / total_rev * 100, 1),
+                "qty_sold": round(data["qty"]),
+                "margin_pct": margin_pct,
+                "velocity_per_day": round(velocity, 2),
+                "stock_current": stock,
+                "days_of_coverage": days_cover,
+                "trend_vs_prev_period": f"+{trend}%" if trend >= 0 else f"{trend}%",
+                "alert": "rupture_imminente" if days_cover is not None and days_cover < 7 else ("rupture_active" if stock == 0 else None),
+            })
+
+        top = sorted(enriched, key=lambda x: x["revenue"], reverse=True)[:top_n]
+        bottom = [p for p in products if p.get("product_id") not in agg_c and p.get("quantity", 0) > 0 and p.get("name")]
+        bottom_sorted = sorted(bottom, key=lambda p: p.get("quantity", 0) * p.get("purchase_price", 0), reverse=True)[:5]
+
+        return {
+            "period": {"start": cur_start.strftime("%Y-%m-%d"), "end": cur_end.strftime("%Y-%m-%d"), "days": period_len.days},
+            "currency": self.currency,
+            "top_products": top,
+            "no_sales_products": [{"name": p["name"], "stock": p.get("quantity"), "stock_value": round(p.get("quantity", 0) * p.get("purchase_price", 0))} for p in bottom_sorted],
+            "insights": {
+                "highest_margin": max(enriched, key=lambda x: x["margin_pct"], default={}).get("name"),
+                "lowest_margin": min(enriched, key=lambda x: x["margin_pct"], default={}).get("name"),
+                "fastest_moving": max(enriched, key=lambda x: x["velocity_per_day"], default={}).get("name"),
+                "at_risk_rupture": [p["name"] for p in enriched if p.get("alert")],
+            },
+        }
+
     async def get_subscription_snapshot(self):
         """
         Get the current subscription/trial status for the account.
@@ -23014,6 +23421,143 @@ class AiTools:
             "can_use_advanced_features": access_policy["can_use_advanced_features"],
             "billing_contact_name": source.get("billing_contact_name"),
             "billing_contact_email": source.get("billing_contact_email"),
+        }
+
+    async def get_business_health_score(self, days: int = 30):
+        """
+        Calculate and return the current business health score (0-100) with a full breakdown of each component, raw values, and concrete improvement actions.
+        Args:
+            days: Analysis period in days (default 30). Use 7 for a weekly view, 90 for a quarterly view.
+        """
+        if not self.requesting_user:
+            return {"error": "Utilisateur de contexte introuvable"}
+
+        owner_id = self.user_id
+        store_id = self.requesting_user.active_store_id
+        currency = (await db.users.find_one({"user_id": owner_id}, {"currency": 1}) or {}).get("currency", "XOF")
+
+        now = datetime.now(timezone.utc)
+        days = max(7, min(days, 90))
+        current_end = now
+        current_start = now - timedelta(days=days)
+        previous_start = current_start - timedelta(days=days)
+        previous_end = current_start
+
+        def _sale_metrics(sales_docs):
+            revenue, cost = 0.0, 0.0
+            for sale in sales_docs:
+                for item in (sale.get("items") or []):
+                    qty = float(item.get("quantity") or 0)
+                    revenue += float(item.get("total") or 0) or (float(item.get("selling_price") or 0) * qty)
+                    cost += float(item.get("purchase_price") or 0) * qty
+            return revenue, cost
+
+        base_q: Dict[str, Any] = {"user_id": owner_id}
+        if store_id:
+            base_q["store_id"] = store_id
+
+        products = await db.products.find(base_q, {"_id": 0, "quantity": 1, "purchase_price": 1}).to_list(5000)
+        sales_q_cur = {**base_q, "created_at": {"$gte": current_start, "$lte": current_end}, "status": {"$in": ["completed", "paid"]}}
+        sales_q_prev = {**base_q, "created_at": {"$gte": previous_start, "$lt": previous_end}, "status": {"$in": ["completed", "paid"]}}
+        sales_cur = await db.sales.find(sales_q_cur, {"_id": 0, "total_amount": 1, "items": 1}).to_list(5000)
+        sales_prev = await db.sales.find(sales_q_prev, {"_id": 0, "total_amount": 1, "items": 1}).to_list(5000)
+        customers = await db.customers.find(base_q, {"_id": 0, "current_debt": 1}).to_list(5000)
+
+        revenue_cur, cost_cur = _sale_metrics(sales_cur)
+        revenue_prev, _ = _sale_metrics(sales_prev)
+
+        # 1. Marge brute (30%)
+        margin_pct = (revenue_cur - cost_cur) / revenue_cur * 100 if revenue_cur > 0 else 0
+        margin_score = min(max(margin_pct / 50 * 100, 0), 100)
+
+        # 2. Rotation stock (20%)
+        stock_value = sum(p.get("quantity", 0) * p.get("purchase_price", 0) for p in products)
+        turnover = (cost_cur / stock_value) if stock_value > 0 else 0
+        rotation_score = min(turnover / 2 * 100, 100)
+
+        # 3. Poids dettes clients (20%)
+        total_debt = sum(max(float(c.get("current_debt", 0) or 0), 0) for c in customers)
+        debt_ratio = (total_debt / revenue_cur) if revenue_cur > 0 else 0
+        debt_score = max(100 - debt_ratio * 200, 0)
+
+        # 4. Tendance CA (30%)
+        if revenue_prev > 0:
+            trend_pct = (revenue_cur - revenue_prev) / revenue_prev * 100
+        else:
+            trend_pct = 100.0 if revenue_cur > 0 else 0.0
+        trend_score = min(max(50 + trend_pct, 0), 100)
+
+        score = round(margin_score * 0.30 + rotation_score * 0.20 + debt_score * 0.20 + trend_score * 0.30)
+        score = min(max(score, 0), 100)
+        grade = "excellent" if score >= 80 else "bon" if score >= 60 else "moyen" if score >= 40 else "critique"
+        color = "green" if score >= 70 else "orange" if score >= 40 else "red"
+
+        def _actions(component: str, val: float) -> list:
+            if component == "margin":
+                if val < 20:
+                    return ["Renégocier les prix d'achat fournisseurs (priorité absolue)", "Identifier les produits vendus en dessous de leur prix de revient", "Augmenter les prix sur les produits peu concurrentiels"]
+                if val < 40:
+                    return ["Revoir la grille tarifaire sur les catégories à faible marge", "Proposer des bundles pour augmenter le panier moyen", "Identifier les 20% de produits qui font 80% de la marge"]
+                return ["Maintenir la stratégie tarifaire actuelle", "Surveiller les hausses de prix d'achat fournisseurs"]
+            if component == "rotation":
+                if val < 0.5:
+                    return ["Identifier les produits dormants (>60 jours sans vente)", "Lancer une promotion de déstockage sur les références lentes", "Réduire les quantités commandées sur les produits peu vendus"]
+                if val < 1.0:
+                    return ["Optimiser les niveaux de stock min/max", "Aligner les quantités commandées sur la vélocité réelle"]
+                return ["Rotation saine, maintenir le niveau de réapprovisionnement actuel"]
+            if component == "debt":
+                if val > 0.3:
+                    return ["Relancer immédiatement les clients avec des dettes > 30 jours", "Instaurer un plafond de crédit par client", "Exiger un acompte sur les prochaines commandes des mauvais payeurs"]
+                if val > 0.1:
+                    return ["Envoyer des rappels de paiement aux clients en retard", "Vérifier les conditions de paiement dans les fiches clients"]
+                return ["Recouvrement sain, continuer le suivi régulier"]
+            if component == "trend":
+                if val < -20:
+                    return ["Analyser les causes de la baisse (saisonnalité, concurrence, stock ?)", "Relancer les clients inactifs avec une offre promotionnelle", "Vérifier si des ruptures de stock ont freiné les ventes"]
+                if val < 0:
+                    return ["Surveiller la tendance semaine par semaine", "Identifier les catégories en baisse vs celles en hausse"]
+                return ["CA en progression, capitaliser sur les produits qui tirent la croissance"]
+            return []
+
+        return {
+            "score": score,
+            "grade": grade,
+            "color": color,
+            "period_days": days,
+            "currency": currency,
+            "components": {
+                "margin": {
+                    "label": "Marge brute", "weight_pct": 30,
+                    "score": round(margin_score), "value": round(margin_pct, 1), "unit": "%",
+                    "interpretation": f"Marge de {round(margin_pct,1)}% sur {days} jours. Cible recommandée : >30%.",
+                    "actions": _actions("margin", margin_pct),
+                },
+                "rotation": {
+                    "label": "Rotation stock", "weight_pct": 20,
+                    "score": round(rotation_score), "value": round(turnover, 2), "unit": "x/mois",
+                    "interpretation": f"Rotation de {round(turnover,2)}x ce mois (stock_value={round(stock_value)} {currency}). Cible : >1x/mois.",
+                    "actions": _actions("rotation", turnover),
+                },
+                "debt_recovery": {
+                    "label": "Poids dettes clients", "weight_pct": 20,
+                    "score": round(debt_score), "value": round(total_debt), "unit": currency,
+                    "debt_ratio_pct": round(debt_ratio * 100, 1),
+                    "interpretation": f"Dettes clients : {round(total_debt)} {currency} soit {round(debt_ratio*100,1)}% du CA. Cible : <10%.",
+                    "actions": _actions("debt", debt_ratio),
+                },
+                "trend": {
+                    "label": "Tendance CA", "weight_pct": 30,
+                    "score": round(trend_score), "value": round(trend_pct, 1), "unit": "%",
+                    "revenue_current": round(revenue_cur), "revenue_previous": round(revenue_prev),
+                    "interpretation": f"CA {'+' if trend_pct >= 0 else ''}{round(trend_pct,1)}% vs période précédente ({round(revenue_prev)} → {round(revenue_cur)} {currency}).",
+                    "actions": _actions("trend", trend_pct),
+                },
+            },
+            "summary": f"Score de santé : {score}/100 ({grade}). " + (
+                "Les points forts sont à maintenir. " if score >= 70 else
+                "Des améliorations ciblées peuvent rapidement faire progresser le score. " if score >= 40 else
+                "Situation critique — actions immédiates recommandées. "
+            ),
         }
 
     async def get_feature_access_guidance(self, feature: str, platform: Optional[str] = None):
@@ -23340,6 +23884,33 @@ async def _get_ai_data_summary(
         sections: List[str] = []
 
         if can_read_sales or can_read_accounting:
+            # Pre-compute business health score components for AI context
+            sixty_days_ago = now - timedelta(days=60)
+            prev_query: Dict[str, Any] = {"user_id": user_id, "created_at": {"$gte": sixty_days_ago, "$lt": thirty_days_ago}}
+            if store_id:
+                prev_query["store_id"] = store_id
+            sales_prev_30d = await db.sales.find(prev_query, {"_id": 0, "total_amount": 1, "items": 1}).to_list(5000) if can_read_sales else []
+            prev_revenue = 0.0
+            prev_cost = 0.0
+            for sale in sales_prev_30d:
+                for item in (sale.get("items") or []):
+                    qty = float(item.get("quantity") or 0)
+                    prev_revenue += float(item.get("total") or 0) or (float(item.get("selling_price") or 0) * qty)
+                    prev_cost += float(item.get("purchase_price") or 0) * qty
+
+            stock_value_for_score = sum(p.get("quantity", 0) * p.get("purchase_price", 0) for p in products) if can_read_stock else 0
+            total_debt_for_score = sum(max(float(c.get("current_debt", 0) or 0), 0) for c in customers) if can_read_crm else 0
+
+            _margin_score = min(max(margin_pct / 50 * 100, 0), 100)
+            _turnover = (total_cogs / stock_value_for_score) if stock_value_for_score > 0 else 0
+            _rotation_score = min(_turnover / 2 * 100, 100)
+            _debt_ratio = (total_debt_for_score / total_revenue) if total_revenue > 0 else 0
+            _debt_score = max(100 - _debt_ratio * 200, 0)
+            _trend_pct = ((total_revenue - prev_revenue) / prev_revenue * 100) if prev_revenue > 0 else (100.0 if total_revenue > 0 else 0.0)
+            _trend_score = min(max(50 + _trend_pct, 0), 100)
+            _health_score = round(_margin_score * 0.30 + _rotation_score * 0.20 + _debt_score * 0.20 + _trend_score * 0.30)
+            _health_grade = "excellent" if _health_score >= 80 else "bon" if _health_score >= 60 else "moyen" if _health_score >= 40 else "critique"
+
             sections.append(
                 "--- PERFORMANCE (30 JOURS) ---\n"
                 f"CA: {total_revenue:.0f} {currency} | Ventes: {len(sales)} | "
@@ -23348,6 +23919,15 @@ async def _get_ai_data_summary(
                 f"Depenses: {total_expenses:.0f} {currency} | Resultat net: "
                 f"{net_profit:.0f} {currency} ({net_margin_pct}%)\n"
                 f"Modes de paiement: {payment_summary}"
+            )
+            sections.append(
+                "--- SCORE SANTE BUSINESS (PRE-CALCULE) ---\n"
+                f"Score: {_health_score}/100 ({_health_grade})\n"
+                f"Marge brute: {margin_pct}% → score {round(_margin_score)}/100 (poids 30%)\n"
+                f"Rotation stock: {round(_turnover, 2)}x/mois → score {round(_rotation_score)}/100 (poids 20%)\n"
+                f"Dettes clients: {round(total_debt_for_score)} {currency} ({round(_debt_ratio*100,1)}% du CA) → score {round(_debt_score)}/100 (poids 20%)\n"
+                f"Tendance CA: {'+' if _trend_pct >= 0 else ''}{round(_trend_pct,1)}% vs periode precedente ({round(prev_revenue)} → {round(total_revenue)} {currency}) → score {round(_trend_score)}/100 (poids 30%)\n"
+                f"Note: Pour un analyse detaillee avec actions concretes, utilise l'outil get_business_health_score."
             )
             sections.append(
                 "--- METHODES DE CALCUL ---\n"

@@ -5,6 +5,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { SyncAction, syncService } from './sync';
 
 import Constants from 'expo-constants';
+import { getLocales } from 'expo-localization';
 
 const getApiUrl = () => {
   // 1. If explicitly set in environment, always use it (prod builds via eas.json)
@@ -2987,9 +2988,19 @@ export type DemoSessionResponse = {
   demo_session: DemoSessionInfo;
 };
 
+function detectCountryCode(): string | undefined {
+  try {
+    const locales = getLocales();
+    // e.g. "fr-FR" → "FR", "en-US" → "US"
+    const region = locales[0]?.regionCode;
+    if (region) return region.toUpperCase();
+  } catch {}
+  return undefined;
+}
+
 export const demo = {
-  createSession: (demoType: string) =>
-    request<DemoSessionResponse>('/demo/session', { method: 'POST', body: { demo_type: demoType } }),
+  createSession: (demoType: string, countryCode?: string) =>
+    request<DemoSessionResponse>('/demo/session', { method: 'POST', body: { demo_type: demoType, country_code: countryCode ?? detectCountryCode() } }),
   getCurrentSession: () => request<DemoSessionInfo>('/demo/session/me'),
   captureContact: (email: string) =>
     request<DemoSessionInfo>('/demo/session/contact', { method: 'POST', body: { email } }),

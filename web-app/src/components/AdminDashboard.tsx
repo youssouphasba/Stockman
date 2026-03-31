@@ -2414,6 +2414,56 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Par pays</h3>
+                            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                {Object.entries(demoOverview.by_country || {}).map(([country, count]: [string, any]) => {
+                                    const total = demoOverview.total_sessions || 1;
+                                    const pct = Math.round((count / total) * 100);
+                                    return (
+                                        <div key={country} className="flex items-center gap-3 text-sm">
+                                            <span className="text-slate-400 w-8 text-right font-mono">{country === 'unknown' ? '—' : country}</span>
+                                            <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                                                <div className="h-full rounded-full bg-primary/60" style={{ width: `${pct}%` }} />
+                                            </div>
+                                            <span className="text-white font-black w-6 text-right">{count}</span>
+                                            <span className="text-slate-600 text-xs w-8">{pct}%</span>
+                                        </div>
+                                    );
+                                })}
+                                {!Object.keys(demoOverview.by_country || {}).length && (
+                                    <p className="text-slate-600 text-sm">Aucune donnee pays. Les nouvelles sessions captureront le pays.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-6">
+                            <h3 className="text-base font-black text-white uppercase tracking-tighter mb-4">Par devise</h3>
+                            <div className="space-y-3">
+                                {Object.entries(demoOverview.by_currency || {}).map(([currency, count]: [string, any]) => {
+                                    const total = demoOverview.total_sessions || 1;
+                                    const pct = Math.round((count / total) * 100);
+                                    const colorMap: Record<string, string> = { XOF: 'bg-emerald-500', XAF: 'bg-teal-500', EUR: 'bg-sky-500', USD: 'bg-violet-500', GNF: 'bg-amber-500', CDF: 'bg-orange-500' };
+                                    const barColor = colorMap[currency] || 'bg-slate-500';
+                                    return (
+                                        <div key={currency} className="flex items-center gap-3 text-sm">
+                                            <span className="text-slate-300 font-black w-10">{currency === 'unknown' ? '—' : currency}</span>
+                                            <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                                                <div className={`h-full rounded-full ${barColor} opacity-70`} style={{ width: `${pct}%` }} />
+                                            </div>
+                                            <span className="text-white font-black w-6 text-right">{count}</span>
+                                            <span className="text-slate-600 text-xs w-8">{pct}%</span>
+                                        </div>
+                                    );
+                                })}
+                                {!Object.keys(demoOverview.by_currency || {}).length && (
+                                    <p className="text-slate-600 text-sm">Aucune donnee devise. Les nouvelles sessions captureront la devise choisie.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="glass-card p-5 flex flex-col xl:flex-row gap-3 xl:items-center">
                         <div className="relative flex-1">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />

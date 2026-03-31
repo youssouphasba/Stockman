@@ -44,6 +44,7 @@ import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
 import { AnalyticsFiltersProvider } from "../contexts/AnalyticsFiltersContext";
 import GlobalFiltersBar from "../components/analytics/GlobalFiltersBar";
 import { BUSINESS_TYPE_GROUP_IDS, MOBILE_APP_URL, PLAN_COMPARISON_ROWS } from "../data/marketing";
+import { DEMO_COUNTRIES } from "../data/demoCurrencies";
 
 export default function Home() {
   const { t, ready, i18n } = useTranslation();
@@ -98,6 +99,9 @@ export default function Home() {
   const parsedDemoIntent = useRef(false);
 
   const [showSignup, setShowSignup] = useState(false);
+  const [showDemoCurrencyPicker, setShowDemoCurrencyPicker] = useState(false);
+  const [pendingDemoType, setPendingDemoType] = useState<string | null>(null);
+  const [demoCountrySearch, setDemoCountrySearch] = useState('');
   const [demoSessionInfo, setDemoSessionInfo] = useState<DemoSessionInfo | null>(null);
   const [showDemoLeadPrompt, setShowDemoLeadPrompt] = useState(false);
   const [demoLeadEmail, setDemoLeadEmail] = useState('');
@@ -129,7 +133,7 @@ export default function Home() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const TAB_GUIDE_KEYS: Record<string, string> = {
-    dashboard: 'dashboard_tour',
+    dashboard: isRestaurantBusiness ? 'dashboard_tour' : 'executive_dashboard_tour',
     pos: 'pos_tour',
     inventory: 'inventory_tour',
     locations: 'locations_tour',
@@ -205,19 +209,9 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => {
-    const demoIntent = searchParams.get('demo');
-    if (!demoIntent || parsedDemoIntent.current) return;
-
-    if (demoIntent !== 'enterprise') {
-      clearQueryParam('demo');
-      parsedDemoIntent.current = true;
-      return;
-    }
-
-    if (initialLoading || isLogged || demoBootLoading) return;
-
-    parsedDemoIntent.current = true;
+  const launchDemo = useCallback((demoType: string, countryCode: string) => {
+    setShowDemoCurrencyPicker(false);
+    setPendingDemoType(null);
     let cancelled = false;
     setDemoBootLoading(true);
     setError(null);
@@ -231,7 +225,7 @@ export default function Home() {
       }
     }, 15000);
 
-    demoApi.createSession('enterprise')
+    demoApi.createSession(demoType, countryCode)
       .then((payload) => {
         if (cancelled) return;
         hydrateAuthenticatedUser(payload.user);
@@ -255,7 +249,25 @@ export default function Home() {
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [clearQueryParam, demoBootLoading, hydrateAuthenticatedUser, initialLoading, isLogged, searchParams]);
+  }, [clearQueryParam, hydrateAuthenticatedUser]);
+
+  useEffect(() => {
+    const demoIntent = searchParams.get('demo');
+    if (!demoIntent || parsedDemoIntent.current) return;
+
+    if (demoIntent !== 'enterprise') {
+      clearQueryParam('demo');
+      parsedDemoIntent.current = true;
+      return;
+    }
+
+    if (initialLoading || isLogged || demoBootLoading) return;
+
+    parsedDemoIntent.current = true;
+    clearQueryParam('demo');
+    setPendingDemoType('enterprise');
+    setShowDemoCurrencyPicker(true);
+  }, [clearQueryParam, demoBootLoading, initialLoading, isLogged, searchParams]);
 
   useEffect(() => {
     void loadUser();
@@ -910,8 +922,63 @@ export default function Home() {
     );
   }
 
+  const filteredDemoCountries = demoCountrySearch.trim()
+    ? DEMO_COUNTRIES.filter(c =>
+        c.name.toLowerCase().includes(demoCountrySearch.toLowerCase()) ||
+        c.code.toLowerCase().includes(demoCountrySearch.toLowerCase()) ||
+        c.currencyLabel.toLowerCase().includes(demoCountrySearch.toLowerCase())
+      )
+    : DEMO_COUNTRIES;
+
   return (
     <>
+      {showDemoCurrencyPicker && pendingDemoType && (
+        <div className="fixed inset-0 z-[80] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#111827] shadow-2xl shadow-black/40 flex flex-col max-h-[85vh]">
+            <div className="px-6 py-5 border-b border-white/10 bg-white/5 shrink-0">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-primary font-black mb-1">Démo {pendingDemoType}</p>
+              <h2 className="text-xl font-black text-white tracking-tight">Choisissez votre pays</h2>
+              <p className="text-sm text-slate-400 mt-1">La démo utilisera votre devise locale.</p>
+            </div>
+            <div className="px-4 pt-4 shrink-0">
+              <input
+                type="text"
+                autoFocus
+                value={demoCountrySearch}
+                onChange={e => setDemoCountrySearch(e.target.value)}
+                placeholder="Rechercher un pays ou une devise…"
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-primary/40"
+              />
+            </div>
+            <div className="overflow-y-auto px-4 py-3 space-y-1 flex-1 min-h-0">
+              {filteredDemoCountries.length === 0 && (
+                <p className="text-sm text-slate-500 text-center py-6">Aucun résultat</p>
+              )}
+              {filteredDemoCountries.map(country => (
+                <button
+                  key={country.code}
+                  type="button"
+                  onClick={() => { setDemoCountrySearch(''); launchDemo(pendingDemoType, country.code); }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/5 transition-colors group"
+                >
+                  <span className="text-2xl leading-none">{country.flag}</span>
+                  <span className="flex-1 text-sm text-white font-medium">{country.name}</span>
+                  <span className="text-xs font-black text-slate-400 group-hover:text-primary transition-colors">{country.currencyLabel}</span>
+                </button>
+              ))}
+            </div>
+            <div className="px-4 pb-4 pt-2 border-t border-white/10 shrink-0">
+              <button
+                type="button"
+                onClick={() => { setShowDemoCurrencyPicker(false); setPendingDemoType(null); setDemoCountrySearch(''); }}
+                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-300 font-semibold hover:bg-white/10 transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="min-h-screen flex items-center justify-center p-6 bg-[#0F172A]">
         <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
