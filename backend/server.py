@@ -5622,6 +5622,110 @@ async def admin_subscription_accounts(
     return {"items": paged_items, "total": total}
 
 
+@admin_router.get("/stats/mrr")
+async def admin_mrr_stats(months: int = 12, user: User = Depends(require_superadmin)):
+    """MRR breakdown: monthly payment volume by plan + current MRR by plan."""
+    months = max(1, min(months, 24))
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=months * 31)
+
+    # Monthly payments from subscription_events
+    events = await db.subscription_events.find(
+        {"event_type": "payment_succeeded", "created_at": {"$gte": since}},
+        {"_id": 0, "created_at": 1, "amount": 1, "currency": 1, "plan": 1, "source": 1},
+    ).to_list(None)
+
+    # Group by YYYY-MM and plan
+    monthly: Dict[str, Dict[str, Any]] = {}
+    for ev in events:
+        dt = ev.get("created_at")
+        if not dt:
+            continue
+        dt_aware = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        month_key = dt_aware.strftime("%Y-%m")
+        plan = (ev.get("plan") or "unknown").lower()
+        currency = (ev.get("currency") or "XOF").upper()
+        amount = float(_decimal_or_zero(ev.get("amount")))
+        if month_key not in monthly:
+            monthly[month_key] = {"month": month_key, "total": {}, "by_plan": {}}
+        monthly[month_key]["total"][currency] = monthly[month_key]["total"].get(currency, 0) + amount
+        if plan not in monthly[month_key]["by_plan"]:
+            monthly[month_key]["by_plan"][plan] = {}
+        monthly[month_key]["by_plan"][plan][currency] = monthly[month_key]["by_plan"][plan].get(currency, 0) + amount
+
+    # Current MRR by plan (active paid accounts)
+    accounts = await db.business_accounts.find(
+        {"subscription_status": "active"},
+        {"_id": 0, "plan": 1, "currency": 1, "country_code": 1},
+    ).to_list(None)
+    current_mrr: Dict[str, Dict[str, float]] = {}
+    for acc in accounts:
+        plan = (acc.get("plan") or "starter").lower()
+        resolved = resolve_plan_amount(plan, acc.get("currency"), country_code=acc.get("country_code"))
+        currency = resolved["currency"]
+        amount = float(_decimal_or_zero(resolved["amount"]))
+        if plan not in current_mrr:
+            current_mrr[plan] = {}
+        current_mrr[plan][currency] = current_mrr[plan].get(currency, 0) + amount
+
+    sorted_months = sorted(monthly.values(), key=lambda x: x["month"])
+    return {"monthly": sorted_months, "current_mrr_by_plan": current_mrr}
+
+
+@admin_router.get("/stats/retention")
+async def admin_retention_stats(months: int = 12, user: User = Depends(require_superadmin)):
+    """Monthly signups, churns (expired/cancelled), and net growth."""
+    months = max(1, min(months, 24))
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=months * 31)
+
+    # Signups by month
+    new_users = await db.users.find(
+        {"role": "shopkeeper", "created_at": {"$gte": since}},
+        {"_id": 0, "created_at": 1, "plan": 1},
+    ).to_list(None)
+
+    # Churn events (subscription expired / cancelled) by month
+    churn_events = await db.subscription_events.find(
+        {"event_type": {"$in": ["subscription_expired", "subscription_cancelled", "payment_failed"]}, "created_at": {"$gte": since}},
+        {"_id": 0, "created_at": 1, "event_type": 1, "plan": 1},
+    ).to_list(None)
+
+    monthly: Dict[str, Dict[str, int]] = {}
+
+    def _get_month(dt: Any) -> str:
+        if not dt:
+            return "unknown"
+        dt_aware = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        return dt_aware.strftime("%Y-%m")
+
+    for u in new_users:
+        m = _get_month(u.get("created_at"))
+        if m not in monthly:
+            monthly[m] = {"month": m, "signups": 0, "churns": 0}
+        monthly[m]["signups"] += 1
+
+    for ev in churn_events:
+        m = _get_month(ev.get("created_at"))
+        if m not in monthly:
+            monthly[m] = {"month": m, "signups": 0, "churns": 0}
+        monthly[m]["churns"] += 1
+
+    # Fill missing months in range with zeros
+    result = []
+    for i in range(months):
+        target = now - timedelta(days=(months - 1 - i) * 31)
+        m = target.strftime("%Y-%m")
+        entry = monthly.get(m, {"month": m, "signups": 0, "churns": 0})
+        entry["net"] = entry["signups"] - entry["churns"]
+        result.append(entry)
+
+    # Total active shopkeepers today
+    total_active = await db.users.count_documents({"role": "shopkeeper", "is_active": {"$ne": False}})
+
+    return {"monthly": result, "total_active_today": total_active}
+
+
 @admin_router.get("/subscriptions/events")
 async def admin_subscription_events(
     provider: Optional[str] = None,
@@ -6068,6 +6172,43 @@ async def admin_toggle_user(user_id: str):
         {"$set": {"is_active": new_status}}
     )
     return {"user_id": user_id, "is_active": new_status}
+
+class AdminUserNoteRequest(BaseModel):
+    note: str
+
+@admin_router.put("/users/{user_id}/note")
+async def admin_set_user_note(user_id: str, data: AdminUserNoteRequest, user: User = Depends(require_superadmin)):
+    await db.users.update_one({"user_id": user_id}, {"$set": {"admin_note": data.note}})
+    return {"user_id": user_id, "admin_note": data.note}
+
+
+class AdminFeatureFlagsRequest(BaseModel):
+    flags: Dict[str, bool]
+
+@admin_router.put("/users/{user_id}/feature-flags")
+async def admin_set_feature_flags(user_id: str, data: AdminFeatureFlagsRequest, user: User = Depends(require_superadmin)):
+    """Set per-user feature flag overrides. Flags are merged with existing ones."""
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {f"feature_flags.{k}": v for k, v in data.flags.items()}}
+    )
+    updated = await db.users.find_one({"user_id": user_id}, {"_id": 0, "feature_flags": 1})
+    return {"user_id": user_id, "feature_flags": updated.get("feature_flags", {})}
+
+
+class AdminCustomLimitsRequest(BaseModel):
+    limits: Dict[str, Any]
+
+@admin_router.put("/users/{user_id}/custom-limits")
+async def admin_set_custom_limits(user_id: str, data: AdminCustomLimitsRequest, user: User = Depends(require_superadmin)):
+    """Override plan limits for a specific user (max_stores, max_users, ai_calls_monthly, etc.)"""
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {f"custom_limits.{k}": v for k, v in data.limits.items()}}
+    )
+    updated = await db.users.find_one({"user_id": user_id}, {"_id": 0, "custom_limits": 1})
+    return {"user_id": user_id, "custom_limits": updated.get("custom_limits", {})}
+
 
 class BroadcastMessage(BaseModel):
     title: str = "Stockman"
@@ -11049,6 +11190,100 @@ async def admin_catalog_assistant(
     user: User = Depends(require_superadmin),
 ):
     return await catalog_service.admin_assistant(catalog_id=catalog_id)
+
+
+@admin_router.get("/stats/catalog-adoption")
+async def admin_catalog_adoption(limit: int = 50, user: User = Depends(require_superadmin)):
+    """Top catalog products by adoption count (number of stores using them)."""
+    limit = max(1, min(limit, 200))
+    pipeline = [
+        {"$group": {"_id": "$catalog_id", "adoption_count": {"$sum": 1}, "user_count": {"$addToSet": "$user_id"}}},
+        {"$addFields": {"unique_users": {"$size": "$user_count"}}},
+        {"$sort": {"adoption_count": -1}},
+        {"$limit": limit},
+    ]
+    rows = await db.catalog_product_mappings.aggregate(pipeline).to_list(limit)
+
+    # Enrich with catalog product names
+    catalog_ids = [r["_id"] for r in rows if r["_id"]]
+    catalog_docs = await db.global_catalog.find(
+        {"catalog_id": {"$in": catalog_ids}},
+        {"_id": 0, "catalog_id": 1, "display_name": 1, "sector": 1, "category": 1, "is_published": 1},
+    ).to_list(None)
+    catalog_map = {d["catalog_id"]: d for d in catalog_docs}
+
+    result = []
+    for r in rows:
+        cid = r["_id"]
+        doc = catalog_map.get(cid, {})
+        result.append({
+            "catalog_id": cid,
+            "display_name": doc.get("display_name", cid),
+            "sector": doc.get("sector", ""),
+            "category": doc.get("category", ""),
+            "is_published": doc.get("is_published", False),
+            "adoption_count": r["adoption_count"],
+            "unique_users": r["unique_users"],
+        })
+    return result
+
+
+@admin_router.get("/stats/api-health")
+async def admin_api_health(days: int = 7, user: User = Depends(require_superadmin)):
+    """Activity breakdown by module + AI endpoint latency stats."""
+    days = max(1, min(days, 90))
+    since = datetime.utcnow() - timedelta(days=days)
+
+    # Activity by module
+    pipeline_modules = [
+        {"$match": {"created_at": {"$gte": since}}},
+        {"$group": {"_id": "$module", "count": {"$sum": 1}, "last_at": {"$max": "$created_at"}}},
+        {"$sort": {"count": -1}},
+    ]
+    module_stats = await db.activity_logs.aggregate(pipeline_modules).to_list(50)
+
+    # Activity by day (last 7d)
+    pipeline_daily = [
+        {"$match": {"created_at": {"$gte": since}}},
+        {"$group": {"_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}}, "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}},
+    ]
+    daily_activity = await db.activity_logs.aggregate(pipeline_daily).to_list(90)
+
+    # AI latency stats
+    pipeline_ai = [
+        {"$match": {"created_at": {"$gte": since}, "latency_ms": {"$exists": True, "$ne": None}}},
+        {"$group": {
+            "_id": "$feature",
+            "calls": {"$sum": 1},
+            "avg_latency": {"$avg": "$latency_ms"},
+            "max_latency": {"$max": "$latency_ms"},
+            "errors": {"$sum": {"$cond": [{"$eq": ["$success", False]}, 1, 0]}},
+        }},
+        {"$sort": {"calls": -1}},
+        {"$limit": 20},
+    ]
+    ai_latency = await db.ai_usage_logs.aggregate(pipeline_ai).to_list(20)
+
+    total_activity = sum(m["count"] for m in module_stats)
+
+    return {
+        "window_days": days,
+        "total_events": total_activity,
+        "by_module": [{"module": m["_id"] or "unknown", "count": m["count"], "last_at": m.get("last_at")} for m in module_stats],
+        "daily_activity": [{"date": d["_id"], "count": d["count"]} for d in daily_activity],
+        "ai_latency": [
+            {
+                "feature": a["_id"] or "unknown",
+                "calls": a["calls"],
+                "avg_latency_ms": round(a["avg_latency"] or 0),
+                "max_latency_ms": a["max_latency"] or 0,
+                "errors": a["errors"],
+                "error_rate": round((a["errors"] / a["calls"]) * 100, 1) if a["calls"] > 0 else 0,
+            }
+            for a in ai_latency
+        ],
+    }
 
 
 @admin_router.put("/catalog/{catalog_id}")

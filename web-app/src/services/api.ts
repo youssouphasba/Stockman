@@ -2480,6 +2480,8 @@ export const admin = {
     bulkSetUserPlan: (userIds: string[], plan: string) => request<any>('/admin/users/bulk-plan', { method: 'POST', body: { user_ids: userIds, plan } }),
     updateUserNote: (userId: string, note: string) => request<any>(`/admin/users/${userId}/note`, { method: 'PUT', body: { note } }),
     getUserDetail: (userId: string) => request<any>(`/admin/users/${userId}/detail`),
+    setFeatureFlags: (userId: string, flags: Record<string, boolean>) => request<any>(`/admin/users/${userId}/feature-flags`, { method: 'PUT', body: { flags } }),
+    setCustomLimits: (userId: string, limits: Record<string, number>) => request<any>(`/admin/users/${userId}/custom-limits`, { method: 'PUT', body: { limits } }),
     toggleProduct: (id: string) => request<any>(`/admin/products/${id}/toggle`, { method: 'PUT' }),
     deleteProduct: (id: string) => request<any>(`/admin/products/${id}`, { method: 'DELETE' }),
     listTickets: (status?: string) => request<any[]>(`/admin/support/tickets${status ? `?status=${status}` : ''}`),
@@ -2487,6 +2489,10 @@ export const admin = {
     closeTicket: (id: string) => request<any>(`/admin/support/tickets/${id}/close`, { method: 'POST' }),
     listLogs: (module?: string, skip = 0, limit = 100) => request<any[]>(`/admin/logs?${module ? `module=${module}&` : ''}skip=${skip}&limit=${limit}`),
     getUserLogs: (userId: string, limit = 50) => request<any[]>(`/admin/logs?user_id=${encodeURIComponent(userId)}&limit=${limit}`),
+    getMrrStats: (months = 12) => request<any>(`/admin/stats/mrr?months=${months}`),
+    getRetentionStats: (months = 12) => request<any>(`/admin/stats/retention?months=${months}`),
+    getCatalogAdoption: (limit = 50) => request<any[]>(`/admin/stats/catalog-adoption?limit=${limit}`),
+    getApiHealth: (days = 7) => request<any>(`/admin/stats/api-health?days=${days}`),
     // Disputes
     listDisputes: (params?: { status?: string; type?: string; skip?: number; limit?: number }) => {
         const query = toQueryString(params as Record<string, unknown> | undefined);

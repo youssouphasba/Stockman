@@ -145,7 +145,7 @@ function formatRemainingDuration(seconds: number | null) {
 }
 
 export default function AdminDashboard() {
-    const [activeSection, setActiveSection] = useState<'overview' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies'>('overview');
+    const [activeSection, setActiveSection] = useState<'overview' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring'>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [onboardingStats, setOnboardingStats] = useState<any>(null);
@@ -202,6 +202,20 @@ export default function AdminDashboard() {
     const [detailLoading, setDetailLoading] = useState(false);
     const [userTimeline, setUserTimeline] = useState<any[]>([]);
     const [userTimelineLoading, setUserTimelineLoading] = useState(false);
+    const [drawerTab, setDrawerTab] = useState<'info' | 'flags' | 'limits'>('info');
+    const [flagsSaving, setFlagsSaving] = useState(false);
+    const [limitsSaving, setLimitsSaving] = useState(false);
+    const [localFlags, setLocalFlags] = useState<Record<string, boolean>>({});
+    const [localLimits, setLocalLimits] = useState<Record<string, string>>({});
+    const [mrrStats, setMrrStats] = useState<any>(null);
+    const [mrrLoading, setMrrLoading] = useState(false);
+    const [retentionStats, setRetentionStats] = useState<any>(null);
+    const [retentionLoading, setRetentionLoading] = useState(false);
+    const [catalogAdoption, setCatalogAdoption] = useState<any[]>([]);
+    const [catalogAdoptionLoading, setCatalogAdoptionLoading] = useState(false);
+    const [apiHealth, setApiHealth] = useState<any>(null);
+    const [apiHealthLoading, setApiHealthLoading] = useState(false);
+    const [apiHealthDays, setApiHealthDays] = useState(7);
     const [logs, setLogs] = useState<any[]>([]);
     const [logsLoading, setLogsLoading] = useState(false);
     const [logsModule, setLogsModule] = useState('');
@@ -467,6 +481,10 @@ export default function AdminDashboard() {
         if (activeSection === 'broadcast') loadBroadcastHistory();
         if (activeSection === 'legal') loadLegalDocuments();
         if (activeSection === 'logs') loadLogs();
+        if (activeSection === 'mrr' && !mrrStats) loadMrr();
+        if (activeSection === 'retention' && !retentionStats) loadRetention();
+        if (activeSection === 'catalog_adoption' && catalogAdoption.length === 0) loadCatalogAdoption();
+        if (activeSection === 'monitoring' && !apiHealth) loadApiHealth();
         if (activeSection === 'leads') {
             setLeadsLoading(true);
             adminApi.getLeads().then(r => {
@@ -607,6 +625,9 @@ export default function AdminDashboard() {
         setDetailLoading(true);
         setUserTimeline([]);
         setUserTimelineLoading(true);
+        setDrawerTab('info');
+        setLocalFlags(user.feature_flags || {});
+        setLocalLimits(Object.fromEntries(Object.entries(user.custom_limits || {}).map(([k, v]) => [k, String(v)])));
         try {
             const [data, timeline] = await Promise.allSettled([
                 adminApi.getUserDetail(user.user_id),
@@ -618,6 +639,31 @@ export default function AdminDashboard() {
         finally { setDetailLoading(false); setUserTimelineLoading(false); }
     };
 
+    const handleSaveFlags = async () => {
+        if (!detailUser) return;
+        setFlagsSaving(true);
+        try {
+            await adminApi.setFeatureFlags(detailUser.user_id, localFlags);
+            setUsers(prev => prev.map(u => u.user_id === detailUser.user_id ? { ...u, feature_flags: localFlags } : u));
+            showToast('Flags enregistrés.');
+        } catch { showToast('Erreur lors de la sauvegarde.', 'error'); }
+        finally { setFlagsSaving(false); }
+    };
+
+    const handleSaveLimits = async () => {
+        if (!detailUser) return;
+        setLimitsSaving(true);
+        try {
+            const parsed = Object.fromEntries(
+                Object.entries(localLimits).filter(([, v]) => v !== '').map(([k, v]) => [k, Number(v)])
+            );
+            await adminApi.setCustomLimits(detailUser.user_id, parsed);
+            setUsers(prev => prev.map(u => u.user_id === detailUser.user_id ? { ...u, custom_limits: parsed } : u));
+            showToast('Limites enregistrées.');
+        } catch { showToast('Erreur lors de la sauvegarde.', 'error'); }
+        finally { setLimitsSaving(false); }
+    };
+
     const loadLogs = async () => {
         setLogsLoading(true);
         try {
@@ -625,6 +671,34 @@ export default function AdminDashboard() {
             setLogs(Array.isArray(data) ? data : []);
         } catch { setLogs([]); }
         finally { setLogsLoading(false); }
+    };
+
+    const loadMrr = async () => {
+        setMrrLoading(true);
+        try { setMrrStats(await adminApi.getMrrStats(12)); }
+        catch { /* non-bloquant */ }
+        finally { setMrrLoading(false); }
+    };
+
+    const loadRetention = async () => {
+        setRetentionLoading(true);
+        try { setRetentionStats(await adminApi.getRetentionStats(12)); }
+        catch { /* non-bloquant */ }
+        finally { setRetentionLoading(false); }
+    };
+
+    const loadCatalogAdoption = async () => {
+        setCatalogAdoptionLoading(true);
+        try { setCatalogAdoption(await adminApi.getCatalogAdoption(50) || []); }
+        catch { setCatalogAdoption([]); }
+        finally { setCatalogAdoptionLoading(false); }
+    };
+
+    const loadApiHealth = async (days = apiHealthDays) => {
+        setApiHealthLoading(true);
+        try { setApiHealth(await adminApi.getApiHealth(days)); }
+        catch { /* non-bloquant */ }
+        finally { setApiHealthLoading(false); }
     };
 
     const handleSaveNote = async () => {
@@ -899,6 +973,10 @@ export default function AdminDashboard() {
         { id: 'ai_usage', icon: Brain, label: 'IA & Usage' },
         { id: 'logs', icon: Activity, label: 'Activité' },
         { id: 'anomalies', icon: AlertTriangle, label: 'Anomalies' },
+        { id: 'mrr', icon: TrendingUp, label: 'MRR' },
+        { id: 'retention', icon: Users, label: 'Rétention' },
+        { id: 'catalog_adoption', icon: Package, label: 'Adoption catalogue' },
+        { id: 'monitoring', icon: BarChart2, label: 'Monitoring' },
     ];
 
     const TICKET_TEMPLATES = [
@@ -930,11 +1008,85 @@ export default function AdminDashboard() {
                             </div>
                             <button onClick={() => setDetailUser(null)} className="text-slate-500 hover:text-white p-1"><X size={18} /></button>
                         </div>
+                        {/* Drawer tabs */}
+                        <div className="flex border-b border-white/10 px-4 gap-1 bg-[#0F172A] sticky top-[73px] z-10">
+                            {([['info', 'Infos'], ['flags', 'Feature flags'], ['limits', 'Limites']] as const).map(([id, label]) => (
+                                <button key={id} onClick={() => setDrawerTab(id)} className={`px-4 py-3 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${drawerTab === id ? 'border-primary text-white' : 'border-transparent text-slate-500 hover:text-white'}`}>
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
                         {detailLoading ? (
                             <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">Chargement...</div>
                         ) : detailData ? (
                             <div className="p-5 space-y-5">
-                                <div className="grid grid-cols-2 gap-3">
+                                {/* Feature flags tab */}
+                                {drawerTab === 'flags' && (() => {
+                                    const FLAG_DEFS = [
+                                        { key: 'web_access', label: 'Accès web', desc: 'Accès au dashboard web même sans plan enterprise' },
+                                        { key: 'ai_features', label: 'Features IA', desc: 'Activer les features IA Enterprise' },
+                                        { key: 'extra_stores', label: 'Boutiques illimitées', desc: 'Pas de limite sur le nombre de boutiques' },
+                                        { key: 'beta_features', label: 'Beta features', desc: 'Accès aux features en cours de développement' },
+                                        { key: 'unlimited_products', label: 'Produits illimités', desc: 'Désactiver la limite produits du plan' },
+                                        { key: 'priority_support', label: 'Support prioritaire', desc: 'Tickets traités en priorité' },
+                                    ];
+                                    return (
+                                        <div className="space-y-3">
+                                            <p className="text-xs text-slate-500">Ces flags s'appliquent <strong className="text-slate-300">par-dessus</strong> le plan. Utile pour les comptes VIP, tests, ou exceptions commerciales.</p>
+                                            {FLAG_DEFS.map(f => (
+                                                <div key={f.key} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                                                    <div className="min-w-0">
+                                                        <div className="text-sm font-bold text-white">{f.label}</div>
+                                                        <div className="text-[10px] text-slate-500">{f.desc}</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setLocalFlags(prev => ({ ...prev, [f.key]: !prev[f.key] }))}
+                                                        className={`shrink-0 w-11 h-6 rounded-full transition-all relative ${localFlags[f.key] ? 'bg-primary' : 'bg-slate-700'}`}
+                                                    >
+                                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${localFlags[f.key] ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <button onClick={handleSaveFlags} disabled={flagsSaving} className="w-full mt-2 px-4 py-2.5 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                                                {flagsSaving ? 'Enregistrement...' : 'Enregistrer les flags'}
+                                            </button>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Custom limits tab */}
+                                {drawerTab === 'limits' && (() => {
+                                    const LIMIT_DEFS = [
+                                        { key: 'max_stores', label: 'Boutiques max', placeholder: 'ex: 5' },
+                                        { key: 'max_users', label: 'Utilisateurs max', placeholder: 'ex: 20' },
+                                        { key: 'ai_calls_monthly', label: 'Appels IA / mois', placeholder: 'ex: 500' },
+                                        { key: 'max_products', label: 'Produits max', placeholder: 'ex: 10000' },
+                                        { key: 'max_customers', label: 'Clients max', placeholder: 'ex: 5000' },
+                                    ];
+                                    return (
+                                        <div className="space-y-3">
+                                            <p className="text-xs text-slate-500">Laisser vide = utiliser les limites par défaut du plan. Une valeur ici <strong className="text-slate-300">remplace</strong> la limite du plan.</p>
+                                            {LIMIT_DEFS.map(l => (
+                                                <div key={l.key} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                                                    <label className="text-[10px] uppercase tracking-widest text-slate-500 block mb-1">{l.label}</label>
+                                                    <input
+                                                        type="number"
+                                                        value={localLimits[l.key] || ''}
+                                                        onChange={e => setLocalLimits(prev => ({ ...prev, [l.key]: e.target.value }))}
+                                                        placeholder={l.placeholder}
+                                                        className="w-full bg-transparent text-white text-sm font-bold focus:outline-none placeholder:text-slate-600"
+                                                    />
+                                                </div>
+                                            ))}
+                                            <button onClick={handleSaveLimits} disabled={limitsSaving} className="w-full mt-2 px-4 py-2.5 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                                                {limitsSaving ? 'Enregistrement...' : 'Enregistrer les limites'}
+                                            </button>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Info tab */}
+                                {drawerTab === 'info' && <><div className="grid grid-cols-2 gap-3">
                                     {[
                                         { label: 'Plan', value: <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${PLAN_COLORS[detailData.account?.plan || detailUser.plan] || PLAN_COLORS.starter}`}>{detailData.account?.plan || detailUser.plan || 'starter'}</span> },
                                         { label: 'Statut abo.', value: detailData.account?.subscription_status || '—' },
@@ -1013,6 +1165,7 @@ export default function AdminDashboard() {
                                         {detailUser.is_active !== false ? 'Bannir' : 'Réactiver'}
                                     </button>
                                 </div>
+                                </>}
                             </div>
                         ) : (
                             <div className="flex-1 flex items-center justify-center text-slate-600 text-sm">Impossible de charger les détails.</div>
@@ -1112,6 +1265,10 @@ export default function AdminDashboard() {
                         }
                         else if (activeSection === 'ai_usage') loadAiUsage();
                         else if (activeSection === 'logs') loadLogs();
+                        else if (activeSection === 'mrr') loadMrr();
+                        else if (activeSection === 'retention') loadRetention();
+                        else if (activeSection === 'catalog_adoption') loadCatalogAdoption();
+                        else if (activeSection === 'monitoring') loadApiHealth();
                         else loadInitialData();
                     }} className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
                         <RefreshCw size={18} />
@@ -3239,6 +3396,432 @@ export default function AdminDashboard() {
                                                 ))}
                                             </tbody>
                                         </table>
+                                    </div>
+                                </div>
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
+
+            {/* -- MRR -- */}
+            {activeSection === 'mrr' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                        <h3 className="text-lg font-black text-white uppercase tracking-widest">MRR — Revenus mensuels</h3>
+                        <button onClick={loadMrr} disabled={mrrLoading} className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                            {mrrLoading ? 'Chargement...' : 'Actualiser'}
+                        </button>
+                    </div>
+
+                    {mrrLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
+
+                    {!mrrLoading && !mrrStats && (
+                        <div className="glass-card p-16 text-center">
+                            <TrendingUp size={48} className="mx-auto mb-4 text-slate-600" />
+                            <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Données non chargées</p>
+                            <button onClick={loadMrr} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">Charger le MRR</button>
+                        </div>
+                    )}
+
+                    {mrrStats && !mrrLoading && (() => {
+                        const plans = ['starter', 'pro', 'enterprise'];
+                        const planColors: Record<string, string> = { starter: 'text-emerald-400', pro: 'text-blue-400', enterprise: 'text-purple-400' };
+                        const planBg: Record<string, string> = { starter: 'bg-emerald-500', pro: 'bg-blue-500', enterprise: 'bg-purple-500' };
+
+                        // Current MRR cards
+                        const currentMrr = mrrStats.current_mrr_by_plan || {};
+                        const totalMrrXof = plans.reduce((sum: number, p: string) => sum + (currentMrr[p]?.XOF || currentMrr[p]?.FCFA || 0), 0);
+                        const totalMrrEur = plans.reduce((sum: number, p: string) => sum + (currentMrr[p]?.EUR || 0), 0);
+
+                        // Monthly bar chart data
+                        const monthly: any[] = mrrStats.monthly || [];
+                        const maxTotal = Math.max(...monthly.map((m: any) => {
+                            const t = m.total || {};
+                            return (t.XOF || t.FCFA || 0) + (t.EUR || 0) * 655;
+                        }), 1);
+
+                        return (
+                            <>
+                                {/* Current MRR summary */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="glass-card p-5">
+                                        <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">MRR Total (XOF)</div>
+                                        <div className="text-2xl font-black text-white">{totalMrrXof.toLocaleString('fr-FR')} F</div>
+                                    </div>
+                                    <div className="glass-card p-5">
+                                        <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">MRR Total (EUR)</div>
+                                        <div className="text-2xl font-black text-white">{totalMrrEur.toFixed(0)} €</div>
+                                    </div>
+                                    {plans.map(plan => {
+                                        const data = currentMrr[plan] || {};
+                                        const xof = data.XOF || data.FCFA || 0;
+                                        const eur = data.EUR || 0;
+                                        return (
+                                            <div key={plan} className="glass-card p-5">
+                                                <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">{plan}</div>
+                                                <div className={`text-xl font-black ${planColors[plan]}`}>
+                                                    {xof > 0 ? `${xof.toLocaleString('fr-FR')} F` : eur > 0 ? `${eur.toFixed(0)} €` : '—'}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Monthly bar chart */}
+                                {monthly.length > 0 && (
+                                    <div className="glass-card p-6">
+                                        <h4 className="text-sm font-black text-white uppercase tracking-widest mb-6">Paiements mensuels (12 mois)</h4>
+                                        <div className="flex items-end gap-2 h-40">
+                                            {monthly.map((m: any, i: number) => {
+                                                const t = m.total || {};
+                                                const val = (t.XOF || t.FCFA || 0) + (t.EUR || 0) * 655;
+                                                const h = Math.max((val / maxTotal) * 100, val > 0 ? 4 : 0);
+                                                return (
+                                                    <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+                                                        <div className="w-full relative" style={{ height: '128px' }}>
+                                                            <div
+                                                                className="absolute bottom-0 w-full rounded-t bg-primary/60 hover:bg-primary transition-all"
+                                                                style={{ height: `${h}%` }}
+                                                                title={`${m.month}: ${val.toLocaleString('fr-FR')} (équiv. XOF)`}
+                                                            />
+                                                        </div>
+                                                        <span className="text-[9px] text-slate-600 rotate-45 origin-left whitespace-nowrap">{m.month?.slice(5)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* By plan breakdown table */}
+                                {monthly.length > 0 && (
+                                    <div className="glass-card overflow-hidden">
+                                        <div className="p-5 border-b border-white/5 bg-white/5">
+                                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Détail par plan</h4>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="text-left text-[10px] text-slate-500 uppercase tracking-widest border-b border-white/5">
+                                                        <th className="p-4">Mois</th>
+                                                        {plans.map(p => <th key={p} className={`p-4 ${planColors[p]}`}>{p}</th>)}
+                                                        <th className="p-4 text-white">Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {[...monthly].reverse().slice(0, 12).map((m: any) => {
+                                                        const byPlan = m.by_plan || {};
+                                                        const t = m.total || {};
+                                                        const total = Object.values(t as Record<string, number>).reduce((s: number, v) => s + (v as number), 0);
+                                                        return (
+                                                            <tr key={m.month} className="hover:bg-white/5 transition-all">
+                                                                <td className="p-4 text-slate-300 font-mono text-xs">{m.month}</td>
+                                                                {plans.map(p => {
+                                                                    const pData = byPlan[p] || {};
+                                                                    const val = Object.values(pData as Record<string, number>).reduce((s: number, v) => s + (v as number), 0);
+                                                                    return <td key={p} className={`p-4 font-semibold ${val > 0 ? planColors[p] : 'text-slate-600'}`}>{val > 0 ? val.toLocaleString('fr-FR') : '—'}</td>;
+                                                                })}
+                                                                <td className="p-4 font-black text-white">{total > 0 ? total.toLocaleString('fr-FR') : '—'}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
+
+            {/* -- RETENTION -- */}
+            {activeSection === 'retention' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                        <h3 className="text-lg font-black text-white uppercase tracking-widest">Rétention & Croissance</h3>
+                        <button onClick={loadRetention} disabled={retentionLoading} className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                            {retentionLoading ? 'Chargement...' : 'Actualiser'}
+                        </button>
+                    </div>
+
+                    {retentionLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
+
+                    {!retentionLoading && !retentionStats && (
+                        <div className="glass-card p-16 text-center">
+                            <Users size={48} className="mx-auto mb-4 text-slate-600" />
+                            <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Données non chargées</p>
+                            <button onClick={loadRetention} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">Charger</button>
+                        </div>
+                    )}
+
+                    {retentionStats && !retentionLoading && (() => {
+                        const monthly: any[] = retentionStats.monthly || [];
+                        const maxSignups = Math.max(...monthly.map((m: any) => m.signups || 0), 1);
+                        const totalSignups = monthly.reduce((s: number, m: any) => s + (m.signups || 0), 0);
+                        const totalChurns = monthly.reduce((s: number, m: any) => s + (m.churns || 0), 0);
+                        const netGrowth = totalSignups - totalChurns;
+
+                        return (
+                            <>
+                                {/* KPIs */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <StatCard label="Actifs aujourd'hui" value={retentionStats.total_active_today || 0} icon={Users} color="bg-primary" sub="Shopkeepers actifs" />
+                                    <StatCard label="Nouveaux (12 mois)" value={totalSignups} icon={TrendingUp} color="bg-emerald-500" sub="Inscriptions" />
+                                    <StatCard label="Churns (12 mois)" value={totalChurns} icon={AlertTriangle} color="bg-rose-500" sub="Expirations / annulations" />
+                                    <StatCard label="Croissance nette" value={netGrowth >= 0 ? `+${netGrowth}` : String(netGrowth)} icon={Activity} color={netGrowth >= 0 ? 'bg-emerald-500' : 'bg-rose-500'} sub="Signups − Churns" />
+                                </div>
+
+                                {/* Bar chart signups vs churns */}
+                                <div className="glass-card p-6">
+                                    <div className="flex items-center gap-6 mb-4">
+                                        <h4 className="text-sm font-black text-white uppercase tracking-widest flex-1">Signups vs Churns par mois</h4>
+                                        <div className="flex items-center gap-4 text-xs">
+                                            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Signups</span>
+                                            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-rose-500 inline-block" />Churns</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-end gap-1.5 h-40">
+                                        {monthly.map((m: any, i: number) => {
+                                            const signupH = Math.max(((m.signups || 0) / maxSignups) * 100, m.signups > 0 ? 4 : 0);
+                                            const churnH = Math.max(((m.churns || 0) / maxSignups) * 100, m.churns > 0 ? 4 : 0);
+                                            return (
+                                                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                                                    <div className="w-full flex gap-0.5" style={{ height: '128px', alignItems: 'flex-end' }}>
+                                                        <div className="flex-1 rounded-t bg-emerald-500/60 hover:bg-emerald-500 transition-all" style={{ height: `${signupH}%` }} title={`${m.month} — ${m.signups} signups`} />
+                                                        <div className="flex-1 rounded-t bg-rose-500/60 hover:bg-rose-500 transition-all" style={{ height: `${churnH}%` }} title={`${m.month} — ${m.churns} churns`} />
+                                                    </div>
+                                                    <span className="text-[9px] text-slate-600 rotate-45 origin-left whitespace-nowrap">{m.month?.slice(5)}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Table */}
+                                <div className="glass-card overflow-hidden">
+                                    <div className="p-5 border-b border-white/5 bg-white/5">
+                                        <h4 className="text-sm font-black text-white uppercase tracking-widest">Détail mensuel</h4>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="text-left text-[10px] text-slate-500 uppercase tracking-widest border-b border-white/5">
+                                                    <th className="p-4">Mois</th>
+                                                    <th className="p-4 text-emerald-400">Signups</th>
+                                                    <th className="p-4 text-rose-400">Churns</th>
+                                                    <th className="p-4 text-white">Net</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {[...monthly].reverse().map((m: any) => (
+                                                    <tr key={m.month} className="hover:bg-white/5 transition-all">
+                                                        <td className="p-4 text-slate-300 font-mono text-xs">{m.month}</td>
+                                                        <td className="p-4 font-bold text-emerald-400">{m.signups > 0 ? `+${m.signups}` : '—'}</td>
+                                                        <td className="p-4 font-bold text-rose-400">{m.churns > 0 ? `-${m.churns}` : '—'}</td>
+                                                        <td className={`p-4 font-black ${(m.net || 0) > 0 ? 'text-emerald-400' : (m.net || 0) < 0 ? 'text-rose-400' : 'text-slate-600'}`}>
+                                                            {(m.net || 0) > 0 ? `+${m.net}` : (m.net || 0) < 0 ? String(m.net) : '0'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
+
+            {/* -- CATALOG ADOPTION -- */}
+            {activeSection === 'catalog_adoption' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                        <h3 className="text-lg font-black text-white uppercase tracking-widest">Adoption du catalogue</h3>
+                        <button onClick={loadCatalogAdoption} disabled={catalogAdoptionLoading} className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                            {catalogAdoptionLoading ? 'Chargement...' : 'Actualiser'}
+                        </button>
+                    </div>
+
+                    {catalogAdoptionLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
+
+                    {!catalogAdoptionLoading && catalogAdoption.length === 0 && (
+                        <div className="glass-card p-16 text-center">
+                            <Package size={48} className="mx-auto mb-4 text-slate-600" />
+                            <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Aucune donnée</p>
+                            <button onClick={loadCatalogAdoption} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">Charger</button>
+                        </div>
+                    )}
+
+                    {!catalogAdoptionLoading && catalogAdoption.length > 0 && (() => {
+                        const maxAdoption = Math.max(...catalogAdoption.map(p => p.adoption_count), 1);
+                        return (
+                            <>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="glass-card p-5">
+                                        <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Produits adoptés</div>
+                                        <div className="text-2xl font-black text-white">{catalogAdoption.length}</div>
+                                    </div>
+                                    <div className="glass-card p-5">
+                                        <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Top adoption</div>
+                                        <div className="text-2xl font-black text-primary">{catalogAdoption[0]?.adoption_count || 0}</div>
+                                        <div className="text-xs text-slate-500 truncate mt-1">{catalogAdoption[0]?.display_name || '—'}</div>
+                                    </div>
+                                    <div className="glass-card p-5">
+                                        <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Total mappings</div>
+                                        <div className="text-2xl font-black text-white">{catalogAdoption.reduce((s, p) => s + p.adoption_count, 0).toLocaleString('fr-FR')}</div>
+                                    </div>
+                                </div>
+
+                                <div className="glass-card overflow-hidden">
+                                    <div className="p-5 border-b border-white/5 bg-white/5">
+                                        <h4 className="text-sm font-black text-white uppercase tracking-widest">Top {catalogAdoption.length} produits les plus adoptés</h4>
+                                    </div>
+                                    <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto custom-scrollbar">
+                                        {catalogAdoption.map((p: any, i: number) => {
+                                            const barW = Math.max((p.adoption_count / maxAdoption) * 100, 2);
+                                            return (
+                                                <div key={p.catalog_id} className="px-5 py-3 flex items-center gap-4 hover:bg-white/5 transition-all">
+                                                    <span className="shrink-0 w-7 text-right text-xs font-black text-slate-600">#{i + 1}</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-sm font-bold text-white truncate">{p.display_name}</span>
+                                                            {p.is_published && <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Publié</span>}
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                                <div className="h-full bg-primary/70 rounded-full transition-all" style={{ width: `${barW}%` }} />
+                                                            </div>
+                                                            <span className="shrink-0 text-[10px] text-slate-500">{p.sector || '—'}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="shrink-0 text-right">
+                                                        <div className="text-sm font-black text-white">{p.adoption_count}</div>
+                                                        <div className="text-[10px] text-slate-500">{p.unique_users} users</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
+
+            {/* -- MONITORING -- */}
+            {activeSection === 'monitoring' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                        <h3 className="text-lg font-black text-white uppercase tracking-widest">Monitoring & Santé API</h3>
+                        <div className="flex items-center gap-3">
+                            <select
+                                value={apiHealthDays}
+                                onChange={e => { const d = Number(e.target.value); setApiHealthDays(d); loadApiHealth(d); }}
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                            >
+                                {[1, 7, 14, 30].map(d => <option key={d} value={d}>{d}j</option>)}
+                            </select>
+                            <button onClick={() => loadApiHealth()} disabled={apiHealthLoading} className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                                {apiHealthLoading ? '...' : 'Actualiser'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {apiHealthLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
+
+                    {!apiHealthLoading && !apiHealth && (
+                        <div className="glass-card p-16 text-center">
+                            <BarChart2 size={48} className="mx-auto mb-4 text-slate-600" />
+                            <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Données non chargées</p>
+                            <button onClick={() => loadApiHealth()} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">Charger</button>
+                        </div>
+                    )}
+
+                    {apiHealth && !apiHealthLoading && (() => {
+                        const daily = apiHealth.daily_activity || [];
+                        const maxDaily = Math.max(...daily.map((d: any) => d.count), 1);
+                        return (
+                            <>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <StatCard label={`Événements (${apiHealthDays}j)`} value={(apiHealth.total_events || 0).toLocaleString('fr-FR')} icon={Activity} color="bg-primary" sub="Activité totale" />
+                                    <StatCard label="Modules actifs" value={apiHealth.by_module?.length || 0} icon={BarChart2} color="bg-blue-500" sub="Sources d'activité" />
+                                    <StatCard label="Endpoints IA tracés" value={apiHealth.ai_latency?.length || 0} icon={Zap} color="bg-violet-500" sub="Avec latence mesurée" />
+                                </div>
+
+                                {/* Daily activity bar chart */}
+                                {daily.length > 0 && (
+                                    <div className="glass-card p-6">
+                                        <h4 className="text-sm font-black text-white uppercase tracking-widest mb-4">Activité quotidienne</h4>
+                                        <div className="flex items-end gap-1.5 h-32">
+                                            {daily.map((d: any, i: number) => {
+                                                const h = Math.max((d.count / maxDaily) * 100, d.count > 0 ? 4 : 0);
+                                                return (
+                                                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                                                        <div className="w-full relative" style={{ height: '112px' }}>
+                                                            <div className="absolute bottom-0 w-full rounded-t bg-primary/60 hover:bg-primary transition-all" style={{ height: `${h}%` }} title={`${d.date}: ${d.count} événements`} />
+                                                        </div>
+                                                        <span className="text-[9px] text-slate-600 rotate-45 origin-left whitespace-nowrap">{d.date?.slice(5)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    {/* By module */}
+                                    <div className="glass-card overflow-hidden">
+                                        <div className="p-5 border-b border-white/5 bg-white/5">
+                                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Activité par module</h4>
+                                        </div>
+                                        <div className="divide-y divide-white/5 max-h-[350px] overflow-y-auto custom-scrollbar">
+                                            {(apiHealth.by_module || []).map((m: any, i: number) => {
+                                                const pct = apiHealth.total_events > 0 ? (m.count / apiHealth.total_events) * 100 : 0;
+                                                return (
+                                                    <div key={i} className="px-5 py-3 flex items-center gap-3">
+                                                        <span className="shrink-0 w-24 text-xs font-bold text-slate-300 truncate">{m.module}</span>
+                                                        <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-blue-500/60 rounded-full" style={{ width: `${pct}%` }} />
+                                                        </div>
+                                                        <span className="shrink-0 text-sm font-black text-white w-16 text-right">{m.count.toLocaleString('fr-FR')}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* AI latency */}
+                                    <div className="glass-card overflow-hidden">
+                                        <div className="p-5 border-b border-white/5 bg-white/5">
+                                            <h4 className="text-sm font-black text-white uppercase tracking-widest">Latence endpoints IA</h4>
+                                        </div>
+                                        {(apiHealth.ai_latency || []).length === 0 ? (
+                                            <div className="p-8 text-center text-slate-600 text-xs uppercase tracking-widest">Aucune donnée IA</div>
+                                        ) : (
+                                            <div className="divide-y divide-white/5 max-h-[350px] overflow-y-auto custom-scrollbar">
+                                                {(apiHealth.ai_latency || []).map((a: any, i: number) => (
+                                                    <div key={i} className="px-5 py-3 flex items-center gap-3">
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-bold text-white truncate">{a.feature}</p>
+                                                            <p className="text-[10px] text-slate-500">{a.calls} appels · max {a.max_latency_ms}ms</p>
+                                                        </div>
+                                                        <div className="text-right shrink-0">
+                                                            <span className={`text-sm font-black ${a.avg_latency_ms > 3000 ? 'text-rose-400' : a.avg_latency_ms > 1500 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                                                {a.avg_latency_ms}ms
+                                                            </span>
+                                                            {a.error_rate > 0 && (
+                                                                <p className="text-[10px] text-rose-400">{a.error_rate}% err</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </>
