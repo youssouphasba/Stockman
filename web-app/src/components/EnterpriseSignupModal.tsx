@@ -6,12 +6,12 @@ import { auth, type AuthResponse } from '../services/api';
 import { COUNTRIES } from '@/data/countries';
 
 const SECTORS = [
-  { key: 'epicerie', label: 'Epicerie', icon: '🛒' },
-  { key: 'supermarche', label: 'Supermarche', icon: '🏪' },
+  { key: 'epicerie', label: 'Épicerie', icon: '🛒' },
+  { key: 'supermarche', label: 'Supermarché', icon: '🏪' },
   { key: 'pharmacie', label: 'Pharmacie', icon: '💊' },
-  { key: 'vetements', label: 'Vetements', icon: '👗' },
-  { key: 'cosmetiques', label: 'Cosmetiques', icon: '💄' },
-  { key: 'electronique', label: 'Electronique', icon: '📱' },
+  { key: 'vetements', label: 'Vêtements', icon: '👗' },
+  { key: 'cosmetiques', label: 'Cosmétiques', icon: '💄' },
+  { key: 'electronique', label: 'Électronique', icon: '📱' },
   { key: 'quincaillerie', label: 'Quincaillerie', icon: '🔧' },
   { key: 'automobile', label: 'Auto / Garage', icon: '🚗' },
   { key: 'grossiste', label: 'Grossiste', icon: '📦' },
@@ -30,9 +30,9 @@ const SECTORS = [
 ] as const;
 
 const HOW_OPTIONS = [
-  { key: '', label: 'Selectionnez...' },
+  { key: '', label: 'Sélectionnez...' },
   { key: 'google', label: 'Recherche Google' },
-  { key: 'social_media', label: 'Reseaux sociaux' },
+  { key: 'social_media', label: 'Réseaux sociaux' },
   { key: 'friend', label: 'Recommandation' },
   { key: 'app_store', label: 'App Store / Play Store' },
   { key: 'other', label: 'Autre' },
@@ -139,11 +139,11 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
       return;
     }
     if (!businessType) {
-      setError("Veuillez selectionner votre secteur d'activite.");
+      setError("Veuillez sélectionner votre secteur d'activité.");
       return;
     }
     if (password.length < 8) {
-      setError('Le mot de passe doit faire au moins 8 caracteres.');
+      setError('Le mot de passe doit faire au moins 8 caractères.');
       return;
     }
     if (password !== confirmPassword) {
@@ -151,7 +151,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
       return;
     }
     if (!acceptedTerms || !acceptedPrivacy) {
-      setError('Vous devez accepter les CGU et la politique de confidentialite.');
+      setError('Vous devez accepter les CGU et la politique de confidentialité.');
       return;
     }
 
@@ -177,7 +177,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
       setSuccess(true);
       onSuccess(response);
     } catch (err: any) {
-      setError(err?.message || 'Erreur lors de la creation du compte.');
+      setError(err?.message || 'Erreur lors de la création du compte.');
     } finally {
       setLoading(false);
     }
@@ -197,9 +197,9 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
         {success ? (
           <div className="p-8 text-center flex flex-col items-center gap-4">
             <CheckCircle2 size={56} className="text-green-400" />
-            <h2 className="text-2xl font-bold text-white">Compte cree</h2>
+            <h2 className="text-2xl font-bold text-white">Compte créé</h2>
             <p className="text-slate-400 text-sm">
-              Votre compte Enterprise est cree. Verifiez maintenant votre email pour debloquer l&apos;acces web.
+              Votre compte Enterprise est créé. Vérifiez maintenant votre email pour débloquer l&apos;accès web.
             </p>
             <button onClick={onClose} className="btn-primary w-full py-3 rounded-xl mt-2">
               Continuer
@@ -211,9 +211,9 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
               <span className="text-xs font-bold bg-primary/20 text-primary px-3 py-1 rounded-full">
                 1 mois gratuit - sans carte bancaire
               </span>
-              <h2 className="text-xl font-bold text-white mt-3">Creer mon compte Enterprise</h2>
+              <h2 className="text-xl font-bold text-white mt-3">Créer mon compte Enterprise</h2>
               <p className="text-slate-400 text-sm mt-1">
-                Pilotez vos boutiques, vos equipes et vos indicateurs depuis le web.
+                Pilotez vos boutiques, vos équipes et vos indicateurs depuis le web.
               </p>
             </div>
 
@@ -285,7 +285,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
 
               {/* Phone */}
               <div>
-                <label className={labelClass}>Telephone (optionnel)</label>
+                <label className={labelClass}>Téléphone (optionnel)</label>
                 <div className="flex gap-2">
                   <span className="flex items-center px-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white/60 whitespace-nowrap">
                     {selectedCountry.flag} {selectedCountry.dialCode}
@@ -321,7 +321,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="8 caracteres minimum"
+                    placeholder="8 caractères minimum"
                     className={`${inputClass} pr-10`}
                     required
                     minLength={8}
@@ -357,7 +357,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repetez votre mot de passe"
+                  placeholder="Répétez votre mot de passe"
                   className={inputClass}
                   required
                 />
@@ -368,7 +368,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
 
               {/* Business type dropdown */}
               <div ref={sectorRef} className="relative">
-                <label className={labelClass}>Secteur d&apos;activite</label>
+                <label className={labelClass}>Secteur d&apos;activité</label>
                 <button
                   type="button"
                   onClick={() => { setSectorOpen(!sectorOpen); setSectorSearch(''); }}
@@ -377,7 +377,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                   }`}
                 >
                   <span>
-                    {selectedSector ? `${selectedSector.icon} ${selectedSector.label}` : 'Selectionnez un secteur'}
+                    {selectedSector ? `${selectedSector.icon} ${selectedSector.label}` : 'Sélectionnez un secteur'}
                   </span>
                   <ChevronDown size={16} className={`text-white/40 transition-transform ${sectorOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -412,7 +412,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                         </button>
                       ))}
                       {filteredSectors.length === 0 && (
-                        <p className="text-center text-white/30 text-xs py-4">Aucun resultat</p>
+                        <p className="text-center text-white/30 text-xs py-4">Aucun résultat</p>
                       )}
                     </div>
                   </div>
@@ -430,7 +430,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                   }`}
                 >
                   <span>
-                    {selectedHow ? selectedHow.label : 'Selectionnez...'}
+                    {selectedHow ? selectedHow.label : 'Sélectionnez...'}
                   </span>
                   <ChevronDown size={16} className={`text-white/40 transition-transform ${howOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -483,7 +483,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                   <span className="text-xs text-slate-400">
                     J&apos;accepte la{' '}
                     <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                      Politique de confidentialite
+                      Politique de confidentialité
                     </a>
                   </span>
                 </label>
@@ -503,9 +503,9 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creation en cours...
+                    Création en cours...
                   </span>
-                ) : 'Creer mon compte Enterprise'}
+                ) : 'Créer mon compte Enterprise'}
               </button>
             </form>
           </div>
