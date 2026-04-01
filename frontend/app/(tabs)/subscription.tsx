@@ -158,6 +158,15 @@ export default function SubscriptionScreen() {
             const result = plan === 'pro' ? await purchasePro() : await purchaseStarter();
             if (!result.success) {
                 if (result.reason === 'cancelled') return;
+                if (result.reason === 'already_owned') {
+                    const restoreResult = await restorePurchases();
+                    if (restoreResult.success) {
+                        await subscription.sync();
+                        await fetchSubscription();
+                        Alert.alert(t('common.success'), t('subscription.restored_success'));
+                        return;
+                    }
+                }
                 const message = (
                     result.reason === 'offerings_unavailable' || result.reason === 'package_not_found'
                         ? t('subscription.purchase_not_ready')

@@ -1,6 +1,7 @@
 ﻿import asyncio
 import json
 import logging
+import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -15,7 +16,7 @@ class RAGService:
     def __init__(self, api_key: str, root_dir: Path):
         self.api_key = api_key
         self.root_dir = root_dir
-        self.index_version = 9
+        self.index_version = 10
         self.index_path = root_dir / "vector_index.json"
         self.docs_dir = root_dir / "docs"
         self.web_guides_dir = self.docs_dir / "web-guides"
@@ -29,23 +30,56 @@ class RAGService:
         self.index: List[Dict[str, Any]] = []
 
         genai.configure(api_key=api_key)
-        self.model = "models/embedding-001"
+        configured_model = (os.getenv("RAG_EMBED_MODEL") or "").strip()
+        default_candidates = [
+            "models/text-embedding-004",
+            "text-embedding-004",
+            "models/embedding-001",
+        ]
+        self.embedding_models = [configured_model, *default_candidates] if configured_model else default_candidates
+        self.embedding_models = list(dict.fromkeys([m for m in self.embedding_models if m]))
+        self.model = self.embedding_models[0]
+        self.embedding_disabled = False
+        self.embedding_unavailable_logged = False
 
     async def _generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for a single text chunk (async)."""
+        if self.embedding_disabled:
+            return []
         try:
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                lambda: genai.embed_content(
-                    model=self.model,
-                    content=text,
-                    task_type="retrieval_document",
-                ),
-            )
-            return result["embedding"]
+            last_error: Optional[Exception] = None
+            for candidate in self.embedding_models:
+                try:
+                    result = await loop.run_in_executor(
+                        None,
+                        lambda c=candidate: genai.embed_content(
+                            model=c,
+                            content=text,
+                            task_type="retrieval_document",
+                        ),
+                    )
+                    if self.model != candidate:
+                        logger.info(f"RAG embedding model switched to {candidate}")
+                    self.model = candidate
+                    return result.get("embedding", []) or []
+                except Exception as e:
+                    last_error = e
+
+            if not self.embedding_unavailable_logged:
+                logger.error(
+                    "Embedding unavailable for all configured models %s. Last error: %s",
+                    self.embedding_models,
+                    last_error,
+                )
+                self.embedding_unavailable_logged = True
+            self.embedding_disabled = True
+            return []
         except Exception as e:
-            logger.error(f"Embedding error: {e}")
+            if not self.embedding_unavailable_logged:
+                logger.error(f"Embedding error: {e}")
+                self.embedding_unavailable_logged = True
+            self.embedding_disabled = True
             return []
 
     def _chunk_markdown(
@@ -465,6 +499,45 @@ class RAGService:
             return True
         return chunk_platform == platform
 
+    def _keyword_fallback_context(
+        self,
+        query: str,
+        limit: int = 7,
+        sector: Optional[str] = None,
+        language: str = "fr",
+        platform: Optional[str] = None,
+    ) -> str:
+        query_tokens = set(re.findall(r"[a-zA-Z0-9_]{3,}", (query or "").lower()))
+        if not query_tokens:
+            return ""
+
+        scored: List[tuple[int, Dict[str, Any]]] = []
+        for chunk in self.index:
+            if not self._audience_matches(chunk.get("audience", "all"), sector):
+                continue
+            if not self._platform_matches(chunk.get("platform", "all"), platform):
+                continue
+            chunk_lang = chunk.get("language")
+            if chunk_lang and chunk_lang not in {language, "fr", "en", "code"}:
+                continue
+
+            content = (chunk.get("content") or "").lower()
+            content_tokens = set(re.findall(r"[a-zA-Z0-9_]{3,}", content))
+            overlap = len(query_tokens.intersection(content_tokens))
+            if overlap <= 0:
+                continue
+            scored.append((overlap, chunk))
+
+        scored.sort(key=lambda item: item[0], reverse=True)
+        top_chunks = scored[:limit]
+        return "\n\n".join(
+            [
+                f"--- [Source: {chunk['source']}] ---\n{chunk['content']}"
+                for score, chunk in top_chunks
+                if score > 0
+            ]
+        )
+
     async def get_relevant_context(
         self,
         query: str,
@@ -480,7 +553,13 @@ class RAGService:
 
         query_embedding = await self._generate_embedding(query)
         if not query_embedding:
-            return ""
+            return self._keyword_fallback_context(
+                query=query,
+                limit=limit,
+                sector=sector,
+                language=language,
+                platform=platform,
+            )
 
         def dot_product(v1, v2):
             return sum(x * y for x, y in zip(v1, v2))
@@ -500,7 +579,9 @@ class RAGService:
             if chunk_lang and chunk_lang not in {language, "fr", "en", "code"}:
                 continue
 
-            c_emb = chunk["embedding"]
+            c_emb = chunk.get("embedding") or []
+            if not c_emb:
+                continue
             c_mag = magnitude(c_emb)
             if q_mag == 0 or c_mag == 0:
                 score = 0

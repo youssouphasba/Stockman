@@ -7134,21 +7134,20 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
         product_sales_prev = defaultdict(int)
 
         for s in sales_30:
-            sale_date = s.get("created_at")
-            if isinstance(sale_date, str):
-                sale_date = datetime.fromisoformat(sale_date.replace("Z", "+00:00"))
-            if sale_date:
-                day_key = sale_date.strftime("%Y-%m-%d")
-                daily_rev[day_key] += s.get("total_amount", 0)
-                daily_count[day_key] += 1
-                is_last_7 = sale_date >= seven_days_ago
-                for item in s.get("items", []):
-                    pid = item.get("product_id", "")
-                    qty = item.get("quantity", 0)
-                    if is_last_7:
-                        product_sales_7d[pid] += qty
-                    else:
-                        product_sales_prev[pid] += qty
+            sale_date = parse_datetime_value(s.get("created_at"))
+            if not sale_date:
+                continue
+            day_key = sale_date.strftime("%Y-%m-%d")
+            daily_rev[day_key] += s.get("total_amount", 0)
+            daily_count[day_key] += 1
+            is_last_7 = sale_date >= seven_days_ago
+            for item in s.get("items", []):
+                pid = item.get("product_id", "")
+                qty = item.get("quantity", 0)
+                if is_last_7:
+                    product_sales_7d[pid] += qty
+                else:
+                    product_sales_prev[pid] += qty
 
         user_doc = await db.users.find_one({"user_id": user_id})
         business_profile = get_ai_business_profile(user_doc)
@@ -26970,6 +26969,128 @@ async def revenuecat_webhook(request: Request):
 
     return {"status": "ok"}
 
+def _resolve_revenuecat_server_key() -> str:
+    return (
+        os.environ.get("REVENUECAT_SECRET_KEY")
+        or os.environ.get("REVENUECAT_API_KEY")
+        or os.environ.get("REVENUECAT_V1_SECRET_KEY")
+        or ""
+    ).strip()
+
+
+def _infer_plan_from_revenuecat_value(value: Optional[str]) -> Optional[str]:
+    normalized = normalize_plan(value)
+    if normalized in {"starter", "pro", "enterprise"}:
+        return normalized
+    lowered = str(value or "").lower()
+    if "enterprise" in lowered:
+        return "enterprise"
+    if "pro" in lowered or "premium" in lowered:
+        return "pro"
+    if "starter" in lowered or "basic" in lowered:
+        return "starter"
+    return None
+
+
+def _extract_revenuecat_active_subscription(subscriber: dict) -> Optional[dict]:
+    now = datetime.now(timezone.utc)
+    candidates: List[dict] = []
+
+    entitlements = subscriber.get("entitlements") or {}
+    if isinstance(entitlements, dict):
+        for entitlement_name, entitlement in entitlements.items():
+            if not isinstance(entitlement, dict):
+                continue
+            expires_at = parse_datetime_value(entitlement.get("expires_date"))
+            if expires_at and expires_at < now:
+                continue
+            product_id = str(
+                entitlement.get("product_identifier")
+                or entitlement.get("product_id")
+                or ""
+            )
+            plan = _infer_plan_from_revenuecat_value(entitlement_name) or _infer_plan_from_revenuecat_value(product_id)
+            if not plan:
+                continue
+            candidates.append(
+                {
+                    "plan": plan,
+                    "product_id": product_id,
+                    "subscription_end": expires_at,
+                    "priority": 3 if plan == "enterprise" else 2 if plan == "pro" else 1,
+                }
+            )
+
+    subscriptions = subscriber.get("subscriptions") or {}
+    if isinstance(subscriptions, dict):
+        for product_id, sub in subscriptions.items():
+            if not isinstance(sub, dict):
+                continue
+            expires_at = parse_datetime_value(sub.get("expires_date"))
+            if expires_at and expires_at < now:
+                continue
+            plan = _infer_plan_from_revenuecat_value(str(product_id))
+            if not plan:
+                continue
+            candidates.append(
+                {
+                    "plan": plan,
+                    "product_id": str(product_id),
+                    "subscription_end": expires_at,
+                    "priority": 3 if plan == "enterprise" else 2 if plan == "pro" else 1,
+                }
+            )
+
+    if not candidates:
+        return None
+
+    def _sort_key(item: dict):
+        expires_at = item.get("subscription_end")
+        expires_ts = expires_at.timestamp() if isinstance(expires_at, datetime) else float("inf")
+        return (item.get("priority", 0), expires_ts)
+
+    return sorted(candidates, key=_sort_key, reverse=True)[0]
+
+
+async def _sync_subscription_from_revenuecat(app_user_id: str) -> Optional[dict]:
+    server_key = _resolve_revenuecat_server_key()
+    if not server_key:
+        return None
+
+    import httpx as _httpx
+
+    url = f"https://api.revenuecat.com/v1/subscribers/{quote(app_user_id, safe='')}"
+    headers = {
+        "Authorization": f"Bearer {server_key}",
+        "Accept": "application/json",
+    }
+
+    try:
+        async with _httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url, headers=headers)
+        if response.status_code == 404:
+            return {"active": False}
+        if response.status_code < 200 or response.status_code >= 300:
+            logger.warning("RevenueCat sync failed for %s: HTTP %s", app_user_id, response.status_code)
+            return None
+        payload = response.json()
+        subscriber = payload.get("subscriber") if isinstance(payload, dict) else {}
+        if not isinstance(subscriber, dict):
+            return None
+        active = _extract_revenuecat_active_subscription(subscriber)
+        if not active:
+            return {"active": False}
+        return {
+            "active": True,
+            "plan": active["plan"],
+            "product_id": active.get("product_id"),
+            "subscription_end": active.get("subscription_end"),
+        }
+    except Exception as exc:
+        logger.warning("RevenueCat sync exception for %s: %s", app_user_id, exc)
+        return None
+
+
 @api_router.post("/subscription/sync")
 async def sync_subscription(user: User = Depends(require_auth)):
     """Manual sync fallback - check if subscription is still active."""
@@ -26979,8 +27100,40 @@ async def sync_subscription(user: User = Depends(require_auth)):
         raise HTTPException(status_code=404)
     account_doc = await ensure_business_account_for_user_doc(owner_doc)
     source = account_doc or owner_doc
-    sub_end = source.get("subscription_end")
     current_plan = normalize_plan(source.get("plan"))
+    current_provider = (source.get("subscription_provider") or "none").strip().lower()
+
+    # Fallback sync with RevenueCat to avoid stale Starter/Pro status when webhook is delayed.
+    rc_state = await _sync_subscription_from_revenuecat(owner_id)
+    if rc_state is not None:
+        if rc_state.get("active"):
+            incoming_plan = normalize_plan(rc_state.get("plan"))
+            # Never downgrade an Enterprise account managed by web billing from a mobile event.
+            is_enterprise_managed_on_web = (
+                current_plan == "enterprise"
+                and current_provider in {"stripe", "flutterwave"}
+                and incoming_plan in {"starter", "pro"}
+            )
+            if not is_enterprise_managed_on_web:
+                update_payload: Dict[str, Any] = {
+                    "plan": incoming_plan,
+                    "subscription_status": "active",
+                    "subscription_provider": "revenuecat",
+                }
+                if rc_state.get("subscription_end"):
+                    update_payload["subscription_end"] = rc_state["subscription_end"]
+                await update_business_account_for_owner(owner_id, update_payload)
+                account_doc = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0})
+                source = account_doc or owner_doc
+                current_plan = normalize_plan(source.get("plan"))
+                current_provider = (source.get("subscription_provider") or "none").strip().lower()
+        elif current_provider == "revenuecat" and current_plan in {"starter", "pro"}:
+            await update_business_account_for_owner(owner_id, {"subscription_status": "expired"})
+            account_doc = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0})
+            source = account_doc or owner_doc
+            current_plan = normalize_plan(source.get("plan"))
+
+    sub_end = parse_datetime_value(source.get("subscription_end"))
     if sub_end and current_plan in ("pro", "enterprise"):
         sub_end_aware = sub_end if sub_end.tzinfo else sub_end.replace(tzinfo=timezone.utc)
         if sub_end_aware < datetime.now(timezone.utc):

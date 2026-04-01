@@ -36,6 +36,11 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 1. Re-générer un build (si vous utilisez EAS Build) ou re-tester en local.
 2. Télécharger la version depuis le lien de test interne.
 
+## 3.1 Synchronisation après achat intégré
+
+- Après un achat Starter ou Pro via Google Play / App Store, l’application lance une synchronisation serveur (`/subscription/sync`) pour refléter immédiatement le plan.
+- Si la boutique indique "déjà abonné", utilisez le bouton **Récupérer mon abonnement** pour restaurer l’achat puis relancer la synchronisation.
+
 ## 4. Connexion Google mobile
 
 - Le flux Google mobile natif dépend de la configuration OAuth Android et iOS intégrée au build.

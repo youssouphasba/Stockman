@@ -12,6 +12,7 @@ export type PurchaseFailureReason =
     | 'offerings_unavailable'
     | 'package_not_found'
     | 'cancelled'
+    | 'already_owned'
     | 'billing_unavailable'
     | 'item_unavailable'
     | 'not_allowed'
@@ -172,6 +173,15 @@ function classifyPurchaseError(error: any): { reason: PurchaseFailureReason; deb
 
     if (upperCode.includes('BILLING_UNAVAILABLE') || message.includes('billing unavailable')) {
         return { reason: 'billing_unavailable', debugCode };
+    }
+    if (
+        upperCode.includes('ITEM_ALREADY_OWNED') ||
+        upperCode.includes('PRODUCT_ALREADY_PURCHASED') ||
+        message.includes('already subscribed') ||
+        message.includes('already purchased') ||
+        message.includes('already owned')
+    ) {
+        return { reason: 'already_owned', debugCode };
     }
     if (
         upperCode.includes('PRODUCT_NOT_AVAILABLE') ||
