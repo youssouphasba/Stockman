@@ -17,6 +17,20 @@ Pour tester les paiements sans dépenser d'argent réel :
 3. Créez des **Entitlements** (ex: `premium`) et des **Offerings**.
 4. **IMPORTANT** : Dans le Play Store, le compte Google utilisé pour le test doit être ajouté comme "Testeur sous licence" dans **Configuration** → **Tests de licence**.
 
+### Variables d'environnement par plateforme
+
+Pour éviter de mélanger les identifiants Android et iOS dans RevenueCat, Stockman utilise des variables distinctes :
+
+- `EXPO_PUBLIC_REVENUECAT_STARTER_PRODUCT_ID_ANDROID`
+- `EXPO_PUBLIC_REVENUECAT_PRO_PRODUCT_ID_ANDROID`
+- `EXPO_PUBLIC_REVENUECAT_STARTER_PRODUCT_ID_IOS`
+- `EXPO_PUBLIC_REVENUECAT_PRO_PRODUCT_ID_IOS`
+
+Format attendu :
+
+- Android : identifiant combiné RevenueCat / Google Play, par exemple `stockman_starter_monthly:stockman-starter-monthly`
+- iOS : identifiant App Store Connect exact, par exemple `starter_monthly_V2`
+
 ## 3. Déploiement
 Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.env`. Vous devrez ensuite :
 1. Re-générer un build (si vous utilisez EAS Build) ou re-tester en local.

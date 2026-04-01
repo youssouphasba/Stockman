@@ -185,8 +185,6 @@ export default function Home() {
       removeToken();
       setIsLogged(false);
       setUser(null);
-    } finally {
-      setInitialLoading(false);
     }
   }, [hydrateAuthenticatedUser]);
 
@@ -270,10 +268,6 @@ export default function Home() {
   }, [clearQueryParam, demoBootLoading, initialLoading, isLogged, searchParams]);
 
   useEffect(() => {
-    void loadUser();
-  }, [loadUser]);
-
-  useEffect(() => {
     if (searchParams.get('signup') === 'true') {
       setShowSignup(true);
       clearQueryParam('signup');
@@ -336,7 +330,7 @@ export default function Home() {
     }
   };
 
-  const handleSocialToken = async (firebaseIdToken: string) => {
+  const handleSocialToken = useCallback(async (firebaseIdToken: string) => {
     setError(null);
     try {
       const response = await auth.socialLogin(firebaseIdToken, 'web');
@@ -346,7 +340,7 @@ export default function Home() {
     } finally {
       setSocialLoading(null);
     }
-  };
+  }, [hydrateAuthenticatedUser, t]);
 
   const handleSocialLogin = async (provider: 'google') => {
     if (socialLoading) return;
@@ -400,17 +394,36 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
-    completeRedirectSignIn()
-      .then((token) => {
-        if (cancelled || !token) return;
-        setSocialLoading('google');
-        return handleSocialToken(token);
-      })
-      .catch(() => undefined);
+
+    const bootstrapAuth = async () => {
+      try {
+        const token = await completeRedirectSignIn();
+        if (cancelled) return;
+
+        if (token) {
+          setSocialLoading('google');
+          await handleSocialToken(token);
+          return;
+        }
+
+        await loadUser();
+      } catch {
+        if (cancelled) return;
+        removeToken();
+        setIsLogged(false);
+        setUser(null);
+      } finally {
+        if (!cancelled) {
+          setInitialLoading(false);
+        }
+      }
+    };
+
+    void bootstrapAuth();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [handleSocialToken, loadUser]);
 
   useEffect(() => {
     if (isLogged && isBillingOnly && activeTab !== 'subscription') {

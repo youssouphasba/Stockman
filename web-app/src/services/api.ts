@@ -212,7 +212,7 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
     let response = await fetch(`${API_URL}/api${finalEndpoint}`, config);
 
     if (response.status === 401) {
-        const skipRefresh = ['/auth/login', '/auth/refresh', '/auth/me'];
+        const skipRefresh = ['/auth/login', '/auth/refresh'];
         if (!skipRefresh.includes(endpoint)) {
             const refreshed = await refreshWithMutex();
             if (refreshed) {
