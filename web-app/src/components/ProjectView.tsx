@@ -14,16 +14,16 @@ import { useDateFormatter } from '../hooks/useDateFormatter';
 type SubTab = 'dashboard' | 'projects' | 'devis' | 'journal' | 'sousTraitants' | 'planning' | 'materials' | 'situations';
 
 const CORPS_OPTIONS = [
-    { key: 'gros_oeuvre', labelKey: 'projects.corps_gros_oeuvre', icon: 'ðŸ§±' },
-    { key: 'plomberie', labelKey: 'projects.corps_plomberie', icon: 'ðŸš¿' },
-    { key: 'electricite', labelKey: 'projects.corps_electricite', icon: 'âš¡' },
-    { key: 'peinture', labelKey: 'projects.corps_peinture', icon: 'ðŸŽ¨' },
-    { key: 'carrelage', labelKey: 'projects.corps_carrelage', icon: 'ðŸ§±' },
-    { key: 'menuiserie', labelKey: 'projects.corps_menuiserie', icon: 'ðŸª‘' },
-    { key: 'toiture', labelKey: 'projects.corps_toiture', icon: 'ðŸ ' },
-    { key: 'ferronnerie', labelKey: 'projects.corps_ferronnerie', icon: 'âš’ï¸' },
-    { key: 'etancheite', labelKey: 'projects.corps_etancheite', icon: 'ðŸ’§' },
-    { key: 'autre', labelKey: 'projects.corps_autre', icon: 'ðŸ“¦' },
+    { key: 'gros_oeuvre', labelKey: 'projects.corps_gros_oeuvre', icon: '🧱' },
+    { key: 'plomberie', labelKey: 'projects.corps_plomberie', icon: '🚿' },
+    { key: 'electricite', labelKey: 'projects.corps_electricite', icon: '⚡' },
+    { key: 'peinture', labelKey: 'projects.corps_peinture', icon: '🎨' },
+    { key: 'carrelage', labelKey: 'projects.corps_carrelage', icon: '🧱' },
+    { key: 'menuiserie', labelKey: 'projects.corps_menuiserie', icon: '🪑' },
+    { key: 'toiture', labelKey: 'projects.corps_toiture', icon: '🏠' },
+    { key: 'ferronnerie', labelKey: 'projects.corps_ferronnerie', icon: '⚒️' },
+    { key: 'etancheite', labelKey: 'projects.corps_etancheite', icon: '💧' },
+    { key: 'autre', labelKey: 'projects.corps_autre', icon: '📦' },
 ];
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -246,7 +246,7 @@ export default function ProjectView() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-black text-white flex items-center gap-3">
                     <div className="p-2 rounded-xl bg-primary/20 text-primary"><Hammer size={24} /></div>
-                    ðŸ—ï¸ {t('tabs.projects', 'Chantiers')}
+                    🏗️ {t('tabs.projects', 'Chantiers')}
                 </h1>
                 <button onClick={() => setShowNewProject(true)}
                     className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary/80 text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 text-sm">
@@ -264,7 +264,7 @@ export default function ProjectView() {
                 ))}
             </div>
 
-            {/* â”€â”€â”€ Dashboard Tab â”€â”€â”€ */}
+            {/* ─── Dashboard Tab ─── */}
             {activeTab === 'dashboard' && dashboard && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-4 gap-4">
@@ -299,7 +299,7 @@ export default function ProjectView() {
                 </div>
             )}
 
-            {/* â”€â”€â”€ Projects Tab â”€â”€â”€ */}
+            {/* ─── Projects Tab ─── */}
             {activeTab === 'projects' && (
                 projectList.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-500">
@@ -318,8 +318,8 @@ export default function ProjectView() {
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <p className="font-bold text-white">{project.name}</p>
-                                            {project.client_name && <p className="text-xs text-slate-400 mt-0.5">ðŸ‘¤ {project.client_name}</p>}
-                                            {project.address && <p className="text-xs text-slate-400">ðŸ“ {project.address}</p>}
+                                            {project.client_name && <p className="text-xs text-slate-400 mt-0.5">👤 {project.client_name}</p>}
+                                            {project.address && <p className="text-xs text-slate-400">📍 {project.address}</p>}
                                         </div>
                                         <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${statusColor(project.status)}`}>
                                             {t(`projects.status_${project.status}`, project.status)}
@@ -342,7 +342,7 @@ export default function ProjectView() {
                                     {/* Stats */}
                                     <div className="flex gap-4 text-xs text-slate-400">
                                         <span>📦 {project.materials_allocated.length} matériaux</span>
-                                        <span>ðŸ‘· {project.labor_entries.length} ouvriers</span>
+                                        <span>👷 {project.labor_entries.length} ouvriers</span>
                                         <span>💰 {fmt(totalInvoiced)} facturé</span>
                                     </div>
 
@@ -391,7 +391,7 @@ export default function ProjectView() {
                 )
             )}
 
-            {/* â”€â”€â”€ Materials Tab â”€â”€â”€ */}
+            {/* ─── Materials Tab ─── */}
             {activeTab === 'materials' && (
                 allMaterials.length === 0 ? (
                     <div className="text-center py-20 text-slate-500"><Truck size={56} className="mx-auto mb-4 opacity-30" /><p>{t('projects.no_materials', 'Aucun matériau affecté')}</p></div>
@@ -413,7 +413,7 @@ export default function ProjectView() {
                 )
             )}
 
-            {/* â”€â”€â”€ Situations Tab â”€â”€â”€ */}
+            {/* ─── Situations Tab ─── */}
             {activeTab === 'situations' && (
                 allSituations.length === 0 ? (
                     <div className="text-center py-20 text-slate-500"><FileText size={56} className="mx-auto mb-4 opacity-30" /><p>{t('projects.no_situations', 'Aucune situation de travaux')}</p></div>
@@ -437,7 +437,7 @@ export default function ProjectView() {
                 )
             )}
 
-            {/* â”€â”€â”€ Devis Tab â”€â”€â”€ */}
+            {/* ─── Devis Tab ─── */}
             {activeTab === 'devis' && selectedProject && (
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -512,7 +512,7 @@ export default function ProjectView() {
                 <div className="text-center py-16 text-slate-500">Sélectionnez un chantier dans l'onglet "Chantiers" pour voir son devis.</div>
             )}
 
-            {/* â”€â”€â”€ Journal Tab â”€â”€â”€ */}
+            {/* ─── Journal Tab ─── */}
             {activeTab === 'journal' && selectedProject && (
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -528,7 +528,7 @@ export default function ProjectView() {
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="flex items-center gap-2">
                                         <span className="font-bold text-white">{entry.date}</span>
-                                        <span className="text-lg">{entry.weather === 'soleil' ? 'â˜€ï¸' : entry.weather === 'pluie' ? 'ðŸŒ§ï¸' : entry.weather === 'nuageux' ? 'â›…' : 'ðŸ’¨'}</span>
+                                        <span className="text-lg">{entry.weather === 'soleil' ? '☀️' : entry.weather === 'pluie' ? '🌧️' : entry.weather === 'nuageux' ? '⛅' : '💨'}</span>
                                         <span className="text-xs text-slate-400">{entry.workers_count} ouvriers</span>
                                     </div>
                                 </div>
@@ -545,7 +545,7 @@ export default function ProjectView() {
                 <div className="text-center py-16 text-slate-500">Sélectionnez un chantier dans l'onglet "Chantiers".</div>
             )}
 
-            {/* â”€â”€â”€ Sous-traitants Tab â”€â”€â”€ */}
+            {/* ─── Sous-traitants Tab ─── */}
             {activeTab === 'sousTraitants' && selectedProject && (
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -583,7 +583,7 @@ export default function ProjectView() {
                 <div className="text-center py-16 text-slate-500">Sélectionnez un chantier dans l'onglet "Chantiers".</div>
             )}
 
-            {/* â”€â”€â”€ Planning Tab â”€â”€â”€ */}
+            {/* ─── Planning Tab ─── */}
             {activeTab === 'planning' && selectedProject && (
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -628,7 +628,7 @@ export default function ProjectView() {
                 <div className="text-center py-16 text-slate-500">Sélectionnez un chantier dans l'onglet "Chantiers".</div>
             )}
 
-            {/* â•â•â• New Project Modal â•â•â• */}
+            {/* New Project Modal */}
             {showNewProject && (
                 <Modal title={t('projects.new_project', 'Nouveau chantier')} onClose={() => setShowNewProject(false)}>
                     {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
@@ -667,7 +667,7 @@ export default function ProjectView() {
                 </Modal>
             )}
 
-            {/* â•â•â• Allocate Material Modal â•â•â• */}
+            {/* Allocate Material Modal */}
             {showAllocate && selectedProject && (
                 <Modal title={t('projects.allocate_title', 'Affecter un matériau')} onClose={() => setShowAllocate(false)}>
                     <p className="text-xs text-slate-400 mb-4">{selectedProject.name}</p>
@@ -705,7 +705,7 @@ export default function ProjectView() {
                 </Modal>
             )}
 
-            {/* â•â•â• Labor Modal â•â•â• */}
+            {/* Labor Modal */}
             {showLabor && selectedProject && (
                 <Modal title={t('projects.add_labor', "Ajouter main d'Å“uvre")} onClose={() => setShowLabor(false)}>
                     <p className="text-xs text-slate-400 mb-4">{selectedProject.name}</p>
@@ -744,7 +744,7 @@ export default function ProjectView() {
                 </Modal>
             )}
 
-            {/* â•â•â• Situation Modal â•â•â• */}
+            {/* Situation Modal */}
             {showSituation && selectedProject && (
                 <Modal title={t('projects.add_situation', 'Nouvelle situation de travaux')} onClose={() => setShowSituation(false)}>
                     <p className="text-xs text-slate-400 mb-4">{selectedProject.name}</p>
@@ -773,7 +773,7 @@ export default function ProjectView() {
                 </Modal>
             )}
 
-            {/* â•â•â• Devis Modal â•â•â• */}
+            {/* Devis Modal */}
             {showDevisModal && selectedProject && (
                 <Modal title="Ajouter une ligne de devis" onClose={() => setShowDevisModal(false)}>
                     <Field label="Désignation *"><input value={devisForm.designation} onChange={e => setDevisForm(f => ({...f, designation: e.target.value}))} className={input} placeholder="Fouilles, béton armé..." /></Field>
@@ -795,17 +795,17 @@ export default function ProjectView() {
                 </Modal>
             )}
 
-            {/* â•â•â• Journal Modal â•â•â• */}
+            {/* Journal Modal */}
             {showJournalModal && selectedProject && (
                 <Modal title="Entrée journal de chantier" onClose={() => setShowJournalModal(false)}>
                     <div className="grid grid-cols-2 gap-3">
                         <Field label="Date"><input type="date" value={journalForm.date} onChange={e => setJournalForm(f => ({...f, date: e.target.value}))} className={input} /></Field>
                         <Field label="Météo">
                             <select value={journalForm.weather} onChange={e => setJournalForm(f => ({...f, weather: e.target.value}))} className={input}>
-                                <option value="soleil">â˜€ï¸ Soleil</option>
-                                <option value="nuageux">â›… Nuageux</option>
-                                <option value="pluie">ðŸŒ§ï¸ Pluie</option>
-                                <option value="vent">ðŸ’¨ Vent</option>
+                                <option value="soleil">☀️ Soleil</option>
+                                <option value="nuageux">⛅ Nuageux</option>
+                                <option value="pluie">🌧️ Pluie</option>
+                                <option value="vent">💨 Vent</option>
                             </select>
                         </Field>
                     </div>
@@ -824,7 +824,7 @@ export default function ProjectView() {
                 </Modal>
             )}
 
-            {/* â•â•â• Sous-traitant Modal â•â•â• */}
+            {/* Sous-traitant Modal */}
             {showSubModal && selectedProject && (
                 <Modal title="Ajouter un sous-traitant" onClose={() => setShowSubModal(false)}>
                     <Field label="Nom / Entreprise *"><input value={subForm.name} onChange={e => setSubForm(f => ({...f, name: e.target.value}))} className={input} placeholder="Entreprise DIALLO..." /></Field>
@@ -847,7 +847,7 @@ export default function ProjectView() {
                 </Modal>
             )}
 
-            {/* â•â•â• Pay Subcontractor Modal â•â•â• */}
+            {/* Pay Subcontractor Modal */}
             {showPaySubModal && selectedProject && (() => {
                 const sub = (selectedProject.subcontractors || []).find((s: any) => s.sub_id === showPaySubModal);
                 if (!sub) return null;
@@ -866,7 +866,7 @@ export default function ProjectView() {
                 );
             })()}
 
-            {/* â•â•â• Phase Modal â•â•â• */}
+            {/* Phase Modal */}
             {showPhaseModal && selectedProject && (
                 <Modal title="Ajouter une phase" onClose={() => setShowPhaseModal(false)}>
                     <Field label="Nom de la phase *"><input value={phaseForm.name} onChange={e => setPhaseForm(f => ({...f, name: e.target.value}))} className={input} placeholder="Fondations, Gros Å“uvre..." /></Field>

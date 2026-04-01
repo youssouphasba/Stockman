@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import Constants from 'expo-constants';
 import DigitalReceiptModal from '../../components/DigitalReceiptModal';
+import { mergePosProductsOfflineState } from '../../services/offlineState';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -219,19 +220,23 @@ export default function POSScreen() {
             const features = await userFeatures.get().catch(() => null);
             const isRestaurantAccount = Boolean(features && isRestaurantBusiness(features));
 
-            const [prodsRes, custsRes, storesRes] = await Promise.all([
+            const [prodsRes, custsRes, storesRes] = await Promise.allSettled([
                 productsApi.list(undefined, 0, 500, isRestaurantAccount ? true : undefined),
                 customersApi.list(),
                 storesApi.list(),
             ]);
-            const prods = prodsRes.items ?? prodsRes as any;
-            const custs = custsRes.items ?? custsRes as any;
-            const stores = storesRes as any;
+            if (prodsRes.status === 'fulfilled') {
+                const prods = prodsRes.value.items ?? prodsRes.value as any;
+                const mergedProducts = await mergePosProductsOfflineState(prods);
+                setProductList(mergedProducts.filter((p: any) => p.is_active));
+            }
+            if (custsRes.status === 'fulfilled') {
+                const custs = custsRes.value.items ?? custsRes.value as any;
+                setCustomerList(custs);
+            }
 
-            setProductList(prods.filter((p: any) => p.is_active));
-            setCustomerList(custs);
-
-            if (user?.active_store_id) {
+            if (storesRes.status === 'fulfilled' && user?.active_store_id) {
+                const stores = storesRes.value as any;
                 const active = stores.find((s: any) => s.store_id === user.active_store_id);
                 if (active) {
                     setCurrentStore(active);
@@ -470,6 +475,30 @@ export default function POSScreen() {
     // Voice to cart recorder
     const voiceRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
+    const getVoiceToCartErrorMessage = (error: unknown) => {
+        const rawMessage = error instanceof Error ? error.message.trim() : '';
+        if (!rawMessage) {
+            return 'La reconnaissance vocale a échoué. Veuillez réessayer.';
+        }
+        const normalized = rawMessage.toLowerCase();
+        if (normalized.includes('ai service not configured')) {
+            return 'Le service vocal n’est pas configuré pour le moment.';
+        }
+        if (normalized.includes('audio_base64 required') || normalized.includes('no recording uri')) {
+            return 'Aucun enregistrement vocal exploitable n’a été détecté. Veuillez réessayer.';
+        }
+        if (normalized.includes('transcription failed')) {
+            return 'La transcription vocale a échoué. Vérifiez votre connexion puis réessayez.';
+        }
+        if (normalized.includes('quota') || normalized.includes('limit') || normalized.includes('limite')) {
+            return rawMessage;
+        }
+        if (normalized.includes('accès refusé') || normalized.includes('access denied') || normalized.includes('forbidden')) {
+            return 'Cette fonction vocale n’est pas accessible pour ce compte actuellement.';
+        }
+        return rawMessage;
+    };
+
     const startVoiceRecording = async () => {
         try {
             const { status } = await requestRecordingPermissionsAsync();
@@ -506,7 +535,7 @@ export default function POSScreen() {
             setVoiceItems(result?.items || []);
         } catch (err) {
             console.error('Voice to cart failed', err);
-            Alert.alert(t('common.error'), 'La reconnaissance vocale a échoué. Réessayez.');
+            Alert.alert(t('common.error'), getVoiceToCartErrorMessage(err));
             setShowVoiceModal(false);
         } finally {
             setIsVoiceProcessing(false);
@@ -747,6 +776,18 @@ export default function POSScreen() {
                     total_amount: calculateGrandTotal(),
                 });
 
+            const nowIso = new Date().toISOString();
+            const normalizedSale = {
+                created_at: nowIso,
+                sale_id: `offline-sale-${Date.now()}`,
+                status: 'pending',
+                item_count: items.length,
+                ...(result as any),
+                customer_name: selectedCustomer?.name || t('pos.anonymous_customer'),
+                items: cart,
+                is_offline: Boolean((result as any)?.offline_pending),
+            } as Sale;
+
             if (method === 'credit') {
                 if (Platform.OS === 'web') {
                     window.alert(t('pos.credit_success'));
@@ -755,10 +796,7 @@ export default function POSScreen() {
                 }
             }
 
-            setLastSale({
-                ...result,
-                customer_name: selectedCustomer?.name || t('pos.anonymous_customer')
-            });
+            setLastSale(normalizedSale);
             setShowReceiptModal(true);
 
             updateActiveSession(s => ({

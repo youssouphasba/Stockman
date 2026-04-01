@@ -999,7 +999,7 @@ export default function POS() {
                                     <option value="">{t('pos.no_table')}</option>
                                     {tableList.map(t => (
                                         <option key={t.table_id} value={t.table_id}>
-                                            {t.name} ({t.capacity} pers.) {t.status === 'occupied' ? 'ðŸ”´' : t.status === 'reserved' ? 'ðŸ”µ' : 'ðŸŸ¢'}
+                                            {t.name} ({t.capacity} pers.) {t.status === 'occupied' ? '🔴' : t.status === 'reserved' ? '🔵' : '🟢'}
                                         </option>
                                     ))}
                                 </select>

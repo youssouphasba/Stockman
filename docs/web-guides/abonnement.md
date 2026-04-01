@@ -1,88 +1,91 @@
-# Guide — Abonnement
+# Guide - Abonnement
 
-## 1. Rôle du module
+## 1. Role du module
 
-Le module Abonnement permet de consulter et gérer son plan tarifaire, choisir un moyen de paiement (carte ou Mobile Money), et mettre à jour le contact de facturation.
+Le module Abonnement permet de consulter son plan, verifier la devise de facturation, mettre a jour le contact de facturation et lancer un paiement de renouvellement ou d'evolution.
 
-**Profils concernés** : shopkeeper, admin.
+**Profils concernes** : `billing_admin`, `org_admin`, `shopkeeper` autorise.
 
-## 2. Accès
+## 2. Acces
 
-Barre latérale → **Compte** → **Abonnement**.
+Barre laterale -> **Compte** -> **Abonnement**.
 
-## 3. Lecture de l'écran
+## 3. Lecture de l'ecran
 
-### En-tête
-- **Titre** : « Gestion d'abonnement ».
-- **Sous-titre** : prix effectifs, devise et canal de paiement.
+### En-tete
+
+- **Titre** : `Gestion d'abonnement`
+- **Sous-titre** : prix effectifs, devise et canal de paiement
 
 ### Carte plan actuel
-Bandeau coloré (vert si actif, rouge sinon) affichant :
-- Plan actuel (Starter / Pro / Enterprise).
-- Statut de l'abonnement et date d'expiration.
-- Devise et région tarifaire.
 
-### Session démo (si applicable)
-Bandeau bleu indiquant le type de démo, la surface et l'expiration.
+Le bloc du haut affiche :
 
-### Phase de continuité (si applicable)
-Bandeau ambre indiquant la phase (grace, read_only) et les dates limites.
+- le plan actif ;
+- le statut de l'abonnement ;
+- la date de fin si elle existe ;
+- la devise et la region tarifaire.
+
+### Bloc d'evolution vers Enterprise
+
+Si le compte est en `Starter` ou `Pro`, un bloc explique clairement que :
+
+- le passage a `Enterprise` se fait sur le meme compte ;
+- les boutiques, utilisateurs et donnees sont conserves ;
+- le web complet se debloque apres confirmation du paiement.
 
 ### Pays et devise
-Informations en lecture seule : pays de facturation, devise, région tarifaire.
 
-### Cartes plans
-Trois plans côte à côte :
-| Plan | Fonctionnalités clés |
-|------|---------------------|
-| Starter | App mobile, 1 boutique, 1 utilisateur |
-| Pro | App mobile, 2 boutiques, 5 utilisateurs |
-| Enterprise | Illimité + back-office web + CRM + analytics |
+Le pays et la devise de facturation sont affiches en lecture seule.
+
+### Cartes des plans
+
+- `Starter` : usage mobile de base
+- `Pro` : usage mobile renforce
+- `Enterprise` : mobile + back-office web complet
+
+Quand le compte n'est pas encore `Enterprise`, la carte `Enterprise` rappelle que le paiement met a jour le compte actuel.
 
 ### Contact de facturation
-Formulaire avec nom et email du contact de facturation.
+
+Le nom et l'email de facturation peuvent etre mis a jour avant un paiement.
 
 ### Informations paiement
-Deux cartes : Mobile Money (Flutterwave) et Carte bancaire (Stripe).
+
+Deux canaux peuvent etre proposes selon la devise :
+
+- `Stripe` pour la carte bancaire
+- `Flutterwave` pour Mobile Money
 
 ### Historique de facturation
-Section « Aucune facture disponible pour le moment ».
 
-## 4. Boutons et actions
+La section du bas affiche l'historique disponible. Si aucun document n'existe encore, l'ecran l'indique explicitement.
 
-| Bouton | Action | Effet |
-|--------|--------|-------|
-| Payer via Mobile Money | Clic | Redirige vers le checkout Flutterwave |
-| Payer par carte bancaire | Clic | Redirige vers le checkout Stripe |
-| Mettre à jour le contact | Enregistre | Sauvegarde nom et email de facturation |
-| Réessayer | Clic (si erreur) | Recharge les données d'abonnement |
+## 4. Cas d'usage
 
-## 5. États de l'interface
+### Passer de Starter ou Pro a Enterprise
 
-| État | Description |
-|------|-------------|
-| Chargement | Spinner centré |
-| Erreur | Bandeau rose avec message et bouton « Réessayer » |
-| Paiement en cours | Spinner sur le bouton de paiement |
-| Plan actuel | Bouton « Plan actuel » grisé sur le plan souscrit |
+1. Ouvrir **Abonnement**.
+2. Verifier le contact de facturation, le pays et la devise.
+3. Choisir la carte `Enterprise`.
+4. Lancer le paiement par carte ou Mobile Money selon la devise.
+5. Attendre la confirmation du paiement.
+6. Revenir sur le web app : le meme compte passe alors en `Enterprise`.
 
-## 6. Cas d'usage typiques
+### Renouveler le plan actuel
 
-- **Upgrade** : consulter les plans → cliquer sur le bouton de paiement du plan souhaité → être redirigé vers le checkout.
-- **Mise à jour facturation** : modifier le nom et l'email → cliquer « Mettre à jour le contact ».
-- **Vérification** : consulter la devise, la région et le plan actif.
+1. Ouvrir **Abonnement**.
+2. Choisir le canal de paiement propose.
+3. Finaliser le checkout.
 
-## 7. Questions fréquentes
+### Mettre a jour le contact de facturation
 
-| Question | Réponse |
-|----------|---------|
-| Comment changer de devise ? | La devise est définie à l'inscription et ne peut être modifiée depuis cet écran. Contactez le support. |
-| Mobile Money ou carte ? | Le moyen de paiement affiché dépend de votre pays de facturation. |
-| Que se passe-t-il si mon abonnement expire ? | Votre compte passe en phase de grâce, puis en lecture seule. Vos données ne sont pas supprimées. |
+1. Modifier le nom ou l'email.
+2. Cliquer sur `Mettre a jour le contact`.
 
-## 8. Guide rapide intégré
+## 5. Points de vigilance
 
-1. **Votre abonnement** — Consultez votre plan actif, sa date d'expiration et votre devise.
-2. **Choisir un plan** — Comparez les offres Starter, Pro et Enterprise.
-3. **Payer** — Sélectionnez Mobile Money ou carte bancaire selon votre région.
-4. **Contact facturation** — Mettez à jour le nom et l'email pour recevoir vos factures.
+- Le passage a `Enterprise` ne cree pas un nouveau compte.
+- Les donnees existantes ne sont pas supprimees lors de l'evolution.
+- Le changement de plan devient effectif apres confirmation du paiement par le prestataire.
+- Un compte `Starter` ou `Pro` peut consulter le web app, mais ne peut pas y creer ou modifier des donnees tant que `Enterprise` n'est pas actif.

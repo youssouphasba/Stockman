@@ -171,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authApi.login(email, password);
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
+    await cache.clear();
     await hydrateAuthenticatedUser(response.user);
     return response.user;
   }
@@ -179,6 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authApi.socialLogin(firebaseIdToken, signupSurface);
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
+    await cache.clear();
     await hydrateAuthenticatedUser(response.user);
     return response.user;
   }
@@ -199,6 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authApi.register(email, password, name, role, phone, currency, businessType, referralSource, countryCode, plan, signupSurface);
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
+    await cache.clear();
     await hydrateAuthenticatedUser(response.user);
     return response.user;
   }
@@ -220,6 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setHasProduction(false);
     setIsRestaurant(false);
     setIsAppLocked(false);
+    await cache.clear();
     if (Platform.OS !== 'web' && isBiometricsEnabled) {
       await removeAccessToken();
     } else {

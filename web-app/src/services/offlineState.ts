@@ -118,7 +118,7 @@ export function mergeInventoryOfflineState(products: any[], selectedLocation = '
 export function applyPendingDebtToCustomer<T extends { current_debt?: number }>(customer: T, signedAmount: number) {
     return {
         ...customer,
-        current_debt: Math.max(0, toNumber(customer.current_debt) - signedAmount),
+        current_debt: toNumber(customer.current_debt) - signedAmount,
         offline_pending: true,
         offline_pending_debt: true,
     };
@@ -224,6 +224,245 @@ export function mergeCustomersOfflineState(customers: any[]) {
             pendingCustomers,
             pendingDebtChanges,
             pendingTotal: pendingCustomers + pendingDebtChanges,
+        },
+    };
+}
+
+export function mergeAccountingOfflineState(params: {
+    recentSales: any[];
+    invoiceHistory: any[];
+    expensesList: any[];
+}) {
+    const queue = getSortedQueue();
+    const salesMap = new Map<string, any>();
+    const saleOrder: string[] = [];
+    const invoiceMap = new Map<string, any>();
+    const invoiceOrder: string[] = [];
+    const expenseMap = new Map<string, any>();
+    const expenseOrder: string[] = [];
+    let pendingInvoices = 0;
+    let pendingExpenses = 0;
+    let pendingSaleCancellations = 0;
+
+    (Array.isArray(params.recentSales) ? params.recentSales : []).forEach((sale) => {
+        salesMap.set(sale.sale_id, { ...sale });
+        saleOrder.push(sale.sale_id);
+    });
+
+    (Array.isArray(params.invoiceHistory) ? params.invoiceHistory : []).forEach((invoice) => {
+        invoiceMap.set(invoice.invoice_id, { ...invoice });
+        invoiceOrder.push(invoice.invoice_id);
+    });
+
+    (Array.isArray(params.expensesList) ? params.expensesList : []).forEach((expense) => {
+        expenseMap.set(expense.expense_id, { ...expense });
+        expenseOrder.push(expense.expense_id);
+    });
+
+    queue.forEach((request) => {
+        if (request.endpoint?.startsWith('/invoices/from-sale/') && request.method === 'POST') {
+            pendingInvoices += 1;
+            const saleId = getEndpointId(request.endpoint, '/invoices/from-sale/');
+            const sale = salesMap.get(saleId);
+            const invoiceId = `offline-invoice-${request.id}`;
+            const invoiceNumber = `EN-ATT-${saleId.slice(0, 6).toUpperCase()}`;
+
+            if (!invoiceMap.has(invoiceId)) {
+                invoiceMap.set(invoiceId, {
+                    invoice_id: invoiceId,
+                    invoice_number: invoiceNumber,
+                    invoice_label: 'Facture',
+                    invoice_prefix: 'SYNC',
+                    sale_id: saleId,
+                    customer_name: sale?.customer_name || 'Client divers',
+                    status: 'pending',
+                    items: sale?.items || [],
+                    total_amount: sale?.total_amount || 0,
+                    notes: 'Facture créée hors ligne et en attente de synchronisation.',
+                    issued_at: new Date(request.timestamp).toISOString(),
+                    created_at: new Date(request.timestamp).toISOString(),
+                    offline_pending: true,
+                });
+                invoiceOrder.unshift(invoiceId);
+            }
+
+            if (sale) {
+                salesMap.set(saleId, {
+                    ...sale,
+                    invoice_id: invoiceId,
+                    invoice_number: invoiceNumber,
+                    invoice_label: 'Facture',
+                    offline_pending_invoice: true,
+                });
+            }
+            return;
+        }
+
+        if (request.endpoint === '/invoices/free' && request.method === 'POST') {
+            pendingInvoices += 1;
+            const invoiceId = `offline-free-invoice-${request.id}`;
+            if (!invoiceMap.has(invoiceId)) {
+                const body = request.body || {};
+                invoiceMap.set(invoiceId, {
+                    invoice_id: invoiceId,
+                    invoice_number: `BROUILLON-${String(request.id).slice(0, 6).toUpperCase()}`,
+                    invoice_label: 'Facture',
+                    invoice_prefix: 'SYNC',
+                    customer_name: body.customer_name || 'Client divers',
+                    status: 'pending',
+                    items: body.items || [],
+                    total_amount: (body.items || []).reduce((sum: number, item: any) => sum + (toNumber(item.quantity, 1) * toNumber(item.unit_price)), 0) - toNumber(body.discount_amount),
+                    notes: body.notes || 'Facture libre créée hors ligne et en attente de synchronisation.',
+                    issued_at: new Date(request.timestamp).toISOString(),
+                    created_at: new Date(request.timestamp).toISOString(),
+                    offline_pending: true,
+                });
+                invoiceOrder.unshift(invoiceId);
+            }
+            return;
+        }
+
+        if (request.endpoint === '/expenses' && request.method === 'POST') {
+            pendingExpenses += 1;
+            const expenseId = `offline-expense-${request.id}`;
+            if (!expenseMap.has(expenseId)) {
+                expenseMap.set(expenseId, {
+                    expense_id: expenseId,
+                    category: request.body?.category || 'other',
+                    amount: toNumber(request.body?.amount),
+                    description: request.body?.description,
+                    created_at: new Date(request.timestamp).toISOString(),
+                    offline_pending: true,
+                });
+                expenseOrder.unshift(expenseId);
+            }
+            return;
+        }
+
+        if (request.endpoint?.startsWith('/expenses/') && request.method === 'DELETE') {
+            const expenseId = getEndpointId(request.endpoint, '/expenses/');
+            expenseMap.delete(expenseId);
+            const index = expenseOrder.indexOf(expenseId);
+            if (index >= 0) expenseOrder.splice(index, 1);
+            return;
+        }
+
+        if (request.endpoint?.startsWith('/sales/') && request.endpoint.endsWith('/cancel') && request.method === 'POST') {
+            pendingSaleCancellations += 1;
+            const saleId = getEndpointId(request.endpoint, '/sales/');
+            const sale = salesMap.get(saleId);
+            if (!sale) return;
+            salesMap.set(saleId, {
+                ...sale,
+                status: 'cancelled',
+                cancelled_at: new Date(request.timestamp).toISOString(),
+                offline_pending_cancellation: true,
+            });
+        }
+    });
+
+    return {
+        recentSales: saleOrder.map((saleId) => salesMap.get(saleId)).filter(Boolean),
+        invoiceHistory: invoiceOrder.map((invoiceId) => invoiceMap.get(invoiceId)).filter(Boolean),
+        expensesList: expenseOrder.map((expenseId) => expenseMap.get(expenseId)).filter(Boolean),
+        summary: {
+            pendingInvoices,
+            pendingExpenses,
+            pendingSaleCancellations,
+            pendingTotal: pendingInvoices + pendingExpenses + pendingSaleCancellations,
+        },
+    };
+}
+
+export function mergeSuppliersOfflineState(params: {
+    manualSuppliers: any[];
+    orders: any[];
+}) {
+    const queue = getSortedQueue();
+    const suppliersMap = new Map<string, any>();
+    const supplierOrder: string[] = [];
+    const ordersMap = new Map<string, any>();
+    const ordersOrder: string[] = [];
+    let pendingSuppliers = 0;
+    let pendingOrders = 0;
+
+    (Array.isArray(params.manualSuppliers) ? params.manualSuppliers : []).forEach((supplier) => {
+        suppliersMap.set(supplier.supplier_id, { ...supplier });
+        supplierOrder.push(supplier.supplier_id);
+    });
+
+    (Array.isArray(params.orders) ? params.orders : []).forEach((order) => {
+        ordersMap.set(order.order_id, { ...order });
+        ordersOrder.push(order.order_id);
+    });
+
+    queue.forEach((request) => {
+        if (request.endpoint === '/suppliers' && request.method === 'POST') {
+            pendingSuppliers += 1;
+            const supplierId = `offline-supplier-${request.id}`;
+            if (!suppliersMap.has(supplierId)) {
+                suppliersMap.set(supplierId, {
+                    supplier_id: supplierId,
+                    ...request.body,
+                    offline_pending: true,
+                });
+                supplierOrder.unshift(supplierId);
+            }
+            return;
+        }
+
+        if (request.endpoint?.startsWith('/suppliers/') && request.method === 'PUT') {
+            const supplierId = getEndpointId(request.endpoint, '/suppliers/');
+            const current = suppliersMap.get(supplierId);
+            if (!current) return;
+            suppliersMap.set(supplierId, {
+                ...current,
+                ...(request.body || {}),
+                offline_pending: true,
+            });
+            return;
+        }
+
+        if (request.endpoint?.startsWith('/suppliers/') && request.method === 'DELETE') {
+            const supplierId = getEndpointId(request.endpoint, '/suppliers/');
+            suppliersMap.delete(supplierId);
+            const index = supplierOrder.indexOf(supplierId);
+            if (index >= 0) supplierOrder.splice(index, 1);
+            return;
+        }
+
+        if (request.endpoint === '/orders' && request.method === 'POST') {
+            pendingOrders += 1;
+            const orderId = `offline-order-${request.id}`;
+            if (!ordersMap.has(orderId)) {
+                const body = request.body || {};
+                const items = Array.isArray(body.items) ? body.items : [];
+                const supplier = body.supplier_id ? suppliersMap.get(body.supplier_id) : null;
+                ordersMap.set(orderId, {
+                    order_id: orderId,
+                    supplier_id: body.supplier_id || '',
+                    supplier_user_id: body.supplier_user_id || '',
+                    supplier_name: supplier?.name || (body.supplier_user_id ? 'Fournisseur marketplace' : 'Fournisseur'),
+                    items,
+                    total_amount: items.reduce((sum: number, item: any) => sum + (toNumber(item.quantity) * toNumber(item.unit_price)), 0),
+                    status: 'pending',
+                    created_at: new Date(request.timestamp).toISOString(),
+                    expected_delivery: body.expected_delivery,
+                    notes: body.notes,
+                    offline_pending: true,
+                });
+                ordersOrder.unshift(orderId);
+            }
+        }
+    });
+
+    return {
+        manualSuppliers: supplierOrder.map((supplierId) => suppliersMap.get(supplierId)).filter(Boolean),
+        orders: ordersOrder.map((orderId) => ordersMap.get(orderId)).filter(Boolean),
+        summary: {
+            pendingSuppliers,
+            pendingOrders,
+            pendingTotal: pendingSuppliers + pendingOrders,
         },
     };
 }

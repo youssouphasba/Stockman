@@ -25,6 +25,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
 
     if (!sale) return null;
 
+    const isOfflineReceipt = Boolean((sale as any).is_offline || (sale as any).offline_pending || !sale.public_receipt_token);
     const receiptUrl = sale.public_receipt_token
         ? `${Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8000'}/public/receipts/t/${sale.public_receipt_token}`
         : '';
@@ -66,22 +67,36 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
                     </View>
 
                     <Text style={[styles.receiptSubtitle, { color: colors.textSecondary }]}>
-                        {t('modals.receipt_qr_subtitle')}
+                        {isOfflineReceipt
+                            ? t('common.offline_mode', { defaultValue: 'Mode hors ligne' })
+                            : t('modals.receipt_qr_subtitle')}
                     </Text>
 
                     <View style={styles.qrContainer}>
-                        <QRCode
-                            value={receiptUrl || 'receipt-unavailable'}
-                            size={180}
-                            color="#000"
-                            backgroundColor="#fff"
-                        />
+                        {isOfflineReceipt ? (
+                            <View style={styles.offlineReceiptState}>
+                                <Ionicons name="cloud-offline-outline" size={42} color={colors.warning || '#F59E0B'} />
+                                <Text style={[styles.offlineReceiptTitle, { color: colors.text }]}>
+                                    Vente enregistrée hors ligne
+                                </Text>
+                                <Text style={[styles.offlineReceiptText, { color: colors.textSecondary }]}>
+                                    Le reçu partageable sera disponible après la synchronisation.
+                                </Text>
+                            </View>
+                        ) : (
+                            <QRCode
+                                value={receiptUrl || 'receipt-unavailable'}
+                                size={180}
+                                color="#000"
+                                backgroundColor="#fff"
+                            />
+                        )}
                     </View>
 
                     <TouchableOpacity
-                        style={[styles.shareBtn, { backgroundColor: colors.primary }]}
+                        style={[styles.shareBtn, { backgroundColor: isOfflineReceipt ? colors.textMuted : colors.primary, opacity: isOfflineReceipt ? 0.6 : 1 }]}
                         onPress={handleSharePdf}
-                        disabled={sharing}
+                        disabled={sharing || isOfflineReceipt}
                     >
                         {sharing ? (
                             <ActivityIndicator color="#fff" size="small" />
@@ -96,6 +111,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
                     <TouchableOpacity
                         style={[styles.secondaryShareBtn, { marginTop: Spacing.sm }]}
                         onPress={shareToWhatsAppLegacy}
+                        disabled={isOfflineReceipt}
                     >
                         <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
                         <Text style={[styles.secondaryShareBtnText, { color: colors.textSecondary }]}>{t('modals.receipt_whatsapp_link')}</Text>
@@ -147,6 +163,26 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: BorderRadius.md,
         marginBottom: Spacing.xl,
+        minHeight: 220,
+        minWidth: 220,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    offlineReceiptState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        paddingHorizontal: Spacing.md,
+    },
+    offlineReceiptTitle: {
+        fontSize: FontSize.md,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    offlineReceiptText: {
+        fontSize: FontSize.sm,
+        textAlign: 'center',
+        lineHeight: 20,
     },
     shareBtn: {
         flexDirection: 'row',

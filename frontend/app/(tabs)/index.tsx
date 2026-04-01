@@ -170,6 +170,7 @@ export default function DashboardScreen() {
   const [nlQuery, setNlQuery] = useState('');
   const [nlResult, setNlResult] = useState<any>(null);
   const [nlLoading, setNlLoading] = useState(false);
+  const dashboardCacheKey = user?.user_id ? `${KEYS.DASHBOARD}:${user.user_id}` : KEYS.DASHBOARD;
 
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);
@@ -196,9 +197,9 @@ export default function DashboardScreen() {
 
         if (dashRes.status === 'fulfilled') {
           setData(dashRes.value);
-          cache.set(KEYS.DASHBOARD, dashRes.value);
+          cache.set(dashboardCacheKey, dashRes.value);
         } else {
-          const cached = await cache.get<DashboardData>(KEYS.DASHBOARD);
+          const cached = await cache.get<DashboardData>(dashboardCacheKey);
           if (cached) setData(prev => prev ?? cached);
         }
         if (settingsRes.status === 'fulfilled') setUserSettings(settingsRes.value);
@@ -206,11 +207,11 @@ export default function DashboardScreen() {
         if (tasksRes.status === 'fulfilled') setInventoryTasks(tasksRes.value);
       } else {
         // Offline: only use cache if we don't already have fresh data
-        const cached = await cache.get<DashboardData>(KEYS.DASHBOARD);
+        const cached = await cache.get<DashboardData>(dashboardCacheKey);
         if (cached) setData(prev => prev ?? cached);
       }
     } catch {
-      const cached = await cache.get<DashboardData>(KEYS.DASHBOARD);
+      const cached = await cache.get<DashboardData>(dashboardCacheKey);
       if (cached) setData(prev => prev ?? cached);
     } finally {
       if (Platform.OS !== 'web') {
@@ -220,7 +221,7 @@ export default function DashboardScreen() {
       setRefreshing(false);
       loadingRef.current = false;
     }
-  }, [user?.active_store_id]);
+  }, [dashboardCacheKey, user?.active_store_id]);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -230,10 +231,33 @@ export default function DashboardScreen() {
     } catch { /* ignore */ }
   }, []);
 
-  // Initial load on mount (safety net: useFocusEffect may not fire reliably on web)
+  // Initial load and reload when the authenticated user changes
   useEffect(() => {
+    setData(null);
+    setUserSettings(null);
+    setStats(null);
+    setStatsData(null);
+    setInventoryTasks([]);
+    setLoading(true);
     loadData();
-    // Vague 1+4+6: load health, prediction, tips, multi-store in background
+  }, [loadData]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setHealthScore(null);
+    setPrediction(null);
+    setContextualTips([]);
+    setRebalance(null);
+    setStoreBenchmark(null);
+    setNlResult(null);
+
+    if (!user?.user_id) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     Promise.allSettled([
       aiApi.businessHealthScore(),
       aiApi.dashboardPrediction(),
@@ -241,14 +265,26 @@ export default function DashboardScreen() {
       aiApi.rebalanceSuggestions(),
       aiApi.storeBenchmark(),
     ]).then(([healthRes, predRes, tipsRes, rebalRes, benchRes]) => {
-      if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
-      if (predRes.status === 'fulfilled') setPrediction(predRes.value);
-      if (tipsRes.status === 'fulfilled') setContextualTips(tipsRes.value?.tips || []);
-      if (rebalRes.status === 'fulfilled' && (rebalRes.value?.suggestions?.length ?? 0) > 0) setRebalance(rebalRes.value);
-      if (benchRes.status === 'fulfilled' && (benchRes.value?.stores?.length ?? 0) >= 2) setStoreBenchmark(benchRes.value);
+      if (cancelled) return;
+      setHealthScore(healthRes.status === 'fulfilled' ? healthRes.value : null);
+      setPrediction(predRes.status === 'fulfilled' ? predRes.value : null);
+      setContextualTips(tipsRes.status === 'fulfilled' ? (tipsRes.value?.tips || []) : []);
+      setRebalance(
+        rebalRes.status === 'fulfilled' && (rebalRes.value?.suggestions?.length ?? 0) > 0
+          ? rebalRes.value
+          : null
+      );
+      setStoreBenchmark(
+        benchRes.status === 'fulfilled' && (benchRes.value?.stores?.length ?? 0) >= 2
+          ? benchRes.value
+          : null
+      );
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.user_id, user?.active_store_id]);
 
   // Reload when tab regains focus (e.g. tab switch back)
   useFocusEffect(
@@ -1925,4 +1961,3 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   reorderMeta: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
   reorderSuggest: { fontSize: 14, color: colors.primaryLight, fontWeight: '600', marginBottom: Spacing.md },
 });
-

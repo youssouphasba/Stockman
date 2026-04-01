@@ -2182,7 +2182,7 @@
     "stock_value": "Stock Value",
     "subtitle": "Saytu sa contacts ak komànd",
     "successful_deliveries": "Àttee yu baax",
-    "suggestion_ai_notes": "Komànd suggérée par IA (Vitesse: {{velocity}}/jour)",
+    "suggestion_ai_notes": "Kom\u00e0nd sugg\u00e9r\u00e9e par IA (Ventes moyennes : {{velocity}}/jour)",
     "suggestion_order_desc": "{{product}}: Stock tey {{current}}. Xalaat: komànd {{suggested}} ci {{supplier}}.",
     "suggestion_order_title": "Xalaat bu komànd",
     "supplier_count": "{{count}} jaaykat",

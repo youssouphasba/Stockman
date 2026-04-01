@@ -1811,7 +1811,7 @@ export default function ProductsScreen() {
           <div class="grid">
             ${list.map(p => `
               <div class="card">
-                ${p.image ? `<img src="${uploads.getFullUrl(p.image) || p.image}" />` : '<div class="placeholder">ðŸ“¦</div>'}
+                ${p.image ? `<img src="${uploads.getFullUrl(p.image) || p.image}" />` : '<div class="placeholder">📦</div>'}
                 <div class="name">${p.name}</div>
                 <div class="price">${formatUserCurrency(p.selling_price, user)}</div>
               </div>
@@ -2120,22 +2120,6 @@ export default function ProductsScreen() {
             </TouchableOpacity>
           )}
         </View>
-
-        {!isRestaurant && hasEnterpriseLocations && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickPanelsScroll}>
-            <TouchableOpacity
-              style={styles.quickPanelCard}
-              onPress={() => router.push('/(tabs)/locations' as never)}
-              activeOpacity={0.9}
-            >
-              <Ionicons name="location-outline" size={18} color={colors.success} />
-              <Text style={styles.quickPanelTitle}>Emplacements</Text>
-              <Text style={styles.quickPanelDesc}>
-                {locationList.length > 0 ? `${locationList.length} zone${locationList.length > 1 ? 's' : ''}` : 'Configurer les zones'}
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        )}
 
         {!isRestaurant && (
           <TouchableOpacity

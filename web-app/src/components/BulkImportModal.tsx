@@ -152,7 +152,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                             {getFieldLabel(field)}
                                             {parseResult.ai_mapping?.[field] && (
                                                 <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
-                                                    IA âœ¨
+                                                    IA ✨
                                                 </span>
                                             )}
                                         </span>
@@ -179,7 +179,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                             {getFieldLabel(field)}
                                             {parseResult.ai_mapping?.[field] && (
                                                 <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
-                                                    IA âœ¨
+                                                    IA ✨
                                                 </span>
                                             )}
                                         </span>

@@ -241,8 +241,7 @@ AI_FEATURE_LIMITS: Dict[str, Dict[str, Any]] = {
         "label": "Caisse vocale",
         "kind": "ai_pure",
         "period": "month",
-        "min_plan": "enterprise",
-        "limits": {"enterprise": 40},
+        "limits": {"starter": 4, "pro": 12, "enterprise": 40},
         "tokens_estimate": (1500, 500),
     },
     "customer_summary": {

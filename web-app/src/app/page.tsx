@@ -4,7 +4,7 @@ import HomeClient from "./HomeClient";
 export const metadata: Metadata = {
   title: "Stockman Enterprise - application web de gestion | Connexion",
   description:
-    "Application web Stockman Enterprise pour piloter stock, ventes, CRM, comptabilite, equipe et multi-boutiques. Starter et Pro restent sur mobile.",
+    "Application web Stockman pour piloter stock, ventes, CRM, comptabilite, equipe et multi-boutiques. Starter et Pro consultent le web, Enterprise ajoute les actions completes.",
   alternates: { canonical: "https://app.stockman.pro" },
   openGraph: {
     type: "website",
@@ -12,14 +12,14 @@ export const metadata: Metadata = {
     siteName: "Stockman",
     title: "Stockman - Back-Office Enterprise",
     description:
-      "Starter et Pro sur mobile. Enterprise ajoute le back-office web pour business, restauration et activites de production.",
+      "Starter et Pro consultent le web et pilotent surtout sur mobile. Enterprise ajoute le back-office web complet pour business, restauration et activites de production.",
     images: [{ url: "https://app.stockman.pro/og-image.png", width: 1200, height: 630, alt: "Stockman Back-Office" }],
     locale: "fr_FR",
   },
   twitter: {
     card: "summary_large_image",
     title: "Stockman - Back-Office Enterprise",
-    description: "Starter et Pro sur mobile. Enterprise ajoute le web, le CRM, la comptabilite et le multi-boutiques.",
+    description: "Starter et Pro consultent le web. Enterprise ajoute les actions web completes, le CRM, la comptabilite et le multi-boutiques.",
     images: ["https://app.stockman.pro/og-image.png"],
   },
   robots: { index: true, follow: true },

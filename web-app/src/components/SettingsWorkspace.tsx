@@ -1111,7 +1111,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                                                 setDeletingAccount(true);
                                                 try {
                                                     await authApi.deleteAccount(deletePassword);
-                                                    authApi.logout();
+                                                    await authApi.logout().catch(() => null);
                                                     window.location.reload();
                                                 } catch (err: any) {
                                                     setBanner({ tone: 'error', message: err?.message || t('modals.deleteAccount.errorDelete') });

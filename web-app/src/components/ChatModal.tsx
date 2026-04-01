@@ -193,7 +193,7 @@ export default function ChatModal({ isOpen, onClose, partnerId, partnerName, cur
                     </div>
 
                 ) : view === 'list' ? (
-                    /* â”€â”€ Conversations list â”€â”€ */
+                    /* ── Conversations list ── */
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
                         {conversations.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
@@ -240,7 +240,7 @@ export default function ChatModal({ isOpen, onClose, partnerId, partnerName, cur
                     </div>
 
                 ) : (
-                    /* â”€â”€ Chat view â”€â”€ */
+                    /* ── Chat view ── */
                     <>
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
                             {messages.length === 0 ? (
@@ -264,7 +264,7 @@ export default function ChatModal({ isOpen, onClose, partnerId, partnerName, cur
                                                 <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-white/60' : 'text-slate-500'}`}>
                                                     {formatTime(msg.created_at)}
                                                     {isMe && (
-                                                        <span className="ml-1">{msg.read ? 'âœ“âœ“' : 'âœ“'}</span>
+                                                        <span className="ml-1">{msg.read ? '✓✓' : '✓'}</span>
                                                     )}
                                                 </p>
                                             </div>

@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "Nenhuma receita gerada neste período.",
     "not_enough_data": "Dados de vendas insuficientes para a análise ABC."
@@ -1862,12 +1862,7 @@
     "stock_inventory": "Stock & Inventory",
     "supplier_portal": "Supplier Portal",
     "system": "System",
-    "system_history": "System History",
-    "kitchen": "Kitchen",
-    "recipes": "Recipes",
-    "reports": "Reports",
-    "reservations": "Reservations",
-    "tables": "Tables"
+    "system_history": "System History"
   },
   "stock": {
     "reasons": {
@@ -2258,29 +2253,6 @@
     "whatsapp_invite_msg": "Olá {{name}} !\n\nAqui estão os seus acessos para a aplicação Stockman :\n📧 Email : {{email}}\n🔑 Palavra-passe : {{password}}\n\nPode aceder à aplicação aqui : {{url}}\n\nBom trabalho !",
     "whatsapp_invite_prompt": "Deseja enviar os acessos por WhatsApp ?",
     "whatsapp_invite_send": "Enviar",
-    "whatsapp_not_installed": "O WhatsApp não está instalado neste dispositivo.",
-    "subtitle_empty": "Manage your employees and their access to modules.",
-    "new_employee_title": "Add Employee",
-    "edit_access_title": "Edit Access",
-    "full_name_label": "Full Name",
-    "permissions_section_title": "Permissions by module",
-    "perm_management": "Management",
-    "perm_read_only": "Read Only",
-    "perm_no_access": "No Access",
-    "delete_btn": "Delete",
-    "empty_state_title": "No employees yet."
-  },
-  "staff": {
-    "module_pos": "Sales (POS)",
-    "module_stock": "Stock",
-    "module_accounting": "Accounting",
-    "module_crm": "Customers (CRM)",
-    "module_suppliers": "Suppliers",
-    "module_team": "Team Management",
-    "role_cashier": "Cashier",
-    "role_stock": "Stock",
-    "role_accountant": "Accountant",
-    "role_manager": "Manager",
-    "role_crm": "CRM / Customers"
+    "whatsapp_not_installed": "O WhatsApp não está instalado neste dispositivo."
   }
 }

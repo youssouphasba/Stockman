@@ -51,6 +51,7 @@ import InvoiceModal from './InvoiceModal';
 import KpiCard from './analytics/KpiCard';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
+import { mergeAccountingOfflineState } from '../services/offlineState';
 
 const PERIODS = [
     { label: '7j', value: 7 },
@@ -105,6 +106,7 @@ export default function Accounting() {
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
     const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
     const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
+    const [pendingSummary, setPendingSummary] = useState({ pendingInvoices: 0, pendingExpenses: 0, pendingSaleCancellations: 0, pendingTotal: 0 });
     const rightPanelRef = useRef<HTMLDivElement>(null);
 
     // Free invoice creation
@@ -184,7 +186,7 @@ export default function Accounting() {
     const loadData = async (sd: string = '', ed: string = '') => {
         setLoading(true);
         try {
-            const [statsRes, expensesRes, salesHistoryRes, invoicesRes] = await Promise.all([
+            const [statsRes, expensesRes, salesHistoryRes, invoicesRes] = await Promise.allSettled([
                 sd || ed
                     ? accountingApi.getStats(undefined, sd, ed)
                     : accountingApi.getStats(period),
@@ -198,10 +200,20 @@ export default function Accounting() {
                     ? accountingApi.getInvoices(undefined, sd, ed, 0, 30)
                     : accountingApi.getInvoices(period, undefined, undefined, 0, 30),
             ]);
-            setStats(statsRes);
-            setExpenses(Array.isArray(expensesRes.items) ? expensesRes.items : (Array.isArray(expensesRes) ? expensesRes : []));
-            setSalesHistory(Array.isArray(salesHistoryRes.items) ? salesHistoryRes.items : []);
-            setInvoiceHistory(Array.isArray(invoicesRes.items) ? invoicesRes.items : []);
+            const merged = mergeAccountingOfflineState({
+                recentSales: salesHistoryRes.status === 'fulfilled' && Array.isArray(salesHistoryRes.value.items) ? salesHistoryRes.value.items : [],
+                invoiceHistory: invoicesRes.status === 'fulfilled' && Array.isArray(invoicesRes.value.items) ? invoicesRes.value.items : [],
+                expensesList: expensesRes.status === 'fulfilled'
+                    ? (Array.isArray(expensesRes.value.items) ? expensesRes.value.items : (Array.isArray(expensesRes.value) ? expensesRes.value : []))
+                    : [],
+            });
+            if (statsRes.status === 'fulfilled') {
+                setStats(statsRes.value);
+            }
+            setExpenses(merged.expensesList);
+            setSalesHistory(merged.recentSales);
+            setInvoiceHistory(merged.invoiceHistory);
+            setPendingSummary(merged.summary);
             setAiAnalysis('');
         } catch (err) {
             console.error("Accounting load error", err);
@@ -353,9 +365,11 @@ export default function Accounting() {
         setInvoiceBusyId(saleId);
         try {
             const invoice = await accountingApi.createInvoiceFromSale(saleId);
-            setSelectedInvoice(invoice);
+            if (!(invoice as any)?.offline_pending) {
+                setSelectedInvoice(invoice);
+            }
             setRightTab('invoices');
-            loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
+            await loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err) {
             console.error('Invoice creation error', err);
         } finally {
@@ -424,10 +438,12 @@ export default function Accounting() {
                 payment_terms: freeInvPaymentTerms.trim() || undefined,
                 notes: freeInvNotes.trim() || undefined,
             });
-            setSelectedInvoice(invoice);
+            if (!(invoice as any)?.offline_pending) {
+                setSelectedInvoice(invoice);
+            }
             setShowFreeInvoiceModal(false);
             setRightTab('invoices');
-            loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
+            await loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err) {
             console.error('Free invoice error', err);
         } finally {
@@ -1003,6 +1019,13 @@ export default function Accounting() {
                             </div>
                         </div>
                         <div className="flex flex-col gap-2">
+                            {pendingSummary.pendingTotal > 0 && (
+                                <div className="mb-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                                    {pendingSummary.pendingTotal === 1
+                                        ? '1 écriture comptable est en attente de synchronisation.'
+                                        : `${pendingSummary.pendingTotal} écritures comptables sont en attente de synchronisation.`}
+                                </div>
+                            )}
                             {filteredExpenses.length === 0 ? (
                                 <div className="text-center py-10 text-slate-500 font-medium">Aucune d?pense sur cette p?riode.</div>
                             ) : (
@@ -1017,6 +1040,9 @@ export default function Accounting() {
                                                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">
                                                     {formatDate(exp.created_at)} - {(() => { const c = EXPENSE_CATEGORY_KEYS.find(c => c.value === exp.category); return c ? t(c.labelKey) : exp.category; })()}
                                                 </p>
+                                                {exp.offline_pending && (
+                                                    <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-amber-400">En attente de synchronisation</p>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
@@ -1193,6 +1219,13 @@ export default function Accounting() {
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
                                 <FileClock size={16} className="text-primary" /> Historique des ventes
                             </h3>
+                            {pendingSummary.pendingSaleCancellations > 0 && (
+                                <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                                    {pendingSummary.pendingSaleCancellations === 1
+                                        ? '1 annulation de vente est en attente de synchronisation.'
+                                        : `${pendingSummary.pendingSaleCancellations} annulations de vente sont en attente de synchronisation.`}
+                                </div>
+                            )}
                             <div className="space-y-3">
                                 {salesHistory.length === 0 ? (
                                     <p className="text-xs text-slate-500 italic text-center py-6">Aucune vente sur cette periode.</p>
@@ -1218,6 +1251,11 @@ export default function Accounting() {
                                                         <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${getSaleStatusClassName(sale)}`}>
                                                             {getSaleStatusLabel(sale)}
                                                         </span>
+                                                        {(sale as any).offline_pending_invoice || (sale as any).offline_pending_cancellation ? (
+                                                            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">
+                                                                En attente
+                                                            </span>
+                                                        ) : null}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1279,6 +1317,13 @@ export default function Accounting() {
                                 </button>
                             </div>
                             <div className="space-y-3">
+                                {pendingSummary.pendingInvoices > 0 && (
+                                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                                        {pendingSummary.pendingInvoices === 1
+                                            ? '1 facture est en attente de synchronisation.'
+                                            : `${pendingSummary.pendingInvoices} factures sont en attente de synchronisation.`}
+                                    </div>
+                                )}
                                 {invoiceHistory.length === 0 ? (
                                     <p className="text-xs text-slate-500 italic text-center py-6">Aucune facture sur cette periode.</p>
                                 ) : (
@@ -1294,7 +1339,9 @@ export default function Accounting() {
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                     <p className="text-white font-black">{formatCurrency(invoice.total_amount)}</p>
-                                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">{invoice.status}</p>
+                                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
+                                                        {(invoice as any).offline_pending ? 'EN ATTENTE' : invoice.status}
+                                                    </p>
                                                 </div>
                                             </div>
                                             <div className="flex gap-2 mt-4">

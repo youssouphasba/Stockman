@@ -290,7 +290,7 @@ export default function SuppliersScreen() {
                   quantity: sug.suggested_quantity,
                   unit_price: 0
                 }],
-                notes: `Commande suggérée par IA (Vitesse: ${sug.daily_velocity}/jour)`
+                notes: t('suppliers.suggestion_ai_notes', { velocity: sug.daily_velocity })
               });
               Alert.alert(t('common.success'), t('suppliers.draft_success'));
               loadData();
@@ -1508,7 +1508,12 @@ export default function SuppliersScreen() {
               {detailSupplier && (
                 <View style={styles.detailModalBody}>
                   {/* Modal Tabs */}
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalTabs}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.modalTabs}
+                    contentContainerStyle={styles.modalTabsContent}
+                  >
                     {[
                       { id: 'info', label: t('common.info'), icon: 'information-circle' },
                       { id: 'products', label: t('marketplace.products'), icon: 'cube' },
@@ -1626,7 +1631,7 @@ export default function SuppliersScreen() {
                               const totalValue = Array.isArray(linkedProducts) ? linkedProducts.reduce((sum, lp) => sum + ((lp.supplier_price || 0) * (lp.product?.quantity || 0)), 0) : 0;
                               const lowStockCount = Array.isArray(linkedProducts) ? linkedProducts.filter(lp => lp.product && lp.product.quantity <= lp.product.min_stock).length : 0;
                               return (
-                                <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xs }}>
+                                  <View style={styles.linkedSummaryRow}>
                                   <View style={{ flex: 1, backgroundColor: colors.primary + '12', borderRadius: BorderRadius.sm, padding: Spacing.sm, alignItems: 'center' }}>
                                     <Text style={{ color: colors.textMuted, fontSize: 10, textTransform: 'uppercase' }}>{t('suppliers.stock_value')}</Text>
                                     <Text style={{ color: colors.primary, fontSize: FontSize.md, fontWeight: '700' }}>{formatUserCurrency(totalValue, user)}</Text>
@@ -1672,7 +1677,7 @@ export default function SuppliersScreen() {
                                   </View>
 
                                   {/* Metrics row */}
-                                  <View style={{ flexDirection: 'row', marginTop: Spacing.sm, gap: Spacing.sm }}>
+                                  <View style={styles.linkedMetricsRow}>
                                     <View style={styles.metricBox}>
                                       <Text style={styles.metricLabel}>{t('suppliers.stock')}</Text>
                                       <Text style={[styles.metricValue, isLowStock && { color: isOutOfStock ? colors.danger : colors.warning }]}>
@@ -1683,14 +1688,14 @@ export default function SuppliersScreen() {
                                       <Text style={styles.metricLabel}>{t('suppliers.supplier_price')}</Text>
                                       <Text style={styles.metricValue}>{formatUserCurrency(lp.supplier_price, user)}</Text>
                                     </View>
-                                    <View style={styles.metric}>
+                                    <View style={styles.metricBox}>
                                       <Text style={styles.metricLabel}>{t('suppliers.selling_price')}</Text>
                                       <Text style={styles.metricValue}>{formatUserCurrency(lp.product?.selling_price, user)}</Text>
                                     </View>
                                   </View>
 
                                   {/* Bottom: margin + stock value + unlink */}
-                                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: Spacing.sm, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider }}>
+                                  <View style={styles.linkedProductFooter}>
                                     <View style={{
                                       flexDirection: 'row', alignItems: 'center', gap: 4,
                                       backgroundColor: margin > 0 ? colors.success + '12' : colors.danger + '12',
@@ -1701,13 +1706,12 @@ export default function SuppliersScreen() {
                                         +{formatUserCurrency(margin, user)} ({marginPct.toFixed(0)}%)
                                       </Text>
                                     </View>
-                                    <Text style={{ color: colors.textMuted, fontSize: 11, marginLeft: Spacing.sm }}>
+                                    <Text style={styles.linkedProductFootnote}>
                                       {t('suppliers.stock_value_short')}: {formatUserCurrency(stockValue, user)}
                                     </Text>
-                                    <View style={{ flex: 1 }} />
                                     <TouchableOpacity
                                       onPress={() => handleUnlinkProduct(lp.link_id)}
-                                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4 }}
+                                      style={styles.unlinkAction}
                                     >
                                       <Ionicons name="unlink-outline" size={14} color={colors.danger} />
                                       <Text style={{ color: colors.danger, fontSize: 11, fontWeight: '600' }}>{t('suppliers.unlink')}</Text>
@@ -2397,7 +2401,7 @@ export default function SuppliersScreen() {
                       }}
                     >
                       <Text style={{ color: mpMinRating === val ? '#fff' : colors.text, fontWeight: '600', fontSize: 12 }}>
-                        {val === 0 ? t('common.all') : `${val}+ â­`}
+                        {val === 0 ? t('common.all') : `${val}+ ⭐`}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -2977,9 +2981,16 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   detailLabel: { fontSize: FontSize.xs, color: colors.textMuted },
   detailValue: { fontSize: FontSize.md, color: colors.text, marginTop: 2 },
   sectionDivider: { height: 1, backgroundColor: colors.glassBorder, marginVertical: Spacing.md },
-  linkedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
+  linkedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
   sectionTitle: { fontSize: FontSize.md, fontWeight: '700', color: colors.text },
-  linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2 },
   linkBtnText: { fontSize: FontSize.sm, color: colors.primary, fontWeight: '600' },
   emptyLinked: { fontSize: FontSize.sm, color: colors.textMuted, padding: Spacing.md, textAlign: 'center' },
   linkedItem: {
@@ -2994,9 +3005,26 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
   },
+  linkedSummaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  linkedMetricsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
   metricBox: {
     flex: 1,
+    minWidth: 88,
     alignItems: 'center',
+    backgroundColor: colors.inputBg,
+    borderRadius: BorderRadius.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
   },
   metric: {
     flex: 1,
@@ -3013,6 +3041,24 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontSize: FontSize.sm,
     color: colors.text,
     fontWeight: '700',
+  },
+  linkedProductFooter: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+    gap: 8,
+  },
+  linkedProductFootnote: {
+    color: colors.textMuted,
+    fontSize: 11,
+  },
+  unlinkAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
   },
   // Link product
   productSelect: {
@@ -3409,21 +3455,28 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
     maxHeight: 50,
+    marginHorizontal: -Spacing.lg,
+  },
+  modalTabsContent: {
+    paddingHorizontal: Spacing.md,
+    alignItems: 'center',
+    gap: 6,
   },
   modalTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 10,
     gap: 6,
-    borderBottomWidth: 3,
+    borderBottomWidth: 2,
     borderBottomColor: 'transparent',
+    minHeight: 44,
   },
   modalTabActive: {
     borderBottomColor: colors.primary,
   },
   modalTabText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     color: colors.textMuted,
     fontWeight: '600',
   },
@@ -3431,7 +3484,9 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.primary,
   },
   tabContent: {
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
   },
   rowCentered: {
     flexDirection: 'row',

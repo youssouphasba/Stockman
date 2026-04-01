@@ -267,7 +267,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
             content: t('guide.dashboard.forecast_content', "Ce graphique montre les prévisions de ventes générées par l'intelligence artificielle à partir de votre historique. La courbe bleue représente le chiffre d'affaires attendu jour par jour. Le badge en haut à droite indique le niveau de confiance du modèle."),
             details: [
                 { label: t('guide.dashboard.forecast_chart', "Graphique prévisionnel"), description: t('guide.dashboard.forecast_chart_desc', "Survolez un point pour voir le montant prévu. Les données réelles et les prédictions sont différenciées."), type: 'info' },
-                { label: t('guide.dashboard.forecast_table', "Tableau prévisions par produit"), description: t('guide.dashboard.forecast_table_desc', "Cliquez sur 'Prévisions par produit' pour voir le détail : stock actuel, vitesse de vente/jour, prévision à 7j et 30j, tendance (hausse/baisse) et niveau de risque."), type: 'button' },
+                { label: t('guide.dashboard.forecast_table', "Tableau prévisions par produit"), description: t('guide.dashboard.forecast_table_desc', "Cliquez sur 'Prévisions par produit' pour voir le détail : stock actuel, ventes moyennes/jour, prévision à 7j et 30j, tendance (hausse/baisse) et niveau de risque."), type: 'button' },
                 { label: t('guide.dashboard.forecast_export', "Exporter CSV prévisions"), description: t('guide.dashboard.forecast_export_desc', "Dans le tableau de prévisions, cliquez 'Exporter CSV' pour télécharger les données complètes de tous vos produits."), type: 'button' },
                 { label: t('guide.dashboard.forecast_tip', "Astuce"), description: t('guide.dashboard.forecast_tip_desc', "Plus vous avez d'historique de ventes, plus les prévisions sont précises. Après 30 jours de données, les prévisions deviennent fiables."), type: 'tip' },
             ],
@@ -436,7 +436,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                         />
                         <StatCard
                             label={`Tables occupées (${restaurantStats?.tables_occupied || 0}/${restaurantStats?.tables_total || 0})`}
-                            value={restaurantStats?.kitchen_pending ? `ðŸ³ ${restaurantStats.kitchen_pending} en cuisine` : 'Cuisine vide'}
+                            value={restaurantStats?.kitchen_pending ? `🍳 ${restaurantStats.kitchen_pending} en cuisine` : 'Cuisine vide'}
                             icon={Package}
                             color="bg-purple-500"
                         />
@@ -829,7 +829,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                             <div className="flex justify-end mb-4">
                                                 <button
                                                     onClick={() => {
-                                                        const header = ['Produit', 'Stock', 'Vit. (j)', 'Prév. 7j', 'Prév. 30j', 'Tendance', 'Risque'].join(',');
+                                                        const header = ['Produit', 'Stock', 'Ventes moy./j', 'Prév. 7j', 'Prév. 30j', 'Tendance', 'Risque'].join(',');
                                                         const rows = forecast.products.map((p: any) => `"${p.name.replace(/"/g, '""')}",${p.current_stock},${p.velocity.toFixed(2)},${p.predicted_sales_7d},${p.predicted_sales_30d},"${p.trend}","${p.risk_level}"`);
                                                         const csv = [header, ...rows].join('\n');
                                                         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -850,7 +850,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                                         <tr>
                                                             <th className="px-4 py-3 rounded-tl-lg">{t('dashboard.col_product', 'Produit')}</th>
                                                             <th className="px-4 py-3">{t('dashboard.col_stock', 'Stock')}</th>
-                                                            <th className="px-4 py-3">{t('dashboard.col_velocity', 'Vit. (j)')}</th>
+                                                            <th className="px-4 py-3">{t('dashboard.col_velocity', 'Ventes moy./j')}</th>
                                                             <th className="px-4 py-3">{t('dashboard.col_forecast_7d', '7j')}</th>
                                                             <th className="px-4 py-3">{t('dashboard.col_forecast_30d', '30j')}</th>
                                                             <th className="px-4 py-3 rounded-tr-lg">{t('dashboard.col_trend', 'Tendance')}</th>

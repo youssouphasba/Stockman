@@ -51,7 +51,7 @@ function formatAdminMoney(amount: any, currency: string) {
     if (amount === null || amount === undefined || amount === '') return '—';
     const numeric = Number(amount);
     if (!Number.isFinite(numeric)) return `${amount} ${currency || ''}`.trim();
-    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} â‚¬`;
+    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
     const suffix = currency === 'XOF' || currency === 'XAF' ? 'FCFA' : (currency || '');
     return `${numeric.toLocaleString('fr-FR')} ${suffix}`.trim();
 }
@@ -890,10 +890,14 @@ export default function AdminDashboard() {
         const accounts = filteredSubscriptionAccounts || [];
         const events = filteredSubscriptionEvents || [];
 
-        const mrrRows = Array.isArray(overview.mrr_estimate) ? overview.mrr_estimate : [];
+        const mrrRows = Array.isArray(overview.mrr_estimate)
+            ? overview.mrr_estimate.filter((row: any) => row && typeof row === 'object')
+            : [];
         const primaryMrr = mrrRows[0] || null;
         const primaryArr = primaryMrr?.amount ? Number(primaryMrr.amount) * 12 : null;
-        const paymentVolumeRows = Array.isArray(overview.payment_volume_30d) ? overview.payment_volume_30d : [];
+        const paymentVolumeRows = Array.isArray(overview.payment_volume_30d)
+            ? overview.payment_volume_30d.filter((row: any) => row && typeof row === 'object')
+            : [];
         const paymentVolumePrimary = paymentVolumeRows[0] || null;
 
         const activePaidAccounts = Number(overview.active_paid_accounts || 0);
@@ -1486,7 +1490,11 @@ export default function AdminDashboard() {
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">CA plateforme 30j</p>
-                                    <p className="mt-1 text-lg font-black text-white">{formatAdminMoney(financeSummary.paymentVolumePrimary.amount, financeSummary.paymentVolumePrimary.currency)}</p>
+                                    <p className="mt-1 text-lg font-black text-white">
+                                        {financeSummary.paymentVolumePrimary
+                                            ? formatAdminMoney(financeSummary.paymentVolumePrimary.amount, financeSummary.paymentVolumePrimary.currency)
+                                            : '-'}
+                                    </p>
                                 </div>
                                 <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Paiements 30j</p>

@@ -2612,13 +2612,20 @@ def can_user_access_web(user_doc: dict, effective_plan: Optional[str] = None) ->
     role = user_doc.get("role")
     if role in ("admin", "superadmin", "supplier"):
         return True
-    normalized_plan = normalize_plan(effective_plan or user_doc.get("effective_plan") or user_doc.get("plan"))
-    if normalized_plan == "enterprise":
-        return True
-    return (
-        normalize_plan(user_doc.get("subscription_plan") or user_doc.get("plan")) == "enterprise"
-        and policy["subscription_access_phase"] in {"restricted", "read_only"}
-    )
+    return policy["subscription_access_phase"] in {"active", "grace", "restricted", "read_only"}
+
+
+def is_web_surface_request(request: Optional[Request]) -> bool:
+    return bool(request and request.headers.get("X-Stockman-Surface", "").strip().lower() == "web")
+
+
+def should_force_web_read_only(request: Optional[Request], user_doc: dict) -> bool:
+    if not is_web_surface_request(request):
+        return False
+    if user_doc.get("role") in ("admin", "superadmin", "supplier"):
+        return False
+    normalized_plan = normalize_plan(user_doc.get("effective_plan") or user_doc.get("subscription_plan") or user_doc.get("plan"))
+    return normalized_plan != "enterprise"
 
 
 async def log_verification_event(
@@ -2818,6 +2825,9 @@ async def build_user_from_doc(user_doc: dict) -> User:
     source_doc["verification_completed_at"] = user_doc.get("verification_completed_at")
     source_doc["can_access_app"] = can_user_access_app(source_doc)
     source_doc["can_access_web"] = can_user_access_web(source_doc, effective_plan=access_context["effective_plan"])
+    if should_force_web_read_only(request, source_doc):
+        source_doc["can_access_web"] = True
+        source_doc["can_write_data"] = False
     if source_doc["active_store_id"] != user_doc.get("active_store_id"):
         await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": {"active_store_id": source_doc["active_store_id"]}})
     return User(**source_doc)
@@ -2907,9 +2917,16 @@ async def require_auth(request: Request, auth: Optional[HTTPAuthorizationCredent
     return user
 
 def require_permission(module: str, level: str = "read"):
-    async def permission_checker(user: User = Depends(require_auth)):
+    async def permission_checker(request: Request, user: User = Depends(require_auth)):
         if user.role == "superadmin":
             return user
+
+        if level == "write":
+            ensure_subscription_write_allowed(
+                user,
+                detail="Ce compte est en lecture seule. Regularisez l'abonnement pour reprendre les modifications.",
+                request=request,
+            )
 
         if level == "write" and not user.can_write_data:
             raise HTTPException(
@@ -2966,9 +2983,23 @@ def has_operational_access_user(user: User) -> bool:
 def ensure_subscription_write_allowed(
     user: User,
     detail: str = "Ce compte est en lecture seule. Regularisez l'abonnement pour reprendre les modifications.",
+    request: Optional[Request] = None,
 ) -> None:
     if user.role == "superadmin":
         return
+    if should_force_web_read_only(
+        request,
+        {
+            "role": user.role,
+            "plan": user.plan,
+            "effective_plan": user.effective_plan,
+            "subscription_plan": user.subscription_plan,
+        },
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Le plan Starter ou Pro est disponible sur le web en consultation uniquement. Passez a Enterprise pour creer ou modifier des donnees depuis le web.",
+        )
     if not user.can_write_data:
         raise HTTPException(status_code=403, detail=detail)
 
@@ -10445,8 +10476,6 @@ async def voice_to_cart(body: dict = Body(...), user: User = Depends(require_ope
     """Transcribe voice audio and match products to build a cart."""
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
-    if plan not in ("enterprise",):
-        raise HTTPException(status_code=403, detail="Enterprise plan required")
 
     audio_base64 = body.get("audio_base64", "")
     lang = body.get("lang", "fr")
@@ -12372,8 +12401,11 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
         }
         if email_verified:
             update_payload["is_email_verified"] = True
-            if user_doc.get("required_verification") == "email" and not user_doc.get("verification_completed_at"):
-                update_payload["verification_completed_at"] = datetime.now(timezone.utc)
+            if user_doc.get("required_verification") == "email":
+                if not user_doc.get("verification_completed_at"):
+                    update_payload["verification_completed_at"] = datetime.now(timezone.utc)
+                update_payload["required_verification"] = None
+                update_payload["verification_channel"] = None
         if not user_doc.get("signup_surface") and data.signup_surface:
             update_payload["signup_surface"] = resolve_signup_surface(data.signup_surface, user_doc.get("plan"))
         await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": update_payload})
@@ -12412,11 +12444,11 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
             "business_type": None,
             "how_did_you_hear": None,
             "is_phone_verified": False,
-            "is_email_verified": True,
-            "required_verification": "email",
-            "verification_channel": "email",
+            "is_email_verified": email_verified,
+            "required_verification": None if email_verified else "email",
+            "verification_channel": None if email_verified else "email",
             "signup_surface": signup_surface,
-            "verification_completed_at": datetime.now(timezone.utc),
+            "verification_completed_at": datetime.now(timezone.utc) if email_verified else None,
             "phone_otp": None,
             "phone_otp_digest": None,
             "phone_otp_expiry": None,
@@ -23630,10 +23662,10 @@ class AiTools:
             },
             "voice to cart": {
                 "aliases": {"voice-to-cart", "voice to cart", "caisse vocale", "voice pos"},
-                "required_plan": "enterprise",
+                "required_plan": "starter",
                 "platforms": {"mobile"},
-                "reason": "La caisse vocale est une fonction mobile avancee reservee au plan Enterprise.",
-                "upgrade_value": "Elle accelere la prise de commande sur mobile pour les usages les plus intensifs.",
+                "reason": "La caisse vocale est disponible sur mobile pour tous les plans, avec un quota mensuel qui varie selon l'offre.",
+                "upgrade_value": "L'upgrade augmente surtout le nombre d'utilisations disponibles et debloque d'autres fonctions IA plus avancees.",
             },
             "scan produit photo": {
                 "aliases": {"scan produit", "photo produit", "scan-product", "saisie photo"},
@@ -26506,17 +26538,48 @@ async def capture_current_demo_session_contact(
     )
 
 @api_router.delete("/profile")
-async def delete_account(confirmation: PasswordConfirmation, user: User = Depends(require_auth)):
+async def delete_account(
+    confirmation: PasswordConfirmation,
+    request: Request,
+    response: Response,
+    user: User = Depends(require_auth),
+):
     """Permanent account deletion (Right to be Forgotten)."""
-    
+
     # 1. Verify password
     user_doc = await db.users.find_one({"user_id": user.user_id})
     if not user_doc or not verify_password(confirmation.password, user_doc.get("password_hash", "")):
         logger.warning(f"Failed account deletion attempt for user {user.user_id}: incorrect password")
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
-        
+
+    tokens_to_check: List[str] = []
+    session_cookie = request.cookies.get("session_token")
+    refresh_cookie = request.cookies.get("refresh_token")
+    if session_cookie:
+        tokens_to_check.append(session_cookie)
+    if refresh_cookie:
+        tokens_to_check.append(refresh_cookie)
+
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        tokens_to_check.append(auth_header.split(" ", 1)[1])
+
+    current_session_id: Optional[str] = None
+    for token in tokens_to_check:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        except JWTError:
+            continue
+        current_session_id = payload.get("sid")
+        if current_session_id:
+            break
+
     owner_id = get_owner_id(user)
-    
+
+    await revoke_all_user_sessions(owner_id, "account_deleted")
+    if current_session_id:
+        await revoke_session(current_session_id, "account_deleted")
+
     # ARCHIVE BEFORE DELETION (Retention Policy)
     archive_data = {
         "original_user_id": user.user_id,
@@ -26567,7 +26630,11 @@ async def delete_account(confirmation: PasswordConfirmation, user: User = Depend
     # D. The user itself
     await db.users.delete_one({"user_id": owner_id})
     await db.credentials.delete_one({"user_id": owner_id})
-    
+
+    cookie_settings = get_cookie_settings()
+    response.delete_cookie(key="session_token", path="/", samesite=cookie_settings["samesite"], secure=cookie_settings["secure"])
+    response.delete_cookie(key="refresh_token", path="/", samesite=cookie_settings["samesite"], secure=cookie_settings["secure"])
+
     return {"message": "Compte et donnÃƒÂ©es supprimÃƒÂ©s dÃƒÂ©finitivement. Au revoir."}
 
 # ===================== PAYMENT ROUTES =====================
@@ -26615,6 +26682,39 @@ async def revenuecat_webhook(request: Request):
         plan = "pro"
     else:
         plan = "starter"
+
+    owner_doc = await db.users.find_one({"user_id": app_user_id}, {"_id": 0})
+    account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": app_user_id, "role": "shopkeeper"})
+    current_source = account_doc or owner_doc or {}
+    current_plan = normalize_plan(current_source.get("plan"))
+    current_provider = (current_source.get("subscription_provider") or "none").strip().lower()
+
+    if current_plan == "enterprise" and plan in {"starter", "pro"}:
+        logger.info(
+            "RevenueCat %s ignored for enterprise-managed account %s (incoming plan=%s, current_provider=%s)",
+            event_type,
+            app_user_id,
+            plan,
+            current_provider,
+        )
+        await log_subscription_event(
+            event_type="payment_ignored",
+            provider="revenuecat",
+            source="mobile",
+            owner_user_id=app_user_id,
+            plan=current_plan,
+            status=current_source.get("subscription_status") or "active",
+            provider_reference=product_id or event.get("transaction_id"),
+            message="RevenueCat event ignored because the account is already managed as Enterprise on web billing.",
+            metadata={
+                "incoming_event_type": event_type,
+                "incoming_product_id": product_id,
+                "incoming_plan": plan,
+                "current_plan": current_plan,
+                "current_provider": current_provider,
+            },
+        )
+        return {"status": "ignored", "reason": "enterprise_managed_on_web"}
 
     if event_type in activate_events:
         expiration_ms = event.get("expiration_at_ms")

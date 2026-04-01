@@ -19,6 +19,7 @@ Les fonctions non autorisees pour un plan doivent retourner un message clair ind
 - Assistant IA : 30 utilisations par mois
 - Scan de facture : 2 utilisations par mois
 - Resume quotidien : 1 utilisation par jour
+- Caisse vocale : 4 utilisations par mois
 - Conseil de reapprovisionnement : 4 utilisations par mois
 - Suggestion de categorie : 30 utilisations par mois
 - Detection d'anomalies : non disponible
@@ -30,6 +31,7 @@ Les fonctions non autorisees pour un plan doivent retourner un message clair ind
 - Assistant IA : 120 utilisations par mois
 - Scan de facture : 10 utilisations par mois
 - Resume quotidien : 1 utilisation par jour
+- Caisse vocale : 12 utilisations par mois
 - Detection d'anomalies : 12 utilisations par mois
 - Conseil de reapprovisionnement : 12 utilisations par mois
 - Suggestion de categorie : 100 utilisations par mois
@@ -41,6 +43,7 @@ Les fonctions non autorisees pour un plan doivent retourner un message clair ind
 - Assistant IA : 500 utilisations par mois
 - Scan de facture : 50 utilisations par mois
 - Resume quotidien : 1 utilisation par jour
+- Caisse vocale : 40 utilisations par mois
 - Detection d'anomalies : 40 utilisations par mois
 - Conseil de reapprovisionnement : 40 utilisations par mois
 - Suggestion de prix : 120 utilisations par mois
@@ -52,6 +55,7 @@ Les fonctions non autorisees pour un plan doivent retourner un message clair ind
 - `/ai/support`
 - `/ai/scan-invoice`
 - `/ai/daily-summary`
+- `/ai/voice-to-cart`
 - `/ai/detect-anomalies`
 - `/ai/replenishment-advice`
 - `/ai/suggest-price`
@@ -61,6 +65,7 @@ Les fonctions non autorisees pour un plan doivent retourner un message clair ind
 ## Regles de reponse produit
 
 - Le resume quotidien doit etre presente comme une fonctionnalite utilisable une seule fois par jour.
+- La caisse vocale doit etre presente comme disponible sur tous les plans, avec un quota mensuel selon l'offre.
 - La suggestion de prix doit etre presente comme reservee au plan Enterprise.
 - La generation de description doit etre presente comme reservee au plan Enterprise.
 - La detection d'anomalies doit etre presente comme reservee aux plans Pro et Enterprise.

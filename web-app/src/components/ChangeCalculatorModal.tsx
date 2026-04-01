@@ -26,7 +26,7 @@ export default function ChangeCalculatorModal({ isOpen, onClose, totalAmount, on
 
     const press = (val: string) => {
         if (val === 'C') { setReceived(''); return; }
-        if (val === 'âŒ«') { setReceived(prev => prev.slice(0, -1)); return; }
+        if (val === '⌫') { setReceived(prev => prev.slice(0, -1)); return; }
         setReceived(prev => prev + val);
     };
 
@@ -63,10 +63,10 @@ export default function ChangeCalculatorModal({ isOpen, onClose, totalAmount, on
 
                 {/* Numpad */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
-                    {['1','2','3','4','5','6','7','8','9','C','0','âŒ«'].map(k => (
+                    {['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k => (
                         <button key={k} onClick={() => press(k)}
-                            className={`h-14 rounded-xl font-bold text-xl transition-all ${k === 'C' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : k === 'âŒ«' ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-white/5 text-white hover:bg-white/10'}`}>
-                            {k === 'âŒ«' ? <Delete size={18} className="mx-auto" /> : k}
+                            className={`h-14 rounded-xl font-bold text-xl transition-all ${k === 'C' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : k === '⌫' ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-white/5 text-white hover:bg-white/10'}`}>
+                            {k === '⌫' ? <Delete size={18} className="mx-auto" /> : k}
                         </button>
                     ))}
                 </div>

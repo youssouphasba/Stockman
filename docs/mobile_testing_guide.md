@@ -35,3 +35,9 @@ Format attendu :
 Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.env`. Vous devrez ensuite :
 1. Re-générer un build (si vous utilisez EAS Build) ou re-tester en local.
 2. Télécharger la version depuis le lien de test interne.
+
+## 4. Connexion Google mobile
+
+- Le flux Google mobile natif dépend de la configuration OAuth Android et iOS intégrée au build.
+- Après une modification des identifiants Google, du fichier `google-services.json`, du fichier `GoogleService-Info.plist` ou de la configuration native de connexion Google, un simple `eas update` ne suffit pas.
+- Il faut générer un nouveau build pour tester correctement la connexion Google sur mobile.

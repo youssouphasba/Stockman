@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "In diesem Zeitraum wurde kein Umsatz erzielt.",
     "not_enough_data": "Nicht genügend Verkaufsdaten für die ABC-Analyse vorhanden."
@@ -1857,12 +1857,7 @@
     "stock_inventory": "Stock & Inventory",
     "supplier_portal": "Supplier Portal",
     "system": "System",
-    "system_history": "System History",
-    "kitchen": "Kitchen",
-    "recipes": "Recipes",
-    "reports": "Reports",
-    "reservations": "Reservations",
-    "tables": "Tables"
+    "system_history": "System History"
   },
   "stock": {
     "reasons": {
@@ -2266,20 +2261,6 @@
     "whatsapp_invite_msg": "Hallo {{name}} !\n\nHier sind deine Zugangsdaten für die Stockman-App :\n📧 E-Mail : {{email}}\n🔑 Passwort : {{password}}\n\nDu kannst hier auf die App zugreifen : {{url}}\n\nGute Arbeit !",
     "whatsapp_invite_prompt": "Möchten Sie die Zugangsdaten per WhatsApp senden?",
     "whatsapp_invite_send": "Senden",
-    "whatsapp_not_installed": "WhatsApp ist auf diesem Gerät nicht installiert.",
-    "subtitle_empty": "Manage your employees and their access to modules."
-  },
-  "staff": {
-    "module_pos": "Sales (POS)",
-    "module_stock": "Stock",
-    "module_accounting": "Accounting",
-    "module_crm": "Customers (CRM)",
-    "module_suppliers": "Suppliers",
-    "module_team": "Team Management",
-    "role_cashier": "Cashier",
-    "role_stock": "Stock",
-    "role_accountant": "Accountant",
-    "role_manager": "Manager",
-    "role_crm": "CRM / Customers"
+    "whatsapp_not_installed": "WhatsApp ist auf diesem Gerät nicht installiert."
   }
 }

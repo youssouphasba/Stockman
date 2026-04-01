@@ -11,6 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { DEMO_COUNTRIES, DemoCountry } from '../../data/demoCurrencies';
+import { getFlagFromCountryCode } from '../../utils/flags';
 
 const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
 
@@ -197,7 +198,7 @@ export default function AuthEntryScreen() {
                     onPress={() => void launchDemoWithCountry(pendingDemoType, item)}
                     activeOpacity={0.7}
                   >
-                    <Text style={pickerStyles.flag}>{item.flag}</Text>
+                    <Text style={pickerStyles.flag}>{getFlagFromCountryCode(item.code)}</Text>
                     <Text style={[pickerStyles.countryName, { color: colors.text }]}>{item.name}</Text>
                     <Text style={[pickerStyles.currencyBadge, { color: colors.primary }]}>{item.currencyLabel}</Text>
                   </TouchableOpacity>

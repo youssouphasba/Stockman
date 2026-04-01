@@ -26,6 +26,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { useTheme } from '../../contexts/ThemeContext';
 import auth from '@react-native-firebase/auth';
 import * as Google from 'expo-auth-session/providers/google';
+import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin';
 import { useTranslation } from 'react-i18next';
 
 const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
@@ -104,27 +105,37 @@ export default function LoginScreen() {
     const webClientId = getGoogleClientId('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID');
     const androidClientId = getGoogleClientId('EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID');
     const iosClientId = getGoogleClientId('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID');
-    const platformClientId = Platform.select({
-      ios: iosClientId,
-      android: androidClientId,
-      default: webClientId,
-    });
-    const fallbackClientId =
-      platformClientId || webClientId || androidClientId || iosClientId || GOOGLE_CLIENT_ID_PLACEHOLDER;
 
     return {
-      webClientId: webClientId || fallbackClientId,
-      androidClientId: androidClientId || fallbackClientId,
-      iosClientId: iosClientId || fallbackClientId,
-      nativeRedirectUri: getGoogleNativeRedirectUri(platformClientId),
-      hasConfig: Boolean(platformClientId),
+      webClientId: webClientId || GOOGLE_CLIENT_ID_PLACEHOLDER,
+      androidClientId,
+      iosClientId,
+      nativeRedirectUri: getGoogleNativeRedirectUri(androidClientId),
+      hasWebConfig: Boolean(webClientId),
+      hasNativeConfig: Boolean(webClientId),
     };
   }, []);
 
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    if (!googleClientIds.hasNativeConfig) {
+      return;
+    }
+
+    GoogleSignin.configure({
+      webClientId: googleClientIds.webClientId,
+      iosClientId: googleClientIds.iosClientId,
+      offlineAccess: false,
+      profileImageSize: 120,
+    });
+  }, [googleClientIds.hasNativeConfig, googleClientIds.iosClientId, googleClientIds.webClientId]);
+
   const [googleRequest, googleResponse, promptGoogle] = Google.useIdTokenAuthRequest({
     webClientId: googleClientIds.webClientId,
-    iosClientId: googleClientIds.iosClientId,
-    androidClientId: googleClientIds.androidClientId,
+    iosClientId: Platform.OS === 'web' ? googleClientIds.iosClientId : undefined,
+    androidClientId: Platform.OS === 'web' ? googleClientIds.androidClientId : undefined,
     redirectUri: Platform.OS === 'web' ? undefined : googleClientIds.nativeRedirectUri,
   });
 
@@ -237,12 +248,64 @@ export default function LoginScreen() {
   }
 
   async function handleGoogleLogin() {
-    if (!googleClientIds.hasConfig) {
-      const missingKey = Platform.select({
-        ios: 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
-        android: 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID',
-        default: 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
-      });
+    if (Platform.OS !== 'web') {
+      if (!googleClientIds.hasNativeConfig) {
+        setError(`${t('auth.login.googleConfigMissing')} (EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID)`);
+        return;
+      }
+
+      setError('');
+      setSocialLoading('google');
+      try {
+        if (Platform.OS === 'android') {
+          await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        }
+
+        const response = await GoogleSignin.signIn();
+        if (!isSuccessResponse(response)) {
+          setSocialLoading(null);
+          return;
+        }
+
+        let idToken = response.data.idToken;
+        if (!idToken) {
+          const tokens = await GoogleSignin.getTokens();
+          idToken = tokens.idToken;
+        }
+
+        if (!idToken) {
+          setError(t('auth.login.socialMissingToken'));
+          setSocialLoading(null);
+          return;
+        }
+
+        await handleGoogleToken(idToken);
+      } catch (e) {
+        if (isErrorWithCode(e)) {
+          if (e.code === statusCodes.SIGN_IN_CANCELLED) {
+            setSocialLoading(null);
+            return;
+          }
+          if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+            setError('Google Play Services est indisponible ou doit être mis à jour sur cet appareil.');
+            setSocialLoading(null);
+            return;
+          }
+          if (e.code === statusCodes.IN_PROGRESS) {
+            setError('Une tentative de connexion Google est déjà en cours.');
+            setSocialLoading(null);
+            return;
+          }
+        }
+
+        setError(e instanceof ApiError ? e.message : t('auth.login.socialError'));
+        setSocialLoading(null);
+      }
+      return;
+    }
+
+    if (!googleClientIds.hasWebConfig) {
+      const missingKey = 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID';
       setError(`${t('auth.login.googleConfigMissing')} (${missingKey})`);
       return;
     }
@@ -277,6 +340,9 @@ export default function LoginScreen() {
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t('auth.login.socialError'));
     } finally {
+      if (Platform.OS !== 'web') {
+        await GoogleSignin.signOut().catch(() => null);
+      }
       setSocialLoading(null);
     }
   }

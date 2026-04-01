@@ -187,7 +187,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "receipt-outline",
                 title: "Reçu Digital",
-                description: "Après validation, imprimez le ticket, envoyez-le par WhatsApp ou Email directement depuis l'écran de confirmation."
+                description: "Après validation, le ticket local reste visible même hors ligne. Les partages QR, PDF ou WhatsApp complets redeviennent disponibles dès que la vente est synchronisée."
             }
         ]
     },
@@ -207,12 +207,12 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "wallet-outline",
                 title: "Dépenses",
-                description: "Ajoutez vos dépenses par catégorie (Loyer, Salaire, Transport, etc.). Le bénéfice net est automatiquement recalculé."
+                description: "Ajoutez vos dépenses par catégorie (Loyer, Salaire, Transport, etc.). Hors ligne, la dépense reste visible comme écriture en attente, puis se synchronise automatiquement."
             },
             {
                 icon: "document-text-outline",
                 title: "Factures PDF",
-                description: "Créez des factures pro avec TVA depuis une vente existante ou manuellement. Envoyez-les directement à vos clients."
+                description: "Créez des factures pro avec TVA depuis une vente existante ou manuellement. Si vous êtes hors ligne, la facture est préparée localement puis finalisée lors de la synchronisation."
             },
             {
                 icon: "pie-chart-outline",
@@ -247,7 +247,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "card-outline",
                 title: "Dettes & Crédits",
-                description: "Onglet Compte de la fiche client : ajoutez une dette manuelle, enregistrez un paiement, ou annulez un paiement. L'historique est complet."
+                description: "Dans l'onglet Compte, ajoutez une dette manuelle ou enregistrez un paiement. Hors ligne, l'opération est gardée en attente puis synchronisée automatiquement, avec un rappel visuel dans la fiche client."
             },
             {
                 icon: "megaphone",
@@ -502,7 +502,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "phone-portrait-outline",
                 title: "Choisir le bon mode de paiement",
-                description: "L'écran affiche uniquement les moyens réellement disponibles pour votre appareil et votre formule. Sur mobile, passez par la boutique de paiement affichée à l'écran. En test Google Play, utilisez un compte testeur autorisé et vérifiez que le produit est actif."
+                description: "L'ecran affiche uniquement les moyens reellement disponibles pour votre appareil et votre formule. Sur mobile, passez par la boutique de paiement affichee a l'ecran pour Starter et Pro. Le passage a Enterprise se gere sur le web et garde le meme compte. En test Google Play, utilisez un compte testeur autorise et verifiez que le produit est actif."
             },
             {
                 icon: "refresh-outline",
@@ -629,7 +629,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         title: "Connexion",
         steps: [
             { icon: "log-in-outline", title: "Se connecter", description: "Saisissez votre email et mot de passe. L'app vous redirige automatiquement vers votre espace selon votre rôle." },
-            { icon: "logo-google", title: "Connexion sociale", description: "Selon votre appareil, vous pouvez continuer avec Google ou Apple. Utilisez le bouton affiché sur votre écran, puis validez l'autorisation demandée." },
+            { icon: "logo-google", title: "Connexion sociale", description: "Selon votre appareil, vous pouvez continuer avec Google ou Apple. Sur mobile, Google s'ouvre via le flux natif de l'app. Si le fournisseur confirme déjà l'email, Stockman ne redemande pas de code OTP." },
             { icon: "eye-outline", title: "Mot de passe oublié", description: "Touchez 'Mot de passe oublié' pour recevoir un email de réinitialisation." },
             { icon: "flask-outline", title: "Mode Démo", description: "Testez l'app sans inscription avec des données pré-remplies. La session expire après un délai limité." }
         ]
@@ -661,9 +661,9 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     offlineMode: {
         title: "Mode Hors Ligne",
         steps: [
-            { icon: "cloud-offline-outline", title: "Bannière Rouge", description: "Quand vous perdez la connexion, un bandeau rouge 'Vous êtes hors ligne' apparaît en haut de l'écran." },
-            { icon: "sync-outline", title: "Synchronisation", description: "Un bandeau orange indique le nombre d'actions en attente de synchronisation. Elles seront envoyées dès le retour du réseau." },
-            { icon: "checkmark-done-outline", title: "Fonctionnement Dégradé", description: "En mode hors ligne, vous pouvez continuer à vendre et ajuster le stock. Les données se synchronisent automatiquement." }
+            { icon: "cloud-offline-outline", title: "Lire les données déjà chargées", description: "Quand la connexion tombe, l'application continue d'afficher les données déjà mises en cache sur l'appareil pour vous laisser consulter l'essentiel." },
+            { icon: "sync-outline", title: "Actions mises en attente", description: "Un bandeau de synchronisation vous indique combien d'actions attendent encore le réseau. Les ventes compatibles, certaines écritures comptables, les fiches clients et les paiements clients sont renvoyés automatiquement." },
+            { icon: "checkmark-done-outline", title: "Limites à connaître", description: "Le mode hors ligne n'est pas total. Les flux d'authentification, d'abonnement, d'IA, d'upload et certaines actions avancées restent dépendants d'une connexion active." }
         ]
     },
     helpCenter: {

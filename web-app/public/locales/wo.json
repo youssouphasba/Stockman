@@ -1,4 +1,4 @@
-{
+﻿{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -1857,12 +1857,7 @@
     "stock_inventory": "Stock & Inventory",
     "supplier_portal": "Supplier Portal",
     "system": "System",
-    "system_history": "System History",
-    "kitchen": "Kitchen",
-    "recipes": "Recipes",
-    "reports": "Reports",
-    "reservations": "Reservations",
-    "tables": "Tables"
+    "system_history": "System History"
   },
   "stock": {
     "reasons": {
@@ -2158,7 +2153,7 @@
     "stock_value": "Stock Value",
     "subtitle": "Saytu sa contacts ak komànd",
     "successful_deliveries": "Àttee yu baax",
-    "suggestion_ai_notes": "Komànd suggérée par IA (Vitesse: {{velocity}}/jour)",
+    "suggestion_ai_notes": "Komànd suggérée par IA (Ventes moyennes : {{velocity}}/jour)",
     "suggestion_order_desc": "{{product}}: Stock tey {{current}}. Xalaat: komànd {{suggested}} ci {{supplier}}.",
     "suggestion_order_title": "Xalaat bu komànd",
     "supplier_count": "{{count}} jaaykat",
@@ -2266,20 +2261,6 @@
     "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\n📧 Email: {{email}}\n🔑 Password: {{password}}\n\nYou can access the app here: {{url}}\n\nGood work!",
     "whatsapp_invite_prompt": "Do you want to send access via WhatsApp?",
     "whatsapp_invite_send": "Send",
-    "whatsapp_not_installed": "WhatsApp is not installed on this device.",
-    "subtitle_empty": "Manage your employees and their access to modules."
-  },
-  "staff": {
-    "module_pos": "Sales (POS)",
-    "module_stock": "Stock",
-    "module_accounting": "Accounting",
-    "module_crm": "Customers (CRM)",
-    "module_suppliers": "Suppliers",
-    "module_team": "Team Management",
-    "role_cashier": "Cashier",
-    "role_stock": "Stock",
-    "role_accountant": "Accountant",
-    "role_manager": "Manager",
-    "role_crm": "CRM / Customers"
+    "whatsapp_not_installed": "WhatsApp is not installed on this device."
   }
 }

@@ -1,4 +1,4 @@
-import type { AccountingSaleHistoryItem, CustomerInvoice, Expense } from './api';
+import type { AccountingSaleHistoryItem, CustomerInvoice, DebtTransaction, Expense } from './api';
 import { syncService } from './sync';
 
 function toNumber(value: unknown, fallback = 0) {
@@ -129,4 +129,130 @@ export async function mergeAccountingOfflineState(params: {
       pendingTotal: pendingInvoices + pendingExpenses,
     },
   };
+}
+
+export async function mergeCustomersOfflineState(customers: any[]) {
+  const queue = (await syncService.getQueue()).slice().sort((a, b) => a.timestamp - b.timestamp);
+  const items = new Map<string, any>();
+  const order: string[] = [];
+  let pendingCustomers = 0;
+  let pendingDebtChanges = 0;
+
+  (Array.isArray(customers) ? customers : []).forEach((customer) => {
+    items.set(customer.customer_id, { ...customer });
+    order.push(customer.customer_id);
+  });
+
+  queue.forEach((action) => {
+    if (action.endpoint === '/customers' && action.method === 'POST') {
+      pendingCustomers += 1;
+      const body = action.payload || {};
+      const customerId = `offline-customer-${action.id}`;
+      if (!items.has(customerId)) {
+        items.set(customerId, {
+          customer_id: customerId,
+          user_id: '',
+          loyalty_points: 0,
+          total_spent: 0,
+          current_debt: 0,
+          visit_count: 0,
+          average_basket: 0,
+          created_at: new Date(action.timestamp).toISOString(),
+          ...body,
+          offline_pending: true,
+          offline_request_id: action.id,
+        });
+        order.unshift(customerId);
+      }
+      return;
+    }
+
+    if (action.endpoint?.startsWith('/customers/') && action.endpoint.endsWith('/payments') && action.method === 'POST') {
+      pendingDebtChanges += 1;
+      const customerId = getEndpointId(action.endpoint, '/customers/');
+      const current = items.get(customerId);
+      if (!current) return;
+      const signedAmount = toNumber(action.payload?.amount);
+      items.set(customerId, {
+        ...current,
+        current_debt: toNumber(current.current_debt) - signedAmount,
+        offline_pending: true,
+        offline_pending_debt: true,
+      });
+      return;
+    }
+
+    if (action.endpoint?.startsWith('/customers/') && action.method === 'PUT') {
+      const customerId = getEndpointId(action.endpoint, '/customers/');
+      const current = items.get(customerId);
+      if (!current) return;
+      items.set(customerId, {
+        ...current,
+        ...(action.payload || {}),
+        offline_pending: true,
+        offline_request_id: action.id,
+      });
+      return;
+    }
+
+    if (action.endpoint?.startsWith('/customers/') && action.method === 'DELETE') {
+      const customerId = getEndpointId(action.endpoint, '/customers/');
+      items.delete(customerId);
+      const index = order.indexOf(customerId);
+      if (index >= 0) order.splice(index, 1);
+    }
+  });
+
+  return {
+    customers: order.map((customerId) => items.get(customerId)).filter(Boolean),
+    summary: {
+      pendingCustomers,
+      pendingDebtChanges,
+      pendingTotal: pendingCustomers + pendingDebtChanges,
+    },
+  };
+}
+
+export async function getPendingDebtEntries(customerId: string): Promise<DebtTransaction[]> {
+  const queue = (await syncService.getQueue())
+    .filter((action) => action.endpoint === `/customers/${customerId}/payments` && action.method === 'POST')
+    .sort((a, b) => b.timestamp - a.timestamp);
+
+  return queue.map((action) => {
+    const signedAmount = toNumber(action.payload?.amount);
+    const isPayment = signedAmount > 0;
+    return {
+      type: isPayment ? 'payment' : 'credit_sale',
+      amount: signedAmount,
+      date: new Date(action.timestamp).toISOString(),
+      reference: 'SYNC',
+      details: action.payload?.notes || (isPayment ? 'Paiement hors ligne en attente' : 'Dette hors ligne en attente'),
+    };
+  });
+}
+
+export async function mergePosProductsOfflineState(products: any[]) {
+  const queue = (await syncService.getQueue()).slice().sort((a, b) => a.timestamp - b.timestamp);
+  const items = new Map<string, any>();
+
+  (Array.isArray(products) ? products : []).forEach((product) => {
+    items.set(product.product_id, { ...product });
+  });
+
+  queue.forEach((action) => {
+    if (action.endpoint !== '/sales' || action.method !== 'POST') return;
+    const saleItems = Array.isArray(action.payload?.items) ? action.payload.items : [];
+    saleItems.forEach((saleItem: any) => {
+      const current = items.get(saleItem.product_id);
+      if (!current) return;
+      const quantity = toNumber(saleItem.quantity, 0);
+      items.set(saleItem.product_id, {
+        ...current,
+        quantity: Math.max(0, toNumber(current.quantity) - quantity),
+        offline_pending_sale: true,
+      });
+    });
+  });
+
+  return Array.from(items.values());
 }

@@ -296,17 +296,17 @@
     "chat_welcome_sector": "Bonjour ! Je suis votre assistant Stockman pour {{sector}}. Je peux vous aider sur vos produits, vos ventes, votre stock et vos décisions du jour."
   },
   "staff": {
-    "module_pos": "ðŸ§¾ Ventes (POS)",
-    "module_stock": "ðŸ“¦ Stock",
+    "module_pos": "🧾 Ventes (POS)",
+    "module_stock": "📦 Stock",
     "module_accounting": "💼 Comptabilité",
-    "module_crm": "ðŸ‘¥ Clients (CRM)",
-    "module_suppliers": "ðŸšš Fournisseurs",
+    "module_crm": "👥 Clients (CRM)",
+    "module_suppliers": "🚚 Fournisseurs",
     "module_team": "🏪 Gestion équipe",
-    "role_cashier": "ðŸ§¾ Caissier",
-    "role_stock": "ðŸ“¦ Stock",
-    "role_accountant": "ðŸ’¼ Comptable",
-    "role_manager": "ðŸª Manager",
-    "role_crm": "ðŸ‘¥ CRM / Clients"
+    "role_cashier": "🧾 Caissier",
+    "role_stock": "📦 Stock",
+    "role_accountant": "💼 Comptable",
+    "role_manager": "🏪 Manager",
+    "role_crm": "👥 CRM / Clients"
   },
   "alerts": {
     "ai_anomaly_detection": "Détection d'anomalies IA",
@@ -1355,7 +1355,7 @@
     "search_product": "Search product...",
     "search_supplier": "Search supplier...",
     "send_invitation": "Send invitation",
-    "star": "â­",
+    "star": "⭐",
     "suppliers": "Marketplace Suppliers",
     "title": "Marketplace",
     "verified_only": "Verified only"
@@ -1389,7 +1389,7 @@
       "successMessage": "Votre message a été envoyé. Notre équipe vous répondra bientôt."
     },
     "deleteAccount": {
-      "dangerZone": "Zone de Danger âš ï¸",
+      "dangerZone": "Zone de danger ⚠️",
       "warningTitle": "Attention",
       "warningText": "Vous êtes sur le point de supprimer définitivement votre compte et toutes les données associées.",
       "confirmationTitle": "Confirmation ultime",
@@ -2238,7 +2238,7 @@
     "city_placeholder": "Ex: Dakar, Paris...",
     "critical_alert": "CRITIQUE",
     "days_delivery": "{{days}}j livraison",
-    "days_remaining": "âŒ› {{count}}j restants",
+    "days_remaining": "⌛ {{count}}j restants",
     "delete_confirm": "Voulez-vous vraiment supprimer \"{{name}}\" ?",
     "delete_error": "Impossible de supprimer",
     "delete_title": "Supprimer le fournisseur",
@@ -2345,7 +2345,7 @@
     "stock_value": "Valeur stock",
     "subtitle": "Gérez vos contacts et commandes",
     "successful_deliveries": "Livraisons réussies",
-    "suggestion_ai_notes": "Commande suggérée par IA (Vitesse: {{velocity}}/jour)",
+    "suggestion_ai_notes": "Commande suggérée par IA (Ventes moyennes : {{velocity}}/jour)",
     "suggestion_order_desc": "{{product}} : Stock actuel {{current}}. Suggestion : commander {{suggested}} unités chez {{supplier}}.",
     "suggestion_order_title": "Suggestion de Commande",
     "supplier_count": "{{count}} fournisseur(s)",

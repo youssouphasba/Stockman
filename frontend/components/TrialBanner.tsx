@@ -84,7 +84,7 @@ export default function TrialBanner() {
     const { bg, text, icon } = VARIANT_STYLES[variant];
 
     const label = remainingDays === 1
-        ? t('trial.banner_one', { defaultValue: 'âš ï¸ Dernier jour d\'essai gratuit' })
+        ? t('trial.banner_one', { defaultValue: "Dernier jour d'essai gratuit" })
         : t('trial.banner', { days: remainingDays, defaultValue: `{{days}} jours d'essai gratuit restants` });
 
     return (

@@ -127,8 +127,8 @@
       "cancel": "Cancel",
       "success": "Success",
       "error": "Error",
-      "sendSuccess": "âœ… Sent",
-      "statusUpdated": "âœ… Status updated"
+      "sendSuccess": "✅ Sent",
+      "statusUpdated": "✅ Status updated"
     },
     "alerts": {
       "title": "Alerts",
@@ -142,7 +142,7 @@
       "send": "Send",
       "broadcast": "Broadcast",
       "history": "History",
-      "broadcastSuccess": "ðŸ“¢ Broadcast: Sent to {{count}} devices"
+      "broadcastSuccess": "📢 Broadcast: Sent to {{count}} devices"
     },
     "dashboard": "Admin Dashboard",
     "disputes": {
@@ -217,13 +217,13 @@
       "appVersion": "App version",
       "serverStatus": "Server status",
       "actions": "Actions",
-      "dataExplorer": "ðŸ“Š Data Explorer (MongoDB)"
+      "dataExplorer": "📊 Data Explorer (MongoDB)"
     },
     "stock": {
       "title": "Products",
       "units": "{{count}} units",
       "seller": "Seller",
-      "deleteConfirmTitle": "âš ï¸ Permanent Deletion",
+      "deleteConfirmTitle": "⚠️ Permanent Deletion",
       "deleteConfirmDesc": "Are you sure you want to delete the product \"{{name}}\"? This action is irreversible."
     },
     "stores": {
@@ -296,17 +296,17 @@
     "chat_welcome_sector": "Hello! I am your Stockman assistant for {{sector}}. I can help with products, sales, stock, and daily decisions."
   },
   "staff": {
-    "module_pos": "ðŸ§¾ Sales (POS)",
-    "module_stock": "ðŸ“¦ Stock",
-    "module_accounting": "ðŸ’¼ Accounting",
-    "module_crm": "ðŸ‘¥ Customers (CRM)",
-    "module_suppliers": "ðŸšš Suppliers",
-    "module_team": "ðŸª Team Management",
-    "role_cashier": "ðŸ§¾ Cashier",
-    "role_stock": "ðŸ“¦ Stock",
-    "role_accountant": "ðŸ’¼ Accountant",
-    "role_manager": "ðŸª Manager",
-    "role_crm": "ðŸ‘¥ CRM / Customers"
+    "module_pos": "🧾 Sales (POS)",
+    "module_stock": "📦 Stock",
+    "module_accounting": "💼 Accounting",
+    "module_crm": "👥 Customers (CRM)",
+    "module_suppliers": "🚚 Suppliers",
+    "module_team": "🏪 Team Management",
+    "role_cashier": "🧾 Cashier",
+    "role_stock": "📦 Stock",
+    "role_accountant": "💼 Accountant",
+    "role_manager": "🏪 Manager",
+    "role_crm": "👥 CRM / Customers"
   },
   "alerts": {
     "ai_anomaly_detection": "AI Anomaly Detection",
@@ -1356,7 +1356,7 @@
     "search_product": "Search product...",
     "search_supplier": "Search supplier...",
     "send_invitation": "Send invitation",
-    "star": "â­",
+    "star": "⭐",
     "suppliers": "Marketplace Suppliers",
     "title": "Marketplace",
     "verified_only": "Verified only"
@@ -1390,7 +1390,7 @@
       "successMessage": "Your message has been sent. Our team will reply soon."
     },
     "deleteAccount": {
-      "dangerZone": "Danger Zone âš ï¸",
+      "dangerZone": "Danger Zone ⚠️",
       "warningTitle": "Warning",
       "warningText": "You are about to permanently delete your account and all associated data.",
       "confirmationTitle": "Ultimate confirmation",
@@ -2252,7 +2252,7 @@
     "city_placeholder": "e.g., Dakar, Paris...",
     "critical_alert": "CRITICAL",
     "days_delivery": "{{days}}d delivery",
-    "days_remaining": "âŒ› {{count}}d remaining",
+    "days_remaining": "⌛ {{count}}d remaining",
     "delete_confirm": "Are you sure you want to delete \"{{name}}\"?",
     "delete_error": "Could not delete",
     "delete_title": "Delete Supplier",
@@ -2461,7 +2461,7 @@
     "empty_state_title": "No employees yet.",
     "user_details_title": "User Details",
     "whatsapp_invite_later": "Later",
-    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\nðŸ“§ Email: {{email}}\nðŸ”‘ Password: {{password}}\n\nYou can access the app here: {{url}}\n\nGood work!",
+    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\n📧 Email: {{email}}\n🔑 Password: {{password}}\n\nYou can access the app here: {{url}}\n\nGood work!",
     "whatsapp_invite_prompt": "Do you want to send access via WhatsApp?",
     "whatsapp_invite_send": "Send",
     "whatsapp_not_installed": "WhatsApp is not installed on this device."

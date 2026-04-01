@@ -3099,7 +3099,7 @@
     "stock_value": "Valeur stock",
     "subtitle": "Gérez vos contacts et commandes",
     "successful_deliveries": "Livraisons réussies",
-    "suggestion_ai_notes": "Commande suggérée par IA (Vitesse: {{velocity}}/jour)",
+    "suggestion_ai_notes": "Commande sugg\u00e9r\u00e9e par IA (Ventes moyennes : {{velocity}}/jour)",
     "suggestion_order_desc": "{{product}} : Stock actuel {{current}}. Suggestion : commander {{suggested}} unités chez {{supplier}}.",
     "suggestion_order_title": "Suggestion de Commande",
     "supplier_count": "{{count}} fournisseur(s)",
@@ -3452,7 +3452,7 @@
     "with_enterprise_you_can": "With Enterprise You Can"
   },
   "trial": {
-    "banner": "Banner",
-    "banner_one": "Banner One"
+    "banner": "{{days}} jours d'essai gratuit restants",
+    "banner_one": "Dernier jour d'essai gratuit"
   }
 }

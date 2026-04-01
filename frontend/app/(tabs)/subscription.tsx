@@ -20,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { purchaseStarter, purchasePro, restorePurchases, isPurchasesAvailable } from '../../services/purchases';
 import { COUNTRIES } from '../../constants/countries';
+import { getFlagFromCountryCode } from '../../utils/flags';
 
 type PlanKey = 'starter' | 'pro' | 'enterprise';
 
@@ -116,14 +117,16 @@ export default function SubscriptionScreen() {
     };
 
     const currentPlan = data?.plan;
+    const effectivePlan = data?.effective_plan || currentPlan;
     const isActive = data?.status === 'active';
     const isFreeTrial = data?.is_trial ?? false;
     const remainingDays = data?.remaining_days || 0;
     const accessPhase = data?.subscription_access_phase || 'active';
+    const isEnterpriseManagedOnWeb = effectivePlan === 'enterprise' || currentPlan === 'enterprise';
     const activePlanConfig = PLANS.find((plan) => plan.key === currentPlan);
     const selectedPlanConfig = PLANS.find((plan) => plan.key === selectedPlan) ?? PLANS[1];
     const isSelectedPlanCurrent = Boolean(isActive && !isFreeTrial && currentPlan === selectedPlan);
-    const shouldShowPurchaseAction = selectedPlan !== 'enterprise' && !isSelectedPlanCurrent;
+    const shouldShowPurchaseAction = !isEnterpriseManagedOnWeb && selectedPlan !== 'enterprise' && !isSelectedPlanCurrent;
     const billingCountry = COUNTRIES.find((country) => country.code === (data?.country_code || user?.country_code)) || COUNTRIES[0];
     const selectedPrice = data?.effective_prices?.[selectedPlan]?.display_price || (
         useMobileMoney ? `${selectedPlanConfig.priceXOF} ${t('common.currency_default')}` : selectedPlanConfig.priceEUR
@@ -135,6 +138,13 @@ export default function SubscriptionScreen() {
         : t('subscription.plan_starter');
 
     const handleRevenueCatPurchase = async (plan: PlanKey) => {
+        if (isEnterpriseManagedOnWeb) {
+            Alert.alert(
+                t('common.info'),
+                'Le plan Enterprise se gère uniquement sur le web. Les changements de formule mobile ne sont pas disponibles pour ce compte.'
+            );
+            return;
+        }
         if (plan === 'enterprise') {
             Alert.alert(t('common.info'), 'Le plan Enterprise ne se souscrit pas directement depuis cet écran.');
             return;
@@ -188,6 +198,13 @@ export default function SubscriptionScreen() {
     };
 
     const handleRestorePurchases = async () => {
+        if (isEnterpriseManagedOnWeb) {
+            Alert.alert(
+                t('common.info'),
+                'Ce compte Enterprise est piloté sur le web. La restauration des achats intégrés mobile n’est pas utilisée pour cette formule.'
+            );
+            return;
+        }
         if (!isPurchasesAvailable()) {
             Alert.alert(t('common.info'), t('subscription.iap_not_available'));
             return;
@@ -307,12 +324,28 @@ export default function SubscriptionScreen() {
                     </View>
                 ) : null}
 
+                {isEnterpriseManagedOnWeb ? (
+                    <View style={[styles.card, styles.enterpriseManagedCard]}>
+                        <Text style={styles.sectionTitle}>Gestion Enterprise</Text>
+                        <Text style={styles.cardSubtitle}>
+                            Votre compte Enterprise se gère depuis le web. Les achats intégrés mobile et la restauration Google Play ou App Store ne modifient pas cette formule.
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.payButton, { backgroundColor: '#7C3AED' }]}
+                            onPress={handleEnterpriseContact}
+                        >
+                            <Ionicons name="open-outline" size={22} color="white" />
+                            <Text style={styles.payButtonText}>Ouvrir la gestion web</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : null}
+
                 <View style={styles.card}>
                     <Text style={styles.sectionTitle}>{t('subscription.billing_country_title') || 'Pays et devise'}</Text>
                     <Text style={styles.cardSubtitle}>{t('subscription.billing_country_locked')}</Text>
                     <View style={styles.pickerWrapper}>
                         <Ionicons name="globe-outline" size={18} color={colors.textMuted} />
-                        <Text style={styles.pickerLabel}>{billingCountry.flag}</Text>
+                        <Text style={styles.pickerLabel}>{getFlagFromCountryCode(billingCountry.code)}</Text>
                         <Text style={styles.pickerValue}>{billingCountry.name} ({billingCountry.currency})</Text>
                     </View>
                     <Text style={styles.helperText}>
@@ -493,7 +526,7 @@ export default function SubscriptionScreen() {
                     </View>
                 ) : null}
 
-                {isNative ? (
+                {isNative && !isEnterpriseManagedOnWeb ? (
                     <TouchableOpacity style={styles.restoreButton} onPress={handleRestorePurchases}>
                         <Text style={styles.restoreText}>{t('subscription.restore_purchase')}</Text>
                     </TouchableOpacity>
@@ -525,6 +558,10 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 8,
         elevation: 2,
+    },
+    enterpriseManagedCard: {
+        borderWidth: 1,
+        borderColor: 'rgba(124, 58, 237, 0.28)',
     },
     attentionCard: {
         backgroundColor: isDark ? 'rgba(245,158,11,0.16)' : '#FEF3C7',

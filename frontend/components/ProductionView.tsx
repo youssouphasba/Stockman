@@ -30,10 +30,10 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// â”€â”€â”€ Sub-tab type â”€â”€â”€
+// ─── Sub-tab type ───
 type SubTab = 'recipes' | 'orders' | 'shop' | 'materials';
 
-// â”€â”€â”€ Dashboard KPIs â”€â”€â”€
+// ─── Dashboard KPIs ───
 function DashboardKPIs({ data, colors, t }: { data: ProductionDashboard | null; colors: any; t: any }) {
     if (!data) return null;
     const kpis = [
@@ -58,7 +58,7 @@ function DashboardKPIs({ data, colors, t }: { data: ProductionDashboard | null; 
     );
 }
 
-// â”€â”€â”€ Recipe Card â”€â”€â”€
+// ─── Recipe Card ───
 function RecipeCard({
     recipe, colors, t, onProduce, onEdit, onDelete, currency,
 }: {
@@ -97,7 +97,7 @@ function RecipeCard({
                 </View>
                 {recipe.prep_time_min > 0 && (
                     <View style={s.recipeStat}>
-                        <Text style={[s.statLabel, { color: colors.textMuted }]}>â±</Text>
+                        <Text style={[s.statLabel, { color: colors.textMuted }]}>⏱</Text>
                         <Text style={[s.statValue, { color: colors.text }]}>{recipe.prep_time_min}min</Text>
                     </View>
                 )}
@@ -119,7 +119,7 @@ function RecipeCard({
     );
 }
 
-// â”€â”€â”€ Order Card â”€â”€â”€
+// ─── Order Card ───
 function OrderCard({
     order, colors, t, onStart, onComplete, onCancel, currency,
 }: {
@@ -180,7 +180,7 @@ function OrderCard({
 }
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• Main Component â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Main Component
 
 export default function ProductionView({ currency = 'FCFA' }: { currency?: string }) {
     const { t } = useTranslation();
@@ -247,7 +247,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
 
     const onRefresh = () => { setRefreshing(true); loadData(); };
 
-    // â”€â”€â”€ Recipe Actions â”€â”€â”€
+    // ─── Recipe Actions ───
     const handleCreateRecipe = async () => {
         if (!recipeName.trim()) return;
         try {
@@ -290,7 +290,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
         );
     };
 
-    // â”€â”€â”€ Production Actions â”€â”€â”€
+    // ─── Production Actions ───
     const handleProduce = async () => {
         if (!selectedRecipe) return;
         try {
@@ -361,7 +361,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
         setInstructions('');
     };
 
-    // â”€â”€â”€ Sub-tabs â”€â”€â”€
+    // ─── Sub-tabs ───
     const tabs: { key: SubTab; label: string; icon: string }[] = [
         { key: 'recipes', label: t('production.tab_recipes', 'Recettes'), icon: 'flask-outline' },
         { key: 'orders', label: t('production.tab_orders', 'Ordres'), icon: 'clipboard-outline' },
@@ -402,7 +402,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
                 contentContainerStyle={s.content}
             >
-                {/* â”€â”€â”€ Recipes Tab â”€â”€â”€ */}
+                {/* ─── Recipes Tab ─── */}
                 {activeTab === 'recipes' && (
                     <>
                         <TouchableOpacity
@@ -440,7 +440,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                     </>
                 )}
 
-                {/* â”€â”€â”€ Orders Tab â”€â”€â”€ */}
+                {/* ─── Orders Tab ─── */}
                 {activeTab === 'orders' && (
                     <>
                         {ordersList.length === 0 ? (
@@ -474,7 +474,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                     </>
                 )}
 
-                {/* â”€â”€â”€ Shop Tab (standard products) â”€â”€â”€ */}
+                {/* ─── Shop Tab (standard products) ─── */}
                 {activeTab === 'shop' && (
                     <>
                         <Text style={[s.sectionTitle, { color: colors.text }]}>
@@ -510,7 +510,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                     </>
                 )}
 
-                {/* â”€â”€â”€ Materials Tab (raw materials) â”€â”€â”€ */}
+                {/* ─── Materials Tab (raw materials) ─── */}
                 {activeTab === 'materials' && (
                     <>
                         <Text style={[s.sectionTitle, { color: colors.text }]}>
@@ -553,7 +553,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                 )}
             </ScrollView>
 
-            {/* â•â•â• Create Recipe Modal â•â•â• */}
+            {/* Create Recipe Modal */}
             {showRecipeModal && <Modal visible={showRecipeModal} animationType="slide" transparent onRequestClose={() => setShowRecipeModal(false)}>
                 <View style={s.modalOverlay}>
                     <View style={[s.modalContent, { backgroundColor: colors.bgDark }]}>
@@ -635,7 +635,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                 </View>
             </Modal>}
 
-            {/* â•â•â• Produce Modal â•â•â• */}
+            {/* Produce Modal */}
             {showProduceModal && <Modal visible={showProduceModal} animationType="slide" transparent onRequestClose={() => setShowProduceModal(false)}>
                 <View style={s.modalOverlay}>
                     <View style={[s.modalContent, { backgroundColor: colors.bgDark, maxHeight: '50%' }]}>
@@ -680,7 +680,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                 </View>
             </Modal>}
 
-            {/* â•â•â• Complete Modal â•â•â• */}
+            {/* Complete Modal */}
             {showCompleteModal && <Modal visible={showCompleteModal} animationType="slide" transparent onRequestClose={() => setShowCompleteModal(false)}>
                 <View style={s.modalOverlay}>
                     <View style={[s.modalContent, { backgroundColor: colors.bgDark, maxHeight: '50%' }]}>
@@ -723,7 +723,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
 }
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• Styles â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Styles
 
 const s = StyleSheet.create({
     container: { flex: 1 },

@@ -169,6 +169,11 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 
 - Web : information, pilotage et facturation plus complets.
 - Mobile : consultation du plan, changement de plan et restauration selon plateforme.
+- Les plans Starter et Pro peuvent etre geres par achat integre mobile quand la plateforme le permet.
+- Web commercant : les plans Starter et Pro peuvent consulter le back-office web, mais les creations, editions et suppressions y restent bloquees.
+- Passage de Starter ou Pro vers Enterprise : il se fait sur le meme compte. L'utilisateur conserve ses donnees, ses boutiques et ses utilisateurs ; seul le plan evolue apres confirmation du paiement web.
+- Enterprise : conserve le pilotage web complet avec actions et administration avancee.
+- Un compte deja en Enterprise doit etre presente comme gere sur le web ; l'IA ne doit pas suggerer un changement de formule Enterprise depuis un achat integre mobile.
 - iOS et Android ne doivent pas etre presentes de la meme facon.
 
 ### Fournisseurs et commandes
@@ -185,6 +190,34 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 ### Reglages
 
 - Les reglages visibles et modifiables dependent du role de compte et du niveau d'administration.
+
+## Mode hors ligne et synchronisation
+
+L'IA ne doit jamais presenter le mode hors ligne comme total sur toute la plateforme.
+
+### Mobile commercant
+
+- Consultation locale possible sur les donnees deja chargees.
+- Prise en charge metier elargie pour certains flux : produits deja caches, ventes POS compatibles, certaines ecritures comptables, clients CRM et paiements clients.
+- Les actions en attente doivent etre presentees comme "enregistrees localement" puis "synchronisees automatiquement" au retour du reseau.
+
+### Web commercant
+
+- Consultation locale possible sur les donnees deja chargees.
+- Prise en charge metier elargie sur l'inventaire, le CRM, la comptabilite, les fournisseurs manuels et certains bons de commande.
+- Les badges et bandeaux "En attente" doivent etre expliques comme des actions locales non encore poussees au serveur.
+
+### Flux a laisser en ligne uniquement
+
+- Authentification
+- Facturation et abonnement
+- IA et services externes dependants du reseau
+- Uploads et operations qui exigent une verification immediate du serveur
+
+### Regle de prudence
+
+- Si l'utilisateur demande si "tout fonctionne hors ligne", l'IA doit repondre non et preciser les modules reellement couverts.
+- Si l'utilisateur demande pourquoi une action ne part pas, l'IA doit d'abord verifier si cette action fait partie des flux compatibles hors ligne.
 
 ## Ce que l'IA doit dire explicitement
 

@@ -127,7 +127,7 @@ export default function BatchScanModal({ onClose }: Props) {
                     </div>
 
                 ) : phase === 'scan' ? (
-                    /* â”€â”€ Phase 1 : Scan â”€â”€ */
+                    /* ── Phase 1 : Scan ── */
                     <div className="flex flex-col gap-5 p-6 overflow-y-auto custom-scrollbar">
 
                         {/* Keyboard wedge input */}
@@ -226,7 +226,7 @@ export default function BatchScanModal({ onClose }: Props) {
                     </div>
 
                 ) : (
-                    /* â”€â”€ Phase 2 : Action â”€â”€ */
+                    /* ── Phase 2 : Action ── */
                     <div className="flex flex-col gap-6 p-6 overflow-y-auto custom-scrollbar">
                         <div className="text-center py-2">
                             <span className="text-5xl font-black text-primary">{scannedCodes.length}</span>

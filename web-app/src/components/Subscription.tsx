@@ -194,6 +194,7 @@ export default function Subscription() {
     const accessPhase = subDetails.subscription_access_phase || 'active';
     const currency = subDetails.currency || 'XOF';
     const canUseMobileMoney = Boolean(subDetails.use_mobile_money);
+    const shouldHighlightEnterpriseUpgrade = currentPlan !== 'enterprise';
     const billingCountry = COUNTRIES.find((country) => country.code === subDetails.country_code) || COUNTRIES[0];
     const plans = (['starter', 'pro', 'enterprise'] as PlanId[]).map((planId) => {
         const quote = subDetails.effective_prices?.[planId];
@@ -225,11 +226,15 @@ export default function Subscription() {
         },
         {
             title: 'Comparer les formules',
-            content: "Chaque carte de formule présente le prix effectif et les principaux avantages. Relisez les fonctionnalités avant de changer de formule afin de choisir celle qui correspond réellement à votre activité.",
+            content: "Chaque carte de formule presente le prix effectif et les principaux avantages. Si vous etes deja en Starter ou Pro, le passage a Enterprise se fait sur le meme compte, sans recreer vos donnees.",
             details: [
                 { label: 'Carte de formule', description: "Affiche le nom, le prix mensuel et les éléments clés inclus dans la formule.", type: 'card' },
                 { label: 'Plan actuel', description: "La formule active reste visible avec un état clair pour éviter toute ambiguïté avant un changement.", type: 'info' },
             ],
+        },
+        {
+            title: 'Passer de Starter ou Pro a Enterprise',
+            content: "Le passage a Enterprise conserve votre compte, vos boutiques et vos donnees. Le web complet s active apres confirmation du paiement par le prestataire de facturation.",
         },
         {
             title: 'Choisir le bon mode de paiement',
@@ -290,6 +295,47 @@ export default function Subscription() {
                     </div>
                 </div>
             </div>
+
+            {shouldHighlightEnterpriseUpgrade && (
+                <div className="mb-12 rounded-3xl border border-primary/25 bg-primary/10 p-6">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="max-w-3xl">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-primary">
+                                <Star size={14} />
+                                Evolution vers Enterprise
+                            </div>
+                            <h3 className="mt-3 text-xl font-black text-white">
+                                Le passage a Enterprise garde votre compte et debloque le web complet.
+                            </h3>
+                            <p className="mt-2 text-sm leading-6 text-slate-300">
+                                Vous ne recreez pas un nouveau compte. Vous gardez vos boutiques, vos utilisateurs et vos donnees. Une fois le paiement confirme, votre compte actuel passe en Enterprise et le back-office web sort du mode consultation.
+                            </p>
+                            <div className="mt-4 grid gap-3 md:grid-cols-3">
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">1. Verifier</p>
+                                    <p className="mt-2 text-sm text-slate-300">Confirmez le pays, la devise et le contact de facturation.</p>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">2. Payer</p>
+                                    <p className="mt-2 text-sm text-slate-300">Lancez le paiement Enterprise par carte ou Mobile Money selon la devise.</p>
+                                </div>
+                                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">3. Activer</p>
+                                    <p className="mt-2 text-sm text-slate-300">Le web complet se debloque des que le paiement est confirme par Stripe ou Flutterwave.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-[#0F172A]/60 p-5 lg:max-w-sm">
+                            <p className="text-sm font-black text-white">Ce qui ne change pas</p>
+                            <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                                <li>Votre compte principal reste le meme.</li>
+                                <li>Vos donnees et vos boutiques sont conservees.</li>
+                                <li>Vous pouvez revenir au web app pendant tout le parcours.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {subDetails.is_demo && (
                 <div className="mb-12 rounded-3xl border border-sky-500/20 bg-sky-500/10 p-6">
@@ -366,7 +412,9 @@ export default function Subscription() {
                     <div
                         key={plan.id}
                         className={`glass-card p-8 flex flex-col gap-8 relative overflow-hidden group border-2 ${
-                            plan.popular ? 'border-primary/30 shadow-2xl shadow-primary/10' : 'border-white/5'
+                            plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade
+                                ? 'border-primary/40 shadow-2xl shadow-primary/10 ring-1 ring-primary/30'
+                                : plan.popular ? 'border-primary/30 shadow-2xl shadow-primary/10' : 'border-white/5'
                         }`}
                     >
                         {plan.popular && (
@@ -404,13 +452,20 @@ export default function Subscription() {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-3">
+                                {plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade && (
+                                    <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-slate-200">
+                                        Le paiement Enterprise met a jour votre compte actuel. Le web complet s active apres confirmation du paiement.
+                                    </div>
+                                )}
                                 <button
                                     onClick={() => void handleStripe(plan.id)}
                                     disabled={!!purchasing}
                                     className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold btn-primary shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                                 >
                                     {purchasing === 'stripe' ? <RefreshCw className="animate-spin" size={18} /> : <CreditCard size={18} />}
-                                    Payer par carte bancaire ({currency}) <ArrowRight size={16} />
+                                    {plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade
+                                        ? `Passer a Enterprise par carte (${currency})`
+                                        : `Payer par carte bancaire (${currency})`} <ArrowRight size={16} />
                                 </button>
                                 {canUseMobileMoney ? (
                                     <button
@@ -419,7 +474,9 @@ export default function Subscription() {
                                         className="w-full py-3 rounded-xl flex items-center justify-center gap-3 font-bold bg-emerald-500/90 text-white shadow-xl shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
                                     >
                                         {purchasing === 'flutterwave' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
-                                        Payer via Mobile Money ({currency})
+                                        {plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade
+                                            ? `Passer a Enterprise via Mobile Money (${currency})`
+                                            : `Payer via Mobile Money (${currency})`}
                                     </button>
                                 ) : (
                                     <div className="text-xs text-slate-500 text-center">

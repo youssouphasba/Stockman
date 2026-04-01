@@ -50,6 +50,7 @@ import {
     creditNotes as creditNotesApi,
 } from '../services/api';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
+import { mergeSuppliersOfflineState } from '../services/offlineState';
 
 type TabType = 'manual' | 'orders' | 'replenishment' | 'marketplace' | 'insights';
 
@@ -123,6 +124,7 @@ export default function Suppliers() {
     const [selectedSuggestionSupplierId, setSelectedSuggestionSupplierId] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState<string | null>(null);
+    const [pendingOfflineSummary, setPendingOfflineSummary] = useState({ pendingSuppliers: 0, pendingOrders: 0, pendingTotal: 0 });
 
     // New Supplier Form
     const [newSupplier, setNewSupplier] = useState({
@@ -461,11 +463,37 @@ export default function Suppliers() {
         setLoading(true);
         try {
             if (activeTab === 'manual') {
-                const res: any = await suppliersApi.list();
-                setManualSuppliers(Array.isArray(res) ? res : (res.items || []));
+                const [suppliersRes, ordersRes] = await Promise.allSettled([
+                    suppliersApi.list(),
+                    ordersApi.list(),
+                ]);
+                const merged = mergeSuppliersOfflineState({
+                    manualSuppliers: suppliersRes.status === 'fulfilled'
+                        ? (Array.isArray(suppliersRes.value) ? suppliersRes.value : (suppliersRes.value.items || []))
+                        : [],
+                    orders: ordersRes.status === 'fulfilled'
+                        ? (Array.isArray(ordersRes.value) ? ordersRes.value : (ordersRes.value.items || []))
+                        : [],
+                });
+                setManualSuppliers(merged.manualSuppliers);
+                setOrders(merged.orders);
+                setPendingOfflineSummary(merged.summary);
             } else if (activeTab === 'orders') {
-                const res = await ordersApi.list();
-                setOrders(res.items || res);
+                const [suppliersRes, ordersRes] = await Promise.allSettled([
+                    suppliersApi.list(),
+                    ordersApi.list(),
+                ]);
+                const merged = mergeSuppliersOfflineState({
+                    manualSuppliers: suppliersRes.status === 'fulfilled'
+                        ? (Array.isArray(suppliersRes.value) ? suppliersRes.value : (suppliersRes.value.items || []))
+                        : [],
+                    orders: ordersRes.status === 'fulfilled'
+                        ? (Array.isArray(ordersRes.value) ? ordersRes.value : (ordersRes.value.items || []))
+                        : [],
+                });
+                setManualSuppliers(merged.manualSuppliers);
+                setOrders(merged.orders);
+                setPendingOfflineSummary(merged.summary);
             } else if (activeTab === 'replenishment') {
                 const res = await replenishmentApi.getSuggestions();
                 setSuggestions(res);
@@ -896,11 +924,11 @@ export default function Suppliers() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await suppliersApi.create(newSupplier);
-            setSuccess("Fournisseur ajouté avec succès !");
+            const response = await suppliersApi.create(newSupplier);
+            setSuccess((response as any)?.offline_pending ? "Fournisseur enregistré hors ligne. Il sera synchronisé automatiquement." : "Fournisseur ajouté avec succès !");
             setShowSupplierModal(false);
             setNewSupplier({ name: '', contact_name: '', email: '', phone: '', address: '', notes: '' });
-            loadData();
+            await loadData();
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
             console.error("Error creating supplier", err);
@@ -914,7 +942,7 @@ export default function Suppliers() {
         if (orderForm.items.length === 0) return;
         setSubmitting(true);
         try {
-            await ordersApi.create({
+            const response = await ordersApi.create({
                 supplier_id: orderForm.supplier_id || '',
                 supplier_user_id: orderForm.supplier_user_id || undefined,
                 notes: orderForm.notes || undefined,
@@ -925,10 +953,10 @@ export default function Suppliers() {
                     unit_price: Number(item.unit_price) || 0,
                 })),
             });
-            setSuccess("Bon de commande créé avec succès !");
+            setSuccess((response as any)?.offline_pending ? "Bon de commande enregistré hors ligne. Il sera synchronisé automatiquement." : "Bon de commande créé avec succès !");
             setShowOrderModal(false);
             resetOrderForm();
-            loadData();
+            await loadData();
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
             console.error("Error creating order", err);
@@ -1567,6 +1595,14 @@ export default function Suppliers() {
                                 </button>
                             </div>
                         ) : (
+                            <div className="space-y-4">
+                                {pendingOfflineSummary.pendingTotal > 0 && (
+                                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                                        {pendingOfflineSummary.pendingTotal === 1
+                                            ? '1 fournisseur ou commande est en attente de synchronisation.'
+                                            : `${pendingOfflineSummary.pendingTotal} fournisseurs ou commandes sont en attente de synchronisation.`}
+                                    </div>
+                                )}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {filteredManualSuppliers.map((s) => (
                                     <div key={s.supplier_id} className="glass-card p-6 hover:border-primary/50 transition-all group flex flex-col justify-between">
@@ -1578,6 +1614,11 @@ export default function Suppliers() {
                                                 <div>
                                                     <h3 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{s.name || 'Fournisseur sans nom'}</h3>
                                                     <p className="text-sm text-slate-500">{s.contact_name || 'Aucun contact'}</p>
+                                                    {s.offline_pending && (
+                                                        <span className="mt-1 inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-amber-300">
+                                                            En attente
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="relative">
@@ -1665,6 +1706,7 @@ export default function Suppliers() {
                                     </div>
                                 ))}
                             </div>
+                            </div>
                         )}
                     </div>
                 )}
@@ -1709,6 +1751,14 @@ export default function Suppliers() {
                                 <p className="text-xl">Aucun bon de commande trouv?.</p>
                             </div>
                         ) : ordersView === 'orders' ? (
+                            <div className="space-y-4">
+                                {pendingOfflineSummary.pendingOrders > 0 && (
+                                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                                        {pendingOfflineSummary.pendingOrders === 1
+                                            ? '1 bon de commande est en attente de synchronisation.'
+                                            : `${pendingOfflineSummary.pendingOrders} bons de commande sont en attente de synchronisation.`}
+                                    </div>
+                                )}
                             <div className="overflow-hidden glass-card">
                                 <table className="w-full text-left">
                                     <thead>
@@ -1749,6 +1799,13 @@ export default function Suppliers() {
                                                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${getStatusStyle(o.status)}`}>
                                                         {o.status.replace('_', ' ').toUpperCase()}
                                                     </span>
+                                                    {o.offline_pending && (
+                                                        <div className="mt-2">
+                                                            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase text-amber-300">
+                                                                En attente
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <button className="p-2 rounded-lg bg-white/5 text-slate-400 hover:text-white transition-all">
@@ -1759,6 +1816,7 @@ export default function Suppliers() {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
                             </div>
                         ) : (
                             <div className="space-y-6">
@@ -1871,7 +1929,7 @@ export default function Suppliers() {
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-white">Analyse de Stock Intelligente</h3>
-                                    <p className="text-sm text-slate-400">Ces suggestions sont basées sur votre vélocité de vente des 30 derniers jours.</p>
+                                    <p className="text-sm text-slate-400">Ces suggestions sont basées sur vos ventes moyennes des 30 derniers jours.</p>
                                 </div>
                             </div>
                             <button
@@ -1915,7 +1973,7 @@ export default function Suppliers() {
                                                 <div className="text-white font-bold">{s.current_quantity}</div>
                                             </div>
                                             <div className="bg-white/5 p-2 rounded-lg text-center">
-                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Vélocité</div>
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Ventes moyennes</div>
                                                 <div className="text-white font-bold">{s.daily_velocity}/j</div>
                                             </div>
                                             <div className="bg-white/5 p-2 rounded-lg text-center">
@@ -4295,7 +4353,7 @@ export default function Suppliers() {
                 maxWidth="xl"
             >
                 <div className="space-y-4">
-                    <p className="text-sm text-slate-400">{t('suppliers.auto_orders_desc', 'Basé sur la vélocité de vos ventes et votre stock actuel, voici les commandes recommandées pour 14 jours de couverture.')}</p>
+                    <p className="text-sm text-slate-400">{t('suppliers.auto_orders_desc', 'Basé sur vos ventes moyennes et votre stock actuel, voici les commandes recommandées pour 14 jours de couverture.')}</p>
                     {draftOrdersLoading ? (
                         <div className="py-16 flex justify-center">
                             <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />

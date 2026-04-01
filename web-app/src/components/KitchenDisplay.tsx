@@ -5,7 +5,7 @@ import {
     Utensils, Zap, Coffee, Salad, Beef,
 } from 'lucide-react';
 
-// â”€â”€â”€ API helper (request not exported from api.ts) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── API helper (request not exported from api.ts) ────────────────────────────
 
 const API_URL = '';
 
@@ -30,7 +30,7 @@ async function apiRequest<T>(
     return res.json();
 }
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface KitchenItem {
     product_id?: string;
@@ -55,7 +55,7 @@ interface KitchenTicket {
     _served?: boolean;
 }
 
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const URGENCY_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -77,7 +77,7 @@ const STATION_COLORS: Record<string, string> = {
     default: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
 };
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getStationBadgeClass(station?: string): string {
     if (!station) return STATION_COLORS.default;
@@ -109,7 +109,7 @@ function formatElapsedShort(ms: number): string {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// â”€â”€â”€ Live Elapsed Clock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Live Elapsed Clock ───────────────────────────────────────────────────────
 
 function LiveClock({ since, urgent }: { since: string; urgent: boolean }) {
     const [ms, setMs] = useState(() => elapsedMs(since));
@@ -127,7 +127,7 @@ function LiveClock({ since, urgent }: { since: string; urgent: boolean }) {
     );
 }
 
-// â”€â”€â”€ Ticket Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Ticket Card ─────────────────────────────────────────────────────────────
 
 interface TicketCardProps {
     ticket: KitchenTicket;
@@ -197,7 +197,7 @@ function TicketCard({ ticket, readyItems, onItemReady, onServed }: TicketCardPro
             {/* Notes globales */}
             {ticket.notes && (
                 <div className="mx-4 mt-2 p-2 bg-amber-500/10 rounded-lg text-amber-300 text-xs flex items-start gap-1.5 border border-amber-500/20">
-                    <span className="shrink-0 mt-0.5">âš </span>
+                    <span className="shrink-0 mt-0.5">⚠</span>
                     <span>{ticket.notes}</span>
                 </div>
             )}
@@ -293,7 +293,7 @@ function TicketCard({ ticket, readyItems, onItemReady, onServed }: TicketCardPro
     );
 }
 
-// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function KitchenDisplay() {
     const [tickets, setTickets] = useState<KitchenTicket[]>([]);
@@ -305,7 +305,7 @@ export default function KitchenDisplay() {
     const loadingRef = useRef(false);
     const prevTicketCount = useRef(0);
 
-    // â”€â”€ Data loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Data loading ─────────────────────────────────────────────────────────
 
     const load = useCallback(async (silent = false) => {
         if (loadingRef.current) return;
@@ -350,7 +350,7 @@ export default function KitchenDisplay() {
         return () => clearInterval(interval);
     }, [load]);
 
-    // â”€â”€ Item ready toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Item ready toggle ─────────────────────────────────────────────────────
 
     const handleItemReady = useCallback(async (saleId: string, itemIdx: number, checked: boolean) => {
         // Optimistic update
@@ -371,7 +371,7 @@ export default function KitchenDisplay() {
         }
     }, []);
 
-    // â”€â”€ Ticket served â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Ticket served ─────────────────────────────────────────────────────────
 
     const handleServed = useCallback((saleId: string) => {
         setTickets(prev => prev.filter(t => t.sale_id !== saleId));
@@ -382,7 +382,7 @@ export default function KitchenDisplay() {
         });
     }, []);
 
-    // â”€â”€ Station filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Station filtering ─────────────────────────────────────────────────────
 
     const filteredTickets = activeStation === 'all'
         ? tickets
@@ -396,7 +396,7 @@ export default function KitchenDisplay() {
     // Count urgents
     const urgentCount = tickets.filter(t => elapsedMs(t.kitchen_sent_at) >= URGENCY_THRESHOLD_MS).length;
 
-    // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Render ────────────────────────────────────────────────────────────────
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden bg-[#0F172A]">

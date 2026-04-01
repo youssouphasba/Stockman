@@ -98,7 +98,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    // â”€â”€â”€ Recipe CRUD â”€â”€â”€
+    // ─── Recipe CRUD ───
     const handleCreateRecipe = async () => {
         if (!recipeName.trim() || submitting) return;
         setSubmitting(true);
@@ -133,7 +133,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
         }
     };
 
-    // â”€â”€â”€ Order Actions â”€â”€â”€
+    // ─── Order Actions ───
     const handleProduce = async () => {
         if (!selectedRecipe || submitting) return;
         setSubmitting(true);
@@ -268,7 +268,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                 ))}
             </div>
 
-            {/* â”€â”€â”€ Recipes Tab â”€â”€â”€ */}
+            {/* ─── Recipes Tab ─── */}
             {activeTab === 'recipes' && (
                 recipesList.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-500">
@@ -314,7 +314,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                                 </div>
 
                                 {recipe.prep_time_min > 0 && (
-                                    <p className="text-xs text-slate-500">â± {recipe.prep_time_min} min</p>
+                                    <p className="text-xs text-slate-500">⏱ {recipe.prep_time_min} min</p>
                                 )}
 
                                 <button
@@ -329,7 +329,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                 )
             )}
 
-            {/* â”€â”€â”€ Orders Tab â”€â”€â”€ */}
+            {/* ─── Orders Tab ─── */}
             {activeTab === 'orders' && (
                 ordersList.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-500">
@@ -382,7 +382,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                 )
             )}
 
-            {/* â”€â”€â”€ Shop Tab â”€â”€â”€ */}
+            {/* ─── Shop Tab ─── */}
             {activeTab === 'shop' && (
                 <div className="space-y-2">
                     <p className="text-xs text-slate-500 mb-3">{t('production.shop_desc', 'Plats et produits du menu')}</p>
@@ -404,7 +404,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                 </div>
             )}
 
-            {/* â”€â”€â”€ Materials Tab â”€â”€â”€ */}
+            {/* ─── Materials Tab ─── */}
             {activeTab === 'materials' && (
                 <div className="space-y-2">
                     <p className="text-xs text-slate-500 mb-3">{t('production.materials_desc', 'Ingrédients et matières premières')}</p>
@@ -429,7 +429,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                 </div>
             )}
 
-            {/* â•â•â• Create Recipe Modal â•â•â• */}
+            {/* Create Recipe Modal */}
             {showNewRecipe && (
                 <Modal onClose={() => setShowNewRecipe(false)}>
                     <div className="flex justify-between items-center mb-5">
@@ -465,7 +465,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                 </Modal>
             )}
 
-            {/* â•â•â• Produce Modal â•â•â• */}
+            {/* Produce Modal */}
             {showProduceModal && selectedRecipe && (
                 <Modal onClose={() => setShowProduceModal(false)}>
                     <div className="flex justify-between items-center mb-5">
@@ -489,7 +489,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                 </Modal>
             )}
 
-            {/* â•â•â• Complete Modal â•â•â• */}
+            {/* Complete Modal */}
             {showCompleteModal && selectedOrder && (
                 <Modal onClose={() => setShowCompleteModal(false)}>
                     <div className="flex justify-between items-center mb-5">

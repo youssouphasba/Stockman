@@ -36,7 +36,7 @@ import AiChatPanel from "../components/AiChatPanel";
 import SupportPanel from "../components/SupportPanel";
 import NotificationCenter from "../components/NotificationCenter";
 import VerifyEmailPanel from "../components/VerifyEmailPanel";
-import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, removeToken, type AuthResponse, type DemoSessionInfo } from "../services/api";
+import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, removeToken, setWebAccessMode, clearWebAccessMode, type AuthResponse, type DemoSessionInfo } from "../services/api";
 import { completeRedirectSignIn, signInWithProvider } from "../services/firebaseAuth";
 import { getAccessContext } from "../utils/access";
 import TrialBanner from "../components/TrialBanner";
@@ -116,9 +116,15 @@ export default function Home() {
   const isBillingAdmin = access.isBillingAdmin;
   const hasOperationalAccess = access.hasOperationalAccess;
   const isBillingOnly = access.isBillingOnly;
+  const isWebConsultationOnly =
+    isLogged &&
+    user?.role !== 'admin' &&
+    user?.role !== 'superadmin' &&
+    user?.role !== 'supplier' &&
+    effectivePlan !== 'enterprise';
   const isRestaurantBusiness = features?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
   const analyticsEnabled = !isRestaurantBusiness && ['dashboard', 'multi_stores', 'stock_history', 'stats', 'reports'].includes(activeTab);
-  const needsEmailVerification = isLogged && user?.required_verification === 'email' && user?.can_access_web === false;
+  const needsEmailVerification = isLogged && user?.required_verification === 'email' && user?.is_email_verified !== true;
   const isSubscriptionRecoveryMode =
     isLogged &&
     user?.role !== 'admin' &&
@@ -165,6 +171,13 @@ export default function Home() {
   const hydrateAuthenticatedUser = useCallback((userData: any) => {
     setUser(userData);
     setIsLogged(true);
+    const normalizedPlan = userData?.effective_plan || userData?.plan;
+    const consultationOnly =
+      userData?.role !== 'admin' &&
+      userData?.role !== 'superadmin' &&
+      userData?.role !== 'supplier' &&
+      normalizedPlan !== 'enterprise';
+    setWebAccessMode(consultationOnly ? 'read_only' : 'full');
     if (userData?.currency) {
       localStorage.setItem('user_currency', userData.currency);
     }
@@ -183,6 +196,7 @@ export default function Home() {
       hydrateAuthenticatedUser(userData);
     } catch (err) {
       removeToken();
+      clearWebAccessMode();
       setIsLogged(false);
       setUser(null);
     }
@@ -359,6 +373,7 @@ export default function Home() {
   const handleLogout = async () => {
     await auth.logout().catch(() => undefined);
     removeToken();
+    clearWebAccessMode();
     localStorage.removeItem('user_currency');
     localStorage.removeItem('stockman_active_tab');
     setUser(null);
@@ -410,6 +425,7 @@ export default function Home() {
       } catch {
         if (cancelled) return;
         removeToken();
+        clearWebAccessMode();
         setIsLogged(false);
         setUser(null);
       } finally {
@@ -555,7 +571,7 @@ export default function Home() {
   }
 
   // Guard Enterprise : Starter/Pro n'ont pas accès au web
-  if (isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'supplier' && effectivePlan !== 'enterprise') {
+  if (false && isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'supplier' && effectivePlan !== 'enterprise') {
     const currentPlan = effectivePlan === 'pro' ? 'Pro' : 'Starter';
 
     const WEB_MODULES_CONFIG = [
@@ -583,7 +599,7 @@ export default function Home() {
 
     return (
       <main className="min-h-screen bg-[#0F172A] overflow-y-auto">
-        {/* â”€â”€ HERO â”€â”€ */}
+        {/* ── HERO ── */}
         <div className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-primary/10 to-transparent">
           <div className="max-w-6xl mx-auto px-6 py-14 text-center">
             <div className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-400 text-xs font-bold px-4 py-2 rounded-full border border-amber-500/20 mb-6">
@@ -637,7 +653,7 @@ export default function Home() {
 
         <div className="max-w-6xl mx-auto px-6 py-12 space-y-16">
 
-          {/* â”€â”€ MODULES â”€â”€ */}
+          {/* ── MODULES ── */}
           <section>
             <div className="text-center mb-10">
               <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">{t('home.upsell.modules_eyebrow')}</p>
@@ -673,7 +689,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* â”€â”€ COMPARISON TABLE â”€â”€ */}
+          {/* ── COMPARISON TABLE ── */}
           <section>
             <div className="text-center mb-8">
               <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">{t('home.upsell.compare_eyebrow')}</p>
@@ -710,7 +726,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* â”€â”€ FINAL CTA â”€â”€ */}
+          {/* ── FINAL CTA ── */}
           <section className="rounded-2xl border border-primary/30 bg-primary/5 p-8 text-center">
             <Star size={32} className="text-primary mx-auto mb-4" />
             <h2 className="text-2xl font-black text-white mb-2">{t('home.upsell.cta_final_title')}</h2>
@@ -834,6 +850,72 @@ export default function Home() {
 
             <div className="flex-1 flex flex-col h-screen overflow-auto min-w-0">
               <TrialBanner onNavigateToSubscription={() => setActiveTab('subscription')} userRole={user?.role} />
+              {isWebConsultationOnly && (
+                <div className="shrink-0 border-b border-amber-500/20 bg-amber-500/10 px-4 py-4 md:px-6">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="max-w-3xl">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-amber-300">
+                        <ShieldCheck size={14} />
+                        {t('home.web_read_only.badge', { plan: effectivePlan === 'pro' ? 'Pro' : 'Starter', defaultValue: 'Consultation web Starter / Pro' })}
+                      </div>
+                      <h2 className="mt-3 text-lg font-black text-white">
+                        {t('home.web_read_only.title', { defaultValue: 'Votre formule permet la consultation du web app, mais pas les modifications.' })}
+                      </h2>
+                      <p className="mt-1 text-sm leading-6 text-slate-300">
+                        {t('home.web_read_only.desc', { defaultValue: 'Vous pouvez parcourir les écrans du back-office et consulter vos données. Les créations, éditions et suppressions se font sur mobile ou avec le plan Enterprise.' })}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-200">
+                        Le passage a Enterprise garde le meme compte, les memes boutiques et les memes donnees. Le web complet se debloque des confirmation du paiement.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold text-slate-200">
+                          Meme compte
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold text-slate-200">
+                          Memes donnees
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold text-slate-200">
+                          Activation apres paiement confirme
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <button
+                        onClick={() => setActiveTab('subscription')}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-bold text-primary transition hover:bg-primary/15"
+                      >
+                        <Zap size={16} />
+                        Comprendre l evolution Enterprise
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('subscription')}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-black text-white shadow-lg shadow-primary/25 transition hover:bg-primary/90"
+                      >
+                        <Zap size={16} />
+                        {t('home.web_read_only.cta_upgrade', { defaultValue: 'Passer à Enterprise' })}
+                      </button>
+                      <a
+                        href="/pricing"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10"
+                      >
+                        <BarChart3 size={16} />
+                        {t('home.web_read_only.cta_compare', { defaultValue: 'Comparer les formules' })}
+                      </a>
+                      <a
+                        href="/features"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10"
+                      >
+                        <LayoutDashboard size={16} />
+                        {t('home.web_read_only.cta_features', { defaultValue: 'Voir les fonctionnalités web' })}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* Mobile top bar */}
               <div className="md:hidden flex items-center gap-3 p-4 border-b border-white/10 bg-[#0F172A] shrink-0">
                 <button

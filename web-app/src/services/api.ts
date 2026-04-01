@@ -8,6 +8,7 @@ const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const OFFLINE_CACHE_PREFIX = 'stockman_api_cache:';
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const WEB_ACCESS_MODE_KEY = 'stockman_web_access_mode';
 const NON_CACHEABLE_GET_PREFIXES = [
     '/auth/',
     '/demo/session/',
@@ -46,10 +47,30 @@ function clearOfflineApiCache() {
     }
 }
 
+export function setWebAccessMode(mode: 'full' | 'read_only') {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(WEB_ACCESS_MODE_KEY, mode);
+}
+
+export function clearWebAccessMode() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(WEB_ACCESS_MODE_KEY);
+}
+
+function isConsultationOnlyWebMode() {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(WEB_ACCESS_MODE_KEY) === 'read_only';
+}
+
+function canMutateInConsultationMode(endpoint: string) {
+    return ['/auth/logout', '/subscription', '/billing'].some((prefix) => endpoint.startsWith(prefix));
+}
+
 export const removeToken = () => {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    clearWebAccessMode();
     clearOfflineApiCache();
 };
 
@@ -199,6 +220,7 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
         method,
         credentials: 'include',
         headers: {
+            ...(IS_BROWSER ? { 'X-Stockman-Surface': 'web' } : {}),
             ...(hasJsonBody ? { 'Content-Type': 'application/json' } : {}),
             ...extraHeaders,
             ...headers,
@@ -255,6 +277,13 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     const online = typeof navigator === 'undefined' ? true : navigator.onLine;
     const cacheEndpoint = buildEndpointWithParams(endpoint, params);
 
+    if (method !== 'GET' && isConsultationOnlyWebMode() && !canMutateInConsultationMode(endpoint)) {
+        throw new ApiError(
+            "Votre plan Starter ou Pro est disponible sur le web en consultation uniquement. Passez à Enterprise pour créer ou modifier des données depuis le web.",
+            403,
+        );
+    }
+
     if (method === 'GET') {
         if (!online) {
             const cached = readCachedResponse<T>(cacheEndpoint);
@@ -299,7 +328,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
 }
 
-// â”€â”€â”€ Shared Types â”€â”€â”€
+// ─── Shared Types ───
 
 export type UserFeatures = {
     has_production: boolean;
@@ -1286,7 +1315,7 @@ export type VerificationStatus = {
     user: User;
 };
 
-// â”€â”€â”€ Production Types â”€â”€â”€
+// ─── Production Types ───
 
 export type RecipeIngredient = {
     product_id: string;
@@ -2555,7 +2584,7 @@ export const admin = {
     },
 };
 
-// â”€â”€ Chat / Messagerie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Chat / Messagerie ────────────────────────────────────────────────────────
 
 export type ChatMessage = {
     message_id: string;

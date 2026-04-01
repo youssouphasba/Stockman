@@ -42,9 +42,10 @@ import { generateAndSharePdf } from '../../utils/pdfReports';
 import KpiInfoButton from '../../components/KpiInfoButton';
 import { formatCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
 import PremiumGate from '../../components/PremiumGate';
+import { getPendingDebtEntries, mergeCustomersOfflineState } from '../../services/offlineState';
 
 
-// â”€â”€â”€ Tier helpers â”€â”€â”€
+// ─── Tier helpers ───
 const TIER_CONFIG: Record<string, { color: string; icon: string; labelKey: string; min: number; next: number }> = {
     bronze: { color: '#CD7F32', icon: 'shield-outline', labelKey: 'crm.tier_bronze', min: 0, next: 5 },
     argent: { color: '#C0C0C0', icon: 'shield-half-outline', labelKey: 'crm.tier_silver', min: 5, next: 15 },
@@ -105,6 +106,7 @@ export default function CRMScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [savingSettings, setSavingSettings] = useState(false);
     const [accessDenied, setAccessDenied] = useState(false);
+    const [pendingCrmSummary, setPendingCrmSummary] = useState({ pendingCustomers: 0, pendingDebtChanges: 0, pendingTotal: 0 });
 
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState<SortKey>('name');
@@ -166,14 +168,26 @@ export default function CRMScreen() {
 
     const loadData = useCallback(async () => {
         try {
-            const [custsRes, promos, userSettings] = await Promise.all([
+            const [custsRes, promosRes, userSettingsRes] = await Promise.allSettled([
                 customersApi.list(sortBy),
                 promotionsApi.list(),
                 settingsApi.get(),
             ]);
-            setCustomerList(custsRes.items ?? custsRes as any);
-            setPromoList(promos);
-            setLoyaltySettings(userSettings.loyalty);
+            if (custsRes.status === 'fulfilled') {
+                const mergedCustomers = await mergeCustomersOfflineState(custsRes.value.items ?? custsRes.value as any);
+                setCustomerList(mergedCustomers.customers);
+                setPendingCrmSummary(mergedCustomers.summary);
+            } else if (custsRes.reason instanceof ApiError && custsRes.reason.status === 403) {
+                setAccessDenied(true);
+            } else {
+                console.error(custsRes.reason);
+            }
+            if (promosRes.status === 'fulfilled') {
+                setPromoList(promosRes.value);
+            }
+            if (userSettingsRes.status === 'fulfilled') {
+                setLoyaltySettings(userSettingsRes.value.loyalty);
+            }
         } catch (error) {
             if (error instanceof ApiError && error.status === 403) {
                 setAccessDenied(true);
@@ -417,14 +431,15 @@ export default function CRMScreen() {
             const data: any = { ...customerForm };
             if (!data.birthday) delete data.birthday;
             if (!data.category) delete data.category;
-            if (editingCustomer) {
-                await customersApi.update(editingCustomer.customer_id, data);
-            } else {
-                await customersApi.create(data);
-            }
+            const response = editingCustomer
+                ? await customersApi.update(editingCustomer.customer_id, data)
+                : await customersApi.create(data);
             customerFormBaselineRef.current = { ...customerForm };
             setShowCustomerModal(false);
-            loadData();
+            await loadData();
+            if ((response as any)?.offline_pending) {
+                Alert.alert(t('common.offline_mode'), 'Le client sera synchronisé dès le retour de la connexion.');
+            }
         } catch {
             Alert.alert(t('common.error'), t('crm.error_save_customer'));
         } finally {
@@ -567,7 +582,8 @@ export default function CRMScreen() {
         setDebtHistoryLoading(true);
         try {
             const history = await customersApi.getDebtHistory(customerId);
-            setCustomerDebtHistory(history);
+            const pendingEntries = await getPendingDebtEntries(customerId);
+            setCustomerDebtHistory([...pendingEntries, ...history]);
         } catch (e) {
             console.error('Error loading debt history:', e);
         } finally {
@@ -663,17 +679,26 @@ export default function CRMScreen() {
                 // Backend: $inc: { current_debt: -amount } -> -(-amount) = +amount
                 const finalAmount = paymentType === 'payment' ? amount : -amount;
 
-                await customersApi.addPayment(detailCustomer.customer_id, finalAmount, paymentNotes || (paymentType === 'payment' ? t('crm.manual_payment') : t('crm.manual_debt')));
+                const response = await customersApi.addPayment(detailCustomer.customer_id, finalAmount, paymentNotes || (paymentType === 'payment' ? t('crm.manual_payment') : t('crm.manual_debt')));
 
                 Alert.alert(t('common.success'), t('crm.success_operation_recorded'));
                 paymentBaselineRef.current = { amount: paymentAmount, notes: paymentNotes, type: paymentType };
                 setShowPaymentModal(false);
-                // Refresh detail customer
+                if ((response as any)?.offline_pending) {
+                    const merged = await mergeCustomersOfflineState([detailCustomer]);
+                    const updated = merged.customers.find((customer: any) => customer.customer_id === detailCustomer.customer_id) || detailCustomer;
+                    setDetailCustomer(updated);
+                    await loadData();
+                    if (detailTab === 'compte') {
+                        await loadCustomerDebtHistory(detailCustomer.customer_id);
+                    }
+                    return;
+                }
                 const updated = await customersApi.get(detailCustomer.customer_id);
                 setDetailCustomer(updated);
-                loadData(); // Refresh list
+                await loadData();
                 if (detailTab === 'compte') {
-                    loadCustomerDebtHistory(detailCustomer.customer_id);
+                    await loadCustomerDebtHistory(detailCustomer.customer_id);
                 }
             } catch {
                 Alert.alert(t('common.error'), t('crm.error_record_failed'));
@@ -777,7 +802,7 @@ export default function CRMScreen() {
         );
     }
 
-    // â”€â”€â”€ RENDER â”€â”€â”€
+    // ─── RENDER ───
     return (
         <PremiumGate
             featureName={t('premium.features.crm.title')}
@@ -965,6 +990,15 @@ export default function CRMScreen() {
                     {/* Customers Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>{t('crm.customer_file', { count: filteredCustomers.length })}</Text>
+                        {pendingCrmSummary.pendingTotal > 0 && (
+                            <View style={[styles.offlineBanner, { borderColor: colors.warning + '35', backgroundColor: colors.warning + '14' }]}>
+                                <Text style={[styles.offlineBannerText, { color: colors.warning }]}>
+                                    {pendingCrmSummary.pendingTotal === 1
+                                        ? '1 client ou mouvement de compte est en attente de synchronisation.'
+                                        : `${pendingCrmSummary.pendingTotal} clients ou mouvements de compte sont en attente de synchronisation.`}
+                                </Text>
+                            </View>
+                        )}
                         {filteredCustomers.map(customer => {
                             const tc = getTierConfig(customer.tier);
                             return (
@@ -979,6 +1013,11 @@ export default function CRMScreen() {
                                                 <Ionicons name={tc.icon as any} size={10} color={tc.color} />
                                                 <Text style={[styles.tierBadgeText, { color: tc.color }]}>{t(tc.labelKey)}</Text>
                                             </View>
+                                            {(customer as any).offline_pending && (
+                                                <View style={[styles.tierBadge, { backgroundColor: colors.warning + '18', borderColor: colors.warning }]}>
+                                                    <Text style={[styles.tierBadgeText, { color: colors.warning }]}>En attente</Text>
+                                                </View>
+                                            )}
                                         </View>
                                         <View style={styles.loyaltyRow}>
                                             <Text style={styles.spentText}>{formatCurrency(customer.total_spent, user?.currency)}</Text>
@@ -1975,6 +2014,17 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     section: { marginBottom: Spacing.xl },
     sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
     sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
+    offlineBanner: {
+        ...glassStyle,
+        padding: Spacing.md,
+        marginTop: Spacing.sm,
+        marginBottom: Spacing.md,
+    },
+    offlineBannerText: {
+        fontSize: FontSize.sm,
+        fontWeight: '600',
+        lineHeight: 20,
+    },
 
     addBtn: {
         width: 32,

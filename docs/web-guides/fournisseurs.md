@@ -1,108 +1,113 @@
-# Guide — Fournisseurs & Commandes
+# Guide - Fournisseurs et commandes
 
-## 1. Rôle du module
+## 1. Role du module
 
-Le module Fournisseurs centralise les relations fournisseurs : gestion manuelle, bons de commande, réapprovisionnement IA, pilotage performance et marketplace B2B.
+Le module Fournisseurs centralise les relations fournisseurs : annuaire manuel, bons de commande, suggestions de reapprovisionnement et marketplace B2B.
 
-**Profils concernés** : shopkeeper, staff, admin (permission `suppliers` requise).
+**Profils concernes** : `shopkeeper`, `staff`, `admin`, avec permission `suppliers`.
 
-## 2. Accès
+## 2. Acces
 
-Barre latérale → **Fournisseurs** → **Mes fournisseurs**.
+Barre laterale -> **Fournisseurs** -> **Mes fournisseurs**
 
-## 3. Lecture de l'écran
+## 3. Lecture de l'ecran
 
 ### Onglets
 
 | Onglet | Contenu |
 |--------|---------|
-| Mes Fournisseurs | Liste des fournisseurs enregistrés manuellement |
-| Bons de Commande | Création et suivi des bons de commande |
-| Réapprovisionnement | Suggestions IA de réapprovisionnement |
-| Pilotage | Analytics fournisseurs (scores, performance, classement) |
-| Marketplace | Découverte de fournisseurs B2B connectés |
+| Mes fournisseurs | Liste des fournisseurs enregistres manuellement |
+| Bons de commande | Creation et suivi des commandes fournisseurs |
+| Reapprovisionnement | Suggestions de reapprovisionnement |
+| Pilotage | Analyse fournisseurs et classement |
+| Marketplace | Recherche de fournisseurs B2B connectes |
 
-### Onglet Mes Fournisseurs
-- Recherche par nom/contact.
-- Cartes fournisseur avec nom, contact, téléphone, email, adresse.
-- Menu contextuel : Voir les détails, Supprimer.
+### Onglet Mes fournisseurs
+- Recherche par nom ou contact
+- Cartes fournisseur avec nom, telephone, email et adresse
+- Actions principales : ouvrir la fiche, modifier ou supprimer
 
-### Fiche fournisseur (modal)
-Trois sous-onglets :
-- **Performance** : score fiabilité, produits liés, historique commandes, historique prix.
-- **Journal** : notes d'échange (appel, email, visite, autre).
-- **Factures** : factures enregistrées avec statut (payée/impayée/partielle).
+### Fiche fournisseur
 
-### Onglet Bons de Commande
-- Formulaire création avec sélection fournisseur (manuel ou marketplace), articles, quantités, prix unitaire.
-- PDF de commande téléchargeable.
-- Détail commande avec actions de statut.
+Trois sous-onglets principaux :
+- **Performance** : score, produits lies, historique commandes, historique prix
+- **Journal** : notes d'echange
+- **Factures** : factures fournisseur et statut de paiement
 
-### Onglet Réapprovisionnement
-- Suggestions IA basées sur l'historique de ventes et le stock.
-- Bouton « Automatiser » : lance le réapprovisionnement automatique.
+### Onglet Bons de commande
+- Formulaire de creation avec selection fournisseur, articles, quantites et prix
+- PDF de commande telechargeable
+- Detail commande avec actions de statut
 
-### Onglet Pilotage
-- Analytics d'achat : KPI (dépenses, commandes, délais).
-- Classement fournisseurs avec scores (fiable/à surveiller/risque).
-- Export CSV du classement.
-
-### Onglet Marketplace
-- Catalogue fournisseurs B2B avec recherche, filtre par région.
-- Fiche détaillée avec catalogue produits et prix.
-- Benchmark prix : comparer les prix d'un produit entre fournisseurs marketplace.
+### Onglet Reapprovisionnement
+- Suggestions basees sur l'historique de ventes et le stock
+- Indication des ventes moyennes par jour pour aider a prioriser
 
 ## 4. Boutons et actions
 
 | Bouton | Action | Effet |
 |--------|--------|-------|
-| Nouveau Fournisseur | Ouvre modal | Formulaire nom, contact, email, téléphone, adresse |
-| Nouvelle Commande | Ouvre modal | Sélection fournisseur + articles |
-| Automatiser | Réapprovisionnement | Lance un réapprovisionnement automatique |
-| Export Excel | Pilotage | Télécharge le classement en CSV |
+| Nouveau fournisseur | Ouvre le modal | Cree une fiche fournisseur |
+| Nouvelle commande | Ouvre le modal | Cree un bon de commande |
+| Export Excel | Onglet Pilotage | Exporte le classement fournisseur |
 | Benchmark | Marketplace | Compare les prix d'un produit |
-| Commander | Marketplace | Crée un bon de commande marketplace |
+| Commander | Marketplace | Cree un bon de commande marketplace |
 
-## 5. Filtres et recherche
+## 5. Mode hors ligne et synchronisation
 
-- **Recherche** : par nom ou contact.
-- **Région** (marketplace) : filtre géographique.
-- **Période** (pilotage) : 30j, 60j, 90j.
+Le web app prend maintenant en charge un mode hors ligne elargi sur cet ecran.
 
-## 6. États de l'interface
+- Les fournisseurs deja charges restent consultables depuis le cache local.
+- Un fournisseur cree hors ligne apparait tout de suite dans la liste avec un badge **En attente**.
+- Un bon de commande cree hors ligne apparait dans la liste des commandes avec un badge **En attente**.
+- Un bandeau de synchronisation resume le nombre total d'elements encore a envoyer au serveur.
+- Des modifications locales compatibles restent visibles jusqu'au retour du reseau.
 
-| État | Description |
+### Limites a connaitre
+- Le mode hors ligne n'est pas complet sur toute l'experience fournisseur.
+- Les actions dependantes d'un service distant, d'une verification immediate ou d'un contenu non encore charge restent limitees sans connexion.
+
+## 6. Filtres et recherche
+
+- **Recherche** : nom, contact ou fournisseur
+- **Region** : filtre marketplace
+- **Periode** : 30j, 60j, 90j dans les vues de pilotage
+
+## 7. Etats de l'interface
+
+| Etat | Description |
 |------|-------------|
-| Chargement | Squelette animé |
-| Liste vide | Icône + lien « Ajouter mon premier fournisseur » |
-| Succès | Bandeau vert temporaire |
+| Chargement | Squelette anime |
+| Liste vide | Message d'invitation a creer un premier fournisseur |
+| Element en attente | Badge **En attente** sur une carte ou une ligne |
+| Synchronisation en attente | Bandeau resumant les actions locales non encore envoyees |
 
-## 7. Cas d'usage typiques
+## 8. Cas d'usage typiques
 
-- **Ajout fournisseur** : « Nouveau Fournisseur » → renseigner les informations → consulter la fiche avec l'historique.
-- **Commande** : « Nouvelle Commande » → sélectionner articles → générer le PDF → envoyer au fournisseur.
-- **Benchmark** : onglet Marketplace → cliquer Benchmark sur un produit → comparer les prix.
+- **Ajouter un fournisseur** : cliquer sur **Nouveau fournisseur**, saisir les informations puis enregistrer.
+- **Creer une commande** : cliquer sur **Nouvelle commande**, ajouter les articles et valider.
+- **Continuer hors ligne** : creer une fiche fournisseur ou un bon de commande, puis laisser la synchronisation automatique finaliser l'envoi.
+- **Comparer des prix** : ouvrir Marketplace puis lancer un benchmark.
 
-## 8. Liens avec les autres modules
+## 9. Liens avec les autres modules
 
 | Depuis | Vers | Action |
 |--------|------|--------|
-| Fournisseurs | Commandes | Les bons de commande modifient le stock |
-| Fournisseurs | Comptabilité | Les factures impactent les charges |
-| Fournisseurs | Stock | Le réapprovisionnement met à jour les quantités |
+| Fournisseurs | Commandes | Les bons de commande structurent l'approvisionnement |
+| Fournisseurs | Comptabilite | Les factures et achats influencent les charges |
+| Fournisseurs | Stock | Les receptions mettent a jour les quantites |
 
-## 9. Questions fréquentes
+## 10. Questions frequentes
 
-| Question | Réponse |
+| Question | Reponse |
 |----------|---------|
-| Quelle est la différence entre fournisseur manuel et marketplace ? | Manuel : vous créez la fiche. Marketplace : connecté au réseau B2B Stockman. |
-| Comment recevoir une commande partielle ? | Dans le détail de la commande, utilisez « Réception partielle ». |
-| Le score fiabilité est-il automatique ? | Oui, il est calculé à partir des délais de livraison et des taux de complétion. |
+| Quelle difference entre fournisseur manuel et marketplace ? | Manuel : vous creez la fiche vous-meme. Marketplace : le fournisseur vient du reseau B2B Stockman. |
+| Comment savoir si une commande n'est pas encore envoyee au serveur ? | Elle porte un badge **En attente** et un bandeau de synchronisation peut apparaitre dans l'ecran. |
+| Le score fiabilite est-il automatique ? | Oui, il depend des donnees disponibles sur les delais, livraisons et completude. |
 
-## 10. Guide rapide intégré
+## 11. Guide rapide integre
 
-1. **Bienvenue dans Fournisseurs** — Gérez vos partenaires et vos approvisionnements.
-2. **Mes fournisseurs** — Ajoutez et consultez vos fournisseurs enregistrés.
-3. **Bons de commande** — Créez et suivez vos commandes fournisseurs.
-4. **Réapprovisionnement IA** — L'IA suggère les produits à commander en priorité.
-5. **Marketplace** — Découvrez de nouveaux fournisseurs B2B connectés.
+1. **Mes fournisseurs** : creez et retrouvez vos partenaires.
+2. **Bons de commande** : preparez, partagez et suivez vos commandes.
+3. **Reapprovisionnement** : utilisez les suggestions pour agir plus vite.
+4. **Mode hors ligne** : reperez les badges **En attente** pour savoir ce qui reste a synchroniser.
