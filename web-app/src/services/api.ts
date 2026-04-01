@@ -1,4 +1,4 @@
-﻿import { syncService } from './syncService';
+import { syncService } from './syncService';
 
 // In the browser, always go through the Next.js rewrite proxy so auth cookies stay same-origin.
 // On the server, keep the env fallback for non-browser execution contexts.
@@ -2376,6 +2376,13 @@ export const support = {
         request<any>(`/support/tickets/${ticketId}/reply`, { method: 'POST', body: { content } }),
 };
 
+// User disputes
+export const disputes = {
+    create: (data: { subject: string; description: string; type: string; against_user_id?: string }) =>
+        request<any>('/disputes', { method: 'POST', body: data }),
+    getMine: () => request<any[]>('/disputes/mine'),
+};
+
 // User notifications
 export const userNotifications = {
     list: (skip = 0, limit = 20) =>
@@ -2384,6 +2391,12 @@ export const userNotifications = {
         request<any>(`/user/notifications/${messageId}/read`, { method: 'POST' }),
     markAllRead: () =>
         request<any>('/user/notifications/read-all', { method: 'POST' }),
+};
+
+// Legal (public, unauthenticated)
+export const legal = {
+    getCGU: (lang = 'fr') => request<{ content: string; updated_at?: string }>(`/cgu?lang=${encodeURIComponent(lang)}`),
+    getPrivacy: (lang = 'fr') => request<{ content: string; updated_at?: string }>(`/privacy?lang=${encodeURIComponent(lang)}`),
 };
 
 export const admin = {

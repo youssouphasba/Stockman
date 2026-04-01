@@ -467,7 +467,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                   />
                   <span className="text-xs text-slate-400">
                     J&apos;accepte les{' '}
-                    <a href="https://stockman.pro/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                       CGU
                     </a>
                   </span>
@@ -482,7 +482,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                   />
                   <span className="text-xs text-slate-400">
                     J&apos;accepte la{' '}
-                    <a href="https://stockman.pro/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                       Politique de confidentialite
                     </a>
                   </span>

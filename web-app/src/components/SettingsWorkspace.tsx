@@ -1009,6 +1009,47 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                         </SectionCard>
 
                         <SectionCard
+                            icon={<FileText size={24} className="text-primary" />}
+                            title="Mentions légales"
+                            scope={t('settings_workspace.scopes.user')}
+                            description="Consultez les conditions générales d'utilisation et la politique de confidentialité de Stockman."
+                            actionHint="Ces documents sont mis à jour régulièrement."
+                        >
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <a
+                                    href="/terms"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+                                >
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                                        <FileText size={18} className="text-primary" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-black text-white">Conditions Générales</p>
+                                        <p className="mt-0.5 text-xs text-slate-500">CGU &mdash; Lire le document</p>
+                                    </div>
+                                    <ChevronRight size={16} className="ml-auto text-slate-500" />
+                                </a>
+                                <a
+                                    href="/privacy"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+                                >
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                                        <Eye size={18} className="text-primary" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-black text-white">Politique de Confidentialité</p>
+                                        <p className="mt-0.5 text-xs text-slate-500">Vie privée &mdash; Lire le document</p>
+                                    </div>
+                                    <ChevronRight size={16} className="ml-auto text-slate-500" />
+                                </a>
+                            </div>
+                        </SectionCard>
+
+                        <SectionCard
                             icon={<LogOut size={24} className="text-rose-400" />}
                             title={t('settings_workspace.security.logout.title')}
                             scope={t('settings_workspace.scopes.user')}

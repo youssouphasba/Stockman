@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -907,6 +907,7 @@ export default function Home() {
             <SupportPanel
               isOpen={isSupportOpen}
               onClose={() => setIsSupportOpen(false)}
+              user={user}
             />
 
             {/* Notification center */}
@@ -1132,6 +1133,11 @@ export default function Home() {
                   <a href="/pricing" className="text-slate-400 hover:text-white transition-colors">{t('home.login.compare_plans')}</a>
                   <span className="text-white/10">|</span>
                   <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">{t('home.login.open_mobile')}</a>
+                </div>
+                <div className="mt-2 flex items-center justify-center gap-3 text-xs">
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-300 transition-colors">CGU</a>
+                  <span className="text-white/10">|</span>
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-300 transition-colors">Confidentialité</a>
                 </div>
               </div>
             </div>
