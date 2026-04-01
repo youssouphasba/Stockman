@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         destination: 'https://stockman-production-149d.up.railway.app/api/:path*',
       },
+      {
+        source: '/__/auth/:path*',
+        destination: 'https://stockman-8a6aa.firebaseapp.com/__/auth/:path*',
+      },
     ];
   },
   async headers() {
