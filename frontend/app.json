@@ -2,11 +2,11 @@
   "expo": {
     "name": "Stockman",
     "slug": "stockman",
-    "version": "1.0.16",
+    "version": "1.0.17",
     "orientation": "default",
     "android": {
       "package": "com.youssouphasba.stockman",
-      "versionCode": 16,
+      "versionCode": 17,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -21,7 +21,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.youssouphasba.stockman",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
