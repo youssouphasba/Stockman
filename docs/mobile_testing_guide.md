@@ -44,6 +44,7 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 ## 4. Connexion Google mobile
 
 - Le flux Google mobile natif dépend de la configuration OAuth Android et iOS intégrée au build.
+- Android nécessite `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` et iOS nécessite `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`. Si l'identifiant Android manque, l'écran de connexion peut planter dès son ouverture.
 - Après une modification des identifiants Google, du fichier `google-services.json`, du fichier `GoogleService-Info.plist` ou de la configuration native de connexion Google, un simple `eas update` ne suffit pas.
 - Il faut générer un nouveau build pour tester correctement la connexion Google sur mobile.
 

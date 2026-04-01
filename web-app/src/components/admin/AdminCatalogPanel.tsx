@@ -82,6 +82,17 @@ type BatchRow = {
     added_by_count?: number;
 };
 
+type BatchImportCheckpoint = {
+    rows: BatchRow[];
+    fileName: string;
+    batchText: string;
+    done: number;
+    total: number;
+    created: number;
+    updated: number;
+    errors: number;
+};
+
 const DEFAULT_FORM: FormState = {
     display_name: '',
     category: '',
@@ -113,6 +124,10 @@ const TEMPLATES = [
     { id: 'marketplace', label: 'Fournisseur marketplace', sector: 'grossiste', category: 'Marketplace', unit: 'pièce', tags: 'marketplace, catalogue' },
     { id: 'restaurant', label: 'Restaurant', sector: 'restaurant', category: 'Ingrédients', unit: 'kg', tags: 'restaurant, cuisine' },
 ];
+
+const PAGE_SIZE = 200;
+const IMPORT_CHUNK_SIZE = 200;
+const BATCH_IMPORT_STORAGE_KEY = 'stockman_admin_catalog_batch_import_v1';
 
 function listToInput(value?: string[] | null) {
     return (value || []).join(', ');
@@ -231,6 +246,30 @@ function parseCsvImportRows(content: string): BatchRow[] {
     }).filter((row) => row.display_name);
 }
 
+function saveBatchImportCheckpoint(checkpoint: BatchImportCheckpoint | null) {
+    if (typeof window === 'undefined') return;
+    if (!checkpoint) {
+        window.localStorage.removeItem(BATCH_IMPORT_STORAGE_KEY);
+        return;
+    }
+    window.localStorage.setItem(BATCH_IMPORT_STORAGE_KEY, JSON.stringify(checkpoint));
+}
+
+function loadBatchImportCheckpoint(): BatchImportCheckpoint | null {
+    if (typeof window === 'undefined') return null;
+    const raw = window.localStorage.getItem(BATCH_IMPORT_STORAGE_KEY);
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw) as BatchImportCheckpoint;
+        if (!Array.isArray(parsed.rows) || !Number.isFinite(parsed.total) || !Number.isFinite(parsed.done)) {
+            return null;
+        }
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
 export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     const [items, setItems] = useState<CatalogEntry[]>([]);
     const [stats, setStats] = useState<any>(null);
@@ -248,6 +287,8 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     const [batchFileName, setBatchFileName] = useState('');
     const [batchSubmitting, setBatchSubmitting] = useState(false);
     const [batchProgress, setBatchProgress] = useState({ total: 0, done: 0 });
+    const [batchSummary, setBatchSummary] = useState({ created: 0, updated: 0, errors: 0 });
+    const [batchResumeAvailable, setBatchResumeAvailable] = useState(false);
     const [variantBaseName, setVariantBaseName] = useState('');
     const [variantValues, setVariantValues] = useState('');
     const [filters, setFilters] = useState({
@@ -268,7 +309,6 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     const [mergeKeepId, setMergeKeepId] = useState('');
     const [page, setPage] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
-    const PAGE_SIZE = 50;
 
     const load = async (assistantCatalogId?: string | null, pageOverride?: number) => {
         const currentPage = pageOverride ?? page;
@@ -292,6 +332,124 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
         setTotalCount(listResponse?.total ?? 0);
         setAssistant(assistantResponse);
     };
+
+    const resetBatchImportState = useCallback((keepOpen = false) => {
+        setBatchRows([]);
+        setBatchFileName('');
+        setBatchText('');
+        setBatchSubmitting(false);
+        setBatchProgress({ total: 0, done: 0 });
+        setBatchSummary({ created: 0, updated: 0, errors: 0 });
+        setBatchResumeAvailable(false);
+        saveBatchImportCheckpoint(null);
+        if (!keepOpen) setBatchOpen(false);
+    }, []);
+
+    const persistBatchImportState = useCallback((
+        rows: BatchRow[],
+        done: number,
+        summary: { created: number; updated: number; errors: number },
+        options?: { fileName?: string; batchText?: string; clearWhenDone?: boolean },
+    ) => {
+        const nextProgress = { total: rows.length, done };
+        const nextFileName = options?.fileName ?? batchFileName;
+        const nextBatchText = options?.batchText ?? batchText;
+        setBatchProgress(nextProgress);
+        setBatchSummary(summary);
+        setBatchResumeAvailable(done < rows.length);
+        if (options?.clearWhenDone && done >= rows.length) {
+            saveBatchImportCheckpoint(null);
+            return;
+        }
+        saveBatchImportCheckpoint({
+            rows,
+            fileName: nextFileName,
+            batchText: nextBatchText,
+            done,
+            total: rows.length,
+            created: summary.created,
+            updated: summary.updated,
+            errors: summary.errors,
+        });
+    }, [batchFileName, batchText]);
+
+    const runBatchImport = useCallback(async (
+        rows: BatchRow[],
+        options?: {
+            startIndex?: number;
+            fileName?: string;
+            batchText?: string;
+            created?: number;
+            updated?: number;
+            errors?: number;
+        },
+    ) => {
+        if (!rows.length) {
+            showToast('Ajoute au moins une ligne valide.', 'error');
+            return;
+        }
+
+        const startIndex = options?.startIndex ?? 0;
+        const nextFileName = options?.fileName ?? batchFileName;
+        const nextBatchText = options?.batchText ?? batchText;
+        let createdTotal = options?.created ?? 0;
+        let updatedTotal = options?.updated ?? 0;
+        let errorCount = options?.errors ?? 0;
+
+        setBatchRows(rows);
+        setBatchFileName(nextFileName);
+        setBatchText(nextBatchText);
+        setBatchSubmitting(true);
+        persistBatchImportState(rows, startIndex, { created: createdTotal, updated: updatedTotal, errors: errorCount }, {
+            fileName: nextFileName,
+            batchText: nextBatchText,
+        });
+
+        try {
+            for (let index = startIndex; index < rows.length; index += IMPORT_CHUNK_SIZE) {
+                const slice = rows.slice(index, index + IMPORT_CHUNK_SIZE);
+                const result = await adminApi.bulkUpsertCatalogProducts(slice);
+                createdTotal += Number(result?.created || 0);
+                updatedTotal += Number(result?.updated || 0);
+                errorCount += Array.isArray(result?.errors) ? result.errors.length : 0;
+                persistBatchImportState(
+                    rows,
+                    Math.min(rows.length, index + slice.length),
+                    { created: createdTotal, updated: updatedTotal, errors: errorCount },
+                    { fileName: nextFileName, batchText: nextBatchText, clearWhenDone: index + slice.length >= rows.length },
+                );
+            }
+
+            await load();
+            if (errorCount > 0) {
+                showToast(`Import terminé avec ${createdTotal} créés, ${updatedTotal} mis à jour et ${errorCount} erreur(s).`, 'error');
+            } else {
+                showToast(`Import terminé (${createdTotal} créés, ${updatedTotal} mis à jour).`);
+            }
+            resetBatchImportState();
+        } catch (error: any) {
+            showToast(error?.message || "L'import a été interrompu. Tu peux le reprendre depuis l'état sauvegardé.", 'error');
+            setBatchSubmitting(false);
+            setBatchResumeAvailable(true);
+        } finally {
+            setBatchSubmitting(false);
+        }
+    }, [adminApi, batchFileName, batchText, load, persistBatchImportState, resetBatchImportState, showToast]);
+
+    useEffect(() => {
+        const checkpoint = loadBatchImportCheckpoint();
+        if (!checkpoint || !checkpoint.rows.length) return;
+        setBatchRows(checkpoint.rows);
+        setBatchFileName(checkpoint.fileName || '');
+        setBatchText(checkpoint.batchText || '');
+        setBatchProgress({ total: checkpoint.total, done: checkpoint.done });
+        setBatchSummary({
+            created: checkpoint.created || 0,
+            updated: checkpoint.updated || 0,
+            errors: checkpoint.errors || 0,
+        });
+        setBatchResumeAvailable(checkpoint.done < checkpoint.total);
+    }, []);
 
     // Reset page to 0 when filters change
     useEffect(() => {
@@ -430,38 +588,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
             showToast('Ajoute au moins une ligne valide.', 'error');
             return;
         }
-
-        try {
-            const chunkSize = 200;
-            setBatchSubmitting(true);
-            setBatchProgress({ total: rows.length, done: 0 });
-            let createdTotal = 0;
-            let updatedTotal = 0;
-            let errorCount = 0;
-            for (let i = 0; i < rows.length; i += chunkSize) {
-                const slice = rows.slice(i, i + chunkSize);
-                const result = await adminApi.bulkUpsertCatalogProducts(slice);
-                createdTotal += Number(result?.created || 0);
-                updatedTotal += Number(result?.updated || 0);
-                errorCount += Array.isArray(result?.errors) ? result.errors.length : 0;
-                setBatchProgress({ total: rows.length, done: Math.min(rows.length, i + slice.length) });
-            }
-            setBatchOpen(false);
-            setBatchText('');
-            setBatchRows([]);
-            setBatchFileName('');
-            await load();
-            if (errorCount > 0) {
-                showToast(`Création en lot terminée avec ${errorCount} erreur(s).`, 'error');
-            } else {
-                showToast(`Création en lot terminée (${createdTotal} créés, ${updatedTotal} mis à jour).`);
-            }
-        } catch (error: any) {
-            showToast(error?.message || 'Impossible de créer les produits en lot.', 'error');
-        } finally {
-            setBatchSubmitting(false);
-            setBatchProgress({ total: 0, done: 0 });
-        }
+        await runBatchImport(rows, { fileName: batchFileName, batchText });
     };
 
     const importBatchFile = async (file: File) => {
@@ -475,6 +602,19 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
             setBatchRows(rows);
             setBatchFileName(file.name);
             setBatchText('');
+            setBatchProgress({ total: rows.length, done: 0 });
+            setBatchSummary({ created: 0, updated: 0, errors: 0 });
+            setBatchResumeAvailable(rows.length > 0);
+            saveBatchImportCheckpoint({
+                rows,
+                fileName: file.name,
+                batchText: '',
+                done: 0,
+                total: rows.length,
+                created: 0,
+                updated: 0,
+                errors: 0,
+            });
             showToast(`${rows.length} ligne(s) prêtes pour l'import.`);
         } catch {
             showToast("Impossible de lire ce fichier d'import.", 'error');
@@ -689,7 +829,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 className="text-xl font-black text-white">Catalogue global par secteur</h2>
-                        <p className="text-sm text-slate-400">Création en lot, duplication, workflow de publication, édition massive et assistant catalogue.</p>
+                        <p className="text-sm text-slate-400">Création en lot reprenable, duplication, workflow de publication, édition massive et assistant catalogue.</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
                         <button type="button" onClick={() => void openCreate()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 font-bold text-white">
@@ -698,7 +838,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         </button>
                         <button type="button" onClick={() => setBatchOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
                             <Layers3 size={16} />
-                            Création en lot
+                            {batchResumeAvailable ? 'Reprendre l’import' : 'Création en lot'}
                         </button>
                         <button type="button" onClick={() => setVariantOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
                             <Sparkles size={16} />
@@ -783,6 +923,23 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         </div>
                     </div>
                 </div>
+
+                {batchResumeAvailable && (
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+                        <div className="font-bold text-white">Import en attente de reprise</div>
+                        <div className="mt-1">
+                            {batchFileName || 'Import catalogue'} : {batchProgress.done} / {batchProgress.total} lignes traitees, {batchSummary.created} creees, {batchSummary.updated} mises a jour, {batchSummary.errors} erreur(s).
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-3">
+                            <button type="button" onClick={() => setBatchOpen(true)} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">
+                                Ouvrir la reprise
+                            </button>
+                            <button type="button" onClick={() => resetBatchImportState(true)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
+                                Effacer l'etat sauvegarde
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
                     <input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Nom, tag, code-barres..." className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary" />
@@ -1085,7 +1242,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-2xl font-black text-white">Création en lot</h3>
-                                <p className="mt-1 text-sm text-slate-400">Tu peux soit coller des lignes rapides, soit importer un vrai CSV admin avec en-tête.</p>
+                                <p className="mt-1 text-sm text-slate-400">Tu peux soit coller des lignes rapides, soit importer un vrai CSV admin avec en-tête. L'import garde maintenant sa progression pour pouvoir reprendre après fermeture.</p>
                             </div>
                             <button type="button" onClick={() => setBatchOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>
@@ -1110,9 +1267,16 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                                     <div className="mt-2 text-xs text-emerald-100">
                                         Aperçu : {batchRows.slice(0, 3).map((row) => row.display_name).join(' • ')}
                                     </div>
-                                    {batchSubmitting && (
-                                        <div className="mt-3 text-xs text-emerald-100">
-                                            Import en cours : {batchProgress.done} / {batchProgress.total}
+                                    {(batchSubmitting || batchResumeAvailable || batchProgress.total > 0) && (
+                                        <div className="mt-3 space-y-2 text-xs text-emerald-100">
+                                            <div>Progression : {batchProgress.done} / {batchProgress.total}</div>
+                                            <div>Créés : {batchSummary.created} • Mis à jour : {batchSummary.updated} • Erreurs : {batchSummary.errors}</div>
+                                            <div className="h-2 overflow-hidden rounded-full bg-slate-950/60">
+                                                <div
+                                                    className="h-full rounded-full bg-emerald-400 transition-all"
+                                                    style={{ width: `${batchProgress.total ? Math.min(100, (batchProgress.done / batchProgress.total) * 100) : 0}%` }}
+                                                />
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -1122,18 +1286,38 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
                             <div className="text-sm font-bold text-white">Saisie rapide</div>
                             <p className="mt-1 text-xs text-slate-400">Format rapide : nom;catégorie;secteur;unité;prix référence;prix vente;tags</p>
-                            <textarea value={batchText} onChange={(event) => { setBatchRows([]); setBatchFileName(''); setBatchText(event.target.value); }} rows={10} className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" placeholder="Riz parfumé;Riz;epicerie;kg;650;850;riz, premium" />
+                            <textarea value={batchText} onChange={(event) => { setBatchRows([]); setBatchFileName(''); setBatchText(event.target.value); setBatchProgress({ total: 0, done: 0 }); setBatchSummary({ created: 0, updated: 0, errors: 0 }); setBatchResumeAvailable(false); saveBatchImportCheckpoint(null); }} rows={10} className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" placeholder="Riz parfumé;Riz;epicerie;kg;650;850;riz, premium" />
                         </div>
 
                         <div className="mt-6 flex justify-end gap-3">
-                            <button type="button" onClick={() => { setBatchRows([]); setBatchFileName(''); setBatchText(''); setBatchOpen(false); }} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
+                            {batchResumeAvailable && !batchSubmitting && (
+                                <button type="button" onClick={() => resetBatchImportState(true)} className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 font-semibold text-rose-200">
+                                    Effacer la reprise
+                                </button>
+                            )}
+                            <button type="button" onClick={() => setBatchOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
+                                Fermer
+                            </button>
                             <button
                                 type="button"
-                                onClick={() => void createBatch()}
+                                onClick={() => {
+                                    if (batchResumeAvailable && batchRows.length > 0 && batchProgress.done < batchProgress.total) {
+                                        void runBatchImport(batchRows, {
+                                            startIndex: batchProgress.done,
+                                            fileName: batchFileName,
+                                            batchText,
+                                            created: batchSummary.created,
+                                            updated: batchSummary.updated,
+                                            errors: batchSummary.errors,
+                                        });
+                                        return;
+                                    }
+                                    void createBatch();
+                                }}
                                 disabled={batchSubmitting}
                                 className="rounded-xl bg-primary px-4 py-2 font-bold text-white disabled:opacity-60"
                             >
-                                {batchSubmitting ? 'Import en cours…' : 'Créer les produits'}
+                                {batchSubmitting ? 'Import en cours…' : (batchResumeAvailable && batchProgress.done < batchProgress.total ? 'Reprendre l’import' : 'Créer les produits')}
                             </button>
                         </div>
                     </div>

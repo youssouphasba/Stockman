@@ -36,6 +36,18 @@ Barre latérale → **Administration** (visible uniquement pour les super-admins
 
 ---
 
+### Onglet Catalogue
+
+#### Pagination et volume affiche
+- La liste du catalogue admin affiche maintenant **200 produits par page** pour accelerer la revue des gros imports.
+- Le pied de tableau indique la plage affichee et le total reel du catalogue.
+
+#### Import CSV reprenable
+- L'import CSV admin se fait par lots de 200 lignes.
+- Une barre de progression affiche les lignes deja traitees ainsi que les compteurs **crees / mis a jour / erreurs**.
+- Si vous fermez la fenetre ou si l'import est interrompu, l'etat est conserve et le backoffice propose **Reprendre l'import** au retour.
+- Si un premier lot a deja ete envoye, la reprise repart du prochain lot au lieu de recommencer depuis zero.
+
 ### Onglet Vue d'ensemble
 
 #### KPI ligne 1 (4 cartes)

@@ -112,7 +112,7 @@ export default function LoginScreen() {
       iosClientId,
       nativeRedirectUri: getGoogleNativeRedirectUri(androidClientId),
       hasWebConfig: Boolean(webClientId),
-      hasNativeConfig: Boolean(webClientId),
+      hasNativeConfig: Boolean(androidClientId || iosClientId),
     };
   }, []);
 
@@ -133,9 +133,9 @@ export default function LoginScreen() {
   }, [googleClientIds.hasNativeConfig, googleClientIds.iosClientId, googleClientIds.webClientId]);
 
   const [googleRequest, googleResponse, promptGoogle] = Google.useIdTokenAuthRequest({
-    webClientId: googleClientIds.webClientId,
-    iosClientId: Platform.OS === 'web' ? googleClientIds.iosClientId : undefined,
-    androidClientId: Platform.OS === 'web' ? googleClientIds.androidClientId : undefined,
+    webClientId: googleClientIds.hasWebConfig ? googleClientIds.webClientId : undefined,
+    iosClientId: Platform.OS === 'ios' ? googleClientIds.iosClientId : undefined,
+    androidClientId: Platform.OS === 'android' ? googleClientIds.androidClientId : undefined,
     redirectUri: Platform.OS === 'web' ? undefined : googleClientIds.nativeRedirectUri,
   });
 
@@ -250,7 +250,10 @@ export default function LoginScreen() {
   async function handleGoogleLogin() {
     if (Platform.OS !== 'web') {
       if (!googleClientIds.hasNativeConfig) {
-        setError(`${t('auth.login.googleConfigMissing')} (EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID)`);
+        const missingKey = Platform.OS === 'android'
+          ? 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID'
+          : 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID';
+        setError(`${t('auth.login.googleConfigMissing')} (${missingKey})`);
         return;
       }
 
