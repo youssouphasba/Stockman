@@ -160,7 +160,8 @@ export default function POS() {
                 settingsApi.get().catch(() => null),
                 tablesApi.list().catch(() => [])
             ]);
-            setAllProducts((prodsRes.items || prodsRes));
+            const fetchedProducts = (prodsRes.items || prodsRes) as any[];
+            setAllProducts(fetchedProducts.filter((p: any) => p?.is_active !== false));
             setCategoriesList(catsRes);
             setCustomersList(custsRes.items || custsRes);
             if (settingsRes) {

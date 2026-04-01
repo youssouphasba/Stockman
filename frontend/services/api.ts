@@ -524,6 +524,12 @@ export const products = {
     qs.set('limit', limit.toString());
     return request<PaginatedResponse<Product>>(`/products?${qs.toString()}`);
   },
+  listTrash: (skip = 0, limit = 100) => {
+    const qs = new URLSearchParams();
+    qs.set('skip', skip.toString());
+    qs.set('limit', limit.toString());
+    return request<PaginatedResponse<ProductTrashItem>>(`/products/trash?${qs.toString()}`);
+  },
   get: (id: string) => request<Product>(`/products/${id}`),
   create: (data: ProductCreate) =>
     request<Product>('/products', { method: 'POST', body: data }),
@@ -531,6 +537,10 @@ export const products = {
     request<Product>(`/products/${id}`, { method: 'PUT', body: data }),
   delete: (id: string) =>
     request<{ message: string }>(`/products/${id}`, { method: 'DELETE' }),
+  deletePermanent: (id: string) =>
+    request<{ message: string }>(`/products/${id}/permanent`, { method: 'DELETE' }),
+  restore: (id: string) =>
+    request<Product>(`/products/${id}/restore`, { method: 'POST' }),
   getPriceHistory: (id: string) =>
     request<PriceHistory[]>(`/products/${id}/price-history`),
   transferLocation: (productId: string, data: { to_location_id?: string | null; note?: string }) =>
@@ -1803,6 +1813,12 @@ export type Product = {
   has_variants: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type ProductTrashItem = {
+  product_id: string;
+  name: string;
+  deleted_at?: string;
 };
 
 export type ProjectMaterial = {

@@ -1286,7 +1286,7 @@
         },
         "f5": {
           "t": "Gestion des Catégories",
-          "d": "L'icône engrenage ouvre le gestionnaire de catégories. Créez, modifiez ou supprimez des catégories avec couleurs et icônes personnalisées."
+          "d": "Le bouton engrenage reste visible en haut de l'écran, même si les filtres avancés sont fermés. Créez, modifiez ou supprimez vos catégories."
         },
         "f6": {
           "t": "Lots & Péremption",
@@ -1311,13 +1311,17 @@
         "f11": {
           "t": "Annulation de Mouvement",
           "d": "Dans l'historique d'un produit, annulez un mouvement erroné. Le stock est automatiquement corrigé."
+        },
+        "f12": {
+          "t": "Selection multiple & restauration",
+          "d": "Les produits supprimes vont dans la corbeille. Ils n'apparaissent plus dans la liste ni dans la caisse, et peuvent etre restaures si besoin."
         }
       },
       "pos": {
         "title": "Point de Vente (Caisse)",
         "f1": {
           "t": "Scanner de Code-Barres",
-          "d": "Utilisez la caméra pour scanner les articles. Le produit est identifié et ajouté au panier instantanément."
+          "d": "Le bouton Scanner reste visible dans la caisse mobile. Utilisez la caméra pour scanner les articles et les ajouter instantanément au panier."
         },
         "f2": {
           "t": "Gestion du Panier",
@@ -2159,6 +2163,7 @@
     "product_not_found": "Produit non trouvé",
     "sale_error": "Impossible d'enregistrer la vente",
     "sale_success": "Vente enregistrée !",
+    "scan_cta": "Scanner",
     "search_placeholder": "Rechercher un produit...",
     "select_customer_credit": "Veuillez sélectionner un client pour une vente à crédit.",
     "sku_not_found": "Aucun produit trouvé avec le SKU :",
@@ -2396,12 +2401,13 @@
     "category_label": "Catégorie",
     "category_name_placeholder": "Nom de la catégorie",
     "category_save_error": "Impossible de sauvegarder la catégorie",
+    "category_duplicate_error": "Cette catégorie existe déjà.",
     "choose_source": "Choisissez une source",
     "color_label": "Couleur",
     "confirm_adjust_stock": "Voulez-vous ajuster le stock de {{name}} de {{oldQty}} à {{newQty}} ?",
     "confirm_delete_msg": "Voulez-vous vraiment supprimer ce produit ?",
     "confirm_delete_title": "Supprimer le produit",
-    "confirm_import_msg": "Voulez-vous vraiment importer les catégories standards ? Cela pourrait créer des doublons.",
+    "confirm_import_msg": "Voulez-vous vraiment importer les catégories de votre secteur ? Cela pourrait créer des doublons.",
     "confirm_import_title": "Importer des catégories",
     "confirm_inventory": "Confirmer l'inventaire",
     "create_error": "Impossible de créer/modifier le produit",
@@ -2409,6 +2415,14 @@
     "date_format_placeholder": "AAAA-MM-JJ",
     "default_unit": "Pièce",
     "delete": "Suppr.",
+    "delete_confirmed_title": "Produit supprime",
+    "delete_permanent": "Supprimer definitivement",
+    "delete_permanent_error": "Impossible de supprimer definitivement le produit.",
+    "delete_permanent_msg": "Supprimer definitivement {{name}} de la corbeille ?",
+    "delete_permanent_offline": "Cette action demande une connexion internet.",
+    "delete_permanent_success": "Produit supprime definitivement.",
+    "delete_permanent_title": "Suppression definitive",
+    "delete_restore_hint": "Le produit a ete supprime. Vous pouvez le restaurer si besoin.",
     "delete_category_error": "Impossible de supprimer la catégorie",
     "description_placeholder": "Détails...",
     "edit": "Éditer",
@@ -2458,12 +2472,22 @@
     "forecast_7d_unit": "{{count}} prédits (7j)",
     "gallery": "Galerie",
     "history": "Historique",
+    "restore_bulk_success": "Produits restaures avec succes.",
+    "restore_cta": "Restaurer",
+    "restore_error": "Impossible de restaurer le produit.",
+    "restore_offline_error": "La restauration demande une connexion internet.",
+    "restore_success": "Produit restaure avec succes.",
+    "select_all": "Tout selectionner",
+    "trash_empty": "La corbeille est vide.",
+    "trash_label": "Corbeille",
+    "trash_subtitle": "Produits masques de la liste et de la caisse.",
+    "trash_title": "Corbeille produits",
     "history_tab_price": "Prix",
     "history_tab_sales": "Ventes",
     "history_tab_stock": "Stock",
     "import_error": "Une erreur est survenue lors de l'import.",
     "import_offline": "L'importation nécessite une connexion internet.",
-    "import_standard_btn": "Importer les catégories standards",
+    "import_standard_btn": "Importer les catégories du secteur",
     "invalid_quantity": "Veuillez entrer une quantité valide",
     "inventory_mode": "Mode inventaire",
     "inventory_mode_desc": "Mode optimisation pour l'inventaire physique.",

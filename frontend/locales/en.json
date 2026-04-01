@@ -1099,7 +1099,7 @@
         },
         "f5": {
           "t": "Category Management",
-          "d": "The gear icon opens the category manager. Create, edit, or delete categories with custom colors and icons."
+          "d": "The gear button stays visible at the top, even when advanced filters are collapsed. Create, edit, or delete your categories quickly."
         },
         "f6": {
           "t": "Batches & Expiry",
@@ -1124,13 +1124,17 @@
         "f11": {
           "t": "Movement Cancellation",
           "d": "In a product's history, cancel an erroneous movement. Stock is automatically corrected."
+        },
+        "f12": {
+          "t": "Multi-select & restore",
+          "d": "Deleted products go to the trash. They no longer appear in the product list or checkout, and can be restored when needed."
         }
       },
       "pos": {
         "title": "Point of Sale (Checkout)",
         "f1": {
           "t": "Barcode Scanner",
-          "d": "Use the camera to scan items. The product is identified and added to the cart instantly."
+          "d": "The Scan button stays visible in mobile checkout. Use the camera to scan items and add them to cart instantly."
         },
         "f2": {
           "t": "Cart Management",
@@ -1951,6 +1955,7 @@
     "product_not_found": "Product not found",
     "sale_error": "Could not record sale",
     "sale_success": "Sale recorded!",
+    "scan_cta": "Scan",
     "search_placeholder": "Search product...",
     "select_customer_credit": "Please select a customer for a credit sale.",
     "sku_not_found": "No product found with SKU:",
@@ -2128,12 +2133,13 @@
     "category_label": "Catégorie",
     "category_name_placeholder": "Category name",
     "category_save_error": "Could not save category",
+    "category_duplicate_error": "This category already exists.",
     "choose_source": "Choose a source",
     "color_label": "Color",
     "confirm_adjust_stock": "Do you want to adjust the stock of {{name}} from {{oldQty}} to {{newQty}}?",
     "confirm_delete_msg": "Are you sure you want to delete this product?",
     "confirm_delete_title": "Delete product",
-    "confirm_import_msg": "Are you sure you want to import standard categories? This could create duplicates.",
+    "confirm_import_msg": "Are you sure you want to import categories for your business sector? This could create duplicates.",
     "confirm_import_title": "Import categories",
     "confirm_inventory": "Confirm inventory",
     "create_error": "Could not create/modify product",
@@ -2141,6 +2147,14 @@
     "date_format_placeholder": "AAAA-MM-JJ",
     "default_unit": "Piece",
     "delete": "Del.",
+    "delete_confirmed_title": "Product deleted",
+    "delete_permanent": "Delete permanently",
+    "delete_permanent_error": "Could not permanently delete the product.",
+    "delete_permanent_msg": "Permanently delete {{name}} from trash?",
+    "delete_permanent_offline": "This action requires an internet connection.",
+    "delete_permanent_success": "Product permanently deleted.",
+    "delete_permanent_title": "Permanent deletion",
+    "delete_restore_hint": "The product was deleted. You can restore it if needed.",
     "delete_category_error": "Unable to delete category",
     "description_placeholder": "Details...",
     "edit": "Edit",
@@ -2190,12 +2204,22 @@
     "forecast_7d_unit": "{{count}} predicted (7d)",
     "gallery": "Galerie",
     "history": "History",
+    "restore_bulk_success": "Products restored successfully.",
+    "restore_cta": "Restore",
+    "restore_error": "Could not restore the product.",
+    "restore_offline_error": "Restore requires an internet connection.",
+    "restore_success": "Product restored successfully.",
+    "select_all": "Select all",
+    "trash_empty": "Trash is empty.",
+    "trash_label": "Trash",
+    "trash_subtitle": "Products hidden from product list and checkout.",
+    "trash_title": "Products trash",
     "history_tab_price": "Price",
     "history_tab_sales": "Sales",
     "history_tab_stock": "Stock",
     "import_error": "An error occurred during import.",
     "import_offline": "Import requires an internet connection.",
-    "import_standard_btn": "Import standard categories",
+    "import_standard_btn": "Import sector categories",
     "invalid_quantity": "Please enter a valid quantity",
     "inventory_mode": "Inventory mode",
     "inventory_mode_desc": "Optimization mode for physical inventory.",
@@ -3108,4 +3132,3 @@
     "not_available": "Unavailable"
   }
 }
-

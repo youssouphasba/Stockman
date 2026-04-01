@@ -2783,7 +2783,7 @@ async def update_business_account_for_owner(owner_id: str, updates: Dict[str, An
     return account_doc
 
 
-async def build_user_from_doc(user_doc: dict) -> User:
+async def build_user_from_doc(user_doc: dict, request: Optional[Request] = None) -> User:
     sanitize_user_doc(user_doc)
     account_doc = await ensure_business_account_for_user_doc(user_doc)
     access_context = build_effective_access_context(user_doc, account_doc)
@@ -2890,7 +2890,7 @@ async def get_current_user(request: Request) -> Optional[User]:
                 await expire_demo_session(db, user_doc["demo_session_id"])
             return None
 
-        user = await build_user_from_doc(user_doc)
+        user = await build_user_from_doc(user_doc, request=request)
 
         # Update last_active (fire-and-forget, must not break auth)
         try:
@@ -9683,8 +9683,27 @@ async def get_rebalance_suggestions(user: User = Depends(require_operational_acc
     if cached and (datetime.now(timezone.utc).timestamp() - _ai_cache_ts.get(cache_key, 0)) < 3600:
         return cached
 
+    def _to_float(value: Any, default: float = 0.0) -> float:
+        try:
+            if value is None:
+                return default
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
     # Get all stores
-    stores = await db.stores.find({"user_id": owner_id}, {"_id": 0}).to_list(20)
+    raw_stores = await db.stores.find({"user_id": owner_id}, {"_id": 0}).to_list(20)
+    stores = []
+    for store in raw_stores:
+        store_id = str(store.get("store_id") or "").strip()
+        if not store_id:
+            continue
+        stores.append({
+            **store,
+            "store_id": store_id,
+            "name": str(store.get("name") or store_id),
+        })
+
     if len(stores) < 2:
         return {"suggestions": [], "stores_count": len(stores), "message": "Nécessite au moins 2 boutiques"}
 
@@ -9695,19 +9714,29 @@ async def get_rebalance_suggestions(user: User = Depends(require_operational_acc
 
     # Get stock per product per store
     all_products = await db.products.find(
-        {"user_id": owner_id},
+        {"user_id": owner_id, "store_id": {"$in": store_ids}},
         {"product_id": 1, "name": 1, "store_id": 1, "stock_quantity": 1, "reorder_point": 1, "cost_price": 1}
     ).to_list(500)
 
     # Build stock map: {product_id: {store_id: stock}}
     # Group by base product name to match across stores
     product_by_name: Dict[str, list] = {}
-    for p in all_products:
-        key = (p.get("name") or "").lower().strip()
+    for product in all_products:
+        product_id = str(product.get("product_id") or "").strip()
+        store_id = str(product.get("store_id") or "").strip()
+        if not product_id or not store_id:
+            continue
+        key = str(product.get("name") or "").lower().strip()
         if key:
             if key not in product_by_name:
                 product_by_name[key] = []
-            product_by_name[key].append(p)
+            product_by_name[key].append({
+                **product,
+                "product_id": product_id,
+                "store_id": store_id,
+                "stock_quantity": _to_float(product.get("stock_quantity"), _to_float(product.get("quantity"), 0.0)),
+                "cost_price": _to_float(product.get("cost_price"), _to_float(product.get("purchase_price"), 0.0)),
+            })
 
     # Sales velocity per product per store (last 30 days)
     velocity_agg = await db.sales.aggregate([
@@ -9720,12 +9749,15 @@ async def get_rebalance_suggestions(user: User = Depends(require_operational_acc
     ]).to_list(2000)
 
     velocity_map: Dict[str, Dict[str, float]] = {}
-    for v in velocity_agg:
-        pid = v["_id"]["product_id"]
-        sid = v["_id"].get("store_id", "")
+    for velocity_entry in velocity_agg:
+        velocity_id = velocity_entry.get("_id") or {}
+        pid = str(velocity_id.get("product_id") or "").strip()
+        sid = str(velocity_id.get("store_id") or "").strip()
+        if not pid or not sid:
+            continue
         if pid not in velocity_map:
             velocity_map[pid] = {}
-        velocity_map[pid][sid] = v["qty_sold"] / 30  # daily velocity
+        velocity_map[pid][sid] = max(0.0, _to_float(velocity_entry.get("qty_sold"), 0.0)) / 30  # daily velocity
 
     suggestions = []
     for name, variants in product_by_name.items():
@@ -9734,49 +9766,71 @@ async def get_rebalance_suggestions(user: User = Depends(require_operational_acc
 
         # Find overstocked (stock >> velocity) and understocked (stock << velocity) pairs
         scored = []
-        for p in variants:
-            sid = p.get("store_id", "")
-            stock = p.get("stock_quantity", 0)
-            vel = velocity_map.get(p["product_id"], {}).get(sid, 0)
+        for product in variants:
+            pid = str(product.get("product_id") or "").strip()
+            sid = str(product.get("store_id") or "").strip()
+            if not pid or not sid:
+                continue
+            stock = _to_float(product.get("stock_quantity"), 0.0)
+            vel = max(0.0, _to_float(velocity_map.get(pid, {}).get(sid, 0.0), 0.0))
             days_cover = stock / vel if vel > 0 else 9999
-            scored.append({**p, "velocity": vel, "days_cover": days_cover})
+            scored.append({**product, "velocity": vel, "days_cover": days_cover})
+
+        if len(scored) < 2:
+            continue
 
         # Sort by days of coverage
         scored.sort(key=lambda x: x["days_cover"])
         understocked = scored[0]   # lowest coverage
         overstocked = scored[-1]   # highest coverage
 
-        if understocked["store_id"] == overstocked["store_id"]:
+        under_store_id = str(understocked.get("store_id") or "").strip()
+        over_store_id = str(overstocked.get("store_id") or "").strip()
+        if not under_store_id or not over_store_id:
             continue
-        if understocked["days_cover"] >= 14:
+        if under_store_id == over_store_id:
+            continue
+        under_days_cover = _to_float(understocked.get("days_cover"), 9999.0)
+        over_days_cover = _to_float(overstocked.get("days_cover"), 9999.0)
+        under_velocity = max(0.0, _to_float(understocked.get("velocity"), 0.0))
+        over_velocity = max(0.0, _to_float(overstocked.get("velocity"), 0.0))
+        under_stock = _to_float(understocked.get("stock_quantity"), 0.0)
+        over_stock = _to_float(overstocked.get("stock_quantity"), 0.0)
+
+        if under_days_cover >= 14:
             continue  # not urgent
-        if overstocked["days_cover"] <= 14:
+        if over_days_cover <= 14:
             continue  # source store also needs stock
-        if overstocked["stock_quantity"] <= 0:
+        if over_stock <= 0:
             continue
 
         # How much to transfer: enough to give 14 days to understocked
-        needed = max(0, round((14 * understocked["velocity"]) - understocked["stock_quantity"]))
-        available = max(0, overstocked["stock_quantity"] - round(14 * overstocked["velocity"]))
+        needed = max(0, round((14 * under_velocity) - under_stock))
+        available = max(0, over_stock - round(14 * over_velocity))
         transfer_qty = min(needed, available)
 
         if transfer_qty <= 0:
             continue
 
+        product_id_from = str(overstocked.get("product_id") or "").strip()
+        product_id_to = str(understocked.get("product_id") or "").strip()
+        if not product_id_from or not product_id_to:
+            continue
+
         suggestions.append({
-            "product_id_from": overstocked["product_id"],
-            "product_id_to": understocked["product_id"],
+            "product_id_from": product_id_from,
+            "product_id_to": product_id_to,
             "product_name": overstocked.get("name", name),
-            "from_store_id": overstocked["store_id"],
-            "from_store_name": store_names.get(overstocked["store_id"], overstocked["store_id"]),
-            "to_store_id": understocked["store_id"],
-            "to_store_name": store_names.get(understocked["store_id"], understocked["store_id"]),
+            "from_store_id": over_store_id,
+            "from_store_name": store_names.get(over_store_id, over_store_id),
+            "to_store_id": under_store_id,
+            "to_store_name": store_names.get(under_store_id, under_store_id),
             "transfer_quantity": int(transfer_qty),
-            "from_stock": overstocked["stock_quantity"],
-            "to_stock": understocked["stock_quantity"],
-            "from_days_cover": round(overstocked["days_cover"]),
-            "to_days_cover": round(understocked["days_cover"]) if understocked["days_cover"] < 9999 else 0,
-            "estimated_value": round(transfer_qty * (overstocked.get("cost_price") or 0), 2),
+            "from_stock": over_stock,
+            "to_stock": under_stock,
+            "from_days_cover": round(over_days_cover),
+            "to_days_cover": round(under_days_cover) if under_days_cover < 9999 else 0,
+            "estimated_value": round(transfer_qty * _to_float(overstocked.get("cost_price"), 0.0), 2),
         })
 
     suggestions.sort(key=lambda x: x["to_days_cover"])
@@ -12496,7 +12550,7 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
         )
 
     session_tokens = await create_authenticated_session(user_doc, request, response)
-    user = await build_user_from_doc(user_doc)
+    user = await build_user_from_doc(user_doc, request=request)
     return TokenResponse(
         access_token=session_tokens["access_token"],
         refresh_token=session_tokens["refresh_token"],
@@ -12844,9 +12898,12 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     try:
         user_doc["active_store_id"] = active_store_id
         user_doc["store_ids"] = store_ids
-        user = await build_user_from_doc(user_doc)
+        user = await build_user_from_doc(user_doc, request=request)
     except Exception as e:
-        logger.error(f"Login User build failed: {e} - doc keys: {list(user_doc.keys())}")
+        logger.error(
+            f"Login User build failed: {type(e).__name__}: {e} - doc keys: {list(user_doc.keys())}",
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail="Erreur interne de construction du profil")
     return TokenResponse(
         access_token=session_tokens["access_token"],
@@ -12921,7 +12978,7 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
     )
     set_auth_cookies(response, new_access, new_refresh)
 
-    user = await build_user_from_doc(user_doc)
+    user = await build_user_from_doc(user_doc, request=request)
     return TokenResponse(access_token=new_access, refresh_token=new_refresh, user=user)
 
 @api_router.put("/auth/profile")
@@ -13268,8 +13325,18 @@ async def get_categories(user: User = Depends(require_permission("stock", "read"
 @api_router.post("/categories", response_model=Category)
 async def create_category(cat_data: CategoryCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    clean_name = (cat_data.name or "").strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Nom de categorie requis")
+    name_query = apply_store_scope({"user_id": owner_id}, user, user.active_store_id)
+    name_query["name"] = {"$regex": f"^{re.escape(clean_name)}$", "$options": "i"}
+    existing = await db.categories.find_one(name_query, {"_id": 0, "category_id": 1})
+    if existing:
+        raise HTTPException(status_code=409, detail="Cette categorie existe deja")
+    payload = cat_data.model_dump()
+    payload["name"] = clean_name
     category = Category(
-        **cat_data.model_dump(),
+        **payload,
         user_id=owner_id,
         store_id=user.active_store_id
     )
@@ -13279,13 +13346,23 @@ async def create_category(cat_data: CategoryCreate, user: User = Depends(require
 @api_router.put("/categories/{category_id}", response_model=Category)
 async def update_category(category_id: str, cat_data: CategoryCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    clean_name = (cat_data.name or "").strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Nom de categorie requis")
     current = await db.categories.find_one({"category_id": category_id, "user_id": owner_id}, {"_id": 0})
     if not current:
         raise HTTPException(status_code=404, detail="CatÃƒÆ’Ã‚Â©gorie non trouvÃƒÆ’Ã‚Â©e")
     ensure_scoped_document_access(user, current, detail="Acces refuse pour cette categorie")
+    name_query = apply_store_scope({"user_id": owner_id, "category_id": {"$ne": category_id}}, user, current.get("store_id"))
+    name_query["name"] = {"$regex": f"^{re.escape(clean_name)}$", "$options": "i"}
+    existing = await db.categories.find_one(name_query, {"_id": 0, "category_id": 1})
+    if existing:
+        raise HTTPException(status_code=409, detail="Cette categorie existe deja")
+    update_payload = cat_data.model_dump()
+    update_payload["name"] = clean_name
     result = await db.categories.find_one_and_update(
         {"category_id": category_id, "user_id": owner_id},
-        {"$set": cat_data.model_dump()},
+        {"$set": update_payload},
         return_document=True
     )
     if not result:
@@ -13324,6 +13401,11 @@ def _product_response_for_user(user: User, product_doc: dict) -> Product:
         normalized["location_id"] = None
     return Product(**normalized)
 
+class ProductTrashItem(BaseModel):
+    product_id: str
+    name: str
+    deleted_at: Optional[datetime] = None
+
 
 @api_router.get("/products")
 async def get_products(
@@ -13358,6 +13440,27 @@ async def get_products(
     products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
 
     return {"items": [_product_response_for_user(user, prod) for prod in products], "total": total}
+
+
+@api_router.get("/products/trash")
+async def get_deleted_products(
+    user: User = Depends(require_permission("stock", "read")),
+    store_id: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+):
+    owner_id = get_owner_id(user)
+    query = {"user_id": owner_id, "is_active": False}
+    query = apply_store_scope(query, user, store_id)
+    total = await db.products.count_documents(query)
+    deleted_items = await db.products.find(
+        query,
+        {"_id": 0, "product_id": 1, "name": 1, "deleted_at": 1},
+    ).sort("deleted_at", -1).skip(skip).limit(limit).to_list(limit)
+    return {
+        "items": [ProductTrashItem(**item) for item in deleted_items],
+        "total": total,
+    }
 
 class ProductStats(BaseModel):
     lifetime_sales: float
@@ -13646,13 +13749,96 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
 @api_router.delete("/products/{product_id}")
 async def delete_product(product_id: str, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
-    product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"name": 1, "store_id": 1})
+    product = await db.products.find_one(
+        {"product_id": product_id, "user_id": owner_id},
+        {"_id": 0, "name": 1, "store_id": 1, "is_active": 1},
+    )
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouve")
+    if product.get("is_active") is False:
+        return {"message": "Produit deja supprime"}
+
+    now = datetime.now(timezone.utc)
+    result = await db.products.update_one(
+        {"product_id": product_id, "user_id": owner_id},
+        {"$set": {"is_active": False, "deleted_at": now, "updated_at": now}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Produit non trouve")
+
+    _invalidate_dashboard_ai_caches(owner_id, product.get("store_id") or user.active_store_id)
+    await log_activity(
+        user,
+        "product_deleted",
+        "stock",
+        f"Produit '{product.get('name', product_id)}' supprime",
+        {"product_id": product_id},
+    )
+    return {"message": "Produit supprime"}
+
+
+@api_router.post("/products/{product_id}/restore", response_model=Product)
+async def restore_product(product_id: str, user: User = Depends(require_permission("stock", "write"))):
+    owner_id = get_owner_id(user)
+    product = await db.products.find_one(
+        {"product_id": product_id, "user_id": owner_id},
+        {"_id": 0},
+    )
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouve")
+
+    if product.get("is_active") is not False:
+        return _product_response_for_user(user, product)
+
+    now = datetime.now(timezone.utc)
+    await db.products.update_one(
+        {"product_id": product_id, "user_id": owner_id},
+        {"$set": {"is_active": True, "deleted_at": None, "updated_at": now}},
+    )
+
+    restored = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
+    if not restored:
+        raise HTTPException(status_code=404, detail="Produit non trouve")
+
+    _invalidate_dashboard_ai_caches(owner_id, restored.get("store_id") or user.active_store_id)
+    await log_activity(
+        user,
+        "product_restored",
+        "stock",
+        f"Produit '{restored.get('name', product_id)}' restaure",
+        {"product_id": product_id},
+    )
+    return _product_response_for_user(user, restored)
+
+
+@api_router.delete("/products/{product_id}/permanent")
+async def permanently_delete_product(product_id: str, user: User = Depends(require_permission("stock", "write"))):
+    owner_id = get_owner_id(user)
+    product = await db.products.find_one(
+        {"product_id": product_id, "user_id": owner_id},
+        {"_id": 0, "name": 1, "store_id": 1, "is_active": 1},
+    )
+    ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouve")
+    if product.get("is_active", True):
+        raise HTTPException(status_code=400, detail="Le produit doit etre dans la corbeille avant suppression definitive")
+
     result = await db.products.delete_one({"product_id": product_id, "user_id": owner_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃƒÂ©")
-    await log_activity(user, "product_deleted", "stock", f"Produit '{product.get('name', product_id)}' supprimÃƒÂ©", {"product_id": product_id})
-    return {"message": "Produit supprimÃƒÂ©"}
+        raise HTTPException(status_code=404, detail="Produit non trouve")
+
+    _invalidate_dashboard_ai_caches(owner_id, product.get("store_id") or user.active_store_id)
+    await log_activity(
+        user,
+        "product_deleted_permanently",
+        "stock",
+        f"Produit '{product.get('name', product_id)}' supprime definitivement",
+        {"product_id": product_id},
+    )
+    return {"message": "Produit supprime definitivement"}
 
 # ===================== STOCK MOVEMENT ROUTES =====================
 
@@ -14344,9 +14530,12 @@ async def add_items_to_order(sale_id: str, data: dict = Body(...), user: User = 
 
     for item in new_items:
         prod_id = item["product_id"]
-        product = await db.products.find_one({"product_id": prod_id, "user_id": owner_id})
+        product_query = {"product_id": prod_id, "user_id": owner_id, "is_active": {"$ne": False}}
+        if store_id:
+            product_query["store_id"] = store_id
+        product = await db.products.find_one(product_query)
         if not product:
-            continue
+            raise HTTPException(status_code=400, detail=f"Produit {prod_id} indisponible (corbeille ou introuvable)")
         product = normalize_product_measurement_fields(product)
         try:
             quantity_context = build_sale_quantity_context(product, item)
@@ -15972,9 +16161,10 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         prod_query = {"product_id": prod_id, "user_id": owner_id}
         if store_id:
             prod_query["store_id"] = store_id
+        prod_query["is_active"] = {"$ne": False}
         product = await db.products.find_one(prod_query)
         if not product:
-            raise HTTPException(status_code=404, detail=f"Produit {prod_id} non trouvÃƒÂ©")
+            raise HTTPException(status_code=404, detail=f"Produit {prod_id} non trouve ou en corbeille")
 
         try:
             quantity_context = build_sale_quantity_context(product, item)

@@ -59,7 +59,9 @@ Bannière violette affichant le nombre de produits prioritaires et le conseil d�
 | Historique (horloge) | Ouvre ProductHistoryModal | Affiche l'historique des mouvements |
 | Mouvement (+/-) | Ouvre le modal de mouvement de stock | Entrée (in) ou sortie (out) avec raison |
 | Transférer (flèches) | Ouvre le modal de transfert | Transfère vers une autre boutique |
-| Supprimer (corbeille) | Confirmation puis suppression | Suppression définitive du produit |
+| Supprimer (corbeille) | Confirmation puis suppression | Le produit passe en inactif et peut être restauré |
+| Sélection multiple | Active le mode sélection | Barre d'actions fixe en bas avec `Tout sélectionner` et `Supprimer` |
+| Corbeille | Ouvre la liste des produits supprimés | Affiche uniquement les noms, avec restauration ou suppression définitive. Les produits en corbeille n'apparaissent pas dans la caisse |
 
 ## 5. Filtres et recherche
 
@@ -74,7 +76,7 @@ Le menu contextuel (⋯) de chaque ligne offre :
 - **Historique** : consulte les mouvements passés.
 - **Mouvement de stock** : enregistre une entrée ou sortie.
 - **Transférer** : vers une autre boutique (si multi-boutiques).
-- **Supprimer** : avec confirmation préalable.
+- **Supprimer** : avec confirmation préalable, puis restauration possible.
 
 ## 7. États de l'interface
 

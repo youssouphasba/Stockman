@@ -64,6 +64,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'scan-outline', title: 'help.modules.products.f9.t', description: "help.modules.products.f9.d" },
       { icon: 'download-outline', title: 'help.modules.products.f10.t', description: "help.modules.products.f10.d" },
       { icon: 'arrow-undo-outline', title: 'help.modules.products.f11.t', description: "help.modules.products.f11.d" },
+      { icon: 'checkbox-outline', title: 'help.modules.products.f12.t', description: "help.modules.products.f12.d" },
     ],
   },
   {

@@ -60,6 +60,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 description: "Utilisez la recherche par nom, SKU ou code-barres, puis complétez avec les catégories. Cette méthode est la plus rapide pour retrouver un article précis avant une correction, une vente ou un contrôle."
             },
             {
+                icon: "settings-outline",
+                title: "Catégories selon votre secteur",
+                description: "Le bouton engrenage reste visible en haut. Ouvrez-le pour créer vos catégories et importer des catégories adaptées à votre secteur (pharmacie, épicerie, supermarché, etc.)."
+            },
+            {
                 icon: "add-circle-outline",
                 title: "Lire l'état du stock",
                 description: "Chaque carte ou ligne vous aide à repérer l'urgence : rupture si la quantité est à zéro, stock bas sous le seuil, surstock si la quantité devient trop élevée, stock normal si tout est équilibré."
@@ -103,6 +108,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "download-outline",
                 title: "Exporter pour vérifier ou partager",
                 description: "Utilisez l'export pour contrôler votre catalogue, préparer un partage ou garder une copie de travail. Revenez toujours dans l'application pour vérifier que les dernières modifications ont bien été prises en compte."
+            },
+            {
+                icon: "checkbox-outline",
+                title: "Utiliser la sélection multiple",
+                description: "Les produits supprimés partent dans la corbeille. Ils disparaissent de la liste produits et de la caisse, puis peuvent être restaurés ou supprimés définitivement."
             }
         ]
     },
@@ -152,7 +162,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "barcode-outline",
                 title: "Scanner & Ajouter",
-                description: "Scannez le code-barres d'un article ou recherchez-le dans la liste pour l'ajouter au panier. Basculez entre vue grille et liste."
+                description: "Le bouton Scanner reste visible dans la caisse mobile, même sans ouvrir la liste produits. Scannez un code-barres ou ouvrez Ajouter produit pour rechercher manuellement."
             },
             {
                 icon: "cart-outline",

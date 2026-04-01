@@ -169,8 +169,16 @@ export default function Inventory() {
     const [stockMovReason, setStockMovReason] = useState('');
     const [stockMovLoading, setStockMovLoading] = useState(false);
 
-    const locationMap = new Map(locationsList.map((loc) => [loc.location_id, loc]));
-    const activeLocationsList = locationsList.filter((loc) => loc.is_active !== false);
+    const sanitizeRows = <T extends Record<string, any>>(rows: unknown): T[] =>
+        (Array.isArray(rows) ? rows : []).filter((row): row is T => Boolean(row) && typeof row === 'object');
+
+    const safeProducts = sanitizeRows<any>(products);
+    const safeCategoriesList = sanitizeRows<any>(categoriesList);
+    const safeLocationsList = sanitizeRows<any>(locationsList);
+    const safeSuppliersList = sanitizeRows<any>(suppliersList);
+
+    const locationMap = new Map(safeLocationsList.map((loc) => [loc.location_id, loc]));
+    const activeLocationsList = safeLocationsList.filter((loc) => loc.is_active !== false);
     const selectedLocationRecord = selectedLocation ? locationMap.get(selectedLocation) : undefined;
     const locationFilterOptions = selectedLocationRecord && selectedLocationRecord.is_active === false
         ? [...activeLocationsList, selectedLocationRecord]
@@ -248,7 +256,7 @@ export default function Inventory() {
     };
 
     const handleOpenDuplicateProduct = (productId: string) => {
-        const product = products.find((entry) => entry.product_id === productId);
+        const product = safeProducts.find((entry) => entry.product_id === productId);
         if (!product) {
             alert("Produit introuvable dans la boutique active.");
             return;
@@ -281,18 +289,18 @@ export default function Inventory() {
                 prodsRes.value.items || prodsRes.value,
                 offlineLocationKey || '',
             );
-            setProducts(merged.products);
+            setProducts(sanitizeRows<any>(merged.products));
             setPendingInventorySummary(merged.summary);
 
             if (catsRes.status === 'fulfilled') {
-                setCategoriesList(catsRes.value);
+                setCategoriesList(sanitizeRows<any>(catsRes.value));
             } else {
                 partialError = true;
                 console.warn('Inventory categories unavailable', catsRes.reason);
             }
 
             if (locsRes.status === 'fulfilled') {
-                setLocationsList(locsRes.value);
+                setLocationsList(sanitizeRows<any>(locsRes.value));
             } else {
                 partialError = true;
                 console.warn('Inventory locations unavailable', locsRes.reason);
@@ -302,14 +310,14 @@ export default function Inventory() {
                 const supplierRows = Array.isArray(suppliersRes.value)
                     ? suppliersRes.value
                     : (suppliersRes.value as any).items || [];
-                setSuppliersList(supplierRows);
+                setSuppliersList(sanitizeRows<any>(supplierRows));
             } else {
                 partialError = true;
                 console.warn('Inventory suppliers unavailable', suppliersRes.reason);
             }
 
             if (linksRes.status === 'fulfilled') {
-                const grouped = (Array.isArray(linksRes.value) ? linksRes.value : []).reduce((acc: Record<string, any[]>, link: any) => {
+                const grouped = sanitizeRows<any>(linksRes.value).reduce((acc: Record<string, any[]>, link: any) => {
                     if (!link.product_id) return acc;
                     if (!acc[link.product_id]) acc[link.product_id] = [];
                     acc[link.product_id].push(link);
@@ -807,7 +815,7 @@ export default function Inventory() {
         setAiLoading(prev => ({ ...prev, category: true }));
         try {
             const res = await aiApi.suggestCategory(form.name, i18n.language);
-            const matchedCat = categoriesList.find(c => (c.name || '').toLowerCase() === (res.category || '').toLowerCase());
+            const matchedCat = safeCategoriesList.find(c => (c.name || '').toLowerCase() === (res.category || '').toLowerCase());
             if (matchedCat) {
                 setForm(prev => ({ ...prev, category_id: matchedCat.category_id }));
             }
@@ -904,7 +912,7 @@ export default function Inventory() {
         });
     };
 
-    const rankedSuppliersForForm = [...(Array.isArray(suppliersList) ? suppliersList : [])]
+    const rankedSuppliersForForm = [...safeSuppliersList]
         .map((supplier: any) => {
             const supplied = normalizeMatchText(supplier.products_supplied || '');
             const tokens = normalizeMatchText(`${form.name} ${form.category_id}`)
@@ -918,10 +926,10 @@ export default function Inventory() {
             return (a.supplier.name || '').localeCompare(b.supplier.name || '');
         });
 
-    const rankedSuppliersForPicker = [...(Array.isArray(suppliersList) ? suppliersList : [])]
+    const rankedSuppliersForPicker = [...safeSuppliersList]
         .map((supplier: any) => {
             const supplied = normalizeMatchText(supplier.products_supplied || '');
-            const tokens = normalizeMatchText(`${supplierPickerProduct.name || ''} ${supplierPickerProduct.category_id || ''}`)
+            const tokens = normalizeMatchText(`${supplierPickerProduct?.name || ''} ${supplierPickerProduct?.category_id || ''}`)
                 .split(' ')
                 .filter((token) => token.length >= 3);
             const score = tokens.reduce((acc, token) => (supplied.includes(token) ? acc + 1 : acc), 0);
@@ -934,7 +942,7 @@ export default function Inventory() {
         });
 
     const getSupplierName = (supplierId: string | null) =>
-        (Array.isArray(suppliersList) ? suppliersList : []).find((supplier: any) => supplier.supplier_id === supplierId)?.name || 'Fournisseur';
+        safeSuppliersList.find((supplier: any) => supplier.supplier_id === supplierId)?.name || 'Fournisseur';
 
     const getProductSupplyMeta = (productId: string | null) => {
         const links = productId ? (supplierLinksByProduct[productId] || []) : [];
@@ -967,15 +975,15 @@ export default function Inventory() {
     };
 
     const supplierCoverageStats = {
-        noSupplier: (Array.isArray(products) ? products : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length === 0).length,
-        multiSupplier: (Array.isArray(products) ? products : []).filter((product) => (supplierLinksByProduct[product.product_id] || []).length > 1).length,
-        missingPrimary: (Array.isArray(products) ? products : []).filter((product) => {
+        noSupplier: safeProducts.filter((product) => (supplierLinksByProduct[product.product_id] || []).length === 0).length,
+        multiSupplier: safeProducts.filter((product) => (supplierLinksByProduct[product.product_id] || []).length > 1).length,
+        missingPrimary: safeProducts.filter((product) => {
             const links = supplierLinksByProduct[product.product_id] || [];
             return links.length > 0 && !links.some((link) => link.is_preferred);
         }).length,
     };
 
-    const filteredProducts = (Array.isArray(products) ? products : []).filter((p) => {
+    const filteredProducts = safeProducts.filter((p) => {
         const matchesSearch =
             (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
             p.sku.toLowerCase().includes(search.toLowerCase());
@@ -989,7 +997,7 @@ export default function Inventory() {
         return true;
     });
 
-    if (loading && products.length === 0 && !error) {
+    if (loading && safeProducts.length === 0 && !error) {
         return (
             <div className="flex-1 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -997,7 +1005,7 @@ export default function Inventory() {
         );
     }
 
-    if (error && products.length === 0) {
+    if (error && safeProducts.length === 0) {
         return (
             <div className="flex-1 flex items-center justify-center px-6">
                 <div className="glass-card max-w-md w-full p-8 text-center border border-rose-500/20">
@@ -1556,7 +1564,7 @@ export default function Inventory() {
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
-                                            {categoriesList.find(c => c.category_id === p.category_id)?.name || t('common.uncategorized')}
+                                            {safeCategoriesList.find(c => c.category_id === p.category_id)?.name || t('common.uncategorized')}
                                         </span>
                                     </td>
                                     <td className="py-4 px-6">
@@ -1920,7 +1928,7 @@ export default function Inventory() {
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
                                     >
                                         <option value="">Choisir...</option>
-                                        {categoriesList.map(c => (
+                                        {safeCategoriesList.map(c => (
                                             <option key={c.category_id} value={c.category_id}>{c.name}</option>
                                         ))}
                                     </select>

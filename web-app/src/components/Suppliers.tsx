@@ -126,6 +126,14 @@ export default function Suppliers() {
     const [success, setSuccess] = useState<string | null>(null);
     const [pendingOfflineSummary, setPendingOfflineSummary] = useState({ pendingSuppliers: 0, pendingOrders: 0, pendingTotal: 0 });
 
+    const extractItems = <T,>(payload: unknown): T[] => {
+        if (Array.isArray(payload)) return payload as T[];
+        if (payload && typeof payload === 'object' && Array.isArray((payload as { items?: unknown }).items)) {
+            return (payload as { items: T[] }).items;
+        }
+        return [];
+    };
+
     // New Supplier Form
     const [newSupplier, setNewSupplier] = useState({
         name: '',
@@ -469,10 +477,10 @@ export default function Suppliers() {
                 ]);
                 const merged = mergeSuppliersOfflineState({
                     manualSuppliers: suppliersRes.status === 'fulfilled'
-                        ? (Array.isArray(suppliersRes.value) ? suppliersRes.value : (suppliersRes.value.items || []))
+                        ? extractItems<any>(suppliersRes.value)
                         : [],
                     orders: ordersRes.status === 'fulfilled'
-                        ? (Array.isArray(ordersRes.value) ? ordersRes.value : (ordersRes.value.items || []))
+                        ? extractItems<any>(ordersRes.value)
                         : [],
                 });
                 setManualSuppliers(merged.manualSuppliers);
@@ -485,10 +493,10 @@ export default function Suppliers() {
                 ]);
                 const merged = mergeSuppliersOfflineState({
                     manualSuppliers: suppliersRes.status === 'fulfilled'
-                        ? (Array.isArray(suppliersRes.value) ? suppliersRes.value : (suppliersRes.value.items || []))
+                        ? extractItems<any>(suppliersRes.value)
                         : [],
                     orders: ordersRes.status === 'fulfilled'
-                        ? (Array.isArray(ordersRes.value) ? ordersRes.value : (ordersRes.value.items || []))
+                        ? extractItems<any>(ordersRes.value)
                         : [],
                 });
                 setManualSuppliers(merged.manualSuppliers);

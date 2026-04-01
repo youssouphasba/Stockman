@@ -228,7 +228,7 @@ export default function POSScreen() {
             if (prodsRes.status === 'fulfilled') {
                 const prods = prodsRes.value.items ?? prodsRes.value as any;
                 const mergedProducts = await mergePosProductsOfflineState(prods);
-                setProductList(mergedProducts.filter((p: any) => p.is_active));
+                setProductList(mergedProducts.filter((p: any) => p?.is_active !== false));
             }
             if (custsRes.status === 'fulfilled') {
                 const custs = custsRes.value.items ?? custsRes.value as any;
@@ -1304,13 +1304,22 @@ export default function POSScreen() {
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     <Text style={styles.cartTitle}>{t('pos.cart_title')}</Text>
                                     {isMobile && (
-                                        <TouchableOpacity
-                                            style={styles.mobileAddBtn}
-                                            onPress={() => setShowProductList(true)}
-                                        >
-                                            <Ionicons name="add-circle" size={20} color={colors.primary} />
-                                            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>{t('pos.add_product')}</Text>
-                                        </TouchableOpacity>
+                                        <View style={styles.mobileQuickActions}>
+                                            <TouchableOpacity
+                                                style={styles.mobileScanBtn}
+                                                onPress={() => setIsScannerVisible(true)}
+                                            >
+                                                <Ionicons name="barcode-outline" size={18} color={colors.info} />
+                                                <Text style={{ color: colors.info, fontWeight: '700', fontSize: 12 }}>{t('pos.scan_cta', 'Scanner')}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.mobileAddBtn}
+                                                onPress={() => setShowProductList(true)}
+                                            >
+                                                <Ionicons name="add-circle" size={20} color={colors.primary} />
+                                                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>{t('pos.add_product')}</Text>
+                                            </TouchableOpacity>
+                                        </View>
                                     )}
                                 </View>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -1885,6 +1894,20 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: BorderRadius.sm,
+    },
+    mobileScanBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: colors.info + '18',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: BorderRadius.sm,
+    },
+    mobileQuickActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     rightPanel: {
         flex: 1,

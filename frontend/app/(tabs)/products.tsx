@@ -41,6 +41,7 @@ import {
   stores as storesApi,
   locations as locationsApi,
   Product,
+  ProductTrashItem,
   ProductVariant,
   Category,
   Location,
@@ -65,7 +66,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { DEFAULT_CATEGORIES, PRODUCT_UNITS, SHARED_CATEGORIES } from '../../constants/defaultCategories';
+import { getDefaultCategoriesForSector, PRODUCT_UNITS, SHARED_CATEGORIES } from '../../constants/defaultCategories';
 import CategorySubcategoryPicker from '../../components/CategorySubcategoryPicker';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
@@ -256,6 +257,8 @@ export default function ProductsScreen() {
   const [showTextImportModal, setShowTextImportModal] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showControlsPanel, setShowControlsPanel] = useState(false);
+  const [showTrashModal, setShowTrashModal] = useState(false);
+  const [deletedProducts, setDeletedProducts] = useState<ProductTrashItem[]>([]);
   const [userSector, setUserSector] = useState('');
   const [currentStore, setCurrentStore] = useState<any>(null);
 
@@ -527,8 +530,19 @@ export default function ProductsScreen() {
           setSupplierLinksByProduct({});
         }
 
+        let trashItems: ProductTrashItem[] = [];
+        if (!isRestaurant) {
+          try {
+            const trashRes = await productsApi.listTrash(0, 200);
+            trashItems = (trashRes.items ?? trashRes) as ProductTrashItem[];
+          } catch {
+            trashItems = [];
+          }
+        }
+
         const prods = prodsRes.items ?? prodsRes;
         setProductList(prods as Product[]);
+        setDeletedProducts(trashItems);
         setCategoryList(cats);
         setForecastData(forecast);
         setLocationList(isEnterprise ? locsRes : []);
@@ -549,6 +563,7 @@ export default function ProductsScreen() {
             : sectorFiltered;
           setProductList(filtered);
         }
+        setDeletedProducts([]);
         if (cachedCats) setCategoryList(cachedCats);
       }
     } catch (err) {
@@ -569,6 +584,7 @@ export default function ProductsScreen() {
       }
       const cachedCats = await cache.get<Category[]>(KEYS.CATEGORIES);
       if (cachedCats) setCategoryList(cachedCats);
+      setDeletedProducts([]);
       setSupplierLinksByProduct({});
       if (!hasEnterpriseLocations) setLocationList([]);
     } finally {
@@ -1479,24 +1495,35 @@ export default function ProductsScreen() {
   }
 
   async function handleSubmitCategory() {
-    if (!catFormName.trim()) return;
+    const trimmedName = catFormName.trim();
+    if (!trimmedName) return;
     if (!isConnected) {
       Alert.alert(t('common.offline'), t('products.categories_offline'));
+      return;
+    }
+    const normalized = trimmedName.toLowerCase();
+    const duplicate = categoryList.some((cat) => {
+      if (editingCategory && cat.category_id === editingCategory.category_id) return false;
+      return (cat.name || '').trim().toLowerCase() === normalized;
+    });
+    if (duplicate) {
+      Alert.alert(t('common.warning'), t('products.category_duplicate_error'));
       return;
     }
     setCatFormLoading(true);
     try {
       if (editingCategory) {
-        await categoriesApi.update(editingCategory.category_id, { name: catFormName.trim(), color: catFormColor });
+        await categoriesApi.update(editingCategory.category_id, { name: trimmedName, color: catFormColor });
       } else {
-        await categoriesApi.create({ name: catFormName.trim(), color: catFormColor });
+        await categoriesApi.create({ name: trimmedName, color: catFormColor, icon: 'cube-outline' });
       }
       resetCatForm();
       const cats = await categoriesApi.list();
       setCategoryList(cats);
       await cache.set(KEYS.CATEGORIES, cats);
-    } catch {
-      Alert.alert(t('common.error'), t('products.category_save_error'));
+    } catch (error: any) {
+      const message = error?.message || t('products.category_save_error');
+      Alert.alert(t('common.error'), message);
     } finally {
       setCatFormLoading(false);
     }
@@ -1526,11 +1553,12 @@ export default function ProductsScreen() {
   async function processImport() {
     setCatFormLoading(true);
     try {
+      const categoriesForSector = getDefaultCategoriesForSector(userSector);
       // Find existing names to avoid duplicates (case insensitive)
       const existingNames = new Set(categoryList.map(c => c.name.toLowerCase()));
       let importedCount = 0;
 
-      for (const defCat of DEFAULT_CATEGORIES) {
+      for (const defCat of categoriesForSector) {
         if (!existingNames.has(defCat.name.toLowerCase())) {
           await categoriesApi.create(defCat);
           importedCount++;
@@ -1569,6 +1597,66 @@ export default function ProductsScreen() {
     }
   }
 
+  async function restoreDeletedProducts(productIds: string[]) {
+    if (productIds.length === 0) return;
+    if (!isConnected) {
+      Alert.alert(t('common.offline'), t('products.restore_offline_error', 'La restauration demande une connexion internet.'));
+      return;
+    }
+    try {
+      setLoading(true);
+      for (const id of productIds) {
+        await productsApi.restore(id);
+      }
+      await loadData();
+      Alert.alert(
+        t('common.success'),
+        productIds.length > 1
+          ? t('products.restore_bulk_success', 'Produits restaures avec succes.')
+          : t('products.restore_success', 'Produit restaure avec succes.')
+      );
+    } catch {
+      Alert.alert(t('common.error'), t('products.restore_error', 'Impossible de restaurer le produit.'));
+      await loadData();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handlePermanentDelete(productId: string, productName?: string) {
+    Alert.alert(
+      t('products.delete_permanent_title', 'Suppression definitive'),
+      t('products.delete_permanent_msg', {
+        name: productName ?? t('common.this_product'),
+        defaultValue: 'Supprimer definitivement {{name}} de la corbeille ?',
+      }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('products.delete_permanent', 'Supprimer definitivement'),
+          style: 'destructive',
+          onPress: async () => {
+            if (!isConnected) {
+              Alert.alert(t('common.offline'), t('products.delete_permanent_offline', 'Cette action demande une connexion internet.'));
+              return;
+            }
+            try {
+              setLoading(true);
+              await productsApi.deletePermanent(productId);
+              await loadData();
+              Alert.alert(t('common.success'), t('products.delete_permanent_success', 'Produit supprime definitivement.'));
+            } catch {
+              Alert.alert(t('common.error'), t('products.delete_permanent_error', 'Impossible de supprimer definitivement le produit.'));
+              await loadData();
+            } finally {
+              setLoading(false);
+            }
+          }
+        },
+      ]
+    );
+  }
+
   function handleDelete(productId: string) {
     const product = productList.find(p => p.product_id === productId);
     Alert.alert(
@@ -1583,7 +1671,20 @@ export default function ProductsScreen() {
             if (isConnected) {
               try {
                 await productsApi.delete(productId);
-                loadData();
+                await loadData();
+                Alert.alert(
+                  t('products.delete_confirmed_title', 'Produit supprime'),
+                  t('products.delete_restore_hint', 'Le produit a ete supprime. Vous pouvez le restaurer si besoin.'),
+                  [
+                    { text: t('common.close', 'Fermer'), style: 'cancel' },
+                    {
+                      text: t('products.restore_cta', 'Restaurer'),
+                      onPress: async () => {
+                        await restoreDeletedProducts([productId]);
+                      }
+                    },
+                  ]
+                );
               } catch {
                 Alert.alert(t('common.error'), t('products.delete_error'));
               }
@@ -1732,7 +1833,19 @@ export default function ProductsScreen() {
               setSelectedProductIds(new Set());
               setIsSelectionMode(false);
               await loadData();
-              Alert.alert(t('common.success'), t('products.success_deleted'));
+              Alert.alert(
+                t('common.success'),
+                t('products.success_deleted'),
+                [
+                  { text: t('common.close', 'Fermer'), style: 'cancel' },
+                  {
+                    text: t('products.restore_cta', 'Restaurer'),
+                    onPress: async () => {
+                      await restoreDeletedProducts(ids);
+                    }
+                  },
+                ]
+              );
             } catch (error) {
               Alert.alert(t('common.error'), t('products.error_delete_failed'));
               await loadData();
@@ -1986,7 +2099,10 @@ export default function ProductsScreen() {
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          isSelectionMode && styles.contentWithSelectionToolbar,
+        ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View style={styles.headerActionRow}>
@@ -2018,6 +2134,19 @@ export default function ProductsScreen() {
               <Ionicons name="download-outline" size={20} color={colors.primary} />
               <Text numberOfLines={1} style={styles.headerActionText}>Exporter</Text>
             </TouchableOpacity>
+            {canWrite && (
+              <TouchableOpacity
+                style={[styles.headerActionChip, { backgroundColor: colors.danger + '16', borderColor: colors.danger + '40' }]}
+                onPress={() => setShowTrashModal(true)}
+              >
+                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                {deletedProducts.length > 0 && (
+                  <Text numberOfLines={1} style={[styles.headerActionText, { color: colors.danger }]}>
+                    {deletedProducts.length}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
           {canWrite && (
             <View style={styles.headerActionRowGroup}>
@@ -2122,23 +2251,35 @@ export default function ProductsScreen() {
         </View>
 
         {!isRestaurant && (
-          <TouchableOpacity
-            style={styles.sectionToggleCard}
-            onPress={() => setShowControlsPanel((current) => !current)}
-            activeOpacity={0.85}
-          >
-            <View style={styles.sectionToggleCopy}>
-              <Text style={styles.sectionToggleTitle}>Filtres avancés</Text>
-              <Text style={styles.sectionToggleDescription}>
-                {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visibles • ${activeProductControlCount > 0 ? `${activeProductControlCount} filtre${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun filtre avancé'}`}
-              </Text>
+          <View style={styles.sectionToggleCard}>
+            <TouchableOpacity
+              style={styles.sectionToggleMain}
+              onPress={() => setShowControlsPanel((current) => !current)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.sectionToggleCopy}>
+                <Text style={styles.sectionToggleTitle}>Filtres avancés</Text>
+                <Text style={styles.sectionToggleDescription}>
+                  {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visibles • ${activeProductControlCount > 0 ? `${activeProductControlCount} filtre${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun filtre avancé'}`}
+                </Text>
+              </View>
+              <Ionicons
+                name={showControlsPanel ? 'chevron-up-outline' : 'chevron-down-outline'}
+                size={20}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
+            <View style={styles.sectionToggleActions}>
+              {canWrite && (
+                <TouchableOpacity
+                  style={styles.persistentManageCatBtn}
+                  onPress={() => { resetCatForm(); setShowCategoryModal(true); }}
+                >
+                  <Ionicons name="settings-outline" size={16} color={colors.primaryLight} />
+                </TouchableOpacity>
+              )}
             </View>
-            <Ionicons
-              name={showControlsPanel ? 'chevron-up-outline' : 'chevron-down-outline'}
-              size={20}
-              color={colors.textMuted}
-            />
-          </TouchableOpacity>
+          </View>
         )}
 
         {!isRestaurant && showControlsPanel && (
@@ -2245,11 +2386,6 @@ export default function ProductsScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          {canWrite && (
-            <TouchableOpacity style={styles.manageCatBtn} onPress={() => { resetCatForm(); setShowCategoryModal(true); }}>
-              <Ionicons name="settings-outline" size={16} color={colors.primaryLight} />
-            </TouchableOpacity>
-          )}
         </View>
         )}
 
@@ -2628,35 +2764,45 @@ export default function ProductsScreen() {
           })
         )}
 
-        {
-          isSelectionMode && (
-            <View style={styles.selectionToolbar}>
-              <View style={styles.selectionInfo}>
-                <TouchableOpacity onPress={toggleSelectAll} style={styles.selectAllBtn}>
-                  <Ionicons
-                    name={selectedProductIds.size === filtered.length ? "checkbox" : "square-outline"}
-                    size={20}
-                    color={colors.primaryLight}
-                  />
-                  <Text style={styles.selectAllText}>{t('products.all')} ({selectedProductIds.size})</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.selectionActions}>
-                <TouchableOpacity style={styles.selectionActionBtn} onPress={exportCatalog}>
-                  <Ionicons name="share-social-outline" size={20} color={colors.primaryLight} />
-                  <Text style={styles.selectionActionText}>{t('products.catalog')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.selectionActionBtn, { borderColor: colors.danger + '40' }]} onPress={handleBulkDelete}>
-                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                  <Text style={[styles.selectionActionText, { color: colors.danger }]}>{t('products.delete')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )
-        }
-
         <View style={{ height: Spacing.xl }} />
       </ScrollView >
+
+      {isSelectionMode && (
+        <View style={[styles.selectionToolbarDock, { paddingBottom: insets.bottom + Spacing.sm }]}>
+          <View style={styles.selectionToolbar}>
+            <View style={styles.selectionInfo}>
+              <TouchableOpacity onPress={toggleSelectAll} style={styles.selectAllBtn}>
+                <Ionicons
+                  name={filtered.length > 0 && selectedProductIds.size === filtered.length ? "checkbox" : "square-outline"}
+                  size={20}
+                  color={colors.primaryLight}
+                />
+                <Text style={styles.selectAllText}>
+                  {t('products.select_all', 'Tout selectionner')} ({selectedProductIds.size}/{filtered.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.selectionActions}>
+              <TouchableOpacity style={styles.selectionActionBtn} onPress={exportCatalog}>
+                <Ionicons name="share-social-outline" size={20} color={colors.primaryLight} />
+                <Text style={styles.selectionActionText}>{t('products.catalog')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.selectionActionBtn,
+                  { borderColor: colors.danger + '40' },
+                  selectedProductIds.size === 0 && styles.selectionActionBtnDisabled,
+                ]}
+                onPress={handleBulkDelete}
+                disabled={selectedProductIds.size === 0}
+              >
+                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                <Text style={[styles.selectionActionText, { color: colors.danger }]}>{t('products.delete')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Add Product Modal */}
       < Modal visible={showAddModal} animationType="slide" transparent onRequestClose={requestCloseAddModal} >
@@ -3656,6 +3802,54 @@ export default function ProductsScreen() {
         </View>
       </Modal >
 
+      {/* Trash Modal */}
+      < Modal visible={showTrashModal} animationType="slide" transparent onRequestClose={() => setShowTrashModal(false)} >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('products.trash_title', 'Corbeille produits')}</Text>
+              <TouchableOpacity onPress={() => setShowTrashModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              {t('products.trash_subtitle', 'Produits masques de la liste et de la caisse.')}
+            </Text>
+
+            <ScrollView style={styles.modalScroll}>
+              {deletedProducts.length === 0 ? (
+                <Text style={styles.emptyText}>{t('products.trash_empty', 'La corbeille est vide.')}</Text>
+              ) : (
+                deletedProducts.map((item) => (
+                  <View key={item.product_id} style={styles.trashItemRow}>
+                    <Text style={styles.trashItemName} numberOfLines={1}>
+                      {item.name || t('common.this_product')}
+                    </Text>
+                    <View style={styles.trashItemActions}>
+                      <TouchableOpacity
+                        style={[styles.trashActionBtn, { borderColor: colors.success + '40' }]}
+                        onPress={async () => {
+                          await restoreDeletedProducts([item.product_id]);
+                          await loadData();
+                        }}
+                      >
+                        <Ionicons name="arrow-undo-outline" size={18} color={colors.success} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.trashActionBtn, { borderColor: colors.danger + '40' }]}
+                        onPress={() => handlePermanentDelete(item.product_id, item.name)}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal >
+
       {/* Stock Movement Modal */}
       < Modal visible={showStockModal} animationType="slide" transparent onRequestClose={requestCloseStockModal} >
         <View style={styles.modalOverlay}>
@@ -3799,6 +3993,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   content: { padding: Spacing.md, paddingTop: Spacing.xxl },
+  contentWithSelectionToolbar: { paddingBottom: Spacing.md },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerRow: {
     flexDirection: 'row',
@@ -3919,13 +4114,26 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     ...glassStyle,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  sectionToggleMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.sm,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    paddingVertical: 4,
   },
   sectionToggleCopy: {
     flex: 1,
+  },
+  sectionToggleActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   sectionToggleTitle: {
     color: colors.text,
@@ -4137,6 +4345,35 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: Spacing.md,
   },
+  trashItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  trashItemName: {
+    flex: 1,
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
+  trashItemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  trashActionBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    backgroundColor: colors.glass,
+  },
   modalScroll: { flex: 1 },
   formGroup: { marginBottom: Spacing.md },
   formLabel: {
@@ -4258,7 +4495,16 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   // Category row
   categoryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },
-  manageCatBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.glass, justifyContent: 'center', alignItems: 'center', marginLeft: Spacing.xs },
+  persistentManageCatBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.glass,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
   // Category modal
   catForm: { marginBottom: Spacing.lg, paddingBottom: Spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
   colorPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
@@ -4528,20 +4774,25 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     right: 10,
     zIndex: 10,
   },
+  selectionToolbarDock: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
+  },
   selectionToolbar: {
     backgroundColor: colors.bgMid,
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
-    marginTop: Spacing.md,
     borderWidth: 1,
     borderColor: colors.glassBorder,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
   },
   selectionInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   selectAllBtn: {
     flexDirection: 'row',
@@ -4555,7 +4806,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   selectionActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
   },
   selectionActionBtn: {
     flexDirection: 'row',
@@ -4567,6 +4818,9 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     backgroundColor: colors.glass,
     borderWidth: 1,
     borderColor: colors.primary + '40',
+  },
+  selectionActionBtnDisabled: {
+    opacity: 0.45,
   },
   selectionActionText: {
     fontSize: FontSize.xs,
