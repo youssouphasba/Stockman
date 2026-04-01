@@ -4528,14 +4528,37 @@ async def register_push_token(data: PushTokenRegistration, user: User = Depends(
 @api_router.post("/notifications/test-push")
 async def test_push_notification(user: User = Depends(require_auth)):
     """Send a test push notification to the current user"""
-    await notification_service.notify_user(
-        db, 
-        user.user_id, 
-        "Stockman Test", 
-        "Ceci est une notification de test pour Stockman ! Ã°Å¸Â¦Â¸Ã¢â‚¬ÂÃ¢â„¢â€šÃ¯Â¸Â",
+    result = await notification_service.notify_user(
+        db,
+        user.user_id,
+        "Stockman Test",
+        "Ceci est une notification de test pour Stockman.",
         caller_owner_id=get_owner_id(user)
     )
-    return {"message": "Notification de test envoyÃƒÂ©e"}
+    if result.get("ok"):
+        return {"message": "Notification de test envoyee", "details": result}
+
+    reason = result.get("reason")
+    if reason in {"no_tokens", "no_tokens_registered"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Aucun appareil push n'est enregistre pour ce compte. Ouvrez l'application mobile, acceptez les notifications puis reconnectez-vous."
+        )
+    if reason == "invalid_tokens":
+        raise HTTPException(
+            status_code=400,
+            detail="Le jeton push enregistre est invalide. Reouvrez l'application mobile pour forcer un nouvel enregistrement."
+        )
+    if reason == "invalid_credentials":
+        raise HTTPException(
+            status_code=502,
+            detail="Expo refuse l'envoi car la configuration FCM Android n'est pas valide dans le projet Expo/EAS."
+        )
+
+    raise HTTPException(
+        status_code=502,
+        detail=result.get("message") or "La notification push n'a pas pu etre envoyee."
+    )
 
 # ===================== USER SUPPORT ENDPOINT =====================
 

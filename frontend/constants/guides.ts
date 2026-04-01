@@ -482,7 +482,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "notifications-outline",
                 title: "Alertes, rappels et facturation",
-                description: "Définissez ici comment vous recevez les alertes, à qui elles sont envoyées, quelles règles automatiques sont actives et testez l'envoi d'une notification push depuis votre appareil."
+                description: "Definissez ici comment vous recevez les alertes, a qui elles sont envoyees, quelles regles automatiques sont actives et testez l'envoi d'une notification push depuis votre appareil. Le test remonte maintenant aussi les erreurs reelles de configuration Expo ou FCM."
             },
             {
                 icon: "help-circle-outline",

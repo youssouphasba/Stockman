@@ -46,3 +46,9 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 - Le flux Google mobile natif dépend de la configuration OAuth Android et iOS intégrée au build.
 - Après une modification des identifiants Google, du fichier `google-services.json`, du fichier `GoogleService-Info.plist` ou de la configuration native de connexion Google, un simple `eas update` ne suffit pas.
 - Il faut générer un nouveau build pour tester correctement la connexion Google sur mobile.
+
+## 5. Verification des notifications push
+
+- L'alerte dans Stockman et la notification push sont deux etapes distinctes : une alerte peut etre creee meme si Expo ne parvient pas a envoyer la notification.
+- Le bouton de test push renvoie maintenant la vraie cause en cas d'echec : aucun appareil enregistre, jeton invalide ou credentials Expo/FCM Android invalides.
+- Si le test mentionne `InvalidCredentials`, le fichier `google-services.json` ne suffit pas : il faut aussi verifier la configuration FCM du projet Expo/EAS utilise pour l'application.
