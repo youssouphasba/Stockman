@@ -22,7 +22,13 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: '/__/auth/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        ],
+      },
+      {
+        source: '/((?!__/auth).*)',
         headers: [
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -39,7 +45,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https:",
               "connect-src 'self' https://stockman-production-149d.up.railway.app https://*.googleapis.com https://*.firebaseio.com https://accounts.google.com wss://*.firebaseio.com",
-              "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com",
+              "frame-src 'self' https://stockman.pro https://accounts.google.com https://*.firebaseapp.com",
               "frame-ancestors 'none'",
             ].join('; '),
           },
