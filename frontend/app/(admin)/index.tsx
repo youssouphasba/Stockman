@@ -622,16 +622,26 @@ export default function AdminDashboard() {
                                     <Text style={{ color: colors.textMuted, fontSize: 10 }}>({u.user_id})</Text>
                                 </View>
                                 <Text style={{ color: colors.textMuted, fontSize: 11 }}>{u.email}</Text>
-                                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                                    {u.phone ? <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>?? {u.phone}</Text> : null}
-                                    {u.business_type ? <Text style={{ color: colors.textSecondary, fontSize: 11 }}>?? {u.business_type}</Text> : null}
+                                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+                                    {u.phone ? (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Ionicons name="call-outline" size={12} color={colors.primary} />
+                                            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>{u.phone}</Text>
+                                        </View>
+                                    ) : null}
+                                    {u.business_type ? (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Ionicons name="briefcase-outline" size={12} color={colors.textSecondary} />
+                                            <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{u.business_type}</Text>
+                                        </View>
+                                    ) : null}
                                 </View>
                             </View>
                         </View>
                         <View style={{ alignItems: 'flex-end', gap: 4, marginLeft: 8 }}>
                             <Badge label={u.role || 'user'} color={roleColors[u.role] || '#6B7280'} />
                             <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                <Badge label={u.country_code || '??'} color={colors.secondary} />
+                                <Badge label={u.country_code || '--'} color={colors.secondary} />
                                 <TouchableOpacity onPress={() => handleToggleUser(u)}>
                                     <Badge label={u.is_active === false ? t('admin.users.banned') : t('admin.users.active')} color={u.is_active === false ? '#EF4444' : '#10B981'} />
                                 </TouchableOpacity>
@@ -1216,10 +1226,10 @@ export default function AdminDashboard() {
 
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                     <TouchableOpacity onPress={handleSendMessage} style={{ flex: 1, backgroundColor: '#3B82F6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
-                        <Text style={{ color: '#fff', fontWeight: '700' }}>?? {t('admin.actions.send')}</Text>
+                        <Text style={{ color: '#fff', fontWeight: '700' }}>{t('admin.actions.send')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleBroadcast} style={{ flex: 1, backgroundColor: '#8B5CF6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
-                        <Text style={{ color: '#fff', fontWeight: '700' }}>?? {t('admin.actions.broadcast')}</Text>
+                        <Text style={{ color: '#fff', fontWeight: '700' }}>{t('admin.actions.broadcast')}</Text>
                     </TouchableOpacity>
                 </View>
             </Card>
@@ -1251,7 +1261,7 @@ export default function AdminDashboard() {
                         <Badge label={c.type || 'contact'} color="#3B82F6" />
                     </View>
                     <Text style={{ color: colors.primary, fontSize: 13, marginBottom: 4 }}>{c.email}</Text>
-                    {c.company ? <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>?? {c.company}</Text> : null}
+                    {c.company ? <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>Entreprise : {c.company}</Text> : null}
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>{c.message}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11 }}>{new Date(c.created_at).toLocaleDateString()}</Text>
                 </Card>
@@ -1636,4 +1646,3 @@ const st = StyleSheet.create({
     segBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 12 },
     segLabel: { fontSize: 12, fontWeight: '600' },
 });
-

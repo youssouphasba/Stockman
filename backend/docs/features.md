@@ -330,6 +330,10 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 
 ## 14. Plans & Abonnements
 
+### Note backoffice admin (stabilite abonnements)
+- Dans l'onglet **Abonnements** du backoffice, si le MRR n'est pas encore fourni par l'API, l'interface affiche `-`.
+- Si un compte n'a pas de liens de paiement, l'interface affiche `Stripe: —` et `Mobile Money: —` sans erreur.
+
 ### Quels sont les plans disponibles ?
 | Plan | Prix FCFA/mois | Prix EUR/mois | Boutiques | Employés | Web |
 |------|----------------|---------------|-----------|----------|-----|

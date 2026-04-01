@@ -1990,35 +1990,37 @@ export default function ProductsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View style={styles.headerActionRow}>
-          {!isRestaurant && (
+          <View style={styles.headerActionRowGroup}>
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={[styles.headerActionChip, isInventoryMode && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+                onPress={() => {
+                  setIsInventoryMode(!isInventoryMode);
+                  if (!isInventoryMode) {
+                    setInventoryValues({});
+                  }
+                  Alert.alert(
+                    isInventoryMode ? t('products.normal_mode') : t('products.inventory_mode'),
+                    isInventoryMode ? t('products.normal_mode_desc') : t('products.inventory_mode_desc')
+                  );
+                }}
+              >
+                <Ionicons name="clipboard-outline" size={20} color={isInventoryMode ? colors.primary : colors.text} />
+                <Text numberOfLines={1} style={[styles.headerActionText, isInventoryMode && { color: colors.primary }]}>
+                  {isInventoryMode ? 'Inventaire actif' : 'Inventaire'}
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={[styles.headerActionChip, isInventoryMode && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
-              onPress={() => {
-                setIsInventoryMode(!isInventoryMode);
-                if (!isInventoryMode) {
-                  setInventoryValues({});
-                }
-                Alert.alert(
-                  isInventoryMode ? t('products.normal_mode') : t('products.inventory_mode'),
-                  isInventoryMode ? t('products.normal_mode_desc') : t('products.inventory_mode_desc')
-                );
-              }}
+              style={[styles.headerActionChip, { backgroundColor: colors.success + '18', borderColor: colors.success + '40' }]}
+              onPress={handleExportCSV}
             >
-              <Ionicons name="clipboard-outline" size={20} color={isInventoryMode ? colors.primary : colors.text} />
-              <Text style={[styles.headerActionText, isInventoryMode && { color: colors.primary }]}>
-                {isInventoryMode ? 'Inventaire actif' : 'Inventaire'}
-              </Text>
+              <Ionicons name="download-outline" size={20} color={colors.primary} />
+              <Text numberOfLines={1} style={styles.headerActionText}>Exporter</Text>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.headerActionChip, { backgroundColor: colors.success + '18', borderColor: colors.success + '40' }]}
-            onPress={handleExportCSV}
-          >
-            <Ionicons name="download-outline" size={20} color={colors.primary} />
-            <Text style={styles.headerActionText}>Exporter</Text>
-          </TouchableOpacity>
+          </View>
           {canWrite && (
-            <>
+            <View style={styles.headerActionRowGroup}>
               <TouchableOpacity
                 style={[styles.headerActionChip, isSelectionMode && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
                 onPress={() => {
@@ -2027,17 +2029,18 @@ export default function ProductsScreen() {
                 }}
               >
                 <Ionicons name={isSelectionMode ? "close" : "list-outline"} size={20} color={isSelectionMode ? colors.primaryLight : colors.text} />
-                <Text style={[styles.headerActionText, isSelectionMode && { color: colors.primary }]}>
+                <Text numberOfLines={1} style={[styles.headerActionText, isSelectionMode && { color: colors.primary }]}>
                   {isSelectionMode ? 'Fermer la sélection' : 'Sélection'}
                 </Text>
               </TouchableOpacity>
-              <View style={{ marginLeft: 'auto' }}>
-                <TouchableOpacity style={[styles.addBtn, styles.addBtnExtended]} onPress={() => setShowAddMenu(!showAddMenu)}>
-                  <Ionicons name={showAddMenu ? "close" : "add"} size={24} color="#fff" />
-                  <Text style={styles.addBtnLabel}>{showAddMenu ? 'Fermer' : 'Ajouter'}</Text>
-                </TouchableOpacity>
-              </View>
-            </>
+              <TouchableOpacity
+                style={[styles.headerActionChip, styles.headerActionPrimaryChip]}
+                onPress={() => setShowAddMenu(!showAddMenu)}
+              >
+                <Ionicons name={showAddMenu ? "close" : "add"} size={20} color="#fff" />
+                <Text numberOfLines={1} style={styles.headerActionPrimaryText}>{showAddMenu ? 'Fermer' : 'Ajouter'}</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
         {showAddMenu && canWrite && (
@@ -2118,49 +2121,19 @@ export default function ProductsScreen() {
           )}
         </View>
 
-        {!isRestaurant && (
+        {!isRestaurant && hasEnterpriseLocations && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickPanelsScroll}>
             <TouchableOpacity
               style={styles.quickPanelCard}
-              onPress={() => setShowControlsPanel((current) => !current)}
+              onPress={() => router.push('/(tabs)/locations' as never)}
               activeOpacity={0.9}
             >
-              <Ionicons name="options-outline" size={18} color={colors.primary} />
-              <Text style={styles.quickPanelTitle}>Pilotage stock</Text>
+              <Ionicons name="location-outline" size={18} color={colors.success} />
+              <Text style={styles.quickPanelTitle}>Emplacements</Text>
               <Text style={styles.quickPanelDesc}>
-                {activeProductControlCount > 0
-                  ? `${activeProductControlCount} filtre${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}`
-                  : 'Aucun filtre avancé'}
+                {locationList.length > 0 ? `${locationList.length} zone${locationList.length > 1 ? 's' : ''}` : 'Configurer les zones'}
               </Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickPanelCard}
-              onPress={() => setShowControlsPanel(true)}
-              activeOpacity={0.9}
-            >
-              <Ionicons name="pricetags-outline" size={18} color={colors.info} />
-              <Text style={styles.quickPanelTitle}>Catégories</Text>
-              <Text style={styles.quickPanelDesc}>
-                {selectedCategory
-                  ? (categoryList.find((cat) => cat.category_id === selectedCategory)?.name || 'Catégorie active')
-                  : 'Toutes les catégories'}
-              </Text>
-            </TouchableOpacity>
-
-            {hasEnterpriseLocations && (
-              <TouchableOpacity
-                style={styles.quickPanelCard}
-                onPress={() => router.push('/(tabs)/locations' as never)}
-                activeOpacity={0.9}
-              >
-                <Ionicons name="location-outline" size={18} color={colors.success} />
-                <Text style={styles.quickPanelTitle}>Emplacements</Text>
-                <Text style={styles.quickPanelDesc}>
-                  {locationList.length > 0 ? `${locationList.length} zone${locationList.length > 1 ? 's' : ''}` : 'Configurer les zones'}
-                </Text>
-              </TouchableOpacity>
-            )}
           </ScrollView>
         )}
 
@@ -2171,7 +2144,7 @@ export default function ProductsScreen() {
             activeOpacity={0.85}
           >
             <View style={styles.sectionToggleCopy}>
-              <Text style={styles.sectionToggleTitle}>Filtres, catégories et pilotage</Text>
+              <Text style={styles.sectionToggleTitle}>Filtres avancés</Text>
               <Text style={styles.sectionToggleDescription}>
                 {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visibles • ${activeProductControlCount > 0 ? `${activeProductControlCount} filtre${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun filtre avancé'}`}
               </Text>
@@ -3874,16 +3847,19 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   headerActionRow: {
     paddingTop: Spacing.xs,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 4,
-    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: 2,
     marginBottom: Spacing.sm,
-    flexWrap: 'wrap',
+  },
+  headerActionRowGroup: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
   },
   headerActionChip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.xs,
     minHeight: 44,
     paddingHorizontal: Spacing.md,
@@ -3896,6 +3872,17 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.text,
     fontSize: FontSize.sm,
     fontWeight: '600',
+    flexShrink: 1,
+  },
+  headerActionPrimaryChip: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  headerActionPrimaryText: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    flexShrink: 1,
   },
   addBtnExtended: {
     width: 'auto',

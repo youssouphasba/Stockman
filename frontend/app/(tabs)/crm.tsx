@@ -903,53 +903,6 @@ export default function CRMScreen() {
                         </View>
                     </View>
 
-                    {/* Promotions Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeaderRow}>
-                            <Text style={styles.sectionTitle}>{t('crm.promotions')}</Text>
-                            {canWrite && (
-                                <TouchableOpacity style={styles.addBtn} onPress={openNewPromo}>
-                                    <Ionicons name="add" size={20} color="#FFF" />
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.promoList}>
-                            {promoList.map(promo => (
-                                <TouchableOpacity key={promo.promotion_id} style={styles.promoCard} onPress={() => openEditPromo(promo)} onLongPress={() => handleDeletePromo(promo)}>
-                                    <Text style={styles.promoTitle}>{promo.title}</Text>
-                                    <Text style={styles.promoDesc} numberOfLines={2}>{promo.description}</Text>
-                                    <View style={styles.promoFooter}>
-                                        <View style={styles.promoBadge}>
-                                            <Text style={styles.promoBadgeText}>
-                                                {promo.discount_percentage ? `-${promo.discount_percentage}%` : promo.points_required ? `${promo.points_required} pts` : 'Offre'}
-                                            </Text>
-                                        </View>
-                                        <TouchableOpacity onPress={() => handleDeletePromo(promo)}>
-                                            <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                                        </TouchableOpacity>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                            {promoList.length === 0 && (
-                                <TouchableOpacity style={[styles.promoCard, { justifyContent: 'center', alignItems: 'center' }]} onPress={openNewPromo}>
-                                    <Ionicons name="add-circle-outline" size={32} color={colors.textMuted} />
-                                    <Text style={[styles.promoTitle, { marginTop: Spacing.sm }]}>{t('crm.create_promotion')}</Text>
-                                </TouchableOpacity>
-                            )}
-                        </ScrollView>
-                    </View>
-
-                    {/* Marketing Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeaderRow}>
-                            <Text style={styles.sectionTitle}>{t('crm.marketing')}</Text>
-                        </View>
-                        <TouchableOpacity style={styles.campaignBtn} onPress={openCampaignModal}>
-                            <Ionicons name="megaphone-outline" size={22} color="#FFF" />
-                            <Text style={styles.campaignBtnText}>{t('crm.whatsapp_campaign')}</Text>
-                        </TouchableOpacity>
-                    </View>
-
                     {/* Search Bar + Add Customer */}
                     <View style={styles.customerHeader}>
                         <View style={styles.searchBar}>

@@ -202,7 +202,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "information-circle-outline",
                 title: "KPIs avec explications",
-                description: "6 cartes KPI : CA, Bénéfice brut, Dépenses, Bénéfice net, Articles vendus, Panier moyen. Touchez l'icône (i) pour comprendre chaque indicateur."
+                description: "Les cartes KPI résument vos chiffres (CA, marges, dépenses, stock, pertes). Les ratios affichés sont déjà en %, et chaque carte ouvre un détail complet."
             },
             {
                 icon: "wallet-outline",
@@ -252,12 +252,12 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "megaphone",
                 title: "Campagnes Marketing",
-                description: "Créez des campagnes SMS ou Email ciblées : tous les clients, par palier, par catégorie ou sélection manuelle."
+                description: "Depuis les cartes d'actions rapides du CRM, lancez des campagnes ciblées : tous les clients, par palier, par catégorie ou sélection manuelle."
             },
             {
                 icon: "gift",
                 title: "Promotions",
-                description: "Créez des promotions (% ou montant fixe) avec dates de validité. Activez/désactivez en un clic."
+                description: "Depuis les cartes d'actions rapides du CRM, créez des promotions (% ou montant fixe) et mettez-les à jour facilement."
             },
             {
                 icon: "call-outline",
@@ -312,7 +312,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "search-outline",
                 title: "Recherche et filtres",
-                description: "Recherchez une commande par référence, fournisseur, note ou produit. Utilisez aussi les filtres de statut, de période et de fournisseur pour retrouver plus vite ce que vous cherchez."
+                description: "Recherchez une commande par référence, fournisseur, note ou produit. Les commandes principales restent visibles en haut et le panneau « Filtres » permet d'affiner par statut, période et fournisseur."
             },
             {
                 icon: "add-circle",
@@ -502,7 +502,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "phone-portrait-outline",
                 title: "Choisir le bon mode de paiement",
-                description: "L'écran affiche uniquement les moyens réellement disponibles pour votre appareil et votre formule. Sur mobile, passez par la boutique de paiement affichée à l'écran et relisez les informations avant de confirmer."
+                description: "L'écran affiche uniquement les moyens réellement disponibles pour votre appareil et votre formule. Sur mobile, passez par la boutique de paiement affichée à l'écran. En test Google Play, utilisez un compte testeur autorisé et vérifiez que le produit est actif."
             },
             {
                 icon: "refresh-outline",
@@ -647,7 +647,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             { icon: "keypad-outline", title: "Code PIN", description: "Créez un code à 4 chiffres pour sécuriser l'accès à l'app. Saisissez-le à chaque ouverture." },
             { icon: "finger-print-outline", title: "Biométrie", description: "Activez l'empreinte digitale ou Face ID pour déverrouiller plus rapidement (nécessite le PIN actif)." },
-            { icon: "log-out-outline", title: "Déconnexion", description: "Depuis l'écran PIN, touchez 'Déconnexion' pour revenir à l'écran de connexion." }
+            { icon: "log-out-outline", title: "Déconnexion", description: "Depuis l'écran PIN, touchez 'Déconnexion' pour revenir à l'écran de connexion. Si la biométrie est activée, vous pourrez vous reconnecter rapidement avec l'empreinte ou Face ID." }
         ]
     },
     storeSelector: {

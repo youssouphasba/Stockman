@@ -42,7 +42,7 @@ const PLANS: PlanConfig[] = [
         icon: 'storefront-outline',
         stores: '1',
         users: '1',
-        priceEUR: '6,99 â‚¬',
+        priceEUR: '6,99 €',
         priceXOF: '2 500',
     },
     {
@@ -52,7 +52,7 @@ const PLANS: PlanConfig[] = [
         icon: 'rocket-outline',
         stores: '2',
         users: '5',
-        priceEUR: '9,99 â‚¬',
+        priceEUR: '9,99 €',
         priceXOF: '4 900',
     },
     {
@@ -60,9 +60,9 @@ const PLANS: PlanConfig[] = [
         labelKey: 'subscription.plan_enterprise',
         gradient: ['#7C3AED', '#5B21B6'],
         icon: 'business-outline',
-        stores: '8',
-        users: '8',
-        priceEUR: '14,99 â‚¬',
+        stores: '∞',
+        users: '∞',
+        priceEUR: '14,99 €',
         priceXOF: '9 900',
     },
 ];
@@ -148,9 +148,26 @@ export default function SubscriptionScreen() {
             const result = plan === 'pro' ? await purchasePro() : await purchaseStarter();
             if (!result.success) {
                 if (result.reason === 'cancelled') return;
-                const message = result.reason === 'offerings_unavailable' || result.reason === 'package_not_found'
-                    ? t('subscription.purchase_not_ready')
-                    : t('subscription.payment_failed');
+                const message = (
+                    result.reason === 'offerings_unavailable' || result.reason === 'package_not_found'
+                        ? t('subscription.purchase_not_ready')
+                        : result.reason === 'billing_unavailable'
+                            ? t('subscription.payment_billing_unavailable')
+                            : result.reason === 'item_unavailable'
+                                ? t('subscription.payment_item_unavailable')
+                                : result.reason === 'not_allowed'
+                                    ? t('subscription.payment_not_allowed')
+                                    : result.reason === 'network_error'
+                                        ? t('subscription.payment_network_error')
+                                        : result.reason === 'store_problem'
+                                            ? t('subscription.payment_store_error')
+                                            : result.reason === 'not_initialized'
+                                                ? t('subscription.iap_not_available')
+                                                : t('subscription.payment_failed')
+                );
+                if (result.debugCode) {
+                    console.warn('RevenueCat purchase failed with code:', result.debugCode);
+                }
                 Alert.alert(t('common.error'), message);
                 return;
             }
@@ -352,7 +369,7 @@ export default function SubscriptionScreen() {
                                         <Text style={styles.planCardDetail}>• {plan.users} {t('subscription.features.users')}</Text>
                                         <Text style={styles.planCardDetail}>
                                             • {plan.key === 'enterprise'
-                                                ? 'Organisation avancée, gouvernance et accompagnement dédié.'
+                                                ? 'Gestion web avancée, gouvernance multi-boutiques et accompagnement dédié.'
                                                 : 'Gestion et paiement directement depuis l’application.'}
                                         </Text>
                                     </View>
@@ -403,6 +420,9 @@ export default function SubscriptionScreen() {
                                 )}
                             </TouchableOpacity>
                         ) : null}
+                        {Platform.OS === 'android' ? (
+                            <Text style={styles.helperText}>{t('subscription.google_play_test_hint')}</Text>
+                        ) : null}
                         <Text style={styles.legalHint}>{t('subscription.legal_links_hint')}</Text>
                         <View style={styles.legalLinksRow}>
                             <TouchableOpacity
@@ -452,13 +472,13 @@ export default function SubscriptionScreen() {
                         </View>
                         <Text style={styles.enterpriseDesc}>
                             {isIOS
-                                ? 'Le plan Enterprise est destiné aux équipes multi-boutiques et aux déploiements avancés. Cette page présente l’offre sans afficher de parcours de paiement externe.'
+                                ? 'Le plan Enterprise est destiné aux équipes multi-boutiques avec pilotage web avancé. Cette page présente l’offre sans afficher de parcours de paiement externe.'
                                 : (t('subscription.enterprise_contact_desc') || 'Pour accéder au plan Enterprise, ouvrez la présentation dédiée sur le web.')}
                         </Text>
                         {isIOS ? (
                             <View style={styles.enterpriseInfoCard}>
                                 <Text style={styles.enterpriseInfoText}>
-                                    Assistance dédiée, gouvernance multi-sites, accompagnement au déploiement et paramétrage avancé.
+                                    Assistance dédiée, gouvernance multi-sites, back-office web avancé et accompagnement au déploiement.
                                 </Text>
                             </View>
                         ) : (

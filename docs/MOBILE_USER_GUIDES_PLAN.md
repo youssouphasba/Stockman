@@ -247,7 +247,7 @@ Permet de créer un nouveau compte commerçant ou fournisseur.
 | Clavier numérique | Grille de TouchableOpacity | Saisie du code PIN à 4 chiffres |
 | Points indicateurs | Circles animés | Affichent le nombre de chiffres saisis |
 | Icône biométrie | TouchableOpacity | Empreinte digitale / Face ID (si activé) |
-| Bouton « Déconnexion » | TouchableOpacity texte | Retour à l'écran de connexion |
+| Bouton « Déconnexion » | TouchableOpacity texte | Retour à l'écran de connexion (la reconnexion biométrique reste possible si activée) |
 | Icône retour arrière | TouchableOpacity | Supprime le dernier chiffre saisi |
 
 #### Le guide doit couvrir
@@ -340,7 +340,7 @@ Permet de créer un nouveau compte commerçant ou fournisseur.
 | `HelpCenter` | `frontend/components/HelpCenter.tsx` | Modal listant tous les guides par module |
 | `ScreenGuide` | `frontend/components/ScreenGuide.tsx` | Overlay pas-à-pas (4-7 étapes) sur l'écran courant |
 | `AiSupportModal` | `frontend/components/AiSupportModal.tsx` | Chat IA (Gemini) pour aide contextuelle |
-| `ContactSupportModal` | `frontend/components/ContactSupportModal.tsx` | Création + suivi de tickets support (2 onglets : Nouveau / Mes tickets) |
+| `ContactSupportModal` | `frontend/components/ContactSupportModal.tsx` | Création + suivi de tickets support (2 onglets : Nouveau / Mes tickets) dans une modale panneau pleine hauteur |
 
 #### ContactSupportModal — Détail des onglets
 
@@ -713,10 +713,13 @@ Pour les secteurs avec production (boulangerie, couture, etc.) :
 |-------|-------|--------|
 | Chiffre d'affaires | `cash-outline` | CA de la période |
 | Bénéfice brut | `trending-up-outline` | Marge brute |
-| Dépenses | `wallet-outline` | Total des dépenses |
+| Dépenses | `wallet-outline` | Total des dépenses (tap = catégories dominantes) |
 | Bénéfice net | `stats-chart-outline` | CA − dépenses |
+| Pertes | `warning-outline` | Total des pertes de la période (tap = détail par motif) |
 | Nombre de ventes | `receipt-outline` | Compteur de transactions |
 | Ticket moyen | `pricetag-outline` | CA / nombre de ventes |
+
+Les ratios affichés dans les détails KPI (dépenses, marge nette, taxes) sont déjà en pourcentage.
 
 ### Filtre de période
 
@@ -824,6 +827,7 @@ Pour les secteurs avec production (boulangerie, couture, etc.) :
 
 | Bouton | Icône | Action |
 |--------|-------|--------|
+| Ouvrir fiche fournisseur | Tap sur la carte | Ouvre la modale détaillée du fournisseur |
 | Ajouter fournisseur | `add` (flottant) | Ouvre la modal de création |
 | Filtres | `filter-outline` | Ouvre les filtres (recherche, catégorie) |
 | Inviter fournisseur | `person-add-outline` | Envoie une invitation au fournisseur |
@@ -947,18 +951,17 @@ Pour les secteurs avec production (boulangerie, couture, etc.) :
 
 | Élément | Type | Description |
 |---------|------|-------------|
-| Liste des promotions | Cartes horizontales | Nom, type (% ou fixe), dates, statut actif/inactif |
-| Bouton créer promo | `add-circle-outline` | Ouvre la modal de création |
-| Bouton supprimer promo | `trash-outline` (long press) | Supprime avec confirmation |
-| Édition promo | Tap sur la carte | Ouvre la modal d'édition |
+| Carte rapide créer promo | `quickActionCard` | Ouvre la modal de création de promotion |
+| Formulaire promo | Modal | Titre, description, remise (%) ou points, audience cible |
+| Validation promo | Bouton principal | Crée ou met à jour la promotion |
 
 ### Campagnes marketing
 
 | Élément | Type | Description |
 |---------|------|-------------|
-| Bouton créer campagne | TouchableOpacity | Ouvre la modal de campagne |
-| Sélecteur de cible | Modal multi-sélection | Tous les clients, par palier, par catégorie, sélection manuelle |
-| Type de campagne | SMS ou Email |
+| Carte rapide campagne | `quickActionCard` | Ouvre la modal de campagne WhatsApp |
+| Sélecteur de cible | Modal multi-sélection | Tous les clients, par palier ou sélection manuelle |
+| Type de campagne | WhatsApp (lancement depuis la modal) |
 | Message | TextInput multiline | Contenu du message |
 | Bouton envoyer | TouchableOpacity principal | Envoie la campagne |
 
@@ -1005,9 +1008,11 @@ Pour les secteurs avec production (boulangerie, couture, etc.) :
 
 | Bouton | Icône | Action |
 |--------|-------|--------|
-| Nouvelle commande | `add` (flottant) | Ouvre la modal de création |
+| Importer une facture | `scan-outline` | Lance le scan de facture fournisseur |
+| Exporter | `document-text-outline` | Exporte les commandes en PDF |
 | Guide | `help-circle-outline` | Lance le `ScreenGuide` commandes |
-| Filtres | Puces de statut | Filtre par statut (toutes, en attente, confirmée, etc.) |
+| Nouvelle commande | `add` | Ouvre la modal de création |
+| Filtres | Carte repliable `Filtres` | Affiche ou masque les filtres avancés (statut, période, fournisseur) sans cacher la liste |
 
 ### Modal création de commande
 
@@ -1415,6 +1420,7 @@ L'écran est organisé en sections repliables (`SettingsAccordionSection`).
 |--------|-----------|--------|
 | Payer par Flutterwave | Afrique (Mobile Money) | Redirige vers le paiement Flutterwave |
 | Payer par RevenueCat | Play Store / App Store | Lance l'achat in-app via RevenueCat |
+| Aide test Google Play | Android (test interne) | Rappelle d'utiliser un compte testeur autorisé (tests de licence + piste de test) |
 | Contacter pour Enterprise | Toujours visible | Ouvre le formulaire de contact Enterprise |
 | Récupérer mon abonnement | Toujours visible | Retrouve un abonnement déjà payé après réinstallation ou changement de téléphone (RevenueCat) |
 | Retour | Flèche gauche | Retourne à l'écran précédent |

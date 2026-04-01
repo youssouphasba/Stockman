@@ -39,9 +39,10 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.firebaseapp.com https://*.googleapis.com",
-              "script-src-elem 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://*.firebaseapp.com https://*.googleapis.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.firebaseapp.com https://*.googleapis.com https://www.gstatic.com",
+              "script-src-elem 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://*.firebaseapp.com https://*.googleapis.com https://www.gstatic.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://www.gstatic.com",
+              "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://www.gstatic.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https:",
               "connect-src 'self' https://stockman-production-149d.up.railway.app https://*.googleapis.com https://*.firebaseio.com https://accounts.google.com wss://*.firebaseio.com",

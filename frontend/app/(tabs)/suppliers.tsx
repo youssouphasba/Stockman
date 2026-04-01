@@ -1497,7 +1497,7 @@ export default function SuppliersScreen() {
         {/* Detail Modal */}
         {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, styles.detailModalContent]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{detailSupplier?.name}</Text>
                 <TouchableOpacity onPress={() => setShowDetailModal(false)}>
@@ -1506,7 +1506,7 @@ export default function SuppliersScreen() {
               </View>
 
               {detailSupplier && (
-                <View style={{ flex: 1 }}>
+                <View style={styles.detailModalBody}>
                   {/* Modal Tabs */}
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalTabs}>
                     {[
@@ -1534,7 +1534,7 @@ export default function SuppliersScreen() {
                     ))}
                   </ScrollView>
 
-                  <ScrollView style={styles.modalScroll}>
+                  <ScrollView style={styles.detailModalScroll}>
                     {detailLoading && !linkedProducts.length && (
                       <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
                     )}
@@ -2944,11 +2944,20 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     backgroundColor: colors.bgMid, borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl, padding: Spacing.lg, maxHeight: '85%',
   },
+  detailModalContent: {
+    height: '85%',
+  },
   modalHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md,
   },
   modalTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
   modalScroll: { maxHeight: 500 },
+  detailModalBody: {
+    flex: 1,
+  },
+  detailModalScroll: {
+    flex: 1,
+  },
   formGroup: { marginBottom: Spacing.md },
   formLabel: { color: colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600', marginBottom: Spacing.xs },
   formInput: {

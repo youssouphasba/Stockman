@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Linking from 'expo-linking';
-import { auth as authApi, stores as storesApi, userFeatures, getToken, setToken, removeToken, setRefreshToken, User } from '../services/api';
+import { auth as authApi, stores as storesApi, userFeatures, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeAccessToken, User } from '../services/api';
 import { initPurchases } from '../services/purchases';
 import { cache } from '../services/cache';
 import { isRestaurantBusiness } from '../utils/business';
@@ -31,7 +31,7 @@ type AuthState = {
   register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string, signupSurface?: 'mobile' | 'web') => Promise<User>;
   verifyPhone: (firebaseIdToken: string) => Promise<User>;
   verifyEmail: (otp: string) => Promise<User>;
-  restoreSession: () => Promise<User | null>;
+  restoreSession: (allowRefreshFallback?: boolean) => Promise<User | null>;
   logout: () => Promise<void>;
   switchStore: (storeId: string) => Promise<void>;
   setPin: (pin: string) => Promise<void>;
@@ -69,18 +69,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const restoreSession = useCallback(async () => {
+  const restoreSession = useCallback(async (allowRefreshFallback: boolean = false) => {
     const token = await getToken();
-    if (!token) {
+    const refreshToken = !token ? await getRefreshToken() : null;
+    if (!token && (!allowRefreshFallback || !refreshToken)) {
       setUser(null);
       setHasProduction(false);
       setIsRestaurant(false);
       return null;
     }
-
-    const userData = await authApi.me();
-    await hydrateAuthenticatedUser(userData);
-    return userData;
+    try {
+      const userData = await authApi.me();
+      await hydrateAuthenticatedUser(userData);
+      return userData;
+    } catch {
+      setUser(null);
+      setHasProduction(false);
+      setIsRestaurant(false);
+      return null;
+    }
   }, [hydrateAuthenticatedUser]);
 
   const consumeDemoLink = useCallback(async (url?: string | null) => {
@@ -213,7 +220,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setHasProduction(false);
     setIsRestaurant(false);
     setIsAppLocked(false);
-    await removeToken();
+    if (Platform.OS !== 'web' && isBiometricsEnabled) {
+      await removeAccessToken();
+    } else {
+      await removeToken();
+    }
 
     try {
       await authApi.logout();

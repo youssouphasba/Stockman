@@ -859,6 +859,9 @@ export default function AdminDashboard() {
 
     const securityStatsSummary = securityStats || {};
     const subscriptionAlertsSummary = subscriptionAlerts || { summary: {}, items: [] };
+    const subscriptionMrrEstimate = Array.isArray(subscriptionOverview?.mrr_estimate)
+        ? subscriptionOverview.mrr_estimate
+        : [];
 
     const securityInsights = useMemo(() => {
         const failed = securityEvents.filter((event) => String(event.type || '').toLowerCase().includes('failed'));
@@ -910,7 +913,7 @@ export default function AdminDashboard() {
         );
 
         const reminderCandidates = accounts.filter((account: any) =>
-            (account.last_payment_links.stripe_url || account.last_payment_links.flutterwave_url) &&
+            (account.last_payment_links?.stripe_url || account.last_payment_links?.flutterwave_url) &&
             (
                 ['grace', 'restricted', 'read_only'].includes(String(account.subscription_access_phase || '')) ||
                 ['expired', 'cancelled'].includes(String(account.subscription_status || '')) ||
@@ -1686,10 +1689,10 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <StatCard
                             label="MRR estime"
-                            value={subscriptionOverview.mrr_estimate.length ? formatAdminMoney(subscriptionOverview.mrr_estimate[0].amount, subscriptionOverview.mrr_estimate[0].currency) : "-"}
+                            value={subscriptionMrrEstimate.length ? formatAdminMoney(subscriptionMrrEstimate[0].amount, subscriptionMrrEstimate[0].currency) : "-"}
                             icon={TrendingUp}
                             color="bg-primary"
-                            sub={subscriptionOverview.mrr_estimate.length > 1 ? `+${subscriptionOverview.mrr_estimate.length - 1} devises` : 'Devise principale'}
+                            sub={subscriptionMrrEstimate.length > 1 ? `+${subscriptionMrrEstimate.length - 1} devises` : 'Devise principale'}
                         />
                         <StatCard label="Annuls" value={subscriptionOverview.cancelled_accounts || 0} icon={X} color="bg-slate-500" sub="Periode active" />
                         <StatCard label="Expirs" value={subscriptionOverview.expired_accounts || 0} icon={Clock} color="bg-rose-500" sub="Periode active" />
@@ -1899,9 +1902,9 @@ export default function AdminDashboard() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col gap-2 text-xs">
-                                                    {account.last_payment_links.stripe_url ? (
+                                                    {account.last_payment_links?.stripe_url ? (
                                                         <a
-                                                            href={account.last_payment_links.stripe_url}
+                                                            href={account.last_payment_links?.stripe_url}
                                                             target="_blank"
                                                             rel="noreferrer"
                                                             className="inline-flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-primary hover:bg-primary/20 transition"
@@ -1911,9 +1914,9 @@ export default function AdminDashboard() {
                                                     ) : (
                                                         <span className="text-slate-600">Stripe: —</span>
                                                     )}
-                                                    {account.last_payment_links.flutterwave_url ? (
+                                                    {account.last_payment_links?.flutterwave_url ? (
                                                         <a
-                                                            href={account.last_payment_links.flutterwave_url}
+                                                            href={account.last_payment_links?.flutterwave_url}
                                                             target="_blank"
                                                             rel="noreferrer"
                                                             className="inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-200 hover:bg-emerald-500/20 transition"

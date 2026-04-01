@@ -25,6 +25,7 @@ export default function AuthEntryScreen() {
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [pendingDemoType, setPendingDemoType] = useState<'retail' | 'restaurant' | null>(null);
   const [countrySearch, setCountrySearch] = useState('');
+  const primaryCtaContentColor = isDark ? '#fff' : colors.text;
   const styles = React.useMemo(() => createStyles(colors, glassStyle, isDark), [colors, glassStyle, isDark]);
 
   function toggleThemeQuick() {
@@ -111,8 +112,8 @@ export default function AuthEntryScreen() {
 
           <Link href="/(auth)/login" asChild>
             <TouchableOpacity style={[styles.cta, styles.ctaPrimary]}>
-              <Ionicons name="log-in-outline" size={20} color="#fff" />
-              <Text style={styles.ctaPrimaryText}>{t('auth.login.signIn')}</Text>
+              <Ionicons name="log-in-outline" size={20} color={primaryCtaContentColor} />
+              <Text style={[styles.ctaPrimaryText, { color: primaryCtaContentColor }]}>{t('auth.login.signIn')}</Text>
             </TouchableOpacity>
           </Link>
 
@@ -182,8 +183,14 @@ export default function AuthEntryScreen() {
               <FlatList
                 data={filteredCountries}
                 keyExtractor={item => item.code}
-                style={{ flex: 1 }}
+                style={pickerStyles.list}
+                contentContainerStyle={pickerStyles.listContent}
                 keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={
+                  <Text style={[pickerStyles.emptyText, { color: colors.textMuted }]}>
+                    Aucun pays ne correspond à votre recherche.
+                  </Text>
+                }
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={pickerStyles.row}
@@ -219,7 +226,7 @@ const pickerStyles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    maxHeight: '80%',
+    height: '80%',
     paddingBottom: 24,
   },
   header: {
@@ -254,6 +261,12 @@ const pickerStyles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
   },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingVertical: 6,
+  },
   flag: {
     fontSize: 22,
     width: 30,
@@ -278,6 +291,12 @@ const pickerStyles = StyleSheet.create({
   cancelText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  emptyText: {
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 
@@ -360,7 +379,7 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
       borderColor: `${colors.primary}66`,
     },
     ctaPrimaryText: {
-      color: '#fff',
+      color: isDark ? '#fff' : colors.text,
       fontSize: FontSize.md,
       fontWeight: '800',
     },

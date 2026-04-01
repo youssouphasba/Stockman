@@ -234,8 +234,9 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                         </TouchableOpacity>
                     </View>
 
+                    <View style={styles.contentArea}>
                     {tab === 'new' ? (
-                        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                        <ScrollView style={styles.contentArea} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                             <View style={styles.form}>
                                 {/* WhatsApp Integration */}
                                 <TouchableOpacity
@@ -286,7 +287,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                             </View>
                         </ScrollView>
                     ) : (
-                        <View style={{ flex: 1 }}>
+                        <View style={styles.contentArea}>
                             {ticketsLoading ? (
                                 <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
                             ) : tickets.length === 0 ? (
@@ -342,6 +343,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                             )}
                         </View>
                     )}
+                    </View>
                 </KeyboardAvoidingView>
             </View>
         </Modal>
@@ -355,11 +357,12 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     container: {
+        width: '100%',
+        height: '82%',
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: 20,
         paddingBottom: 40,
-        maxHeight: '85%',
     },
     header: {
         flexDirection: 'row',
@@ -375,6 +378,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 8,
         marginBottom: 16,
+    },
+    contentArea: {
+        flex: 1,
+        minHeight: 0,
     },
     tab: {
         flex: 1,

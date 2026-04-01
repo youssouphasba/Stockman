@@ -35,9 +35,14 @@ const GOOGLE_CLIENT_ID_KEYS = [
   'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
 ] as const;
 const GOOGLE_CLIENT_ID_PLACEHOLDER = 'google-auth-not-configured';
+const GOOGLE_CLIENT_IDS: Record<(typeof GOOGLE_CLIENT_ID_KEYS)[number], string | undefined> = {
+  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim(),
+  EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim(),
+  EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim(),
+};
 
 function getGoogleClientId(envKey: (typeof GOOGLE_CLIENT_ID_KEYS)[number]) {
-  const value = process.env[envKey]?.trim();
+  const value = GOOGLE_CLIENT_IDS[envKey];
   return value ? value : undefined;
 }
 
@@ -214,7 +219,7 @@ export default function LoginScreen() {
       if (result.success) {
         setLoading(true);
         try {
-          const restoredUser = await restoreSession();
+          const restoredUser = await restoreSession(true);
           if (restoredUser) {
             router.replace('/(tabs)');
           } else {
@@ -233,7 +238,12 @@ export default function LoginScreen() {
 
   async function handleGoogleLogin() {
     if (!googleClientIds.hasConfig) {
-      setError(t('auth.login.googleConfigMissing'));
+      const missingKey = Platform.select({
+        ios: 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
+        android: 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID',
+        default: 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+      });
+      setError(`${t('auth.login.googleConfigMissing')} (${missingKey})`);
       return;
     }
     if (!googleRequest) {

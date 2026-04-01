@@ -525,7 +525,6 @@ export default function AccountingScreen() {
     const topExpenseCategories = (stats?.top_expense_categories ?? [])
         .slice()
         .sort((a, b) => b.amount - a.amount);
-    const totalLossAmount = topLossEntries.reduce((sum, item) => sum + item.amount, 0);
     const firstRevenuePoint = revenueSeries[0]?.revenue ?? 0;
     const lastRevenuePoint = revenueSeries[revenueSeries.length - 1]?.revenue ?? 0;
     const revenueDelta = lastRevenuePoint - firstRevenuePoint;
@@ -569,18 +568,18 @@ export default function AccountingScreen() {
                 return [
                     `Marge brute : ${formatCurrency(stats?.gross_profit ?? 0)}`,
                     `Coût d'achat total : ${formatCurrency(stats?.cogs ?? 0)}`,
-                    `Taux de marge brute : ${((stats?.gross_margin_pct ?? marginPercentage) || 0).toFixed(1)} %`,
+                    `Taux de marge brute : ${grossMarginPercentage.toFixed(1)} %`,
                 ];
             case 'expenses':
                 return [
                     `Total des dépenses : ${formatCurrency(stats?.expenses ?? 0)}`,
                     `Catégories suivies : ${topExpenseCategories.length || Object.keys(stats?.expenses_breakdown ?? {}).length}`,
-                    `Poids des dépenses : ${((stats?.expense_ratio ?? 0) * 100).toFixed(1)} % du chiffre d'affaires`,
+                    `Poids des dépenses : ${expenseRatioPercentage.toFixed(1)} % du chiffre d'affaires`,
                 ];
             case 'net_profit':
                 return [
                     `Résultat net : ${formatCurrency(stats?.net_profit ?? 0)}`,
-                    `Marge nette : ${((stats?.net_margin_pct ?? 0) * 100).toFixed(1)} %`,
+                    `Marge nette : ${netMarginPercentage.toFixed(1)} %`,
                     `Pertes comptabilisées : ${formatCurrency(stats?.total_losses ?? 0)}`,
                 ];
             case 'stock':
@@ -610,7 +609,7 @@ export default function AccountingScreen() {
             case 'tax':
                 return [
                     `Taxes collectées : ${formatCurrency((stats as any)?.tax_collected ?? 0)}`,
-                    `Taux sur l'activité : ${((stats?.tax_ratio ?? 0) * 100).toFixed(1)} %`,
+                    `Taux sur l'activité : ${(stats?.tax_ratio ?? 0).toFixed(1)} %`,
                 ];
         }
     }
@@ -918,8 +917,14 @@ export default function AccountingScreen() {
         );
     }
 
-    const marginPercentage = stats && stats.revenue > 0
+    const grossMarginPercentage = stats && stats.revenue > 0
         ? (stats.gross_profit / stats.revenue) * 100
+        : 0;
+    const netMarginPercentage = stats && stats.revenue > 0
+        ? (stats.net_profit / stats.revenue) * 100
+        : 0;
+    const expenseRatioPercentage = stats && stats.revenue > 0
+        ? (stats.expenses / stats.revenue) * 100
         : 0;
 
     const paymentColors = [
@@ -1004,7 +1009,7 @@ export default function AccountingScreen() {
                                 <Text style={[styles.kpiValue, { color: colors.primary }]}>
                                     {formatCurrency(stats?.gross_profit ?? 0)}
                                 </Text>
-                                <Text style={styles.kpiSubValue}>{t('accounting.margin_percentage', { percentage: marginPercentage.toFixed(1) })}</Text>
+                                <Text style={styles.kpiSubValue}>{t('accounting.margin_percentage', { percentage: grossMarginPercentage.toFixed(1) })}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.warning + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('expenses')}>
@@ -1280,57 +1285,6 @@ export default function AccountingScreen() {
                                 </View>
                             )
                         }
-
-                        {/* Loss Breakdown */}
-                        {
-                            stats && Object.keys(stats.loss_breakdown).length > 0 && (
-                                <View style={styles.section}>
-                                    <Text style={styles.sectionTitle}>{t('accounting.loss_details')}</Text>
-                                    <Text style={styles.sectionSubtitle}>
-                                        {topLossEntries[0]
-                                            ? `Motif principal : ${getLossLabel(topLossEntries[0].reason)}`
-                                            : 'Aucune perte enregistrée sur la période.'}
-                                    </Text>
-                                    <View style={styles.tableContainer}>
-                                        {topLossEntries.map(({ reason, amount }) => {
-                                            const ratio = totalLossAmount > 0 ? amount / totalLossAmount : 0;
-                                            return (
-                                            <View key={reason} style={styles.lossRow}>
-                                                <View style={styles.lossRowHeader}>
-                                                    <Text style={styles.tableLabel}>{getLossLabel(reason)}</Text>
-                                                    <Text style={styles.tableDanger}>{formatCurrency(amount)}</Text>
-                                                </View>
-                                                <View style={styles.lossBarTrack}>
-                                                    <View style={[styles.lossBarFill, { width: `${Math.max(ratio * 100, 6)}%`, backgroundColor: colors.danger }]} />
-                                                </View>
-                                                <Text style={styles.lossMeta}>{`${(ratio * 100).toFixed(0)} % des pertes`}</Text>
-                                            </View>
-                                        )})}
-                                    </View>
-                                </View>
-                            )
-                        }
-
-                        {topExpenseCategories.length > 0 && (
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>Dépenses dominantes</Text>
-                                <Text style={styles.sectionSubtitle}>Les catégories qui pèsent le plus sur la période.</Text>
-                                <View style={styles.tableContainer}>
-                                    {topExpenseCategories.slice(0, 4).map((category) => (
-                                        <View key={category.category} style={styles.lossRow}>
-                                            <View style={styles.lossRowHeader}>
-                                                <Text style={styles.tableLabel}>{category.label || category.category}</Text>
-                                                <Text style={styles.tableDanger}>{formatCurrency(category.amount)}</Text>
-                                            </View>
-                                            <View style={styles.lossBarTrack}>
-                                                <View style={[styles.lossBarFill, { width: `${Math.max(category.ratio * 100, 6)}%`, backgroundColor: colors.warning }]} />
-                                            </View>
-                                            <Text style={styles.lossMeta}>{`${(category.ratio * 100).toFixed(0)} % des dépenses`}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        )}
 
                         {/* Performance par Produit */}
                         {stats && stats.product_performance && stats.product_performance.length > 0 && (
@@ -1876,9 +1830,9 @@ export default function AccountingScreen() {
                                     {activeKpiDetail === 'losses' && (
                                         <View style={styles.kpiDetailBlock}>
                                             {topLossEntries.map(({ reason, amount }) => (
-                                                <View key={reason} style={styles.tableRow}>
-                                                    <Text style={styles.tableLabel}>{getLossLabel(reason)}</Text>
-                                                    <Text style={[styles.tableLabel, { color: colors.danger, fontWeight: '700' }]}>{formatCurrency(amount)}</Text>
+                                                <View key={reason} style={[styles.tableRow, styles.kpiLossRow]}>
+                                                    <Text numberOfLines={2} style={styles.kpiLossLabel}>{getLossLabel(reason)}</Text>
+                                                    <Text style={styles.kpiLossAmount}>{formatCurrency(amount)}</Text>
                                                 </View>
                                             ))}
                                         </View>
@@ -2042,6 +1996,24 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     },
     tableLabel: { color: colors.text, fontSize: FontSize.sm },
     tableDanger: { color: colors.danger, fontSize: FontSize.sm, fontWeight: '600' },
+    kpiLossRow: {
+        alignItems: 'center',
+        gap: Spacing.sm,
+    },
+    kpiLossLabel: {
+        color: colors.text,
+        fontSize: FontSize.sm,
+        flex: 1,
+        paddingRight: Spacing.sm,
+    },
+    kpiLossAmount: {
+        color: colors.danger,
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+        minWidth: 104,
+        textAlign: 'right',
+        flexShrink: 0,
+    },
     lossRow: {
         paddingVertical: Spacing.sm,
         borderBottomWidth: 1,

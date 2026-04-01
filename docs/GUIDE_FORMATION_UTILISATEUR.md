@@ -63,6 +63,7 @@ Après l'inscription, vous arrivez sur le **Tableau de Bord**. En bas de l'écra
 1. **Plus** → **Paramètres** → **Sécurité** → **Code PIN**.
 2. Créez un code à 4 chiffres pour verrouiller l'application.
 3. Après avoir activé le PIN, vous pouvez activer la **biométrie** (empreinte digitale ou Face ID) pour un accès encore plus rapide.
+4. Si vous vous déconnectez, la reconnexion biométrique reste possible tant que cette option est activée.
 
 > 💡 **Conseil** : Si vous partagez votre téléphone avec des employés, le PIN empêche l'accès non autorisé aux données sensibles.
 
@@ -357,6 +358,9 @@ Appuyez sur **Plus** (barre du bas) → **Comptabilité**.
 | **Total charges** | Somme des dépenses | 350 000 FCFA |
 | **Bénéfice Net** | Marge brute − Total charges | 600 000 FCFA |
 
+Pour analyser les pertes et les dépenses, touchez directement les cartes KPI **« Pertes »** et **« Dépenses »** en haut de l'écran : le détail s'ouvre dans la modale d'information.
+Les ratios affichés dans ces détails (poids des dépenses, marge nette, taux d'activité) sont déjà exprimés en pourcentage du chiffre d'affaires.
+
 ### 5.3 Enregistrer une dépense
 
 1. Appuyez sur **« Nouvelle dépense »**.
@@ -494,16 +498,16 @@ Stockman classe automatiquement vos clients en tiers :
 
 Créez des promotions pour vos clients :
 
-1. **CRM** → **Marketing** → **Promotions** → **« + »**.
-2. Donnez un titre (ex : « Fidélité Or — 10% de remise »).
+1. Ouvrez **CRM**, puis appuyez sur la carte rapide **Créer une promotion**.
+2. Donnez un titre (ex : "Fidélité Or - 10% de remise").
 3. Définissez la remise (en % ou en points).
-4. Activez/désactivez la promotion à tout moment.
+4. Enregistrez la promotion.
 
 ### 6.7 Campagnes WhatsApp & SMS
 
 Envoyez des messages promotionnels à vos clients :
-1. Allez dans **CRM** → **Marketing** → **Campagne WhatsApp**.
-2. Choisissez l'audience : Tous, un tier spécifique (ex : tous les clients Or), ou des clients individuels.
+1. Ouvrez **CRM**, puis appuyez sur la carte rapide **Campagne WhatsApp**.
+2. Choisissez l'audience : tous, un palier spécifique (ex : clients Or), ou des clients individuels.
 3. Rédigez votre message avec des **variables** : `{Nom}`, `{points}`.
 4. Envoyez.
 
@@ -561,6 +565,9 @@ Chaque commande passe par des étapes :
 ```
 
 Vous pouvez faire avancer le statut manuellement ou le fournisseur peut le faire depuis son propre compte Stockman.
+
+Sur mobile, les commandes principales (Importer une facture, Exporter, Guide, Nouvelle commande) restent visibles en haut de l'écran.
+Le panneau **« Filtres »** sert uniquement à afficher ou masquer les filtres avancés, sans masquer la liste des commandes.
 
 ### 7.6 Réception partielle de marchandise
 

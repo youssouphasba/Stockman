@@ -21013,12 +21013,13 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
     expiry_alerts = []
     thirty_days_later = datetime.now(timezone.utc) + timedelta(days=30)
     
-    expiring_soon = await db.batches.find({
+    expiry_query = {
         "user_id": user_id,
-        "store_id": store_id,
         "quantity": {"$gt": 0},
-        "expiry_date": {"$lte": thirty_days_later, "$ne": None}
-    }, {"_id": 0}).to_list(100)
+        "expiry_date": {"$lte": thirty_days_later, "$ne": None},
+    }
+    expiry_query = apply_store_scope(expiry_query, user)
+    expiring_soon = await db.batches.find(expiry_query, {"_id": 0}).to_list(100)
     
     for b in expiring_soon:
         prod = next((p for p in products if p["product_id"] == b["product_id"]), None)

@@ -51,6 +51,35 @@ const SECTORS = [
   { key: 'autre', label: 'Autre', icon: 'apps-outline' },
 ] as const;
 
+const ASCII_UPPER_A = 65;
+const ASCII_UPPER_Z = 90;
+const REGIONAL_INDICATOR_A = 0x1f1e6;
+const FALLBACK_FLAG = '🏳️';
+
+function getCountryFlag(country: Country): string {
+  const normalizedCode = country.code?.trim().toUpperCase();
+  if (normalizedCode?.length !== 2) {
+    return country.flag || FALLBACK_FLAG;
+  }
+
+  const first = normalizedCode.charCodeAt(0);
+  const second = normalizedCode.charCodeAt(1);
+  const hasOnlyAsciiLetters =
+    first >= ASCII_UPPER_A &&
+    first <= ASCII_UPPER_Z &&
+    second >= ASCII_UPPER_A &&
+    second <= ASCII_UPPER_Z;
+
+  if (!hasOnlyAsciiLetters) {
+    return country.flag || FALLBACK_FLAG;
+  }
+
+  return String.fromCodePoint(
+    REGIONAL_INDICATOR_A + (first - ASCII_UPPER_A),
+    REGIONAL_INDICATOR_A + (second - ASCII_UPPER_A),
+  );
+}
+
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const { register } = useAuth();
@@ -307,7 +336,7 @@ export default function RegisterScreen() {
 
                   <Field label={authText.countryCurrency} styles={styles}>
                     <TouchableOpacity style={styles.selector} onPress={() => setShowCountryModal(true)}>
-                      <Text style={styles.selectorFlag}>{selectedCountry.flag}</Text>
+                      <Text style={styles.selectorFlag}>{getCountryFlag(selectedCountry)}</Text>
                       <Text style={styles.selectorValue}>{selectedCountry.name}</Text>
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{selectedCountry.currency}</Text>
@@ -523,7 +552,7 @@ export default function RegisterScreen() {
               setCountrySearch('');
             }}
           >
-            <Text style={styles.modalItemTitle}>{item.flag} {item.name}</Text>
+            <Text style={styles.modalItemTitle}>{getCountryFlag(item)} {item.name}</Text>
             <Text style={styles.modalItemMeta}>{item.dialCode} • {item.currency}</Text>
           </TouchableOpacity>
         )}

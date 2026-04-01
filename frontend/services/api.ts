@@ -81,6 +81,14 @@ async function removeToken(): Promise<void> {
   }
 }
 
+async function removeAccessToken(): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(TOKEN_KEY);
+  } else {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+  }
+}
+
 async function getRefreshToken(): Promise<string | null> {
   if (Platform.OS === 'web') return localStorage.getItem(REFRESH_TOKEN_KEY);
   return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
@@ -1591,7 +1599,7 @@ export const exportApi = {
   movementsUrl: () => `${API_URL}/api/export/movements/csv`,
 };
 
-export { getToken, setToken, removeToken, setRefreshToken };
+export { getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeAccessToken };
 
 // =================== Pagination ===================
 

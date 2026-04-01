@@ -246,7 +246,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'sync-outline', title: "Synchronisation", description: "Vérifiez l'état de connexion, les actions en attente et les commandes de synchronisation." },
       { icon: 'help-circle-outline', title: "Support et incidents", description: "Le centre d'aide, l'assistant et le contact support sont regroupés au même endroit." },
       { icon: 'warning-outline', title: "Déclarer un incident", description: "Utilisez ce formulaire quand vous devez remonter un incident ou une anomalie importante." },
-      { icon: 'lock-closed-outline', title: "Sécurité et données", description: "Le code PIN, la biométrie, l'export et la suppression du compte sont dans cette zone sensible." },
+      { icon: 'lock-closed-outline', title: "Sécurité et données", description: "Le code PIN, la biométrie, l'export et la suppression du compte sont dans cette zone sensible. Après une déconnexion, la reconnexion biométrique reste disponible si elle est activée." },
       { icon: 'help-circle-outline', title: "Centre d'aide", description: "Retrouvez ici les guides embarqués et les accès utiles quand vous avez besoin d'être accompagné dans l'application." },
     ],
   },

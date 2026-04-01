@@ -789,40 +789,46 @@ export default function OrdersScreen() {
               </Text>
             </View>
             <View style={styles.headerActionsRow}>
-              <TouchableOpacity
-                style={[styles.headerActionChip, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}
-                onPress={handleScanInvoice}
-                disabled={scanLoading}
-              >
-                {scanLoading ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Ionicons name="scan-outline" size={22} color={colors.primary} />
-                )}
-                <Text style={[styles.headerActionText, { color: colors.primary }]}>Importer une facture</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerActionChip} onPress={exportOrdersPdf}>
-                <Ionicons name="document-text-outline" size={22} color={colors.text} />
-                <Text style={styles.headerActionText}>Exporter</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerActionChip} onPress={() => setShowGuide(true)}>
-                <Ionicons name="help-circle-outline" size={24} color={colors.text} />
-                <Text style={styles.headerActionText}>Guide</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.addBtn, styles.addBtnExtended]}
-                onPress={() => {
-                  if (activeTab === 'orders') {
-                    setPreSelectedProductId(null);
-                    setShowCreateModal(true);
-                    return;
-                  }
-                  openCreateReturn();
-                }}
-              >
-                <Ionicons name="add" size={24} color="#fff" />
-                <Text style={styles.addBtnText}>{activeTab === 'orders' ? 'Nouvelle commande' : 'Nouveau retour'}</Text>
-              </TouchableOpacity>
+              <View style={styles.headerActionsGrid}>
+                <TouchableOpacity
+                  style={[styles.headerActionChip, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}
+                  onPress={handleScanInvoice}
+                  disabled={scanLoading}
+                >
+                  {scanLoading ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Ionicons name="scan-outline" size={20} color={colors.primary} />
+                  )}
+                  <Text numberOfLines={1} style={[styles.headerActionText, { color: colors.primary }]}>Importer facture</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.headerActionChip} onPress={exportOrdersPdf}>
+                  <Ionicons name="document-text-outline" size={20} color={colors.text} />
+                  <Text numberOfLines={1} style={styles.headerActionText}>Exporter</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.headerActionsGrid}>
+                <TouchableOpacity style={styles.headerActionChip} onPress={() => setShowGuide(true)}>
+                  <Ionicons name="help-circle-outline" size={20} color={colors.text} />
+                  <Text numberOfLines={1} style={styles.headerActionText}>Guide</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.headerActionChip, styles.headerPrimaryActionChip]}
+                  onPress={() => {
+                    if (activeTab === 'orders') {
+                      setPreSelectedProductId(null);
+                      setShowCreateModal(true);
+                      return;
+                    }
+                    openCreateReturn();
+                  }}
+                >
+                  <Ionicons name="add" size={20} color="#fff" />
+                  <Text numberOfLines={1} style={styles.headerPrimaryActionText}>
+                    {activeTab === 'orders' ? 'Nouvelle commande' : 'Nouveau retour'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -893,7 +899,7 @@ export default function OrdersScreen() {
             activeOpacity={0.85}
           >
             <View style={styles.sectionToggleCopy}>
-              <Text style={styles.sectionToggleTitle}>Filtres et pilotage</Text>
+              <Text style={styles.sectionToggleTitle}>Filtres</Text>
               <Text style={styles.sectionToggleDescription}>{orderPanelSummary}</Text>
             </View>
             <Ionicons
@@ -903,62 +909,66 @@ export default function OrdersScreen() {
             />
           </TouchableOpacity>
 
-          {activeTab === 'orders' && showControlsPanel && (<>
-            {/* Date Filter */}
-            <View style={{ marginBottom: Spacing.md, paddingHorizontal: Spacing.xs }}>
-              <PeriodSelector
-                selectedPeriod={selectedPeriod}
-                onSelectPeriod={changePeriod}
-                startDate={startDate}
-                endDate={endDate}
-                onApplyCustomDate={handleApplyCustomDates}
-              />
-            </View>
+          {activeTab === 'orders' && (<>
+            {showControlsPanel && (
+              <>
+                {/* Date Filter */}
+                <View style={{ marginBottom: Spacing.md, paddingHorizontal: Spacing.xs }}>
+                  <PeriodSelector
+                    selectedPeriod={selectedPeriod}
+                    onSelectPeriod={changePeriod}
+                    startDate={startDate}
+                    endDate={endDate}
+                    onApplyCustomDate={handleApplyCustomDates}
+                  />
+                </View>
 
-            {/* Status filter */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 2 }}>
-              {['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'].map((f) => {
-                const isActive = f === 'all' ? statusFilter === null : statusFilter === f;
-                const cfg = f !== 'all' ? STATUS_CONFIG[f] : null;
-                return (
-                  <TouchableOpacity
-                    key={f}
-                    style={[styles.filterChip, isActive && styles.filterChipActive]}
-                    onPress={() => setStatusFilter(f === 'all' ? null : (f as any))}
-                  >
-                    {cfg && <View style={[styles.filterDot, { backgroundColor: cfg.color }]} />}
-                    <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
-                      {f === 'all' ? t('common.all') : cfg?.label || f}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                {/* Status filter */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 2 }}>
+                  {['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'].map((f) => {
+                    const isActive = f === 'all' ? statusFilter === null : statusFilter === f;
+                    const cfg = f !== 'all' ? STATUS_CONFIG[f] : null;
+                    return (
+                      <TouchableOpacity
+                        key={f}
+                        style={[styles.filterChip, isActive && styles.filterChipActive]}
+                        onPress={() => setStatusFilter(f === 'all' ? null : (f as any))}
+                      >
+                        {cfg && <View style={[styles.filterDot, { backgroundColor: cfg.color }]} />}
+                        <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                          {f === 'all' ? t('common.all') : cfg?.label || f}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
 
-            {/* Supplier filter */}
-            {filterSuppliers.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-                <TouchableOpacity
-                  style={[styles.filterChip, !supplierFilter && styles.filterChipActive]}
-                  onPress={() => setSupplierFilter(null)}
-                >
-                  <Ionicons name="people-outline" size={14} color={!supplierFilter ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
-                  <Text style={[styles.filterText, !supplierFilter && styles.filterTextActive]}>{t('orders.all_suppliers')}</Text>
-                </TouchableOpacity>
-                {filterSuppliers.map((sup) => (
-                  <TouchableOpacity
-                    key={sup.id}
-                    style={[styles.filterChip, supplierFilter === sup.id && styles.filterChipActive]}
-                    onPress={() => setSupplierFilter(sup.id)}
-                  >
-                    {sup.is_connected && <Ionicons name="cart" size={12} color={supplierFilter === sup.id ? colors.primaryLight : colors.textMuted} style={{ marginRight: 4 }} />}
-                    <Text style={[styles.filterText, supplierFilter === sup.id && styles.filterTextActive]}>
-                      {sup.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-                {suppliersLoading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 10 }} />}
-              </ScrollView>
+                {/* Supplier filter */}
+                {filterSuppliers.length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                    <TouchableOpacity
+                      style={[styles.filterChip, !supplierFilter && styles.filterChipActive]}
+                      onPress={() => setSupplierFilter(null)}
+                    >
+                      <Ionicons name="people-outline" size={14} color={!supplierFilter ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
+                      <Text style={[styles.filterText, !supplierFilter && styles.filterTextActive]}>{t('orders.all_suppliers')}</Text>
+                    </TouchableOpacity>
+                    {filterSuppliers.map((sup) => (
+                      <TouchableOpacity
+                        key={sup.id}
+                        style={[styles.filterChip, supplierFilter === sup.id && styles.filterChipActive]}
+                        onPress={() => setSupplierFilter(sup.id)}
+                      >
+                        {sup.is_connected && <Ionicons name="cart" size={12} color={supplierFilter === sup.id ? colors.primaryLight : colors.textMuted} style={{ marginRight: 4 }} />}
+                        <Text style={[styles.filterText, supplierFilter === sup.id && styles.filterTextActive]}>
+                          {sup.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    {suppliersLoading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 10 }} />}
+                  </ScrollView>
+                )}
+              </>
             )}
 
             {/* Supplier Summary Card */}
@@ -1105,24 +1115,26 @@ export default function OrdersScreen() {
           </>)}
 
           {/* Returns Tab */}
-          {activeTab === 'returns' && showControlsPanel && (
+          {activeTab === 'returns' && (
             <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 2 }}>
-                {['all', 'pending', 'approved', 'completed', 'rejected'].map((status) => {
-                  const isActive = status === 'all' ? returnStatusFilter === null : returnStatusFilter === status;
-                  return (
-                    <TouchableOpacity
-                      key={status}
-                      style={[styles.filterChip, isActive && styles.filterChipActive]}
-                      onPress={() => setReturnStatusFilter(status === 'all' ? null : status)}
-                    >
-                      <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
-                        {status === 'all' ? t('common.all') : t(`orders.${status}`, status)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+              {showControlsPanel && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 2 }}>
+                  {['all', 'pending', 'approved', 'completed', 'rejected'].map((status) => {
+                    const isActive = status === 'all' ? returnStatusFilter === null : returnStatusFilter === status;
+                    return (
+                      <TouchableOpacity
+                        key={status}
+                        style={[styles.filterChip, isActive && styles.filterChipActive]}
+                        onPress={() => setReturnStatusFilter(status === 'all' ? null : status)}
+                      >
+                        <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                          {status === 'all' ? t('common.all') : t(`orders.${status}`, status)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
 
               {/* Credit Notes Summary */}
               {creditNotesList.length > 0 && (
@@ -2036,19 +2048,21 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   content: { padding: Spacing.md, paddingTop: Spacing.xxl },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md,
+    marginBottom: Spacing.md,
   },
   headerActionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
+    marginTop: Spacing.sm,
     gap: Spacing.sm,
-    flex: 1,
-    marginLeft: Spacing.md,
+  },
+  headerActionsGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
   },
   headerActionChip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.xs,
     minHeight: 44,
     paddingHorizontal: Spacing.md,
@@ -2061,6 +2075,17 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.text,
     fontSize: FontSize.sm,
     fontWeight: '600',
+    flexShrink: 1,
+  },
+  headerPrimaryActionChip: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  headerPrimaryActionText: {
+    color: '#fff',
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    flexShrink: 1,
   },
   pageTitle: { fontSize: FontSize.xl, fontWeight: '700', color: colors.text },
   subtitle: { fontSize: FontSize.sm, color: colors.textSecondary, marginTop: Spacing.xs },

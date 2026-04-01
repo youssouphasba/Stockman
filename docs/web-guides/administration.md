@@ -92,6 +92,10 @@ Classement des boutiques par chiffre d'affaires avec nombre de ventes.
 
 ### Onglet Abonnements
 
+#### Robustesse des donnees
+- Si le MRR n'est pas encore disponible, la carte affiche `-` au lieu de bloquer l'ecran.
+- Si un compte n'a pas de liens de paiement, la colonne actions affiche `Stripe: —` et `Mobile Money: —`.
+
 #### KPI (8 cartes)
 
 | KPI | Description |
