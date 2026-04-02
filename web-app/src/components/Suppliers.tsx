@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
 import {
@@ -46,6 +46,7 @@ import {
     replenishment as replenishmentApi,
     products as productsApi,
     ai as aiApi,
+    ApiError,
     returns as returnsApi,
     creditNotes as creditNotesApi,
 } from '../services/api';
@@ -191,6 +192,9 @@ export default function Suppliers() {
     const [invoiceImporting, setInvoiceImporting] = useState(false);
     const [importedInvoicePreview, setImportedInvoicePreview] = useState<any | null>(null);
     const invoiceImportRef = useRef<HTMLInputElement | null>(null);
+    const supplierRatingsCacheRef = useRef<Record<string, any>>({});
+    const latestManualOrdersSyncRef = useRef(0);
+    const isPerfEnabled = typeof window !== 'undefined' && localStorage.getItem('stockman_perf') === '1';
 
     const applyMarketplaceProductContext = (payload: { productName: string; category: string; countryCode?: string; city?: string } | null | undefined) => {
         if (!payload) return;
@@ -313,32 +317,50 @@ export default function Suppliers() {
     };
 
     useEffect(() => {
-        loadData();
+        if (activeTab === 'marketplace') return;
+        void loadData();
     }, [activeTab, procurementDays]);
 
     // Vague 2: load supplier duplicates in background (once)
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const blockedUntil = Number(window.localStorage.getItem('stockman_ai_detect_duplicates_blocked_until') || '0');
+            if (Date.now() < blockedUntil) return;
+        }
+
         aiApi.detectDuplicates('suppliers').then(res => {
             if (res.total_found > 0) setSupplierDuplicates(res);
-        }).catch(() => {});
+        }).catch((err) => {
+            if (err instanceof ApiError && err.status === 429 && typeof window !== 'undefined') {
+                const blockedUntil = Date.now() + (12 * 60 * 60 * 1000);
+                window.localStorage.setItem('stockman_ai_detect_duplicates_blocked_until', String(blockedUntil));
+            }
+        });
     }, []);
 
     // Vague 3: load supplier ratings in background
     useEffect(() => {
         if (manualSuppliers.length === 0) return;
         const loadRatings = async () => {
-            const results = await Promise.allSettled(
-                manualSuppliers.map(s => aiApi.supplierRating(s.supplier_id))
+            const suppliersWithoutRating = manualSuppliers.filter(
+                (supplier: any) => !supplierRatingsCacheRef.current[supplier.supplier_id]
             );
-            const ratingsMap: Record<string, any> = {};
+            if (suppliersWithoutRating.length === 0) {
+                setSupplierRatings({ ...supplierRatingsCacheRef.current });
+                return;
+            }
+            const results = await Promise.allSettled(
+                suppliersWithoutRating.map((supplier: any) => aiApi.supplierRating(supplier.supplier_id))
+            );
             results.forEach((r, i) => {
                 if (r.status === 'fulfilled' && r.value.overall_score != null) {
-                    ratingsMap[manualSuppliers[i].supplier_id] = r.value;
+                    const supplierId = suppliersWithoutRating[i].supplier_id;
+                    supplierRatingsCacheRef.current[supplierId] = r.value;
                 }
             });
-            setSupplierRatings(ratingsMap);
+            setSupplierRatings({ ...supplierRatingsCacheRef.current });
         };
-        loadRatings();
+        void loadRatings();
     }, [manualSuppliers]);
 
     useEffect(() => {
@@ -377,7 +399,7 @@ export default function Suppliers() {
         try {
             await replenishmentApi.automate();
             setSuccess("Réapprovisionnement automatique lancé avec succès !");
-            loadData();
+            void loadData(true);
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
             console.error("Automate error", err);
@@ -392,7 +414,7 @@ export default function Suppliers() {
             await suppliersApi.delete(supplierId);
             setSuccess("Fournisseur supprim?.");
             setContextMenuSupplierId(null);
-            loadData();
+            void loadData(true);
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
             console.error("Delete supplier error", err);
@@ -467,10 +489,19 @@ export default function Suppliers() {
         );
     };
 
-    const loadData = async () => {
+    const loadData = useCallback(async (forceRefresh = false) => {
+        const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
         setLoading(true);
         try {
             if (activeTab === 'manual') {
+                const isCacheValid =
+                    !forceRefresh &&
+                    manualSuppliers.length > 0 &&
+                    Date.now() - latestManualOrdersSyncRef.current < 30_000;
+                if (isCacheValid) {
+                    setLoading(false);
+                    return;
+                }
                 const [suppliersRes, ordersRes] = await Promise.allSettled([
                     suppliersApi.list(),
                     ordersApi.list(),
@@ -486,7 +517,17 @@ export default function Suppliers() {
                 setManualSuppliers(merged.manualSuppliers);
                 setOrders(merged.orders);
                 setPendingOfflineSummary(merged.summary);
+                latestManualOrdersSyncRef.current = Date.now();
             } else if (activeTab === 'orders') {
+                const isCacheValid =
+                    !forceRefresh &&
+                    manualSuppliers.length > 0 &&
+                    orders.length > 0 &&
+                    Date.now() - latestManualOrdersSyncRef.current < 30_000;
+                if (isCacheValid) {
+                    setLoading(false);
+                    return;
+                }
                 const [suppliersRes, ordersRes] = await Promise.allSettled([
                     suppliersApi.list(),
                     ordersApi.list(),
@@ -502,6 +543,7 @@ export default function Suppliers() {
                 setManualSuppliers(merged.manualSuppliers);
                 setOrders(merged.orders);
                 setPendingOfflineSummary(merged.summary);
+                latestManualOrdersSyncRef.current = Date.now();
             } else if (activeTab === 'replenishment') {
                 const res = await replenishmentApi.getSuggestions();
                 setSuggestions(res);
@@ -546,9 +588,34 @@ export default function Suppliers() {
         } catch (err) {
             console.error(`Error loading ${activeTab} data`, err);
         } finally {
+            if (isPerfEnabled) {
+                const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
+                console.info(`[SCREEN PERF][WEB][suppliers] tab=${activeTab} force=${forceRefresh} duration=${elapsed.toFixed(1)}ms`);
+                const host = window as unknown as { __stockmanScreenPerf?: any[] };
+                if (!host.__stockmanScreenPerf) host.__stockmanScreenPerf = [];
+                host.__stockmanScreenPerf.push({
+                    screen: 'suppliers',
+                    tab: activeTab,
+                    force: forceRefresh,
+                    duration_ms: elapsed,
+                    ts: new Date().toISOString(),
+                });
+            }
             setLoading(false);
         }
-    };
+    }, [
+        activeTab,
+        countryFilter,
+        isPerfEnabled,
+        manualSuppliers.length,
+        orders.length,
+        priceMaxFilter,
+        priceMinFilter,
+        productFilter,
+        procurementDays,
+        regionFilter,
+        search,
+    ]);
 
     const loadProducts = async () => {
         try {
@@ -936,7 +1003,7 @@ export default function Suppliers() {
             setSuccess((response as any)?.offline_pending ? "Fournisseur enregistré hors ligne. Il sera synchronisé automatiquement." : "Fournisseur ajouté avec succès !");
             setShowSupplierModal(false);
             setNewSupplier({ name: '', contact_name: '', email: '', phone: '', address: '', notes: '' });
-            await loadData();
+            await loadData(true);
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
             console.error("Error creating supplier", err);
@@ -964,7 +1031,7 @@ export default function Suppliers() {
             setSuccess((response as any)?.offline_pending ? "Bon de commande enregistré hors ligne. Il sera synchronisé automatiquement." : "Bon de commande créé avec succès !");
             setShowOrderModal(false);
             resetOrderForm();
-            await loadData();
+            await loadData(true);
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
             console.error("Error creating order", err);
@@ -1021,7 +1088,7 @@ export default function Suppliers() {
         try {
             await ordersApi.updateStatus(orderId, status);
             setSuccess(`Statut mis ? jour : ${status.toUpperCase()}`);
-            loadData();
+            void loadData(true);
             if (selectedOrder.order_id === orderId) {
                 const updated = await ordersApi.get(orderId);
                 setSelectedOrder(updated);
@@ -1041,7 +1108,7 @@ export default function Suppliers() {
                 received_quantity: item.received_quantity,
             })));
             setSuccess("Réception partielle enregistrée. Le stock a été mis à jour.");
-            loadData();
+            void loadData(true);
             const updated = await ordersApi.get(orderId);
             setSelectedOrder(updated);
             setPartialItems([]);
@@ -1229,49 +1296,57 @@ export default function Suppliers() {
             .replace(/\s+/g, ' ')
             .trim();
 
-    const filteredManualSuppliers = (Array.isArray(manualSuppliers) ? manualSuppliers : []).filter((s) => {
-        const supplierName = String(s?.name || '').toLowerCase();
-        const contactName = String(s?.contact_name || '').toLowerCase();
-        const searchValue = search.toLowerCase();
-        return supplierName.includes(searchValue) || contactName.includes(searchValue);
-    });
+    const filteredManualSuppliers = useMemo(() => {
+        return (Array.isArray(manualSuppliers) ? manualSuppliers : []).filter((s) => {
+            const supplierName = String(s?.name || '').toLowerCase();
+            const contactName = String(s?.contact_name || '').toLowerCase();
+            const searchValue = search.toLowerCase();
+            return supplierName.includes(searchValue) || contactName.includes(searchValue);
+        });
+    }, [manualSuppliers, search]);
 
-    const marketplaceCitySuggestions = Array.from(
-        new Set(
-            (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : [])
-                .map((supplier: any) => (supplier.city || '').trim())
-                .filter((city: string) => city.length > 0),
-        ),
-    ).sort((a, b) => a.localeCompare(b));
+    const marketplaceCitySuggestions = useMemo(() => {
+        return Array.from(
+            new Set(
+                (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : [])
+                    .map((supplier: any) => (supplier.city || '').trim())
+                    .filter((city: string) => city.length > 0),
+            ),
+        ).sort((a, b) => a.localeCompare(b));
+    }, [marketplaceSuppliers]);
 
-    const marketplaceCountrySuggestions = Array.from(
-        new Set(
-            (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : [])
-                .map((supplier: any) => (supplier.country_code || '').trim().toUpperCase())
-                .filter((country: string) => country.length > 0),
-        ),
-    ).sort((a, b) => a.localeCompare(b));
+    const marketplaceCountrySuggestions = useMemo(() => {
+        return Array.from(
+            new Set(
+                (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : [])
+                    .map((supplier: any) => (supplier.country_code || '').trim().toUpperCase())
+                    .filter((country: string) => country.length > 0),
+            ),
+        ).sort((a, b) => a.localeCompare(b));
+    }, [marketplaceSuppliers]);
 
-    const filteredMarketplace = (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : []).filter((s) => {
-        const matchCity = !regionFilter || (s.city || '').toLowerCase().includes(regionFilter.toLowerCase());
-        const matchCountry = !countryFilter || (s.country_code || '').toUpperCase() === countryFilter.toUpperCase();
+    const filteredMarketplace = useMemo(() => {
+        return (Array.isArray(marketplaceSuppliers) ? marketplaceSuppliers : []).filter((s) => {
+            const matchCity = !regionFilter || (s.city || '').toLowerCase().includes(regionFilter.toLowerCase());
+            const matchCountry = !countryFilter || (s.country_code || '').toUpperCase() === countryFilter.toUpperCase();
 
-        const minOrderAmount = Number(s.min_order_amount || 0);
-        const minPrice = Number(priceMinFilter || 0);
-        const maxPrice = Number(priceMaxFilter || 0);
-        const matchMinPrice = !priceMinFilter || (!Number.isNaN(minPrice) && minOrderAmount >= minPrice);
-        const matchMaxPrice = !priceMaxFilter || (!Number.isNaN(maxPrice) && minOrderAmount <= maxPrice);
+            const minOrderAmount = Number(s.min_order_amount || 0);
+            const minPrice = Number(priceMinFilter || 0);
+            const maxPrice = Number(priceMaxFilter || 0);
+            const matchMinPrice = !priceMinFilter || (!Number.isNaN(minPrice) && minOrderAmount >= minPrice);
+            const matchMaxPrice = !priceMaxFilter || (!Number.isNaN(maxPrice) && minOrderAmount <= maxPrice);
 
-        return matchCity && matchCountry && matchMinPrice && matchMaxPrice;
-    });
+            return matchCity && matchCountry && matchMinPrice && matchMaxPrice;
+        });
+    }, [countryFilter, marketplaceSuppliers, priceMaxFilter, priceMinFilter, regionFilter]);
 
     useEffect(() => {
         if (activeTab !== 'marketplace') return;
         const timer = window.setTimeout(() => {
-            loadData();
+            void loadData();
         }, 250);
         return () => window.clearTimeout(timer);
-    }, [activeTab, search, regionFilter, countryFilter, productFilter]);
+    }, [activeTab, countryFilter, loadData, productFilter, regionFilter, search]);
 
     const suggestionSupplierCandidates = pendingSuggestion
         ? [...(Array.isArray(manualSuppliers) ? manualSuppliers : [])]
@@ -2717,7 +2792,7 @@ export default function Suppliers() {
                                                             Prix : {formatCurrency(leadMatch.price || 0)}
                                                         </span>
                                                         <span className="rounded-full border border-white/10 px-2 py-0.5">
-                                                            Unit? : {leadMatch.unit || 'unité'}
+                                                            Unité : {leadMatch.unit || 'unité'}
                                                         </span>
                                                         <span className="rounded-full border border-white/10 px-2 py-0.5">
                                                             Stock : {leadMatch.stock_available || 0}
@@ -2864,7 +2939,7 @@ export default function Suppliers() {
 
                         <div className="space-y-4 p-6">
                             <p className="text-sm text-slate-300">
-                                Ce produit n'a pas encore de fournisseur li?. Choisissez un fournisseur pour enregistrer la relation durablement.
+                                Ce produit n'a pas encore de fournisseur lié. Choisissez un fournisseur pour enregistrer la relation durablement.
                             </p>
                             <select
                                 value={selectedSuggestionSupplierId}
@@ -3057,7 +3132,7 @@ export default function Suppliers() {
                                 )}
 
                                 {orderForm.items.length === 0 && (
-                                    <p className="text-center text-sm text-slate-500 py-4">{t('suppliers.order_modal.empty', 'Aucun produit ajout?')}</p>
+                                    <p className="text-center text-sm text-slate-500 py-4">{t('suppliers.order_modal.empty', 'Aucun produit ajouté')}</p>
                                 )}
                             </div>
 
@@ -3858,7 +3933,7 @@ export default function Suppliers() {
                                 {marketplaceSupplierRatings.length === 0 ? (
                                     <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                                         <StarIcon size={40} className="mx-auto text-slate-700 mb-3" />
-                                        <p className="text-sm text-slate-500 font-bold uppercase">Aucun avis publi?</p>
+                                        <p className="text-sm text-slate-500 font-bold uppercase">Aucun avis publié</p>
                                     </div>
                                 ) : marketplaceSupplierRatings.map((rating: any) => (
                                     <div key={rating.rating_id} className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-2">
@@ -4293,7 +4368,7 @@ export default function Suppliers() {
                         }
                     }
                     setDeliveryOrderId(null);
-                    loadData();
+                    void loadData(true);
                 }}
             />
             <Modal

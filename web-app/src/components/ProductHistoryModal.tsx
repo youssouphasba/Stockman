@@ -152,7 +152,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                     <Package size={18} className="text-primary" />
                                     Mouvements de stock (30j)
                                 </h3>
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={220}>
                                     <AreaChart data={(movements || []).filter((m: any) => m?.created_at != null)}>
                                         <defs>
                                             <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
@@ -185,7 +185,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                     <DollarSign size={18} className="text-emerald-500" />
                                     Historique des prix
                                 </h3>
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={220}>
                                     <BarChart data={(priceHistory || []).filter((p: any) => p?.recorded_at != null)}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
                                         <XAxis

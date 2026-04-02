@@ -44,6 +44,7 @@ import {
     stock as stockApi,
     analytics as analyticsApi,
     userFeatures as userFeaturesApi,
+    ApiError,
     AnalyticsStockHealth,
     UserFeatures,
 } from '../services/api';
@@ -165,6 +166,7 @@ export default function Inventory() {
     const hasHydratedUserRef = useRef(false);
     const aiInsightsRequestKeyRef = useRef<string>('');
     const aiInsightsFailureAtRef = useRef<number>(0);
+    const DUPLICATES_BLOCK_KEY = 'stockman_ai_detect_duplicates_blocked_until';
 
     // Stock movement modal
     const [stockModalOpen, setStockModalOpen] = useState(false);
@@ -403,11 +405,17 @@ export default function Inventory() {
         const canRetryAiInsights = Date.now() - aiInsightsFailureAtRef.current > 30000;
         if (aiInsightsRequestKeyRef.current !== aiScopeKey && canRetryAiInsights) {
             aiInsightsRequestKeyRef.current = aiScopeKey;
+            const shouldRunDuplicateDetection = (() => {
+                if (typeof window === 'undefined') return true;
+                const blockedUntil = Number(window.localStorage.getItem(DUPLICATES_BLOCK_KEY) || '0');
+                return Date.now() >= blockedUntil;
+            })();
+
             Promise.allSettled([
                 aiApi.salesForecast(),
                 aiApi.deadstockAnalysis(),
                 aiApi.seasonalityAlerts(),
-                aiApi.detectDuplicates('products'),
+                shouldRunDuplicateDetection ? aiApi.detectDuplicates('products') : Promise.resolve(null),
             ]).then(([forecastRes, deadstockRes, seasonRes, dupsRes]) => {
                 if (forecastRes.status === 'fulfilled' && forecastRes.value.forecasts) {
                     const map: Record<string, any> = {};
@@ -436,6 +444,11 @@ export default function Inventory() {
                     setDuplicatesData(dupsRes.value);
                 } else {
                     aiInsightsFailureAtRef.current = Date.now();
+                    const err = dupsRes.reason;
+                    if (err instanceof ApiError && err.status === 429 && typeof window !== 'undefined') {
+                        const blockedUntil = Date.now() + (12 * 60 * 60 * 1000);
+                        window.localStorage.setItem(DUPLICATES_BLOCK_KEY, String(blockedUntil));
+                    }
                 }
             });
         }

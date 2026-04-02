@@ -243,7 +243,7 @@ export default function Accounting() {
             const res = await aiApi.monthlyReport(i18n.language);
             setMonthlyReport(res.report);
         } catch (e) {
-            setMonthlyReport('Erreur lors de la g?n?ration du rapport.');
+            setMonthlyReport('Erreur lors de la génération du rapport.');
         } finally {
             setReportLoading(false);
         }
@@ -534,15 +534,15 @@ export default function Accounting() {
 
     const accountingSteps: GuideStep[] = [
         {
-            title: t('guide.accounting.role_title', "R?le de la comptabilit?"),
-            content: t('guide.accounting.role_content', "Cet ?cran centralise toute la finance de votre commerce : chiffre d'affaires, marges brute et nette, d?penses, pertes et r?sultat. Les donn?es proviennent de vos ventes POS et des d?penses saisies manuellement."),
+            title: t('guide.accounting.role_title', "Rôle de la comptabilité"),
+            content: t('guide.accounting.role_content', "Cet écran centralise toute la finance de votre commerce : chiffre d'affaires, marges brute et nette, dépenses, pertes et résultat. Les données proviennent de vos ventes POS et des dépenses saisies manuellement."),
         },
         {
-            title: t('guide.accounting.filters_title', "Filtres de p?riode"),
-            content: t('guide.accounting.filters_content', "Toutes les donn?es s'adaptent ? la p?riode s?lectionn?e."),
+            title: t('guide.accounting.filters_title', "Filtres de période"),
+            content: t('guide.accounting.filters_content', "Toutes les données s'adaptent à la période sélectionnée."),
             details: [
                 { label: t('guide.accounting.filter_periods', "Boutons de p?riode"), description: t('guide.accounting.filter_periods_desc', "7 jours ? 30 jours ? 90 jours ? 1 an. Cliquez pour changer la p?riode d'analyse."), type: 'filter' },
-                { label: t('guide.accounting.filter_custom', "Ic?ne calendrier ? plage personnalis?e"), description: t('guide.accounting.filter_custom_desc', "Active les champs de dates pour d?finir une p?riode sur mesure (ex : du 1er au 31 mars). Cliquez OK pour appliquer."), type: 'filter' },
+                { label: t('guide.accounting.filter_custom', "Icône calendrier à plage personnalisée"), description: t('guide.accounting.filter_custom_desc', "Active les champs de dates pour définir une période sur mesure (ex : du 1er au 31 mars). Cliquez sur OK pour appliquer."), type: 'filter' },
             ],
         },
         {
@@ -733,7 +733,7 @@ export default function Accounting() {
                             {reportLoading ? (
                                 <div className="flex items-center justify-center py-10 gap-3">
                                     <div className="w-6 h-6 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin"></div>
-                                    <span className="text-slate-400 text-sm">G?n?ration en cours?</span>
+                                    <span className="text-slate-400 text-sm">Génération en cours...</span>
                                 </div>
                             ) : (
                                 <pre className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-sans">{monthlyReport}</pre>
@@ -912,7 +912,7 @@ export default function Accounting() {
                         </div>
                         <div className="h-64">
                             {chartData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <ResponsiveContainer width="100%" height={256} minWidth={0} minHeight={220}>
                                     <AreaChart data={chartData}>
                                         <defs>
                                             <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -961,7 +961,7 @@ export default function Accounting() {
                                             <span className="text-[10px] font-black text-slate-600 w-5 text-right">#{i + 1}</span>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-white font-bold text-sm truncate">{p.name}</p>
-                                                <p className="text-[10px] text-slate-500">{p.qty_sold} unit?s vendues</p>
+                                                <p className="text-[10px] text-slate-500">{p.qty_sold} unités vendues</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-white font-bold text-sm">{formatCurrency(p.revenue)}</p>
@@ -1000,7 +1000,7 @@ export default function Accounting() {
                                     <div className="absolute top-full right-0 mt-2 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
                                         <button onClick={() => { setFilterExpenseCategory('all'); setIsExpenseFilterOpen(false); }}
                                             className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === 'all' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                                            Toutes cat?gories
+                                            Toutes catégories
                                         </button>
                                         {EXPENSE_CATEGORY_KEYS.map(cat => (
                                             <button key={cat.value} onClick={() => { setFilterExpenseCategory(cat.value); setIsExpenseFilterOpen(false); }}
@@ -1085,7 +1085,7 @@ export default function Accounting() {
                     {/* P&L Tab */}
                     {rightTab === 'profitability' && (
                         <div className="glass-card p-6 flex flex-col items-center">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest self-start mb-6">Rentabilit? Op?rationnelle</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest self-start mb-6">Rentabilité opérationnelle</h3>
                             {/* Marge brute circular */}
                             <div className="relative w-44 h-44 mb-6">
                                 <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
@@ -1415,7 +1415,7 @@ export default function Accounting() {
                                             </div>
                                             <div className="grid grid-cols-3 gap-3">
                                                 <div>
-                                                    <label className="text-[10px] text-slate-500 mb-1 block">Quantit?</label>
+                                                    <label className="text-[10px] text-slate-500 mb-1 block">Quantité</label>
                                                     <input
                                                         type="number"
                                                         value={item.quantity}
@@ -1501,7 +1501,7 @@ export default function Accounting() {
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <FileText size={18} /> Cr?er la facture
+                                        <FileText size={18} /> Créer la facture
                                     </>
                                 )}
                             </button>
@@ -1549,7 +1549,7 @@ export default function Accounting() {
                                 <div className="flex gap-2 mt-1">
                                     <input
                                         type="text"
-                                        placeholder={t('accounting.new_category_placeholder') || 'Nouvelle cat?gorie...'}
+                                        placeholder={t('accounting.new_category_placeholder') || 'Nouvelle catégorie...'}
                                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-primary/50"
                                         value={newCategoryDraft}
                                         onChange={(e) => setNewCategoryDraft(e.target.value)}

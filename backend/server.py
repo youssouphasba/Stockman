@@ -24920,7 +24920,9 @@ async def get_procurement_overview(
         if link.get("product_id"):
             links_by_product[link["product_id"]].append(link)
     for product_id in links_by_product:
-        links_by_product[product_id].sort(key=lambda link: (not bool(link.get("is_preferred")), float(link.get("supplier_price") or 0)))
+        links_by_product[product_id].sort(
+            key=lambda link: (not bool(link.get("is_preferred")), _safe_float(link.get("supplier_price"), 0.0))
+        )
 
     open_order_product_keys = {
         f"{order.get('store_id')}::{item.get('product_id')}"
@@ -24959,8 +24961,8 @@ async def get_procurement_overview(
         store_id = product.get("store_id")
         if not store_id or store_id not in store_summaries:
             continue
-        quantity = float(product.get("quantity") or 0)
-        min_stock = float(product.get("min_stock") or 0)
+        quantity = _safe_float(product.get("quantity"), 0.0)
+        min_stock = _safe_float(product.get("min_stock"), 0.0)
         if min_stock <= 0 or quantity > min_stock:
             continue
         if f"{store_id}::{product.get('product_id')}" in open_order_product_keys:
@@ -24971,9 +24973,10 @@ async def get_procurement_overview(
         preferred_link = product_links[0]
         suggested_quantity = round_quantity(
             max((min_stock * 2) - quantity, max(min_stock - quantity, 1)),
-            float(product.get("quantity_precision") or 1.0),
+            _safe_float(product.get("quantity_precision"), 1.0),
         )
-        estimated_total = round(float(preferred_link.get("supplier_price") or 0) * suggested_quantity, 2)
+        supplier_price = _safe_float(preferred_link.get("supplier_price"), 0.0)
+        estimated_total = round(supplier_price * suggested_quantity, 2)
         suggestion = {
             "store_id": store_id,
             "store_name": store_summaries[store_id]["store_name"],
@@ -24984,7 +24987,7 @@ async def get_procurement_overview(
             "current_quantity": quantity,
             "min_stock": min_stock,
             "suggested_quantity": suggested_quantity,
-            "supplier_price": float(preferred_link.get("supplier_price") or 0),
+            "supplier_price": supplier_price,
             "estimated_total": estimated_total,
         }
         local_suggestions.append(suggestion)

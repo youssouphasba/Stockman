@@ -47,6 +47,23 @@ import DigitalReceiptModal from './DigitalReceiptModal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 import { exportDashboard } from '../utils/ExportService';
 
+const DASHBOARD_CACHE_TTL_MS = 30_000;
+type DashboardCacheShape = {
+    key: string;
+    ts: number;
+    data: any;
+    restaurantStats: any;
+    stats: any;
+    forecast: any;
+    aiSummary: string;
+    anomalies: any[];
+    healthScore: any;
+    prediction: any;
+    contextualTips: any[];
+};
+
+let dashboardCache: DashboardCacheShape | null = null;
+
 interface DashboardProps {
     onNavigate?: (tab: string) => void;
     features?: UserFeatures | null;
@@ -78,6 +95,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     const [selectedSale, setSelectedSale] = useState<any>(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
     const settingsPanelRef = useRef<HTMLDivElement>(null);
+    const cacheKey = `${period}:${i18n.language}:${isRestaurant ? 'restaurant' : 'commerce'}`;
 
     // Visibility Toggles
     const [visibleSections, setVisibleSections] = useState<Record<string, boolean>>({
@@ -91,8 +109,30 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     });
 
     useEffect(() => {
+        const isPerfEnabled = typeof window !== 'undefined' && localStorage.getItem('stockman_perf') === '1';
+        const cacheStillFresh = Boolean(
+            dashboardCache &&
+            dashboardCache.key === cacheKey &&
+            Date.now() - dashboardCache.ts < DASHBOARD_CACHE_TTL_MS
+        );
+        if (cacheStillFresh && dashboardCache) {
+            setData(dashboardCache.data);
+            setStats(dashboardCache.stats);
+            setRestaurantStats(dashboardCache.restaurantStats);
+            setForecast(dashboardCache.forecast);
+            setAiSummary(dashboardCache.aiSummary);
+            setAnomalies(dashboardCache.anomalies || []);
+            setHealthScore(dashboardCache.healthScore);
+            setPrediction(dashboardCache.prediction);
+            setContextualTips(dashboardCache.contextualTips || []);
+            setLoading(false);
+        }
+
         async function fetchDashboard() {
-            setLoading(true);
+            const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+            if (!cacheStillFresh) {
+                setLoading(true);
+            }
             setError(null);
             let dashboardRes: any = null;
             let partialError = false;
@@ -131,11 +171,38 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                 if (partialError) {
                     setError(t('dashboard.partial_load_error', { defaultValue: 'Certaines données secondaires du tableau de bord sont temporairement indisponibles.' }));
                 }
+
+                dashboardCache = {
+                    key: cacheKey,
+                    ts: Date.now(),
+                    data: dashboardRes,
+                    restaurantStats: isRestaurant ? (restaurantResult.status === 'fulfilled' ? restaurantResult.value : null) : null,
+                    stats: statsResult.status === 'fulfilled' ? statsResult.value : null,
+                    forecast: dashboardCache?.key === cacheKey ? dashboardCache.forecast : null,
+                    aiSummary: dashboardCache?.key === cacheKey ? dashboardCache.aiSummary : '',
+                    anomalies: dashboardCache?.key === cacheKey ? dashboardCache.anomalies : [],
+                    healthScore: dashboardCache?.key === cacheKey ? dashboardCache.healthScore : null,
+                    prediction: dashboardCache?.key === cacheKey ? dashboardCache.prediction : null,
+                    contextualTips: dashboardCache?.key === cacheKey ? dashboardCache.contextualTips : [],
+                };
             } catch (err) {
                 console.error('Error fetching dashboard', err);
                 setError(t('dashboard.load_error', { defaultValue: 'Impossible de charger le tableau de bord pour le moment.' }));
                 return;
             } finally {
+                if (isPerfEnabled) {
+                    const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
+                    console.info(`[SCREEN PERF][WEB][dashboard] period=${period} duration=${elapsed.toFixed(1)}ms cache=${cacheStillFresh ? 'warm' : 'cold'}`);
+                    const host = window as unknown as { __stockmanScreenPerf?: any[] };
+                    if (!host.__stockmanScreenPerf) host.__stockmanScreenPerf = [];
+                    host.__stockmanScreenPerf.push({
+                        screen: 'dashboard',
+                        period,
+                        cache: cacheStillFresh ? 'warm' : 'cold',
+                        duration_ms: elapsed,
+                        ts: new Date().toISOString(),
+                    });
+                }
                 setLoading(false);
             }
 
@@ -156,10 +223,24 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                 if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
                 if (predictionRes.status === 'fulfilled') setPrediction(predictionRes.value);
                 if (tipsRes.status === 'fulfilled') setContextualTips(tipsRes.value.tips || []);
+                const previousCache = dashboardCache && dashboardCache.key === cacheKey ? dashboardCache : null;
+                dashboardCache = {
+                    key: cacheKey,
+                    ts: Date.now(),
+                    data: dashboardRes,
+                    restaurantStats: previousCache?.restaurantStats ?? null,
+                    stats: previousCache?.stats ?? null,
+                    forecast: forecastRes.status === 'fulfilled' ? forecastRes.value : previousCache?.forecast ?? null,
+                    aiSummary: aiRes.status === 'fulfilled' ? aiRes.value.summary : previousCache?.aiSummary ?? '',
+                    anomalies: anomaliesRes.status === 'fulfilled' ? anomaliesRes.value.anomalies || [] : previousCache?.anomalies ?? [],
+                    healthScore: healthRes.status === 'fulfilled' ? healthRes.value : previousCache?.healthScore ?? null,
+                    prediction: predictionRes.status === 'fulfilled' ? predictionRes.value : previousCache?.prediction ?? null,
+                    contextualTips: tipsRes.status === 'fulfilled' ? tipsRes.value.tips || [] : previousCache?.contextualTips ?? [],
+                };
             });
         }
         void fetchDashboard();
-    }, [period, i18n.language, isRestaurant, reloadKey]);
+    }, [cacheKey, i18n.language, isRestaurant, period, reloadKey, t]);
 
     // Close settings panel on outside click
     useEffect(() => {
@@ -675,7 +756,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                             CA par heure
                         </h3>
                         {restaurantStats.hourly_revenue?.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={160}>
+                            <ResponsiveContainer width="100%" height={160} minWidth={0} minHeight={140}>
                                 <AreaChart data={restaurantStats.hourly_revenue}>
                                     <defs>
                                         <linearGradient id="colorHourly" x1="0" y1="0" x2="0" y2="1">
@@ -758,7 +839,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         <p>{t('dashboard.no_forecast_data')}</p>
                                     </div>
                                 ) : (
-                                <ResponsiveContainer width="100%" height={250} minWidth={0}>
+                                <ResponsiveContainer width="100%" height={250} minWidth={0} minHeight={220}>
                                     <AreaChart data={forecast.daily_forecast.filter((d: any) => d?.date != null)}>
                                         <defs>
                                             <linearGradient id="colorForecastReal" x1="0" y1="0" x2="0" y2="1">
@@ -910,7 +991,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         <p>{t('dashboard.no_stock_data')}</p>
                                     </div>
                                 ) : (
-                                <ResponsiveContainer width="100%" height={300} minWidth={0}>
+                                <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={240}>
                                     <AreaChart data={stats.stock_value_history.filter((d: any) => d?.date != null)}>
                                         <defs>
                                             <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
@@ -1086,7 +1167,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                 {t('dashboard.stock_distribution')}
                             </h3>
                             <div className="h-[200px] w-full">
-                                <ResponsiveContainer width="100%" height={200} minWidth={0}>
+                                <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={180}>
                                     <RePieChart>
                                         <Pie
                                             data={Array.isArray(stats?.stock_by_category) ? stats.stock_by_category : []}
