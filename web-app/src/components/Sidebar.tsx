@@ -366,9 +366,16 @@ export default function Sidebar({
         const Icon = item.icon;
         const isActive = activeTab === item.id;
         return (
-            <button
+            <a
                 key={item.id}
-                onClick={() => handleTabClick(item.id)}
+                href={`#${item.id}`}
+                onClick={(event) => {
+                    const isPrimaryClick = event.button === 0;
+                    const hasModifier = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+                    if (!isPrimaryClick || hasModifier) return;
+                    event.preventDefault();
+                    handleTabClick(item.id);
+                }}
                 className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200 group ${indent ? 'py-2 pl-8 pr-3' : 'p-3'
                     } ${isActive
                         ? 'bg-primary/10 text-primary border border-primary/20'
@@ -380,7 +387,7 @@ export default function Sidebar({
                     className={isActive ? 'text-primary shrink-0' : 'group-hover:text-primary transition-colors shrink-0'}
                 />
                 <span className="font-medium text-sm text-left">{item.label}</span>
-            </button>
+            </a>
         );
     };
 
