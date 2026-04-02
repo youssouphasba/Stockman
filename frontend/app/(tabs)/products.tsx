@@ -2783,14 +2783,14 @@ export default function ProductsScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.selectionActions}>
-              <TouchableOpacity style={styles.selectionActionBtn} onPress={exportCatalog}>
+              <TouchableOpacity style={[styles.selectionActionBtn, styles.selectionActionBtnPrimary]} onPress={exportCatalog}>
                 <Ionicons name="share-social-outline" size={20} color={colors.primaryLight} />
                 <Text style={styles.selectionActionText}>{t('products.catalog')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.selectionActionBtn,
-                  { borderColor: colors.danger + '40' },
+                  styles.selectionActionBtnDanger,
                   selectedProductIds.size === 0 && styles.selectionActionBtnDisabled,
                 ]}
                 onPress={handleBulkDelete}
@@ -4777,9 +4777,12 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   selectionToolbarDock: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.xs,
+    backgroundColor: colors.bgDark + 'F0',
+    borderTopWidth: 1,
+    borderTopColor: colors.glassBorder,
   },
   selectionToolbar: {
-    backgroundColor: colors.bgMid,
+    backgroundColor: colors.card || colors.bgMid,
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
@@ -4788,6 +4791,11 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.sm,
+    shadowColor: '#020617',
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
   },
   selectionInfo: {
     flexDirection: 'row',
@@ -4798,6 +4806,13 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary + '75',
+    backgroundColor: colors.primary + '26',
   },
   selectAllText: {
     color: colors.primaryLight,
@@ -4812,18 +4827,28 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: BorderRadius.md,
-    backgroundColor: colors.glass,
+    backgroundColor: colors.card || colors.bgMid,
     borderWidth: 1,
-    borderColor: colors.primary + '40',
+    borderColor: colors.glassBorder,
+  },
+  selectionActionBtnPrimary: {
+    backgroundColor: colors.primary + '24',
+    borderColor: colors.primary + '70',
+  },
+  selectionActionBtnDanger: {
+    backgroundColor: colors.danger + '20',
+    borderColor: colors.danger + '65',
   },
   selectionActionBtnDisabled: {
     opacity: 0.45,
   },
   selectionActionText: {
     fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: colors.text,
   },
   inventoryReconciliation: {
     flexDirection: 'row',

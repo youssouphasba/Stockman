@@ -112,7 +112,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "checkbox-outline",
                 title: "Utiliser la sélection multiple",
-                description: "Les produits supprimés partent dans la corbeille. Ils disparaissent de la liste produits et de la caisse, puis peuvent être restaurés ou supprimés définitivement."
+                description: "Utilisez la barre d'actions en bas pour tout sélectionner, exporter le catalogue ou envoyer des produits dans la corbeille. Les boutons restent désormais plus contrastés pour être lisibles même sur les fonds sombres."
             }
         ]
     },
@@ -357,7 +357,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "color-palette-outline",
                 title: "Types d'Alertes",
-                description: "Rouge (rupture = 0), Orange (stock bas ≤ seuil), Bleu (surstock > 3× seuil), Gris (dormant 30j+ sans vente), Jaune (péremption proche)."
+                description: "Rouge (rupture = 0), Orange (stock bas ≤ seuil), Bleu (surstock > 3× seuil), Gris (dormant 30j+ sans vente), Jaune (péremption proche). Pour un même produit, la rupture remplace désormais le stock bas afin d'éviter les alertes redondantes."
             },
             {
                 icon: "sparkles-outline",
@@ -467,7 +467,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "language-outline",
                 title: "Compte et application",
-                description: "Cette rubrique sert à régler l'apparence, la langue, les préférences de votre compte et certains paramètres de fonctionnement de l'application sur votre appareil."
+                description: "Cette rubrique sert à régler l'apparence, la langue, les préférences de votre compte et certains paramètres de fonctionnement de l'application sur votre appareil. Les comptes créés via Google y finalisent aussi leur contexte métier si le pays ou le secteur n'ont pas encore été confirmés."
             },
             {
                 icon: "storefront-outline",
@@ -493,6 +493,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "lock-closed-outline",
                 title: "Sécurité et données",
                 description: "Le code PIN, la biométrie, les informations légales, l'export et la suppression du compte sont réunis ici. Prenez toujours le temps de relire avant une action sensible."
+            },
+            {
+                icon: "checkmark-circle-outline",
+                title: "Confirmer vos sauvegardes",
+                description: "Quand vous modifiez un réglage, Stockman affiche maintenant une confirmation discrète dans l'écran. Les pages légales ouvertes depuis Paramètres reviennent aussi directement vers cet écran pour éviter de vous renvoyer inutilement au tableau de bord."
             }
         ]
     },
@@ -639,7 +644,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         title: "Connexion",
         steps: [
             { icon: "log-in-outline", title: "Se connecter", description: "Saisissez votre email et mot de passe. L'app vous redirige automatiquement vers votre espace selon votre rôle." },
-            { icon: "logo-google", title: "Connexion sociale", description: "Selon votre appareil, vous pouvez continuer avec Google ou Apple. Sur mobile, Google s'ouvre via le flux natif de l'app. Si le fournisseur confirme déjà l'email, Stockman ne redemande pas de code OTP." },
+            { icon: "logo-google", title: "Connexion sociale", description: "Selon votre appareil, vous pouvez continuer avec Google ou Apple. Sur mobile, Google s'ouvre via le flux natif de l'app. Si c'est votre première inscription sociale, Stockman vous demande maintenant de confirmer votre pays, votre téléphone et votre secteur avant d'entrer dans l'application." },
             { icon: "eye-outline", title: "Mot de passe oublié", description: "Touchez 'Mot de passe oublié' pour recevoir un email de réinitialisation." },
             { icon: "flask-outline", title: "Mode Démo", description: "Testez l'app sans inscription avec des données pré-remplies. La session expire après un délai limité." }
         ]
@@ -649,7 +654,8 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             { icon: "person-add-outline", title: "Créer un compte", description: "Renseignez nom, email, mot de passe et téléphone. Choisissez votre profil : Commerçant ou Fournisseur." },
             { icon: "business-outline", title: "Secteur d'activité", description: "Choisissez parmi 21 secteurs (Épicerie, Pharmacie, Restaurant, etc.). Ce choix détermine les catégories par défaut et les modules visibles." },
-            { icon: "globe-outline", title: "Pays", description: "Sélectionnez votre pays d'activité. La devise et les paramètres régionaux s'ajustent automatiquement." }
+            { icon: "globe-outline", title: "Pays", description: "Sélectionnez votre pays d'activité. La devise et les paramètres régionaux s'ajustent automatiquement." },
+            { icon: "logo-google", title: "Inscription avec Google", description: "Si vous créez votre compte via Google sur mobile, Stockman vous fait maintenant confirmer le pays, le téléphone et le secteur juste après la connexion afin d'appliquer la bonne devise puis d'enchaîner sur la vérification SMS comme dans le flux classique." }
         ]
     },
     pin: {

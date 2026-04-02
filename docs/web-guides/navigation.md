@@ -10,6 +10,11 @@ La barre latérale (sidebar) est le point d'entrée vers tous les modules de l'a
 
 La barre latérale est toujours visible sur écran large (≥ 768 px). Sur mobile, elle s'ouvre via le bouton hamburger en haut à gauche.
 
+### Pré-configuration des comptes Google
+- Lors d'une première création de compte via Google sur le web, Stockman peut demander une étape de complétion avant d'ouvrir l'application.
+- Cette étape sert à confirmer le pays, la devise, le numéro de téléphone et le secteur d'activité.
+- Tant que cette configuration n'est pas terminée, la barre latérale et les modules métiers ne s'affichent pas.
+
 ## 3. Lecture de l'écran
 
 ### En-tête

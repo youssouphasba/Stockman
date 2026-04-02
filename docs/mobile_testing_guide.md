@@ -46,6 +46,8 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 
 - Le flux Google mobile natif dépend de la configuration OAuth Android et iOS intégrée au build.
 - Android nécessite `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` et iOS nécessite `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`. Si l'identifiant Android manque, l'écran de connexion peut planter dès son ouverture.
+- Lors d'une première création de compte via Google ou Apple sur mobile, Stockman ne doit plus entrer directement dans l'application : un écran de complétion demande maintenant de confirmer le pays, le numéro de téléphone et le secteur d'activité pour appliquer la bonne devise et le bon contexte métier.
+- Pour valider ce flux, vérifiez qu'un nouveau compte Google arrive sur l'écran de complétion, puis qu'après validation il bascule vers la vérification téléphone et que `country_code`, `currency`, `phone` et `business_type` sont bien présents dans `/api/auth/me`.
 - Après une modification des identifiants Google, du fichier `google-services.json`, du fichier `GoogleService-Info.plist` ou de la configuration native de connexion Google, un simple `eas update` ne suffit pas.
 - Il faut générer un nouveau build pour tester correctement la connexion Google sur mobile.
 
@@ -54,3 +56,16 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 - L'alerte dans Stockman et la notification push sont deux etapes distinctes : une alerte peut etre creee meme si Expo ne parvient pas a envoyer la notification.
 - Le bouton de test push renvoie maintenant la vraie cause en cas d'echec : aucun appareil enregistre, jeton invalide ou credentials Expo/FCM Android invalides.
 - Si le test mentionne `InvalidCredentials`, le fichier `google-services.json` ne suffit pas : il faut aussi verifier la configuration FCM du projet Expo/EAS utilise pour l'application.
+
+## 6. Guide contextuel de navigation
+
+- Le guide contextuel de navigation doit s'ouvrir automatiquement une seule fois lors de la premiere arrivee sur les onglets.
+- Apres fermeture du guide, changer d'onglet ne doit plus le rouvrir automatiquement.
+- Le guide doit ensuite rester accessible uniquement via le bouton d'aide.
+
+## 7. Fluidite et reglages
+
+- Le changement d'onglet doit rester fluide sans rechargement visible du layout de navigation a chaque appui.
+- Depuis Parametres, l'ouverture des CGU ou de la politique de confidentialite doit permettre un retour simple vers Parametres.
+- Les sauvegardes dans Parametres doivent afficher une confirmation visuelle dans l'ecran apres mise a jour.
+- Dans Produits, la barre d'actions de selection en bas doit rester lisible sur fond sombre, notamment pour "Tout selectionner" et la suppression.

@@ -113,8 +113,12 @@ export default function VerifyPhoneScreen() {
         setLoading(true);
         try {
             const firebaseIdToken = await confirmPhoneCode(otp);
-            await verifyPhone(firebaseIdToken);
-            router.replace('/(tabs)');
+            const verifiedUser = await verifyPhone(firebaseIdToken);
+            if (verifiedUser.needs_profile_completion) {
+                router.replace('/(auth)/complete-social-profile' as any);
+            } else {
+                router.replace('/(tabs)');
+            }
         } catch (e) {
             setError(e instanceof ApiError || e instanceof Error ? e.message : t('auth.verifyPhone.errorIncorrect'));
         } finally {

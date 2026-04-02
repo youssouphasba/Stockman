@@ -210,7 +210,18 @@ export default function SettingsScreen() {
   const [invoiceFooter, setInvoiceFooter] = useState('');
   const [invoicePaymentTerms, setInvoicePaymentTerms] = useState('');
   const [helpGuide, setHelpGuide] = useState<{ title: string; steps: any[] } | null>(null);
+  const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   // Sector state removed - sector is set at registration
+
+  useEffect(() => {
+    if (!feedback) return;
+    const timeout = setTimeout(() => setFeedback(null), 2600);
+    return () => clearTimeout(timeout);
+  }, [feedback]);
+
+  function showFeedback(message: string, tone: 'success' | 'error' = 'success') {
+    setFeedback({ tone, message });
+  }
 
   const handleExportData = async () => {
     try {
@@ -334,8 +345,9 @@ export default function SettingsScreen() {
     try {
       const updated = await settingsApi.update({ modules: newModules });
       setSettingsData(updated);
+      showFeedback('Modules mis à jour.');
     } catch {
-      // ignore
+      showFeedback('Impossible de mettre à jour les modules.', 'error');
     }
   }
 
@@ -345,8 +357,9 @@ export default function SettingsScreen() {
       const updated = await settingsApi.update({ push_notifications: !settingsData.push_notifications });
       setSettingsData(updated);
       setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(updated?.notification_preferences || {}) });
+      showFeedback('Préférences de notification mises à jour.');
     } catch {
-      // ignore
+      showFeedback('Impossible de mettre à jour les notifications.', 'error');
     }
   }
 
@@ -360,8 +373,9 @@ export default function SettingsScreen() {
         },
       } as any);
       setSettingsData(updated);
+      showFeedback('Zone manager mise à jour.');
     } catch {
-      // ignore
+      showFeedback('Impossible de mettre à jour la zone manager.', 'error');
     }
   }
 
@@ -370,8 +384,9 @@ export default function SettingsScreen() {
     try {
       const updated = await settingsApi.update({ reminder_rules: newRules } as any);
       setSettingsData(updated);
+      showFeedback('Rappels enregistrés.');
     } catch {
-      // ignore
+      showFeedback('Impossible de mettre à jour les rappels.', 'error');
     }
   }
 
@@ -392,8 +407,9 @@ export default function SettingsScreen() {
       } as any);
       setSettingsData(updated);
       setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(updated?.notification_preferences || {}) });
+      showFeedback('Préférences de notification enregistrées.');
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de mettre à jour vos notifications.');
+      showFeedback('Impossible de mettre à jour vos notifications.', 'error');
     }
   }
 
@@ -416,8 +432,9 @@ export default function SettingsScreen() {
       } as any);
       setSettingsData(updated);
       setNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.notification_contacts || {}) });
+      showFeedback('E-mails de notification du compte enregistrés.');
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de mettre à jour les e-mails de notification.');
+      showFeedback('Impossible de mettre à jour les e-mails de notification.', 'error');
     }
   }
 
@@ -428,8 +445,9 @@ export default function SettingsScreen() {
       } as any);
       setSettingsData(updated);
       setStoreNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.store_notification_contacts || {}) });
+      showFeedback('E-mails de notification de la boutique enregistrés.');
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de mettre à jour les e-mails de la boutique.');
+      showFeedback('Impossible de mettre à jour les e-mails de la boutique.', 'error');
     }
   }
 
@@ -470,9 +488,9 @@ export default function SettingsScreen() {
         invoice_footer: updatedStore.invoice_footer,
         invoice_payment_terms: updatedStore.invoice_payment_terms,
       }) : prev);
-      Alert.alert(t('common.success'), 'Boutique mise à jour.');
+      showFeedback('Boutique mise à jour.');
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de mettre à jour la boutique active.');
+      showFeedback('Impossible de mettre à jour la boutique active.', 'error');
     }
   }
 
@@ -522,6 +540,28 @@ export default function SettingsScreen() {
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}>
         <View style={{ height: Spacing.sm }} />
+        {feedback ? (
+          <View
+            style={[
+              styles.feedbackBanner,
+              feedback.tone === 'success' ? styles.feedbackBannerSuccess : styles.feedbackBannerError,
+            ]}
+          >
+            <Ionicons
+              name={feedback.tone === 'success' ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+              size={18}
+              color={feedback.tone === 'success' ? colors.success : colors.danger}
+            />
+            <Text
+              style={[
+                styles.feedbackBannerText,
+                { color: feedback.tone === 'success' ? colors.success : colors.danger },
+              ]}
+            >
+              {feedback.message}
+            </Text>
+          </View>
+        ) : null}
 
         {/* User info */}
         <View style={styles.card}>
@@ -1547,7 +1587,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.aboutRow, { marginTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.md }]}
-            onPress={() => router.push('/terms')}
+            onPress={() => router.push({ pathname: '/terms', params: { returnTo: '/(tabs)/settings' } } as any)}
           >
             <Text style={[styles.aboutLabel, { color: colors.primary }]}>{t('settings.terms')}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
@@ -1555,7 +1595,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.aboutRow, { marginTop: Spacing.sm }]}
-            onPress={() => router.push('/privacy')}
+            onPress={() => router.push({ pathname: '/privacy', params: { returnTo: '/(tabs)/settings' } } as any)}
           >
             <Text style={[styles.aboutLabel, { color: colors.primary }]}>{t('settings.privacy')}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
@@ -1667,6 +1707,29 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.md, paddingTop: Spacing.xxl },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  feedbackBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  feedbackBannerSuccess: {
+    backgroundColor: colors.success + '12',
+    borderColor: colors.success + '30',
+  },
+  feedbackBannerError: {
+    backgroundColor: colors.danger + '12',
+    borderColor: colors.danger + '30',
+  },
+  feedbackBannerText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
   pageTitle: {
     fontSize: FontSize.xl,
     fontWeight: '700',

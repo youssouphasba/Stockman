@@ -1377,6 +1377,7 @@ class User(UserBase):
     verification_completed_at: Optional[datetime] = None
     can_access_app: bool = False
     can_access_web: bool = False
+    needs_profile_completion: bool = False
     country_code: Optional[str] = "SN" # Default to Senegal
     language: str = "fr" # User preferred language
     is_demo: bool = False
@@ -1434,6 +1435,14 @@ class ProfileUpdate(BaseModel):
     currency: Optional[str] = None
     country_code: Optional[str] = None
     business_type: Optional[str] = None
+
+
+class SocialProfileCompletionUpdate(BaseModel):
+    name: Optional[str] = None
+    country_code: str
+    phone: str
+    business_type: str
+    how_did_you_hear: Optional[str] = None
 
 
 class BillingContactUpdate(BaseModel):
@@ -1828,6 +1837,80 @@ class AlertRuleCreate(BaseModel):
     recipient_keys: List[str] = Field(default_factory=lambda: ["default"])
     recipient_emails: List[str] = Field(default_factory=list)
     minimum_severity: Optional[str] = None
+
+
+STOCK_LEVEL_ALERT_PRIORITIES = {
+    "out_of_stock": 2,
+    "low_stock": 1,
+}
+
+
+def get_alert_similarity_key(alert_doc: Dict[str, Any]) -> Optional[str]:
+    alert_type = alert_doc.get("type")
+    product_id = alert_doc.get("product_id")
+    if alert_type in STOCK_LEVEL_ALERT_PRIORITIES and product_id:
+        return ":".join(
+            [
+                "stock_level",
+                str(alert_doc.get("user_id", "")),
+                str(alert_doc.get("store_id", "")),
+                str(product_id),
+            ]
+        )
+    return None
+
+
+def is_alert_higher_priority(candidate: Dict[str, Any], current: Dict[str, Any]) -> bool:
+    candidate_priority = STOCK_LEVEL_ALERT_PRIORITIES.get(candidate.get("type"), 0)
+    current_priority = STOCK_LEVEL_ALERT_PRIORITIES.get(current.get("type"), 0)
+    if candidate_priority != current_priority:
+        return candidate_priority > current_priority
+
+    candidate_created = parse_datetime_value(candidate.get("created_at")) or datetime.min.replace(tzinfo=timezone.utc)
+    current_created = parse_datetime_value(current.get("created_at")) or datetime.min.replace(tzinfo=timezone.utc)
+    return candidate_created > current_created
+
+
+def collapse_similar_alerts(alert_docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    grouped: Dict[str, Dict[str, Any]] = {}
+    singles: List[Dict[str, Any]] = []
+
+    for alert_doc in alert_docs:
+        similarity_key = get_alert_similarity_key(alert_doc)
+        if not similarity_key:
+            singles.append(alert_doc)
+            continue
+        current = grouped.get(similarity_key)
+        if current is None or is_alert_higher_priority(alert_doc, current):
+            grouped[similarity_key] = alert_doc
+
+    collapsed = singles + list(grouped.values())
+    collapsed.sort(
+        key=lambda alert_doc: parse_datetime_value(alert_doc.get("created_at")) or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
+    return collapsed
+
+
+async def dismiss_related_stock_level_alerts(
+    user_id: str,
+    product_id: str,
+    keep_type: str,
+    store_id: Optional[str] = None,
+):
+    sibling_types = [alert_type for alert_type in STOCK_LEVEL_ALERT_PRIORITIES if alert_type != keep_type]
+    if not sibling_types:
+        return
+
+    query: Dict[str, Any] = {
+        "user_id": user_id,
+        "product_id": product_id,
+        "type": {"$in": sibling_types},
+        "is_dismissed": False,
+    }
+    if store_id:
+        query["store_id"] = store_id
+    await db.alerts.update_many(query, {"$set": {"is_dismissed": True}})
 
 class LoyaltySettings(BaseModel):
     is_active: bool = True
@@ -2615,6 +2698,16 @@ def can_user_access_web(user_doc: dict, effective_plan: Optional[str] = None) ->
     return policy["subscription_access_phase"] in {"active", "grace", "restricted", "read_only"}
 
 
+def needs_social_profile_completion(user_doc: dict, account_doc: Optional[dict] = None) -> bool:
+    if user_doc.get("role") != "shopkeeper":
+        return False
+    if user_doc.get("auth_type") not in {"google", "apple"}:
+        return False
+
+    merged_business_type = (account_doc or {}).get("business_type") or user_doc.get("business_type")
+    return not bool((merged_business_type or "").strip())
+
+
 def is_web_surface_request(request: Optional[Request]) -> bool:
     return bool(request and request.headers.get("X-Stockman-Surface", "").strip().lower() == "web")
 
@@ -2825,6 +2918,7 @@ async def build_user_from_doc(user_doc: dict, request: Optional[Request] = None)
     source_doc["verification_completed_at"] = user_doc.get("verification_completed_at")
     source_doc["can_access_app"] = can_user_access_app(source_doc)
     source_doc["can_access_web"] = can_user_access_web(source_doc, effective_plan=access_context["effective_plan"])
+    source_doc["needs_profile_completion"] = needs_social_profile_completion(source_doc, account_doc)
     if should_force_web_read_only(request, source_doc):
         source_doc["can_access_web"] = True
         source_doc["can_write_data"] = False
@@ -4327,18 +4421,52 @@ def sanitize_store_scope_payload(
         "store_permissions": store_permissions,
     }
 
-async def log_activity(user: User, action: str, module: str, description: str, details: Dict[str, Any] = {}):
+async def log_activity(
+    user: Optional[User] = None,
+    action: str = "",
+    module: str = "",
+    description: str = "",
+    details: Optional[Dict[str, Any]] = None,
+    *,
+    user_id: Optional[str] = None,
+    user_name: Optional[str] = None,
+    owner_id: Optional[str] = None,
+    store_id: Optional[str] = None,
+):
     """Saves a record of the action performed by a user."""
     try:
+        resolved_user = user
+        if resolved_user is None and user_id:
+            user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+            if user_doc:
+                try:
+                    resolved_user = await build_user_from_doc(user_doc)
+                except Exception:
+                    resolved_user = None
+
+        resolved_user_id = resolved_user.user_id if resolved_user else user_id
+        if not resolved_user_id:
+            raise ValueError("Missing user context for activity log")
+
+        resolved_user_name = (
+            resolved_user.name if resolved_user else user_name or "Administrateur"
+        )
+        resolved_owner_id = (
+            get_owner_id(resolved_user) if resolved_user else owner_id or resolved_user_id
+        )
+        resolved_store_id = (
+            resolved_user.active_store_id if resolved_user else store_id
+        )
+
         log = ActivityLog(
-            user_id=user.user_id,
-            user_name=user.name,
-            owner_id=get_owner_id(user),
-            store_id=user.active_store_id,
+            user_id=resolved_user_id,
+            user_name=resolved_user_name,
+            owner_id=resolved_owner_id,
+            store_id=resolved_store_id,
             action=action,
             module=module,
-            description=description,
-            details=details
+            description=description or f"{module}:{action}",
+            details=details or {},
         )
         await db.activity_logs.insert_one(log.model_dump())
     except Exception as e:
@@ -11533,6 +11661,7 @@ async def check_alerts_loop():
     # 1. Low stock alerts Ã¢â‚¬â€ Pro + Enterprise only, dedup on active (non-dismissed) alerts
     async for product in db.products.find({
         "min_stock": {"$gt": 0},
+        "quantity": {"$gt": 0},
         "$expr": {"$lte": ["$quantity", "$min_stock"]}
     }):
         owner_id = product.get("user_id")
@@ -13019,6 +13148,85 @@ async def update_profile(data: ProfileUpdate, user: User = Depends(require_auth)
     if shared_update and (user.role == "superadmin" or "org_admin" in (user.account_roles or []) or "billing_admin" in (user.account_roles or [])):
         await update_business_account_for_owner(get_owner_id(user), shared_update)
     return {"message": "Profil mis ÃƒÂ  jour"}
+
+
+@api_router.put("/auth/complete-social-profile")
+async def complete_social_profile(data: SocialProfileCompletionUpdate, user: User = Depends(require_auth)):
+    if user.role != "shopkeeper":
+        raise HTTPException(status_code=403, detail="Seuls les comptes commercants peuvent completer ce profil.")
+    if user.auth_type not in {"google", "apple"}:
+        raise HTTPException(status_code=400, detail="Ce parcours est reserve aux inscriptions sociales.")
+
+    business_type = (data.business_type or "").strip()
+    if not business_type:
+        raise HTTPException(status_code=400, detail="Le secteur d'activite est obligatoire.")
+
+    country_code = (data.country_code or "").strip().upper()
+    if not country_code:
+        raise HTTPException(status_code=400, detail="Le pays est obligatoire.")
+
+    phone = (data.phone or "").strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Le numero de telephone est obligatoire.")
+
+    pricing_payload = build_pricing_payload(country_code=country_code, currency=None, locked=False)
+    resolved_currency = pricing_payload["currency"]
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
+
+    required_verification = resolve_required_verification(
+        user_doc.get("role") or "shopkeeper",
+        user_doc.get("plan"),
+        user_doc.get("signup_surface"),
+    )
+
+    update_payload: Dict[str, Any] = {
+        "country_code": country_code,
+        "currency": resolved_currency,
+        "phone": phone,
+        "business_type": business_type,
+        "how_did_you_hear": (data.how_did_you_hear or "").strip() or None,
+        "required_verification": required_verification,
+        "verification_channel": required_verification,
+    }
+    if data.name and data.name.strip():
+        update_payload["name"] = data.name.strip()
+    if required_verification == "phone":
+        update_payload["is_phone_verified"] = False
+        update_payload["verification_completed_at"] = None
+
+    await db.users.update_one({"user_id": user.user_id}, {"$set": update_payload})
+    await update_business_account_for_owner(
+        get_owner_id(user),
+        {
+            "country_code": country_code,
+            "currency": resolved_currency,
+            "business_type": business_type,
+        },
+    )
+
+    updated_user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not updated_user_doc:
+        raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", user.language))
+
+    log_user = await build_user_from_doc(updated_user_doc)
+    await log_activity(
+        log_user,
+        "social_profile_completed",
+        "auth",
+        f"Profil social complete: {business_type} ({country_code}/{resolved_currency})",
+        {
+            "country_code": country_code,
+            "currency": resolved_currency,
+            "business_type": business_type,
+        },
+    )
+
+    return {
+        "message": "Profil complete",
+        "user": await build_user_from_doc(updated_user_doc),
+    }
 
 @api_router.post("/auth/logout")
 async def logout(request: Request, response: Response):
@@ -17745,6 +17953,12 @@ async def check_and_create_alerts(product: Product, user_id: str, store_id: Opti
                     message=f"{product.name} est en rupture de stock",
                     severity="critical"
                 )
+                await dismiss_related_stock_level_alerts(
+                    user_id,
+                    product.product_id,
+                    "out_of_stock",
+                    effective_store_id,
+                )
             else:
                 # Stock restored Ã¢â€ â€™ auto-resolve existing out_of_stock alerts
                 should_resolve = True
@@ -17760,7 +17974,13 @@ async def check_and_create_alerts(product: Product, user_id: str, store_id: Opti
                     message=f"{product.name}: {product.quantity} {product.unit}(s) restant(s)",
                     severity="warning"
                 )
-            elif product.quantity > product.min_stock:
+                await dismiss_related_stock_level_alerts(
+                    user_id,
+                    product.product_id,
+                    "low_stock",
+                    effective_store_id,
+                )
+            elif product.quantity == 0 or product.quantity > product.min_stock:
                 # Stock above threshold Ã¢â€ â€™ auto-resolve existing low_stock alerts
                 should_resolve = True
 
@@ -17887,12 +18107,15 @@ async def get_alerts(
     if not include_dismissed:
         query["is_dismissed"] = False
 
-    total = await db.alerts.count_documents(query)
-    unread_query = dict(query)
-    unread_query["is_read"] = False
-    unread = await db.alerts.count_documents(unread_query)
-    alerts = await db.alerts.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).to_list(limit)
-    return {"items": [Alert(**a) for a in alerts], "total": total, "unread": unread}
+    alert_docs = await db.alerts.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    collapsed_alerts = collapse_similar_alerts(alert_docs)
+    unread = sum(1 for alert_doc in collapsed_alerts if not alert_doc.get("is_read"))
+    paginated_alerts = collapsed_alerts[skip: skip + limit]
+    return {
+        "items": [Alert(**a) for a in paginated_alerts],
+        "total": len(collapsed_alerts),
+        "unread": unread,
+    }
 
 @api_router.put("/alerts/{alert_id}/read")
 async def mark_alert_read(alert_id: str, user: User = Depends(require_permission("stock", "write"))):
@@ -25432,9 +25655,7 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
     qty_7d = defaultdict(int)
     
     for s in sales_30:
-        sale_date = s.get("created_at")
-        if isinstance(sale_date, str):
-            sale_date = datetime.fromisoformat(sale_date.replace("Z", "+00:00"))
+        sale_date = parse_datetime_value(s.get("created_at"))
         is_last_7 = sale_date >= seven_days_ago if sale_date else False
         
         for item in s.get("items", []):
@@ -25620,9 +25841,7 @@ async def get_product_sales_forecast(product_id: str, user: User = Depends(requi
     qty_7d = 0
     
     for s in sales_30:
-        sale_date = s.get("created_at")
-        if isinstance(sale_date, str):
-            sale_date = datetime.fromisoformat(sale_date.replace("Z", "+00:00"))
+        sale_date = parse_datetime_value(s.get("created_at"))
         is_last_7 = sale_date >= seven_days_ago if sale_date else False
         
         for item in s.get("items", []):
@@ -26052,8 +26271,8 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                 sort=[("completed_at", -1)]
             )
             if last_task:
-                completed_at = last_task.get("completed_at")
-                if completed_at and isinstance(completed_at, datetime) and (now - completed_at).days > inv_days:
+                completed_at = parse_datetime_value(last_task.get("completed_at"))
+                if completed_at and (now - completed_at).days > inv_days:
                     reminders.append(SmartReminder(
                         category="stock",
                         type="inventory_check",
@@ -26066,8 +26285,8 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                     ).model_dump())
                     inv_count += 1
             elif product.get("quantity", 0) > 0:
-                created = product.get("created_at")
-                if created and isinstance(created, datetime) and (now - created).days > inv_days:
+                created = parse_datetime_value(product.get("created_at"))
+                if created and (now - created).days > inv_days:
                     reminders.append(SmartReminder(
                         category="stock",
                         type="inventory_check",
@@ -26254,14 +26473,14 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
 
             days_since_payment = None
             if last_payment:
-                lp_date = last_payment.get("created_at")
-                if isinstance(lp_date, datetime):
+                lp_date = parse_datetime_value(last_payment.get("created_at"))
+                if lp_date:
                     days_since_payment = (now - lp_date).days
 
             days_since_credit = None
             if last_credit_sale:
-                lc_date = last_credit_sale.get("created_at")
-                if isinstance(lc_date, datetime):
+                lc_date = parse_datetime_value(last_credit_sale.get("created_at"))
+                if lc_date:
                     days_since_credit = (now - lc_date).days
 
             should_alert = False
@@ -26312,14 +26531,9 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
 
         tier_labels = {"platine": "Platine", "or": "Or", "argent": "Argent"}
         for customer in loyal_customers:
-            last_purchase = customer.get("last_purchase_date")
+            last_purchase = parse_datetime_value(customer.get("last_purchase_date"))
             if last_purchase:
-                if isinstance(last_purchase, str):
-                    try:
-                        last_purchase = datetime.fromisoformat(last_purchase.replace("Z", "+00:00"))
-                    except Exception:
-                        continue
-                if isinstance(last_purchase, datetime) and last_purchase < cutoff_react:
+                if last_purchase < cutoff_react:
                     days_inactive = (now - last_purchase).days
                     tier = tier_labels.get(customer.get("tier", ""), customer.get("tier", ""))
                     reminders.append(SmartReminder(

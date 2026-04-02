@@ -387,6 +387,7 @@ export type User = {
     verification_completed_at?: string | null;
     can_access_app?: boolean;
     can_access_web?: boolean;
+    needs_profile_completion?: boolean;
     is_demo?: boolean;
     demo_session_id?: string | null;
     demo_type?: string | null;
@@ -1527,6 +1528,14 @@ export const auth = {
     }) => request<AuthResponse>('/auth/register', { method: 'POST', body: data }),
     socialLogin: (firebaseIdToken: string, signupSurface: 'mobile' | 'web' = 'web') =>
         request<AuthResponse>('/auth/verify-social', { method: 'POST', body: { firebase_id_token: firebaseIdToken, signup_surface: signupSurface } }),
+    completeSocialProfile: (data: {
+        name?: string;
+        country_code: string;
+        phone: string;
+        business_type: string;
+        how_did_you_hear?: string;
+    }) =>
+        request<{ message: string; user: User }>('/auth/complete-social-profile', { method: 'PUT', body: data }),
     verifyEmail: (otp: string) =>
         request<{ message: string; user: User }>('/auth/verify-email', { method: 'POST', body: { otp } }),
     resendEmailOtp: () =>

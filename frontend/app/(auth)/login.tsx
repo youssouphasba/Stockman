@@ -337,6 +337,8 @@ export default function LoginScreen() {
         router.replace('/(auth)/verify-email');
       } else if (loggedInUser.required_verification === 'phone' && !loggedInUser.can_access_app) {
         router.replace('/(auth)/verify-phone');
+      } else if (loggedInUser.needs_profile_completion) {
+        router.replace('/(auth)/complete-social-profile' as any);
       } else {
         router.replace('/(tabs)');
       }
@@ -384,6 +386,8 @@ export default function LoginScreen() {
         router.replace('/(auth)/verify-email');
       } else if (loggedInUser.required_verification === 'phone' && !loggedInUser.can_access_app) {
         router.replace('/(auth)/verify-phone');
+      } else if (loggedInUser.needs_profile_completion) {
+        router.replace('/(auth)/complete-social-profile' as any);
       } else {
         router.replace('/(tabs)');
       }

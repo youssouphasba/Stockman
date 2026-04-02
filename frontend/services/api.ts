@@ -447,6 +447,11 @@ export const auth = {
       method: 'POST',
       body: { firebase_id_token: firebaseIdToken, signup_surface: signupSurface },
     }),
+  completeSocialProfile: (data: { name?: string; country_code: string; phone: string; business_type: string; how_did_you_hear?: string }) =>
+    request<{ message: string; user: User }>('/auth/complete-social-profile', {
+      method: 'PUT',
+      body: data,
+    }),
 };
 
 export type ActivityLog = {
@@ -1710,6 +1715,7 @@ export type User = {
   verification_completed_at?: string | null;
   can_access_app?: boolean;
   can_access_web?: boolean;
+  needs_profile_completion?: boolean;
   phone?: string;
   country_code?: string;
   is_demo?: boolean;

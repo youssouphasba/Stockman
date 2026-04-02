@@ -1,21 +1,37 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PREFIX = 'guide_seen_';
 
 export function useFirstVisit(screenKey: string) {
   const [isFirstVisit, setIsFirstVisit] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(PREFIX + screenKey).then((val) => {
-      if (!val) setIsFirstVisit(true);
-    });
+    let isMounted = true;
+
+    setIsReady(false);
+    setIsFirstVisit(false);
+
+    AsyncStorage.getItem(PREFIX + screenKey)
+      .then((val) => {
+        if (!isMounted) return;
+        setIsFirstVisit(!val);
+      })
+      .finally(() => {
+        if (isMounted) setIsReady(true);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [screenKey]);
 
-  function markSeen() {
+  const markSeen = useCallback(() => {
     setIsFirstVisit(false);
-    AsyncStorage.setItem(PREFIX + screenKey, '1');
-  }
+    setIsReady(true);
+    AsyncStorage.setItem(PREFIX + screenKey, '1').catch(() => null);
+  }, [screenKey]);
 
-  return { isFirstVisit, markSeen };
+  return { isFirstVisit, isReady, markSeen };
 }

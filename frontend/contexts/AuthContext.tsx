@@ -28,6 +28,7 @@ type AuthState = {
   hasOperationalAccess: boolean;
   login: (email: string, password: string) => Promise<User>;
   loginWithSocial: (firebaseIdToken: string, signupSurface?: 'mobile' | 'web') => Promise<User>;
+  completeSocialProfile: (data: { name?: string; countryCode: string; phone: string; businessType: string; referralSource?: string }) => Promise<User>;
   register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string, signupSurface?: 'mobile' | 'web') => Promise<User>;
   verifyPhone: (firebaseIdToken: string) => Promise<User>;
   verifyEmail: (otp: string) => Promise<User>;
@@ -185,6 +186,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user;
   }
 
+  async function completeSocialProfile(data: { name?: string; countryCode: string; phone: string; businessType: string; referralSource?: string }) {
+    const response = await authApi.completeSocialProfile({
+      name: data.name?.trim() || undefined,
+      country_code: data.countryCode,
+      phone: data.phone.trim(),
+      business_type: data.businessType,
+      how_did_you_hear: data.referralSource?.trim() || undefined,
+    });
+    await cache.clear();
+    await hydrateAuthenticatedUser(response.user);
+    return response.user;
+  }
+
   async function register(
     email: string,
     password: string,
@@ -321,6 +335,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasOperationalAccess,
         login,
         loginWithSocial,
+        completeSocialProfile,
         register,
         verifyPhone,
         verifyEmail,

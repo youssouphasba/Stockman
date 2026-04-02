@@ -73,8 +73,12 @@ export default function VerifyEmailScreen() {
     setSuccess('');
     setLoading(true);
     try {
-      await verifyEmail(otp);
-      router.replace('/(tabs)');
+      const verifiedUser = await verifyEmail(otp);
+      if (verifiedUser.needs_profile_completion) {
+        router.replace('/(auth)/complete-social-profile' as any);
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t('auth.verifyEmail.errorIncorrect'));
     } finally {

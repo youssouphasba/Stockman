@@ -36,6 +36,7 @@ import AiChatPanel from "../components/AiChatPanel";
 import SupportPanel from "../components/SupportPanel";
 import NotificationCenter from "../components/NotificationCenter";
 import VerifyEmailPanel from "../components/VerifyEmailPanel";
+import CompleteSocialProfilePanel from "../components/CompleteSocialProfilePanel";
 import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, removeToken, setWebAccessMode, clearWebAccessMode, type AuthResponse, type DemoSessionInfo } from "../services/api";
 import { completeRedirectSignIn, signInWithProvider } from "../services/firebaseAuth";
 import { getAccessContext } from "../utils/access";
@@ -124,6 +125,7 @@ export default function Home() {
     effectivePlan !== 'enterprise';
   const isRestaurantBusiness = features?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
   const analyticsEnabled = !isRestaurantBusiness && ['dashboard', 'multi_stores', 'stock_history', 'stats', 'reports'].includes(activeTab);
+  const needsProfileCompletion = isLogged && user?.needs_profile_completion === true;
   const needsEmailVerification = isLogged && user?.required_verification === 'email' && user?.is_email_verified !== true;
   const isSubscriptionRecoveryMode =
     isLogged &&
@@ -491,6 +493,16 @@ export default function Home() {
           </p>
         </div>
       </div>
+    );
+  }
+
+  if (needsProfileCompletion) {
+    return (
+      <CompleteSocialProfilePanel
+        user={user}
+        onCompleted={(nextUser) => hydrateAuthenticatedUser(nextUser)}
+        onLogout={handleLogout}
+      />
     );
   }
 

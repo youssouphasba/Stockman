@@ -8,8 +8,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { alerts as alertsApi, demo as demoApi, settings as settingsApi, DemoSessionInfo, UserSettings } from '../../services/api';
 
-import { useFocusEffect } from 'expo-router';
-
 import StoreSelector from '../../components/StoreSelector';
 import { DeviceEventEmitter, Modal, Text, TextInput, View, TouchableOpacity } from 'react-native';
 import ScreenGuide from '../../components/ScreenGuide';
@@ -59,12 +57,6 @@ export default function TabLayout() {
     refreshAlertCount();
   }, [refreshAlertCount]);
 
-  useFocusEffect(
-    useCallback(() => {
-      refreshAlertCount();
-    }, [refreshAlertCount])
-  );
-
   useEffect(() => {
     Notifications.setBadgeCountAsync(unreadAlertCount).catch(() => null);
   }, [unreadAlertCount]);
@@ -99,11 +91,16 @@ export default function TabLayout() {
   const segments = useSegments();
   const currentRoute = (segments[segments.length - 1] || 'index') as string;
   const [showGuide, setShowGuide] = useState(false);
-  const { isFirstVisit, markSeen } = useFirstVisit('navigation');
+  const autoGuideHandledRef = useRef(false);
+  const { isFirstVisit, isReady, markSeen } = useFirstVisit('navigation');
 
   useEffect(() => {
-    if (isFirstVisit) setShowGuide(true);
-  }, [isFirstVisit]);
+    if (!isReady || !isFirstVisit || autoGuideHandledRef.current) return;
+
+    autoGuideHandledRef.current = true;
+    markSeen();
+    setShowGuide(true);
+  }, [isFirstVisit, isReady, markSeen]);
 
   useEffect(() => {
     if (user && user.can_access_app === false) {
@@ -214,6 +211,7 @@ export default function TabLayout() {
       <TrialBanner />
       <SyncWarningBanner />
       <Tabs
+        detachInactiveScreens={false}
         screenOptions={{
           headerShown: true,
           headerStyle: {

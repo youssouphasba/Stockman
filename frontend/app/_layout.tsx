@@ -39,10 +39,22 @@ function RootLayoutNav() {
     // User is authenticated but still needs verification — stay in auth group
     const needsVerification = isAuthenticated && user && !user.can_access_app && !!user.required_verification;
     const onVerificationScreen = inAuthGroup && (segments[1] === 'verify-phone' || segments[1] === 'verify-email');
+    const needsProfileCompletion = isAuthenticated && !!user?.needs_profile_completion;
+    const currentAuthScreen = String(segments[1] || '');
+    const onProfileCompletionScreen = inAuthGroup && currentAuthScreen === 'complete-social-profile';
 
     if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
       router.replace('/(auth)' as any);
-    } else if (isAuthenticated && inAuthGroup && !needsVerification) {
+    } else if (needsVerification && !onVerificationScreen) {
+      // User needs verification but isn't on the verification screen — redirect there
+      if (user.required_verification === 'phone') {
+        router.replace('/(auth)/verify-phone');
+      } else if (user.required_verification === 'email') {
+        router.replace('/(auth)/verify-email');
+      }
+    } else if (needsProfileCompletion && !onProfileCompletionScreen) {
+      router.replace('/(auth)/complete-social-profile' as any);
+    } else if (isAuthenticated && inAuthGroup && !needsVerification && !needsProfileCompletion) {
       // Verified user still on auth screens — redirect to main app
       if (isSuperAdmin) {
         router.replace('/(admin)' as any);
@@ -51,15 +63,8 @@ function RootLayoutNav() {
       } else {
         router.replace('/(tabs)');
       }
-    } else if (needsVerification && !onVerificationScreen) {
-      // User needs verification but isn't on the verification screen — redirect there
-      if (user.required_verification === 'phone') {
-        router.replace('/(auth)/verify-phone');
-      } else if (user.required_verification === 'email') {
-        router.replace('/(auth)/verify-email');
-      }
     }
-  }, [isAuthenticated, isLoading, segments, user?.can_access_app]);
+  }, [isAuthenticated, isLoading, isSupplier, isSuperAdmin, router, segments, user]);
 
   // Auto-sync and prefetch when online and authenticated
   useEffect(() => {
