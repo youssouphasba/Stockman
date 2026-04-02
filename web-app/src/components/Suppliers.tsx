@@ -1331,21 +1331,29 @@ export default function Suppliers() {
         .filter((note: any) => note.status === 'active')
         .reduce((sum: number, note: any) => sum + Number(note.amount || 0) - Number(note.used_amount || 0), 0);
 
+    const marketplaceSupplierProfile = marketplaceSupplierDetail?.profile || {};
+    const marketplaceSupplierCatalog = Array.isArray(marketplaceSupplierDetail?.catalog)
+        ? marketplaceSupplierDetail.catalog
+        : [];
+    const marketplaceSupplierRatings = Array.isArray(marketplaceSupplierDetail?.ratings)
+        ? marketplaceSupplierDetail.ratings
+        : [];
+
     const isMarketplaceOrder = Boolean(orderForm.supplier_user_id && !orderForm.supplier_id);
     const marketplaceOrderSupplier = isMarketplaceOrder
         ? (
             marketplaceSuppliers.find((supplier: any) => (supplier.supplier_user_id || supplier.user_id) === orderForm.supplier_user_id)
             || (marketplaceSupplierDetail?.profile ? {
-                ...marketplaceSupplierDetail.profile,
-                name: marketplaceSupplierDetail.profile.company_name,
-                supplier_user_id: marketplaceSupplierDetail.profile.user_id,
-                category: marketplaceSupplierDetail.profile.categories?.[0] || '',
-                rating: marketplaceSupplierDetail.profile.rating_average || 0,
+                ...marketplaceSupplierProfile,
+                name: marketplaceSupplierProfile.company_name,
+                supplier_user_id: marketplaceSupplierProfile.user_id,
+                category: marketplaceSupplierProfile.categories?.[0] || '',
+                rating: marketplaceSupplierProfile.rating_average || 0,
             } : null)
         )
         : null;
     const orderProductOptions = isMarketplaceOrder
-        ? (marketplaceSupplierDetail.catalog || [])
+        ? marketplaceSupplierCatalog
         : allProducts;
     const orderTotal = orderForm.items.reduce(
         (sum, item) => sum + ((Number(item.unit_price) || 0) * (Number(item.quantity) || 0)),
@@ -2918,7 +2926,7 @@ export default function Suppliers() {
                                             </div>
                                             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-400">
                                                 <span>{marketplaceOrderSupplier.city || 'Marketplace'}</span>
-                                                <span>{t('suppliers.order_modal.catalog_count', 'Catalogue')}: {(marketplaceSupplierDetail.catalog || []).length} {t('suppliers.order_modal.products', 'produits')}</span>
+                                                <span>{t('suppliers.order_modal.catalog_count', 'Catalogue')}: {marketplaceSupplierCatalog.length} {t('suppliers.order_modal.products', 'produits')}</span>
                                                 <span>{t('suppliers.order_modal.rating', 'Note')}: {(marketplaceOrderSupplier.rating || 0).toFixed(1)}/5</span>
                                             </div>
                                         </div>
@@ -3433,24 +3441,24 @@ export default function Suppliers() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">Note moyenne</p>
-                                        <p className="text-2xl font-black text-white">{Number(marketplaceSupplierDetail.profile.rating_average || 0).toFixed(1)}/5</p>
+                                        <p className="text-2xl font-black text-white">{Number(marketplaceSupplierProfile.rating_average || 0).toFixed(1)}/5</p>
                                     </div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">Avis</p>
-                                        <p className="text-2xl font-black text-white">{marketplaceSupplierDetail.profile.rating_count || 0}</p>
+                                        <p className="text-2xl font-black text-white">{marketplaceSupplierProfile.rating_count || 0}</p>
                                     </div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">Catalogue</p>
-                                        <p className="text-2xl font-black text-white">{(marketplaceSupplierDetail.catalog || []).length}</p>
+                                        <p className="text-2xl font-black text-white">{marketplaceSupplierCatalog.length}</p>
                                     </div>
                                 </div>
                                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3 text-sm">
-                                    <p className="text-white font-bold">{marketplaceSupplierDetail.profile.company_name || selectedSupplier.name}</p>
-                                    <p className="text-slate-300 leading-relaxed">{marketplaceSupplierDetail.profile.description || "Ce fournisseur n'a pas encore ajouté de description détaillée."}</p>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Ville</span><span className="text-white font-bold">{marketplaceSupplierDetail.profile.city || '-'}</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commande min.</span><span className="text-white font-bold">{formatCurrency(marketplaceSupplierDetail.profile.min_order_amount || 0)}</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Délai moyen</span><span className="text-white font-bold">{marketplaceSupplierDetail.profile.average_delivery_days || 0} jours</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Zones</span><span className="text-white font-bold text-right">{(marketplaceSupplierDetail.profile.delivery_zones || []).join(', ') || 'Non renseignées'}</span></div>
+                                    <p className="text-white font-bold">{marketplaceSupplierProfile.company_name || selectedSupplier.name}</p>
+                                    <p className="text-slate-300 leading-relaxed">{marketplaceSupplierProfile.description || "Ce fournisseur n'a pas encore ajouté de description détaillée."}</p>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Ville</span><span className="text-white font-bold">{marketplaceSupplierProfile.city || '-'}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Commande min.</span><span className="text-white font-bold">{formatCurrency(marketplaceSupplierProfile.min_order_amount || 0)}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Délai moyen</span><span className="text-white font-bold">{marketplaceSupplierProfile.average_delivery_days || 0} jours</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-slate-400">Zones</span><span className="text-white font-bold text-right">{(marketplaceSupplierProfile.delivery_zones || []).join(', ') || 'Non renseignées'}</span></div>
                                 </div>
                             </div>
                         ) : supplierTab === 'perf' && selectedSupplier.kind !== 'marketplace' ? (
@@ -3787,12 +3795,12 @@ export default function Suppliers() {
                             </div>
                         ) : supplierTab === 'logs' && selectedSupplier.kind === 'marketplace' ? (
                             <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
-                                {(marketplaceSupplierDetail.catalog || []).length === 0 ? (
+                                {marketplaceSupplierCatalog.length === 0 ? (
                                     <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                                         <PackageIcon size={40} className="mx-auto text-slate-700 mb-3" />
                                         <p className="text-sm text-slate-500 font-bold uppercase">Catalogue vide pour le moment</p>
                                     </div>
-                                ) : (marketplaceSupplierDetail.catalog || []).map((product: any) => (
+                                ) : marketplaceSupplierCatalog.map((product: any) => (
                                     <div key={product.catalog_id} className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-3">
                                         <div className="flex items-start justify-between gap-4">
                                             <div>
@@ -3847,12 +3855,12 @@ export default function Suppliers() {
                             </div>
                         ) : supplierTab === 'invoices' && selectedSupplier.kind === 'marketplace' ? (
                             <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
-                                {(marketplaceSupplierDetail.ratings || []).length === 0 ? (
+                                {marketplaceSupplierRatings.length === 0 ? (
                                     <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                                         <StarIcon size={40} className="mx-auto text-slate-700 mb-3" />
                                         <p className="text-sm text-slate-500 font-bold uppercase">Aucun avis publi?</p>
                                     </div>
-                                ) : (marketplaceSupplierDetail.ratings || []).map((rating: any) => (
+                                ) : marketplaceSupplierRatings.map((rating: any) => (
                                     <div key={rating.rating_id} className="bg-white/5 border border-white/5 p-4 rounded-2xl space-y-2">
                                         <div className="flex items-center justify-between gap-4">
                                             <div>
@@ -4159,7 +4167,7 @@ export default function Suppliers() {
                                 </button>
                             )}
                             <button
-                                onClick={() => handleWhatsApp(selectedSupplier.phone || marketplaceSupplierDetail.profile.phone)}
+                                onClick={() => handleWhatsApp(selectedSupplier.phone || marketplaceSupplierProfile.phone)}
                                 className="flex-1 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all text-sm uppercase tracking-wider"
                             >
                                 <MessageSquare size={18} /> WhatsApp

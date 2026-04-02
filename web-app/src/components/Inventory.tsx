@@ -1617,6 +1617,7 @@ export default function Inventory() {
                                         {(() => {
                                             const fc = salesForecastMap[p.product_id];
                                             const season = seasonalityMap[p.product_id];
+                                            const hasSeasonPeak = season?.urgency === 'high';
                                             return (
                                                 <div className="flex flex-col items-center gap-0.5">
                                                     {fc ? (
@@ -1628,7 +1629,7 @@ export default function Inventory() {
                                                             )}
                                                         </>
                                                     ) : <span className="text-slate-600 text-xs">—</span>}
-                                                    {season.urgency === 'high' && (
+                                                    {hasSeasonPeak && (
                                                         <span className="text-[9px] text-amber-400 font-bold uppercase mt-0.5" title={`Pic saisonnier ${season.upcoming_peak_name} — prévoir ${season.expected_demand} unités`}>
                                                             🔥 {t('inventory.season_peak', 'Pic')} {season.upcoming_peak_name}
                                                         </span>

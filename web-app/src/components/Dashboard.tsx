@@ -758,7 +758,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         <p>{t('dashboard.no_forecast_data')}</p>
                                     </div>
                                 ) : (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <ResponsiveContainer width="100%" height={250} minWidth={0}>
                                     <AreaChart data={forecast.daily_forecast.filter((d: any) => d?.date != null)}>
                                         <defs>
                                             <linearGradient id="colorForecastReal" x1="0" y1="0" x2="0" y2="1">
@@ -910,7 +910,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         <p>{t('dashboard.no_stock_data')}</p>
                                     </div>
                                 ) : (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <ResponsiveContainer width="100%" height={300} minWidth={0}>
                                     <AreaChart data={stats.stock_value_history.filter((d: any) => d?.date != null)}>
                                         <defs>
                                             <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
@@ -1086,7 +1086,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                 {t('dashboard.stock_distribution')}
                             </h3>
                             <div className="h-[200px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height={200} minWidth={0}>
                                     <RePieChart>
                                         <Pie
                                             data={Array.isArray(stats?.stock_by_category) ? stats.stock_by_category : []}

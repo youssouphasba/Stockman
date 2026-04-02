@@ -1587,7 +1587,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.aboutRow, { marginTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.md }]}
-            onPress={() => router.push({ pathname: '/terms', params: { returnTo: '/(tabs)/settings' } } as any)}
+            onPress={() => router.push({ pathname: '/terms', params: { returnTo: '/settings' } } as any)}
           >
             <Text style={[styles.aboutLabel, { color: colors.primary }]}>{t('settings.terms')}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
@@ -1595,7 +1595,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.aboutRow, { marginTop: Spacing.sm }]}
-            onPress={() => router.push({ pathname: '/privacy', params: { returnTo: '/(tabs)/settings' } } as any)}
+            onPress={() => router.push({ pathname: '/privacy', params: { returnTo: '/settings' } } as any)}
           >
             <Text style={[styles.aboutLabel, { color: colors.primary }]}>{t('settings.privacy')}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
