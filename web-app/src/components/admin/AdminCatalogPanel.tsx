@@ -599,26 +599,16 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                 showToast('Le fichier ne contient aucune ligne exploitable.', 'error');
                 return;
             }
-            setBatchRows(rows);
-            setBatchFileName(file.name);
-            setBatchText('');
-            setBatchProgress({ total: rows.length, done: 0 });
-            setBatchSummary({ created: 0, updated: 0, errors: 0 });
-            setBatchResumeAvailable(rows.length > 0);
-            saveBatchImportCheckpoint({
-                rows,
-                fileName: file.name,
-                batchText: '',
-                done: 0,
-                total: rows.length,
-                created: 0,
-                updated: 0,
-                errors: 0,
-            });
-            showToast(`${rows.length} ligne(s) prêtes pour l'import.`);
-        } catch {
-            showToast("Impossible de lire ce fichier d'import.", 'error');
-        }
+        setBatchRows(rows);
+        setBatchFileName(file.name);
+        setBatchText('');
+        setBatchProgress({ total: rows.length, done: 0 });
+        setBatchSummary({ created: 0, updated: 0, errors: 0 });
+        setBatchResumeAvailable(false);
+        showToast(`${rows.length} ligne(s) prêtes pour l'import.`);
+      } catch {
+        showToast("Impossible de lire ce fichier d'import.", 'error');
+      }
     };
 
     const createVariants = async () => {
