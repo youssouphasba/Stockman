@@ -53,11 +53,6 @@ const IOS_REVENUECAT_PRODUCT_IDS: Record<PlanKey, string> = {
         'pro_monthly_V2',
 };
 
-const ENTITLEMENTS: Record<PlanKey, string> = {
-    starter: 'starter',
-    pro: 'pro',
-};
-
 const PLAN_ALIASES: Record<PlanKey, string[]> = {
     starter: ['starter', 'basic', 'essential'],
     pro: ['pro', 'premium'],
@@ -115,10 +110,76 @@ function normalizeText(value: unknown): string {
     return String(value || '').trim().toLowerCase();
 }
 
+function inferPlanFromIdentifier(value: unknown): PlanKey | null {
+    const normalized = normalizeText(value);
+    if (!normalized) return null;
+
+    const exactMatches: Array<{ plan: PlanKey; value: string }> = [
+        { plan: 'starter', value: normalizeText(ANDROID_REVENUECAT_PRODUCT_IDS.starter) },
+        { plan: 'pro', value: normalizeText(ANDROID_REVENUECAT_PRODUCT_IDS.pro) },
+        { plan: 'starter', value: normalizeText(IOS_REVENUECAT_PRODUCT_IDS.starter) },
+        { plan: 'pro', value: normalizeText(IOS_REVENUECAT_PRODUCT_IDS.pro) },
+    ];
+
+    for (const match of exactMatches) {
+        if (match.value && normalized === match.value) {
+            return match.plan;
+        }
+    }
+
+    if (matchesPlanAlias(normalized, 'pro')) return 'pro';
+    if (matchesPlanAlias(normalized, 'starter')) return 'starter';
+    return null;
+}
+
 function matchesPlanAlias(value: unknown, plan: PlanKey): boolean {
     const normalized = normalizeText(value);
     if (!normalized) return false;
     return PLAN_ALIASES[plan].some((alias) => normalized.includes(alias));
+}
+
+function inferPlanFromCustomerInfo(customerInfo: any): { plan: 'starter' | 'pro' | 'free'; expiresAt?: string } {
+    const bestMatch = { plan: null as PlanKey | null, expiresAt: undefined as string | undefined, score: 0 };
+
+    const registerCandidate = (plan: PlanKey | null, expiresAt?: string | null, score: number = 0) => {
+        if (!plan) return;
+        const weightedScore = score + (plan === 'pro' ? 10 : 0);
+        if (weightedScore >= bestMatch.score) {
+            bestMatch.plan = plan;
+            bestMatch.expiresAt = expiresAt || undefined;
+            bestMatch.score = weightedScore;
+        }
+    };
+
+    const activeEntitlements = customerInfo?.entitlements?.active || {};
+    if (activeEntitlements && typeof activeEntitlements === 'object') {
+        for (const [entitlementKey, entitlement] of Object.entries(activeEntitlements)) {
+            const candidate =
+                inferPlanFromIdentifier(entitlementKey) ||
+                inferPlanFromIdentifier((entitlement as any)?.identifier) ||
+                inferPlanFromIdentifier((entitlement as any)?.productIdentifier) ||
+                inferPlanFromIdentifier((entitlement as any)?.productPlanIdentifier);
+            registerCandidate(candidate, (entitlement as any)?.expirationDate, 50);
+        }
+    }
+
+    const activeSubscriptions = Array.isArray(customerInfo?.activeSubscriptions) ? customerInfo.activeSubscriptions : [];
+    for (const subscriptionId of activeSubscriptions) {
+        registerCandidate(inferPlanFromIdentifier(subscriptionId), customerInfo?.latestExpirationDate, 40);
+    }
+
+    const purchasedProductIds = Array.isArray(customerInfo?.allPurchasedProductIdentifiers)
+        ? customerInfo.allPurchasedProductIdentifiers
+        : [];
+    for (const productId of purchasedProductIds) {
+        registerCandidate(inferPlanFromIdentifier(productId), customerInfo?.latestExpirationDate, 30);
+    }
+
+    if (!bestMatch.plan) {
+        return { plan: 'free' };
+    }
+
+    return { plan: bestMatch.plan, expiresAt: bestMatch.expiresAt };
 }
 
 function getAllOfferings(offerings: any): any[] {
@@ -247,9 +308,8 @@ export async function purchaseStarter(): Promise<PurchaseResult> {
         const { package: pkg, reason } = await getPackageForPlan('starter');
         if (!pkg || reason) return { success: false, reason: reason ?? 'package_not_found' };
         const { customerInfo } = await PurchasesSDK.purchasePackage(pkg);
-        const hasPro = customerInfo.entitlements.active[ENTITLEMENTS.pro];
-        const hasStarter = customerInfo.entitlements.active[ENTITLEMENTS.starter];
-        return { success: true, plan: hasPro ? 'pro' : hasStarter ? 'starter' : 'starter' };
+        const purchaseState = inferPlanFromCustomerInfo(customerInfo);
+        return { success: true, plan: purchaseState.plan === 'free' ? 'starter' : purchaseState.plan };
     } catch (e: any) {
         const failure = classifyPurchaseError(e);
         console.warn('RevenueCat purchaseStarter failed:', { reason: failure.reason, debugCode: failure.debugCode, message: e?.message });
@@ -263,8 +323,8 @@ export async function purchasePro(): Promise<PurchaseResult> {
         const { package: pkg, reason } = await getPackageForPlan('pro');
         if (!pkg || reason) return { success: false, reason: reason ?? 'package_not_found' };
         const { customerInfo } = await PurchasesSDK.purchasePackage(pkg);
-        const hasPro = customerInfo.entitlements.active[ENTITLEMENTS.pro];
-        return { success: true, plan: hasPro ? 'pro' : 'starter' };
+        const purchaseState = inferPlanFromCustomerInfo(customerInfo);
+        return { success: true, plan: purchaseState.plan === 'free' ? 'pro' : purchaseState.plan };
     } catch (e: any) {
         const failure = classifyPurchaseError(e);
         console.warn('RevenueCat purchasePro failed:', { reason: failure.reason, debugCode: failure.debugCode, message: e?.message });
@@ -276,11 +336,9 @@ export async function restorePurchases(): Promise<PurchaseResult> {
     if (!isPurchasesAvailable()) return { success: false, reason: 'not_initialized' };
     try {
         const customerInfo = await PurchasesSDK.restorePurchases();
-        const hasPro = customerInfo.entitlements.active[ENTITLEMENTS.pro];
-        const hasStarter = customerInfo.entitlements.active[ENTITLEMENTS.starter];
-        const plan = hasPro ? 'pro' : hasStarter ? 'starter' : undefined;
-        if (!plan) return { success: false, reason: 'no_active_purchase' };
-        return { success: true, plan };
+        const restoreState = inferPlanFromCustomerInfo(customerInfo);
+        if (restoreState.plan === 'free') return { success: false, reason: 'no_active_purchase' };
+        return { success: true, plan: restoreState.plan };
     } catch (e) {
         console.warn('RevenueCat restorePurchases failed:', e);
         return { success: false, reason: 'restore_failed' };
@@ -291,15 +349,7 @@ export async function getCustomerInfo(): Promise<{ plan: string; expiresAt?: str
     if (!isPurchasesAvailable()) return null;
     try {
         const customerInfo = await PurchasesSDK.getCustomerInfo();
-        const proEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.pro];
-        const starterEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.starter];
-        if (proEntitlement) {
-            return { plan: 'pro', expiresAt: proEntitlement.expirationDate };
-        }
-        if (starterEntitlement) {
-            return { plan: 'starter', expiresAt: starterEntitlement.expirationDate };
-        }
-        return { plan: 'free' };
+        return inferPlanFromCustomerInfo(customerInfo);
     } catch (e) {
         console.warn('RevenueCat getCustomerInfo failed:', e);
         return null;

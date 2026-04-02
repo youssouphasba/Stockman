@@ -14,8 +14,9 @@ Pour tester les paiements sans dépenser d'argent réel :
 
 1. Créez un projet sur **[RevenueCat](https://app.revenuecat.com/)**.
 2. Ajoutez une application Android avec votre **Package Name** (`com.youssouphasba.stockman`).
-3. Créez des **Entitlements** (ex: `premium`) et des **Offerings**.
-4. **IMPORTANT** : Dans le Play Store, le compte Google utilisé pour le test doit être ajouté comme "Testeur sous licence" dans **Configuration** → **Tests de licence**.
+3. Créez des **Entitlements** et des **Offerings**.
+4. Pour Stockman, les entitlements attendus sont `starter` et `pro`.
+5. **IMPORTANT** : Dans le Play Store, le compte Google utilisé pour le test doit être ajouté comme "Testeur sous licence" dans **Configuration** → **Tests de licence**.
 
 ### Variables d'environnement par plateforme
 
@@ -38,8 +39,8 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 
 ## 3.1 Synchronisation après achat intégré
 
-- Après un achat Starter ou Pro via Google Play / App Store, l’application lance une synchronisation serveur (`/subscription/sync`) pour refléter immédiatement le plan.
-- Si la boutique indique "déjà abonné", utilisez le bouton **Récupérer mon abonnement** pour restaurer l’achat puis relancer la synchronisation.
+- Après un achat Starter ou Pro via Google Play / App Store, l’application lance une synchronisation serveur (`/subscription/sync`) puis recharge le contexte utilisateur pour propager immédiatement le nouveau plan dans les écrans verrouillés.
+- Si la boutique indique "déjà abonné", utilisez le bouton **Récupérer mon abonnement**. L’application tente maintenant de reconnaître le plan à partir des entitlements actifs, des abonnements actifs et des identifiants de produits RevenueCat avant de relancer la synchronisation.
 
 ## 4. Connexion Google mobile
 

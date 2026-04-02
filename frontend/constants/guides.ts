@@ -514,11 +514,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 title: "Choisir le bon mode de paiement",
                 description: "L'ecran affiche uniquement les moyens reellement disponibles pour votre appareil et votre formule. Sur mobile, passez par la boutique de paiement affichee a l'ecran pour Starter et Pro. Le passage a Enterprise se gere sur le web et garde le meme compte. En test Google Play, utilisez un compte testeur autorise et verifiez que le produit est actif."
             },
-            {
-                icon: "refresh-outline",
-                title: "Récupérer un abonnement existant",
-                description: "Après une réinstallation, un changement d'appareil ou une reconnexion, utilisez l'option de récupération si vous avez déjà payé. Cela évite de lancer un nouveau règlement inutile."
-            },
+              {
+                  icon: "refresh-outline",
+                  title: "Récupérer un abonnement existant",
+                  description: "Après une réinstallation, un changement d'appareil ou une reconnexion, utilisez l'option de récupération si vous avez déjà payé. L'application reconnaît maintenant le plan plus largement puis recharge automatiquement votre statut pour éviter de rester bloqué sur Starter."
+              },
             {
                 icon: "mail-outline",
                 title: "Suivre les rappels et le renouvellement",

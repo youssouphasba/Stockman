@@ -10,10 +10,12 @@ import {
     Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { subscription, SubscriptionData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -85,7 +87,7 @@ export default function SubscriptionScreen() {
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, restoreSession } = useAuth();
     const { colors, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
@@ -100,21 +102,62 @@ export default function SubscriptionScreen() {
     const userCurrency = data?.currency || user?.currency || 'XOF';
     const useMobileMoney = data?.use_mobile_money ?? ['XOF', 'XAF', 'GNF', 'CDF'].includes(userCurrency);
 
-    useEffect(() => {
-        void fetchSubscription();
-    }, []);
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    const fetchSubscription = async () => {
+    const refreshSubscriptionState = useCallback(async (
+        options: {
+            syncServer?: boolean;
+            showLoader?: boolean;
+            expectedPlan?: PlanKey;
+            retries?: number;
+        } = {}
+    ) => {
+        const { syncServer = false, showLoader = false, expectedPlan, retries = 0 } = options;
         try {
-            setLoading(true);
-            const res = await subscription.getDetails();
-            setData(res);
+            if (showLoader) setLoading(true);
+
+            let latest: SubscriptionData | null = null;
+            for (let attempt = 0; attempt <= retries; attempt += 1) {
+                if (syncServer && isNative) {
+                    try {
+                        await subscription.sync();
+                    } catch (syncError) {
+                        console.warn('Subscription sync failed:', syncError);
+                    }
+                }
+
+                latest = await subscription.getDetails();
+                setData(latest);
+                await restoreSession();
+
+                const matchedExpectedPlan = !expectedPlan || latest.plan === expectedPlan || latest.effective_plan === expectedPlan;
+                if (matchedExpectedPlan) {
+                    break;
+                }
+
+                if (attempt < retries) {
+                    await wait(1200 * (attempt + 1));
+                }
+            }
+
+            return latest;
         } catch (error) {
             console.error('Error fetching subscription:', error);
+            return null;
         } finally {
-            setLoading(false);
+            if (showLoader) setLoading(false);
         }
-    };
+    }, [isNative, restoreSession]);
+
+    useEffect(() => {
+        void refreshSubscriptionState({ showLoader: true });
+    }, [refreshSubscriptionState]);
+
+    useFocusEffect(
+        useCallback(() => {
+            void refreshSubscriptionState({ syncServer: isNative });
+        }, [isNative, refreshSubscriptionState])
+    );
 
     const currentPlan = data?.plan;
     const effectivePlan = data?.effective_plan || currentPlan;
@@ -161,8 +204,7 @@ export default function SubscriptionScreen() {
                 if (result.reason === 'already_owned') {
                     const restoreResult = await restorePurchases();
                     if (restoreResult.success) {
-                        await subscription.sync();
-                        await fetchSubscription();
+                        await refreshSubscriptionState({ syncServer: true, expectedPlan: restoreResult.plan as PlanKey, retries: 2 });
                         Alert.alert(t('common.success'), t('subscription.restored_success'));
                         return;
                     }
@@ -190,8 +232,7 @@ export default function SubscriptionScreen() {
                 Alert.alert(t('common.error'), message);
                 return;
             }
-            await subscription.sync();
-            await fetchSubscription();
+            await refreshSubscriptionState({ syncServer: true, expectedPlan: result.plan as PlanKey, retries: 2 });
             Alert.alert(t('common.success'), t('subscription.activated_success'));
         } catch (error: any) {
             if (!error?.userCancelled) {
@@ -222,8 +263,7 @@ export default function SubscriptionScreen() {
             setPayLoading(true);
             const result = await restorePurchases();
             if (result.success && result.plan && result.plan !== 'free') {
-                await subscription.sync();
-                await fetchSubscription();
+                await refreshSubscriptionState({ syncServer: true, expectedPlan: result.plan as PlanKey, retries: 2 });
                 Alert.alert(t('subscription.restored'), t('subscription.restored_success'));
             } else if (!result.success && result.reason === 'no_active_purchase') {
                 Alert.alert(t('common.info'), t('subscription.no_purchase_found'));
