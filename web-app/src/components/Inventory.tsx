@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useCallback, useMemo, useRef } from 'react';
 import {
     Search,
     Filter,
@@ -64,6 +65,7 @@ import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 export default function Inventory() {
     const { t, i18n } = useTranslation();
+    const isPerfEnabled = typeof window !== 'undefined' && localStorage.getItem('stockman_perf') === '1';
     const [products, setProducts] = useState<any[]>([]);
     const [categoriesList, setCategoriesList] = useState<any[]>([]);
     const [locationsList, setLocationsList] = useState<any[]>([]);
@@ -160,6 +162,9 @@ export default function Inventory() {
     const [duplicatesData, setDuplicatesData] = useState<any>(null);
     const [showDuplicates, setShowDuplicates] = useState(false);
     const [duplicateActionKey, setDuplicateActionKey] = useState<string | null>(null);
+    const hasHydratedUserRef = useRef(false);
+    const aiInsightsRequestKeyRef = useRef<string>('');
+    const aiInsightsFailureAtRef = useRef<number>(0);
 
     // Stock movement modal
     const [stockModalOpen, setStockModalOpen] = useState(false);
@@ -172,22 +177,34 @@ export default function Inventory() {
     const sanitizeRows = <T extends Record<string, any>>(rows: unknown): T[] =>
         (Array.isArray(rows) ? rows : []).filter((row): row is T => Boolean(row) && typeof row === 'object');
 
-    const safeProducts = sanitizeRows<any>(products);
-    const safeCategoriesList = sanitizeRows<any>(categoriesList);
-    const safeLocationsList = sanitizeRows<any>(locationsList);
-    const safeSuppliersList = sanitizeRows<any>(suppliersList);
+    const safeProducts = useMemo(() => sanitizeRows<any>(products), [products]);
+    const safeCategoriesList = useMemo(() => sanitizeRows<any>(categoriesList), [categoriesList]);
+    const safeLocationsList = useMemo(() => sanitizeRows<any>(locationsList), [locationsList]);
+    const safeSuppliersList = useMemo(() => sanitizeRows<any>(suppliersList), [suppliersList]);
 
-    const locationMap = new Map(safeLocationsList.map((loc) => [loc.location_id, loc]));
-    const activeLocationsList = safeLocationsList.filter((loc) => loc.is_active !== false);
+    const locationMap = useMemo(
+        () => new Map(safeLocationsList.map((loc) => [loc.location_id, loc])),
+        [safeLocationsList],
+    );
+    const activeLocationsList = useMemo(
+        () => safeLocationsList.filter((loc) => loc.is_active !== false),
+        [safeLocationsList],
+    );
     const selectedLocationRecord = selectedLocation ? locationMap.get(selectedLocation) : undefined;
-    const locationFilterOptions = selectedLocationRecord && selectedLocationRecord.is_active === false
-        ? [...activeLocationsList, selectedLocationRecord]
-        : activeLocationsList;
+    const locationFilterOptions = useMemo(
+        () => (selectedLocationRecord && selectedLocationRecord.is_active === false
+            ? [...activeLocationsList, selectedLocationRecord]
+            : activeLocationsList),
+        [activeLocationsList, selectedLocationRecord],
+    );
     const selectedFormLocation = form.location_id ? locationMap.get(form.location_id) : undefined;
-    const formLocationOptions = selectedFormLocation && selectedFormLocation.is_active === false
-        ? [...activeLocationsList, selectedFormLocation]
-        : activeLocationsList;
-    const getLocationLabel = (locationId: string | null) => {
+    const formLocationOptions = useMemo(
+        () => (selectedFormLocation && selectedFormLocation.is_active === false
+            ? [...activeLocationsList, selectedFormLocation]
+            : activeLocationsList),
+        [activeLocationsList, selectedFormLocation],
+    );
+    const getLocationLabel = useCallback((locationId: string | null) => {
         if (!locationId) return '';
         const parts: string[] = [];
         let current = locationMap.get(locationId);
@@ -199,7 +216,7 @@ export default function Inventory() {
         }
         if (parts.length === 0) return 'Emplacement supprime';
         return parts.reverse().join(' / ');
-    };
+    }, [locationMap]);
 
     const handleStockMovement = async () => {
         const qty = parseFloat(stockMovQty);
@@ -264,7 +281,8 @@ export default function Inventory() {
         handleOpenEditModal(product);
     };
 
-    const fetchProducts = async (locationFilter?: string) => {
+    const fetchProducts = useCallback(async (locationFilter?: string) => {
+        const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
         setLoading(true);
         setError(null);
         try {
@@ -329,18 +347,30 @@ export default function Inventory() {
                 console.warn('Inventory supplier links unavailable', linksRes.reason);
             }
             if (partialError) {
-                setError(t('inventory.partial_load_error', { defaultValue: 'Certaines donn?es annexes du stock sont temporairement indisponibles.' }));
+                setError(t('inventory.partial_load_error', { defaultValue: 'Certaines données annexes du stock sont temporairement indisponibles.' }));
             }
         } catch (err) {
             console.error('Error fetching inventory data', err);
             setError(t('inventory.load_error', { defaultValue: 'Impossible de charger les produits pour le moment.' }));
             setPendingInventorySummary(getPendingInventorySummary());
         } finally {
+            if (isPerfEnabled) {
+                const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
+                console.info(`[SCREEN PERF][WEB][inventory] location=${locationFilter ?? selectedLocation ?? 'all'} duration=${elapsed.toFixed(1)}ms`);
+                const host = window as unknown as { __stockmanScreenPerf?: any[] };
+                if (!host.__stockmanScreenPerf) host.__stockmanScreenPerf = [];
+                host.__stockmanScreenPerf.push({
+                    screen: 'inventory',
+                    location: locationFilter ?? selectedLocation ?? 'all',
+                    duration_ms: elapsed,
+                    ts: new Date().toISOString(),
+                });
+            }
             setLoading(false);
         }
-    };
+    }, [currentUser?.role, hasEnterpriseLocations, isPerfEnabled, selectedLocation, t]);
 
-    const loadStockHealth = async () => {
+    const loadStockHealth = useCallback(async () => {
         setStockHealthLoading(true);
         try {
             const response = await analyticsApi.getStockHealth({ days: 30 });
@@ -350,7 +380,7 @@ export default function Inventory() {
         } finally {
             setStockHealthLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         void fetchProducts();
@@ -366,36 +396,59 @@ export default function Inventory() {
                 if (featuresRes.status === 'fulfilled') setCurrentFeatures(featuresRes.value);
                 else console.warn('User features unavailable for inventory', featuresRes.reason);
             }).catch(() => {});
-        // Vague 1+2: load sales forecast, deadstock, seasonality, duplicates in background
-        Promise.allSettled([
-            aiApi.salesForecast(),
-            aiApi.deadstockAnalysis(),
-            aiApi.seasonalityAlerts(),
-            aiApi.detectDuplicates('products'),
-        ]).then(([forecastRes, deadstockRes, seasonRes, dupsRes]) => {
-            if (forecastRes.status === 'fulfilled' && forecastRes.value.forecasts) {
-                const map: Record<string, any> = {};
-                for (const f of forecastRes.value.forecasts) {
-                    map[f.product_id] = f;
+        const aiScopeKey = [
+            currentUser?.user_id ?? 'anon',
+            currentUser?.active_store_id ?? selectedLocation ?? '',
+        ].join(':');
+        const canRetryAiInsights = Date.now() - aiInsightsFailureAtRef.current > 30000;
+        if (aiInsightsRequestKeyRef.current !== aiScopeKey && canRetryAiInsights) {
+            aiInsightsRequestKeyRef.current = aiScopeKey;
+            Promise.allSettled([
+                aiApi.salesForecast(),
+                aiApi.deadstockAnalysis(),
+                aiApi.seasonalityAlerts(),
+                aiApi.detectDuplicates('products'),
+            ]).then(([forecastRes, deadstockRes, seasonRes, dupsRes]) => {
+                if (forecastRes.status === 'fulfilled' && forecastRes.value.forecasts) {
+                    const map: Record<string, any> = {};
+                    for (const f of forecastRes.value.forecasts) {
+                        map[f.product_id] = f;
+                    }
+                    setSalesForecastMap(map);
+                } else if (forecastRes.status === 'rejected') {
+                    aiInsightsFailureAtRef.current = Date.now();
                 }
-                setSalesForecastMap(map);
-            }
-            if (deadstockRes.status === 'fulfilled') setDeadstockData(deadstockRes.value);
-            if (seasonRes.status === 'fulfilled' && seasonRes.value.alerts) {
-                const map: Record<string, any> = {};
-                for (const a of seasonRes.value.alerts) {
-                    map[a.product_id] = a;
+                if (deadstockRes.status === 'fulfilled') {
+                    setDeadstockData(deadstockRes.value);
+                } else {
+                    aiInsightsFailureAtRef.current = Date.now();
                 }
-                setSeasonalityMap(map);
-            }
-            if (dupsRes.status === 'fulfilled') setDuplicatesData(dupsRes.value);
-        });
-    }, []);
+                if (seasonRes.status === 'fulfilled' && seasonRes.value.alerts) {
+                    const map: Record<string, any> = {};
+                    for (const a of seasonRes.value.alerts) {
+                        map[a.product_id] = a;
+                    }
+                    setSeasonalityMap(map);
+                } else if (seasonRes.status === 'rejected') {
+                    aiInsightsFailureAtRef.current = Date.now();
+                }
+                if (dupsRes.status === 'fulfilled') {
+                    setDuplicatesData(dupsRes.value);
+                } else {
+                    aiInsightsFailureAtRef.current = Date.now();
+                }
+            });
+        }
+    }, [currentUser?.active_store_id, currentUser?.user_id, fetchProducts, loadStockHealth, selectedLocation]);
 
     useEffect(() => {
         if (!currentUser) return;
+        if (!hasHydratedUserRef.current) {
+            hasHydratedUserRef.current = true;
+            return;
+        }
         void fetchProducts();
-    }, [currentUser?.effective_plan, currentUser?.plan, currentUser?.role]);
+    }, [currentUser?.effective_plan, currentUser?.plan, currentUser?.role, fetchProducts]);
 
     const handleReplenishAdvice = async () => {
         setReplenishLoading(true);
@@ -443,7 +496,7 @@ export default function Inventory() {
     const handleImportCatalog = async () => {
         const sector = currentFeatures?.sector;
         if (!sector) {
-            alert("Aucun type d'activit? n'est d?fini pour ce compte.");
+            alert("Aucun type d'activité n'est défini pour ce compte.");
             return;
         }
         setShowCreateMenu(false);
@@ -454,7 +507,7 @@ export default function Inventory() {
             await fetchProducts();
             await loadStockHealth();
         } catch (err: any) {
-            alert(err.message || "Erreur lors de l'import du catalogue m?tier");
+            alert(err.message || "Erreur lors de l'import du catalogue métier");
         } finally {
             setCatalogImportLoading(false);
         }
@@ -560,7 +613,7 @@ export default function Inventory() {
                             supplier_price: Number(supplierPickerProduct.purchase_price) || existing.supplier_price || 0,
                         });
                     } catch (err: any) {
-                        syncErrors.push(err.message || `Impossible de mettre ? jour le fournisseur ${getSupplierName(supplierId)}.`);
+                        syncErrors.push(err.message || `Impossible de mettre à jour le fournisseur ${getSupplierName(supplierId)}.`);
                     }
                 } else {
                     try {
@@ -680,7 +733,7 @@ export default function Inventory() {
         if (!product.product_id || deletingProductId) return;
 
         const confirmed = window.confirm(
-            `Supprimer d?finitivement le produit "${product.name}" `,
+            `Supprimer définitivement le produit "${product.name}" `,
         );
 
         if (!confirmed) {
@@ -774,7 +827,7 @@ export default function Inventory() {
                             });
                         } catch (err: any) {
                             supplierSyncErrors.push(
-                                err.message || `Impossible de mettre ? jour le fournisseur ${getSupplierName(supplierId)}.`,
+                                err.message || `Impossible de mettre à jour le fournisseur ${getSupplierName(supplierId)}.`,
                             );
                         }
                     } else {
@@ -953,7 +1006,7 @@ export default function Inventory() {
             return {
                 tone: 'rose',
                 status: 'Aucun fournisseur',
-                subtitle: 'Ajoutez un fournisseur pour pr?parer le r?approvisionnement.',
+                subtitle: 'Ajoutez un fournisseur pour préparer le réapprovisionnement.',
             };
         }
 
@@ -961,7 +1014,7 @@ export default function Inventory() {
             return {
                 tone: 'sky',
                 status: 'Principal manquant',
-                subtitle: `${links.length} fournisseur(s) li?(s), aucun principal d?fini.`,
+                subtitle: `${links.length} fournisseur(s) lié(s), aucun principal défini.`,
             };
         }
 
@@ -974,28 +1027,31 @@ export default function Inventory() {
         };
     };
 
-    const supplierCoverageStats = {
+    const supplierCoverageStats = useMemo(() => ({
         noSupplier: safeProducts.filter((product) => (supplierLinksByProduct[product.product_id] || []).length === 0).length,
         multiSupplier: safeProducts.filter((product) => (supplierLinksByProduct[product.product_id] || []).length > 1).length,
         missingPrimary: safeProducts.filter((product) => {
             const links = supplierLinksByProduct[product.product_id] || [];
             return links.length > 0 && !links.some((link) => link.is_preferred);
         }).length,
-    };
+    }), [safeProducts, supplierLinksByProduct]);
 
-    const filteredProducts = safeProducts.filter((p) => {
-        const matchesSearch =
-            (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
-            p.sku.toLowerCase().includes(search.toLowerCase());
-        if (!matchesSearch) return false;
+    const filteredProducts = useMemo(() => {
+        const searchValue = search.toLowerCase();
+        return safeProducts.filter((p) => {
+            const matchesSearch =
+                (p.name || '').toLowerCase().includes(searchValue) ||
+                p.sku.toLowerCase().includes(searchValue);
+            if (!matchesSearch) return false;
 
-        const links = supplierLinksByProduct[p.product_id] || [];
-        if (supplierCoverageFilter === 'all') return true;
-        if (supplierCoverageFilter === 'no_supplier') return links.length === 0;
-        if (supplierCoverageFilter === 'multi_supplier') return links.length > 1;
-        if (supplierCoverageFilter === 'missing_primary') return links.length > 0 && !links.some((link) => link.is_preferred);
-        return true;
-    });
+            const links = supplierLinksByProduct[p.product_id] || [];
+            if (supplierCoverageFilter === 'all') return true;
+            if (supplierCoverageFilter === 'no_supplier') return links.length === 0;
+            if (supplierCoverageFilter === 'multi_supplier') return links.length > 1;
+            if (supplierCoverageFilter === 'missing_primary') return links.length > 0 && !links.some((link) => link.is_preferred);
+            return true;
+        });
+    }, [safeProducts, search, supplierCoverageFilter, supplierLinksByProduct]);
 
     if (loading && safeProducts.length === 0 && !error) {
         return (
@@ -1027,35 +1083,35 @@ export default function Inventory() {
 
     const inventorySteps: GuideStep[] = [
         {
-            title: t('guide.inventory.role_title', "R?le de l'inventaire"),
-            content: t('guide.inventory.role_content', "L'inventaire regroupe tous vos produits actifs. C'est ici que vous cr?ez, modifiez, suivez, importez et exportez votre stock. Chaque mouvement est trac? et toutes les donn?es affich?es d?pendent de la boutique active."),
+            title: t('guide.inventory.role_title', "Rôle de l'inventaire"),
+            content: t('guide.inventory.role_content', "L'inventaire regroupe tous vos produits actifs. C'est ici que vous créez, modifiez, suivez, importez et exportez votre stock. Chaque mouvement est tracé et toutes les données affichées dépendent de la boutique active."),
         },
         {
-            title: t('guide.inventory.header_title', "Barre d'en-t?te"),
-            content: t('guide.inventory.header_content', "Les boutons du haut servent ? cr?er des produits, importer en lot, lancer un scan, exporter le stock et ouvrir les actions utiles sans quitter l'?cran."),
+            title: t('guide.inventory.header_title', "Barre d'en-tête"),
+            content: t('guide.inventory.header_content', "Les boutons du haut servent à créer des produits, importer en lot, lancer un scan, exporter le stock et ouvrir les actions utiles sans quitter l'écran."),
             details: [
-                { label: t('guide.inventory.btn_add', "Nouveau produit"), description: t('guide.inventory.btn_add_desc', "Ouvre la fiche compl?te de cr?ation : nom, SKU, quantit? initiale, unit?, prix, seuils, cat?gorie, emplacement et description."), type: 'button' },
-                { label: t('guide.inventory.btn_import_csv', "Import CSV"), description: t('guide.inventory.btn_import_csv_desc', "Utilisez cet import pour cr?er plusieurs produits d'un coup. Pr?parez votre fichier avec les bonnes colonnes, v?rifiez l'aper?u puis validez la cr?ation."), type: 'button' },
-                { label: t('guide.inventory.btn_import_text', "Import texte"), description: t('guide.inventory.btn_import_text_desc', "Collez une liste brute quand vous n'avez pas encore un fichier propre. Relisez toujours le r?sultat avant d'enregistrer pour ?viter une cr?ation incorrecte."), type: 'button' },
-                { label: t('guide.inventory.btn_scan', "Scan en lot"), description: t('guide.inventory.btn_scan_desc', "Le scan en s?rie acc?l?re les entr?es de stock, les r?ceptions et certains contr?les. Il est utile quand vous manipulez beaucoup d'articles en peu de temps."), type: 'button' },
-                { label: t('guide.inventory.btn_export_xls', "Exporter Excel"), description: t('guide.inventory.btn_export_xls_desc', "Exporte le stock affich? avec ses colonnes utiles pour le contr?le, la comptabilit?, le partage interne ou le travail hors application."), type: 'button' },
-                { label: t('guide.inventory.btn_export_pdf', "Exporter PDF"), description: t('guide.inventory.btn_export_pdf_desc', "G?n?re un document plus lisible pour l'impression, la validation terrain ou le partage rapide."), type: 'button' },
+                { label: t('guide.inventory.btn_add', "Nouveau produit"), description: t('guide.inventory.btn_add_desc', "Ouvre la fiche complète de création : nom, SKU, quantité initiale, unité, prix, seuils, catégorie, emplacement et description."), type: 'button' },
+                { label: t('guide.inventory.btn_import_csv', "Import CSV"), description: t('guide.inventory.btn_import_csv_desc', "Utilisez cet import pour créer plusieurs produits d'un coup. Préparez votre fichier avec les bonnes colonnes, vérifiez l'aperçu puis validez la création."), type: 'button' },
+                { label: t('guide.inventory.btn_import_text', "Import texte"), description: t('guide.inventory.btn_import_text_desc', "Collez une liste brute quand vous n'avez pas encore un fichier propre. Relisez toujours le résultat avant d'enregistrer pour éviter une création incorrecte."), type: 'button' },
+                { label: t('guide.inventory.btn_scan', "Scan en lot"), description: t('guide.inventory.btn_scan_desc', "Le scan en série accélère les entrées de stock, les réceptions et certains contrôles. Il est utile quand vous manipulez beaucoup d'articles en peu de temps."), type: 'button' },
+                { label: t('guide.inventory.btn_export_xls', "Exporter Excel"), description: t('guide.inventory.btn_export_xls_desc', "Exporte le stock affiché avec ses colonnes utiles pour le contrôle, la comptabilité, le partage interne ou le travail hors application."), type: 'button' },
+                { label: t('guide.inventory.btn_export_pdf', "Exporter PDF"), description: t('guide.inventory.btn_export_pdf_desc', "Génère un document plus lisible pour l'impression, la validation terrain ou le partage rapide."), type: 'button' },
             ],
         },
         {
             title: t('guide.inventory.search_title', "Recherche et filtres"),
-            content: t('guide.inventory.search_content', "La recherche et les filtres servent ? retrouver vite un article, ? isoler une zone du stock ou ? concentrer l'analyse sur un type pr?cis de produit."),
+            content: t('guide.inventory.search_content', "La recherche et les filtres servent à retrouver vite un article, à isoler une zone du stock ou à concentrer l'analyse sur un type précis de produit."),
             details: [
                 { label: t('guide.inventory.search_bar', "Barre de recherche"), description: t('guide.inventory.search_bar_desc', "Recherche par nom, SKU ou code d'identification. C'est le plus rapide pour retrouver un article avant une correction ou une commande."), type: 'filter' },
-                { label: t('guide.inventory.filter_location', "Filtre emplacement"), description: t('guide.inventory.filter_location_desc', "Affiche uniquement les produits rang?s dans une zone donn?e. Utilisez-le pendant les comptages, les transferts internes et les contr?les physiques."), type: 'filter' },
-                { label: t('guide.inventory.filter_toggle', "Filtres de couverture fournisseur"), description: t('guide.inventory.filter_toggle_desc', "Isolez les produits sans fournisseur, avec plusieurs fournisseurs ou sans principal d?fini. Cette lecture est utile pour s?curiser le r?approvisionnement."), type: 'filter' },
+                { label: t('guide.inventory.filter_location', "Filtre emplacement"), description: t('guide.inventory.filter_location_desc', "Affiche uniquement les produits rangés dans une zone donnée. Utilisez-le pendant les comptages, les transferts internes et les contrôles physiques."), type: 'filter' },
+                { label: t('guide.inventory.filter_toggle', "Filtres de couverture fournisseur"), description: t('guide.inventory.filter_toggle_desc', "Isolez les produits sans fournisseur, avec plusieurs fournisseurs ou sans principal défini. Cette lecture est utile pour sécuriser le réapprovisionnement."), type: 'filter' },
             ],
         },
         {
             title: t('guide.inventory.product_list_title', "Liste des produits"),
-            content: t('guide.inventory.product_list_content', "Chaque ligne r?sume l'?tat op?rationnel d'un produit : quantit?, prix, cat?gorie, emplacement, couverture fournisseur et actions disponibles."),
+            content: t('guide.inventory.product_list_content', "Chaque ligne résume l'état opérationnel d'un produit : quantité, prix, catégorie, emplacement, couverture fournisseur et actions disponibles."),
             details: [
-                { label: t('guide.inventory.col_name', "Produit"), description: t('guide.inventory.col_name_desc', "Le nom ouvre la fiche compl?te. Utilisez cette fiche pour corriger les donn?es, relier des fournisseurs, changer un emplacement ou compl?ter la description."), type: 'card' },
+                { label: t('guide.inventory.col_name', "Produit"), description: t('guide.inventory.col_name_desc', "Le nom ouvre la fiche complète. Utilisez cette fiche pour corriger les données, relier des fournisseurs, changer un emplacement ou compléter la description."), type: 'card' },
                 { label: t('guide.inventory.col_sku', "SKU"), description: t('guide.inventory.col_sku_desc', "Le SKU sert de référence interne pour l'import, l'export, la recherche et certains contrôles terrain."), type: 'info' },
                 { label: t('guide.inventory.col_qty', "Quantité"), description: t('guide.inventory.col_qty_desc', "La quantité affichée est votre stock disponible actuel. Comparez-la toujours avec le seuil minimum et l'état de couverture fournisseur avant une décision."), type: 'card' },
                 { label: t('guide.inventory.col_price', "Prix"), description: t('guide.inventory.col_price_desc', "Les prix d'achat et de vente servent au suivi de marge et à la préparation des décisions d'achat ou de repositionnement."), type: 'info' },
@@ -1173,7 +1229,7 @@ export default function Inventory() {
                             className="btn-primary py-2 px-6 flex items-center gap-2"
                         >
                             <Plus size={20} />
-                            Cr?er / importer
+                            Créer / importer
                             <ChevronDown size={14} className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} />
                         </button>
                         {showCreateMenu && (
@@ -1184,7 +1240,7 @@ export default function Inventory() {
                                 >
                                     <Plus size={16} className="text-primary" />
                                     <div>
-                                        <p className="font-bold">Cr?er manuellement</p>
+                                        <p className="font-bold">Créer manuellement</p>
                                         <p className="text-xs text-slate-400">Formulaire complet avec aide IA dans la fiche produit.</p>
                                     </div>
                                 </button>
@@ -1198,7 +1254,7 @@ export default function Inventory() {
                                     <Sparkles size={16} className="text-violet-400" />
                                     <div>
                                         <p className="font-bold">Importer depuis un texte</p>
-                                        <p className="text-xs text-slate-400">Colle une liste libre, l'IA structure et cr?e les produits.</p>
+                                        <p className="text-xs text-slate-400">Colle une liste libre, l'IA structure et crée les produits.</p>
                                     </div>
                                 </button>
                                 <button
@@ -1226,7 +1282,7 @@ export default function Inventory() {
                                                 ? 'Import du catalogue?'
                                             : `Importer le catalogue ${currentFeatures?.sector_label || 'du metier'}`}
                                         </p>
-                                        <p className="text-xs text-slate-400">Pr?charge un catalogue adapt? ? ton type d'activit?.</p>
+                                        <p className="text-xs text-slate-400">Précharge un catalogue adapté à ton type d'activité.</p>
                                     </div>
                                 </button>
                             </div>
@@ -1260,7 +1316,7 @@ export default function Inventory() {
                             <Sparkles size={20} className="text-violet-400 shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <p className="text-violet-300 font-bold text-sm mb-1">
-                                    IA ? Conseils de r?approvisionnement
+                                    IA • Conseils de réapprovisionnement
                                     {replenishAdvice && ` (${replenishAdvice.priority_count} produits prioritaires)`}
                                 </p>
                                 {replenishLoading ? (
@@ -1475,7 +1531,7 @@ export default function Inventory() {
                     onClick={() => setSupplierCoverageFilter('missing_primary')}
                     className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 text-left transition-colors hover:bg-sky-500/15"
                 >
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">? compl?ter</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-300">À compléter</p>
                     <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.missingPrimary}</p>
                     <p className="mt-1 text-sm text-slate-300">Produits sans principal</p>
                 </button>
@@ -1514,7 +1570,7 @@ export default function Inventory() {
                     <thead>
                         <tr className="border-b border-white/10 text-slate-400 text-sm bg-white/5 uppercase tracking-wider">
                             <th className="py-4 px-6 font-semibold">Produit</th>
-                            <th className="py-4 px-6 font-semibold">Cat?gorie</th>
+                            <th className="py-4 px-6 font-semibold">Catégorie</th>
                             <th className="py-4 px-6 font-semibold">Fournisseurs</th>
                             <th className="py-4 px-6 font-semibold text-center">Stock</th>
                             <th className="py-4 px-6 font-semibold text-center">{t('inventory.forecast_7d', 'Prév. 7j')}</th>
@@ -1579,7 +1635,7 @@ export default function Inventory() {
                                                     <Plus size={12} />
                                                     Associer un fournisseur
                                                 </button>
-                                                <p className="mt-1 text-[11px] text-slate-300">Produit non pr?par? pour le r?approvisionnement.</p>
+                                                <p className="mt-1 text-[11px] text-slate-300">Produit non préparé pour le réapprovisionnement.</p>
                                             </div>
                                         ) : (
                                             <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
@@ -1650,7 +1706,7 @@ export default function Inventory() {
                                             <button
                                                 onClick={() => { setStockModalProduct(p); setStockMovType('in'); setStockMovQty(''); setStockMovReason(''); setStockModalOpen(true); }}
                                                 className="p-1.5 bg-emerald-500/15 hover:bg-emerald-500/30 rounded-lg text-emerald-400 transition-colors"
-                                                title="Entr?e stock"
+                                                title="Entrée stock"
                                             >
                                                 <Plus size={16} />
                                             </button>
@@ -1717,7 +1773,7 @@ export default function Inventory() {
             <Modal
                 isOpen={stockModalOpen}
                 onClose={() => setStockModalOpen(false)}
-                title={stockMovType === 'in' ? ' Entr?e de stock' : ' Sortie de stock'}
+                title={stockMovType === 'in' ? ' Entrée de stock' : ' Sortie de stock'}
                 maxWidth="sm"
             >
                 {stockModalProduct && (
@@ -1765,7 +1821,7 @@ export default function Inventory() {
                                 type="text"
                                 value={stockMovReason}
                                 onChange={e => setStockMovReason(e.target.value)}
-                                placeholder={stockMovType === 'in' ? 'Ex: R?approvisionnement' : 'Ex: Casse, vol, correction'}
+                                placeholder={stockMovType === 'in' ? 'Ex: Réapprovisionnement' : 'Ex: Casse, vol, correction'}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
                             />
                         </div>
@@ -1798,7 +1854,7 @@ export default function Inventory() {
             >
                 <div className="space-y-4">
                     <p className="text-sm text-slate-300">
-                        Choisis ici les fournisseurs qui vendent ce produit, puis d?finis le fournisseur principal.
+                        Choisis ici les fournisseurs qui vendent ce produit, puis définis le fournisseur principal.
                     </p>
                     {rankedSuppliersForPicker.length > 0 ? (
                         <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
@@ -1988,7 +2044,7 @@ export default function Inventory() {
                                 <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-300">Approvisionnement</label>
-                                        <p className="mt-1 text-xs text-slate-400">Associez ici un ou plusieurs fournisseurs ? ce produit. D?finissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
+                                        <p className="mt-1 text-xs text-slate-400">Associez ici un ou plusieurs fournisseurs à ce produit. Définissez d'abord le fournisseur principal, puis ajoutez si besoin des alternatives.</p>
                                         <div className={`mt-3 inline-flex rounded-full border px-3 py-1 text-[11px] font-bold ${
                                             formSupplierIds.length === 0
                                                 ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
@@ -1999,12 +2055,12 @@ export default function Inventory() {
                                             {formSupplierIds.length === 0
                                                 ? 'Aucun fournisseur'
                                                 : !formPrimarySupplierId
-                                                    ? 'Principal ? d?finir'
+                                                    ? 'Principal à définir'
                                                     : `Principal : ${getSupplierName(formPrimarySupplierId)}`}
                                         </div>
                                     </div>
                                     <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs text-slate-200">
-                                        Cochez les fournisseurs ? associer ? ce produit, puis marquez-en un comme fournisseur principal. Cette liaison servira aux suggestions de r?approvisionnement et aux commandes.
+                                        Cochez les fournisseurs à associer à ce produit, puis marquez-en un comme fournisseur principal. Cette liaison servira aux suggestions de réapprovisionnement et aux commandes.
                                     </div>
                                     <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
                                         {rankedSuppliersForForm.map(({ supplier, score }) => {
@@ -2056,7 +2112,7 @@ export default function Inventory() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300">Unit? de prix / stock</label>
+                                    <label className="block text-sm font-medium text-slate-300">Unité de prix / stock</label>
                                     <select
                                         value={form.unit}
                                         onChange={(e) => {
@@ -2210,7 +2266,7 @@ export default function Inventory() {
                                 className="text-xs text-primary flex items-center gap-1 hover:underline disabled:opacity-50"
                             >
                                 <Sparkles size={14} className={aiLoading.description ? 'animate-pulse' : ''} />
-                                G?n?rer par IA
+                                Générer par IA
                             </button>
                         </div>
                         <textarea

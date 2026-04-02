@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Download,
     FileSpreadsheet,
@@ -74,6 +74,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
     const [crmOverview, setCrmOverview] = useState<CrmAnalyticsOverview | null>(null);
     const [procurementOverview, setProcurementOverview] = useState<ProcurementOverview | null>(null);
+    const procurementFailureAtRef = useRef<number>(0);
 
     const derivedDays = useMemo(() => {
         if (filters.useCustomRange && filters.startDate && filters.endDate) {
@@ -92,7 +93,15 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
         store_id: filters.storeId || undefined,
         category_id: filters.categoryId || undefined,
         supplier_id: filters.supplierId || undefined,
-    }), [filters]);
+    }), [
+        filters.useCustomRange,
+        filters.days,
+        filters.startDate,
+        filters.endDate,
+        filters.storeId,
+        filters.categoryId,
+        filters.supplierId,
+    ]);
 
     const periodLabel = useMemo(() => {
         if (filters.useCustomRange && filters.startDate && filters.endDate) {
@@ -113,6 +122,9 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
             setLoading(true);
             setError(null);
             try {
+                const shouldCallProcurement =
+                    !isRestaurantBusiness && (Date.now() - procurementFailureAtRef.current > 20000);
+
                 const results = await Promise.allSettled([
                     !isRestaurantBusiness ? analytics.getExecutiveOverview(analyticsFilters) : Promise.resolve(null),
                     !isRestaurantBusiness ? analytics.getStockHealth(analyticsFilters) : Promise.resolve(null),
@@ -142,7 +154,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                         filters.useCustomRange ? filters.startDate : undefined,
                         filters.useCustomRange ? filters.endDate : undefined,
                     ) : Promise.resolve(null),
-                    !isRestaurantBusiness ? procurementAnalytics.getOverview({
+                    shouldCallProcurement ? procurementAnalytics.getOverview({
                         days: filters.useCustomRange ? undefined : derivedDays,
                         start_date: filters.useCustomRange ? filters.startDate : undefined,
                         end_date: filters.useCustomRange ? filters.endDate : undefined,
@@ -206,6 +218,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                 if (procurementResult.status === 'fulfilled') setProcurementOverview(procurementResult.value);
                 else {
                     console.error('Reports procurement load error', procurementResult.reason);
+                    procurementFailureAtRef.current = Date.now();
                     setProcurementOverview(null);
                 }
 

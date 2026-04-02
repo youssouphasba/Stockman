@@ -8425,8 +8425,8 @@ async def ai_deadstock_analysis(request: Request, user: User = Depends(require_o
     for p in products:
         pid = p["product_id"]
         sale_info = sales_data.get(pid)
-        last_sale = sale_info["last_sale"] if sale_info else None
-        total_sold = sale_info["total_sold_90d"] if sale_info else 0
+        last_sale = parse_analytics_datetime(sale_info.get("last_sale")) if sale_info else None
+        total_sold = _safe_float(sale_info.get("total_sold_90d"), 0.0) if sale_info else 0.0
 
         if last_sale:
             days_since = (now - last_sale).days
@@ -8436,20 +8436,23 @@ async def ai_deadstock_analysis(request: Request, user: User = Depends(require_o
         if days_since < 30:
             continue  # not dormant
 
-        stock_value = p.get("quantity", 0) * p.get("purchase_price", 0)
+        quantity = _safe_float(p.get("quantity"), 0.0)
+        purchase_price = _safe_float(p.get("purchase_price"), 0.0)
+        selling_price = _safe_float(p.get("selling_price"), 0.0)
+        stock_value = quantity * purchase_price
         total_blocked += stock_value
 
         severity = "critical" if days_since >= 60 else "warning"
-        suggestion = "promo" if p.get("selling_price", 0) > 0 else "demarque"
+        suggestion = "promo" if selling_price > 0 else "demarque"
         if days_since >= 90 and total_sold == 0:
             suggestion = "retour_fournisseur"
 
         deadstock.append({
             "product_id": pid,
             "name": p.get("name", ""),
-            "quantity": p.get("quantity", 0),
-            "purchase_price": p.get("purchase_price", 0),
-            "selling_price": p.get("selling_price", 0),
+            "quantity": quantity,
+            "purchase_price": purchase_price,
+            "selling_price": selling_price,
             "stock_value": round(stock_value),
             "days_since_last_sale": days_since,
             "total_sold_90d": total_sold,
@@ -18403,7 +18406,10 @@ def parse_analytics_datetime(value: Any) -> Optional[datetime]:
         return value
     if isinstance(value, str):
         try:
-            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed
         except Exception:
             return None
     return None
@@ -19972,6 +19978,24 @@ def _safe_rate(part: int, total: int) -> float:
     return round((part / total) * 100, 1) if total else 0.0
 
 
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return default
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            normalized = value.strip().replace(",", ".")
+            if not normalized:
+                return default
+            return float(normalized)
+        return float(value)
+    except Exception:
+        return default
+
+
 def _compute_supplier_score(
     on_time_rate: float,
     full_delivery_rate: float,
@@ -20002,7 +20026,7 @@ def _compute_supplier_price_variance(order_items: List[dict]) -> float:
     by_product: Dict[str, List[float]] = defaultdict(list)
     for item in order_items:
         product_id = item.get("product_id")
-        unit_price = float(item.get("unit_price") or 0)
+        unit_price = _safe_float(item.get("unit_price"), 0.0)
         if product_id and unit_price > 0:
             by_product[product_id].append(unit_price)
 
@@ -24800,7 +24824,7 @@ async def get_procurement_overview(
             metric["stores"].add(order["store_id"])
 
         if order.get("status") in delivered_statuses:
-            total_spend += float(order.get("total_amount") or 0)
+            total_spend += _safe_float(order.get("total_amount"), 0.0)
         elif order.get("status") in open_statuses:
             open_orders_count += 1
 
@@ -24819,14 +24843,27 @@ async def get_procurement_overview(
             created_at = parse_analytics_datetime(order.get("created_at"))
             updated_at = parse_analytics_datetime(order.get("updated_at"))
             expected_delivery = parse_analytics_datetime(order.get("expected_delivery"))
-            if created_at and updated_at and order.get("status") in delivered_statuses:
-                delays.append(max((updated_at - created_at).days, 0))
-            if expected_delivery and updated_at and order.get("status") in delivered_statuses:
-                timeliness_total += 1
-                if updated_at <= expected_delivery:
-                    on_time_count += 1
-                else:
-                    late_count += 1
+            if order.get("status") in delivered_statuses:
+                if created_at and updated_at:
+                    try:
+                        delays.append(max((updated_at - created_at).days, 0))
+                    except TypeError:
+                        logger.warning(
+                            "Procurement analytics: skipped delay calc for order %s (incompatible datetimes)",
+                            order.get("order_id"),
+                        )
+                if expected_delivery and updated_at:
+                    timeliness_total += 1
+                    try:
+                        if updated_at <= expected_delivery:
+                            on_time_count += 1
+                        else:
+                            late_count += 1
+                    except TypeError:
+                        logger.warning(
+                            "Procurement analytics: skipped on-time calc for order %s (incompatible datetimes)",
+                            order.get("order_id"),
+                        )
 
         avg_lead_time_days = round(sum(delays) / len(delays), 1) if delays else 0.0
         on_time_rate = _safe_rate(on_time_count, timeliness_total)
@@ -24851,8 +24888,14 @@ async def get_procurement_overview(
                 "stores_count": len(metric["stores"]),
                 "orders_count": len(orders_bucket),
                 "open_orders": len([order for order in orders_bucket if order.get("status") in open_statuses]),
-                "total_spent": round(sum(float(order.get("total_amount") or 0) for order in orders_bucket if order.get("status") in delivered_statuses), 2),
-                "avg_order_value": round(sum(float(order.get("total_amount") or 0) for order in orders_bucket) / len(orders_bucket), 2) if orders_bucket else 0.0,
+                "total_spent": round(
+                    sum(_safe_float(order.get("total_amount"), 0.0) for order in orders_bucket if order.get("status") in delivered_statuses),
+                    2,
+                ),
+                "avg_order_value": round(
+                    sum(_safe_float(order.get("total_amount"), 0.0) for order in orders_bucket) / len(orders_bucket),
+                    2,
+                ) if orders_bucket else 0.0,
                 "avg_lead_time_days": avg_lead_time_days,
                 "on_time_rate": on_time_rate,
                 "full_delivery_rate": full_delivery_rate,
@@ -24903,7 +24946,7 @@ async def get_procurement_overview(
         if not store_id or store_id not in store_summaries:
             continue
         if order.get("status") in delivered_statuses:
-            store_summaries[store_id]["spent"] += float(order.get("total_amount") or 0)
+            store_summaries[store_id]["spent"] += _safe_float(order.get("total_amount"), 0.0)
         elif order.get("status") in open_statuses:
             store_summaries[store_id]["open_orders"] += 1
         if order.get("is_connected") and order.get("supplier_user_id"):
