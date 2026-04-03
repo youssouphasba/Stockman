@@ -28,8 +28,8 @@ export default function StoreSelector() {
         try {
             const list = await storesApi.list();
             setStores(list);
-        } catch (e) {
-            Alert.alert(t('common.error'), t('store_selector.load_error'));
+        } catch (e: any) {
+            Alert.alert(t('common.error'), e?.message || t('store_selector.load_error'));
         } finally {
             setLoading(false);
         }
@@ -44,8 +44,8 @@ export default function StoreSelector() {
         try {
             await switchStore(storeId);
             setShowModal(false);
-        } catch (e) {
-            Alert.alert(t('common.error'), t('store_selector.switch_error'));
+        } catch (e: any) {
+            Alert.alert(t('common.error'), e?.message || t('store_selector.switch_error'));
         } finally {
             setLoading(false);
         }
@@ -60,8 +60,8 @@ export default function StoreSelector() {
             setShowCreateForm(false);
             setNewStoreName('');
             setShowModal(false);
-        } catch (e) {
-            Alert.alert(t('common.error'), t('store_selector.create_error'));
+        } catch (e: any) {
+            Alert.alert(t('common.error'), e?.message || t('store_selector.create_error'));
         } finally {
             setLoading(false);
         }

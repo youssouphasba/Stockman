@@ -41,6 +41,29 @@ const getApiUrl = () => {
 export const API_URL = getApiUrl();
 console.log('API URL configured:', API_URL);
 
+type ApiPerfSample = {
+  method: string;
+  endpoint: string;
+  status: number;
+  duration_ms: number;
+  ts: string;
+};
+
+function isApiPerfEnabled() {
+  return process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
+}
+
+function recordApiPerf(sample: ApiPerfSample) {
+  if (!isApiPerfEnabled()) return;
+  const host = globalThis as unknown as { __stockmanApiPerf?: ApiPerfSample[] };
+  if (!host.__stockmanApiPerf) host.__stockmanApiPerf = [];
+  host.__stockmanApiPerf.push(sample);
+  if (host.__stockmanApiPerf.length > 800) {
+    host.__stockmanApiPerf = host.__stockmanApiPerf.slice(-800);
+  }
+  console.log(`[API PERF][MOBILE] ${sample.method} ${sample.endpoint} -> ${sample.status} in ${sample.duration_ms.toFixed(1)}ms`);
+}
+
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
@@ -258,6 +281,8 @@ async function refreshWithMutex(): Promise<string | null> {
 export async function rawRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const token = await getToken();
   const { method = 'GET', body, headers = {} } = options;
+  const reqStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  let finalStatus = 0;
 
   // Attach idempotency key on critical mutations to prevent duplicates on retry
   const extraHeaders: Record<string, string> = {};
@@ -282,12 +307,47 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
+  const resolveApiErrorMessage = async (response: Response): Promise<string> => {
+    const fallback =
+      response.status === 403
+        ? 'Accès refusé. Contactez votre manager.'
+        : response.status === 429
+          ? 'Trop de tentatives. Veuillez réessayer plus tard.'
+          : 'Erreur serveur';
+
+    const error = await response.json().catch(() => null as any);
+    if (!error) return fallback;
+
+    if (typeof error === 'string') return error;
+
+    if (error.detail) {
+      if (typeof error.detail === 'string') {
+        return error.detail;
+      }
+      if (Array.isArray(error.detail)) {
+        return error.detail
+          .map((d: any) => `${d.loc ? `${d.loc.join('.')}: ` : ''}${d.msg || JSON.stringify(d)}`)
+          .join('\n');
+      }
+      if (typeof error.detail === 'object') {
+        return JSON.stringify(error.detail);
+      }
+    }
+
+    if (typeof error.message === 'string' && error.message.trim()) {
+      return error.message;
+    }
+
+    return fallback;
+  };
+
   try {
     const response = await fetch(`${API_URL}/api${endpoint}`, {
       ...config,
       signal: controller.signal,
     } as any);
     clearTimeout(timeoutId);
+    finalStatus = response.status;
 
     if (response.status === 401) {
       if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
@@ -302,8 +362,17 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
               headers: retryHeaders,
               signal: retryController.signal,
             } as any);
+            finalStatus = retryRes.status;
 
             if (retryRes.ok) {
+              const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
+              recordApiPerf({
+                method,
+                endpoint,
+                status: retryRes.status,
+                duration_ms: elapsed,
+                ts: new Date().toISOString(),
+              });
               return retryRes.json();
             }
           } finally {
@@ -316,39 +385,41 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
       }
     }
 
-    if (response.status === 403) {
+    if (false && response.status === 403) {
+      const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
+      recordApiPerf({ method, endpoint, status: 403, duration_ms: elapsed, ts: new Date().toISOString() });
       throw new ApiError('Accès refusé. Contactez votre manager.', 403);
     }
 
-    if (response.status === 429) {
+    if (false && response.status === 429) {
+      const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
+      recordApiPerf({ method, endpoint, status: 429, duration_ms: elapsed, ts: new Date().toISOString() });
       throw new ApiError('Trop de tentatives. Veuillez réessayer plus tard.', 429);
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Erreur serveur' }));
-      let message = 'Erreur serveur';
-
-      if (error.detail) {
-        if (typeof error.detail === 'string') {
-          message = error.detail;
-        } else if (Array.isArray(error.detail)) {
-          // Flatten FastAPI validation errors: [{"loc": ["body", "email"], "msg": "value is not a valid email address", "type": "value_error.email"}]
-          message = error.detail.map((d: any) =>
-            `${d.loc ? d.loc.join('.') + ': ' : ''}${d.msg || JSON.stringify(d)}`
-          ).join('\n');
-        } else if (typeof error.detail === 'object') {
-          message = JSON.stringify(error.detail);
-        }
-      }
+      const message = await resolveApiErrorMessage(response);
 
       console.log('Throwing ApiError:', message, response.status);
+      const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
+      recordApiPerf({ method, endpoint, status: response.status, duration_ms: elapsed, ts: new Date().toISOString() });
       throw new ApiError(message, response.status);
     }
 
+    const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
+    recordApiPerf({
+      method,
+      endpoint,
+      status: finalStatus || 200,
+      duration_ms: elapsed,
+      ts: new Date().toISOString(),
+    });
     return response.json();
   } catch (err) {
     clearTimeout(timeoutId);
     if (err instanceof Error && err.name === 'AbortError') {
+      const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
+      recordApiPerf({ method, endpoint, status: 408, duration_ms: elapsed, ts: new Date().toISOString() });
       console.warn(`TIMEOUT contacting ${API_URL}/api${endpoint}`);
       throw new ApiError(`Le serveur met trop de temps à répondre (Timeout 30s) sur ${API_URL}`, 408);
     }
