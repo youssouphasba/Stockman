@@ -9,10 +9,15 @@ import { Spacing, FontSize, BorderRadius } from '../constants/theme';
 type Props = {
   rules: ReminderRuleSettings;
   onUpdate: (rules: ReminderRuleSettings) => void;
+  allowedDomains?: ReminderRuleDomain[];
+  editableDomains?: ReminderRuleDomain[];
 };
+
+type ReminderRuleDomain = 'stock' | 'crm' | 'finance';
 
 type RuleConfig = {
   key: keyof ReminderRuleSettings;
+  domain: ReminderRuleDomain;
   label: string;
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
@@ -23,6 +28,7 @@ type RuleConfig = {
 const RULE_CONFIGS: RuleConfig[] = [
   {
     key: 'inventory_check',
+    domain: 'stock',
     label: 'reminders.inventory_check_label',
     description: 'reminders.inventory_check_desc',
     icon: 'clipboard-outline',
@@ -31,6 +37,7 @@ const RULE_CONFIGS: RuleConfig[] = [
   },
   {
     key: 'dormant_products',
+    domain: 'stock',
     label: 'reminders.dormant_products_label',
     description: 'reminders.dormant_products_desc',
     icon: 'moon-outline',
@@ -39,6 +46,7 @@ const RULE_CONFIGS: RuleConfig[] = [
   },
   {
     key: 'late_deliveries',
+    domain: 'stock',
     label: 'reminders.late_deliveries_label',
     description: 'reminders.late_deliveries_desc',
     icon: 'alert-circle',
@@ -47,6 +55,7 @@ const RULE_CONFIGS: RuleConfig[] = [
   },
   {
     key: 'replenishment',
+    domain: 'stock',
     label: 'reminders.replenishment_label',
     description: 'reminders.replenishment_desc',
     icon: 'cart-outline',
@@ -54,6 +63,7 @@ const RULE_CONFIGS: RuleConfig[] = [
   },
   {
     key: 'pending_invitations',
+    domain: 'stock',
     label: 'reminders.pending_invitations_label',
     description: 'reminders.pending_invitations_desc',
     icon: 'mail-unread-outline',
@@ -62,6 +72,7 @@ const RULE_CONFIGS: RuleConfig[] = [
   },
   {
     key: 'debt_recovery',
+    domain: 'crm',
     label: 'reminders.debt_recovery_label',
     description: 'reminders.debt_recovery_desc',
     icon: 'wallet-outline',
@@ -70,6 +81,7 @@ const RULE_CONFIGS: RuleConfig[] = [
   },
   {
     key: 'client_reactivation',
+    domain: 'crm',
     label: 'reminders.client_reactivation_label',
     description: 'reminders.client_reactivation_desc',
     icon: 'person-outline',
@@ -78,6 +90,7 @@ const RULE_CONFIGS: RuleConfig[] = [
   },
   {
     key: 'birthdays',
+    domain: 'crm',
     label: 'reminders.birthdays_label',
     description: 'reminders.birthdays_desc',
     icon: 'gift-outline',
@@ -86,6 +99,7 @@ const RULE_CONFIGS: RuleConfig[] = [
   },
   {
     key: 'monthly_report',
+    domain: 'finance',
     label: 'reminders.monthly_report_label',
     description: 'reminders.monthly_report_desc',
     icon: 'document-text-outline',
@@ -94,6 +108,7 @@ const RULE_CONFIGS: RuleConfig[] = [
   },
   {
     key: 'expense_spike',
+    domain: 'finance',
     label: 'reminders.expense_spike_label',
     description: 'reminders.expense_spike_desc',
     icon: 'trending-up',
@@ -115,7 +130,12 @@ const DEFAULT_RULES: ReminderRuleSettings = {
   expense_spike: { enabled: true, threshold: 50 },
 };
 
-export default function ReminderRulesSettings({ rules, onUpdate }: Props) {
+export default function ReminderRulesSettings({
+  rules,
+  onUpdate,
+  allowedDomains = ['stock', 'crm', 'finance'],
+  editableDomains = ['stock', 'crm', 'finance'],
+}: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -146,11 +166,18 @@ export default function ReminderRulesSettings({ rules, onUpdate }: Props) {
     setEditingKey(null);
   }
 
+  function canEditDomain(domain: ReminderRuleDomain) {
+    return editableDomains.includes(domain);
+  }
+
+  const visibleRules = RULE_CONFIGS.filter((config) => allowedDomains.includes(config.domain));
+
   return (
     <View>
-      {RULE_CONFIGS.map((config) => {
+      {visibleRules.map((config) => {
         const rule = rules[config.key] ?? DEFAULT_RULES[config.key];
         const isEditing = editingKey === config.key;
+        const canEditRule = canEditDomain(config.domain);
 
         return (
           <View
@@ -189,11 +216,12 @@ export default function ReminderRulesSettings({ rules, onUpdate }: Props) {
                       selectTextOnFocus
                       onBlur={() => commitEdit(config.key)}
                       onSubmitEditing={() => commitEdit(config.key)}
+                      editable={canEditRule}
                     />
                   ) : (
                     <Text
                       style={[styles.thresholdValue, { color: colors.primary, backgroundColor: colors.primary + '10' }]}
-                      onPress={() => startEditing(config.key, rule.threshold ?? 0)}
+                      onPress={() => canEditRule && startEditing(config.key, rule.threshold ?? 0)}
                     >
                       {rule.threshold ?? 0}
                     </Text>
@@ -207,9 +235,14 @@ export default function ReminderRulesSettings({ rules, onUpdate }: Props) {
 
             <Switch
               value={rule.enabled}
-              onValueChange={() => toggleRule(config.key)}
+              onValueChange={() => {
+                if (canEditRule) {
+                  toggleRule(config.key);
+                }
+              }}
               trackColor={{ false: colors.divider, true: colors.primary + '60' }}
               thumbColor={rule.enabled ? colors.primary : colors.textMuted}
+              disabled={!canEditRule}
             />
           </View>
         );

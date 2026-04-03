@@ -20,8 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
-import { notifications as notificationsApi, settings as settingsApi, UserSettings, ReminderRuleSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
-import ReminderRulesSettingsComponent from '../../components/ReminderRulesSettings';
+import { notifications as notificationsApi, settings as settingsApi, UserSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import AiSupportModal from '../../components/AiSupportModal';
@@ -376,17 +375,6 @@ export default function SettingsScreen() {
       showFeedback('Zone manager mise à jour.');
     } catch {
       showFeedback('Impossible de mettre à jour la zone manager.', 'error');
-    }
-  }
-
-  async function updateReminderRules(newRules: ReminderRuleSettings) {
-    if (!settingsData) return;
-    try {
-      const updated = await settingsApi.update({ reminder_rules: newRules } as any);
-      setSettingsData(updated);
-      showFeedback('Rappels enregistrés.');
-    } catch {
-      showFeedback('Impossible de mettre à jour les rappels.', 'error');
     }
   }
 
@@ -1305,40 +1293,6 @@ export default function SettingsScreen() {
         )}
 
         {/* Reminder Rules */}
-        {canManageAlertSettings && (
-        <SettingsAccordionSection
-          title="Rappels intelligents"
-          description="Règles automatiques pour les relances, contrôles et actions de pilotage."
-          icon="alarm-outline"
-          accentColor={colors.success}
-          expanded={expandedSections.reminders}
-          onToggle={() => toggleSection('reminders')}
-          styles={styles}
-          colors={colors}
-          variant="nested"
-        >
-          <Text style={styles.subsectionTitle}>{t('settings.reminders')}</Text>
-          <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>
-            {t('settings.reminders_desc')}
-          </Text>
-          <ReminderRulesSettingsComponent
-            rules={settingsData?.reminder_rules ?? {
-              inventory_check: { enabled: true, threshold: 30 },
-              dormant_products: { enabled: true, threshold: 60 },
-              late_deliveries: { enabled: true, threshold: 7 },
-              replenishment: { enabled: true },
-              pending_invitations: { enabled: true, threshold: 3 },
-              debt_recovery: { enabled: true, threshold: 50000 },
-              client_reactivation: { enabled: true, threshold: 30 },
-              birthdays: { enabled: true, threshold: 7 },
-              monthly_report: { enabled: true, threshold: 3 },
-              expense_spike: { enabled: true, threshold: 50 },
-            }}
-            onUpdate={updateReminderRules}
-          />
-        </SettingsAccordionSection>
-        )}
-
         {/* Synchronisation */}
         <SettingsAccordionSection
           title="Synchronisation"

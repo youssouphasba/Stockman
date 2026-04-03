@@ -1934,6 +1934,19 @@ class ReminderRuleSettings(BaseModel):
     monthly_report: ReminderRule = Field(default_factory=lambda: ReminderRule(threshold=3))
     expense_spike: ReminderRule = Field(default_factory=lambda: ReminderRule(threshold=50))
 
+REMINDER_RULE_DOMAIN_BY_KEY: Dict[str, str] = {
+    "inventory_check": "stock",
+    "dormant_products": "stock",
+    "late_deliveries": "stock",
+    "replenishment": "stock",
+    "pending_invitations": "stock",
+    "debt_recovery": "crm",
+    "client_reactivation": "crm",
+    "birthdays": "crm",
+    "monthly_report": "finance",
+    "expense_spike": "finance",
+}
+
 class UserSettings(BaseModel):
     settings_id: str = Field(default_factory=lambda: f"settings_{uuid.uuid4().hex[:12]}")
     user_id: str
@@ -7306,6 +7319,24 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
         currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
         
         avg_daily_rev = sum(daily_rev.values()) / max(len(daily_rev), 1)
+        out_of_stock_count = len([p for p in products if _safe_float(p.get("quantity"), 0.0) <= 0])
+        out_of_stock_ratio = out_of_stock_count / max(len(products), 1)
+        low_revenue_days = len([value for value in daily_rev.values() if value <= (avg_daily_rev * 0.4)])
+        active_days_14 = len(daily_rev)
+
+        # Hard guards to reduce noisy alerts:
+        # each anomaly type must be supported by concrete metrics.
+        signal_map: Dict[str, bool] = {
+            "revenue": active_days_14 >= 10 and avg_daily_rev > 0 and low_revenue_days >= 4,
+            "volume": len(volume_changes) >= 2,
+            "margin": len(margin_issues) >= 3,
+            "stock": out_of_stock_count >= 5 or out_of_stock_ratio >= 0.25,
+        }
+
+        # If there is no strong signal, skip AI generation entirely.
+        if not any(signal_map.values()):
+            return []
+
         revenue_data = [f"{d}: {r:.0f} {currency} ({c} ventes)" for d, r, c in
                         sorted([(d, daily_rev[d], daily_count[d]) for d in daily_rev], key=lambda x: x[0])[-14:]]
 
@@ -7342,8 +7373,11 @@ Contexte mÃƒÂ©tier : {business_profile.get('sector_label')}
 Consigne mÃƒÂ©tier : {business_guidance["anomalies"]}
 
 RÃƒÂ©ponds UNIQUEMENT en JSON (sans markdown) avec ce format :
-[ {{"type": "revenue"|"volume"|"margin"|"stock", "severity": "critical"|"warning"|"info", "title": "Titre court", "description": "Explication et recommandation en 1-2 phrases"}} ]
-Maximum 5 anomalies.
+[ {{"type": "revenue"|"volume"|"margin"|"stock", "severity": "critical"|"warning", "title": "Titre court", "description": "Explication et recommandation en 1-2 phrases"}} ]
+Contraintes importantes:
+- N'inclure que des anomalies actionnables (pas d'information normale).
+- Eviter les alertes faibles ou ambiguÃƒÂ«s.
+- Maximum 3 anomalies.
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
@@ -7352,7 +7386,62 @@ Maximum 5 anomalies.
         text = response.text.strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        return json.loads(text)
+        parsed = json.loads(text)
+        if not isinstance(parsed, list):
+            return []
+
+        severity_rank = {"critical": 2, "warning": 1}
+        filtered: List[dict] = []
+        best_by_type: Dict[str, dict] = {}
+
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            anomaly_type = str(item.get("type") or "").strip().lower()
+            severity = str(item.get("severity") or "").strip().lower()
+            title = str(item.get("title") or "").strip()
+            description = str(item.get("description") or "").strip()
+
+            if anomaly_type not in signal_map or not signal_map.get(anomaly_type):
+                continue
+            if severity not in severity_rank:
+                continue
+            if not title or not description:
+                continue
+
+            normalized = {
+                "type": anomaly_type,
+                "severity": severity,
+                "title": title,
+                "description": description,
+            }
+            current = best_by_type.get(anomaly_type)
+            if current is None or severity_rank[severity] > severity_rank.get(current.get("severity", ""), 0):
+                best_by_type[anomaly_type] = normalized
+
+        filtered = list(best_by_type.values())
+        filtered.sort(key=lambda anomaly: severity_rank.get(str(anomaly.get("severity", "")).lower(), 0), reverse=True)
+
+        # Politique produit: priorité forte au stock.
+        # - Garder l'alerte stock si présente.
+        # - Autoriser au plus une autre alerte non-stock, uniquement si critique.
+        stock_alerts = [a for a in filtered if a.get("type") == "stock"]
+        non_stock_critical = [
+            a for a in filtered
+            if a.get("type") != "stock" and str(a.get("severity", "")).lower() == "critical"
+        ]
+
+        prioritized: List[dict] = []
+        if stock_alerts:
+            prioritized.append(stock_alerts[0])
+            if non_stock_critical:
+                prioritized.append(non_stock_critical[0])
+        else:
+            # Si aucune alerte stock, on reste strict: une seule critique non-stock.
+            if non_stock_critical:
+                prioritized.append(non_stock_critical[0])
+
+        return prioritized
     except Exception as e:
         logger.error(f"Internal anomaly check error: {e}")
         return []
@@ -11618,6 +11707,8 @@ async def admin_catalog_delete(catalog_id: str, user: User = Depends(require_sup
 async def check_ai_anomalies_loop():
     """Logic for AI anomaly detection check (called by supervised_loop) (I8)"""
     logger.info("Starting global AI anomaly detection check...")
+    now = datetime.now(timezone.utc)
+    ai_cooldown_since = now - timedelta(hours=24)
     # Run for all shopkeepers with active stores
     users = await db.users.find({"role": "shopkeeper", "active_store_id": {"$ne": None}}).to_list(None)
     for u in users:
@@ -11627,19 +11718,49 @@ async def check_ai_anomalies_loop():
         anomalies = await detect_anomalies_internal(user_id, store_id)
         
         for anomaly in anomalies:
-            # Check if similar active alert already exists
-            existing = await db.alerts.find_one({
+            alert_type = f"ai_{anomaly['type']}"
+
+            # Nettoyage préventif des doublons actifs déjà existants:
+            # on conserve la plus récente, les autres sont marquées ignorées.
+            active_same_type = await db.alerts.find(
+                {
+                    "user_id": user_id,
+                    "store_id": store_id,
+                    "type": alert_type,
+                    "is_dismissed": False,
+                },
+                {"_id": 0, "alert_id": 1},
+            ).sort("created_at", -1).to_list(50)
+            if len(active_same_type) > 1:
+                duplicate_ids = [doc.get("alert_id") for doc in active_same_type[1:] if doc.get("alert_id")]
+                if duplicate_ids:
+                    await db.alerts.update_many(
+                        {"user_id": user_id, "alert_id": {"$in": duplicate_ids}},
+                        {"$set": {"is_dismissed": True}},
+                    )
+
+            # Déduplication stricte:
+            # 1) ne pas recréer si une alerte active du même type existe déjà pour la boutique,
+            # 2) ne pas recréer si une alerte du même type a déjà été émise récemment (cooldown),
+            #    même si elle a été ignorée.
+            existing_active = await db.alerts.find_one({
                 "user_id": user_id,
-                "type": f"ai_{anomaly['type']}",
-                "title": anomaly["title"],
-                "is_dismissed": False
+                "store_id": store_id,
+                "type": alert_type,
+                "is_dismissed": False,
             })
-            
-            if not existing:
+            recent_same_type = await db.alerts.find_one({
+                "user_id": user_id,
+                "store_id": store_id,
+                "type": alert_type,
+                "created_at": {"$gte": ai_cooldown_since},
+            })
+
+            if not existing_active and not recent_same_type:
                 alert = Alert(
                     user_id=user_id,
                     store_id=store_id,
-                    type=f"ai_{anomaly['type']}",
+                    type=alert_type,
                     title=anomaly["title"],
                     message=anomaly["description"],
                     severity=anomaly["severity"]
@@ -18225,8 +18346,22 @@ def filter_settings_for_viewer(settings: UserSettings, user: User) -> UserSettin
     defaults = UserSettings(user_id=user.user_id, account_id=user.account_id).model_dump()
 
     if user.role != "superadmin" and not is_org_admin_user(user):
-        for key in ACCOUNT_SHARED_SETTING_FIELDS | ORG_ADMIN_SETTING_FIELDS | STORE_SCOPED_SETTING_FIELDS:
+        for key in ACCOUNT_SHARED_SETTING_FIELDS | STORE_SCOPED_SETTING_FIELDS:
             payload[key] = defaults.get(key)
+        for key in ORG_ADMIN_SETTING_FIELDS - {"reminder_rules"}:
+            payload[key] = defaults.get(key)
+
+        reminder_rules = payload.get("reminder_rules") or {}
+        filtered_reminders: Dict[str, Any] = {}
+        for rule_key, rule_value in reminder_rules.items():
+            domain = REMINDER_RULE_DOMAIN_BY_KEY.get(rule_key)
+            if domain == "stock" and _user_has_module_access(user, "stock", level="read"):
+                filtered_reminders[rule_key] = rule_value
+            elif domain == "crm" and _user_has_module_access(user, "crm", level="read"):
+                filtered_reminders[rule_key] = rule_value
+            elif domain == "finance" and _user_has_module_access(user, "accounting", level="read"):
+                filtered_reminders[rule_key] = rule_value
+        payload["reminder_rules"] = filtered_reminders
 
     if user.role != "superadmin" and not is_billing_admin_user(user):
         for key in BILLING_ADMIN_SETTING_FIELDS:
@@ -18258,6 +18393,42 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
     store_updates = {}
     user_updates = {"updated_at": now, "account_id": user.account_id}
 
+    if "reminder_rules" in settings_update and not is_org_admin_user(user):
+        reminder_patch = settings_update.get("reminder_rules")
+        if not isinstance(reminder_patch, dict):
+            raise HTTPException(status_code=400, detail="Format invalide pour reminder_rules")
+
+        current_settings = await load_effective_settings_for_user(user)
+        merged_rules = current_settings.reminder_rules.model_dump()
+        forbidden_keys: List[str] = []
+
+        for rule_key, rule_value in reminder_patch.items():
+            domain = REMINDER_RULE_DOMAIN_BY_KEY.get(rule_key)
+            if not domain:
+                continue
+
+            has_write_access = (
+                (domain == "stock" and _user_has_module_access(user, "stock", level="write"))
+                or (domain == "crm" and _user_has_module_access(user, "crm", level="write"))
+                or (domain == "finance" and _user_has_module_access(user, "accounting", level="write"))
+            )
+
+            if not has_write_access:
+                forbidden_keys.append(rule_key)
+                continue
+
+            normalized_rule = ReminderRule(**(rule_value or {})).model_dump()
+            merged_rules[rule_key] = normalized_rule
+
+        if forbidden_keys:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Vous n'avez pas les droits d'ecriture pour ces rappels: {', '.join(sorted(forbidden_keys))}",
+            )
+
+        settings_update["reminder_rules"] = merged_rules
+        sections = partition_settings_update(settings_update)
+
     if sections["account"]:
         if not is_org_admin_user(user):
             raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃƒÂ©rationnels peuvent modifier les modules partagÃƒÂ©s")
@@ -18276,7 +18447,9 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
             account_updates["billing_contact_email"] = settings_update.pop("billing_contact_email") or None
 
     if sections["org_admin"] and not is_org_admin_user(user):
-        raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃƒÆ’Ã‚Â©rationnels peuvent modifier ces paramÃƒÂ¨tres")
+        disallowed_org_fields = [field for field in sections["org_admin"] if field != "reminder_rules"]
+        if disallowed_org_fields:
+            raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃƒÆ’Ã‚Â©rationnels peuvent modifier ces paramÃƒÂ¨tres")
 
     if sections["store"]:
         if not is_org_admin_user(user):
@@ -26292,7 +26465,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
         store_filter["store_id"] = store_id
 
     # Load user reminder rules
-    settings_doc = await db.settings.find_one({"user_id": user_id})
+    settings_doc = await db.user_settings.find_one({"user_id": user_id})
     if settings_doc and "reminder_rules" in settings_doc:
         rules = ReminderRuleSettings(**settings_doc["reminder_rules"])
     else:

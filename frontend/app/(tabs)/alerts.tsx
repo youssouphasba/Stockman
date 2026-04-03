@@ -17,7 +17,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { alerts as alertsApi, alertRules as alertRulesApi, ai as aiApi, Alert as AlertData, AlertRule, AiAnomaly } from '../../services/api';
+import {
+  alerts as alertsApi,
+  alertRules as alertRulesApi,
+  ai as aiApi,
+  settings as settingsApi,
+  Alert as AlertData,
+  AlertRule,
+  AiAnomaly,
+  ReminderRuleSettings,
+} from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import ScreenGuide from '../../components/ScreenGuide';
@@ -26,6 +35,7 @@ import { useFirstVisit } from '../../hooks/useFirstVisit';
 import { useTranslation } from 'react-i18next';
 import { getDateLocale } from '../../utils/date';
 import { useAuth } from '../../contexts/AuthContext';
+import ReminderRulesSettingsComponent from '../../components/ReminderRulesSettings';
 
 type RuleScope = 'account' | 'store';
 type ContactGroupKey = 'default' | 'stock' | 'procurement' | 'finance' | 'crm' | 'operations' | 'billing';
@@ -87,7 +97,7 @@ function buildDraftRule(type: string, scope: RuleScope, storeId?: string | null)
 export default function AlertsScreen() {
   const { colors, glassStyle } = useTheme();
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, isOrgAdmin, hasPermission } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
 
@@ -148,9 +158,27 @@ export default function AlertsScreen() {
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [rulesLoading, setRulesLoading] = useState(false);
+  const [reminderRules, setReminderRules] = useState<ReminderRuleSettings | null>(null);
+  const [reminderSaving, setReminderSaving] = useState(false);
   const [activeRuleScope, setActiveRuleScope] = useState<RuleScope>('account');
   const [ruleDrafts, setRuleDrafts] = useState<Record<string, AlertRule>>({});
   const [savingRuleKey, setSavingRuleKey] = useState<string | null>(null);
+  const canReadStockReminders = isOrgAdmin || hasPermission('stock', 'read');
+  const canWriteStockReminders = isOrgAdmin || hasPermission('stock', 'write');
+  const canReadCrmReminders = isOrgAdmin || hasPermission('crm', 'read');
+  const canWriteCrmReminders = isOrgAdmin || hasPermission('crm', 'write');
+  const canReadFinanceReminders = isOrgAdmin || hasPermission('accounting', 'read');
+  const canWriteFinanceReminders = isOrgAdmin || hasPermission('accounting', 'write');
+  const reminderReadableDomains: ('stock' | 'crm' | 'finance')[] = [
+    ...(canReadStockReminders ? ['stock' as const] : []),
+    ...(canReadCrmReminders ? ['crm' as const] : []),
+    ...(canReadFinanceReminders ? ['finance' as const] : []),
+  ];
+  const reminderWritableDomains: ('stock' | 'crm' | 'finance')[] = [
+    ...(canWriteStockReminders ? ['stock' as const] : []),
+    ...(canWriteCrmReminders ? ['crm' as const] : []),
+    ...(canWriteFinanceReminders ? ['finance' as const] : []),
+  ];
 
   const loadData = useCallback(async () => {
     try {
@@ -207,12 +235,28 @@ export default function AlertsScreen() {
     setShowRulesModal(true);
     setRulesLoading(true);
     try {
-      const result = await alertRulesApi.list();
+      const [result, settings] = await Promise.all([
+        alertRulesApi.list(),
+        settingsApi.get(),
+      ]);
       setRules(result);
+      setReminderRules(settings?.reminder_rules ?? null);
     } catch {
       // silently fail
     } finally {
       setRulesLoading(false);
+    }
+  }
+
+  async function updateReminderRules(newRules: ReminderRuleSettings) {
+    setReminderSaving(true);
+    try {
+      const updated = await settingsApi.update({ reminder_rules: newRules } as any);
+      setReminderRules(updated?.reminder_rules ?? newRules);
+    } catch {
+      Alert.alert(t('common.error'), 'Impossible de sauvegarder les rappels intelligents.');
+    } finally {
+      setReminderSaving(false);
     }
   }
 
@@ -322,7 +366,6 @@ export default function AlertsScreen() {
           </View>
         </View>
 
-        {/* AI Anomaly Detection */}
         <TouchableOpacity
           style={[styles.anomalyBtn, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}
           onPress={handleDetectAnomalies}
@@ -632,6 +675,34 @@ export default function AlertsScreen() {
                       </View>
                     );
                   })
+                )}
+
+                {reminderReadableDomains.length > 0 && (
+                  <View style={[styles.ruleCard, { marginTop: Spacing.md }]}>
+                    <Text style={styles.ruleTitle}>Rappels intelligents</Text>
+                    <Text style={styles.ruleDesc}>
+                      Centralise les rappels stock, CRM et finance directement dans Alertes.
+                    </Text>
+                    <View style={{ marginTop: Spacing.sm, opacity: reminderSaving ? 0.6 : 1 }}>
+                      <ReminderRulesSettingsComponent
+                        rules={reminderRules ?? {
+                          inventory_check: { enabled: true, threshold: 30 },
+                          dormant_products: { enabled: true, threshold: 60 },
+                          late_deliveries: { enabled: true, threshold: 7 },
+                          replenishment: { enabled: true },
+                          pending_invitations: { enabled: true, threshold: 3 },
+                          debt_recovery: { enabled: true, threshold: 50000 },
+                          client_reactivation: { enabled: true, threshold: 30 },
+                          birthdays: { enabled: true, threshold: 7 },
+                          monthly_report: { enabled: true, threshold: 3 },
+                          expense_spike: { enabled: true, threshold: 50 },
+                        }}
+                        onUpdate={updateReminderRules}
+                        allowedDomains={reminderReadableDomains}
+                        editableDomains={reminderWritableDomains}
+                      />
+                    </View>
+                  </View>
                 )}
               </ScrollView>
             )}
