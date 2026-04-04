@@ -128,7 +128,55 @@
     "report_activity_dialog": "Rapport d'activité ({{period}})",
     "revenue_kpi": "Chiffre d'affaires",
     "sale_receipt": "Reçu de vente",
-    "paid_by": "Payé par"
+    "paid_by": "Payé par",
+    "kpi_revenue": "Chiffre d'affaires",
+    "kpi_gross_profit": "Marge brute",
+    "kpi_expenses": "Dépenses et frais",
+    "kpi_net_profit": "Résultat net",
+    "kpi_stock": "Valeur du stock",
+    "kpi_losses": "Détails des pertes",
+    "kpi_items": "Articles vendus",
+    "kpi_purchases": "Achats fournisseurs",
+    "kpi_tax": "Taxes collectées",
+    "loss_unattributed": "Perte non attribuée",
+    "loss_inventory": "Écart d'inventaire",
+    "loss_expired": "Péremption",
+    "loss_broken": "Casse",
+    "loss_theft": "Vol",
+    "label_revenue": "Chiffre d'affaires",
+    "label_cogs": "Coût d'achat",
+    "label_expenses": "Dépenses",
+    "label_losses": "Pertes",
+    "label_stock_value": "Valeur d'achat",
+    "label_selling_potential": "Potentiel de vente",
+    "label_total_amount": "Montant total",
+    "label_restocks": "Réapprovisionnements",
+    "label_avg_purchase": "Moyenne par achat",
+    "label_tax_collected": "Taxes collectées",
+    "enter_category_name": "Saisissez un nom de catégorie.",
+    "category_save_error": "Impossible d'enregistrer cette catégorie.",
+    "choose_expense_category": "Choisissez une catégorie de dépense.",
+    "offline_invoice": "facture hors ligne",
+    "insight_period": "Période analysée",
+    "insight_undefined": "non définie",
+    "insight_variation": "Variation sur la période",
+    "insight_best_day": "Meilleure journée",
+    "insight_gross_margin_rate": "Taux de marge brute",
+    "insight_total_expenses": "Total des dépenses",
+    "insight_categories_tracked": "Catégories suivies",
+    "insight_expense_ratio": "Poids des dépenses",
+    "insight_of_revenue": "du chiffre d'affaires",
+    "insight_net_margin": "Marge nette",
+    "insight_recorded_losses": "Pertes comptabilisées",
+    "insight_potential_gap": "Écart potentiel",
+    "insight_total_losses": "Pertes totales",
+    "insight_reasons_tracked": "Motifs suivis",
+    "insight_main_reason": "Motif principal",
+    "insight_no_dominant_reason": "Aucun motif dominant",
+    "insight_sales_made": "Ventes réalisées",
+    "insight_avg_basket": "Panier moyen",
+    "insight_tax_rate": "Taux sur l'activité",
+    "invoice": "Facture"
   },
   "activity": {
     "no_activity": "Aucune activité enregistrée",
@@ -465,7 +513,8 @@
     "threshold": "Seuil :",
     "threshold_update_error": "Impossible de modifier le seuil",
     "title": "Alertes",
-    "unread": "non lue(s)"
+    "unread": "non lue(s)",
+    "no_active_store": "Aucune boutique active sélectionnée pour cette règle."
   },
   "auth": {
     "login": {
@@ -1325,10 +1374,10 @@
           "t": "Annulation de Mouvement",
           "d": "Dans l'historique d'un produit, annulez un mouvement erroné. Le stock est automatiquement corrigé."
         },
-      "f12": {
-        "t": "Selection multiple & restauration",
-        "d": "La barre d'actions en bas permet de tout selectionner, d'exporter le catalogue ou d'envoyer des produits dans la corbeille. Les boutons ont ete renforces pour rester lisibles sur les fonds sombres."
-      }
+        "f12": {
+          "t": "Selection multiple & restauration",
+          "d": "La barre d'actions en bas permet de tout selectionner, d'exporter le catalogue ou d'envoyer des produits dans la corbeille. Les boutons ont ete renforces pour rester lisibles sur les fonds sombres."
+        }
       },
       "pos": {
         "title": "Point de Vente (Caisse)",
@@ -2238,7 +2287,13 @@
     "discount": "Remise",
     "client": "Client",
     "max_sessions_reached": "Max Sessions Reached",
-    "send_pending_items_before_payment": "Send Pending Items Before Payment"
+    "send_pending_items_before_payment": "Send Pending Items Before Payment",
+    "voice_failed": "La reconnaissance vocale a échoué. Veuillez réessayer.",
+    "voice_not_configured": "Le service vocal n'est pas configuré pour le moment.",
+    "voice_no_recording": "Aucun enregistrement vocal exploitable n'a été détecté. Veuillez réessayer.",
+    "voice_transcription_failed": "La transcription vocale a échoué. Vérifiez votre connexion puis réessayez.",
+    "voice_access_denied": "Cette fonction vocale n'est pas accessible pour ce compte actuellement.",
+    "search_customer": "Rechercher..."
   },
   "restaurant": {
     "menu_category": "Catégorie menu",
@@ -2757,7 +2812,14 @@
     "version": "Version",
     "simple_mode": "Simple Mode",
     "simple_mode_desc": "Description Simple Mode",
-    "tax": "Tax"
+    "tax": "Tax",
+    "store_settings": "Boutique · Paramètres",
+    "no_store_selected": "Aucune boutique sélectionnée pour les réglages du point de vente.",
+    "no_active_store_docs": "Aucune boutique active n'est sélectionnée pour personnaliser les documents.",
+    "test_push_title": "Test push lancé",
+    "test_push_sent": "Une notification de test a été envoyée.",
+    "test_push_error_title": "Test push impossible",
+    "test_push_error": "Impossible d'envoyer la notification de test."
   },
   "stock": {
     "reasons": {
@@ -2860,7 +2922,7 @@
     "restored_success": "Votre abonnement a été restauré.",
     "title": "Mon Abonnement",
     "trial_banner": "1 mois d'essai gratuit, puis {{price}}/mois. Sans engagement.",
-    "trial_remaining": "{{count}} jours restants d'essai gratuit",
+    "trial_remaining": "Essai gratuit en cours, {{days}} jour(s) restant(s).",
     "billing_country_locked": "Le pays de facturation est défini lors de l'inscription et ne peut pas être modifié.",
     "billing_country_support": "Si une correction est nécessaire, elle doit passer par le support avant facturation.",
     "billing_region": "Région tarifaire : {{region}}",
@@ -2871,7 +2933,16 @@
     "purchase_not_ready": "L'abonnement sélectionné n'est pas encore disponible à l'achat sur cet appareil.",
     "store_app_store": "l'App Store",
     "store_google_play": "Google Play",
-    "google_play_test_hint": "En test interne Google Play, utilisez un compte ajouté dans Tests de licence et dans la liste de testeurs."
+    "google_play_test_hint": "En test interne Google Play, utilisez un compte ajouté dans Tests de licence et dans la liste de testeurs.",
+    "enterprise_not_here": "Le plan Enterprise ne se souscrit pas directement depuis cet écran.",
+    "demo_active": "Session démo active",
+    "expiration": "Expiration",
+    "not_specified": "Non renseignée",
+    "current_plan": "Votre plan actuel",
+    "plan_active": "Plan actuellement actif sur votre compte.",
+    "no_active_plan": "Aucun abonnement actif confirmé pour le moment.",
+    "enterprise_ios_desc": "Le plan Enterprise est destiné aux équipes multi-boutiques avec pilotage web avancé. Cette page présente l'offre sans afficher de parcours de paiement externe.",
+    "enterprise_ios_features": "Assistance dédiée, gouvernance multi-sites, back-office web avancé et accompagnement au déploiement."
   },
   "supplier": {
     "accept": "Accepter",
@@ -3136,7 +3207,7 @@
     "stock_value": "Valeur stock",
     "subtitle": "Gérez vos contacts et commandes",
     "successful_deliveries": "Livraisons réussies",
-    "suggestion_ai_notes": "Commande sugg\u00e9r\u00e9e par IA (Ventes moyennes : {{velocity}}/jour)",
+    "suggestion_ai_notes": "Commande suggérée par IA (Ventes moyennes : {{velocity}}/jour)",
     "suggestion_order_desc": "{{product}} : Stock actuel {{current}}. Suggestion : commander {{suggested}} unités chez {{supplier}}.",
     "suggestion_order_title": "Suggestion de Commande",
     "supplier_count": "{{count}} fournisseur(s)",
@@ -3172,7 +3243,11 @@
     "share_invite_text": "Bonjour {{name}}, je vous invite à rejoindre Stockman pour gérer nos commandes.",
     "share_whatsapp": "Partager via WhatsApp",
     "suggestion_missing_supplier_desc": "{{product}} n'a pas encore de fournisseur lié. Ouvrez la fiche produit pour associer un fournisseur.",
-    "suggestion_missing_supplier_title": "Fournisseur manquant"
+    "suggestion_missing_supplier_title": "Fournisseur manquant",
+    "pending_orders_count": "{{count}} commande(s) ouvertes",
+    "no_pending_orders": "Aucune commande ouverte",
+    "deliveries_count": "{{count}} livraisons confirmées",
+    "no_deliveries": "Pas encore de livraison confirmée"
   },
   "tabs": {
     "accounting": "Compta",
@@ -3194,7 +3269,8 @@
     "menu": "Menu",
     "reservations": "Reservations",
     "restaurant": "Restaurant",
-    "tables": "Tables"
+    "tables": "Tables",
+    "locations": "Emplacements"
   },
   "tips": {
     "accounting_01_desc": "Générez des rapports comptables mensuels pour suivre votre rentabilité.",
@@ -3486,10 +3562,59 @@
   },
   "enterprise": {
     "upgrade_now": "Upgrade Now",
-    "with_enterprise_you_can": "With Enterprise You Can"
+    "with_enterprise_you_can": "With Enterprise You Can",
+    "no_stores": "Aucune boutique pour le moment",
+    "no_stores_desc": "Créez votre première boutique pour commencer à piloter le compte Enterprise."
   },
   "trial": {
     "banner": "{{days}} jours d'essai gratuit restants",
-    "banner_one": "Dernier jour d'essai gratuit"
+    "banner_one": "Dernier jour d'essai gratuit",
+    "demo_active": "Demo {{type}} active jusqu'au {{date}}"
+  },
+  "demo": {
+    "type_retail": "Commerce",
+    "type_restaurant": "Restaurant",
+    "type_enterprise": "Enterprise",
+    "type_default": "Demo"
+  },
+  "sync": {
+    "pending_count": "{{count}} action(s) en attente de synchronisation",
+    "failed_count": "{{count}} action(s) non synchronisée(s) — Appuyez pour voir",
+    "failed_title": "Actions non synchronisées",
+    "failed_description": "Ces actions ont échoué après plusieurs tentatives. Elles sont sauvegardées localement et ne seront pas perdues.",
+    "retry_all": "Réessayer tout",
+    "type_create": "Création",
+    "type_update": "Modification",
+    "type_delete": "Suppression",
+    "entity_product": "Produit",
+    "entity_sale": "Vente",
+    "entity_order": "Commande",
+    "entity_stock": "Mouvement stock",
+    "entity_customer": "Client",
+    "entity_expense": "Dépense",
+    "entity_supplier": "Fournisseur",
+    "entity_alert_rule": "Règle alerte",
+    "entity_settings": "Paramètres",
+    "entity_notification": "Notification"
+  },
+  "locations": {
+    "load_error": "Impossible de charger les emplacements.",
+    "generate_error": "Impossible de générer la structure.",
+    "enter_name": "Saisissez un nom d'emplacement.",
+    "create_error": "Impossible de créer cet emplacement.",
+    "update_error": "Impossible de mettre à jour cet emplacement.",
+    "toggle_error": "Impossible de modifier cet emplacement.",
+    "delete_title": "Supprimer cet emplacement",
+    "delete_confirm": "Supprimer définitivement \"{{name}}\" ?",
+    "delete_error": "Impossible de supprimer cet emplacement.",
+    "structure_created": "Structure créée",
+    "structure_created_desc": "{{created}} emplacement(s) créé(s) et {{reused}} réutilisé(s).",
+    "add_level": "Ajoutez au moins un niveau.",
+    "level_needs_type": "Le niveau {{n}} doit avoir un type.",
+    "level_needs_start": "Le niveau {{n}} doit avoir un premier numéro valide.",
+    "level_needs_count": "Le niveau {{n}} doit avoir une quantité supérieure à 0.",
+    "level_needs_name": "Le niveau {{n}} doit contenir au moins un nom.",
+    "limit_exceeded": "La génération dépasse la limite de 1000 emplacements en une seule fois.",
+    "incomplete_config": "Configuration incomplète"
   }
 }

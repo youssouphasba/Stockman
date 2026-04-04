@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -100,6 +101,7 @@ const formatGeneratedName = (level: LevelDraft, index: number) => {
 export default function LocationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { user, isSuperAdmin, hasPermission } = useAuth();
   const styles = getStyles(colors);
@@ -138,7 +140,7 @@ export default function LocationsScreen() {
     try {
       setLocations(await locationsApi.list());
     } catch (err: any) {
-      Alert.alert('Erreur', err?.message || 'Impossible de charger les emplacements.');
+      Alert.alert(t('common.error', 'Erreur'), err?.message || t('locations.load_error', 'Impossible de charger les emplacements.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -219,28 +221,29 @@ export default function LocationsScreen() {
   const generationIssues = useMemo(() => {
     const issues: string[] = [];
     if (!levels.length) {
-      issues.push('Ajoutez au moins un niveau.');
+      issues.push(t('locations.add_level', 'Ajoutez au moins un niveau.'));
       return issues;
     }
     levels.forEach((level, index) => {
+      const n = index + 1;
       if (!level.type.trim()) {
-        issues.push(`Le niveau ${index + 1} doit avoir un type.`);
+        issues.push(t('locations.level_needs_type', { defaultValue: 'Le niveau {{n}} doit avoir un type.', n }));
       }
       if (level.mode === 'range') {
         const start = Number(level.start);
         const count = Number(level.count);
         if (!Number.isFinite(start) || start < 0) {
-          issues.push(`Le niveau ${index + 1} doit avoir un premier numéro valide.`);
+          issues.push(t('locations.level_needs_start', { defaultValue: 'Le niveau {{n}} doit avoir un premier numéro valide.', n }));
         }
         if (!Number.isFinite(count) || count <= 0) {
-          issues.push(`Le niveau ${index + 1} doit avoir une quantité supérieure à 0.`);
+          issues.push(t('locations.level_needs_count', { defaultValue: 'Le niveau {{n}} doit avoir une quantité supérieure à 0.', n }));
         }
       } else if (!parseNames(level.names).length) {
-        issues.push(`Le niveau ${index + 1} doit contenir au moins un nom.`);
+        issues.push(t('locations.level_needs_name', { defaultValue: 'Le niveau {{n}} doit contenir au moins un nom.', n }));
       }
     });
     if (totalGeneratedCount > 1000) {
-      issues.push('La génération dépasse la limite de 1000 emplacements en une seule fois.');
+      issues.push(t('locations.limit_exceeded', 'La génération dépasse la limite de 1000 emplacements en une seule fois.'));
     }
     return issues;
   }, [levels, totalGeneratedCount]);
@@ -270,7 +273,7 @@ export default function LocationsScreen() {
   const generateStructure = async () => {
     if (!canWrite) return;
     if (generationIssues.length) {
-      Alert.alert('Configuration incomplète', generationIssues[0]);
+      Alert.alert(t('locations.incomplete_config', 'Configuration incomplète'), generationIssues[0]);
       return;
     }
     setSaving(true);
@@ -299,12 +302,12 @@ export default function LocationsScreen() {
         reactivate_existing: reactivateExisting,
       });
       Alert.alert(
-        'Structure créée',
-        `${result.created_count} emplacement(s) créé(s) et ${result.reused_count} réutilisé(s).`,
+        t('locations.structure_created', 'Structure créée'),
+        t('locations.structure_created_desc', { defaultValue: '{{created}} emplacement(s) créé(s) et {{reused}} réutilisé(s).', created: result.created_count, reused: result.reused_count }),
       );
       await loadLocations();
     } catch (err: any) {
-      Alert.alert('Erreur', err?.message || 'Impossible de générer la structure.');
+      Alert.alert(t('common.error', 'Erreur'), err?.message || t('locations.generate_error', 'Impossible de générer la structure.'));
     } finally {
       setSaving(false);
     }
@@ -312,7 +315,7 @@ export default function LocationsScreen() {
 
   const createManualLocation = async () => {
     if (!manualName.trim()) {
-      Alert.alert('Erreur', 'Saisissez un nom d’emplacement.');
+      Alert.alert(t('common.error', 'Erreur'), t('locations.enter_name', "Saisissez un nom d'emplacement."));
       return;
     }
     setSaving(true);
@@ -327,7 +330,7 @@ export default function LocationsScreen() {
       setManualParentId('');
       await loadLocations();
     } catch (err: any) {
-      Alert.alert('Erreur', err?.message || 'Impossible de créer cet emplacement.');
+      Alert.alert(t('common.error', 'Erreur'), err?.message || t('locations.create_error', 'Impossible de créer cet emplacement.'));
     } finally {
       setSaving(false);
     }
@@ -352,7 +355,7 @@ export default function LocationsScreen() {
       setEditing(null);
       await loadLocations();
     } catch (err: any) {
-      Alert.alert('Erreur', err?.message || 'Impossible de mettre à jour cet emplacement.');
+      Alert.alert(t('common.error', 'Erreur'), err?.message || t('locations.update_error', 'Impossible de mettre à jour cet emplacement.'));
     } finally {
       setSaving(false);
     }
@@ -364,17 +367,17 @@ export default function LocationsScreen() {
       await locationsApi.update(location.location_id, { is_active: location.is_active === false });
       await loadLocations();
     } catch (err: any) {
-      Alert.alert('Erreur', err?.message || 'Impossible de modifier cet emplacement.');
+      Alert.alert(t('common.error', 'Erreur'), err?.message || t('locations.toggle_error', 'Impossible de modifier cet emplacement.'));
     } finally {
       setSaving(false);
     }
   };
 
   const deleteLocation = async (location: Location) => {
-    Alert.alert('Supprimer cet emplacement', `Supprimer définitivement "${location.name}" ?`, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('locations.delete_title', 'Supprimer cet emplacement'), t('locations.delete_confirm', { defaultValue: 'Supprimer définitivement "{{name}}" ?', name: location.name }), [
+      { text: t('common.cancel', 'Annuler'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete', 'Supprimer'),
         style: 'destructive',
         onPress: async () => {
           setSaving(true);
@@ -382,7 +385,7 @@ export default function LocationsScreen() {
             await locationsApi.delete(location.location_id);
             await loadLocations();
           } catch (err: any) {
-            Alert.alert('Erreur', err?.message || 'Impossible de supprimer cet emplacement.');
+            Alert.alert(t('common.error', 'Erreur'), err?.message || t('locations.delete_error', 'Impossible de supprimer cet emplacement.'));
           } finally {
             setSaving(false);
           }
@@ -410,7 +413,7 @@ export default function LocationsScreen() {
   }
 
   if (!canRead) {
-    return <AccessDenied message="Vous n’avez pas accès à la gestion des emplacements." />;
+    return <AccessDenied message="Vous n'avez pas accès à la gestion des emplacements." />;
   }
 
   return (
@@ -593,7 +596,7 @@ export default function LocationsScreen() {
                         <TextInput
                           value={level.count}
                           onChangeText={(value) => updateLevel(level.id, { count: value.replace(/[^0-9]/g, '') })}
-                          placeholder="Nombre d’éléments"
+                          placeholder="Nombre d'éléments"
                           placeholderTextColor={colors.textMuted}
                           keyboardType="number-pad"
                           style={[styles.input, styles.flexInput]}
@@ -616,7 +619,7 @@ export default function LocationsScreen() {
                         />
                       </View>
                       <Text style={styles.inlineHelp}>
-                        Si vous laissez le texte avant vide, l’application utilisera automatiquement le nom du niveau.
+                        Si vous laissez le texte avant vide, l'application utilisera automatiquement le nom du niveau.
                       </Text>
                     </>
                   ) : (
@@ -683,12 +686,12 @@ export default function LocationsScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Ajouter un seul emplacement</Text>
             <Text style={styles.sectionHelp}>
-              Pour une correction rapide ou un besoin isolé, vous pouvez créer un emplacement à l’unité.
+              Pour une correction rapide ou un besoin isolé, vous pouvez créer un emplacement à l'unité.
             </Text>
             <TextInput
               value={manualName}
               onChangeText={setManualName}
-              placeholder="Nom complet de l’emplacement"
+              placeholder="Nom complet de l'emplacement"
               placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
@@ -724,7 +727,7 @@ export default function LocationsScreen() {
               </ScrollView>
             ) : null}
             <TouchableOpacity style={styles.primaryButton} onPress={createManualLocation} disabled={saving || !canWrite}>
-              {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Créer l’emplacement</Text>}
+              {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Créer l'emplacement</Text>}
             </TouchableOpacity>
           </View>
 
@@ -768,7 +771,7 @@ export default function LocationsScreen() {
       {!!editing && <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.cardTitle}>Modifier l’emplacement</Text>
+            <Text style={styles.cardTitle}>Modifier l'emplacement</Text>
             <TextInput
               value={editName}
               onChangeText={setEditName}

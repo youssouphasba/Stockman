@@ -118,7 +118,55 @@
     "info_sales_count": "Total number of transactions completed at the register over the period.",
     "info_avg_basket": "Average amount per transaction: revenue divided by number of sales.",
     "info_stock_purchase": "Total value of your stock based on purchase prices.",
-    "info_stock_selling": "Potential value if all stock were sold at current selling prices."
+    "info_stock_selling": "Potential value if all stock were sold at current selling prices.",
+    "kpi_revenue": "Revenue",
+    "kpi_gross_profit": "Gross margin",
+    "kpi_expenses": "Expenses & fees",
+    "kpi_net_profit": "Net profit",
+    "kpi_stock": "Stock value",
+    "kpi_losses": "Loss details",
+    "kpi_items": "Items sold",
+    "kpi_purchases": "Supplier purchases",
+    "kpi_tax": "Tax collected",
+    "loss_unattributed": "Unattributed loss",
+    "loss_inventory": "Inventory adjustment",
+    "loss_expired": "Expired",
+    "loss_broken": "Breakage",
+    "loss_theft": "Theft",
+    "label_revenue": "Revenue",
+    "label_cogs": "Cost of goods",
+    "label_expenses": "Expenses",
+    "label_losses": "Losses",
+    "label_stock_value": "Purchase value",
+    "label_selling_potential": "Selling potential",
+    "label_total_amount": "Total amount",
+    "label_restocks": "Restocks",
+    "label_avg_purchase": "Average per purchase",
+    "label_tax_collected": "Tax collected",
+    "enter_category_name": "Enter a category name.",
+    "category_save_error": "Unable to save this category.",
+    "choose_expense_category": "Choose an expense category.",
+    "offline_invoice": "offline invoice",
+    "insight_period": "Analyzed period",
+    "insight_undefined": "undefined",
+    "insight_variation": "Period variation",
+    "insight_best_day": "Best day",
+    "insight_gross_margin_rate": "Gross margin rate",
+    "insight_total_expenses": "Total expenses",
+    "insight_categories_tracked": "Categories tracked",
+    "insight_expense_ratio": "Expense weight",
+    "insight_of_revenue": "of revenue",
+    "insight_net_margin": "Net margin",
+    "insight_recorded_losses": "Recorded losses",
+    "insight_potential_gap": "Potential gap",
+    "insight_total_losses": "Total losses",
+    "insight_reasons_tracked": "Reasons tracked",
+    "insight_main_reason": "Main reason",
+    "insight_no_dominant_reason": "No dominant reason",
+    "insight_sales_made": "Sales made",
+    "insight_avg_basket": "Average basket",
+    "insight_tax_rate": "Tax rate on activity",
+    "invoice": "Invoice"
   },
   "activity": {
     "no_activity": "No activity recorded",
@@ -381,7 +429,8 @@
     "threshold": "Threshold:",
     "threshold_update_error": "Could not modify threshold",
     "title": "Alerts",
-    "unread": "unread"
+    "unread": "unread",
+    "no_active_store": "No active store selected for this rule."
   },
   "auth": {
     "login": {
@@ -463,7 +512,10 @@
       "restaurantOnboardingItem1": "- Build the menu and link service recipes",
       "restaurantOnboardingItem2": "- Use the full table -> kitchen -> service -> payment flow",
       "restaurantOnboardingItem3": "- Get restaurant-specific guides and FAQ",
-      "errorRegister": "Registration error"
+      "errorRegister": "Registration error",
+      "continue": "Continue",
+      "selectBusinessType": "Choose a sector",
+      "trialNote": "30 days free • No credit card required"
     },
     "verifyPhone": {
       "title": "Verification",
@@ -2012,7 +2064,13 @@
     "unknown_product_msg": "No product found with SKU: {{sku}}",
     "unknown_product_title": "Unknown product",
     "update_line": "Update line",
-    "vat": "VAT"
+    "vat": "VAT",
+    "voice_failed": "Voice recognition failed. Please try again.",
+    "voice_not_configured": "The voice service is not configured at the moment.",
+    "voice_no_recording": "No usable voice recording was detected. Please try again.",
+    "voice_transcription_failed": "Voice transcription failed. Check your connection and try again.",
+    "voice_access_denied": "This voice feature is not accessible for this account currently.",
+    "search_customer": "Search..."
   },
   "restaurant": {
     "menu_category": "Menu category",
@@ -2438,7 +2496,14 @@
     "terms": "Terms of Service (ToS)",
     "users_permissions": "Users & Permissions",
     "users_permissions_desc": "Manage your employees' access",
-    "version": "Version"
+    "version": "Version",
+    "store_settings": "Store · Settings",
+    "no_store_selected": "No store selected for point of sale settings.",
+    "no_active_store_docs": "No active store selected to customize documents.",
+    "test_push_title": "Test push sent",
+    "test_push_sent": "A test notification has been sent.",
+    "test_push_error_title": "Test push failed",
+    "test_push_error": "Unable to send the test notification."
   },
   "stock": {
     "reasons": {
@@ -2513,7 +2578,7 @@
     "billing_country_title": "Billing country and currency",
     "change_plan": "Change plan",
     "enterprise_contact_desc": "To access the Enterprise plan, please contact us from the web app.",
-    "enterprise_web_only": "This plan is managed from the web application.",
+    "enterprise_web_only": "The Enterprise plan is managed on the web only. Mobile plan changes are not available for this account.",
     "external_payment_notice": "You can also pay using a secure link sent by email or notification.",
     "billing_country_locked": "Your billing country is set during sign-up and cannot be changed from this screen.",
     "billing_region": "Pricing region: {{region}}",
@@ -2531,7 +2596,16 @@
     "store_google_play": "Google Play",
     "title": "My Subscription",
     "trial_banner": "1 month free trial, then {{price}}/month. No commitment.",
-    "trial_remaining": "{{count}} days left of free trial"
+    "trial_remaining": "Free trial in progress, {{days}} day(s) remaining.",
+    "enterprise_not_here": "The Enterprise plan cannot be subscribed from this screen.",
+    "demo_active": "Active demo session",
+    "expiration": "Expiration",
+    "not_specified": "Not specified",
+    "current_plan": "Your current plan",
+    "plan_active": "Plan currently active on your account.",
+    "no_active_plan": "No active subscription confirmed yet.",
+    "enterprise_ios_desc": "The Enterprise plan is designed for multi-store teams with advanced web management. This page presents the offer without displaying an external payment flow.",
+    "enterprise_ios_features": "Dedicated support, multi-site governance, advanced web back-office and deployment assistance."
   },
   "supplier": {
     "accept": "Accept",
@@ -2826,7 +2900,11 @@
     "with_email": "With email",
     "with_phone": "With phone",
     "no_supplier_linked": "This product has no linked supplier. Add a supplier to the product first.",
-    "open_products_cta": "Open Products"
+    "open_products_cta": "Open Products",
+    "pending_orders_count": "{{count}} open order(s)",
+    "no_pending_orders": "No open orders",
+    "deliveries_count": "{{count}} confirmed deliveries",
+    "no_deliveries": "No confirmed deliveries yet"
   },
   "tabs": {
     "accounting": "Accounting",
@@ -2843,7 +2921,8 @@
     "settings": "Settings",
     "subscription": "Subscription",
     "suppliers": "Suppliers",
-    "users": "Users"
+    "users": "Users",
+    "locations": "Locations"
   },
   "tips": {
     "accounting_01_desc": "Generate monthly accounting reports to track your profitability.",
@@ -3116,6 +3195,17 @@
     "no_situations": "No progress invoices",
     "no_situations_desc": "Add progressive invoices from the project card."
   },
+  "trial": {
+    "banner": "{{days}} days of free trial remaining",
+    "banner_one": "Last day of free trial",
+    "demo_active": "{{type}} demo active until {{date}}"
+  },
+  "demo": {
+    "type_retail": "Retail",
+    "type_restaurant": "Restaurant",
+    "type_enterprise": "Enterprise",
+    "type_default": "Demo"
+  },
   "demo_lead": {
     "badge": "Demo in progress",
     "title": "Keep exploring, just leave a contact",
@@ -3130,5 +3220,49 @@
     "required": "Add your email so our team can follow up with you.",
     "save_error": "Unable to save your email right now.",
     "not_available": "Unavailable"
+  },
+  "sync": {
+    "pending_count": "{{count}} action(s) pending sync",
+    "failed_count": "{{count}} action(s) failed to sync — Tap to view",
+    "failed_title": "Unsynced actions",
+    "failed_description": "These actions failed after multiple attempts. They are saved locally and will not be lost.",
+    "retry_all": "Retry all",
+    "type_create": "Create",
+    "type_update": "Update",
+    "type_delete": "Delete",
+    "entity_product": "Product",
+    "entity_sale": "Sale",
+    "entity_order": "Order",
+    "entity_stock": "Stock movement",
+    "entity_customer": "Customer",
+    "entity_expense": "Expense",
+    "entity_supplier": "Supplier",
+    "entity_alert_rule": "Alert rule",
+    "entity_settings": "Settings",
+    "entity_notification": "Notification"
+  },
+  "enterprise": {
+    "no_stores": "No stores yet",
+    "no_stores_desc": "Create your first store to start managing the Enterprise account."
+  },
+  "locations": {
+    "load_error": "Unable to load locations.",
+    "generate_error": "Unable to generate the structure.",
+    "enter_name": "Enter a location name.",
+    "create_error": "Unable to create this location.",
+    "update_error": "Unable to update this location.",
+    "toggle_error": "Unable to modify this location.",
+    "delete_title": "Delete this location",
+    "delete_confirm": "Permanently delete \"{{name}}\"?",
+    "delete_error": "Unable to delete this location.",
+    "structure_created": "Structure created",
+    "structure_created_desc": "{{created}} location(s) created and {{reused}} reused.",
+    "add_level": "Add at least one level.",
+    "level_needs_type": "Level {{n}} must have a type.",
+    "level_needs_start": "Level {{n}} must have a valid starting number.",
+    "level_needs_count": "Level {{n}} must have a quantity greater than 0.",
+    "level_needs_name": "Level {{n}} must contain at least one name.",
+    "limit_exceeded": "Generation exceeds the 1000 location limit per batch.",
+    "incomplete_config": "Incomplete configuration"
   }
 }

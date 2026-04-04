@@ -52,6 +52,8 @@ import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../uti
 
 
 export default function SuppliersScreen() {
+  const MOBILE_SUPPLIERS_FOCUS_TTL_MS = 25_000;
+  const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
   const { colors, glassStyle } = useTheme();
   const { t, i18n } = useTranslation();
   const { user, isSuperAdmin } = useAuth();
@@ -164,8 +166,10 @@ export default function SuppliersScreen() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [linkPrice, setLinkPrice] = useState('');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const lastLoadedAtRef = React.useRef(0);
 
   const loadData = useCallback(async () => {
+    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     setLoading(true);
     try {
       const [suppRes, sugRes] = await Promise.allSettled([
@@ -208,15 +212,35 @@ export default function SuppliersScreen() {
       }
       if (sugRes.status === 'fulfilled') setSuggestions(sugRes.value);
     } finally {
+      if (MOBILE_PERF_ENABLED) {
+        const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
+        console.log(`[SCREEN PERF][MOBILE][suppliers] tab=${tab} duration=${elapsed.toFixed(1)}ms`);
+        const host = globalThis as unknown as { __stockmanScreenPerf?: any[] };
+        if (!host.__stockmanScreenPerf) host.__stockmanScreenPerf = [];
+        host.__stockmanScreenPerf.push({
+          screen: 'suppliers',
+          tab,
+          duration_ms: elapsed,
+          ts: new Date().toISOString(),
+        });
+      }
       setLoading(false);
       setRefreshing(false);
+      lastLoadedAtRef.current = Date.now();
     }
-  }, []);
+  }, [MOBILE_PERF_ENABLED, tab]);
 
   useFocusEffect(
     useCallback(() => {
-      loadData();
-    }, [loadData])
+      const hasRecentData = Boolean(
+        supplierList.length > 0 &&
+        lastLoadedAtRef.current > 0 &&
+        Date.now() - lastLoadedAtRef.current < MOBILE_SUPPLIERS_FOCUS_TTL_MS
+      );
+      if (!hasRecentData) {
+        loadData();
+      }
+    }, [loadData, supplierList.length])
   );
 
   function onRefresh() {
@@ -1168,7 +1192,7 @@ export default function SuppliersScreen() {
                           <Text style={[styles.avatarText, { color: avatarColor }]}>{initials}</Text>
                         </View>
                         <View style={styles.supplierInfo}>
-                          <Text style={styles.supplierName}>{supplier.name || t('common.unknown')}</Text>
+                          <Text style={styles.supplierName} numberOfLines={1}>{supplier.name || t('common.unknown')}</Text>
                           {supplier.contact_name ? (
                             <Text style={styles.supplierContact}>{supplier.contact_name}</Text>
                           ) : null}
@@ -1218,13 +1242,13 @@ export default function SuppliersScreen() {
                       <View style={styles.supplierFootnoteRow}>
                         <Text style={styles.supplierFootnote}>
                           {supplierStats?.pending_orders
-                            ? `${supplierStats.pending_orders} commande(s) ouvertes`
-                            : 'Aucune commande ouverte'}
+                            ? t('suppliers.pending_orders_count', { defaultValue: '{{count}} commande(s) ouvertes', count: supplierStats.pending_orders })
+                            : t('suppliers.no_pending_orders', 'Aucune commande ouverte')}
                         </Text>
                         <Text style={styles.supplierFootnote}>
                           {supplierStats?.delivered_count
-                            ? `${supplierStats.delivered_count} livraisons confirmées`
-                            : 'Pas encore de livraison confirmée'}
+                            ? t('suppliers.deliveries_count', { defaultValue: '{{count}} livraisons confirmées', count: supplierStats.delivered_count })
+                            : t('suppliers.no_deliveries', 'Pas encore de livraison confirmée')}
                         </Text>
                       </View>
 
@@ -2932,7 +2956,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   seeMoreText: { color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' },
   supplierInfo: { flex: 1 },
-  supplierName: { fontSize: FontSize.md, fontWeight: '700', color: colors.text },
+  supplierName: { fontSize: FontSize.md, fontWeight: '700', color: colors.text, flexShrink: 1 },
   supplierContact: { fontSize: FontSize.sm, color: colors.textSecondary },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: 4 },
   infoText: { fontSize: FontSize.sm, color: colors.textSecondary, flex: 1 },

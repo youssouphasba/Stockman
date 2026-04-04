@@ -427,7 +427,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="locations"
           options={{
-            title: 'Emplacements',
+            title: t('tabs.locations', 'Emplacements'),
             href: null,
           }}
         />

@@ -84,7 +84,7 @@ function formatDemoTypeLabel(demoType: string | null | undefined, t: (key: strin
 }
 
 export default function SubscriptionScreen() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { user, restoreSession } = useAuth();
@@ -109,10 +109,11 @@ export default function SubscriptionScreen() {
             syncServer?: boolean;
             showLoader?: boolean;
             expectedPlan?: PlanKey;
+            purchasedPlan?: string;
             retries?: number;
         } = {}
     ) => {
-        const { syncServer = false, showLoader = false, expectedPlan, retries = 0 } = options;
+        const { syncServer = false, showLoader = false, expectedPlan, purchasedPlan, retries = 0 } = options;
         try {
             if (showLoader) setLoading(true);
 
@@ -120,7 +121,7 @@ export default function SubscriptionScreen() {
             for (let attempt = 0; attempt <= retries; attempt += 1) {
                 if (syncServer && isNative) {
                     try {
-                        await subscription.sync();
+                        await subscription.sync(purchasedPlan);
                     } catch (syncError) {
                         console.warn('Subscription sync failed:', syncError);
                     }
@@ -184,12 +185,12 @@ export default function SubscriptionScreen() {
         if (isEnterpriseManagedOnWeb) {
             Alert.alert(
                 t('common.info'),
-                'Le plan Enterprise se gère uniquement sur le web. Les changements de formule mobile ne sont pas disponibles pour ce compte.'
+                t('subscription.enterprise_web_only', 'Le plan Enterprise se gère uniquement sur le web. Les changements de formule mobile ne sont pas disponibles pour ce compte.')
             );
             return;
         }
         if (plan === 'enterprise') {
-            Alert.alert(t('common.info'), 'Le plan Enterprise ne se souscrit pas directement depuis cet écran.');
+            Alert.alert(t('common.info'), t('subscription.enterprise_not_here', 'Le plan Enterprise ne se souscrit pas directement depuis cet écran.'));
             return;
         }
         if (!isPurchasesAvailable()) {
@@ -204,7 +205,7 @@ export default function SubscriptionScreen() {
                 if (result.reason === 'already_owned') {
                     const restoreResult = await restorePurchases();
                     if (restoreResult.success) {
-                        await refreshSubscriptionState({ syncServer: true, expectedPlan: restoreResult.plan as PlanKey, retries: 2 });
+                        await refreshSubscriptionState({ syncServer: true, expectedPlan: restoreResult.plan as PlanKey, purchasedPlan: restoreResult.plan, retries: 2 });
                         Alert.alert(t('common.success'), t('subscription.restored_success'));
                         return;
                     }
@@ -232,7 +233,7 @@ export default function SubscriptionScreen() {
                 Alert.alert(t('common.error'), message);
                 return;
             }
-            await refreshSubscriptionState({ syncServer: true, expectedPlan: result.plan as PlanKey, retries: 2 });
+            await refreshSubscriptionState({ syncServer: true, expectedPlan: result.plan as PlanKey, purchasedPlan: result.plan, retries: 2 });
             Alert.alert(t('common.success'), t('subscription.activated_success'));
         } catch (error: any) {
             if (!error?.userCancelled) {
@@ -251,7 +252,7 @@ export default function SubscriptionScreen() {
         if (isEnterpriseManagedOnWeb) {
             Alert.alert(
                 t('common.info'),
-                'Ce compte Enterprise est piloté sur le web. La restauration des achats intégrés mobile n’est pas utilisée pour cette formule.'
+                "Ce compte Enterprise est piloté sur le web. La restauration des achats intégrés mobile n'est pas utilisée pour cette formule."
             );
             return;
         }
@@ -263,7 +264,7 @@ export default function SubscriptionScreen() {
             setPayLoading(true);
             const result = await restorePurchases();
             if (result.success && result.plan && result.plan !== 'free') {
-                await refreshSubscriptionState({ syncServer: true, expectedPlan: result.plan as PlanKey, retries: 2 });
+                await refreshSubscriptionState({ syncServer: true, expectedPlan: result.plan as PlanKey, purchasedPlan: result.plan, retries: 2 });
                 Alert.alert(t('subscription.restored'), t('subscription.restored_success'));
             } else if (!result.success && result.reason === 'no_active_purchase') {
                 Alert.alert(t('common.info'), t('subscription.no_purchase_found'));
@@ -333,14 +334,14 @@ export default function SubscriptionScreen() {
                     <View style={[styles.card, styles.demoCard]}>
                         <View style={styles.demoHeader}>
                             <Ionicons name="time-outline" size={22} color="#38BDF8" />
-                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Session démo active</Text>
+                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('subscription.demo_active', 'Session démo active')}</Text>
                         </View>
                         <Text style={styles.cardSubtitle}>
                             Type : {formatDemoTypeLabel(data.demo_type, t)} · Surface : {data.demo_surface || 'mobile'}
                         </Text>
                         {Platform.OS !== 'ios' ? (
                             <Text style={styles.helperText}>
-                                Expiration : {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleString('fr-FR') : 'Non renseignée'}
+                                {t('subscription.expiration', 'Expiration')} : {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleDateString(i18n.language) : t('subscription.not_specified', 'Non renseignée')}
                             </Text>
                         ) : null}
                     </View>
@@ -348,7 +349,7 @@ export default function SubscriptionScreen() {
 
                 {activePlanConfig ? (
                     <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>Votre plan actuel</Text>
+                        <Text style={styles.sectionTitle}>{t('subscription.current_plan', 'Votre plan actuel')}</Text>
                         <View style={styles.currentPlanRow}>
                             <LinearGradient colors={activePlanConfig.gradient} style={styles.currentPlanIcon}>
                                 <Ionicons name={activePlanConfig.icon as any} size={22} color="white" />
@@ -357,16 +358,16 @@ export default function SubscriptionScreen() {
                                 <Text style={styles.currentPlanName}>{planLabel}</Text>
                                 <Text style={styles.cardSubtitle}>
                                     {isFreeTrial
-                                        ? `Essai gratuit en cours, ${remainingDays} jour(s) restant(s).`
+                                        ? t('subscription.trial_remaining', { defaultValue: 'Essai gratuit en cours, {{days}} jour(s) restant(s).', days: remainingDays })
                                         : isActive
-                                            ? 'Plan actuellement actif sur votre compte.'
-                                            : 'Aucun abonnement actif confirmé pour le moment.'}
+                                            ? t('subscription.plan_active', 'Plan actuellement actif sur votre compte.')
+                                            : t('subscription.no_active_plan', 'Aucun abonnement actif confirmé pour le moment.')}
                                 </Text>
                             </View>
                         </View>
                         {data?.subscription_end ? (
                             <Text style={styles.renewalText}>
-                                {t('subscription.renewal', { date: new Date(data.subscription_end).toLocaleDateString('fr-FR') })}
+                                {t('subscription.renewal', { date: new Date(data.subscription_end).toLocaleDateString(i18n.language) })}
                                 {data.subscription_provider === 'flutterwave' ? t('subscription.mobile_money_label') : ''}
                             </Text>
                         ) : null}
@@ -452,7 +453,7 @@ export default function SubscriptionScreen() {
                                         <Text style={styles.planCardDetail}>
                                             • {plan.key === 'enterprise'
                                                 ? 'Gestion web avancée, gouvernance multi-boutiques et accompagnement dédié.'
-                                                : 'Gestion et paiement directement depuis l’application.'}
+                                                : "Gestion et paiement directement depuis l'application."}
                                         </Text>
                                     </View>
                                     {isSelected ? (
@@ -539,7 +540,7 @@ export default function SubscriptionScreen() {
                     <View style={styles.card}>
                         <Text style={styles.sectionTitle}>Plan déjà actif</Text>
                         <Text style={styles.cardSubtitle}>
-                            Cette formule est déjà appliquée à votre compte. Sélectionnez une autre offre pour la comparer ou utilisez la restauration si vous réinstallez l’application.
+                            Cette formule est déjà appliquée à votre compte. Sélectionnez une autre offre pour la comparer ou utilisez la restauration si vous réinstallez l'application.
                         </Text>
                     </View>
                 ) : null}
@@ -554,13 +555,13 @@ export default function SubscriptionScreen() {
                         </View>
                         <Text style={styles.enterpriseDesc}>
                             {isIOS
-                                ? 'Le plan Enterprise est destiné aux équipes multi-boutiques avec pilotage web avancé. Cette page présente l’offre sans afficher de parcours de paiement externe.'
+                                ? t('subscription.enterprise_ios_desc', 'Le plan Enterprise est destiné aux équipes multi-boutiques avec pilotage web avancé. Cette page présente l\'offre sans afficher de parcours de paiement externe.')
                                 : (t('subscription.enterprise_contact_desc') || 'Pour accéder au plan Enterprise, ouvrez la présentation dédiée sur le web.')}
                         </Text>
                         {isIOS ? (
                             <View style={styles.enterpriseInfoCard}>
                                 <Text style={styles.enterpriseInfoText}>
-                                    Assistance dédiée, gouvernance multi-sites, back-office web avancé et accompagnement au déploiement.
+                                    {t('subscription.enterprise_ios_features', 'Assistance dédiée, gouvernance multi-sites, back-office web avancé et accompagnement au déploiement.')}
                                 </Text>
                             </View>
                         ) : (

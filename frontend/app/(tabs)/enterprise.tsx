@@ -323,9 +323,9 @@ export default function EnterpriseScreen() {
                 {storeList.length === 0 ? (
                   <View style={styles.emptyCard}>
                     <Ionicons name="storefront-outline" size={28} color={colors.textMuted} />
-                    <Text style={styles.emptyTitle}>Aucune boutique pour le moment</Text>
+                    <Text style={styles.emptyTitle}>{t('enterprise.no_stores', 'Aucune boutique pour le moment')}</Text>
                     <Text style={styles.emptyDescription}>
-                      Créez votre première boutique pour commencer à piloter le compte Enterprise.
+                      {t('enterprise.no_stores_desc', 'Créez votre première boutique pour commencer à piloter le compte Enterprise.')}
                     </Text>
                   </View>
                 ) : (

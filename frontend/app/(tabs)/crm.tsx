@@ -1008,14 +1008,14 @@ export default function CRMScreen() {
                                     </View>
                                     <View style={styles.customerInfo}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                            <Text style={styles.customerName}>{customer.name}</Text>
+                                            <Text style={styles.customerName} numberOfLines={1}>{customer.name}</Text>
                                             <View style={[styles.tierBadge, { backgroundColor: tc.color + '25', borderColor: tc.color }]}>
                                                 <Ionicons name={tc.icon as any} size={10} color={tc.color} />
                                                 <Text style={[styles.tierBadgeText, { color: tc.color }]}>{t(tc.labelKey)}</Text>
                                             </View>
                                             {(customer as any).offline_pending && (
                                                 <View style={[styles.tierBadge, { backgroundColor: colors.warning + '18', borderColor: colors.warning }]}>
-                                                    <Text style={[styles.tierBadgeText, { color: colors.warning }]}>En attente</Text>
+                                                    <Text style={[styles.tierBadgeText, { color: colors.warning }]}>{t('common.pending', 'En attente')}</Text>
                                                 </View>
                                             )}
                                         </View>
@@ -1147,7 +1147,7 @@ export default function CRMScreen() {
                 {/* Customer Detail Modal (with tabs) */}
                 {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
                     <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { maxHeight: '90%', paddingBottom: insets.bottom + Spacing.md }]}>
+                        <View style={[styles.modalContent, { maxHeight: '95%', paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + Spacing.md }]}>
                             {detailCustomer && (
                                 <>
                                     <View style={styles.modalHeader}>
@@ -1354,7 +1354,7 @@ export default function CRMScreen() {
                                                                     </View>
                                                                     {sale.items.map((item, i) => (
                                                                         <View key={i} style={styles.saleItemRow}>
-                                                                            <Text style={styles.saleItemName}>{item.product_name}</Text>
+                                                                            <Text style={styles.saleItemName} numberOfLines={1}>{item.product_name}</Text>
                                                                             <Text style={styles.saleItemQty}>x{item.quantity}</Text>
                                                                             <Text style={styles.saleItemPrice}>{formatNumber(item.total)} {t('common.currency_short')}</Text>
                                                                         </View>
@@ -1771,7 +1771,7 @@ export default function CRMScreen() {
                                                                 />
                                                             </View>
                                                             <View style={{ flex: 1 }}>
-                                                                <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>{c.name}</Text>
+                                                                <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }} numberOfLines={1}>{c.name}</Text>
                                                                 <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{c.phone}</Text>
                                                             </View>
                                                         </TouchableOpacity>
@@ -2157,7 +2157,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     seeMoreText: { color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' },
 
     customerInfo: { flex: 1 },
-    customerName: { color: colors.text, fontSize: FontSize.md, fontWeight: '600' },
+    customerName: { color: colors.text, fontSize: FontSize.md, fontWeight: '600', flexShrink: 1 },
     customerPhone: { color: colors.textSecondary, fontSize: FontSize.xs, marginTop: 2 },
     loyaltyRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
     loyaltyText: { color: colors.warning, fontSize: 11, fontWeight: '700', marginLeft: 4 },
@@ -2208,6 +2208,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         borderTopRightRadius: BorderRadius.xl,
         padding: Spacing.lg,
         maxHeight: '85%',
+        flexDirection: 'column',
     },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
     modalTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },

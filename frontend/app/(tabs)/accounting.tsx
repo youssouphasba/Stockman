@@ -7,7 +7,7 @@ import {
     ScrollView,
     RefreshControl,
     ActivityIndicator,
-    Dimensions,
+    useWindowDimensions,
     TouchableOpacity,
     Platform,
     Modal,
@@ -59,7 +59,7 @@ import { mergeAccountingOfflineState } from '../../services/offlineState';
 import KpiInfoButton from '../../components/KpiInfoButton';
 
 
-const screenWidth = Dimensions.get('window').width;
+// screenWidth is now read via useWindowDimensions() inside the component
 
 // PERIODS constant removed as it's handled inside the component or by PeriodSelector
 
@@ -99,7 +99,8 @@ export default function AccountingScreen() {
     const { colors, glassStyle, isDark } = useTheme();
     const { t, i18n } = useTranslation();
     const insets = useSafeAreaInsets();
-    const styles = getStyles(colors, glassStyle);
+    const { width: screenWidth } = useWindowDimensions();
+    const styles = getStyles(colors, glassStyle, screenWidth);
     const [stats, setStats] = useState<AccountingStats | null>(null);
     const [recentSales, setRecentSales] = useState<AccountingSaleHistoryItem[]>([]);
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
@@ -249,7 +250,7 @@ export default function AccountingScreen() {
 
         const html = buildProfessionalInvoiceHtml({
             store: storeProfile,
-            title: invoice.invoice_label || 'Facture',
+            title: invoice.invoice_label || t('accounting.invoice', 'Facture'),
             ref: invoice.invoice_number,
             date: formatDate(invoice.issued_at),
             recipientLabel: t('accounting.recipient_label'),
@@ -326,7 +327,7 @@ export default function AccountingScreen() {
                         } catch (err: any) {
                             Alert.alert(
                                 t('common.error', { defaultValue: 'Erreur' }),
-                                err?.message || t('accounting.cancel_sale_error', { defaultValue: 'Impossible d’annuler cette vente pour le moment.' }),
+                                err?.message || t('accounting.cancel_sale_error', { defaultValue: "Impossible d'annuler cette vente pour le moment." }),
                             );
                         } finally {
                             setCancellingSaleId(null);
@@ -391,7 +392,7 @@ export default function AccountingScreen() {
     const addExpenseCategory = async () => {
         const nextCategory = normalizeExpenseCategory(expenseCategoryDraft);
         if (!nextCategory) {
-            Alert.alert(t('common.error'), 'Saisissez un nom de catégorie.');
+            Alert.alert(t('common.error'), t('accounting.enter_category_name', 'Saisissez un nom de catégorie.'));
             return;
         }
 
@@ -417,7 +418,7 @@ export default function AccountingScreen() {
             setExpenseCategoryDraft('');
         } catch (error) {
             console.error(error);
-            Alert.alert(t('common.error'), 'Impossible d’enregistrer cette catégorie.');
+            Alert.alert(t('common.error'), t('accounting.category_save_error', "Impossible d'enregistrer cette catégorie."));
         } finally {
             setSavingExpenseCategory(false);
         }
@@ -432,7 +433,7 @@ export default function AccountingScreen() {
 
         const normalizedCategory = normalizeExpenseCategory(expenseCategory);
         if (!normalizedCategory) {
-            Alert.alert(t('common.error'), 'Choisissez une catégorie de dépense.');
+            Alert.alert(t('common.error'), t('accounting.choose_expense_category', 'Choisissez une catégorie de dépense.'));
             return;
         }
 
@@ -535,24 +536,24 @@ export default function AccountingScreen() {
         return best;
     }, null);
     const kpiModalTitle = {
-        revenue: "Chiffre d'affaires",
-        gross_profit: 'Marge brute',
-        expenses: 'Dépenses et frais',
-        net_profit: 'Résultat net',
-        stock: 'Valeur du stock',
-        losses: 'Détails des pertes',
-        items: 'Articles vendus',
-        purchases: 'Achats fournisseurs',
-        tax: 'Taxes collectées',
+        revenue: t('accounting.kpi_revenue', "Chiffre d'affaires"),
+        gross_profit: t('accounting.kpi_gross_profit', 'Marge brute'),
+        expenses: t('accounting.kpi_expenses', 'Dépenses et frais'),
+        net_profit: t('accounting.kpi_net_profit', 'Résultat net'),
+        stock: t('accounting.kpi_stock', 'Valeur du stock'),
+        losses: t('accounting.kpi_losses', 'Détails des pertes'),
+        items: t('accounting.kpi_items', 'Articles vendus'),
+        purchases: t('accounting.kpi_purchases', 'Achats fournisseurs'),
+        tax: t('accounting.kpi_tax', 'Taxes collectées'),
     } as const;
 
     function getLossLabel(reason: string) {
         const normalized = reason.trim().toLowerCase();
-        if (normalized === 'lost' || normalized === 'perdu') return 'Perte non attribuée';
-        if (normalized === 'inventory_adjustment' || normalized === 'inventaire physique') return "Écart d'inventaire";
-        if (normalized === 'expired' || normalized === 'expiration') return 'Péremption';
-        if (normalized === 'broken' || normalized === 'casse') return 'Casse';
-        if (normalized === 'theft' || normalized === 'vol') return 'Vol';
+        if (normalized === 'lost' || normalized === 'perdu') return t('accounting.loss_unattributed', 'Perte non attribuée');
+        if (normalized === 'inventory_adjustment' || normalized === 'inventaire physique') return t('accounting.loss_inventory', "Écart d'inventaire");
+        if (normalized === 'expired' || normalized === 'expiration') return t('accounting.loss_expired', 'Péremption');
+        if (normalized === 'broken' || normalized === 'casse') return t('accounting.loss_broken', 'Casse');
+        if (normalized === 'theft' || normalized === 'vol') return t('accounting.loss_theft', 'Vol');
         return reason;
     }
 
@@ -560,56 +561,56 @@ export default function AccountingScreen() {
         switch (kind) {
             case 'revenue':
                 return [
-                    `Période analysée : ${stats?.period_label || 'non définie'}`,
-                    `Variation sur la période : ${formatCurrency(revenueDelta)}`,
-                    bestRevenueDay ? `Meilleure journée : ${new Date(bestRevenueDay.date).toLocaleDateString(i18n.language)} (${formatCurrency(bestRevenueDay.revenue)})` : null,
+                    `${t('accounting.insight_period', 'Période analysée')} : ${stats?.period_label || t('accounting.insight_undefined', 'non définie')}`,
+                    `${t('accounting.insight_variation', 'Variation sur la période')} : ${formatCurrency(revenueDelta)}`,
+                    bestRevenueDay ? `${t('accounting.insight_best_day', 'Meilleure journée')} : ${new Date(bestRevenueDay.date).toLocaleDateString(i18n.language)} (${formatCurrency(bestRevenueDay.revenue)})` : null,
                 ].filter(Boolean) as string[];
             case 'gross_profit':
                 return [
-                    `Marge brute : ${formatCurrency(stats?.gross_profit ?? 0)}`,
-                    `Coût d'achat total : ${formatCurrency(stats?.cogs ?? 0)}`,
-                    `Taux de marge brute : ${grossMarginPercentage.toFixed(1)} %`,
+                    `${t('accounting.kpi_gross_profit', 'Marge brute')} : ${formatCurrency(stats?.gross_profit ?? 0)}`,
+                    `${t('accounting.label_cogs', "Coût d'achat")} : ${formatCurrency(stats?.cogs ?? 0)}`,
+                    `${t('accounting.insight_gross_margin_rate', 'Taux de marge brute')} : ${grossMarginPercentage.toFixed(1)} %`,
                 ];
             case 'expenses':
                 return [
-                    `Total des dépenses : ${formatCurrency(stats?.expenses ?? 0)}`,
-                    `Catégories suivies : ${topExpenseCategories.length || Object.keys(stats?.expenses_breakdown ?? {}).length}`,
-                    `Poids des dépenses : ${expenseRatioPercentage.toFixed(1)} % du chiffre d'affaires`,
+                    `${t('accounting.insight_total_expenses', 'Total des dépenses')} : ${formatCurrency(stats?.expenses ?? 0)}`,
+                    `${t('accounting.insight_categories_tracked', 'Catégories suivies')} : ${topExpenseCategories.length || Object.keys(stats?.expenses_breakdown ?? {}).length}`,
+                    `${t('accounting.insight_expense_ratio', 'Poids des dépenses')} : ${expenseRatioPercentage.toFixed(1)} % ${t('accounting.insight_of_revenue', "du chiffre d'affaires")}`,
                 ];
             case 'net_profit':
                 return [
-                    `Résultat net : ${formatCurrency(stats?.net_profit ?? 0)}`,
-                    `Marge nette : ${netMarginPercentage.toFixed(1)} %`,
-                    `Pertes comptabilisées : ${formatCurrency(stats?.total_losses ?? 0)}`,
+                    `${t('accounting.kpi_net_profit', 'Résultat net')} : ${formatCurrency(stats?.net_profit ?? 0)}`,
+                    `${t('accounting.insight_net_margin', 'Marge nette')} : ${netMarginPercentage.toFixed(1)} %`,
+                    `${t('accounting.insight_recorded_losses', 'Pertes comptabilisées')} : ${formatCurrency(stats?.total_losses ?? 0)}`,
                 ];
             case 'stock':
                 return [
-                    `Valeur d'achat : ${formatCurrency(stats?.stock_value ?? 0)}`,
-                    `Potentiel de vente : ${formatCurrency(stats?.stock_selling_value ?? 0)}`,
-                    `Écart potentiel : ${formatCurrency((stats?.stock_selling_value ?? 0) - (stats?.stock_value ?? 0))}`,
+                    `${t('accounting.label_stock_value', "Valeur d'achat")} : ${formatCurrency(stats?.stock_value ?? 0)}`,
+                    `${t('accounting.label_selling_potential', 'Potentiel de vente')} : ${formatCurrency(stats?.stock_selling_value ?? 0)}`,
+                    `${t('accounting.insight_potential_gap', 'Écart potentiel')} : ${formatCurrency((stats?.stock_selling_value ?? 0) - (stats?.stock_value ?? 0))}`,
                 ];
             case 'losses':
                 return [
-                    `Pertes totales : ${formatCurrency(stats?.total_losses ?? 0)}`,
-                    `Motifs suivis : ${topLossEntries.length}`,
-                    topLossEntries[0] ? `Motif principal : ${getLossLabel(topLossEntries[0].reason)}` : 'Aucun motif dominant',
+                    `${t('accounting.insight_total_losses', 'Pertes totales')} : ${formatCurrency(stats?.total_losses ?? 0)}`,
+                    `${t('accounting.insight_reasons_tracked', 'Motifs suivis')} : ${topLossEntries.length}`,
+                    topLossEntries[0] ? `${t('accounting.insight_main_reason', 'Motif principal')} : ${getLossLabel(topLossEntries[0].reason)}` : t('accounting.insight_no_dominant_reason', 'Aucun motif dominant'),
                 ];
             case 'items':
                 return [
-                    `Articles vendus : ${(stats?.total_items_sold ?? 0).toString()}`,
-                    `Ventes réalisées : ${(stats?.sales_count ?? 0).toString()}`,
-                    `Panier moyen : ${formatCurrency(stats?.avg_sale ?? 0)}`,
+                    `${t('accounting.kpi_items', 'Articles vendus')} : ${(stats?.total_items_sold ?? 0).toString()}`,
+                    `${t('accounting.insight_sales_made', 'Ventes réalisées')} : ${(stats?.sales_count ?? 0).toString()}`,
+                    `${t('accounting.insight_avg_basket', 'Panier moyen')} : ${formatCurrency(stats?.avg_sale ?? 0)}`,
                 ];
             case 'purchases':
                 return [
-                    `Achats fournisseurs : ${formatCurrency(stats?.total_purchases ?? 0)}`,
-                    `Réapprovisionnements : ${(stats?.purchases_count ?? 0).toString()}`,
-                    `Montant moyen par achat : ${formatCurrency((stats?.total_purchases ?? 0) / Math.max(stats?.purchases_count ?? 1, 1))}`,
+                    `${t('accounting.kpi_purchases', 'Achats fournisseurs')} : ${formatCurrency(stats?.total_purchases ?? 0)}`,
+                    `${t('accounting.label_restocks', 'Réapprovisionnements')} : ${(stats?.purchases_count ?? 0).toString()}`,
+                    `${t('accounting.label_avg_purchase', 'Moyenne par achat')} : ${formatCurrency((stats?.total_purchases ?? 0) / Math.max(stats?.purchases_count ?? 1, 1))}`,
                 ];
             case 'tax':
                 return [
-                    `Taxes collectées : ${formatCurrency((stats as any)?.tax_collected ?? 0)}`,
-                    `Taux sur l'activité : ${(stats?.tax_ratio ?? 0).toFixed(1)} %`,
+                    `${t('accounting.label_tax_collected', 'Taxes collectées')} : ${formatCurrency((stats as any)?.tax_collected ?? 0)}`,
+                    `${t('accounting.insight_tax_rate', "Taux sur l'activité")} : ${(stats?.tax_ratio ?? 0).toFixed(1)} %`,
                 ];
         }
     }
@@ -1373,7 +1374,7 @@ export default function AccountingScreen() {
                                                 <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} • {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}</Text>
                                                 {(sale as any).offline_pending_invoice && (
                                                     <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
-                                                        {t('common.pending', { defaultValue: 'En attente' })} • facture hors ligne
+                                                        {t('common.pending', { defaultValue: 'En attente' })} • {t('accounting.offline_invoice', 'facture hors ligne')}
                                                     </Text>
                                                 )}
                                             </View>
@@ -1474,7 +1475,7 @@ export default function AccountingScreen() {
                                                     {invoice.customer_name || t('accounting.client_diverse')}
                                                 </Text>
                                                 <Text style={styles.saleMeta}>
-                                                    {(invoice.invoice_label || 'Facture')} • {formatDate(invoice.issued_at)}
+                                                    {(invoice.invoice_label || t('accounting.invoice', 'Facture'))} • {formatDate(invoice.issued_at)}
                                                 </Text>
                                                 {(invoice as any).offline_pending && (
                                                     <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
@@ -1762,7 +1763,7 @@ export default function AccountingScreen() {
                                                 .slice(0, 6)
                                                 .map((item) => (
                                                     <View key={item.id} style={styles.tableRow}>
-                                                        <Text style={styles.tableLabel}>{item.name}</Text>
+                                                        <Text style={styles.tableLabel} numberOfLines={1}>{item.name}</Text>
                                                         <Text style={[styles.tableLabel, { color: colors.primary, fontWeight: '700' }]}>
                                                             {formatCurrency(item.gross_profit ?? (item.revenue - item.cogs))}
                                                         </Text>
@@ -1786,7 +1787,7 @@ export default function AccountingScreen() {
                                                 }))
                                             ).map((item) => (
                                                 <View key={item.key} style={styles.tableRow}>
-                                                    <Text style={styles.tableLabel}>{item.label}</Text>
+                                                    <Text style={styles.tableLabel} numberOfLines={1}>{item.label}</Text>
                                                     <Text style={[styles.tableLabel, { color: colors.warning, fontWeight: '700' }]}>{formatCurrency(item.amount)}</Text>
                                                 </View>
                                             ))}
@@ -1796,19 +1797,19 @@ export default function AccountingScreen() {
                                     {activeKpiDetail === 'net_profit' && (
                                         <View style={styles.kpiDetailBlock}>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Chiffre d'affaires</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_revenue', "Chiffre d'affaires")}</Text>
                                                 <Text style={styles.tableLabel}>{formatCurrency(stats?.revenue ?? 0)}</Text>
                                             </View>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Coût d'achat</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_cogs', "Coût d'achat")}</Text>
                                                 <Text style={styles.tableLabel}>{formatCurrency(stats?.cogs ?? 0)}</Text>
                                             </View>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Dépenses</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_expenses', 'Dépenses')}</Text>
                                                 <Text style={styles.tableLabel}>{formatCurrency(stats?.expenses ?? 0)}</Text>
                                             </View>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Pertes</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_losses', 'Pertes')}</Text>
                                                 <Text style={styles.tableLabel}>{formatCurrency(stats?.total_losses ?? 0)}</Text>
                                             </View>
                                         </View>
@@ -1817,11 +1818,11 @@ export default function AccountingScreen() {
                                     {activeKpiDetail === 'stock' && (
                                         <View style={styles.kpiDetailBlock}>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Valeur d'achat</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_stock_value', "Valeur d'achat")}</Text>
                                                 <Text style={styles.tableLabel}>{formatCurrency(stats?.stock_value ?? 0)}</Text>
                                             </View>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Potentiel de vente</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_selling_potential', 'Potentiel de vente')}</Text>
                                                 <Text style={styles.tableLabel}>{formatCurrency(stats?.stock_selling_value ?? 0)}</Text>
                                             </View>
                                         </View>
@@ -1846,7 +1847,7 @@ export default function AccountingScreen() {
                                                 .slice(0, 8)
                                                 .map((item) => (
                                                     <View key={item.id} style={styles.tableRow}>
-                                                        <Text style={styles.tableLabel}>{item.name}</Text>
+                                                        <Text style={styles.tableLabel} numberOfLines={1}>{item.name}</Text>
                                                         <Text style={[styles.tableLabel, { color: colors.success, fontWeight: '700' }]}>{item.qty_sold}</Text>
                                                     </View>
                                                 ))}
@@ -1856,15 +1857,15 @@ export default function AccountingScreen() {
                                     {activeKpiDetail === 'purchases' && (
                                         <View style={styles.kpiDetailBlock}>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Montant total</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_total_amount', 'Montant total')}</Text>
                                                 <Text style={styles.tableLabel}>{formatCurrency(stats?.total_purchases ?? 0)}</Text>
                                             </View>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Réapprovisionnements</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_restocks', 'Réapprovisionnements')}</Text>
                                                 <Text style={styles.tableLabel}>{stats?.purchases_count ?? 0}</Text>
                                             </View>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Moyenne par achat</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_avg_purchase', 'Moyenne par achat')}</Text>
                                                 <Text style={styles.tableLabel}>{formatCurrency((stats?.total_purchases ?? 0) / Math.max(stats?.purchases_count ?? 1, 1))}</Text>
                                             </View>
                                         </View>
@@ -1873,7 +1874,7 @@ export default function AccountingScreen() {
                                     {activeKpiDetail === 'tax' && (
                                         <View style={styles.kpiDetailBlock}>
                                             <View style={styles.tableRow}>
-                                                <Text style={styles.tableLabel}>Taxes collectées</Text>
+                                                <Text style={styles.tableLabel}>{t('accounting.label_tax_collected', 'Taxes collectées')}</Text>
                                                 <Text style={styles.tableLabel}>{formatCurrency((stats as any)?.tax_collected ?? 0)}</Text>
                                             </View>
                                         </View>
@@ -1889,7 +1890,7 @@ export default function AccountingScreen() {
     );
 }
 
-const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
+const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => StyleSheet.create({
     container: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     content: { padding: Spacing.md, paddingTop: Spacing.xxl },
@@ -1994,7 +1995,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.sm,
         borderBottomWidth: 1, borderBottomColor: colors.divider,
     },
-    tableLabel: { color: colors.text, fontSize: FontSize.sm },
+    tableLabel: { color: colors.text, fontSize: FontSize.sm, flexShrink: 1 },
     tableDanger: { color: colors.danger, fontSize: FontSize.sm, fontWeight: '600' },
     kpiLossRow: {
         alignItems: 'center',

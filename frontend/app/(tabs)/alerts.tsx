@@ -290,7 +290,7 @@ export default function AlertsScreen() {
         minimum_severity: rule.minimum_severity || undefined,
       };
       if (rule.scope === 'store' && !payload.store_id) {
-        throw new Error('Aucune boutique active selectionnee pour cette regle.');
+        throw new Error(t('alerts.no_active_store', 'Aucune boutique active sélectionnée pour cette règle.'));
       }
       const updated = rule.rule_id.startsWith('draft:')
         ? await alertRulesApi.create(payload)

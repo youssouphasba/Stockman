@@ -405,9 +405,9 @@ export default function SettingsScreen() {
     setTestPushSending(true);
     try {
       const result = await notificationsApi.testPush();
-      Alert.alert('Test push lance', result?.message || 'Une notification de test a ete envoyee.');
+      Alert.alert(t('settings.test_push_title', 'Test push lancé'), result?.message || t('settings.test_push_sent', 'Une notification de test a été envoyée.'));
     } catch (err: any) {
-      Alert.alert('Test push impossible', err?.message || "Impossible d'envoyer la notification de test.");
+      Alert.alert(t('settings.test_push_error_title', 'Test push impossible'), err?.message || t('settings.test_push_error', "Impossible d'envoyer la notification de test."));
     } finally {
       setTestPushSending(false);
     }
@@ -1067,8 +1067,8 @@ export default function SettingsScreen() {
 
         {canManageStoreSettings && !currentStore && (
         <SettingsAccordionSection
-          title="Boutique · Paramètres"
-          description="Aucune boutique sélectionnée pour les réglages du point de vente."
+          title={t('settings.store_settings', 'Boutique · Paramètres')}
+          description={t('settings.no_store_selected', 'Aucune boutique sélectionnée pour les réglages du point de vente.')}
           icon="storefront-outline"
           accentColor={colors.info}
           expanded={expandedSections.storeEmpty}
@@ -1077,7 +1077,7 @@ export default function SettingsScreen() {
           colors={colors}
           variant="nested"
         >
-          <Text style={styles.settingDesc}>Aucune boutique active nest sélectionnée pour personnaliser les documents.</Text>
+          <Text style={styles.settingDesc}>{t('settings.no_active_store_docs', 'Aucune boutique active n\'est sélectionnée pour personnaliser les documents.')}</Text>
         </SettingsAccordionSection>
         )}
         </SettingsAccordionSection>

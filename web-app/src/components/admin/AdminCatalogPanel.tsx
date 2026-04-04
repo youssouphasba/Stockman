@@ -289,6 +289,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     const [batchProgress, setBatchProgress] = useState({ total: 0, done: 0 });
     const [batchSummary, setBatchSummary] = useState({ created: 0, updated: 0, errors: 0 });
     const [batchResumeAvailable, setBatchResumeAvailable] = useState(false);
+    const [lastImportResult, setLastImportResult] = useState<{ created: number; updated: number; errors: number; total: number; fileName: string } | null>(null);
     const [variantBaseName, setVariantBaseName] = useState('');
     const [variantValues, setVariantValues] = useState('');
     const [filters, setFilters] = useState({
@@ -421,6 +422,8 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
             }
 
             await load();
+            const importTotal = createdTotal + updatedTotal + errorCount;
+            setLastImportResult({ created: createdTotal, updated: updatedTotal, errors: errorCount, total: importTotal, fileName: nextFileName });
             if (errorCount > 0) {
                 showToast(`Import terminé avec ${createdTotal} créés, ${updatedTotal} mis à jour et ${errorCount} erreur(s).`, 'error');
             } else {
@@ -993,6 +996,33 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         </p>
                     </div>
                 ) : (
+                    <>
+                    {lastImportResult && (
+                        <div className="mb-4 flex items-center justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-4">
+                            <div>
+                                <div className="text-sm font-bold text-emerald-200">
+                                    Import terminé — {lastImportResult.fileName || 'CSV'}
+                                </div>
+                                <div className="mt-1 flex items-center gap-4 text-xs text-emerald-100">
+                                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-2.5 py-1 font-semibold">
+                                        <span className="text-lg leading-none">{lastImportResult.created}</span> créés
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500/20 px-2.5 py-1 font-semibold text-sky-200">
+                                        <span className="text-lg leading-none">{lastImportResult.updated}</span> mis à jour
+                                    </span>
+                                    {lastImportResult.errors > 0 && (
+                                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/20 px-2.5 py-1 font-semibold text-rose-200">
+                                            <span className="text-lg leading-none">{lastImportResult.errors}</span> erreurs
+                                        </span>
+                                    )}
+                                    <span className="text-slate-400">Total traité : {lastImportResult.total} lignes</span>
+                                </div>
+                            </div>
+                            <button type="button" onClick={() => setLastImportResult(null)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white">
+                                <X size={16} />
+                            </button>
+                        </div>
+                    )}
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[1280px]">
                             <thead>
@@ -1106,6 +1136,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                             </div>
                         )}
                     </div>
+                    </>
                 )}
             </div>
 

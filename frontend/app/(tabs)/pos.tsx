@@ -10,7 +10,7 @@ import {
     TextInput,
     ActivityIndicator,
     Alert,
-    Dimensions,
+    useWindowDimensions,
     Modal,
     Platform,
 } from 'react-native';
@@ -55,8 +55,7 @@ import {
     normalizeProductMeasurement,
 } from '../../utils/measurement';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const isMobile = screenWidth < 768;
+// screenWidth/screenHeight are now read via useWindowDimensions() inside the component
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChangeCalculatorModal from '../../components/ChangeCalculatorModal';
@@ -88,9 +87,11 @@ export type POSSession = {
 export default function POSScreen() {
     const { colors, glassStyle } = useTheme();
     const { t, i18n } = useTranslation();
-    const styles = getStyles(colors, glassStyle);
     const { user, hasPermission } = useAuth();
     const insets = useSafeAreaInsets();
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+    const isMobile = screenWidth < 768;
+    const styles = getStyles(colors, glassStyle, isMobile);
     const canWrite = hasPermission('pos', 'write');
     const [productList, setProductList] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -108,6 +109,7 @@ export default function POSScreen() {
     const selectedCustomer = activeSession.selectedCustomer;
 
     const [customerList, setCustomerList] = useState<Customer[]>([]);
+    const [customerSearch, setCustomerSearch] = useState('');
     const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [isScannerVisible, setIsScannerVisible] = useState(false);
     const [continuousScan, setContinuousScan] = useState(false);
@@ -196,7 +198,7 @@ export default function POSScreen() {
             case 'hybrid':
                 return t('pos.production_mode_hybrid');
             default:
-                return 'A l’avance';
+                return "A l'avance";
         }
     };
 
@@ -475,26 +477,35 @@ export default function POSScreen() {
     // Voice to cart recorder
     const voiceRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
+    const waitForVoiceRecordingUri = async () => {
+        for (let attempt = 0; attempt < 8; attempt++) {
+            const uri = voiceRecorder.uri;
+            if (uri) return uri;
+            await new Promise((resolve) => setTimeout(resolve, 120));
+        }
+        return null;
+    };
+
     const getVoiceToCartErrorMessage = (error: unknown) => {
         const rawMessage = error instanceof Error ? error.message.trim() : '';
         if (!rawMessage) {
-            return 'La reconnaissance vocale a échoué. Veuillez réessayer.';
+            return t('pos.voice_failed', 'La reconnaissance vocale a échoué. Veuillez réessayer.');
         }
         const normalized = rawMessage.toLowerCase();
         if (normalized.includes('ai service not configured')) {
-            return 'Le service vocal n’est pas configuré pour le moment.';
+            return t('pos.voice_not_configured', 'Le service vocal n\'est pas configuré pour le moment.');
         }
         if (normalized.includes('audio_base64 required') || normalized.includes('no recording uri')) {
-            return 'Aucun enregistrement vocal exploitable n’a été détecté. Veuillez réessayer.';
+            return t('pos.voice_no_recording', 'Aucun enregistrement vocal exploitable n\'a été détecté. Veuillez réessayer.');
         }
         if (normalized.includes('transcription failed')) {
-            return 'La transcription vocale a échoué. Vérifiez votre connexion puis réessayez.';
+            return t('pos.voice_transcription_failed', 'La transcription vocale a échoué. Vérifiez votre connexion puis réessayez.');
         }
         if (normalized.includes('quota') || normalized.includes('limit') || normalized.includes('limite')) {
             return rawMessage;
         }
         if (normalized.includes('accès refusé') || normalized.includes('access denied') || normalized.includes('forbidden')) {
-            return 'Cette fonction vocale n’est pas accessible pour ce compte actuellement.';
+            return t('pos.voice_access_denied', 'Cette fonction vocale n\'est pas accessible pour ce compte actuellement.');
         }
         return rawMessage;
     };
@@ -511,7 +522,7 @@ export default function POSScreen() {
                 return;
             }
             await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-            voiceRecorder.record();
+            await voiceRecorder.record();
             setIsVoiceRecording(true);
             setShowVoiceModal(true);
             setVoiceTranscription('');
@@ -527,7 +538,7 @@ export default function POSScreen() {
         setIsVoiceProcessing(true);
         try {
             await voiceRecorder.stop();
-            const uri = voiceRecorder.uri;
+            const uri = await waitForVoiceRecordingUri();
             if (!uri) throw new Error('No recording URI');
             const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
             const result = await aiApi.voiceToCart(base64, i18n.language, user?.active_store_id || undefined);
@@ -1301,7 +1312,7 @@ export default function POSScreen() {
                     {(!showProductList || !isMobile) && (
                         <View style={styles.rightPanel}>
                             <View style={styles.cartHeader}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, flexWrap: 'wrap' }}>
                                     <Text style={styles.cartTitle}>{t('pos.cart_title')}</Text>
                                     {isMobile && (
                                         <View style={styles.mobileQuickActions}>
@@ -1310,14 +1321,14 @@ export default function POSScreen() {
                                                 onPress={() => setIsScannerVisible(true)}
                                             >
                                                 <Ionicons name="barcode-outline" size={18} color={colors.info} />
-                                                <Text style={{ color: colors.info, fontWeight: '700', fontSize: 12 }}>{t('pos.scan_cta', 'Scanner')}</Text>
+                                                <Text style={{ color: colors.info, fontWeight: '700', fontSize: 11 }} numberOfLines={1}>{t('pos.scan_cta', 'Scanner')}</Text>
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={styles.mobileAddBtn}
                                                 onPress={() => setShowProductList(true)}
                                             >
                                                 <Ionicons name="add-circle" size={20} color={colors.primary} />
-                                                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>{t('pos.add_product')}</Text>
+                                                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 11 }} numberOfLines={1}>{t('pos.add_product')}</Text>
                                             </TouchableOpacity>
                                         </View>
                                     )}
@@ -1348,12 +1359,24 @@ export default function POSScreen() {
                             </View>
 
                             <View style={styles.customerSelector}>
-                                <Ionicons name="person-outline" size={18} color={colors.textMuted} />
-                                {canWrite && (
-                                    <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
-                                        <Ionicons name="add" size={16} color={colors.primary} />
-                                    </TouchableOpacity>
-                                )}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                    <Ionicons name="person-outline" size={18} color={colors.textMuted} />
+                                    {canWrite && (
+                                        <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
+                                            <Ionicons name="add" size={16} color={colors.primary} />
+                                        </TouchableOpacity>
+                                    )}
+                                    {customerList.length > 8 && (
+                                        <TextInput
+                                            style={styles.customerSearchInput}
+                                            placeholder={t('pos.search_customer', 'Rechercher...')}
+                                            placeholderTextColor={colors.textMuted}
+                                            value={customerSearch}
+                                            onChangeText={setCustomerSearch}
+                                            autoCorrect={false}
+                                        />
+                                    )}
+                                </View>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.customerScroll}>
                                     <TouchableOpacity
                                         style={[styles.customerBadge, !selectedCustomer && styles.customerBadgeActive]}
@@ -1361,7 +1384,9 @@ export default function POSScreen() {
                                     >
                                         <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>{t('pos.anonymous_customer')}</Text>
                                     </TouchableOpacity>
-                                    {customerList.map(c => (
+                                    {customerList
+                                        .filter(c => !customerSearch || c.name?.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone?.includes(customerSearch))
+                                        .map(c => (
                                         <TouchableOpacity
                                             key={c.customer_id}
                                             style={[
@@ -1369,9 +1394,9 @@ export default function POSScreen() {
                                                 selectedCustomer?.customer_id === c.customer_id && styles.customerBadgeActive,
                                                 c.current_debt > 0 && { borderColor: colors.danger, borderWidth: 1 }
                                             ]}
-                                            onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: c }))}
+                                            onPress={() => { updateActiveSession(s => ({ ...s, selectedCustomer: c })); setCustomerSearch(''); }}
                                         >
-                                            <Text style={[styles.customerBadgeText, selectedCustomer?.customer_id === c.customer_id && styles.customerBadgeTextActive]}>{c.name}</Text>
+                                            <Text style={[styles.customerBadgeText, selectedCustomer?.customer_id === c.customer_id && styles.customerBadgeTextActive]} numberOfLines={1}>{c.name}</Text>
                                         </TouchableOpacity>
                                     ))}
                                 </ScrollView>
@@ -1700,8 +1725,8 @@ export default function POSScreen() {
                                             {voiceItems.map((item, i) => (
                                                 <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                                                     <View style={{ flex: 1 }}>
-                                                        <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }}>{item.name}</Text>
-                                                        <Text style={{ fontSize: 11, color: colors.textMuted }}>{formatCurrency(item.unit_price)} · stock : {item.stock_available}</Text>
+                                                        <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }} numberOfLines={1}>{item.name}</Text>
+                                                        <Text style={{ fontSize: 11, color: colors.textMuted }} numberOfLines={1}>{formatCurrency(item.unit_price)} · {t('common.stock', 'stock')} : {item.stock_available}</Text>
                                                     </View>
                                                     <View style={{ backgroundColor: colors.primary + '20', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
                                                         <Text style={{ fontSize: 14, fontWeight: '900', color: colors.primary }}>×{item.quantity}</Text>
@@ -1800,7 +1825,7 @@ export default function POSScreen() {
                                     style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: selectedTable?.table_id === item.table_id ? colors.primary : colors.divider, backgroundColor: selectedTable?.table_id === item.table_id ? colors.primary + '15' : 'transparent', marginBottom: 6 }}
                                     onPress={() => { handleTableSelect(item.table_id ? item : null); }}
                                 >
-                                    <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
+                                    <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }} numberOfLines={1}>{item.name}</Text>
                                     {item.capacity > 0 && <Text style={{ color: colors.textMuted, fontSize: 12 }}>{item.capacity} pers.</Text>}
                                 </TouchableOpacity>
                             )}
@@ -1815,7 +1840,7 @@ export default function POSScreen() {
     );
 }
 
-const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
+const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true) => StyleSheet.create({
     container: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgDark },
     content: {
@@ -1929,12 +1954,22 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     },
 
     customerSelector: {
-        flexDirection: 'row',
-        alignItems: 'center',
         marginBottom: Spacing.md,
         paddingBottom: Spacing.md,
         borderBottomWidth: 1,
+        gap: 6,
         borderBottomColor: colors.divider,
+    },
+    customerSearchInput: {
+        flex: 1,
+        marginLeft: Spacing.sm,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        fontSize: 12,
+        color: colors.text,
+        backgroundColor: colors.glass,
+        borderRadius: 12,
+        maxWidth: 140,
     },
     customerScroll: { marginLeft: Spacing.sm },
     customerBadge: {

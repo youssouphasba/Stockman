@@ -12,7 +12,7 @@
   Share,
   Image,
   Platform,
-  Dimensions,
+  useWindowDimensions,
   LayoutAnimation,
   UIManager,
 } from 'react-native';
@@ -62,7 +62,7 @@ import AiDailySummary from '../../components/AiDailySummary';
 import { formatCurrency as globalFormatCurrency, getCurrencySymbol } from '../../utils/format';
 import KpiInfoButton from '../../components/KpiInfoButton';
 
-const screenWidth = Dimensions.get('window').width;
+// screenWidth is now read via useWindowDimensions() inside the component
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -111,11 +111,14 @@ function StatusBadge({ label, count, color, styles }: { label: string; count: nu
 }
 
 export default function DashboardScreen() {
+  const MOBILE_DASHBOARD_FOCUS_TTL_MS = 25_000;
+  const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
   const { t } = useTranslation();
   const { user, hasPermission, isRestaurant } = useAuth();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isConnected } = useNetwork();
+  const { width: screenWidth } = useWindowDimensions();
   const [data, setData] = useState<DashboardData | null>(null);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [stats, setStats] = useState<StatisticsData | null>(null);
@@ -175,12 +178,14 @@ export default function DashboardScreen() {
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);
   const loadingRef = useRef(false);
+  const lastLoadedAtRef = useRef(0);
 
   useEffect(() => {
     isConnectedRef.current = isConnected;
   }, [isConnected]);
 
   const loadData = useCallback(async () => {
+    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     // Guard against concurrent loads (prevents double-render overwrite)
     if (loadingRef.current) return;
     loadingRef.current = true;
@@ -217,11 +222,24 @@ export default function DashboardScreen() {
       if (Platform.OS !== 'web') {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       }
+      if (MOBILE_PERF_ENABLED) {
+        const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
+        console.log(`[SCREEN PERF][MOBILE][dashboard] duration=${elapsed.toFixed(1)}ms store=${user?.active_store_id || 'n/a'}`);
+        const host = globalThis as unknown as { __stockmanScreenPerf?: any[] };
+        if (!host.__stockmanScreenPerf) host.__stockmanScreenPerf = [];
+        host.__stockmanScreenPerf.push({
+          screen: 'dashboard',
+          store_id: user?.active_store_id || null,
+          duration_ms: elapsed,
+          ts: new Date().toISOString(),
+        });
+      }
       setLoading(false);
       setRefreshing(false);
       loadingRef.current = false;
+      lastLoadedAtRef.current = Date.now();
     }
-  }, [dashboardCacheKey, user?.active_store_id]);
+  }, [MOBILE_PERF_ENABLED, dashboardCacheKey, user?.active_store_id]);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -289,10 +307,17 @@ export default function DashboardScreen() {
   // Reload when tab regains focus (e.g. tab switch back)
   useFocusEffect(
     useCallback(() => {
+      const hasRecentData = Boolean(
+        data &&
+        lastLoadedAtRef.current > 0 &&
+        Date.now() - lastLoadedAtRef.current < MOBILE_DASHBOARD_FOCUS_TTL_MS
+      );
       loadingRef.current = false; // Reset guard so focus-triggered reload works
-      loadData();
+      if (!hasRecentData) {
+        loadData();
+      }
       loadNotifications();
-    }, [loadData, loadNotifications])
+    }, [data, loadData, loadNotifications])
   );
 
   function onRefresh() {
@@ -630,7 +655,7 @@ export default function DashboardScreen() {
   const dashboardGuideTitle = dashboardGuide?.title ?? '';
 
   const { colors, glassStyle, isDark, setTheme } = useTheme();
-  const styles = getStyles(colors, glassStyle);
+  const styles = getStyles(colors, glassStyle, screenWidth);
 
   const toggleThemeQuick = useCallback(() => {
     void setTheme(isDark ? 'light' : 'dark');
@@ -1767,7 +1792,7 @@ export default function DashboardScreen() {
 }
 
 
-const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
+const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   content: {
