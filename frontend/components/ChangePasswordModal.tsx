@@ -8,11 +8,12 @@ import { useAuth } from '../contexts/AuthContext';
 interface ChangePasswordModalProps {
     visible: boolean;
     onClose: () => void;
+    mode?: 'change' | 'set';
 }
 
 import { useTranslation } from 'react-i18next';
 
-export default function ChangePasswordModal({ visible, onClose }: ChangePasswordModalProps) {
+export default function ChangePasswordModal({ visible, onClose, mode = 'change' }: ChangePasswordModalProps) {
     const { t } = useTranslation();
     const { colors } = useTheme();
     const { logout } = useAuth();
@@ -31,8 +32,10 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
         onClose();
     };
 
+    const isSetMode = mode === 'set';
+
     const handleSubmit = async () => {
-        if (!oldPassword || !newPassword || !confirmPassword) {
+        if ((!isSetMode && !oldPassword) || !newPassword || !confirmPassword) {
             Alert.alert(t('modals.error'), t('auth.register.errorFillRequired'));
             return;
         }
@@ -49,12 +52,21 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
 
         setLoading(true);
         try {
-            await auth.changePassword(oldPassword, newPassword);
-            Alert.alert(
-                t('modals.success'),
-                t('modals.changePassword.successMessage'),
-                [{ text: 'OK', onPress: () => { handleClose(); logout(); } }]
-            );
+            if (isSetMode) {
+                await auth.setPassword(newPassword);
+                Alert.alert(
+                    t('modals.success'),
+                    t('modals.setPassword.successMessage', 'Mot de passe defini. Vous pouvez maintenant vous connecter avec votre email et mot de passe.'),
+                    [{ text: 'OK', onPress: handleClose }]
+                );
+            } else {
+                await auth.changePassword(oldPassword, newPassword);
+                Alert.alert(
+                    t('modals.success'),
+                    t('modals.changePassword.successMessage'),
+                    [{ text: 'OK', onPress: () => { handleClose(); logout(); } }]
+                );
+            }
         } catch (error: any) {
             console.error(error);
             const message = error.message || t('modals.changePassword.errorUpdate');
@@ -72,13 +84,22 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
                     style={[styles.container, { backgroundColor: colors.bgDark }]}
                 >
                     <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.text }]}>{t('modals.changePassword.title')}</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>
+                            {isSetMode ? t('modals.setPassword.title', 'Definir un mot de passe') : t('modals.changePassword.title')}
+                        </Text>
                         <TouchableOpacity onPress={handleClose}>
                             <Ionicons name="close" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </View>
 
+                    {isSetMode && (
+                        <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 10 }}>
+                            {t('modals.setPassword.description', 'Definissez un mot de passe pour pouvoir vous connecter avec votre email sur un autre appareil.')}
+                        </Text>
+                    )}
+
                     <View style={styles.form}>
+                        {!isSetMode && (
                         <View>
                             <Text style={[styles.label, { color: colors.textMuted }]}>{t('modals.changePassword.oldLabel')}</Text>
                             <View style={[styles.inputContainer, { borderColor: colors.glassBorder }]}>
@@ -92,6 +113,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
                                 />
                             </View>
                         </View>
+                        )}
 
                         <View>
                             <Text style={[styles.label, { color: colors.textMuted }]}>{t('modals.changePassword.newLabel')}</Text>
@@ -137,7 +159,7 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
                             {loading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.submitText}>{t('modals.changePassword.update')}</Text>
+                                <Text style={styles.submitText}>{isSetMode ? t('modals.setPassword.confirm', 'Definir') : t('modals.changePassword.update')}</Text>
                             )}
                         </TouchableOpacity>
                     </View>

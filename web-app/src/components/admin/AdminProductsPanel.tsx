@@ -224,22 +224,22 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                 <div className="glass-card p-5">
                     <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Produits remontés</div>
                     <div className="text-3xl font-black text-white">{total}</div>
-                    <div className="text-sm text-slate-400 mt-2">Produits visibles avec les filtres actifs.</div>
+                    <div className="text-sm text-slate-300 mt-2">Produits visibles avec les filtres actifs.</div>
                 </div>
                 <div className="glass-card p-5">
                     <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">En vente</div>
                     <div className="text-3xl font-black text-emerald-400">{stats.activeCount}</div>
-                    <div className="text-sm text-slate-400 mt-2">Produits actuellement actifs.</div>
+                    <div className="text-sm text-slate-300 mt-2">Produits actuellement actifs.</div>
                 </div>
                 <div className="glass-card p-5">
                     <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Masqués</div>
                     <div className="text-3xl font-black text-amber-400">{stats.inactiveCount}</div>
-                    <div className="text-sm text-slate-400 mt-2">Produits retirés de la vente.</div>
+                    <div className="text-sm text-slate-300 mt-2">Produits retirés de la vente.</div>
                 </div>
                 <div className="glass-card p-5">
                     <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Stock faible</div>
                     <div className="text-3xl font-black text-rose-400">{stats.lowStockCount}</div>
-                    <div className="text-sm text-slate-400 mt-2">Quantité inférieure ou égale à 5.</div>
+                    <div className="text-sm text-slate-300 mt-2">Quantité inférieure ou égale à 5.</div>
                 </div>
             </div>
 
@@ -247,7 +247,7 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
                     <div>
                         <h2 className="text-xl font-black text-white">Produits en vente</h2>
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-slate-300">
                             Filtrer par boutique et par type de business, puis retirer ou remettre un produit en vente.
                         </p>
                     </div>
@@ -323,7 +323,7 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                     <button
                         type="button"
                         onClick={resetFilters}
-                        className="text-sm text-slate-400 hover:text-white transition-colors"
+                        className="text-sm text-slate-300 hover:text-white transition-colors"
                     >
                         Réinitialiser les filtres
                     </button>
@@ -357,7 +357,7 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                                         <tr key={product.product_id} className="border-b border-white/5 align-top">
                                             <td className="py-4 pr-4">
                                                 <div className="font-bold text-white">{product.name}</div>
-                                                <div className="text-sm text-slate-400">
+                                                <div className="text-sm text-slate-300">
                                                     {product.category || 'Sans catégorie'}
                                                 </div>
                                                 <div className="text-xs text-slate-500 mt-1">
@@ -369,7 +369,7 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                                                     <Store size={15} className="text-slate-500" />
                                                     {product.store_name || 'Boutique inconnue'}
                                                 </div>
-                                                <div className="text-sm text-slate-400 mt-1">
+                                                <div className="text-sm text-slate-300 mt-1">
                                                     {product.owner_info?.name || 'Inconnu'}
                                                 </div>
                                                 <div className="text-xs text-slate-500">
@@ -380,7 +380,7 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                                                 <div className="text-white font-medium">
                                                     {product.business_sector_label || getBusinessSectorLabel(product.business_sector)}
                                                 </div>
-                                                <div className="text-sm text-slate-400">
+                                                <div className="text-sm text-slate-300">
                                                     {product.business_type || 'Non renseigné'}
                                                 </div>
                                             </td>

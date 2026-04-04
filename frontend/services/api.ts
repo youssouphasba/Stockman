@@ -496,6 +496,11 @@ export const auth = {
       method: 'POST',
       body: { old_password: oldPassword, new_password: newPassword }
     }),
+  setPassword: (newPassword: string) =>
+    request<{ message: string }>('/auth/set-password', {
+      method: 'POST',
+      body: { new_password: newPassword }
+    }),
   resendPhoneOtp: () =>
     request<{ message: string; client_side?: boolean }>('/auth/resend-phone-otp', {
       method: 'POST',
@@ -1753,6 +1758,7 @@ export type User = {
   store_name?: string;
   picture?: string;
   auth_type: string;
+  password_set?: boolean;
   role: string; // "shopkeeper" | "staff" | "supplier"
   permissions?: Partial<UserPermissions>;
   effective_permissions?: Partial<UserPermissions>;
@@ -3079,7 +3085,10 @@ export const pricing = {
 export const subscription = {
   getDetails: () => request<SubscriptionData>('/subscription/me'),
   checkout: (plan: string) => request<{ payment_url: string; transaction_id: string }>(`/billing/checkout?plan=${plan}`, { method: 'POST' }),
-  sync: () => request<{ plan: string; status: string }>('/subscription/sync', { method: 'POST' }),
+  sync: (purchasedPlan?: string) => request<{ plan: string; status: string }>('/subscription/sync', {
+    method: 'POST',
+    body: purchasedPlan ? { purchased_plan: purchasedPlan } : undefined,
+  }),
 };
 
 export type DemoSessionResponse = {

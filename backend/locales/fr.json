@@ -1954,7 +1954,13 @@
       "errorMismatch": "Les nouveaux mots de passe ne correspondent pas",
       "errorLength": "Le mot de passe doit contenir au moins 8 caractères",
       "successMessage": "Votre mot de passe a été modifié. Veuillez vous reconnecter.",
-      "errorUpdate": "Errorupdate"
+      "errorUpdate": "Erreur lors de la mise à jour"
+    },
+    "setPassword": {
+      "title": "Définir un mot de passe",
+      "description": "Définissez un mot de passe pour pouvoir vous connecter avec votre email sur un autre appareil.",
+      "successMessage": "Mot de passe défini avec succès. Vous pouvez maintenant vous connecter avec votre email et mot de passe.",
+      "confirm": "Définir"
     },
     "chat": "Messages",
     "chat_empty": "Commencez la conversation !",
@@ -2727,6 +2733,7 @@
     "biometrics": "Biométrie (Face ID / Empreinte)",
     "biometrics_desc": "Utiliser la reconnaissance biométrique",
     "change_password": "Changer le mot de passe",
+    "set_password": "Définir un mot de passe",
     "connection_status": "État de la connexion",
     "contact_admin": "Contacter l'administrateur",
     "contact_admin_desc": "Envoyer un message de support",

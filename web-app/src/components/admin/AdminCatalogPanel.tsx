@@ -822,7 +822,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 className="text-xl font-black text-white">Catalogue global par secteur</h2>
-                        <p className="text-sm text-slate-400">Création en lot reprenable, duplication, workflow de publication, édition massive et assistant catalogue.</p>
+                        <p className="text-sm text-slate-300">Création en lot reprenable, duplication, workflow de publication, édition massive et assistant catalogue.</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
                         <button type="button" onClick={() => void openCreate()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 font-bold text-white">
@@ -1146,7 +1146,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-2xl font-black text-white">{editingEntry ? 'Modifier le produit catalogue' : 'Nouveau produit catalogue'}</h3>
-                                <p className="mt-1 text-sm text-slate-400">L'IA propose des pistes, mais c'est toi qui valides les catégories, unités et rapprochements.</p>
+                                <p className="mt-1 text-sm text-slate-200">L'IA propose des pistes, mais c'est toi qui valides les catégories, unités et rapprochements.</p>
                             </div>
                             <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>
@@ -1225,7 +1225,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                             <h3 className="text-xl font-black text-white">Fusionner {selectedEntries.length} produits</h3>
                             <button type="button" onClick={() => setMergeModalOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>
-                        <p className="mt-2 text-sm text-slate-400">Choisis le produit à conserver. Les autres seront supprimés et leurs données fusionnées dedans.</p>
+                        <p className="mt-2 text-sm text-slate-200">Choisis le produit à conserver. Les autres seront supprimés et leurs données fusionnées dedans.</p>
                         <div className="mt-4 space-y-2">
                             {selectedEntries.map((entry) => (
                                 <label
@@ -1263,14 +1263,14 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-2xl font-black text-white">Création en lot</h3>
-                                <p className="mt-1 text-sm text-slate-400">Tu peux soit coller des lignes rapides, soit importer un vrai CSV admin avec en-tête. L'import garde maintenant sa progression pour pouvoir reprendre après fermeture.</p>
+                                <p className="mt-1 text-sm text-slate-200">Tu peux soit coller des lignes rapides, soit importer un vrai CSV admin avec en-tête. L'import garde maintenant sa progression pour pouvoir reprendre après fermeture.</p>
                             </div>
                             <button type="button" onClick={() => setBatchOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>
 
                         <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
                             <div className="text-sm font-bold text-white">Import CSV admin</div>
-                            <p className="mt-1 text-xs text-slate-400">Colonnes attendues : `display_name`, `category`, `sector`, `country_codes`, `unit`, `tags`, `publication_status`, `reference_price`, `sale_price`, `supplier_hint`, `verified`, avec les autres colonnes optionnelles du template admin.</p>
+                            <p className="mt-1 text-xs text-slate-200">Colonnes attendues : <code className="rounded bg-slate-800 px-1 text-emerald-300">display_name</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">category</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">sector</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">country_codes</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">unit</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">tags</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">publication_status</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">reference_price</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">sale_price</code> — autres colonnes optionnelles.</p>
                             <input
                                 type="file"
                                 accept=".csv,text/csv"
@@ -1306,7 +1306,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
 
                         <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
                             <div className="text-sm font-bold text-white">Saisie rapide</div>
-                            <p className="mt-1 text-xs text-slate-400">Format rapide : nom;catégorie;secteur;unité;prix référence;prix vente;tags</p>
+                            <p className="mt-1 text-xs text-slate-200">Format : <code className="rounded bg-slate-800 px-1 text-emerald-300">nom;catégorie;secteur;unité;prix_ref;prix_vente;tags</code></p>
                             <textarea value={batchText} onChange={(event) => { setBatchRows([]); setBatchFileName(''); setBatchText(event.target.value); setBatchProgress({ total: 0, done: 0 }); setBatchSummary({ created: 0, updated: 0, errors: 0 }); setBatchResumeAvailable(false); saveBatchImportCheckpoint(null); }} rows={10} className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" placeholder="Riz parfumé;Riz;epicerie;kg;650;850;riz, premium" />
                         </div>
 
@@ -1351,7 +1351,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-2xl font-black text-white">Créer une série de variantes</h3>
-                                <p className="mt-1 text-sm text-slate-400">Exemple : nom de base “Jus”, variantes “mangue, ananas, bissap”.</p>
+                                <p className=”mt-1 text-sm text-slate-200”>Exemple : nom de base “Jus”, variantes “mangue, ananas, bissap”.</p>
                             </div>
                             <button type="button" onClick={() => setVariantOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>

@@ -1751,6 +1751,12 @@
       "errorLength": "Password must be at least 8 characters long",
       "successMessage": "Your password has been changed. Please log in again."
     },
+    "setPassword": {
+      "title": "Set a password",
+      "description": "Set a password so you can log in with your email on another device.",
+      "successMessage": "Password set successfully. You can now log in with your email and password.",
+      "confirm": "Set password"
+    },
     "chat": "Messages",
     "chat_empty": "Start the conversation!",
     "close": "Close",
@@ -2412,6 +2418,7 @@
     "biometrics": "Biometrics (Face ID / Fingerprint)",
     "biometrics_desc": "Use biometric recognition",
     "change_password": "Change Password",
+    "set_password": "Set a password",
     "connection_status": "Connection Status",
     "contact_admin": "Contact Administrator",
     "contact_admin_desc": "Send a support message",

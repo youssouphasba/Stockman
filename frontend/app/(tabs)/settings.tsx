@@ -563,7 +563,11 @@ export default function SettingsScreen() {
               <Text style={styles.userName}>{user?.name}</Text>
               <Text style={styles.userEmail}>{user?.email}</Text>
               <TouchableOpacity onPress={() => setShowPasswordModal(true)}>
-                <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: '600' }}>{t('settings.change_password')}</Text>
+                <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: '600' }}>
+                  {user?.auth_type !== 'email' && !user?.password_set
+                    ? t('settings.set_password', 'Definir un mot de passe')
+                    : t('settings.change_password')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1639,6 +1643,7 @@ export default function SettingsScreen() {
       <ChangePasswordModal
         visible={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
+        mode={user?.auth_type !== 'email' && !user?.password_set ? 'set' : 'change'}
       />
 
       <DeleteAccountModal

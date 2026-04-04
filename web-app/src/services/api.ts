@@ -23,6 +23,34 @@ const generateIdempotencyKey = () =>
 
 const IDEMPOTENT_MUTATION_PREFIXES = ['/sales', '/payments', '/stock/movement', '/stock/transfer', '/orders'];
 
+type ApiPerfSample = {
+    method: string;
+    endpoint: string;
+    status: number;
+    duration_ms: number;
+    ts: string;
+};
+
+function isApiPerfEnabled() {
+    if (!IS_BROWSER) return false;
+    try {
+        return localStorage.getItem('stockman_perf') === '1' || process.env.NEXT_PUBLIC_STOCKMAN_PERF === '1';
+    } catch {
+        return false;
+    }
+}
+
+function recordApiPerf(sample: ApiPerfSample) {
+    if (!IS_BROWSER || !isApiPerfEnabled()) return;
+    const host = window as unknown as { __stockmanApiPerf?: ApiPerfSample[] };
+    if (!host.__stockmanApiPerf) host.__stockmanApiPerf = [];
+    host.__stockmanApiPerf.push(sample);
+    if (host.__stockmanApiPerf.length > 500) {
+        host.__stockmanApiPerf = host.__stockmanApiPerf.slice(-500);
+    }
+    console.info(`[API PERF][WEB] ${sample.method} ${sample.endpoint} -> ${sample.status} in ${sample.duration_ms.toFixed(1)}ms`);
+}
+
 // Web auth is cookie-based; these helpers only clear legacy storage when needed.
 export const getToken = () => null;
 export const setToken = (_token: string) => {};
@@ -207,6 +235,8 @@ function buildEndpointWithParams(endpoint: string, params?: Record<string, strin
 
 async function performRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { method = 'GET', body, headers = {}, params } = options;
+    const reqStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    let finalStatus = 0;
     const hasJsonBody = body !== undefined && body !== null && !(body instanceof FormData);
     const finalEndpoint = buildEndpointWithParams(endpoint, params);
 
@@ -232,6 +262,7 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
     }
 
     let response = await fetch(`${API_URL}/api${finalEndpoint}`, config);
+    finalStatus = response.status;
 
     if (response.status === 401) {
         const skipRefresh = ['/auth/login', '/auth/refresh'];
@@ -239,9 +270,18 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
             const refreshed = await refreshWithMutex();
             if (refreshed) {
                 response = await fetch(`${API_URL}/api${finalEndpoint}`, config);
+                finalStatus = response.status;
             }
         }
         if (response.status === 401 && endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
+            const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
+            recordApiPerf({
+                method,
+                endpoint: finalEndpoint,
+                status: 401,
+                duration_ms: elapsed,
+                ts: new Date().toISOString(),
+            });
             removeToken();
             throw new AuthError('Session expirée. Veuillez vous reconnecter.');
         }
@@ -266,9 +306,25 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
             }
         }
 
+        const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
+        recordApiPerf({
+            method,
+            endpoint: finalEndpoint,
+            status: response.status,
+            duration_ms: elapsed,
+            ts: new Date().toISOString(),
+        });
         throw new ApiError(message, response.status);
     }
 
+    const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
+    recordApiPerf({
+        method,
+        endpoint: finalEndpoint,
+        status: finalStatus || 200,
+        duration_ms: elapsed,
+        ts: new Date().toISOString(),
+    });
     return response.json();
 }
 
@@ -1518,6 +1574,8 @@ export const auth = {
         request<any>('/auth/profile', { method: 'PUT', body: data }),
     changePassword: (data: { old_password: string; new_password: string }) =>
         request<{ message: string }>('/auth/change-password', { method: 'POST', body: data }),
+    setPassword: (data: { new_password: string }) =>
+        request<{ message: string }>('/auth/set-password', { method: 'POST', body: data }),
     register: (data: {
         email: string; password: string; name: string;
         role: string; phone?: string; business_type?: string; how_did_you_hear?: string;

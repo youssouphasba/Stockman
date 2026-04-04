@@ -91,7 +91,7 @@ export default function POSScreen() {
     const insets = useSafeAreaInsets();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const isMobile = screenWidth < 768;
-    const styles = getStyles(colors, glassStyle, isMobile);
+    const styles = getStyles(colors, glassStyle, isMobile, screenWidth);
     const canWrite = hasPermission('pos', 'write');
     const [productList, setProductList] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -1840,7 +1840,7 @@ export default function POSScreen() {
     );
 }
 
-const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true) => StyleSheet.create({
+const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, screenWidth: number = 375) => StyleSheet.create({
     container: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgDark },
     content: {
