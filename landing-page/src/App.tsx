@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 import FeaturePage from './FeaturePage';
 import TermsOfService from './TermsOfService';
 import PrivacyPolicy from './PrivacyPolicy';
@@ -362,6 +363,7 @@ function App() {
       <div dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
         <Router>
           <Analytics />
+          <VercelAnalytics />
           <CookieBanner />
           <WhatsAppButton />
 
