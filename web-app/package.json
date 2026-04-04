@@ -10,6 +10,7 @@
         "clean": "rm -rf .next"
     },
     "dependencies": {
+        "@vercel/analytics": "^2.0.1",
         "clsx": "^2.1.1",
         "exceljs": "^4.4.0",
         "firebase": "^12.11.0",
