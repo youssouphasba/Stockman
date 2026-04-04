@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import OfflineBanner from "../components/OfflineBanner";
 import ServiceWorkerRegistration from "../components/ServiceWorkerRegistration";
+import { Analytics } from "@vercel/analytics/next";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <OfflineBanner />
           {children}
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
