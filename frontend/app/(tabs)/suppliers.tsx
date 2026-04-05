@@ -52,7 +52,7 @@ import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../uti
 
 
 export default function SuppliersScreen() {
-  const MOBILE_SUPPLIERS_FOCUS_TTL_MS = 25_000;
+  const MOBILE_SUPPLIERS_FOCUS_TTL_MS = 60_000;
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
   const { colors, glassStyle } = useTheme();
   const { t, i18n } = useTranslation();

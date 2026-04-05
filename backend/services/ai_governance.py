@@ -8,11 +8,22 @@ should go through this module.
 
 from __future__ import annotations
 
+import json
+import logging
+import os
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
+
+try:
+    import redis
+except Exception:  # pragma: no cover - optional dependency at runtime
+    redis = None
+
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -286,13 +297,59 @@ def estimate_cost(feature: str) -> float:
 # ---------------------------------------------------------------------------
 _cache: Dict[str, tuple] = {}  # key → (value, expires_at)
 
+_redis_client = None
+_redis_disabled = False
+
+
+def _get_redis_client():
+    global _redis_client, _redis_disabled
+    if _redis_disabled:
+        return None
+    if _redis_client is not None:
+        return _redis_client
+
+    redis_url = os.environ.get("REDIS_URL")
+    if not redis_url or redis is None:
+        _redis_disabled = True
+        return None
+
+    try:
+        _redis_client = redis.Redis.from_url(
+            redis_url,
+            decode_responses=True,
+            socket_connect_timeout=0.5,
+            socket_timeout=0.5,
+            health_check_interval=30,
+        )
+        _redis_client.ping()
+        logger.info("AI governance cache: Redis enabled")
+        return _redis_client
+    except Exception as exc:
+        logger.warning("AI governance cache: Redis unavailable, fallback to memory (%s)", exc)
+        _redis_disabled = True
+        _redis_client = None
+        return None
+
 
 def _cache_key(owner_id: str, feature: str, extra: str = "") -> str:
     return f"{owner_id}:{feature}:{extra}"
 
 
+def _redis_cache_key(owner_id: str, feature: str, extra: str = "") -> str:
+    return f"ai-cache:{_cache_key(owner_id, feature, extra)}"
+
+
 def cache_get(owner_id: str, feature: str, extra: str = "") -> Any:
     """Return cached value or None."""
+    redis_client = _get_redis_client()
+    if redis_client is not None:
+        try:
+            payload = redis_client.get(_redis_cache_key(owner_id, feature, extra))
+            if payload:
+                return json.loads(payload)
+        except Exception as exc:
+            logger.warning("AI governance cache read failed, fallback to memory (%s)", exc)
+
     key = _cache_key(owner_id, feature, extra)
     entry = _cache.get(key)
     if entry is None:
@@ -310,6 +367,18 @@ def cache_set(owner_id: str, feature: str, value: Any, extra: str = "") -> None:
     ttl = rule.get("cache_ttl_s")
     if not ttl:
         return
+
+    redis_client = _get_redis_client()
+    if redis_client is not None:
+        try:
+            redis_client.setex(
+                _redis_cache_key(owner_id, feature, extra),
+                int(ttl),
+                json.dumps(value, default=str),
+            )
+        except Exception as exc:
+            logger.warning("AI governance cache write failed, fallback to memory (%s)", exc)
+
     key = _cache_key(owner_id, feature, extra)
     _cache[key] = (value, time.monotonic() + ttl)
 
@@ -317,6 +386,20 @@ def cache_set(owner_id: str, feature: str, value: Any, extra: str = "") -> None:
 def cache_invalidate(owner_id: str, feature: str = "", extra: str = "") -> None:
     """Invalidate cache entries for an owner (optionally scoped to a feature)."""
     prefix = f"{owner_id}:{feature}" if feature else f"{owner_id}:"
+    redis_client = _get_redis_client()
+    if redis_client is not None:
+        try:
+            pattern = f"ai-cache:{prefix}{extra if extra else '*'}"
+            cursor = 0
+            while True:
+                cursor, keys = redis_client.scan(cursor=cursor, match=pattern, count=100)
+                if keys:
+                    redis_client.delete(*keys)
+                if cursor == 0:
+                    break
+        except Exception as exc:
+            logger.warning("AI governance cache invalidation failed (%s)", exc)
+
     keys_to_remove = [k for k in _cache if k.startswith(prefix)]
     for k in keys_to_remove:
         _cache.pop(k, None)

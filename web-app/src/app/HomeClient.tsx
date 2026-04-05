@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles, HelpCircle, Chrome } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -47,6 +47,28 @@ import GlobalFiltersBar from "../components/analytics/GlobalFiltersBar";
 import { BUSINESS_TYPE_GROUP_IDS, MOBILE_APP_URL, PLAN_COMPARISON_ROWS } from "../data/marketing";
 import { DEMO_COUNTRIES } from "../data/demoCurrencies";
 
+const TAB_GUIDE_KEYS: Record<string, string> = {
+  dashboard: 'executive_dashboard_tour',
+  pos: 'pos_tour',
+  inventory: 'inventory_tour',
+  locations: 'locations_tour',
+  alerts: 'alerts_tour',
+  activity: 'activity_tour',
+  stock_history: 'stock_history_tour',
+  inventory_counting: 'counting_tour',
+  expiry_alerts: 'expiry_tour',
+  stats: 'abc_tour',
+  accounting: 'accounting_tour',
+  crm: 'crm_tour',
+  orders: 'orders_tour',
+  reports: 'reports_tour',
+  staff: 'staff_tour',
+  suppliers: 'suppliers_tour',
+  multi_stores: 'multi_stores_tour',
+  settings: 'settings_tour',
+  subscription: 'subscription_tour',
+};
+
 export default function Home() {
   const { t, ready, i18n } = useTranslation();
   const [isLogged, setIsLogged] = useState(false);
@@ -54,7 +76,7 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
       if (hash) return hash;
-      return localStorage.getItem('stockman_active_tab') || 'dashboard';
+      return window.sessionStorage.getItem('stockman_active_tab') || 'dashboard';
     }
     return 'dashboard';
   });
@@ -62,7 +84,7 @@ export default function Home() {
   const setActiveTab = useCallback((tab: string) => {
     setActiveTabRaw((prev) => {
       if (typeof window !== 'undefined' && tab !== prev) {
-        localStorage.setItem('stockman_active_tab', tab);
+        window.sessionStorage.setItem('stockman_active_tab', tab);
         window.history.pushState({ tab }, '', `#${tab}`);
       }
       return tab;
@@ -75,7 +97,7 @@ export default function Home() {
       const hash = window.location.hash.replace('#', '');
       if (hash) {
         setActiveTabRaw(hash);
-        localStorage.setItem('stockman_active_tab', hash);
+        window.sessionStorage.setItem('stockman_active_tab', hash);
       }
     };
     window.addEventListener('popstate', onPopState);
@@ -124,7 +146,10 @@ export default function Home() {
     user?.role !== 'supplier' &&
     effectivePlan !== 'enterprise';
   const isRestaurantBusiness = features?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
-  const analyticsEnabled = !isRestaurantBusiness && ['dashboard', 'multi_stores', 'stock_history', 'stats', 'reports'].includes(activeTab);
+  const analyticsEnabled = useMemo(
+    () => !isRestaurantBusiness && ['dashboard', 'multi_stores', 'stock_history', 'stats', 'reports'].includes(activeTab),
+    [activeTab, isRestaurantBusiness],
+  );
   const needsProfileCompletion = isLogged && user?.needs_profile_completion === true;
   const needsEmailVerification = isLogged && user?.required_verification === 'email' && user?.is_email_verified !== true;
   const isSubscriptionRecoveryMode =
@@ -140,28 +165,10 @@ export default function Home() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const TAB_GUIDE_KEYS: Record<string, string> = {
-    dashboard: isRestaurantBusiness ? 'dashboard_tour' : 'executive_dashboard_tour',
-    pos: 'pos_tour',
-    inventory: 'inventory_tour',
-    locations: 'locations_tour',
-    alerts: 'alerts_tour',
-    activity: 'activity_tour',
-    stock_history: 'stock_history_tour',
-    inventory_counting: 'counting_tour',
-    expiry_alerts: 'expiry_tour',
-    stats: 'abc_tour',
-    accounting: 'accounting_tour',
-    crm: 'crm_tour',
-    orders: 'orders_tour',
-    reports: 'reports_tour',
-    staff: 'staff_tour',
-    suppliers: 'suppliers_tour',
-    multi_stores: 'multi_stores_tour',
-    settings: 'settings_tour',
-    subscription: 'subscription_tour',
-  };
-  const activeGuideKey = TAB_GUIDE_KEYS[activeTab];
+  const activeGuideKey = useMemo(
+    () => (activeTab === 'dashboard' && isRestaurantBusiness ? 'dashboard_tour' : TAB_GUIDE_KEYS[activeTab]),
+    [activeTab, isRestaurantBusiness],
+  );
   const formatDemoExpiration = (value?: string | null) => {
     if (!value) return t('demo_lead.not_available');
     return new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || undefined, {
@@ -378,6 +385,7 @@ export default function Home() {
     clearWebAccessMode();
     localStorage.removeItem('user_currency');
     localStorage.removeItem('stockman_active_tab');
+    window.sessionStorage.removeItem('stockman_active_tab');
     setUser(null);
     setIsLogged(false);
     setActiveTab('dashboard');

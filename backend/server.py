@@ -182,6 +182,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 # Background tasks monitoring (I8)
 background_tasks_status = {}
+product_import_tasks: Dict[str, asyncio.Task] = {}
 
 async def supervised_loop(name: str, func, interval: int = 300):
     """Wrapper to supervise background tasks and report status (I8)"""
@@ -201,6 +202,47 @@ async def supervised_loop(name: str, func, interval: int = 300):
                 "error": str(e)
             }
         await asyncio.sleep(interval)
+
+
+def serialize_import_job(job: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not job:
+        return None
+    total_rows = int(job.get("total_rows", 0) or 0)
+    processed_rows = int(job.get("processed_rows", 0) or 0)
+    progress_pct = round((processed_rows / total_rows) * 100, 1) if total_rows > 0 else 0.0
+    return {
+        "job_id": job.get("job_id"),
+        "status": job.get("status"),
+        "file_name": job.get("file_name"),
+        "total_rows": total_rows,
+        "processed_rows": processed_rows,
+        "inserted_count": int(job.get("inserted_count", 0) or 0),
+        "error_count": int(job.get("error_count", 0) or 0),
+        "errors": job.get("errors", []),
+        "last_error": job.get("last_error"),
+        "created_at": job.get("created_at"),
+        "updated_at": job.get("updated_at"),
+        "started_at": job.get("started_at"),
+        "completed_at": job.get("completed_at"),
+        "progress_pct": progress_pct,
+        "can_resume": job.get("status") == "failed" or (job.get("status") in {"queued", "running"} and processed_rows < total_rows),
+    }
+
+
+def schedule_product_import_job(job_id: str, user_id: str) -> None:
+    existing_task = product_import_tasks.get(job_id)
+    if existing_task and not existing_task.done():
+        return
+
+    async def _runner():
+        try:
+            await import_service.process_import_job(job_id, user_id)
+        except Exception as exc:
+            logger.error(f"Product import job {job_id} failed: {exc}")
+        finally:
+            product_import_tasks.pop(job_id, None)
+
+    product_import_tasks[job_id] = asyncio.create_task(_runner())
 app = FastAPI(title="Stock Management API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -656,13 +698,22 @@ async def create_indexes_and_init():
                 await db.duplicate_resolutions.create_index([("user_id", 1), ("target", 1), ("store_id", 1), ("pair_key", 1)], unique=True)
                 await db.duplicate_resolutions.create_index([("user_id", 1), ("target", 1), ("updated_at", -1)])
                 await db.products.create_index([("user_id", 1), ("store_id", 1)])
+                await db.products.create_index([("user_id", 1), ("store_id", 1), ("is_active", 1)])
+                await db.products.create_index([("user_id", 1), ("store_id", 1), ("is_active", 1), ("quantity", -1)])
+                await db.products.create_index([("user_id", 1), ("store_id", 1), ("category_id", 1), ("is_active", 1)])
+                await db.products.create_index([("import_job_id", 1), ("import_row_index", 1)], unique=True, sparse=True)
                 await db.products.create_index("sku")
                 await db.products.create_index("rfid_tag")
                 await db.sales.create_index([("user_id", 1), ("store_id", 1)])
+                await db.sales.create_index([("user_id", 1), ("store_id", 1), ("status", 1), ("created_at", -1)])
+                await db.sales.create_index([("user_id", 1), ("status", 1), ("created_at", -1)])
+                await db.sales.create_index([("store_id", 1), ("status", 1), ("created_at", -1)])
+                await db.sales.create_index([("items.product_id", 1), ("created_at", -1)])
                 await db.sales.create_index("created_at")
                 await db.stock_movements.create_index("product_id")
                 await db.stock_movements.create_index("created_at")
                 await db.stock_movements.create_index([("user_id", 1), ("store_id", 1)])
+                await db.stock_movements.create_index([("user_id", 1), ("store_id", 1), ("product_id", 1), ("created_at", -1)])
                 await db.catalog_product_mappings.create_index([("user_id", 1), ("catalog_id", 1)], unique=True)
 
                 # Performance indexes
@@ -679,6 +730,7 @@ async def create_indexes_and_init():
                 await db.categories.create_index("demo_session_id")
                 await db.products.create_index("demo_session_id")
                 await db.customers.create_index([("user_id", 1), ("created_at", -1)])
+                await db.customers.create_index([("user_id", 1), ("store_id", 1), ("created_at", -1)])
                 await db.customers.create_index([("name", "text"), ("phone", "text")]) # Text search index
                 await db.customers.create_index("demo_session_id")
                 await db.customer_payments.create_index("demo_session_id")
@@ -689,6 +741,7 @@ async def create_indexes_and_init():
                 await db.orders.create_index("demo_session_id")
                 await db.order_items.create_index("demo_session_id")
                 await db.expenses.create_index("demo_session_id")
+                await db.expenses.create_index([("user_id", 1), ("store_id", 1), ("created_at", -1)])
                 await db.stock_movements.create_index("demo_session_id")
                 await db.tables.create_index("demo_session_id")
                 await db.reservations.create_index("demo_session_id")
@@ -710,6 +763,9 @@ async def create_indexes_and_init():
                 await db.idempotency_keys.create_index("key", unique=True)
                 await db.idempotency_keys.create_index("created_at", expireAfterSeconds=86400*7) # 7 days TTL
                 await db.idempotency_cache.create_index("created_at", expireAfterSeconds=IDEMPOTENCY_TTL_SECONDS)
+                await db.import_jobs.create_index([("job_id", 1)], unique=True)
+                await db.import_jobs.create_index([("user_id", 1), ("status", 1), ("updated_at", -1)])
+                await db.import_jobs.create_index([("user_id", 1), ("created_at", -1)])
                 await db.security_events.create_index("created_at")
                 await db.verification_events.create_index("created_at")
                 await db.verification_events.create_index([("type", 1), ("created_at", -1)])
@@ -4465,10 +4521,50 @@ async def confirm_import(
 
         user_id = get_owner_id(current_user)
         store_id = current_user.active_store_id
-        return await import_service.process_import(import_data, mapping, user_id, store_id)
+        file_name = data.get("fileName")
+        job = await import_service.create_import_job(import_data, mapping, user_id, store_id, file_name=file_name)
+        schedule_product_import_job(job["job_id"], user_id)
+        return serialize_import_job(job)
     except Exception as e:
         logger.error(f"Error confirming import: {e}")
         raise HTTPException(status_code=400, detail=f"Erreur lors de l'importation: {str(e)}")
+
+
+@api_router.get("/products/import/jobs/active")
+async def get_active_import_job(current_user: User = Depends(require_auth)):
+    user_id = get_owner_id(current_user)
+    store_id = current_user.active_store_id
+    job = await import_service.get_active_import_job(user_id, store_id=store_id)
+    if not job:
+        return {"job": None}
+    if job.get("status") in {"queued", "running"}:
+        schedule_product_import_job(job["job_id"], user_id)
+    return {"job": serialize_import_job(job)}
+
+
+@api_router.get("/products/import/jobs/{job_id}")
+async def get_import_job_status(job_id: str, current_user: User = Depends(require_auth)):
+    user_id = get_owner_id(current_user)
+    job = await import_service.get_import_job(job_id, user_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job d'import introuvable")
+    if job.get("status") in {"queued", "running"}:
+        schedule_product_import_job(job["job_id"], user_id)
+        job = await import_service.get_import_job(job_id, user_id)
+    return serialize_import_job(job)
+
+
+@api_router.post("/products/import/jobs/{job_id}/resume")
+async def resume_import_job(job_id: str, current_user: User = Depends(require_auth)):
+    user_id = get_owner_id(current_user)
+    job = await import_service.get_import_job(job_id, user_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job d'import introuvable")
+    if job.get("status") == "completed":
+        return serialize_import_job(job)
+    schedule_product_import_job(job_id, user_id)
+    resumed_job = await import_service.get_import_job(job_id, user_id)
+    return serialize_import_job(resumed_job)
 
 # Helper: Image compression (I16)
 def compress_image_base64(base64_str: str, max_size=(800, 800), quality=75) -> str:
@@ -8953,49 +9049,72 @@ async def ai_detect_duplicates(
             {"_id": 0, "product_id": 1, "name": 1, "sku": 1, "category_id": 1, "quantity": 1, "selling_price": 1}
         ).to_list(2000)
 
-        # Compare all pairs (O(n^2) but capped at 2000)
+        # Build prefix buckets to avoid O(n^2) on large catalogs
+        # Products only compared within same bucket (first 4 chars of normalized name)
+        from collections import defaultdict
+        prefix_buckets: dict = defaultdict(list)
+        for p in products:
+            name = (p.get("name") or "").lower().strip()
+            prefix = name[:4] if len(name) >= 4 else name
+            prefix_buckets[prefix].append(p)
+            # Also add 3-char prefix for short names overlap
+            if len(name) >= 3:
+                prefix_buckets[name[:3]].append(p)
+
         seen_pairs: set = set()
-        for i, a in enumerate(products):
-            for b in products[i+1:]:
-                pair_tuple = tuple(sorted([a["product_id"], b["product_id"]]))
-                pair_key = build_pair_key(a["product_id"], b["product_id"])
-                if pair_tuple in seen_pairs or pair_key in resolved_pairs:
-                    continue
+        for bucket_products in prefix_buckets.values():
+            if len(bucket_products) < 2:
+                continue
+            for i, a in enumerate(bucket_products):
+                for b in bucket_products[i+1:]:
+                    pair_tuple = tuple(sorted([a["product_id"], b["product_id"]]))
+                    if pair_tuple in seen_pairs:
+                        continue
+                    pair_key = build_pair_key(a["product_id"], b["product_id"])
+                    if pair_key in resolved_pairs:
+                        seen_pairs.add(pair_tuple)
+                        continue
 
-                name_sim = similarity(a.get("name", ""), b.get("name", ""))
+                    name_sim = similarity(a.get("name", ""), b.get("name", ""))
 
-                # Boost if SKU matches
-                sku_match = False
-                if a.get("sku") and b.get("sku"):
-                    sku_sim = similarity(a["sku"], b["sku"])
-                    if sku_sim > 0.8:
-                        sku_match = True
-                        name_sim = max(name_sim, 0.85)
+                    # Boost if SKU matches
+                    sku_match = False
+                    if a.get("sku") and b.get("sku"):
+                        sku_sim = similarity(a["sku"], b["sku"])
+                        if sku_sim > 0.8:
+                            sku_match = True
+                            name_sim = max(name_sim, 0.85)
 
-                if name_sim >= threshold:
-                    seen_pairs.add(pair_tuple)
-                    duplicates.append({
-                        "pair_key": pair_key,
-                        "item_a": {
-                            "id": a["product_id"],
-                            "name": a.get("name", ""),
-                            "sku": a.get("sku"),
-                            "category_id": a.get("category_id"),
-                            "quantity": a.get("quantity", 0),
-                            "price": a.get("selling_price", 0),
-                        },
-                        "item_b": {
-                            "id": b["product_id"],
-                            "name": b.get("name", ""),
-                            "sku": b.get("sku"),
-                            "category_id": b.get("category_id"),
-                            "quantity": b.get("quantity", 0),
-                            "price": b.get("selling_price", 0),
-                        },
-                        "similarity": round(name_sim, 2),
-                        "sku_match": sku_match,
-                        "same_category": a.get("category_id") == b.get("category_id"),
-                    })
+                    if name_sim >= threshold:
+                        seen_pairs.add(pair_tuple)
+                        duplicates.append({
+                            "pair_key": pair_key,
+                            "item_a": {
+                                "id": a["product_id"],
+                                "name": a.get("name", ""),
+                                "sku": a.get("sku"),
+                                "category_id": a.get("category_id"),
+                                "quantity": a.get("quantity", 0),
+                                "price": a.get("selling_price", 0),
+                            },
+                            "item_b": {
+                                "id": b["product_id"],
+                                "name": b.get("name", ""),
+                                "sku": b.get("sku"),
+                                "category_id": b.get("category_id"),
+                                "quantity": b.get("quantity", 0),
+                                "price": b.get("selling_price", 0),
+                            },
+                            "similarity": round(name_sim, 2),
+                            "sku_match": sku_match,
+                            "same_category": a.get("category_id") == b.get("category_id"),
+                        })
+                        if len(duplicates) >= 100:
+                            break
+                    if len(duplicates) >= 100:
+                        break
+                if len(duplicates) >= 100:
+                    break
 
     elif target == "suppliers":
         suppliers = await db.suppliers.find(
@@ -13890,6 +14009,7 @@ async def get_products(
     is_menu_item: Optional[bool] = None,
     active_only: bool = True,
     store_id: Optional[str] = None,
+    search: Optional[str] = None,
     skip: int = 0,
     limit: int = 50
 ):
@@ -13910,6 +14030,13 @@ async def get_products(
 
     if active_only:
         query["is_active"] = {"$ne": False}
+
+    if search:
+        safe = safe_regex(search.strip())
+        query["$or"] = [
+            {"name": {"$regex": safe, "$options": "i"}},
+            {"sku": {"$regex": safe, "$options": "i"}},
+        ]
 
     total = await db.products.count_documents(query)
     products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)

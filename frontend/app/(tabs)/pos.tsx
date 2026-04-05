@@ -95,6 +95,8 @@ export default function POSScreen() {
     const canWrite = hasPermission('pos', 'write');
     const [productList, setProductList] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const lastLoadedAtRef = useRef(0);
+    const FOCUS_TTL_MS = 60_000;
     const [search, setSearch] = useState('');
 
     // Multi-sessions (Tabs)
@@ -267,6 +269,7 @@ export default function POSScreen() {
             console.error(error);
         } finally {
             setLoading(false);
+            lastLoadedAtRef.current = Date.now();
         }
     }, [user?.active_store_id, user?.plan]);
 
@@ -300,6 +303,7 @@ export default function POSScreen() {
 
     useFocusEffect(
         useCallback(() => {
+            if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;
             loadData();
         }, [loadData])
     );

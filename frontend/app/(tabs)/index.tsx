@@ -111,7 +111,7 @@ function StatusBadge({ label, count, color, styles }: { label: string; count: nu
 }
 
 export default function DashboardScreen() {
-  const MOBILE_DASHBOARD_FOCUS_TTL_MS = 25_000;
+  const MOBILE_DASHBOARD_FOCUS_TTL_MS = 60_000;
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
   const { t } = useTranslation();
   const { user, hasPermission, isRestaurant } = useAuth();

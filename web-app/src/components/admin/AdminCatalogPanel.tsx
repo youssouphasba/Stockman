@@ -1351,7 +1351,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-2xl font-black text-white">Créer une série de variantes</h3>
-                                <p className=”mt-1 text-sm text-slate-200”>Exemple : nom de base “Jus”, variantes “mangue, ananas, bissap”.</p>
+                                <p className="mt-1 text-sm text-slate-200">Exemple : nom de base "Jus", variantes "mangue, ananas, bissap".</p>
                             </div>
                             <button type="button" onClick={() => setVariantOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>

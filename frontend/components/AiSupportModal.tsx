@@ -61,6 +61,15 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
     const [isTranscribing, setIsTranscribing] = useState(false);
     const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
+    const waitForRecordingUri = async () => {
+        for (let attempt = 0; attempt < 8; attempt++) {
+            const uri = recorder.uri;
+            if (uri) return uri;
+            await new Promise((resolve) => setTimeout(resolve, 120));
+        }
+        return null;
+    };
+
     const startRecording = async () => {
         try {
             const { status } = await requestRecordingPermissionsAsync();
@@ -71,7 +80,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                 playsInSilentMode: true,
             });
 
-            recorder.record();
+            await recorder.record();
             setIsRecording(true);
         } catch (err) {
             console.error('Failed to start recording', err);
@@ -85,7 +94,7 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
 
         try {
             await recorder.stop();
-            const uri = recorder.uri;
+            const uri = await waitForRecordingUri();
 
             if (!uri) throw new Error('No recording URI');
 

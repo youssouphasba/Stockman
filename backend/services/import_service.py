@@ -6,8 +6,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from pydantic import ValidationError
+from pymongo import UpdateOne
 
 logger = logging.getLogger(__name__)
+IMPORT_JOB_CHUNK_SIZE = 200
 
 
 def _normalize_text(value: Any) -> str:
@@ -64,7 +66,9 @@ class ImportService:
         self, 
         data: List[Dict[str, Any]], 
         user_id: str, 
-        store_id: str
+        store_id: str,
+        start_index: int = 0,
+        import_job_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Validate raw data and prepare it for MongoDB insertion"""
         prepared = []
@@ -84,7 +88,8 @@ class ImportService:
         location_ids = {l["location_id"] for l in locs}
         location_names = {str(l.get("name", "")).strip().lower(): l["location_id"] for l in locs if l.get("name")}
 
-        for index, row in enumerate(data):
+        for local_index, row in enumerate(data):
+            index = start_index + local_index
             try:
                 # Basic normalization
                 name = row.get("name") or row.get("NOM") or row.get("Désignation")
@@ -152,6 +157,9 @@ class ImportService:
                     "created_at": datetime.now(timezone.utc),
                     "updated_at": datetime.now(timezone.utc)
                 }
+                if import_job_id:
+                    product["import_job_id"] = import_job_id
+                    product["import_row_index"] = index
                 
                 raw_location = (
                     row.get("location_id")
@@ -219,6 +227,196 @@ class ImportService:
             if movements:
                 await self.db.stock_movements.insert_many(movements)
             return len(result.inserted_ids)
+
+    async def execute_bulk_import_chunk(self, products: List[Dict[str, Any]], import_job_id: str) -> int:
+        """Insert one import chunk in an idempotent way."""
+        if not products:
+            return 0
+
+        now = datetime.now(timezone.utc)
+        product_ops = []
+        movement_ops = []
+        for product in products:
+            row_index = product.get("import_row_index")
+            if row_index is None:
+                continue
+            product_ops.append(
+                UpdateOne(
+                    {"import_job_id": import_job_id, "import_row_index": row_index},
+                    {"$setOnInsert": product},
+                    upsert=True,
+                )
+            )
+
+            quantity = product.get("quantity", 0)
+            if quantity > 0:
+                movement_id = f"mov_import_{import_job_id}_{row_index}"
+                movement_ops.append(
+                    UpdateOne(
+                        {"movement_id": movement_id},
+                        {"$setOnInsert": {
+                            "movement_id": movement_id,
+                            "product_id": product["product_id"],
+                            "product_name": product["name"],
+                            "user_id": product["user_id"],
+                            "store_id": product.get("store_id"),
+                            "type": "in",
+                            "quantity": quantity,
+                            "reason": "Importation initiale (Bulk async)",
+                            "previous_quantity": 0,
+                            "new_quantity": quantity,
+                            "created_at": now,
+                            "import_job_id": import_job_id,
+                            "import_row_index": row_index,
+                        }},
+                        upsert=True,
+                    )
+                )
+
+        inserted_count = 0
+        if product_ops:
+            product_result = await self.db.products.bulk_write(product_ops, ordered=False)
+            inserted_count = int(getattr(product_result, "upserted_count", 0) or 0)
+        if movement_ops:
+            await self.db.stock_movements.bulk_write(movement_ops, ordered=False)
+        return inserted_count
+
+    async def create_import_job(
+        self,
+        import_data: List[Dict[str, Any]],
+        mapping: Dict[str, str],
+        user_id: str,
+        store_id: Optional[str] = None,
+        file_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        job_id = f"imp_{uuid.uuid4().hex[:12]}"
+        now = datetime.now(timezone.utc)
+        doc = {
+            "job_id": job_id,
+            "user_id": user_id,
+            "store_id": store_id,
+            "file_name": file_name,
+            "status": "queued",
+            "total_rows": len(import_data),
+            "processed_rows": 0,
+            "inserted_count": 0,
+            "error_count": 0,
+            "errors": [],
+            "mapping": mapping,
+            "import_data": import_data,
+            "created_at": now,
+            "updated_at": now,
+            "started_at": None,
+            "completed_at": None,
+            "last_error": None,
+        }
+        await self.db.import_jobs.insert_one(doc)
+        return doc
+
+    async def get_import_job(self, job_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        return await self.db.import_jobs.find_one({"job_id": job_id, "user_id": user_id}, {"_id": 0})
+
+    async def get_active_import_job(self, user_id: str, store_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        query: Dict[str, Any] = {
+            "user_id": user_id,
+            "status": {"$in": ["queued", "running", "failed"]},
+        }
+        if store_id:
+            query["store_id"] = store_id
+        rows = await self.db.import_jobs.find(query, {"_id": 0}).sort("updated_at", -1).limit(1).to_list(1)
+        return rows[0] if rows else None
+
+    async def process_import_job(self, job_id: str, user_id: str) -> Dict[str, Any]:
+        job = await self.get_import_job(job_id, user_id)
+        if not job:
+            raise ValueError("Job d'import introuvable")
+        if job.get("status") == "completed":
+            return job
+
+        now = datetime.now(timezone.utc)
+        if not job.get("started_at"):
+            await self.db.import_jobs.update_one(
+                {"job_id": job_id, "user_id": user_id},
+                {"$set": {"started_at": now, "status": "running", "updated_at": now, "last_error": None}},
+            )
+        else:
+            await self.db.import_jobs.update_one(
+                {"job_id": job_id, "user_id": user_id},
+                {"$set": {"status": "running", "updated_at": now, "last_error": None}},
+            )
+
+        processed_rows = int(job.get("processed_rows", 0) or 0)
+        inserted_count = int(job.get("inserted_count", 0) or 0)
+        error_count = int(job.get("error_count", 0) or 0)
+        collected_errors = list(job.get("errors") or [])
+        import_data = list(job.get("import_data") or [])
+        mapping = dict(job.get("mapping") or {})
+        store_id = job.get("store_id") or user_id
+
+        try:
+            while processed_rows < len(import_data):
+                raw_chunk = import_data[processed_rows:processed_rows + IMPORT_JOB_CHUNK_SIZE]
+                mapped_chunk = self.map_columns(raw_chunk, mapping)
+                validation = await self.validate_and_prepare_products(
+                    mapped_chunk,
+                    user_id,
+                    store_id,
+                    start_index=processed_rows,
+                    import_job_id=job_id,
+                )
+                inserted_count += await self.execute_bulk_import_chunk(validation["products"], job_id)
+                error_count += validation["error_count"]
+                if validation["errors"]:
+                    remaining_slots = max(0, 200 - len(collected_errors))
+                    if remaining_slots > 0:
+                        collected_errors.extend(validation["errors"][:remaining_slots])
+
+                processed_rows += len(raw_chunk)
+                await self.db.import_jobs.update_one(
+                    {"job_id": job_id, "user_id": user_id},
+                    {"$set": {
+                        "status": "running",
+                        "processed_rows": processed_rows,
+                        "inserted_count": inserted_count,
+                        "error_count": error_count,
+                        "errors": collected_errors,
+                        "updated_at": datetime.now(timezone.utc),
+                    }},
+                )
+
+            completed_at = datetime.now(timezone.utc)
+            await self.db.import_jobs.update_one(
+                {"job_id": job_id, "user_id": user_id},
+                {"$set": {
+                    "status": "completed",
+                    "processed_rows": processed_rows,
+                    "inserted_count": inserted_count,
+                    "error_count": error_count,
+                    "errors": collected_errors,
+                    "updated_at": completed_at,
+                    "completed_at": completed_at,
+                    "last_error": None,
+                    "import_data": [],
+                    "mapping": {},
+                }},
+            )
+            final_job = await self.get_import_job(job_id, user_id)
+            return final_job or {}
+        except Exception as exc:
+            failed_at = datetime.now(timezone.utc)
+            await self.db.import_jobs.update_one(
+                {"job_id": job_id, "user_id": user_id},
+                {"$set": {
+                    "status": "failed",
+                    "processed_rows": processed_rows,
+                    "inserted_count": inserted_count,
+                    "error_count": error_count,
+                    "errors": collected_errors,
+                    "updated_at": failed_at,
+                    "last_error": str(exc),
+                }},
+            )
+            raise
 
     async def process_import(
         self,

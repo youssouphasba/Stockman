@@ -107,6 +107,7 @@ export default function Suppliers() {
     const [supplierDuplicates, setSupplierDuplicates] = useState<any>(null);
     const [showSupplierDups, setShowSupplierDups] = useState(false);
     const [supplierDuplicateActionKey, setSupplierDuplicateActionKey] = useState<string | null>(null);
+    const [supplierDuplicatesBlockedUntil, setSupplierDuplicatesBlockedUntil] = useState<number>(0);
 
     // Vague 3: Supplier ratings, optimal order day, auto-draft orders
     const [supplierRatings, setSupplierRatings] = useState<Record<string, any>>({});
@@ -325,15 +326,19 @@ export default function Suppliers() {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const blockedUntil = Number(window.localStorage.getItem('stockman_ai_detect_duplicates_blocked_until') || '0');
-            if (Date.now() < blockedUntil) return;
+            setSupplierDuplicatesBlockedUntil(blockedUntil);
         }
 
         aiApi.detectDuplicates('suppliers').then(res => {
+            if (res?.blocked_until) {
+                setSupplierDuplicatesBlockedUntil(Number(res.blocked_until) || 0);
+            }
             if (res.total_found > 0) setSupplierDuplicates(res);
         }).catch((err) => {
             if (err instanceof ApiError && err.status === 429 && typeof window !== 'undefined') {
                 const blockedUntil = Date.now() + (12 * 60 * 60 * 1000);
                 window.localStorage.setItem('stockman_ai_detect_duplicates_blocked_until', String(blockedUntil));
+                setSupplierDuplicatesBlockedUntil(blockedUntil);
             }
         });
     }, []);
@@ -1614,6 +1619,13 @@ export default function Suppliers() {
                         </div>
 
                         {/* Supplier Duplicates Banner */}
+                        {supplierDuplicatesBlockedUntil > Date.now() && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl mb-4">
+                                <p className="text-amber-200 text-xs">
+                                    La vérification des doublons est temporairement suspendue car le quota mensuel IA est atteint.
+                                </p>
+                            </div>
+                        )}
                         {supplierDuplicates && supplierDuplicates.total_found > 0 && (
                             <div className="p-4 bg-violet-500/10 border border-violet-500/30 rounded-2xl mb-4">
                                 <div className="flex items-start gap-3">

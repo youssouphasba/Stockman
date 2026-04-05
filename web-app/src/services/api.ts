@@ -9,6 +9,8 @@ const REFRESH_TOKEN_KEY = 'refresh_token';
 const OFFLINE_CACHE_PREFIX = 'stockman_api_cache:';
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const WEB_ACCESS_MODE_KEY = 'stockman_web_access_mode';
+const AI_DUPLICATES_BLOCK_KEY = 'stockman_ai_detect_duplicates_blocked_until';
+const AI_DUPLICATES_BLOCK_MS = 12 * 60 * 60 * 1000;
 const NON_CACHEABLE_GET_PREFIXES = [
     '/auth/',
     '/demo/session/',
@@ -92,6 +94,18 @@ function isConsultationOnlyWebMode() {
 
 function canMutateInConsultationMode(endpoint: string) {
     return ['/auth/logout', '/subscription', '/billing'].some((prefix) => endpoint.startsWith(prefix));
+}
+
+function getAiDuplicatesBlockedUntil() {
+    if (typeof window === 'undefined') return 0;
+    const raw = window.localStorage.getItem(AI_DUPLICATES_BLOCK_KEY);
+    const parsed = Number(raw || '0');
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function setAiDuplicatesBlockedUntil(ts: number) {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(AI_DUPLICATES_BLOCK_KEY, String(ts));
 }
 
 export const removeToken = () => {
@@ -2310,11 +2324,38 @@ export const ai = {
             method: 'POST',
             body: { items },
         }),
-    detectDuplicates: (target: 'products' | 'suppliers' = 'products', threshold: number = 0.7) =>
-        request<any>('/ai/detect-duplicates', {
-            method: 'POST',
-            body: { target, threshold },
-        }),
+    detectDuplicates: async (target: 'products' | 'suppliers' = 'products', threshold: number = 0.7) => {
+        const blockedUntil = getAiDuplicatesBlockedUntil();
+        if (blockedUntil > Date.now()) {
+            return {
+                total_found: 0,
+                duplicates: [],
+                blocked: true,
+                blocked_until: blockedUntil,
+                message: 'La limite mensuelle est atteinte pour la détection des doublons.',
+            };
+        }
+
+        try {
+            return await request<any>('/ai/detect-duplicates', {
+                method: 'POST',
+                body: { target, threshold },
+            });
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 429) {
+                const nextBlockedUntil = Date.now() + AI_DUPLICATES_BLOCK_MS;
+                setAiDuplicatesBlockedUntil(nextBlockedUntil);
+                return {
+                    total_found: 0,
+                    duplicates: [],
+                    blocked: true,
+                    blocked_until: nextBlockedUntil,
+                    message: error.message,
+                };
+            }
+            throw error;
+        }
+    },
     resolveDuplicate: (target: 'products' | 'suppliers', itemAId: string, itemBId: string, status: 'ignored' | 'different') =>
         request<any>('/ai/duplicates/resolutions', {
             method: 'POST',

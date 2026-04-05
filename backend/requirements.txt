@@ -14,3 +14,4 @@ pydantic[email]
 python-multipart
 stripe
 Pillow
+redis[hiredis]

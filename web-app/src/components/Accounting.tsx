@@ -31,10 +31,10 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    ResponsiveContainer,
     BarChart,
     Bar
 } from 'recharts';
+import SafeResponsiveContainer from './charts/SafeResponsiveContainer';
 import {
     accounting as accountingApi,
     expenses as expensesApi,
@@ -912,7 +912,7 @@ export default function Accounting() {
                         </div>
                         <div className="h-64">
                             {chartData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height={256} minWidth={0} minHeight={220}>
+                            <SafeResponsiveContainer width="100%" height={256} minWidth={0} minHeight={220}>
                                     <AreaChart data={chartData}>
                                         <defs>
                                             <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -937,7 +937,7 @@ export default function Accounting() {
                                         <Area type="monotone" dataKey="revenue" name="Revenus" stroke="#3B82F6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
                                         <Area type="monotone" dataKey="profit" name="Profit" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorProfit)" />
                                     </AreaChart>
-                                </ResponsiveContainer>
+                            </SafeResponsiveContainer>
                             ) : (
                                 <div className="h-full flex items-center justify-center text-slate-600 text-sm">Aucune donn?e sur cette p?riode</div>
                             )}

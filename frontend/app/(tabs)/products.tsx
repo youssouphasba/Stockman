@@ -1,8 +1,9 @@
-﻿import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   ScrollView,
   RefreshControl,
   TouchableOpacity,
@@ -57,6 +58,7 @@ import {
   userFeatures as userFeaturesApi,
   suppliers as suppliersApi,
   supplierProducts as spApi,
+  ProductImportJob,
   Supplier,
   SupplierProduct,
 } from '../../services/api';
@@ -86,6 +88,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProductsScreen() {
+  const MOBILE_PRODUCTS_FOCUS_TTL_MS = 60_000;
+  const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
+  const PRODUCTS_PAGE_SIZE = 100;
   const { t, i18n } = useTranslation();
   const { colors, glassStyle } = useTheme();
   const styles = getStyles(colors, glassStyle);
@@ -116,6 +121,10 @@ export default function ProductsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [serverSearchResults, setServerSearchResults] = useState<Product[] | null>(null);
+  const [serverSearchTotal, setServerSearchTotal] = useState(0);
+  const [serverSearchLoading, setServerSearchLoading] = useState(false);
+  const [serverSearchLoadingMore, setServerSearchLoadingMore] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
@@ -129,7 +138,10 @@ export default function ProductsScreen() {
   // Vague 5: product correlations map {product_id: [{name, lift}]}
   const [correlationsMap, setCorrelationsMap] = useState<Record<string, Array<{name: string; lift: number}>>>({});
   const [supplierCoverageFilter, setSupplierCoverageFilter] = useState<'all' | 'no_supplier' | 'multi_supplier' | 'missing_primary'>('all');
+  const [trackedImportJob, setTrackedImportJob] = useState<ProductImportJob | null>(null);
   const handledReminderProductRef = useRef<string | null>(null);
+  const lastLoadedAtRef = useRef(0);
+  const lastImportNotificationRef = useRef<string | null>(null);
 
   // Apply filter from notification deep-link
   useEffect(() => {
@@ -149,6 +161,52 @@ export default function ProductsScreen() {
     handledReminderProductRef.current = reminderKey;
     openHistoryModal(targetProduct);
   }, [productIdParam, reminderTypeParam, productList]);
+
+  useEffect(() => {
+    if (!trackedImportJob?.job_id) return;
+    if (trackedImportJob.status === 'completed') {
+      if (lastImportNotificationRef.current === trackedImportJob.job_id) return;
+      lastImportNotificationRef.current = trackedImportJob.job_id;
+      loadData();
+      Alert.alert(
+        t('common.success'),
+        t('bulk_import.success_desc', { count: trackedImportJob.inserted_count || 0 }),
+      );
+      return;
+    }
+    if (trackedImportJob.status === 'failed') {
+      if (lastImportNotificationRef.current === `${trackedImportJob.job_id}:failed`) return;
+      lastImportNotificationRef.current = `${trackedImportJob.job_id}:failed`;
+      Alert.alert(
+        t('common.error'),
+        trackedImportJob.last_error || t('bulk_import.processing_failed_desc'),
+      );
+    }
+  }, [t, trackedImportJob]);
+
+  useEffect(() => {
+    if (!trackedImportJob?.job_id) return;
+    if (trackedImportJob.status !== 'queued' && trackedImportJob.status !== 'running') return;
+
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      try {
+        const job = await productsApi.getImportJob(trackedImportJob.job_id);
+        if (!cancelled) {
+          setTrackedImportJob(job);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Import job polling failed:', err);
+        }
+      }
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [trackedImportJob?.job_id, trackedImportJob?.status]);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
@@ -182,6 +240,17 @@ export default function ProductsScreen() {
     [getLocationPath, locationList],
   );
 
+  const mergeUniqueProducts = useCallback((current: Product[], incoming: Product[]) => {
+    const byId = new Map<string, Product>();
+    current.forEach((product) => byId.set(product.product_id, product));
+    incoming.forEach((product) => {
+      if (product?.product_id) {
+        byId.set(product.product_id, product);
+      }
+    });
+    return Array.from(byId.values());
+  }, []);
+
   // Add/Edit product form
   const [formName, setFormName] = useState('');
   const [formSku, setFormSku] = useState('');
@@ -209,6 +278,17 @@ export default function ProductsScreen() {
   const [isInventoryMode, setIsInventoryMode] = useState(false);
   const [inventoryValues, setInventoryValues] = useState<Record<string, string>>({});
   const [forecastData, setForecastData] = useState<any>(null);
+
+  const forecastByProductId = useMemo(() => {
+    const map = new Map<string, any>();
+    const entries = Array.isArray(forecastData?.products) ? forecastData.products : [];
+    entries.forEach((forecast: any) => {
+      if (forecast?.product_id) {
+        map.set(forecast.product_id, forecast);
+      }
+    });
+    return map;
+  }, [forecastData]);
 
   // Variants
   const [formHasVariants, setFormHasVariants] = useState(false);
@@ -260,6 +340,8 @@ export default function ProductsScreen() {
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [deletedProducts, setDeletedProducts] = useState<ProductTrashItem[]>([]);
   const [userSector, setUserSector] = useState('');
+  const [productsTotal, setProductsTotal] = useState(0);
+  const [productsLoadingMore, setProductsLoadingMore] = useState(false);
   const [currentStore, setCurrentStore] = useState<any>(null);
 
   const productFormBaselineRef = useRef('');
@@ -426,6 +508,29 @@ export default function ProductsScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Server-side search when query is non-empty and not covered by local list
+  useEffect(() => {
+    if (!debouncedSearch || !isConnected) {
+      setServerSearchResults(null);
+      setServerSearchTotal(0);
+      return;
+    }
+    // If local list already covers all products (total === productList.length), no need for server search
+    // Otherwise, search server to find products beyond the loaded page
+    setServerSearchLoading(true);
+    productsApi.list(selectedCategory ?? undefined, 0, PRODUCTS_PAGE_SIZE, isRestaurant ? true : undefined, debouncedSearch)
+      .then((res) => {
+        const items = (res.items ?? res) as Product[];
+        setServerSearchResults(items);
+        setServerSearchTotal(res.total ?? items.length);
+      })
+      .catch(() => {
+        setServerSearchResults(null);
+        setServerSearchTotal(0);
+      })
+      .finally(() => setServerSearchLoading(false));
+  }, [PRODUCTS_PAGE_SIZE, debouncedSearch, isConnected, isRestaurant, selectedCategory]);
+
   // LayoutAnimation triggered on search / filter changes
   useEffect(() => {
     if (!loading) {
@@ -448,110 +553,133 @@ export default function ProductsScreen() {
   const [showAllSalesHistory, setShowAllSalesHistory] = useState(false);
 
   const loadData = useCallback(async () => {
+    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     try {
       if (isConnected) {
+        // Phase 1: Show cached data immediately while fetching
+        if (productList.length === 0) {
+          const [cachedProds, cachedCats] = await Promise.all([
+            cache.get<Product[]>(KEYS.PRODUCTS),
+            cache.get<Category[]>(KEYS.CATEGORIES),
+          ]);
+          if (cachedProds && cachedProds.length > 0) {
+            const sectorFiltered = isRestaurant ? cachedProds.filter((p) => p.is_menu_item) : cachedProds;
+            const filtered = selectedCategory
+              ? sectorFiltered.filter((p) => p.category_id === selectedCategory)
+              : sectorFiltered;
+            setProductList(filtered);
+            setLoading(false); // Show cached data right away
+          }
+          if (cachedCats) setCategoryList(cachedCats);
+        }
+
+        // Phase 2: Fetch essential data (products + categories)
         const isEnterprise = hasEnterpriseLocations;
         const [prodsRes, cats] = await Promise.all([
-          productsApi.list(selectedCategory ?? undefined, 0, 500, isRestaurant ? true : undefined),
+          productsApi.list(selectedCategory ?? undefined, 0, PRODUCTS_PAGE_SIZE, isRestaurant ? true : undefined),
           categoriesApi.list(),
         ]);
-        let forecast: any = null;
-        let locsRes: Location[] = [];
-        let recipesRes: Recipe[] = [];
-
-        try {
-          forecast = await salesApi.forecast();
-        } catch (forecastError) {
-          console.warn('[Products] forecast unavailable', forecastError);
-        }
-
-        // Vague 1+2+5: load deadstock, seasonality, duplicates, correlations
-        Promise.allSettled([
-          aiApi.deadstockAnalysis(),
-          aiApi.seasonalityAlerts(),
-          aiApi.detectDuplicates('products'),
-          aiApi.productCorrelations(),
-        ]).then(([dsRes, seasonRes, dupsRes, corrRes]) => {
-          if (dsRes.status === 'fulfilled' && dsRes.value?.deadstock) {
-            setDeadstockIds(new Set(dsRes.value.deadstock.map((d: any) => d.product_id)));
-            setDeadstockCount(dsRes.value.deadstock.length);
-          }
-          if (seasonRes.status === 'fulfilled' && seasonRes.value?.alerts) {
-            const map: Record<string, any> = {};
-            for (const a of seasonRes.value.alerts) map[a.product_id] = a;
-            setSeasonalityMap(map);
-          }
-          if (dupsRes.status === 'fulfilled') {
-            setDuplicatesCount(dupsRes.value?.total_found || 0);
-          }
-          if (corrRes.status === 'fulfilled' && corrRes.value?.pairs) {
-            const cmap: Record<string, Array<{name: string; lift: number}>> = {};
-            for (const pair of corrRes.value.pairs) {
-              if (!cmap[pair.product_a_id]) cmap[pair.product_a_id] = [];
-              if (!cmap[pair.product_b_id]) cmap[pair.product_b_id] = [];
-              cmap[pair.product_a_id].push({ name: pair.product_b_name, lift: pair.lift });
-              cmap[pair.product_b_id].push({ name: pair.product_a_name, lift: pair.lift });
-            }
-            setCorrelationsMap(cmap);
-          }
-        });
-
-        if (isEnterprise) {
-          try {
-            locsRes = await locationsApi.list();
-          } catch (locationError) {
-            console.warn('[Products] locations unavailable', locationError);
-          }
-        }
-
-        if (isRestaurant) {
-          try {
-            recipesRes = await recipesApi.list();
-          } catch (recipeError) {
-            console.warn('[Products] recipes unavailable', recipeError);
-          }
-        }
-
-        try {
-          const supRes = await suppliersApi.list(0, 200);
-          setAllSuppliers((supRes.items ?? supRes) as Supplier[]);
-        } catch { /* silent */ }
-
-        try {
-          const links = await spApi.list();
-          const grouped: Record<string, SupplierProduct[]> = {};
-          for (const link of links || []) {
-            if (!link?.product_id) continue;
-            if (!grouped[link.product_id]) grouped[link.product_id] = [];
-            grouped[link.product_id].push(link);
-          }
-          setSupplierLinksByProduct(grouped);
-        } catch {
-          setSupplierLinksByProduct({});
-        }
-
-        let trashItems: ProductTrashItem[] = [];
-        if (!isRestaurant) {
-          try {
-            const trashRes = await productsApi.listTrash(0, 200);
-            trashItems = (trashRes.items ?? trashRes) as ProductTrashItem[];
-          } catch {
-            trashItems = [];
-          }
-        }
 
         const prods = prodsRes.items ?? prodsRes;
         setProductList(prods as Product[]);
-        setDeletedProducts(trashItems);
+        setProductsTotal(prodsRes.total ?? prods.length);
         setCategoryList(cats);
-        setForecastData(forecast);
-        setLocationList(isEnterprise ? locsRes : []);
-        setRecipeList(recipesRes.filter((recipe) => recipe.recipe_type !== 'prep'));
-        // Determine whether to cache: only cache full list (no category filter)
         if (!selectedCategory) {
-          await cache.set(KEYS.PRODUCTS, prods);
+          cache.set(KEYS.PRODUCTS, prods);
         }
-        await cache.set(KEYS.CATEGORIES, cats);
+        cache.set(KEYS.CATEGORIES, cats);
+
+        // Phase 3: Fetch secondary data in background (non-blocking)
+        const loadSecondary = async () => {
+          const promises: Promise<any>[] = [];
+
+          promises.push(
+            salesApi.forecast()
+              .then((f) => setForecastData(f))
+              .catch(() => { /* silent */ })
+          );
+
+          if (isEnterprise) {
+            promises.push(
+              locationsApi.list()
+                .then((locs) => setLocationList(locs))
+                .catch(() => { /* silent */ })
+            );
+          }
+
+          if (isRestaurant) {
+            promises.push(
+              recipesApi.list()
+                .then((r) => setRecipeList(r.filter((recipe: Recipe) => recipe.recipe_type !== 'prep')))
+                .catch(() => { /* silent */ })
+            );
+          }
+
+          promises.push(
+            suppliersApi.list(0, 200)
+              .then((res) => setAllSuppliers((res.items ?? res) as Supplier[]))
+              .catch(() => { /* silent */ })
+          );
+
+          promises.push(
+            spApi.list()
+              .then((links) => {
+                const grouped: Record<string, SupplierProduct[]> = {};
+                for (const link of links || []) {
+                  if (!link?.product_id) continue;
+                  if (!grouped[link.product_id]) grouped[link.product_id] = [];
+                  grouped[link.product_id].push(link);
+                }
+                setSupplierLinksByProduct(grouped);
+              })
+              .catch(() => setSupplierLinksByProduct({}))
+          );
+
+          if (!isRestaurant) {
+            promises.push(
+              productsApi.listTrash(0, 200)
+                .then((res) => setDeletedProducts((res.items ?? res) as ProductTrashItem[]))
+                .catch(() => setDeletedProducts([]))
+            );
+          }
+
+          await Promise.allSettled(promises);
+        };
+        loadSecondary();
+
+        // Phase 4: AI features — fully deferred, non-blocking
+        setTimeout(() => {
+          Promise.allSettled([
+            aiApi.deadstockAnalysis(),
+            aiApi.seasonalityAlerts(),
+            aiApi.detectDuplicates('products'),
+            aiApi.productCorrelations(),
+          ]).then(([dsRes, seasonRes, dupsRes, corrRes]) => {
+            if (dsRes.status === 'fulfilled' && dsRes.value?.deadstock) {
+              setDeadstockIds(new Set(dsRes.value.deadstock.map((d: any) => d.product_id)));
+              setDeadstockCount(dsRes.value.deadstock.length);
+            }
+            if (seasonRes.status === 'fulfilled' && seasonRes.value?.alerts) {
+              const map: Record<string, any> = {};
+              for (const a of seasonRes.value.alerts) map[a.product_id] = a;
+              setSeasonalityMap(map);
+            }
+            if (dupsRes.status === 'fulfilled') {
+              setDuplicatesCount(dupsRes.value?.total_found || 0);
+            }
+            if (corrRes.status === 'fulfilled' && corrRes.value?.pairs) {
+              const cmap: Record<string, Array<{name: string; lift: number}>> = {};
+              for (const pair of corrRes.value.pairs) {
+                if (!cmap[pair.product_a_id]) cmap[pair.product_a_id] = [];
+                if (!cmap[pair.product_b_id]) cmap[pair.product_b_id] = [];
+                cmap[pair.product_a_id].push({ name: pair.product_b_name, lift: pair.lift });
+                cmap[pair.product_b_id].push({ name: pair.product_a_name, lift: pair.lift });
+              }
+              setCorrelationsMap(cmap);
+            }
+          });
+        }, 1500);
+
       } else {
         // Offline: read from cache
         const cachedProds = await cache.get<Product[]>(KEYS.PRODUCTS);
@@ -563,6 +691,7 @@ export default function ProductsScreen() {
             : sectorFiltered;
           setProductList(filtered);
         }
+        setProductsTotal(filtered.length);
         setDeletedProducts([]);
         if (cachedCats) setCategoryList(cachedCats);
       }
@@ -581,6 +710,7 @@ export default function ProductsScreen() {
           ? sectorFiltered.filter((p) => p.category_id === selectedCategory)
           : sectorFiltered;
         setProductList(filtered);
+        setProductsTotal(filtered.length);
       }
       const cachedCats = await cache.get<Category[]>(KEYS.CATEGORIES);
       if (cachedCats) setCategoryList(cachedCats);
@@ -589,10 +719,43 @@ export default function ProductsScreen() {
       if (!hasEnterpriseLocations) setLocationList([]);
     } finally {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      if (MOBILE_PERF_ENABLED) {
+        const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
+        console.log(`[SCREEN PERF][MOBILE][products] category=${selectedCategory || 'all'} duration=${elapsed.toFixed(1)}ms`);
+        const host = globalThis as unknown as { __stockmanScreenPerf?: any[] };
+        if (!host.__stockmanScreenPerf) host.__stockmanScreenPerf = [];
+        host.__stockmanScreenPerf.push({
+          screen: 'products',
+          category: selectedCategory || 'all',
+          duration_ms: elapsed,
+          ts: new Date().toISOString(),
+        });
+      }
       setLoading(false);
       setRefreshing(false);
+      lastLoadedAtRef.current = Date.now();
     }
-  }, [hasEnterpriseLocations, isConnected, isRestaurant, selectedCategory, user?.active_store_id]);
+  }, [MOBILE_PERF_ENABLED, PRODUCTS_PAGE_SIZE, hasEnterpriseLocations, isConnected, isRestaurant, selectedCategory, user?.active_store_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await productsApi.getActiveImportJob();
+        if (!cancelled && response.job) {
+          setTrackedImportJob(response.job);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Active import job lookup failed:', err);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const nextStoreId = user?.active_store_id;
@@ -608,6 +771,9 @@ export default function ProductsScreen() {
       setSelectedProductIds(new Set());
       setCurrentStore(null);
       setProductList([]);
+      setProductsTotal(0);
+      setServerSearchResults(null);
+      setServerSearchTotal(0);
       setForecastData(null);
 
       // Category ids are store-scoped; reset them before reloading the new store.
@@ -740,13 +906,68 @@ export default function ProductsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadData();
-    }, [loadData])
+      const hasRecentData = Boolean(
+        productList.length > 0 &&
+        lastLoadedAtRef.current > 0 &&
+        Date.now() - lastLoadedAtRef.current < MOBILE_PRODUCTS_FOCUS_TTL_MS
+      );
+      if (!hasRecentData) {
+        loadData();
+      }
+    }, [loadData, productList.length])
   );
 
   function onRefresh() {
     setRefreshing(true);
     loadData();
+  }
+
+  async function handleLoadMoreProducts() {
+    if (!isConnected) return;
+
+    if (debouncedSearch) {
+      if (serverSearchLoading || serverSearchLoadingMore || serverSearchResults === null || serverSearchResults.length >= serverSearchTotal) {
+        return;
+      }
+
+      setServerSearchLoadingMore(true);
+      try {
+        const response = await productsApi.list(
+          selectedCategory ?? undefined,
+          serverSearchResults.length,
+          PRODUCTS_PAGE_SIZE,
+          isRestaurant ? true : undefined,
+          debouncedSearch,
+        );
+        const items = (response.items ?? response) as Product[];
+        setServerSearchResults((current) => mergeUniqueProducts(current ?? [], items));
+        setServerSearchTotal(response.total ?? serverSearchTotal);
+      } catch {
+        // Laisser les resultats deja visibles.
+      } finally {
+        setServerSearchLoadingMore(false);
+      }
+      return;
+    }
+
+    if (productsLoadingMore || productList.length >= productsTotal) return;
+
+    setProductsLoadingMore(true);
+    try {
+      const response = await productsApi.list(
+        selectedCategory ?? undefined,
+        productList.length,
+        PRODUCTS_PAGE_SIZE,
+        isRestaurant ? true : undefined,
+      );
+      const items = (response.items ?? response) as Product[];
+      setProductList((current) => mergeUniqueProducts(current, items));
+      setProductsTotal(response.total ?? productsTotal);
+    } catch {
+      // Garder la page actuelle si le chargement supplementaire echoue.
+    } finally {
+      setProductsLoadingMore(false);
+    }
   }
 
   function normalizeText(value?: string | null) {
@@ -840,12 +1061,12 @@ export default function ProductsScreen() {
   }
 
   const filtered = useMemo(() => {
-    if (!productList || !Array.isArray(productList)) return [];
-    return productList.filter((p) => {
-      const searchTerms = debouncedSearch.toLowerCase();
-      const matchesSearch = p.name.toLowerCase().includes(searchTerms) ||
-        p.sku?.toLowerCase().includes(searchTerms);
-
+    // When searching: use server results (covers all products), else use local list
+    const sourceList = debouncedSearch && serverSearchResults !== null
+      ? serverSearchResults
+      : (productList || []);
+    if (!Array.isArray(sourceList)) return [];
+    return sourceList.filter((p) => {
       let matchesFilter = true;
       if (filterType === 'out_of_stock') matchesFilter = p.quantity === 0;
       else if (filterType === 'low_stock') matchesFilter = p.min_stock > 0 && p.quantity <= p.min_stock;
@@ -860,9 +1081,14 @@ export default function ProductsScreen() {
       else if (supplierCoverageFilter === 'multi_supplier') matchesSupplierCoverage = productLinks.length > 1;
       else if (supplierCoverageFilter === 'missing_primary') matchesSupplierCoverage = hasSupplier && !hasPrimarySupplier;
 
-      return matchesSearch && matchesFilter && matchesSupplierCoverage;
+      return matchesFilter && matchesSupplierCoverage;
     });
-  }, [productList, debouncedSearch, filterType, supplierCoverageFilter, supplierLinksByProduct, deadstockIds]);
+  }, [productList, serverSearchResults, debouncedSearch, filterType, supplierCoverageFilter, supplierLinksByProduct, deadstockIds]);
+
+  const canLoadMoreVisibleProducts = debouncedSearch
+    ? !!serverSearchResults && serverSearchResults.length < serverSearchTotal
+    : productList.length < productsTotal;
+  const isLoadingMoreVisibleProducts = debouncedSearch ? serverSearchLoadingMore : productsLoadingMore;
 
   const serviceRecipes = useMemo(
     () => recipeList.filter((recipe) => recipe.recipe_type !== 'prep'),
@@ -2066,45 +2292,9 @@ export default function ProductsScreen() {
     }
   }
 
-  // If production mode → show the ProductionView instead
-  if (hasProduction && !isRestaurant) {
-    return <ProductionView currency={user?.currency || 'FCFA'} />;
-  }
-
-  if (accessDenied) {
-    return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;
-  }
-
-  if (loading) {
+  function renderProductsHeader() {
     return (
-      <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
-        <View style={styles.content}>
-          <View style={[styles.headerRow, { marginTop: insets.top }]}>
-            <Skeleton width={150} height={28} />
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Skeleton circle width={40} height={40} />
-              <Skeleton circle width={40} height={40} />
-            </View>
-          </View>
-          <Skeleton width="100%" height={50} style={{ marginBottom: 20, borderRadius: BorderRadius.md }} />
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} width="100%" height={120} style={{ marginBottom: 12, borderRadius: BorderRadius.md }} />
-          ))}
-        </View>
-      </LinearGradient>
-    );
-  }
-
-  return (
-    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={[
-          styles.content,
-          isSelectionMode && styles.contentWithSelectionToolbar,
-        ]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-      >
+      <>
         <View style={styles.headerActionRow}>
           <View style={styles.headerActionRowGroup}>
             {!isRestaurant && (
@@ -2235,7 +2425,10 @@ export default function ProductsScreen() {
         )}
 
         <View style={styles.searchWrapper}>
-          <Ionicons name="search-outline" size={20} color={colors.textMuted} />
+          {serverSearchLoading
+            ? <ActivityIndicator size="small" color={colors.primary} />
+            : <Ionicons name="search-outline" size={20} color={colors.textMuted} />
+          }
           <TextInput
             style={styles.searchInput}
             placeholder={t('products.search_placeholder')}
@@ -2249,7 +2442,6 @@ export default function ProductsScreen() {
             </TouchableOpacity>
           )}
         </View>
-
         {!isRestaurant && (
           <View style={styles.sectionToggleCard}>
             <TouchableOpacity
@@ -2285,35 +2477,20 @@ export default function ProductsScreen() {
         {!isRestaurant && showControlsPanel && (
           <View style={styles.filterWrapper}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-              <TouchableOpacity
-                style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]}
-                onPress={() => setFilterType('all')}
-              >
+              <TouchableOpacity style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]} onPress={() => setFilterType('all')}>
                 <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>{t('common.all')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterChip, filterType === 'out_of_stock' && styles.filterChipActive, { borderColor: colors.danger }]}
-                onPress={() => setFilterType('out_of_stock')}
-              >
+              <TouchableOpacity style={[styles.filterChip, filterType === 'out_of_stock' && styles.filterChipActive, { borderColor: colors.danger }]} onPress={() => setFilterType('out_of_stock')}>
                 <Text style={[styles.filterChipText, filterType === 'out_of_stock' && styles.filterChipTextActive, { color: filterType === 'out_of_stock' ? '#fff' : colors.danger }]}>{t('products.out_of_stock')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterChip, filterType === 'low_stock' && styles.filterChipActive, { borderColor: colors.warning }]}
-                onPress={() => setFilterType('low_stock')}
-              >
+              <TouchableOpacity style={[styles.filterChip, filterType === 'low_stock' && styles.filterChipActive, { borderColor: colors.warning }]} onPress={() => setFilterType('low_stock')}>
                 <Text style={[styles.filterChipText, filterType === 'low_stock' && styles.filterChipTextActive, { color: filterType === 'low_stock' ? '#fff' : colors.warning }]}>{t('products.low_stock')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterChip, filterType === 'overstock' && styles.filterChipActive, { borderColor: colors.info }]}
-                onPress={() => setFilterType('overstock')}
-              >
+              <TouchableOpacity style={[styles.filterChip, filterType === 'overstock' && styles.filterChipActive, { borderColor: colors.info }]} onPress={() => setFilterType('overstock')}>
                 <Text style={[styles.filterChipText, filterType === 'overstock' && styles.filterChipTextActive, { color: filterType === 'overstock' ? '#fff' : colors.info }]}>{t('products.overstock')}</Text>
               </TouchableOpacity>
               {deadstockCount > 0 && (
-                <TouchableOpacity
-                  style={[styles.filterChip, filterType === 'deadstock' && styles.filterChipActive, { borderColor: colors.warning }]}
-                  onPress={() => setFilterType('deadstock')}
-                >
+                <TouchableOpacity style={[styles.filterChip, filterType === 'deadstock' && styles.filterChipActive, { borderColor: colors.warning }]} onPress={() => setFilterType('deadstock')}>
                   <Text style={[styles.filterChipText, filterType === 'deadstock' && styles.filterChipTextActive, { color: filterType === 'deadstock' ? '#fff' : colors.warning }]}>
                     {t('products.deadstock', 'Dormants')} ({deadstockCount})
                   </Text>
@@ -2321,451 +2498,488 @@ export default function ProductsScreen() {
               )}
             </ScrollView>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-              <TouchableOpacity
-                style={[styles.filterChip, supplierCoverageFilter === 'all' && styles.filterChipActive]}
-                onPress={() => setSupplierCoverageFilter('all')}
-              >
-                <Text style={[styles.filterChipText, supplierCoverageFilter === 'all' && styles.filterChipTextActive]}>
-                  {t('products.supplier_filter_all', 'Tous fournisseurs')}
-                </Text>
+              <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'all' && styles.filterChipActive]} onPress={() => setSupplierCoverageFilter('all')}>
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'all' && styles.filterChipTextActive]}>{t('products.supplier_filter_all', 'Tous fournisseurs')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterChip, supplierCoverageFilter === 'no_supplier' && styles.filterChipActive, { borderColor: colors.danger }]}
-                onPress={() => setSupplierCoverageFilter('no_supplier')}
-              >
-                <Text style={[styles.filterChipText, supplierCoverageFilter === 'no_supplier' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'no_supplier' ? '#fff' : colors.danger }]}>
-                  {t('products.supplier_filter_none', 'Sans fournisseur')}
-                </Text>
+              <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'no_supplier' && styles.filterChipActive, { borderColor: colors.danger }]} onPress={() => setSupplierCoverageFilter('no_supplier')}>
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'no_supplier' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'no_supplier' ? '#fff' : colors.danger }]}>{t('products.supplier_filter_none', 'Sans fournisseur')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterChip, supplierCoverageFilter === 'multi_supplier' && styles.filterChipActive, { borderColor: colors.warning }]}
-                onPress={() => setSupplierCoverageFilter('multi_supplier')}
-              >
-                <Text style={[styles.filterChipText, supplierCoverageFilter === 'multi_supplier' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'multi_supplier' ? '#fff' : colors.warning }]}>
-                  {t('products.supplier_filter_multiple', 'Plusieurs fournisseurs')}
-                </Text>
+              <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'multi_supplier' && styles.filterChipActive, { borderColor: colors.warning }]} onPress={() => setSupplierCoverageFilter('multi_supplier')}>
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'multi_supplier' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'multi_supplier' ? '#fff' : colors.warning }]}>{t('products.supplier_filter_multiple', 'Plusieurs fournisseurs')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.filterChip, supplierCoverageFilter === 'missing_primary' && styles.filterChipActive, { borderColor: colors.info }]}
-                onPress={() => setSupplierCoverageFilter('missing_primary')}
-              >
-                <Text style={[styles.filterChipText, supplierCoverageFilter === 'missing_primary' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'missing_primary' ? '#fff' : colors.info }]}>
-                  {t('products.supplier_filter_missing_primary', 'Principal manquant')}
-                </Text>
+              <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'missing_primary' && styles.filterChipActive, { borderColor: colors.info }]} onPress={() => setSupplierCoverageFilter('missing_primary')}>
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'missing_primary' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'missing_primary' ? '#fff' : colors.info }]}>{t('products.supplier_filter_missing_primary', 'Principal manquant')}</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
         )}
 
-        {showControlsPanel && (
-        <View style={styles.categoryRow}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.categoryScroll, { flex: 1 }]}>
-            <TouchableOpacity
-              style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
-              onPress={() => setSelectedCategory(null)}
-            >
-              <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextActive]}>
-                {t('common.all')}
-              </Text>
+        <View>
+          {showControlsPanel && (
+            <View style={styles.categoryRow}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.categoryScroll, { flex: 1 }]}>
+                <TouchableOpacity style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]} onPress={() => setSelectedCategory(null)}>
+                  <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextActive]}>{t('common.all')}</Text>
+                </TouchableOpacity>
+                {categoryList.map((cat) => (
+                  <TouchableOpacity key={cat.category_id} style={[styles.categoryChip, selectedCategory === cat.category_id && styles.categoryChipActive]} onPress={() => setSelectedCategory(cat.category_id)}>
+                    <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
+                    <Text style={[styles.categoryChipText, selectedCategory === cat.category_id && styles.categoryChipTextActive]}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {!isRestaurant && hasEnterpriseLocations && showControlsPanel && (
+            <TouchableOpacity style={styles.locationModuleCard} onPress={() => router.push('/(tabs)/locations' as never)} activeOpacity={0.9}>
+              <View style={styles.locationModuleIcon}>
+                <Ionicons name="location-outline" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.locationModuleContent}>
+                <Text style={styles.locationModuleTitle}>{t('products.location_module_title')}</Text>
+                <Text style={styles.locationModuleDescription}>{t('products.location_module_description')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </TouchableOpacity>
-            {categoryList.map((cat) => (
-              <TouchableOpacity
-                key={cat.category_id}
-                style={[styles.categoryChip, selectedCategory === cat.category_id && styles.categoryChipActive]}
-                onPress={() => setSelectedCategory(cat.category_id)}
-              >
-                <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    selectedCategory === cat.category_id && styles.categoryChipTextActive,
-                  ]}
-                >
-                  {cat.name}
+          )}
+
+          {!isRestaurant && showControlsPanel && (
+            <View style={styles.valuationCard}>
+              <View style={styles.valuationInfo}>
+                <Text style={styles.valuationLabel}>{t('products.total_stock_value_label')}</Text>
+                <Text style={styles.valuationValue}>
+                  {formatUserCurrency(Array.isArray(productList) ? productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0) : 0, user)}
+                </Text>
+              </View>
+              <View style={styles.valuationBadge}>
+                <Ionicons name="trending-up" size={20} color={colors.success} />
+              </View>
+            </View>
+          )}
+
+          <Text style={styles.resultCount}>
+            {isRestaurant ? t(filtered.length > 1 ? 'pos.dish_count_plural' : 'pos.dish_count', { count: filtered.length }) : t('products.product_count', { count: filtered.length })}
+          </Text>
+        </View>
+      </>
+    );
+  }
+
+  function renderProductsEmptyState() {
+    return (
+      <EmptyState
+        title={debouncedSearch ? t('common.no_results') : isRestaurant ? t('restaurant.no_dish', 'Aucun plat') : t('products.no_products')}
+        message={debouncedSearch
+          ? t('products.no_results_for', { query: debouncedSearch })
+          : isRestaurant ? t('restaurant.first_dish_hint', 'Commencez par créer votre premier plat de menu.') : t('products.no_products_desc')}
+        icon={debouncedSearch ? "search-outline" : "cube-outline"}
+        actionLabel={
+          debouncedSearch
+            ? t('common.clear_search')
+            : canWrite
+              ? isRestaurant
+                ? t('restaurant.add_dish', 'Ajouter un plat')
+                : t('products.add_product')
+              : undefined
+        }
+        onAction={() => {
+          if (debouncedSearch) {
+            setSearch('');
+          } else if (canWrite) {
+            setEditingProduct(null);
+            resetForm();
+            setShowAddModal(true);
+          }
+        }}
+      />
+    );
+  }
+
+  function renderProductsFooter() {
+    return (
+      <>
+        {filtered.length > 0 && (
+          <View style={styles.loadMoreSection}>
+            {isLoadingMoreVisibleProducts ? (
+              <View style={styles.loadMoreSpinner}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadMoreText}>{t('products.loading_more')}</Text>
+              </View>
+            ) : canLoadMoreVisibleProducts ? (
+              <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMoreProducts}>
+                <Ionicons name="chevron-down-outline" size={18} color={colors.primary} />
+                <Text style={styles.loadMoreText}>
+                  {t('products.load_more', {
+                    count: Math.min(
+                      PRODUCTS_PAGE_SIZE,
+                      Math.max(
+                        debouncedSearch
+                          ? serverSearchTotal - (serverSearchResults?.length ?? 0)
+                          : productsTotal - productList.length,
+                        0,
+                      ),
+                    ),
+                  })}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-        )}
-
-        {!isRestaurant && hasEnterpriseLocations && showControlsPanel && (
-          <TouchableOpacity
-            style={styles.locationModuleCard}
-            onPress={() => router.push('/(tabs)/locations' as never)}
-            activeOpacity={0.9}
-          >
-            <View style={styles.locationModuleIcon}>
-              <Ionicons name="location-outline" size={22} color={colors.primary} />
-            </View>
-            <View style={styles.locationModuleContent}>
-              <Text style={styles.locationModuleTitle}>{t('products.location_module_title')}</Text>
-              <Text style={styles.locationModuleDescription}>{t('products.location_module_description')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-        )}
-
-        {/* Valuation Card */}
-        {!isRestaurant && showControlsPanel && (
-          <View style={styles.valuationCard}>
-            <View style={styles.valuationInfo}>
-              <Text style={styles.valuationLabel}>{t('products.total_stock_value_label')}</Text>
-              <Text style={styles.valuationValue}>
-                {formatUserCurrency(Array.isArray(productList) ? productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0) : 0, user)}
+            ) : (
+              <Text style={styles.loadMoreHint}>
+                {debouncedSearch
+                  ? t('products.all_search_results_loaded', { count: filtered.length })
+                  : t('products.all_products_loaded', { loaded: productList.length, total: productsTotal })}
               </Text>
-            </View>
-            <View style={styles.valuationBadge}>
-              <Ionicons name="trending-up" size={20} color={colors.success} />
-            </View>
+            )}
           </View>
         )}
+        <View style={{ height: Spacing.xl }} />
+      </>
+    );
+  }
 
-        <Text style={styles.resultCount}>
-          {isRestaurant ? t(filtered.length > 1 ? 'pos.dish_count_plural' : 'pos.dish_count', { count: filtered.length }) : t('products.product_count', { count: filtered.length })}
-        </Text>
+  function renderProductItem({ item: product }: { item: Product }) {
+    const margin = product.selling_price - product.purchase_price;
 
-        {filtered.length === 0 ? (
-          <EmptyState
-            title={debouncedSearch ? t('common.no_results') : isRestaurant ? t('restaurant.no_dish', 'Aucun plat') : t('products.no_products')}
-            message={debouncedSearch
-              ? t('products.no_results_for', { query: debouncedSearch })
-              : isRestaurant ? t('restaurant.first_dish_hint', 'Commencez par créer votre premier plat de menu.') : t('products.no_products_desc')}
-            icon={debouncedSearch ? "search-outline" : "cube-outline"}
-            actionLabel={
-              debouncedSearch
-                ? t('common.clear_search')
-                : canWrite
-                  ? isRestaurant
-                    ? t('restaurant.add_dish', 'Ajouter un plat')
-                    : t('products.add_product')
-                  : undefined
-            }
-            onAction={() => {
-              if (debouncedSearch) {
-                setSearch('');
-              } else if (canWrite) {
-                setEditingProduct(null);
-                resetForm();
-                setShowAddModal(true);
-              }
-            }}
-          />
-        ) : (
-          filtered.map((product) => {
-            const margin = product.selling_price - product.purchase_price;
-            const roi = product.purchase_price > 0 ? (margin / product.purchase_price) * 100 : 0;
-
-            return (
-              <TouchableOpacity
-                key={product.product_id}
-                style={[styles.productCard, isSelectionMode && selectedProductIds.has(product.product_id) && { borderColor: colors.primary, borderWidth: 1 }]}
-                onPress={() => isSelectionMode ? toggleSelection(product.product_id) : null}
-                activeOpacity={isSelectionMode ? 0.7 : 1}
-              >
-                {isSelectionMode && (
-                  <View style={styles.selectionIndicator}>
-                    <Ionicons
-                      name={selectedProductIds.has(product.product_id) ? "checkbox" : "square-outline"}
-                      size={24}
-                      color={selectedProductIds.has(product.product_id) ? colors.primary : colors.textMuted}
-                    />
+    return (
+      <TouchableOpacity
+        style={[styles.productCard, isSelectionMode && selectedProductIds.has(product.product_id) && { borderColor: colors.primary, borderWidth: 1 }]}
+        onPress={() => isSelectionMode ? toggleSelection(product.product_id) : null}
+        activeOpacity={isSelectionMode ? 0.7 : 1}
+      >
+        {isSelectionMode && (
+          <View style={styles.selectionIndicator}>
+            <Ionicons
+              name={selectedProductIds.has(product.product_id) ? "checkbox" : "square-outline"}
+              size={24}
+              color={selectedProductIds.has(product.product_id) ? colors.primary : colors.textMuted}
+            />
+          </View>
+        )}
+        <View style={styles.productHeader}>
+          <View>
+            {product.image ? (
+              <Image source={{ uri: uploads.getFullUrl(product.image) || product.image }} style={styles.productThumb} />
+            ) : (
+              <View style={[styles.productThumb, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Ionicons name="image-outline" size={24} color={colors.textMuted} />
+              </View>
+            )}
+          </View>
+          <View style={styles.productInfo}>
+            <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
+            {isRestaurant ? (
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <View style={[styles.marginBadge, { backgroundColor: getMenuProductionModeColor(product) + '15' }]}>
+                    <Text style={[styles.marginText, { color: getMenuProductionModeColor(product) }]}>
+                      {getMenuProductionModeLabel(product)}
+                    </Text>
                   </View>
-                )}
-                <View style={styles.productHeader}>
-                  <View>
-                    {product.image ? (
-                      <Image
-                        source={{ uri: uploads.getFullUrl(product.image) || product.image }}
-                        style={styles.productThumb}
-                      />
-                    ) : (
-                      <View style={[styles.productThumb, { justifyContent: 'center', alignItems: 'center' }]}>
-                        <Ionicons name="image-outline" size={24} color={colors.textMuted} />
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.productInfo}>
-                    <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
-                    {isRestaurant ? (
-                      <>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <View style={[styles.marginBadge, { backgroundColor: getMenuProductionModeColor(product) + '15' }]}>
-                            <Text style={[styles.marginText, { color: getMenuProductionModeColor(product) }]}>
-                              {getMenuProductionModeLabel(product)}
-                            </Text>
-                          </View>
-                          {product.menu_category ? (
-                            <View style={[styles.locationBadge, { backgroundColor: colors.secondary + '18' }]}>
-                              <Text style={[styles.locationBadgeText, { color: colors.secondary }]} numberOfLines={1}>
-                                {product.menu_category}
-                              </Text>
-                            </View>
-                          ) : null}
-                        </View>
-                        <Text style={[styles.productSku, { marginTop: 6 }]}>
-                          {t('restaurant.station_label', 'Station')}: {product.kitchen_station || 'plat'}{product.linked_recipe_id ? ` · ${t('restaurant.recipe_linked', 'Recette liée')}` : ''}
-                        </Text>
-                      </>
-                    ) : (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        {product.sku && <Text style={styles.productSku}>{product.sku}</Text>}
-                        <View style={[styles.marginBadge, { backgroundColor: margin > 0 ? colors.success + '15' : colors.danger + '15' }]}>
-                          <Text style={[styles.marginText, { color: margin > 0 ? colors.success : colors.danger }]}>
-                            +{formatUserCurrency(margin, user)}
-                          </Text>
-                        </View>
-                        {hasEnterpriseLocations && product.location_id && (() => {
-                          const loc = locationList.find(l => l.location_id === product.location_id);
-                          return loc ? (
-                            <View style={[styles.locationBadge, { backgroundColor: colors.info + '20' }]}>
-                              <Ionicons name="location-outline" size={10} color={colors.info} />
-                              <Text style={[styles.locationBadgeText, { color: colors.info }]} numberOfLines={1}>
-                                {getLocationPath(loc.location_id) || loc.name}
-                              </Text>
-                            </View>
-                          ) : null;
-                        })()}
-                      </View>
-                    )}
-                  </View>
-                  {!isRestaurant && (
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(product) + '20' }]}>
-                      <Text style={[styles.statusText, { color: getStatusColor(product) }]}>
-                        {getStatusLabel(product)}
+                  {product.menu_category ? (
+                    <View style={[styles.locationBadge, { backgroundColor: colors.secondary + '18' }]}>
+                      <Text style={[styles.locationBadgeText, { color: colors.secondary }]} numberOfLines={1}>
+                        {product.menu_category}
                       </Text>
                     </View>
-                  )}
-                  {!isRestaurant && product.expiry_date && (
-                    <View style={[styles.expiryBadge, { backgroundColor: getExpiryWarningColor(product.expiry_date) }]}>
-                      <Ionicons name="time-outline" size={12} color="#fff" />
-                      <Text style={styles.expiryBadgeText}>{getExpiryLabel(product.expiry_date)}</Text>
-                    </View>
-                  )}
+                  ) : null}
                 </View>
+                <Text style={[styles.productSku, { marginTop: 6 }]}>
+                  {t('restaurant.station_label', 'Station')}: {product.kitchen_station || 'plat'}{product.linked_recipe_id ? ` · ${t('restaurant.recipe_linked', 'Recette liée')}` : ''}
+                </Text>
+              </>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {product.sku && <Text style={styles.productSku}>{product.sku}</Text>}
+                <View style={[styles.marginBadge, { backgroundColor: margin > 0 ? colors.success + '15' : colors.danger + '15' }]}>
+                  <Text style={[styles.marginText, { color: margin > 0 ? colors.success : colors.danger }]}>
+                    +{formatUserCurrency(margin, user)}
+                  </Text>
+                </View>
+                {hasEnterpriseLocations && product.location_id && (() => {
+                  const loc = locationMap.get(product.location_id);
+                  return loc ? (
+                    <View style={[styles.locationBadge, { backgroundColor: colors.info + '20' }]}>
+                      <Ionicons name="location-outline" size={10} color={colors.info} />
+                      <Text style={[styles.locationBadgeText, { color: colors.info }]} numberOfLines={1}>
+                        {getLocationPath(loc.location_id) || loc.name}
+                      </Text>
+                    </View>
+                  ) : null;
+                })()}
+              </View>
+            )}
+          </View>
+          {!isRestaurant && (
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(product) + '20' }]}>
+              <Text style={[styles.statusText, { color: getStatusColor(product) }]}>
+                {getStatusLabel(product)}
+              </Text>
+            </View>
+          )}
+          {!isRestaurant && product.expiry_date && (
+            <View style={[styles.expiryBadge, { backgroundColor: getExpiryWarningColor(product.expiry_date) }]}>
+              <Ionicons name="time-outline" size={12} color="#fff" />
+              <Text style={styles.expiryBadgeText}>{getExpiryLabel(product.expiry_date)}</Text>
+            </View>
+          )}
+        </View>
 
-                {isInventoryMode ? (
-                  <View style={styles.inventoryReconciliation}>
-                    <View style={styles.inventoryInfo}>
-                      <Text style={styles.detailLabel}>{t('products.current_stock')}</Text>
-                      <Text style={styles.detailValue}>{product.quantity}</Text>
-                    </View>
-                    <View style={styles.inventoryInputContainer}>
-                      <Text style={styles.detailLabel}>{t('products.actual_stock')}</Text>
-                      <TextInput
-                        style={styles.inventoryInput}
-                        keyboardType="numeric"
-                        value={inventoryValues[product.product_id] !== undefined ? inventoryValues[product.product_id] : product.quantity.toString()}
-                        onChangeText={(val) => setInventoryValues(prev => ({ ...prev, [product.product_id]: val }))}
-                        placeholder="..."
-                      />
-                    </View>
-                    <View style={styles.inventoryActions}>
-                      {(inventoryValues[product.product_id] === undefined || parseInt(inventoryValues[product.product_id]) === product.quantity) ? (
-                        <TouchableOpacity
-                          style={[styles.inventoryBtn, { backgroundColor: colors.success + '20' }]}
-                          onPress={() => handleAdjustStock(product, product.quantity.toString())}
-                        >
-                          <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          style={[styles.inventoryBtn, { backgroundColor: colors.primary + '20' }]}
-                          onPress={() => handleAdjustStock(product, inventoryValues[product.product_id])}
-                        >
-                          <Ionicons name="save-outline" size={24} color={colors.primary} />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                ) : (
-                  <>
-                    {isRestaurant && (
-                      <View style={styles.productDetails}>
-                        <View style={styles.detailItem}>
-                            <Text style={styles.detailLabel}>{t('restaurant.sale_price', 'Prix de vente')}</Text>
-                          <Text style={styles.detailValue}>{formatUserCurrency(product.selling_price, user)}</Text>
-                        </View>
-                        <View style={styles.detailItem}>
-                            <Text style={styles.detailLabel}>{t('common.recipe', 'Recette')}</Text>
-                            <Text style={styles.detailValue}>{product.linked_recipe_id ? t('restaurant.recipe_linked', 'Recette liée') : t('restaurant.recipe_to_define', 'À définir')}</Text>
-                        </View>
-                        <View style={styles.detailItem}>
-                            <Text style={styles.detailLabel}>{t('restaurant.production_label', 'Production')}</Text>
-                          <Text style={styles.detailValue}>{getMenuProductionModeLabel(product)}</Text>
-                        </View>
-                      </View>
-                    )}
-                    {!isRestaurant && (
-                    <View style={styles.productDetails}>
-                      <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>{t('products.stock_label')}</Text>
-                        <Text style={styles.detailValue}>
-                          {product.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: product.quantity })}
+        {isInventoryMode ? (
+          <View style={styles.inventoryReconciliation}>
+            <View style={styles.inventoryInfo}>
+              <Text style={styles.detailLabel}>{t('products.current_stock')}</Text>
+              <Text style={styles.detailValue}>{product.quantity}</Text>
+            </View>
+            <View style={styles.inventoryInputContainer}>
+              <Text style={styles.detailLabel}>{t('products.actual_stock')}</Text>
+              <TextInput
+                style={styles.inventoryInput}
+                keyboardType="numeric"
+                value={inventoryValues[product.product_id] !== undefined ? inventoryValues[product.product_id] : product.quantity.toString()}
+                onChangeText={(val) => setInventoryValues(prev => ({ ...prev, [product.product_id]: val }))}
+                placeholder="..."
+              />
+            </View>
+            <View style={styles.inventoryActions}>
+              {(inventoryValues[product.product_id] === undefined || parseInt(inventoryValues[product.product_id]) === product.quantity) ? (
+                <TouchableOpacity style={[styles.inventoryBtn, { backgroundColor: colors.success + '20' }]} onPress={() => handleAdjustStock(product, product.quantity.toString())}>
+                  <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={[styles.inventoryBtn, { backgroundColor: colors.primary + '20' }]} onPress={() => handleAdjustStock(product, inventoryValues[product.product_id])}>
+                  <Ionicons name="save-outline" size={24} color={colors.primary} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        ) : (
+          <>
+            {isRestaurant && (
+              <View style={styles.productDetails}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('restaurant.sale_price', 'Prix de vente')}</Text>
+                  <Text style={styles.detailValue}>{formatUserCurrency(product.selling_price, user)}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('common.recipe', 'Recette')}</Text>
+                  <Text style={styles.detailValue}>{product.linked_recipe_id ? t('restaurant.recipe_linked', 'Recette liée') : t('restaurant.recipe_to_define', 'À définir')}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('restaurant.production_label', 'Production')}</Text>
+                  <Text style={styles.detailValue}>{getMenuProductionModeLabel(product)}</Text>
+                </View>
+              </View>
+            )}
+            {!isRestaurant && (
+              <View style={styles.productDetails}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('products.stock_label')}</Text>
+                  <Text style={styles.detailValue}>
+                    {product.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: product.quantity })}
+                  </Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('products.trend_forecast')}</Text>
+                  {(() => {
+                    const forecast = forecastByProductId.get(product.product_id);
+                    if (!forecast) {
+                      return <Text style={styles.detailValue}>--</Text>;
+                    }
+                    const trendIcon = forecast.trend === 'up' ? 'trending-up' : forecast.trend === 'down' ? 'trending-down' : 'remove';
+                    const trendColor = forecast.trend === 'up' ? colors.success : forecast.trend === 'down' ? colors.danger : colors.textMuted;
+
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons name={trendIcon as any} size={16} color={trendColor} />
+                        <Text style={[styles.detailValue, { color: trendColor }]}>
+                          {t('products.forecast_7d_unit', { count: forecast.predicted_sales_7d })}
                         </Text>
                       </View>
-                      <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>{t('products.trend_forecast')}</Text>
-                        {(() => {
-                          const forecast = forecastData?.products?.find((f: any) => f.product_id === product.product_id);
-                          if (!forecast) {
-                            return <Text style={styles.detailValue}>--</Text>;
-                          }
-                          const trendIcon = forecast.trend === 'up' ? 'trending-up' : forecast.trend === 'down' ? 'trending-down' : 'remove';
-                          const trendColor = forecast.trend === 'up' ? colors.success : forecast.trend === 'down' ? colors.danger : colors.textMuted;
+                    );
+                  })()}
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('products.stock_value')}</Text>
+                  <Text style={styles.detailValue}>{formatUserCurrency(product.quantity * product.purchase_price, user)}</Text>
+                </View>
+              </View>
+            )}
 
-                          return (
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                              <Ionicons name={trendIcon as any} size={16} color={trendColor} />
-                              <Text style={[styles.detailValue, { color: trendColor }]}>
-                                {t('products.forecast_7d_unit', { count: forecast.predicted_sales_7d })}
-                              </Text>
-                            </View>
-                          );
-                        })()}
-                      </View>
-                      <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>{t('products.stock_value')}</Text>
-                        <Text style={styles.detailValue}>{formatUserCurrency(product.quantity * product.purchase_price, user)}</Text>
-                      </View>
-                    </View>
-                    )}
+            {correlationsMap[product.product_id]?.length > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, marginBottom: 8, flexWrap: 'wrap' }}>
+                <Ionicons name="link-outline" size={13} color={colors.primary} />
+                <Text style={{ fontSize: 11, color: colors.textMuted }}>Acheté avec : </Text>
+                {correlationsMap[product.product_id].slice(0, 3).map((c, i) => (
+                  <View key={i} style={{ backgroundColor: colors.primary + '15', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{c.name}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
 
-                    {/* Vague 5: Product Correlations badge */}
-                    {correlationsMap[product.product_id]?.length > 0 && (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, marginBottom: 8, flexWrap: 'wrap' }}>
-                        <Ionicons name="link-outline" size={13} color={colors.primary} />
-                        <Text style={{ fontSize: 11, color: colors.textMuted }}>Acheté avec : </Text>
-                        {correlationsMap[product.product_id].slice(0, 3).map((c, i) => (
-                          <View key={i} style={{ backgroundColor: colors.primary + '15', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
-                            <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{c.name}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
+            {!isRestaurant && seasonalityMap[product.product_id]?.urgency === 'high' && (() => {
+              const season = seasonalityMap[product.product_id];
+              return (
+                <View style={{ backgroundColor: colors.warning + '15', borderWidth: 1, borderColor: colors.warning + '30', borderRadius: 12, padding: 10, marginHorizontal: 16, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="flame-outline" size={16} color={colors.warning} />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.warning, flex: 1 }}>
+                    {t('products.season_peak_alert', { month: season.upcoming_peak_name, demand: season.expected_demand, gap: season.stock_gap, defaultValue: 'Pic saisonnier {{month}} — prévoir {{demand}} unités (manque {{gap}})' })}
+                  </Text>
+                </View>
+              );
+            })()}
 
-                    {/* Seasonality alert badge */}
-                    {!isRestaurant && seasonalityMap[product.product_id]?.urgency === 'high' && (() => {
-                      const season = seasonalityMap[product.product_id];
-                      return (
-                        <View style={{ backgroundColor: colors.warning + '15', borderWidth: 1, borderColor: colors.warning + '30', borderRadius: 12, padding: 10, marginHorizontal: 16, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Ionicons name="flame-outline" size={16} color={colors.warning} />
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.warning, flex: 1 }}>
-                            {t('products.season_peak_alert', { month: season.upcoming_peak_name, demand: season.expected_demand, gap: season.stock_gap, defaultValue: 'Pic saisonnier {{month}} — prévoir {{demand}} unités (manque {{gap}})' })}
-                          </Text>
-                        </View>
-                      );
-                    })()}
+            {!isRestaurant && (() => {
+              const supplyMeta = getProductSupplyMeta(product.product_id);
+              return (
+                <View style={[styles.supplyCard, { borderColor: supplyMeta.tone + '35', backgroundColor: supplyMeta.tone + '12' }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.supplyTitle, { color: supplyMeta.tone }]}>{supplyMeta.status}</Text>
+                    <Text style={styles.supplySubtitle}>{supplyMeta.subtitle}</Text>
+                  </View>
+                  <TouchableOpacity style={[styles.supplyManageBtn, { borderColor: supplyMeta.tone + '45' }]} onPress={() => openEditModal(product)}>
+                    <Text style={[styles.supplyManageBtnText, { color: supplyMeta.tone }]}>
+                      {t('products.manage_supply_cta', 'Gérer')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })()}
 
-                    {!isRestaurant && (() => {
-                      const supplyMeta = getProductSupplyMeta(product.product_id);
-                      return (
-                        <View style={[styles.supplyCard, { borderColor: supplyMeta.tone + '35', backgroundColor: supplyMeta.tone + '12' }]}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.supplyTitle, { color: supplyMeta.tone }]}>{supplyMeta.status}</Text>
-                            <Text style={styles.supplySubtitle}>{supplyMeta.subtitle}</Text>
-                          </View>
-                          <TouchableOpacity
-                            style={[styles.supplyManageBtn, { borderColor: supplyMeta.tone + '45' }]}
-                            onPress={() => openEditModal(product)}
-                          >
-                            <Text style={[styles.supplyManageBtnText, { color: supplyMeta.tone }]}>
-                              {t('products.manage_supply_cta', 'Gérer')}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    })()}
+            {!isRestaurant && product.has_variants && product.variants && product.variants.length > 0 && (
+              <View style={{ marginTop: Spacing.sm, padding: Spacing.sm, backgroundColor: colors.glass, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: colors.glassBorder }}>
+                <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 }}>{t('products.variants')}</Text>
+                {product.variants.map(v => (
+                  <View key={v.variant_id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>{v.name}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: v.quantity })}{v.selling_price != null ? ` · ${formatUserCurrency(v.selling_price, user)}` : ''}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
 
-                    {/* Variants display */}
-                    {!isRestaurant && product.has_variants && product.variants && product.variants.length > 0 && (
-                      <View style={{ marginTop: Spacing.sm, padding: Spacing.sm, backgroundColor: colors.glass, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: colors.glassBorder }}>
-                        <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 }}>{t('products.variants')}</Text>
-                        {product.variants.map(v => (
-                          <View key={v.variant_id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
-                            <Text style={{ color: colors.text, fontSize: 12 }}>{v.name}</Text>
-                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: v.quantity })}{v.selling_price != null ? ` · ${formatUserCurrency(v.selling_price, user)}` : ''}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
+            {!isSelectionMode && (
+              <View style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {!isRestaurant && (
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.info + '18', borderWidth: 1, borderColor: colors.info + '38', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]} onPress={() => openHistoryModal(product)}>
+                    <Ionicons name="time-outline" size={16} color={colors.info} />
+                    <Text style={[styles.actionText, { color: colors.info }]}>{t('products.history')}</Text>
+                  </TouchableOpacity>
+                )}
 
-                    {!isSelectionMode && (
-                      <View style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                        {!isRestaurant && (
-                          <TouchableOpacity
-                            style={[styles.actionBtn, { backgroundColor: colors.info + '18', borderWidth: 1, borderColor: colors.info + '38', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                            onPress={() => openHistoryModal(product)}
-                          >
-                            <Ionicons name="time-outline" size={16} color={colors.info} />
-                            <Text style={[styles.actionText, { color: colors.info }]}>{t('products.history')}</Text>
-                          </TouchableOpacity>
-                        )}
+                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]} onPress={() => openEditModal(product)}>
+                  <Ionicons name="create-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.actionText, { color: colors.primary }]}>{t('products.edit')}</Text>
+                </TouchableOpacity>
 
-                        <TouchableOpacity
-                          style={[styles.actionBtn, { backgroundColor: colors.primary + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                          onPress={() => openEditModal(product)}
-                        >
-                          <Ionicons name="create-outline" size={16} color={colors.primary} />
-                          <Text style={[styles.actionText, { color: colors.primary }]}>{t('products.edit')}</Text>
-                        </TouchableOpacity>
+                {!isRestaurant && canWrite && (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: colors.success + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
+                      onPress={() => {
+                        setSelectedProduct(product);
+                        setMovType('in');
+                        setShowStockModal(true);
+                      }}
+                    >
+                      <Ionicons name="add-circle-outline" size={16} color={colors.success} />
+                      <Text style={[styles.actionText, { color: colors.success }]}>{t('products.add_stock')}</Text>
+                    </TouchableOpacity>
 
-                        {!isRestaurant && canWrite && (
-                          <>
-                            <TouchableOpacity
-                              style={[styles.actionBtn, { backgroundColor: colors.success + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                              onPress={() => {
-                                setSelectedProduct(product);
-                                setMovType('in');
-                                setShowStockModal(true);
-                              }}
-                            >
-                              <Ionicons name="add-circle-outline" size={16} color={colors.success} />
-                              <Text style={[styles.actionText, { color: colors.success }]}>{t('products.add_stock')}</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                              style={[styles.actionBtn, { backgroundColor: colors.warning + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                              onPress={() => {
-                                setSelectedProduct(product);
-                                setMovType('out');
-                                setShowStockModal(true);
-                              }}
-                            >
-                              <Ionicons name="remove-circle-outline" size={16} color={colors.warning} />
-                              <Text style={[styles.actionText, { color: colors.warning }]}>{t('products.remove_stock')}</Text>
-                            </TouchableOpacity>
-                          </>
-                        )}
-
-                        {!isRestaurant && (
-                          <TouchableOpacity
-                            style={[styles.actionBtn, { backgroundColor: colors.textMuted + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                            onPress={() => printLabel(product)}
-                          >
-                            <Ionicons name="print-outline" size={16} color={colors.textMuted} />
-                          </TouchableOpacity>
-                        )}
-
-                        {canWrite && (
-                          <TouchableOpacity
-                            style={[styles.actionBtn, { backgroundColor: colors.danger + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                            onPress={() => handleDelete(product.product_id)}
-                          >
-                            <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: colors.warning + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
+                      onPress={() => {
+                        setSelectedProduct(product);
+                        setMovType('out');
+                        setShowStockModal(true);
+                      }}
+                    >
+                      <Ionicons name="remove-circle-outline" size={16} color={colors.warning} />
+                      <Text style={[styles.actionText, { color: colors.warning }]}>{t('products.remove_stock')}</Text>
+                    </TouchableOpacity>
                   </>
                 )}
-              </TouchableOpacity>
-            );
-          })
-        )}
 
-        <View style={{ height: Spacing.xl }} />
-      </ScrollView >
+                {!isRestaurant && (
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.textMuted + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]} onPress={() => printLabel(product)}>
+                    <Ionicons name="print-outline" size={16} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+
+                {canWrite && (
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.danger + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]} onPress={() => handleDelete(product.product_id)}>
+                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </>
+        )}
+      </TouchableOpacity>
+    );
+  }
+
+  // If production mode → show the ProductionView instead
+  if (hasProduction && !isRestaurant) {
+    return <ProductionView currency={user?.currency || 'FCFA'} />;
+  }
+
+  if (accessDenied) {
+    return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;
+  }
+
+  if (loading) {
+    return (
+      <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
+        <View style={styles.content}>
+          <View style={[styles.headerRow, { marginTop: insets.top }]}>
+            <Skeleton width={150} height={28} />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Skeleton circle width={40} height={40} />
+              <Skeleton circle width={40} height={40} />
+            </View>
+          </View>
+          <Skeleton width="100%" height={50} style={{ marginBottom: 20, borderRadius: BorderRadius.md }} />
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} width="100%" height={120} style={{ marginBottom: 12, borderRadius: BorderRadius.md }} />
+          ))}
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  return (
+    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
+      <FlatList
+        style={styles.container}
+        data={filtered}
+        keyExtractor={(item) => item.product_id}
+        renderItem={renderProductItem}
+        ListHeaderComponent={renderProductsHeader}
+        ListEmptyComponent={renderProductsEmptyState}
+        ListFooterComponent={renderProductsFooter}
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={Platform.OS === 'android'}
+        keyboardShouldPersistTaps="handled"
+        extraData={{
+          isSelectionMode,
+          selectedProductIds,
+          inventoryValues,
+          forecastData,
+          seasonalityMap,
+          correlationsMap,
+          supplierLinksByProduct,
+          locationList,
+        }}
+        contentContainerStyle={[
+          styles.content,
+          isSelectionMode && styles.contentWithSelectionToolbar,
+        ]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      />
 
       {isSelectionMode && (
         <View style={[styles.selectionToolbarDock, { paddingBottom: insets.bottom + Spacing.sm }]}>
@@ -3936,6 +4150,7 @@ export default function ProductsScreen() {
         visible={showBulkImportModal}
         onClose={() => setShowBulkImportModal(false)}
         onSuccess={() => loadData()}
+        onJobUpdate={setTrackedImportJob}
       />
 
       <TextImportModal
@@ -4211,6 +4426,40 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.textMuted,
     fontSize: FontSize.sm,
     marginBottom: Spacing.md,
+  },
+  loadMoreSection: {
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+    backgroundColor: colors.primary + '12',
+  },
+  loadMoreSpinner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: Spacing.xs,
+  },
+  loadMoreText: {
+    color: colors.primary,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  loadMoreHint: {
+    color: colors.textMuted,
+    fontSize: FontSize.sm,
+    textAlign: 'center',
   },
   productCard: {
     ...glassStyle,

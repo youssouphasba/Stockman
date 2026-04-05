@@ -64,19 +64,19 @@ export default function LoginScreen() {
   const styles = React.useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
   const authText = {
     title: 'Stockman',
-    subtitle: 'Connectez-vous pour continuer.',
-    email: 'Email',
-    password: 'Mot de passe',
-    emailPlaceholder: 'votre@email.com',
-    passwordPlaceholder: 'Votre mot de passe',
-    rememberMe: 'Se souvenir de moi',
-    signIn: 'Se connecter',
-    noAccount: 'Pas encore de compte ?',
-    signUp: "S'inscrire",
-    orContinue: 'Ou continuer avec',
-    continueGoogle: 'Continuer avec Google',
-    tryDemo: 'Essayer la démo gratuite',
-    demoHint: "Explorez l'application sans inscription.",
+    subtitle: t('auth.login.subtitle', 'Connectez-vous pour continuer.'),
+    email: t('auth.login.email', 'Email'),
+    password: t('auth.login.password', 'Mot de passe'),
+    emailPlaceholder: t('auth.login.emailPlaceholder', 'votre@email.com'),
+    passwordPlaceholder: t('auth.login.passwordPlaceholder', 'Votre mot de passe'),
+    rememberMe: t('auth.login.rememberMe', 'Se souvenir de moi'),
+    signIn: t('auth.login.signIn', 'Se connecter'),
+    noAccount: t('auth.login.noAccount', 'Pas encore de compte ?'),
+    signUp: t('auth.login.signUp', "S'inscrire"),
+    orContinue: t('auth.login.orContinue', 'Ou continuer avec'),
+    continueGoogle: t('auth.login.continueGoogle', 'Continuer avec Google'),
+    tryDemo: t('auth.login.tryDemo', 'Essayer la démo gratuite'),
+    demoHint: t('auth.login.demoHint', "Explorez l'application sans inscription."),
   };
 
   const [email, setEmail] = useState('');

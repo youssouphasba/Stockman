@@ -21,7 +21,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.youssouphasba.stockman",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -103,6 +103,7 @@
         }
       ],
       "./plugins/withFirebaseModularHeaders",
+      "./plugins/withRemoveBackgroundAudioMode",
       "expo-sharing",
       "expo-web-browser",
       [

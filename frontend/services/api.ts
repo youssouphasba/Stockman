@@ -385,22 +385,11 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
       }
     }
 
-    if (false && response.status === 403) {
-      const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
-      recordApiPerf({ method, endpoint, status: 403, duration_ms: elapsed, ts: new Date().toISOString() });
-      throw new ApiError('Accès refusé. Contactez votre manager.', 403);
-    }
-
-    if (false && response.status === 429) {
-      const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
-      recordApiPerf({ method, endpoint, status: 429, duration_ms: elapsed, ts: new Date().toISOString() });
-      throw new ApiError('Trop de tentatives. Veuillez réessayer plus tard.', 429);
-    }
 
     if (!response.ok) {
       const message = await resolveApiErrorMessage(response);
 
-      console.log('Throwing ApiError:', message, response.status);
+      console.log('Throwing ApiError:', endpoint, message, response.status);
       const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
       recordApiPerf({ method, endpoint, status: response.status, duration_ms: elapsed, ts: new Date().toISOString() });
       throw new ApiError(message, response.status);
@@ -596,11 +585,30 @@ export const uploads = {
   },
 };
 
+export type ProductImportJob = {
+  job_id: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  file_name?: string | null;
+  total_rows: number;
+  processed_rows: number;
+  inserted_count: number;
+  error_count: number;
+  errors: Array<{ row: number; error: string }>;
+  last_error?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  progress_pct: number;
+  can_resume: boolean;
+};
+
 export const products = {
-  list: (categoryId?: string, skip = 0, limit = 50, isMenuItem?: boolean) => {
+  list: (categoryId?: string, skip = 0, limit = 50, isMenuItem?: boolean, search?: string) => {
     const qs = new URLSearchParams();
     if (categoryId) qs.set('category_id', categoryId);
     if (typeof isMenuItem === 'boolean') qs.set('is_menu_item', String(isMenuItem));
+    if (search) qs.set('search', search);
     qs.set('skip', skip.toString());
     qs.set('limit', limit.toString());
     return request<PaginatedResponse<Product>>(`/products?${qs.toString()}`);
@@ -644,9 +652,17 @@ export const products = {
       body: formData,
     }),
   confirmImport: (data: any) =>
-    request<{ message: string; count: number }>('/products/import/confirm', {
+    request<ProductImportJob>('/products/import/confirm', {
       method: 'POST',
       body: data,
+    }),
+  getActiveImportJob: () =>
+    request<{ job: ProductImportJob | null }>('/products/import/jobs/active'),
+  getImportJob: (jobId: string) =>
+    request<ProductImportJob>(`/products/import/jobs/${jobId}`),
+  resumeImportJob: (jobId: string) =>
+    request<ProductImportJob>(`/products/import/jobs/${jobId}/resume`, {
+      method: 'POST',
     }),
   importText: (text: string, autoCreate: boolean = false) =>
     request<{ products: any[]; count?: number; created?: number; auto_created: boolean }>('/products/import/text', {

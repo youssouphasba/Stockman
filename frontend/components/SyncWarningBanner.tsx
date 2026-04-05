@@ -1,50 +1,27 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useSyncStatus } from '../hooks/useSyncStatus';
 import { useTheme } from '../contexts/ThemeContext';
 
-/**
- * Banner shown when there are offline actions permanently stuck in the dead letter queue.
- * Drops in below the TrialBanner in the tab layout.
- */
 export default function SyncWarningBanner() {
+    const { t } = useTranslation();
     const { failedCount, failedActions, isOnline, pendingCount, retryAll, dismissFailed } = useSyncStatus();
     const { colors } = useTheme();
     const [showDetail, setShowDetail] = useState(false);
 
-    const entityLabels: Record<string, string> = {
-        product: 'Produit',
-        sale: 'Vente',
-        order: 'Commande',
-        stock: 'Mouvement stock',
-        customer: 'Client',
-        expense: 'Dépense',
-        supplier: 'Fournisseur',
-        alert_rule: 'Règle alerte',
-        settings: 'Paramètres',
-        notification: 'Notification',
-    };
-
-    const typeLabels: Record<string, string> = {
-        create: 'Création',
-        update: 'Modification',
-        delete: 'Suppression',
-    };
-
-    // Show pending badge when offline
     if (!isOnline && pendingCount > 0 && failedCount === 0) {
         return (
             <View style={[styles.banner, { backgroundColor: '#F59E0B' }]}>
                 <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
                 <Text style={styles.text}>
-                    {pendingCount} action{pendingCount > 1 ? 's' : ''} en attente de synchronisation
+                    {t('sync.pending_count', { count: pendingCount, defaultValue: '{{count}} action(s) pending sync' })}
                 </Text>
             </View>
         );
     }
 
-    // Show error banner for dead letter items
     if (failedCount === 0) return null;
 
     return (
@@ -56,7 +33,7 @@ export default function SyncWarningBanner() {
             >
                 <Ionicons name="warning-outline" size={16} color="#fff" />
                 <Text style={styles.text}>
-                    {failedCount} action{failedCount > 1 ? 's' : ''} non synchronisée{failedCount > 1 ? 's' : ''} — Appuyez pour voir
+                    {t('sync.failed_count', { count: failedCount, defaultValue: '{{count}} action(s) failed to sync — Tap to view' })}
                 </Text>
                 <Ionicons name="chevron-forward" size={14} color="#fff" />
             </TouchableOpacity>
@@ -66,10 +43,10 @@ export default function SyncWarningBanner() {
                     <Pressable style={[styles.sheet, { backgroundColor: colors.bgDark }]} onPress={() => { }}>
                         <View style={styles.sheetHeader}>
                             <Ionicons name="warning-outline" size={22} color="#EF4444" />
-                            <Text style={[styles.sheetTitle, { color: colors.text }]}>Actions non synchronisées</Text>
+                            <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('sync.failed_title', 'Unsynced actions')}</Text>
                         </View>
                         <Text style={[styles.sheetSub, { color: colors.textMuted }]}>
-                            Ces actions ont échoué après plusieurs tentatives. Elles sont sauvegardées localement et ne seront pas perdues.
+                            {t('sync.failed_description', 'These actions failed after multiple attempts. They are saved locally and will not be lost.')}
                         </Text>
 
                         <ScrollView style={{ maxHeight: 400 }}>
@@ -77,13 +54,10 @@ export default function SyncWarningBanner() {
                                 <View key={action.id} style={[styles.actionRow, { borderColor: colors.glassBorder }]}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={[styles.actionTitle, { color: colors.text }]}>
-                                            {typeLabels[action.type] || action.type} — {entityLabels[action.entity] || action.entity}
+                                            {t(`sync.type_${action.type}`, action.type)} — {t(`sync.entity_${action.entity}`, action.entity)}
                                         </Text>
                                         <Text style={[styles.actionError, { color: colors.textMuted }]} numberOfLines={2}>
                                             {action.reason}
-                                        </Text>
-                                        <Text style={[styles.actionDate, { color: colors.textMuted }]}>
-                                            {new Date(action.failedAt).toLocaleString('fr-FR')}
                                         </Text>
                                     </View>
                                     <TouchableOpacity onPress={() => dismissFailed(action.id)} style={styles.dismissBtn}>
@@ -99,13 +73,13 @@ export default function SyncWarningBanner() {
                                 onPress={() => { retryAll(); setShowDetail(false); }}
                             >
                                 <Ionicons name="refresh-outline" size={16} color="#fff" />
-                                <Text style={styles.btnText}>Réessayer tout</Text>
+                                <Text style={styles.btnText}>{t('sync.retry_all', 'Retry all')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.btn, { backgroundColor: colors.glassBorder }]}
                                 onPress={() => setShowDetail(false)}
                             >
-                                <Text style={[styles.btnText, { color: colors.text }]}>Fermer</Text>
+                                <Text style={[styles.btnText, { color: colors.text }]}>{t('common.close', 'Close')}</Text>
                             </TouchableOpacity>
                         </View>
                     </Pressable>
@@ -170,9 +144,6 @@ const styles = StyleSheet.create({
     actionError: {
         fontSize: 12,
         marginBottom: 2,
-    },
-    actionDate: {
-        fontSize: 11,
     },
     dismissBtn: {
         padding: 4,

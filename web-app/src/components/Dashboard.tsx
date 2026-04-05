@@ -32,13 +32,13 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip as ReTooltip,
-    ResponsiveContainer,
     AreaChart,
     Area,
     PieChart as RePieChart,
     Pie,
     Cell
 } from 'recharts';
+import SafeResponsiveContainer from './charts/SafeResponsiveContainer';
 import StatCard from './StatCard';
 import { dashboard as dashboardApi, ai as aiApi, statistics as statsApi, sales as salesApi, restaurant as restaurantApi, UserFeatures } from '../services/api';
 import { useDateFormatter } from '../hooks/useDateFormatter';
@@ -756,7 +756,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                             CA par heure
                         </h3>
                         {restaurantStats.hourly_revenue?.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={160} minWidth={0} minHeight={140}>
+                                    <SafeResponsiveContainer width="100%" height={160} minWidth={0} minHeight={140}>
                                 <AreaChart data={restaurantStats.hourly_revenue}>
                                     <defs>
                                         <linearGradient id="colorHourly" x1="0" y1="0" x2="0" y2="1">
@@ -769,7 +769,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                     <ReTooltip formatter={(v: any) => formatCurrency(v)} labelFormatter={(h) => `${h}h00`} contentStyle={{ backgroundColor: '#1E293B', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} />
                                     <Area type="monotone" dataKey="revenue" stroke="#f59e0b" fill="url(#colorHourly)" strokeWidth={2} />
                                 </AreaChart>
-                            </ResponsiveContainer>
+                                    </SafeResponsiveContainer>
                         ) : (
                             <div className="h-40 flex items-center justify-center text-slate-500 text-sm">{t('dashboard.restaurant_no_service')}</div>
                         )}
@@ -839,7 +839,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         <p>{t('dashboard.no_forecast_data')}</p>
                                     </div>
                                 ) : (
-                                <ResponsiveContainer width="100%" height={250} minWidth={0} minHeight={220}>
+                                    <SafeResponsiveContainer width="100%" height={250} minWidth={0} minHeight={220}>
                                     <AreaChart data={forecast.daily_forecast.filter((d: any) => d?.date != null)}>
                                         <defs>
                                             <linearGradient id="colorForecastReal" x1="0" y1="0" x2="0" y2="1">
@@ -886,7 +886,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                             dot={false}
                                         />
                                     </AreaChart>
-                                </ResponsiveContainer>
+                                    </SafeResponsiveContainer>
                                 )}
                             </div>
 
@@ -991,7 +991,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         <p>{t('dashboard.no_stock_data')}</p>
                                     </div>
                                 ) : (
-                                <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={240}>
+                                    <SafeResponsiveContainer width="100%" height={300} minWidth={0} minHeight={240}>
                                     <AreaChart data={stats.stock_value_history.filter((d: any) => d?.date != null)}>
                                         <defs>
                                             <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
@@ -1023,7 +1023,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         />
                                         <Area type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorStock)" dot={false} />
                                     </AreaChart>
-                                </ResponsiveContainer>
+                                    </SafeResponsiveContainer>
                                 )}
                             </div>
                         </div>
@@ -1167,7 +1167,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                 {t('dashboard.stock_distribution')}
                             </h3>
                             <div className="h-[200px] w-full">
-                                <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={180}>
+                                    <SafeResponsiveContainer width="100%" height={200} minWidth={0} minHeight={180}>
                                     <RePieChart>
                                         <Pie
                                             data={Array.isArray(stats?.stock_by_category) ? stats.stock_by_category : []}
@@ -1182,7 +1182,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         </Pie>
                                         <ReTooltip />
                                     </RePieChart>
-                                </ResponsiveContainer>
+                                    </SafeResponsiveContainer>
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-2">
                                 {(Array.isArray(stats?.stock_by_category) ? stats.stock_by_category : []).slice(0, 4).map((cat: any, i: number) => (

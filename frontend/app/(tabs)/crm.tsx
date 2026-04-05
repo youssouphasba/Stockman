@@ -103,6 +103,8 @@ export default function CRMScreen() {
     const [promoList, setPromoList] = useState<Promotion[]>([]);
     const [loyaltySettings, setLoyaltySettings] = useState<LoyaltySettings | null>(null);
     const [loading, setLoading] = useState(true);
+    const lastLoadedAtRef = useRef(0);
+    const FOCUS_TTL_MS = 60_000;
     const [refreshing, setRefreshing] = useState(false);
     const [savingSettings, setSavingSettings] = useState(false);
     const [accessDenied, setAccessDenied] = useState(false);
@@ -197,6 +199,7 @@ export default function CRMScreen() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+            lastLoadedAtRef.current = Date.now();
         }
     }, [sortBy]);
 
@@ -257,11 +260,10 @@ export default function CRMScreen() {
     };
     useFocusEffect(
         useCallback(() => {
+            if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;
             loadData();
         }, [loadData])
     );
-
-    useEffect(() => { loadData(); }, []);
 
     const onRefresh = () => {
         setRefreshing(true);

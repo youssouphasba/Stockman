@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -108,6 +108,8 @@ export default function AccountingScreen() {
     const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const lastLoadedAtRef = useRef(0);
+    const FOCUS_TTL_MS = 60_000;
 
     const [selectedPeriod, setSelectedPeriod] = useState<number | 'custom'>(30);
     const [startDate, setStartDate] = useState<string>('');
@@ -178,11 +180,13 @@ export default function AccountingScreen() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+            lastLoadedAtRef.current = Date.now();
         }
     }, [user?.active_store_id]);
 
     useFocusEffect(
         useCallback(() => {
+            if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;
             loadData(selectedPeriod, appliedStart, appliedEnd);
         }, [loadData, selectedPeriod, appliedStart, appliedEnd])
     );

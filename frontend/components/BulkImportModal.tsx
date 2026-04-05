@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { products as productsApi } from '../services/api';
+import { ProductImportJob, products as productsApi } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import StepProgressBar from './StepProgressBar';
@@ -22,6 +22,7 @@ interface BulkImportModalProps {
     visible: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    onJobUpdate?: (job: ProductImportJob | null) => void;
 }
 
 const REQUIRED_FIELDS = [
@@ -40,7 +41,7 @@ const OPTIONAL_FIELDS = [
     { key: 'location', labelKey: 'settings_workspace.stores.locations.title' },
 ];
 
-export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImportModalProps) {
+export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpdate }: BulkImportModalProps) {
     const { t } = useTranslation();
     const { colors, glassStyle } = useTheme();
     const styles = getStyles(colors, glassStyle);
@@ -52,6 +53,62 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
     const [mapping, setMapping] = useState<Record<string, string>>({});
     const [rawData, setRawData] = useState<any[]>([]);
     const [importSummary, setImportSummary] = useState<{ count: number; errors?: any[] } | null>(null);
+    const [importJob, setImportJob] = useState<ProductImportJob | null>(null);
+    const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (!visible) return;
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const response = await productsApi.getActiveImportJob();
+                if (!cancelled && response.job) {
+                    setImportJob(response.job);
+                    onJobUpdate?.(response.job);
+                    if (response.job.status === 'completed') {
+                        setImportSummary({ count: response.job.inserted_count, errors: response.job.errors });
+                    }
+                    setStep(3);
+                }
+            } catch (err) {
+                console.error('Active import job lookup error:', err);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [visible, onJobUpdate]);
+
+    useEffect(() => {
+        if (!visible || step !== 3 || !importJob?.job_id) return;
+        if (importJob.status === 'completed' || importJob.status === 'failed') return;
+
+        if (pollRef.current) {
+            clearTimeout(pollRef.current);
+        }
+
+        pollRef.current = setTimeout(async () => {
+            try {
+                const freshJob = await productsApi.getImportJob(importJob.job_id);
+                setImportJob(freshJob);
+                onJobUpdate?.(freshJob);
+                if (freshJob.status === 'completed') {
+                    setImportSummary({ count: freshJob.inserted_count, errors: freshJob.errors });
+                }
+            } catch (err) {
+                console.error('Import job polling error:', err);
+            }
+        }, 1500);
+
+        return () => {
+            if (pollRef.current) {
+                clearTimeout(pollRef.current);
+                pollRef.current = null;
+            }
+        };
+    }, [importJob, onJobUpdate, step, visible]);
 
     const confirmDiscardChanges = (onConfirm: () => void) => {
         Alert.alert(
@@ -145,11 +202,13 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
     async function handleFinalImport() {
         setLoading(true);
         try {
-            const result = await productsApi.confirmImport({
+            const job = await productsApi.confirmImport({
                 importData: rawData,
                 mapping: mapping,
+                fileName: file?.assets?.[0]?.name,
             });
-            setImportSummary({ count: result.count, errors: (result as any).errors });
+            setImportJob(job);
+            onJobUpdate?.(job);
             setStep(3);
         } catch (err) {
             console.error('Import error:', err);
@@ -159,13 +218,34 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
         }
     }
 
+    async function handleResumeImport() {
+        if (!importJob?.job_id) return;
+        setLoading(true);
+        try {
+            const resumedJob = await productsApi.resumeImportJob(importJob.job_id);
+            setImportJob(resumedJob);
+            onJobUpdate?.(resumedJob);
+        } catch (err) {
+            console.error('Resume import error:', err);
+            Alert.alert(t('common.error'), t('bulk_import.error_import_failed'));
+        } finally {
+            setLoading(false);
+        }
+    }
+
     function reset() {
+        if (pollRef.current) {
+            clearTimeout(pollRef.current);
+            pollRef.current = null;
+        }
         setStep(0);
         setFile(null);
         setHeaders([]);
         setMapping({});
         setRawData([]);
         setImportSummary(null);
+        setImportJob(null);
+        onJobUpdate?.(null);
     }
 
     function handleClose() {
@@ -304,6 +384,48 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
                     </ScrollView>
                 );
             case 3:
+                if (importJob?.status !== 'completed') {
+                    const progress = Math.max(0, Math.min(100, importJob?.progress_pct || 0));
+                    return (
+                        <View style={styles.stepContent}>
+                            <Ionicons
+                                name={importJob?.status === 'failed' ? 'alert-circle-outline' : 'cloud-upload-outline'}
+                                size={64}
+                                color={importJob?.status === 'failed' ? colors.danger : colors.primary}
+                            />
+                            <Text style={styles.stepTitle}>
+                                {importJob?.status === 'failed'
+                                    ? t('bulk_import.processing_failed_title')
+                                    : t('bulk_import.processing_title')}
+                            </Text>
+                            <Text style={styles.stepDesc}>
+                                {importJob?.status === 'failed'
+                                    ? (importJob.last_error || t('bulk_import.processing_failed_desc'))
+                                    : t('bulk_import.processing_desc', {
+                                        processed: importJob?.processed_rows || 0,
+                                        total: importJob?.total_rows || 0,
+                                    })}
+                            </Text>
+                            <View style={styles.progressCard}>
+                                <View style={styles.progressBarTrack}>
+                                    <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
+                                </View>
+                                <Text style={styles.progressMeta}>
+                                    {t('bulk_import.processing_meta', {
+                                        progress: Math.round(progress),
+                                        inserted: importJob?.inserted_count || 0,
+                                        errors: importJob?.error_count || 0,
+                                    })}
+                                </Text>
+                            </View>
+                            {importJob?.status === 'failed' && importJob?.can_resume && (
+                                <TouchableOpacity style={styles.primaryBtn} onPress={handleResumeImport} disabled={loading}>
+                                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('bulk_import.resume_import')}</Text>}
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    );
+                }
                 return (
                     <View style={styles.stepContent}>
                         <View style={styles.successCircle}>
@@ -311,7 +433,7 @@ export default function BulkImportModal({ visible, onClose, onSuccess }: BulkImp
                         </View>
                         <Text style={styles.stepTitle}>{t('bulk_import.success_title')}</Text>
                         <Text style={styles.stepDesc}>
-                            {t('bulk_import.success_desc', { count: importSummary?.count || 0 })}
+                            {t('bulk_import.success_desc', { count: importSummary?.count || importJob?.inserted_count || 0 })}
                         </Text>
                         <TouchableOpacity
                             style={styles.primaryBtn}
@@ -506,6 +628,31 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         color: colors.text,
         fontSize: FontSize.md,
         marginBottom: Spacing.xs,
+    },
+    progressCard: {
+        width: '100%',
+        padding: Spacing.lg,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: BorderRadius.md,
+        marginBottom: Spacing.lg,
+    },
+    progressBarTrack: {
+        width: '100%',
+        height: 10,
+        borderRadius: 999,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+        marginBottom: Spacing.md,
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 999,
+        backgroundColor: colors.primary,
+    },
+    progressMeta: {
+        color: colors.textSecondary,
+        fontSize: FontSize.sm,
+        textAlign: 'center',
     },
     successCircle: {
         width: 80,

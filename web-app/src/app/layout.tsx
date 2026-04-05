@@ -3,7 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import OfflineBanner from "../components/OfflineBanner";
 import ServiceWorkerRegistration from "../components/ServiceWorkerRegistration";
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@vercel/analytics/react";
 
 export const viewport: Viewport = {
   width: "device-width",

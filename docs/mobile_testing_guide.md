@@ -69,3 +69,17 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 - Depuis Parametres, l'ouverture des CGU ou de la politique de confidentialite doit permettre un retour simple vers Parametres.
 - Les sauvegardes dans Parametres doivent afficher une confirmation visuelle dans l'ecran apres mise a jour.
 - Dans Produits, la barre d'actions de selection en bas doit rester lisible sur fond sombre, notamment pour "Tout selectionner" et la suppression.
+
+## 8. Enregistrement vocal et conformite iOS
+
+- Le demarrage de l'enregistrement vocal (POS et support IA) attend maintenant explicitement le lancement du recorder avant de marquer l'etat "en cours".
+- A l'arret, l'application attend la disponibilite du fichier audio avant de tenter la transcription. Cela evite l'erreur "Aucun enregistrement vocal exploitable n'a ete detecte" quand l'URI arrive avec un leger delai.
+- La configuration iOS supprime explicitement `UIBackgroundModes.audio` au build. L'application ne revendique plus la lecture audio en arriere-plan si aucune fonction metier ne la necessite.
+
+## 9. Encodage des textes (anti-caracteres corrompus)
+
+- Le backend applique maintenant une normalisation automatique des reponses JSON pour corriger les chaines mojibake (exemples: `ÃƒÂ©`, `Ã¢â‚¬â€`) avant affichage.
+- Ce correctif cible notamment les rappels intelligents et les textes dashboard renvoyes par API.
+- Verification recommandee apres deploiement:
+- Ouvrir Dashboard puis Alertes sur mobile.
+- Verifier que les accents s'affichent correctement (exemples: "Vérification", "dépenses", "à", "é").

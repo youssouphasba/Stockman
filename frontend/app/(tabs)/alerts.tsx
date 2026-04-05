@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -126,6 +126,8 @@ export default function AlertsScreen() {
   }
   const [alertList, setAlertList] = useState<AlertData[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastLoadedAtRef = useRef(0);
+  const FOCUS_TTL_MS = 60_000;
   const [refreshing, setRefreshing] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const { isFirstVisit, markSeen } = useFirstVisit('alerts');
@@ -190,11 +192,13 @@ export default function AlertsScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      lastLoadedAtRef.current = Date.now();
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
+      if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;
       loadData();
     }, [loadData])
   );

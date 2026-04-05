@@ -209,12 +209,12 @@ export default function Subscription() {
 
     const subscriptionSteps: GuideStep[] = [
         {
-            title: "R?le de cet ?cran",
-            content: "Cet ?cran vous permet de suivre votre formule, votre statut d'acc?s, votre devise de facturation et le bon canal de paiement. C'est l'endroit ? consulter avant un renouvellement, un changement de formule ou un contr?le de facturation.",
+            title: "Rôle de cet écran",
+            content: "Cet écran vous permet de suivre votre formule, votre statut d'accès, votre devise de facturation et le bon canal de paiement. C'est l'endroit à consulter avant un renouvellement, un changement de formule ou un contrôle de facturation.",
         },
         {
             title: 'Comprendre votre statut actuel',
-            content: "Le grand bloc du haut vous indique si votre abonnement est actif, s'il arrive ? ?ch?ance ou si une continuit? d'activit? est en cours. Commencez toujours ici pour savoir si vous devez agir imm?diatement ou non.",
+            content: "Le grand bloc du haut vous indique si votre abonnement est actif, s'il arrive à échéance ou si une continuité d'activité est en cours. Commencez toujours ici pour savoir si vous devez agir immédiatement ou non.",
             details: [
                 { label: 'Plan actuel', description: "Affiche la formule active sur votre compte pour ?viter toute confusion avant un paiement.", type: 'card' },
                 { label: 'Dates importantes', description: "Montre les ?ch?ances de fin de p?riode, de gr?ce ou de passage en lecture seule quand elles existent.", type: 'info' },
@@ -362,7 +362,7 @@ export default function Subscription() {
                             <AlertCircle size={22} />
                         </div>
                         <div>
-                            <h3 className="text-lg font-black text-white mb-2">Continuit? d&apos;activit? activ?e</h3>
+                            <h3 className="text-lg font-black text-white mb-2">Continuité d&apos;activité activée</h3>
                             <p className="text-sm text-slate-300 leading-relaxed">
                                 Votre compte est actuellement en phase <strong className="text-white capitalize">{accessPhase}</strong>.
                                 Vous pouvez toujours regulariser l&apos;abonnement sans perdre vos donnees.

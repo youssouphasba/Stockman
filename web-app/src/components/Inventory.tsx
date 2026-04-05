@@ -163,6 +163,7 @@ export default function Inventory() {
     const [duplicatesData, setDuplicatesData] = useState<any>(null);
     const [showDuplicates, setShowDuplicates] = useState(false);
     const [duplicateActionKey, setDuplicateActionKey] = useState<string | null>(null);
+    const [duplicatesBlockedUntil, setDuplicatesBlockedUntil] = useState<number>(0);
     const hasHydratedUserRef = useRef(false);
     const aiInsightsRequestKeyRef = useRef<string>('');
     const aiInsightsFailureAtRef = useRef<number>(0);
@@ -408,6 +409,7 @@ export default function Inventory() {
             const shouldRunDuplicateDetection = (() => {
                 if (typeof window === 'undefined') return true;
                 const blockedUntil = Number(window.localStorage.getItem(DUPLICATES_BLOCK_KEY) || '0');
+                setDuplicatesBlockedUntil(blockedUntil);
                 return Date.now() >= blockedUntil;
             })();
 
@@ -442,12 +444,16 @@ export default function Inventory() {
                 }
                 if (dupsRes.status === 'fulfilled') {
                     setDuplicatesData(dupsRes.value);
+                    if (dupsRes.value?.blocked_until) {
+                        setDuplicatesBlockedUntil(Number(dupsRes.value.blocked_until) || 0);
+                    }
                 } else {
                     aiInsightsFailureAtRef.current = Date.now();
                     const err = dupsRes.reason;
                     if (err instanceof ApiError && err.status === 429 && typeof window !== 'undefined') {
                         const blockedUntil = Date.now() + (12 * 60 * 60 * 1000);
                         window.localStorage.setItem(DUPLICATES_BLOCK_KEY, String(blockedUntil));
+                        setDuplicatesBlockedUntil(blockedUntil);
                     }
                 }
             });
@@ -1403,6 +1409,13 @@ export default function Inventory() {
             )}
 
             {/* Duplicates Banner */}
+            {duplicatesBlockedUntil > Date.now() && (
+                <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+                    <p className="text-amber-200 text-xs">
+                        La vérification des doublons est temporairement suspendue car le quota mensuel IA est atteint.
+                    </p>
+                </div>
+            )}
             {duplicatesData && duplicatesData.total_found > 0 && (
                 <div className="mb-6 p-4 bg-violet-500/10 border border-violet-500/30 rounded-2xl">
                     <div className="flex items-start justify-between gap-4">

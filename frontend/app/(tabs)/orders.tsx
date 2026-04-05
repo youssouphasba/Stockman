@@ -80,6 +80,8 @@ export default function OrdersScreen() {
   const [currentStore, setCurrentStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const lastLoadedAtRef = useRef(0);
+  const FOCUS_TTL_MS = 60_000;
   const [showGuide, setShowGuide] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const { isFirstVisit, markSeen } = useFirstVisit('orders');
@@ -244,6 +246,7 @@ export default function OrdersScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      lastLoadedAtRef.current = Date.now();
     }
   }, [statusFilter, supplierFilter, selectedPeriod, appliedStart, appliedEnd]);
 
@@ -291,6 +294,7 @@ export default function OrdersScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;
       loadData();
       loadSuppliers();
       loadReturns();

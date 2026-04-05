@@ -10,12 +10,12 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    ResponsiveContainer,
     BarChart,
     Bar
 } from 'recharts';
 import { stock as stockApi, products as productsApi, sales as salesApi } from '../services/api';
 import Modal from './Modal';
+import SafeResponsiveContainer from './charts/SafeResponsiveContainer';
 
 interface ProductHistoryModalProps {
     isOpen: boolean;
@@ -152,7 +152,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                     <Package size={18} className="text-primary" />
                                     Mouvements de stock (30j)
                                 </h3>
-                                <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={220}>
+                                <SafeResponsiveContainer width="100%" height={280} minWidth={0} minHeight={220}>
                                     <AreaChart data={(movements || []).filter((m: any) => m?.created_at != null)}>
                                         <defs>
                                             <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
@@ -177,7 +177,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                         />
                                         <Area type="monotone" dataKey="new_quantity" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorStock)" />
                                     </AreaChart>
-                                </ResponsiveContainer>
+                                </SafeResponsiveContainer>
                             </div>
                         ) : tab === 'price' ? (
                             <div className="glass-card p-4 md:p-6 h-[280px] md:h-[400px]">
@@ -185,7 +185,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                     <DollarSign size={18} className="text-emerald-500" />
                                     Historique des prix
                                 </h3>
-                                <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={220}>
+                                <SafeResponsiveContainer width="100%" height={280} minWidth={0} minHeight={220}>
                                     <BarChart data={(priceHistory || []).filter((p: any) => p?.recorded_at != null)}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
                                         <XAxis
@@ -205,7 +205,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                         <Bar dataKey="selling_price" fill="#10B981" radius={[4, 4, 0, 0]} />
                                         <Bar dataKey="purchase_price" fill="#6366f1" radius={[4, 4, 0, 0]} />
                                     </BarChart>
-                                </ResponsiveContainer>
+                                </SafeResponsiveContainer>
                             </div>
                         ) : (
                             <div className="glass-card p-4 md:p-6 mb-8">

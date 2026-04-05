@@ -104,6 +104,7 @@ Le web app prend maintenant en charge un mode hors ligne elargi sur cet ecran.
 | Quelle difference entre fournisseur manuel et marketplace ? | Manuel : vous creez la fiche vous-meme. Marketplace : le fournisseur vient du reseau B2B Stockman. |
 | Comment savoir si une commande n'est pas encore envoyee au serveur ? | Elle porte un badge **En attente** et un bandeau de synchronisation peut apparaitre dans l'ecran. |
 | Le score fiabilite est-il automatique ? | Oui, il depend des donnees disponibles sur les delais, livraisons et completude. |
+| Pourquoi la detection de doublons peut etre suspendue ? | Quand le quota IA mensuel est atteint, la detection de doublons se met en pause et un message d'information apparait dans l'ecran. |
 
 ## 11. Guide rapide integre
 

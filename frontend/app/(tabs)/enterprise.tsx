@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useMemo, useState } from 'react';
+﻿import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -72,6 +72,8 @@ export default function EnterpriseScreen() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const lastLoadedAtRef = useRef(0);
+  const FOCUS_TTL_MS = 60_000;
   const [comparison, setComparison] = useState<AnalyticsStoreComparison | null>(null);
   const [storeList, setStoreList] = useState<Store[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -107,11 +109,13 @@ export default function EnterpriseScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      lastLoadedAtRef.current = Date.now();
     }
   }, [hasEnterprisePlan, isOrgAdmin]);
 
   useFocusEffect(
     useCallback(() => {
+      if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;
       setLoading(true);
       void loadData();
     }, [loadData]),
