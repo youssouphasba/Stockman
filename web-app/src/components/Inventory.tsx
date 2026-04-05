@@ -1,6 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useMemo, useRef } from 'react';
 import {
     Search,
     Filter,
@@ -74,6 +73,10 @@ export default function Inventory() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
+    const [productsTotal, setProductsTotal] = useState(0);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const WEB_PRODUCTS_PAGE_SIZE = 100;
 
     // Modal & Form State
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -284,7 +287,7 @@ export default function Inventory() {
         handleOpenEditModal(product);
     };
 
-    const fetchProducts = useCallback(async (locationFilter?: string) => {
+    const fetchProducts = useCallback(async (locationFilter?: string, searchQuery?: string) => {
         const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
         setLoading(true);
         setError(null);
@@ -293,9 +296,10 @@ export default function Inventory() {
                 ? (locationFilter || undefined)
                 : (selectedLocation || undefined);
             const offlineLocationKey = locationFilter !== undefined ? locationFilter : selectedLocation;
+            const resolvedSearch = searchQuery !== undefined ? searchQuery : search;
             let partialError = false;
             const [prodsRes, catsRes, locsRes, suppliersRes, linksRes] = await Promise.allSettled([
-                productsApi.list(undefined, 0, 500, resolvedLocation),
+                productsApi.list(undefined, 0, WEB_PRODUCTS_PAGE_SIZE, resolvedLocation, undefined, resolvedSearch || undefined),
                 categoriesApi.list(),
                 hasEnterpriseLocations ? locationsApi.list() : Promise.resolve([]),
                 suppliersApi.list(),
@@ -311,6 +315,7 @@ export default function Inventory() {
                 offlineLocationKey || '',
             );
             setProducts(sanitizeRows<any>(merged.products));
+            setProductsTotal(prodsRes.value.total || 0);
             setPendingInventorySummary(merged.summary);
 
             if (catsRes.status === 'fulfilled') {
@@ -371,7 +376,27 @@ export default function Inventory() {
             }
             setLoading(false);
         }
-    }, [currentUser?.role, hasEnterpriseLocations, isPerfEnabled, selectedLocation, t]);
+    }, [currentUser?.role, hasEnterpriseLocations, isPerfEnabled, search, selectedLocation, t]);
+
+    const loadMoreProducts = useCallback(async () => {
+        if (loadingMore) return;
+        setLoadingMore(true);
+        try {
+            const resolvedLocation = selectedLocation || undefined;
+            const res = await productsApi.list(undefined, products.length, WEB_PRODUCTS_PAGE_SIZE, resolvedLocation, undefined, search || undefined);
+            const newItems = sanitizeRows<any>(res.items || []);
+            setProducts(prev => {
+                const existingIds = new Set(prev.map((p: any) => p.product_id));
+                const unique = newItems.filter((p: any) => !existingIds.has(p.product_id));
+                return [...prev, ...unique];
+            });
+            setProductsTotal(res.total || 0);
+        } catch (err) {
+            console.error('Error loading more products', err);
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [loadingMore, products.length, search, selectedLocation]);
 
     const loadStockHealth = useCallback(async () => {
         setStockHealthLoading(true);
@@ -1056,13 +1081,7 @@ export default function Inventory() {
     }), [safeProducts, supplierLinksByProduct]);
 
     const filteredProducts = useMemo(() => {
-        const searchValue = search.toLowerCase();
         return safeProducts.filter((p) => {
-            const matchesSearch =
-                (p.name || '').toLowerCase().includes(searchValue) ||
-                p.sku.toLowerCase().includes(searchValue);
-            if (!matchesSearch) return false;
-
             const links = supplierLinksByProduct[p.product_id] || [];
             if (supplierCoverageFilter === 'all') return true;
             if (supplierCoverageFilter === 'no_supplier') return links.length === 0;
@@ -1070,7 +1089,7 @@ export default function Inventory() {
             if (supplierCoverageFilter === 'missing_primary') return links.length > 0 && !links.some((link) => link.is_preferred);
             return true;
         });
-    }, [safeProducts, search, supplierCoverageFilter, supplierLinksByProduct]);
+    }, [safeProducts, supplierCoverageFilter, supplierLinksByProduct]);
 
     if (loading && safeProducts.length === 0 && !error) {
         return (
@@ -1187,7 +1206,7 @@ export default function Inventory() {
             <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8 md:mb-10">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{t('common.stock')}</h1>
-                    <p className="text-slate-400">{t('catalog.product_count', { count: filteredProducts.length })}</p>
+                    <p className="text-slate-400">{t('catalog.product_count', { count: productsTotal })}</p>
                     {error && (
                         <div className="mt-4 inline-flex max-w-2xl flex-wrap items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-200">
                             <AlertCircle size={14} />
@@ -1502,7 +1521,14 @@ export default function Inventory() {
                         type="text"
                         placeholder={t('catalog.search_placeholder')}
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setSearch(val);
+                            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                            searchDebounceRef.current = setTimeout(() => {
+                                void fetchProducts(undefined, val);
+                            }, 400);
+                        }}
                         className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                     />
                 </div>
@@ -1794,6 +1820,28 @@ export default function Inventory() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Load More */}
+            {products.length < productsTotal && (
+                <div className="flex justify-center mt-6">
+                    <button
+                        onClick={() => void loadMoreProducts()}
+                        disabled={loadingMore}
+                        className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                    >
+                        {loadingMore
+                            ? t('products.loading_more', 'Chargement...')
+                            : t('products.load_more', { defaultValue: 'Charger plus ({{loaded}} / {{total}})', loaded: products.length, total: productsTotal })}
+                    </button>
+                </div>
+            )}
+            {products.length > 0 && products.length >= productsTotal && (
+                <p className="text-center text-slate-500 text-sm mt-4">
+                    {search
+                        ? t('products.all_search_results_loaded', { defaultValue: '{{count}} résultat(s) affiché(s)', count: products.length })
+                        : t('products.all_products_loaded', { defaultValue: 'Tous les produits affichés ({{total}})', total: productsTotal })}
+                </p>
+            )}
 
             {/* Stock Movement Modal */}
             <Modal

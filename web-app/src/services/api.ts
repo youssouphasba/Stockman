@@ -1628,11 +1628,12 @@ export const auth = {
 };
 
 export const products = {
-    list: (categoryId?: string, skip = 0, limit = 50, locationId?: string, isMenuItem?: boolean) => {
+    list: (categoryId?: string, skip = 0, limit = 50, locationId?: string, isMenuItem?: boolean, search?: string) => {
         const qs = new URLSearchParams();
         if (categoryId) qs.set('category_id', categoryId);
         if (locationId) qs.set('location_id', locationId);
         if (typeof isMenuItem === 'boolean') qs.set('is_menu_item', String(isMenuItem));
+        if (search) qs.set('search', search);
         qs.set('skip', skip.toString());
         qs.set('limit', limit.toString());
         return request<any>(`/products?${qs.toString()}`);
