@@ -50,7 +50,8 @@ export const cache = {
 
     async clear(): Promise<void> {
         try {
-            await AsyncStorage.clear();
+            const cacheKeys = Object.values(KEYS);
+            await AsyncStorage.multiRemove(cacheKeys);
         } catch (e) {
             console.error('Cache clear error', e);
         }
