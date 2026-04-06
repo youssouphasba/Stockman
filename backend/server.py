@@ -20172,28 +20172,45 @@ async def get_dashboard(user: User = Depends(require_operational_access)):
     ]
     top_selling_today = await db.sales.aggregate(top_today_pipeline).to_list(3)
 
-    return {
-        "total_products": total_products,
-        "total_stock_value": round(total_value, 2),
-        "potential_revenue": round(selling_value, 2),
-        "critical_count": len(critical_products),
-        "overstock_count": len(overstock_products),
-        "low_stock_count": len(low_stock_products),
-        "out_of_stock_count": len(out_of_stock_products),
-        "unread_alerts": len(alerts),
-        "critical_products": critical_products[:5],
-        "overstock_products": overstock_products[:5],
-        "recent_alerts": alerts[:5],
-        "recent_sales": recent_sales,
-        "today_revenue": round(today_revenue, 0),
-        "yesterday_revenue": round(yesterday_revenue, 0),
-        "month_revenue": round(month_revenue, 0),
-        "today_sales_count": len(today_sales),
-        "yesterday_sales_count": len(yesterday_sales),
-        "top_selling_today": top_selling_today,
-        "today_tax": round(today_tax, 0),
-        "month_tax": round(month_tax, 0),
+    # Filter dashboard data by user permissions
+    user_perms = user.effective_permissions or user.permissions or {}
+    is_admin = user.role in ("shopkeeper", "superadmin") or "org_admin" in (user.account_roles or [])
+    has_stock = is_admin or user_perms.get("stock_management", user_perms.get("stock", "none")) != "none"
+    has_pos = is_admin or user_perms.get("pos", "none") != "none"
+    has_accounting = is_admin or user_perms.get("accounting", "none") != "none"
+
+    result: dict = {
+        "today_sales_count": len(today_sales) if (has_pos or has_accounting) else None,
+        "yesterday_sales_count": len(yesterday_sales) if (has_pos or has_accounting) else None,
+        "top_selling_today": top_selling_today if has_pos else [],
+        "recent_sales": recent_sales if has_pos else [],
     }
+
+    if has_pos or has_accounting:
+        result["today_revenue"] = round(today_revenue, 0)
+        result["yesterday_revenue"] = round(yesterday_revenue, 0)
+        result["month_revenue"] = round(month_revenue, 0)
+
+    if has_stock:
+        result["total_products"] = total_products
+        result["total_stock_value"] = round(total_value, 2)
+        result["potential_revenue"] = round(selling_value, 2)
+        result["critical_count"] = len(critical_products)
+        result["overstock_count"] = len(overstock_products)
+        result["low_stock_count"] = len(low_stock_products)
+        result["out_of_stock_count"] = len(out_of_stock_products)
+        result["critical_products"] = critical_products[:5]
+        result["overstock_products"] = overstock_products[:5]
+
+    if has_stock or has_accounting:
+        result["unread_alerts"] = len(alerts)
+        result["recent_alerts"] = alerts[:5]
+
+    if has_accounting:
+        result["today_tax"] = round(today_tax, 0)
+        result["month_tax"] = round(month_tax, 0)
+
+    return result
 
 # ===================== SUPPLIER ROUTES =====================
 
