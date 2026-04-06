@@ -54,12 +54,12 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   minimum_severity_for_email: 'critical' as 'info' | 'warning' | 'critical',
 };
 
-const NOTIFICATION_CONTACT_FIELDS: { key: keyof typeof DEFAULT_NOTIFICATION_CONTACTS; label: string; placeholder: string }[] = [
+const NOTIFICATION_CONTACT_FIELDS: { key: keyof typeof DEFAULT_NOTIFICATION_CONTACTS; label: string; placeholder: string; requiredModule?: string }[] = [
   { key: 'default', label: 'Par défaut', placeholder: 'direction@entreprise.com' },
-  { key: 'stock', label: 'Stock', placeholder: 'stock@entreprise.com' },
-  { key: 'procurement', label: 'Appro', placeholder: 'appro@entreprise.com' },
-  { key: 'finance', label: 'Finance', placeholder: 'finance@entreprise.com' },
-  { key: 'crm', label: 'CRM', placeholder: 'crm@entreprise.com' },
+  { key: 'stock', label: 'Stock', placeholder: 'stock@entreprise.com', requiredModule: 'stock_management' },
+  { key: 'procurement', label: 'Appro', placeholder: 'appro@entreprise.com', requiredModule: 'suppliers' },
+  { key: 'finance', label: 'Finance', placeholder: 'finance@entreprise.com', requiredModule: 'accounting' },
+  { key: 'crm', label: 'CRM', placeholder: 'crm@entreprise.com', requiredModule: 'crm' },
   { key: 'operations', label: 'Opérations', placeholder: 'ops@entreprise.com' },
   { key: 'billing', label: 'Facturation', placeholder: 'billing@entreprise.com' },
 ];
@@ -717,118 +717,6 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </SettingsAccordionSection>
 
-        <SettingsAccordionSection
-          title="Notifications personnelles"
-          description="Canaux d'alerte, seuils de sévérité et préférences de diffusion."
-          icon="notifications-outline"
-          accentColor={colors.info}
-          expanded={expandedSections.notifications}
-          onToggle={() => toggleSection('notifications')}
-          styles={styles}
-          colors={colors}
-        >
-          <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
-            Choisissez comment vous souhaitez recevoir les alertes importantes sur votre profil.
-          </Text>
-
-          {[
-            { key: 'in_app', label: "Dans l'application", desc: "Toujours visibles dans le centre d'alertes." },
-            { key: 'push', label: 'Push mobile', desc: 'Notification push sur votre appareil.' },
-            { key: 'email', label: 'E-mail', desc: 'Copie envoyée sur votre adresse utilisateur.' },
-          ].map((item, index, array) => (
-            <View
-              key={item.key}
-              style={[
-                styles.settingRow,
-                index === array.length - 1 && { borderBottomWidth: 0 },
-              ]}
-            >
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>{item.label}</Text>
-                <Text style={styles.settingDesc}>{item.desc}</Text>
-              </View>
-              <Switch
-                value={Boolean(notificationPreferences[item.key as keyof typeof notificationPreferences])}
-                onValueChange={(value) =>
-                  setNotificationPreferences((current) => ({
-                    ...current,
-                    [item.key]: value,
-                  }))
-                }
-                trackColor={{ false: colors.divider, true: colors.primary + '60' }}
-                thumbColor={Boolean(notificationPreferences[item.key as keyof typeof notificationPreferences]) ? colors.primary : colors.textMuted}
-              />
-            </View>
-          ))}
-
-          <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
-            <Text style={styles.settingLabel}>Sévérité minimale pour les push</Text>
-            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-              {(['info', 'warning', 'critical'] as const).map((severity) => (
-                <TouchableOpacity
-                  key={severity}
-                  style={[
-                    styles.syncButton,
-                    {
-                      flex: 1,
-                      backgroundColor: notificationPreferences.minimum_severity_for_push === severity ? colors.primary + '20' : 'transparent',
-                      borderColor: notificationPreferences.minimum_severity_for_push === severity ? colors.primary : colors.divider,
-                    },
-                  ]}
-                  onPress={() =>
-                    setNotificationPreferences((current) => ({
-                      ...current,
-                      minimum_severity_for_push: severity,
-                    }))
-                  }
-                >
-                  <Text style={{ color: notificationPreferences.minimum_severity_for_push === severity ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
-                    {severity === 'info' ? 'Info' : severity === 'warning' ? 'Alerte' : 'Critique'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
-            <Text style={styles.settingLabel}>Sévérité minimale pour les e-mails</Text>
-            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-              {(['info', 'warning', 'critical'] as const).map((severity) => (
-                <TouchableOpacity
-                  key={severity}
-                  style={[
-                    styles.syncButton,
-                    {
-                      flex: 1,
-                      backgroundColor: notificationPreferences.minimum_severity_for_email === severity ? colors.primary + '20' : 'transparent',
-                      borderColor: notificationPreferences.minimum_severity_for_email === severity ? colors.primary : colors.divider,
-                    },
-                  ]}
-                  onPress={() =>
-                    setNotificationPreferences((current) => ({
-                      ...current,
-                      minimum_severity_for_email: severity,
-                    }))
-                  }
-                >
-                  <Text style={{ color: notificationPreferences.minimum_severity_for_email === severity ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
-                    {severity === 'info' ? 'Info' : severity === 'warning' ? 'Alerte' : 'Critique'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
-            onPress={saveNotificationPreferences}
-          >
-            <Ionicons name="save-outline" size={18} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer mes notifications
-            </Text>
-          </TouchableOpacity>
-        </SettingsAccordionSection>
         </SettingsAccordionSection>
 
         {canViewOrganizationGroup && (
@@ -1088,8 +976,8 @@ export default function SettingsScreen() {
         )}
 
         <SettingsAccordionSection
-          title="Alertes, rappels et facturation"
-          description="Préférences d'alerte, routage des e-mails, automatisations et abonnement."
+          title="Alertes & Notifications"
+          description="Canaux de réception, seuils de sévérité et destinataires e-mail."
           icon="notifications-outline"
           accentColor={colors.warning}
           expanded={expandedSections.alertsGroup}
@@ -1097,10 +985,129 @@ export default function SettingsScreen() {
           styles={styles}
           colors={colors}
         >
+
+        {/* ── 1. Canaux de réception ── */}
+        <SettingsAccordionSection
+          title="Canaux de réception"
+          description="Comment recevez-vous les alertes ?"
+          icon="megaphone-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.notifications}
+          onToggle={() => toggleSection('notifications')}
+          styles={styles}
+          colors={colors}
+          variant="nested"
+        >
+          <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
+            Activez les canaux sur lesquels vous souhaitez recevoir les alertes (rupture de stock, stock bas, rappels, etc.).
+          </Text>
+
+          {[
+            { key: 'in_app', label: "Dans l'application", desc: "Visibles dans le centre d'alertes de l'app." },
+            { key: 'push', label: 'Push mobile', desc: 'Notification sur votre téléphone même si l\'app est fermée.' },
+            { key: 'email', label: 'E-mail', desc: 'Envoyé aux destinataires configurés ci-dessous (ou à votre adresse par défaut).' },
+          ].map((item, index, array) => (
+            <View
+              key={item.key}
+              style={[
+                styles.settingRow,
+                index === array.length - 1 && { borderBottomWidth: 0 },
+              ]}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingLabel}>{item.label}</Text>
+                <Text style={styles.settingDesc}>{item.desc}</Text>
+              </View>
+              <Switch
+                value={Boolean(notificationPreferences[item.key as keyof typeof notificationPreferences])}
+                onValueChange={(value) =>
+                  setNotificationPreferences((current) => ({
+                    ...current,
+                    [item.key]: value,
+                  }))
+                }
+                trackColor={{ false: colors.divider, true: colors.primary + '60' }}
+                thumbColor={Boolean(notificationPreferences[item.key as keyof typeof notificationPreferences]) ? colors.primary : colors.textMuted}
+              />
+            </View>
+          ))}
+
+          <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
+            <Text style={styles.settingLabel}>Sévérité minimale pour les push</Text>
+            <Text style={[styles.settingDesc, { marginBottom: Spacing.xs }]}>Vous ne recevrez un push que si l'alerte atteint ce niveau.</Text>
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              {(['info', 'warning', 'critical'] as const).map((severity) => (
+                <TouchableOpacity
+                  key={severity}
+                  style={[
+                    styles.syncButton,
+                    {
+                      flex: 1,
+                      backgroundColor: notificationPreferences.minimum_severity_for_push === severity ? colors.primary + '20' : 'transparent',
+                      borderColor: notificationPreferences.minimum_severity_for_push === severity ? colors.primary : colors.divider,
+                    },
+                  ]}
+                  onPress={() =>
+                    setNotificationPreferences((current) => ({
+                      ...current,
+                      minimum_severity_for_push: severity,
+                    }))
+                  }
+                >
+                  <Text style={{ color: notificationPreferences.minimum_severity_for_push === severity ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                    {severity === 'info' ? 'Info' : severity === 'warning' ? 'Alerte' : 'Critique'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
+            <Text style={styles.settingLabel}>Sévérité minimale pour les e-mails</Text>
+            <Text style={[styles.settingDesc, { marginBottom: Spacing.xs }]}>Vous ne recevrez un e-mail que si l'alerte atteint ce niveau.</Text>
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              {(['info', 'warning', 'critical'] as const).map((severity) => (
+                <TouchableOpacity
+                  key={severity}
+                  style={[
+                    styles.syncButton,
+                    {
+                      flex: 1,
+                      backgroundColor: notificationPreferences.minimum_severity_for_email === severity ? colors.primary + '20' : 'transparent',
+                      borderColor: notificationPreferences.minimum_severity_for_email === severity ? colors.primary : colors.divider,
+                    },
+                  ]}
+                  onPress={() =>
+                    setNotificationPreferences((current) => ({
+                      ...current,
+                      minimum_severity_for_email: severity,
+                    }))
+                  }
+                >
+                  <Text style={{ color: notificationPreferences.minimum_severity_for_email === severity ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                    {severity === 'info' ? 'Info' : severity === 'warning' ? 'Alerte' : 'Critique'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
+            onPress={saveNotificationPreferences}
+          >
+            <Ionicons name="save-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+              Enregistrer mes préférences
+            </Text>
+          </TouchableOpacity>
+        </SettingsAccordionSection>
+
+        {/* ── 2. Destinataires e-mail du compte ── */}
         {canManageAlertSettings && (
         <SettingsAccordionSection
-          title="Alertes du compte"
-          description="Destinataires utilisés pour les alertes du compte."
+          title="Destinataires du compte"
+          description="Qui reçoit les e-mails d'alerte pour tout le compte ?"
           icon="mail-outline"
           accentColor={colors.warning}
           expanded={expandedSections.accountAlerts}
@@ -1109,12 +1116,11 @@ export default function SettingsScreen() {
           colors={colors}
           variant="nested"
         >
-          <Text style={styles.sectionTitle}>E-mails de notification du compte</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
-            Utiliss pour rpartir les alertes du compte par quipe ou par domaine.
+            Ces adresses reçoivent les alertes e-mail de toutes vos boutiques. Vous pouvez séparer par domaine (stock, finance, etc.). Si aucune adresse n'est renseignée, les alertes seront envoyées à votre adresse de connexion.
           </Text>
           <View style={{ gap: Spacing.sm }}>
-            {NOTIFICATION_CONTACT_FIELDS.map((field) => (
+            {NOTIFICATION_CONTACT_FIELDS.filter((field) => !field.requiredModule || settingsData?.modules?.[field.requiredModule]).map((field) => (
               <View key={field.key} style={{ gap: 6 }}>
                 <Text style={styles.settingLabel}>{field.label}</Text>
                 <Text style={styles.settingDesc}>Exemple : {field.placeholder}</Text>
@@ -1136,17 +1142,18 @@ export default function SettingsScreen() {
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer les e-mails du compte
+              Enregistrer les destinataires du compte
             </Text>
           </TouchableOpacity>
         </SettingsAccordionSection>
         )}
 
+        {/* ── 3. Destinataires e-mail de la boutique ── */}
         {canManageAlertSettings && currentStore && (
         <SettingsAccordionSection
-          title="Alertes de la boutique"
-          description="Destinataires propres à la boutique active."
-          icon="mail-open-outline"
+          title={`Destinataires : ${currentStore.name || 'Boutique active'}`}
+          description="Surcharge les destinataires du compte pour cette boutique uniquement."
+          icon="storefront-outline"
           accentColor={colors.info}
           expanded={expandedSections.storeAlerts}
           onToggle={() => toggleSection('storeAlerts')}
@@ -1154,12 +1161,11 @@ export default function SettingsScreen() {
           colors={colors}
           variant="nested"
         >
-          <Text style={styles.sectionTitle}>E-mails de la boutique active</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
-            Surcharges locales pour {currentStore.name || 'la boutique active'} quand une alerte ne doit pas remonter à tout le compte.
+            Si renseignés, ces destinataires remplaceront ceux du compte pour les alertes de cette boutique. Laissez vide pour utiliser les destinataires du compte.
           </Text>
           <View style={{ gap: Spacing.sm }}>
-            {NOTIFICATION_CONTACT_FIELDS.map((field) => (
+            {NOTIFICATION_CONTACT_FIELDS.filter((field) => !field.requiredModule || settingsData?.modules?.[field.requiredModule]).map((field) => (
               <View key={field.key} style={{ gap: 6 }}>
                 <Text style={styles.settingLabel}>{field.label}</Text>
                 <Text style={styles.settingDesc}>Exemple : {field.placeholder}</Text>
@@ -1181,7 +1187,7 @@ export default function SettingsScreen() {
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer les e-mails de la boutique
+              Enregistrer les destinataires de la boutique
             </Text>
           </TouchableOpacity>
         </SettingsAccordionSection>

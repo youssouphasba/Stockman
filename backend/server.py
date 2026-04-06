@@ -18282,11 +18282,26 @@ async def dispatch_alert_channels(
         )
 
     if "email" in channels:
+        user_settings = await db.user_settings.find_one(
+            {"user_id": owner_id},
+            {"_id": 0, "notification_preferences": 1},
+        ) or {}
+        prefs = normalize_notification_preferences(user_settings.get("notification_preferences"))
+        if not prefs.get("email", False):
+            return
+        if not severity_matches(prefs.get("minimum_severity_for_email"), alert.severity):
+            return
+
         account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0}) if account_id else None
         store_doc = None
         if store_id:
             store_doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0})
         recipients = resolve_notification_recipients(account_doc, store_doc, rule)
+        if not recipients:
+            owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "email": 1})
+            owner_email = (owner_doc or {}).get("email")
+            if owner_email:
+                recipients = [owner_email]
         if recipients:
             store_name = (store_doc or {}).get("name")
             await notification_service.send_email_notification(
