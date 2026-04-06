@@ -986,6 +986,24 @@ export default function SettingsScreen() {
           colors={colors}
         >
 
+        {/* ── Encart d'aide e-mail ── */}
+        <View style={[styles.feedbackBanner, { marginBottom: Spacing.md, borderColor: colors.warning + '40', backgroundColor: colors.warning + '12', flexDirection: 'column', alignItems: 'flex-start' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <Ionicons name="mail-outline" size={16} color={colors.warning} />
+            <Text style={[styles.settingLabel, { color: colors.warning }]}>Pour recevoir les alertes par e-mail</Text>
+          </View>
+          {[
+            { n: '1', text: 'Activer le canal "E-mail" dans Canaux de réception.' },
+            { n: '2', text: 'Choisir un seuil de sévérité minimum.' },
+            { n: '3', text: 'Ajouter votre adresse dans Destinataires du compte → Par défaut.' },
+          ].map((step) => (
+            <View key={step.n} style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+              <Text style={[styles.settingDesc, { fontWeight: '700', color: colors.warning, minWidth: 16 }]}>{step.n}.</Text>
+              <Text style={styles.settingDesc}>{step.text}</Text>
+            </View>
+          ))}
+        </View>
+
         {/* ── 1. Canaux de réception ── */}
         <SettingsAccordionSection
           title="Canaux de réception"
