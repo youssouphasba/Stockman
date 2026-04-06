@@ -4757,15 +4757,22 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
     )
     
     # Save to DB
-    await db.users.insert_one(new_user.model_dump(exclude={"effective_permissions", "effective_plan", "effective_subscription_status"}))
+    new_user_payload = new_user.model_dump(exclude={"effective_permissions", "effective_plan", "effective_subscription_status"})
+    new_user_payload.update({
+        "password_hash": hashed_password,
+        "password_set": True,
+        "auth_version": 1,
+    })
+    await db.users.insert_one(new_user_payload)
     await db.credentials.insert_one({
         "user_id": new_user_id,
+        "parent_user_id": owner_parent_id,
         "password_hash": hashed_password
     })
 
     await log_activity(user, "staff_created", "staff", f"Employé '{new_user.name}' créé ({new_user.email})", {"sub_user_id": new_user_id})
 
-    return await build_user_from_doc(new_user.model_dump())
+    return await build_user_from_doc(new_user_payload)
 
 @api_router.put("/sub-users/{sub_user_id}", response_model=User)
 async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User = Depends(require_auth)):
@@ -13330,7 +13337,19 @@ async def login(request: Request, user_data: UserLogin, response: Response):
         )
         raise HTTPException(status_code=423, detail="Compte temporairement verrouille. Reessayez plus tard.")
     
-    if not verify_password(user_data.password, user_doc.get("password_hash", "")):
+    stored_password_hash = user_doc.get("password_hash", "")
+    if not stored_password_hash:
+        credentials_doc = await db.credentials.find_one({"user_id": user_doc["user_id"]}, {"_id": 0, "password_hash": 1})
+        stored_password_hash = (credentials_doc or {}).get("password_hash", "")
+        if stored_password_hash:
+            await db.users.update_one(
+                {"user_id": user_doc["user_id"]},
+                {"$set": {"password_hash": stored_password_hash, "password_set": True}},
+            )
+            user_doc["password_hash"] = stored_password_hash
+            user_doc["password_set"] = True
+
+    if not verify_password(user_data.password, stored_password_hash):
         await register_failed_login_attempt(user_doc, request)
         refreshed_doc = await db.users.find_one({"user_id": user_doc["user_id"]}, {"_id": 0})
         if refreshed_doc and is_login_locked(refreshed_doc):

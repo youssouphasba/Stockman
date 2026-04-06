@@ -2196,7 +2196,7 @@
   },
   "pos": {
     "add_product": "Ajouter produit",
-    "anonymous_customer": "Passant",
+    "anonymous_customer": "Inconnu",
     "cart": "Panier",
     "cart_title": "Panier",
     "cash": "Espèces",
@@ -3449,7 +3449,8 @@
     "title": "Gestion d'Équipe",
     "user_details_title": "Détails de l'utilisateur",
     "whatsapp_invite_later": "Plus tard",
-    "whatsapp_invite_msg": "Bonjour {{name}} !\n\nVoici vos accès pour l'application Stockman :\n📧 Email : {{email}}\n🔑 Mot de passe : {{password}}\n\nVous pouvez accéder à l'application ici : {{url}}\n\nBon travail !",
+    "whatsapp_invite_msg": "Bonjour {{name}} !\n\nVoici vos accès pour l'application Stockman :\n📧 Email : {{email}}\n🔑 Mot de passe : {{password}}\n\n📱 Application mobile : {{mobileUrl}}\n💻 Application web : {{webUrl}}\n\nBon travail !",
+    "whatsapp_invite_msg_without_password": "Bonjour {{name}} !\n\nVoici votre email de connexion pour Stockman :\n📧 Email : {{email}}\n\nLe mot de passe initial n'est plus affichable dans ce partage. Si vous ne l'avez plus, demandez à l'administrateur de le redéfinir avant votre connexion.\n\n📱 Application mobile : {{mobileUrl}}\n💻 Application web : {{webUrl}}",
     "whatsapp_invite_prompt": "Voulez-vous envoyer les accès par WhatsApp ?",
     "whatsapp_invite_send": "Envoyer",
     "whatsapp_not_installed": "WhatsApp n'est pas installé sur cet appareil.",

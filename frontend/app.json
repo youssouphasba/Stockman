@@ -114,7 +114,8 @@
       "eas": {
         "projectId": "83fa27c4-f1c0-45aa-9256-096ec479ced6"
       },
-      "webAppUrl": "https://stockman.pro/app",
+      "mobileAppUrl": "https://stockman.pro/app",
+      "webAppUrl": "https://app.stockman.pro",
       "apiUrl": "https://api.stockman.pro"
     }
   }

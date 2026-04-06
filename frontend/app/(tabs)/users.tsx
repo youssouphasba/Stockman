@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter, Link } from 'expo-router';
+import Constants from 'expo-constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { subUsers as subUsersApi, User, UserPermissions, stores as storesApi, Store, StorePermissions } from '../../services/api';
@@ -106,13 +107,23 @@ export default function UsersScreen() {
     }, [currentUser]);
 
     const handleShareInvitation = (user: User, pass?: string) => {
-        const appUrl = "https://stockman.web.app"; // Replaced with actual URL if different
-        const message = t('users.whatsapp_invite_msg', {
-            name: user.name,
-            email: user.email,
-            password: pass || '********',
-            url: appUrl
-        });
+        const mobileAppUrl = Constants.expoConfig?.extra?.mobileAppUrl || 'https://stockman.pro/app';
+        const webAppUrl = Constants.expoConfig?.extra?.webAppUrl || 'https://app.stockman.pro';
+        const normalizedPassword = typeof pass === 'string' ? pass.trim() : '';
+        const message = normalizedPassword
+            ? t('users.whatsapp_invite_msg', {
+                name: user.name,
+                email: user.email,
+                password: normalizedPassword,
+                mobileUrl: mobileAppUrl,
+                webUrl: webAppUrl,
+            })
+            : t('users.whatsapp_invite_msg_without_password', {
+                name: user.name,
+                email: user.email,
+                mobileUrl: mobileAppUrl,
+                webUrl: webAppUrl,
+            });
         const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
 
         Linking.canOpenURL(url).then(supported => {
@@ -140,9 +151,10 @@ export default function UsersScreen() {
                     store_permissions: storePermissions,
                 });
             } else {
+                const createdPassword = password.trim();
                 const newUser = await subUsersApi.create({
                     email,
-                    password,
+                    password: createdPassword,
                     name,
                     role: 'staff',
                     permissions,
@@ -156,7 +168,7 @@ export default function UsersScreen() {
                     t('users.whatsapp_invite_prompt'),
                     [
                         { text: t('users.whatsapp_invite_later'), style: 'cancel' },
-                        { text: t('users.whatsapp_invite_send'), onPress: () => handleShareInvitation(newUser, password) }
+                        { text: t('users.whatsapp_invite_send'), onPress: () => handleShareInvitation(newUser, createdPassword) }
                     ]
                 );
             }

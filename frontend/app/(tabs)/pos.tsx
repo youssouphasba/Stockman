@@ -490,6 +490,44 @@ export default function POSScreen() {
         return null;
     };
 
+    const readVoiceRecordingBase64 = async () => {
+        for (let attempt = 0; attempt < 12; attempt++) {
+            const recorderStatus = typeof voiceRecorder.getStatus === 'function' ? voiceRecorder.getStatus() : null;
+            const candidateUris = [recorderStatus?.url, voiceRecorder.uri].filter(
+                (value, index, array): value is string => Boolean(value) && array.indexOf(value) === index
+            );
+
+            for (const uri of candidateUris) {
+                const fileInfo = await FileSystem.getInfoAsync(uri);
+                if (!fileInfo.exists) {
+                    continue;
+                }
+
+                const persistentUri = `${FileSystem.cacheDirectory}voice-to-cart-${Date.now()}-${attempt}.m4a`;
+
+                try {
+                    await FileSystem.copyAsync({ from: uri, to: persistentUri });
+                    return await FileSystem.readAsStringAsync(persistentUri, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    });
+                } finally {
+                    try {
+                        const persistedInfo = await FileSystem.getInfoAsync(persistentUri);
+                        if (persistedInfo.exists) {
+                            await FileSystem.deleteAsync(persistentUri, { idempotent: true });
+                        }
+                    } catch {
+                        // Ignore cleanup failures: the copied file is only a short-lived fallback.
+                    }
+                }
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+
+        throw new Error('No recording file');
+    };
+
     const getVoiceToCartErrorMessage = (error: unknown) => {
         const rawMessage = error instanceof Error ? error.message.trim() : '';
         if (!rawMessage) {
@@ -543,8 +581,8 @@ export default function POSScreen() {
         try {
             await voiceRecorder.stop();
             const uri = await waitForVoiceRecordingUri();
-            if (!uri) throw new Error('No recording URI');
-            const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+            if (!uri && !voiceRecorder.getStatus().url) throw new Error('No recording URI');
+            const base64 = await readVoiceRecordingBase64();
             const result = await aiApi.voiceToCart(base64, i18n.language, user?.active_store_id || undefined);
             setVoiceTranscription(result?.transcription || '');
             setVoiceItems(result?.items || []);
@@ -1363,7 +1401,7 @@ export default function POSScreen() {
                             </View>
 
                             <View style={styles.customerSelector}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                <View style={styles.customerHeader}>
                                     <Ionicons name="person-outline" size={18} color={colors.textMuted} />
                                     {canWrite && (
                                         <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
@@ -1381,7 +1419,12 @@ export default function POSScreen() {
                                         />
                                     )}
                                 </View>
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.customerScroll}>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    style={styles.customerScroll}
+                                    contentContainerStyle={styles.customerScrollContent}
+                                >
                                     <TouchableOpacity
                                         style={[styles.customerBadge, !selectedCustomer && styles.customerBadgeActive]}
                                         onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: null }))}
@@ -1964,6 +2007,11 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         gap: 6,
         borderBottomColor: colors.divider,
     },
+    customerHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        minHeight: 28,
+    },
     customerSearchInput: {
         flex: 1,
         marginLeft: Spacing.sm,
@@ -1975,7 +2023,12 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         borderRadius: 12,
         maxWidth: 140,
     },
-    customerScroll: { marginLeft: Spacing.sm },
+    customerScroll: {
+        marginTop: 2,
+    },
+    customerScrollContent: {
+        paddingRight: Spacing.xs,
+    },
     customerBadge: {
         paddingHorizontal: 12,
         paddingVertical: 6,

@@ -1978,7 +1978,7 @@
     "unlock_title": "Unlock Stockman"
   },
   "pos": {
-    "anonymous_customer": "Passant",
+    "anonymous_customer": "Unknown",
     "cart": "Cart",
     "cart_title": "Cart",
     "cash": "Cash",
@@ -3101,7 +3101,8 @@
     "title": "Team Management",
     "user_details_title": "User Details",
     "whatsapp_invite_later": "Later",
-    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\n📧 Email: {{email}}\n🔑 Password: {{password}}\n\nYou can access the app here: {{url}}\n\nGood work!",
+    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\n📧 Email: {{email}}\n🔑 Password: {{password}}\n\n📱 Mobile app: {{mobileUrl}}\n💻 Web app: {{webUrl}}\n\nGood work!",
+    "whatsapp_invite_msg_without_password": "Hello {{name}}!\n\nHere is your Stockman sign-in email:\n📧 Email: {{email}}\n\nThe initial password can no longer be displayed in this share. If you no longer have it, ask the administrator to reset it before signing in.\n\n📱 Mobile app: {{mobileUrl}}\n💻 Web app: {{webUrl}}",
     "whatsapp_invite_prompt": "Do you want to send access via WhatsApp?",
     "whatsapp_invite_send": "Send",
     "whatsapp_not_installed": "WhatsApp is not installed on this device."

@@ -442,7 +442,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "share-social-outline",
                 title: "Transmettre les accès proprement",
-                description: "Une fois le compte créé, partagez les identifiants par le canal prévu afin que la personne puisse se connecter sans erreur. Vérifiez ensuite avec elle que l'accès ouvre bien les bons écrans."
+                description: "Une fois le compte créé, partagez immédiatement l'email, le mot de passe initial, le lien mobile d'ouverture ou de téléchargement et le lien web de secours. Si le mot de passe est perdu plus tard, faites-le redéfinir avant une nouvelle tentative de connexion."
             },
             {
                 icon: "briefcase-outline",
