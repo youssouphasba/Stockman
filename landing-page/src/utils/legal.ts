@@ -12,7 +12,7 @@ export async function fetchLegalContent(type: 'cgu' | 'privacy', lang: string = 
     }
 
     try {
-        const response = await fetch(`${API_URL}/api/legal/${type}?lang=${lang}`);
+        const response = await fetch(`${API_URL}/api/${type}?lang=${lang}`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
