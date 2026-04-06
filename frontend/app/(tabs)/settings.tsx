@@ -717,6 +717,71 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </SettingsAccordionSection>
 
+        <SettingsAccordionSection
+          title="Synchronisation"
+          description="État de connexion, dernière synchronisation et actions hors ligne."
+          icon="sync-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.sync}
+          onToggle={() => toggleSection('sync')}
+          styles={styles}
+          colors={colors}
+          variant="nested"
+        >
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>{t('settings.connection_status')}</Text>
+              <Text style={styles.settingDesc}>
+                {isOnline ? t('settings.online') : t('settings.offline')}
+              </Text>
+            </View>
+            <View style={[styles.statusDot, { backgroundColor: isOnline ? colors.success : colors.danger }]} />
+          </View>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>{t('settings.last_sync')}</Text>
+              <Text style={styles.settingDesc}>{lastSyncLabel}</Text>
+            </View>
+          </View>
+          {pendingCount > 0 && (
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingLabel}>{t('settings.pending_actions')}</Text>
+                <Text style={styles.settingDesc}>
+                  {pendingCount === 1 ? t('settings.pending_actions_desc', { count: pendingCount }) : t('settings.pending_actions_desc_plural', { count: pendingCount })}
+                </Text>
+              </View>
+              <View style={[styles.pendingBadge, { backgroundColor: colors.warning + '20' }]}>
+                <Text style={{ color: colors.warning, fontSize: FontSize.sm, fontWeight: '700' }}>{pendingCount}</Text>
+              </View>
+            </View>
+          )}
+          <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
+            <TouchableOpacity
+              style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}
+              onPress={prefetchData}
+              disabled={!isOnline}
+            >
+              <Ionicons name="download-outline" size={18} color={isOnline ? colors.primary : colors.textMuted} />
+              <Text style={{ color: isOnline ? colors.primary : colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>
+                {t('settings.prefetch')}
+              </Text>
+            </TouchableOpacity>
+            {pendingCount > 0 && (
+              <TouchableOpacity
+                style={[styles.syncButton, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}
+                onPress={processQueue}
+                disabled={!isOnline || syncStatus === 'syncing'}
+              >
+                <Ionicons name="sync-outline" size={18} color={isOnline ? colors.success : colors.textMuted} />
+                <Text style={{ color: isOnline ? colors.success : colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>
+                  {syncStatus === 'syncing' ? t('settings.syncing') : t('settings.sync_now')}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </SettingsAccordionSection>
+
         </SettingsAccordionSection>
 
         {canViewOrganizationGroup && (
@@ -972,6 +1037,100 @@ export default function SettingsScreen() {
           <Text style={styles.settingDesc}>{t('settings.no_active_store_docs', 'Aucune boutique active n\'est sélectionnée pour personnaliser les documents.')}</Text>
         </SettingsAccordionSection>
         )}
+
+        {/* TVA / Taxes */}
+        {isOrgAdmin && (
+        <SettingsAccordionSection
+          title="Fiscalité"
+          description="TVA, mode de calcul et taux appliqué au compte."
+          icon="calculator-outline"
+          accentColor={colors.warning}
+          expanded={expandedSections.tax}
+          onToggle={() => toggleSection('tax')}
+          styles={styles}
+          colors={colors}
+          variant="nested"
+        >
+          <Text style={styles.sectionTitle}>{t('settings.tax')}</Text>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>{t('settings.tax_enabled')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.tax_enabled_desc')}</Text>
+            </View>
+            <Switch
+              value={!!settingsData?.tax_enabled}
+              onValueChange={async (value) => {
+                try {
+                  const updated = await settingsApi.update({ tax_enabled: value } as any);
+                  setSettingsData(updated);
+                } catch {
+                  // ignore
+                }
+              }}
+              trackColor={{ false: colors.divider, true: colors.primary + '60' }}
+              thumbColor={settingsData?.tax_enabled ? colors.primary : colors.textMuted}
+            />
+          </View>
+          <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm }]}>
+            <Text style={styles.settingLabel}>{t('settings.tax_rate')}</Text>
+            <TextInput
+              style={styles.input}
+              value={String(settingsData?.tax_rate ?? '')}
+              onChangeText={async (value) => {
+                setSettingsData((prev) => prev ? { ...prev, tax_rate: Number(value) || 0 } : prev);
+              }}
+              keyboardType="numeric"
+              placeholder="18"
+              placeholderTextColor={colors.textMuted}
+            />
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              {(['ttc', 'ht'] as const).map((mode) => (
+                <TouchableOpacity
+                  key={mode}
+                  style={[
+                    styles.syncButton,
+                    {
+                      flex: 1,
+                      backgroundColor: settingsData?.tax_mode === mode ? colors.primary + '20' : 'transparent',
+                      borderColor: settingsData?.tax_mode === mode ? colors.primary : colors.divider,
+                    }
+                  ]}
+                  onPress={async () => {
+                    try {
+                      const updated = await settingsApi.update({ tax_mode: mode } as any);
+                      setSettingsData(updated);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                >
+                  <Text style={{ color: settingsData?.tax_mode === mode ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                    {mode.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch' }]}
+              onPress={async () => {
+                try {
+                  const updated = await settingsApi.update({
+                    tax_rate: settingsData?.tax_rate ?? 0,
+                  } as any);
+                  setSettingsData(updated);
+                } catch {
+                  // ignore
+                }
+              }}
+            >
+              <Ionicons name="save-outline" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+                {t('common.save')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SettingsAccordionSection>
+        )}
         </SettingsAccordionSection>
         )}
 
@@ -1119,6 +1278,21 @@ export default function SettingsScreen() {
               Enregistrer mes préférences
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.outlineButton, { marginTop: Spacing.md, opacity: testPushSending ? 0.7 : 1 }]}
+            onPress={sendTestPush}
+            disabled={testPushSending}
+          >
+            {testPushSending ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="paper-plane-outline" size={18} color={colors.primary} />
+            )}
+            <Text style={styles.outlineButtonText}>
+              {testPushSending ? 'Envoi en cours...' : 'Envoyer une notification de test'}
+            </Text>
+          </TouchableOpacity>
         </SettingsAccordionSection>
 
         {/* ── 2. Destinataires e-mail du compte ── */}
@@ -1211,181 +1385,6 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
         )}
 
-        {/* TVA / Taxes */}
-        {isOrgAdmin && (
-        <SettingsAccordionSection
-          title="Fiscalité"
-          description="TVA, mode de calcul et taux appliqué au compte."
-          icon="calculator-outline"
-          accentColor={colors.warning}
-          expanded={expandedSections.tax}
-          onToggle={() => toggleSection('tax')}
-          styles={styles}
-          colors={colors}
-          variant="nested"
-        >
-          <Text style={styles.sectionTitle}>{t('settings.tax')}</Text>
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>{t('settings.tax_enabled')}</Text>
-              <Text style={styles.settingDesc}>{t('settings.tax_enabled_desc')}</Text>
-            </View>
-            <Switch
-              value={!!settingsData?.tax_enabled}
-              onValueChange={async (value) => {
-                try {
-                  const updated = await settingsApi.update({ tax_enabled: value } as any);
-                  setSettingsData(updated);
-                } catch {
-                  // ignore
-                }
-              }}
-              trackColor={{ false: colors.divider, true: colors.primary + '60' }}
-              thumbColor={settingsData?.tax_enabled ? colors.primary : colors.textMuted}
-            />
-          </View>
-          <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm }]}>
-            <Text style={styles.settingLabel}>{t('settings.tax_rate')}</Text>
-            <TextInput
-              style={styles.input}
-              value={String(settingsData?.tax_rate ?? '')}
-              onChangeText={async (value) => {
-                setSettingsData((prev) => prev ? { ...prev, tax_rate: Number(value) || 0 } : prev);
-              }}
-              keyboardType="numeric"
-              placeholder="18"
-              placeholderTextColor={colors.textMuted}
-            />
-            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-              {(['ttc', 'ht'] as const).map((mode) => (
-                <TouchableOpacity
-                  key={mode}
-                  style={[
-                    styles.syncButton,
-                    {
-                      flex: 1,
-                      backgroundColor: settingsData?.tax_mode === mode ? colors.primary + '20' : 'transparent',
-                      borderColor: settingsData?.tax_mode === mode ? colors.primary : colors.divider,
-                    }
-                  ]}
-                  onPress={async () => {
-                    try {
-                      const updated = await settingsApi.update({ tax_mode: mode } as any);
-                      setSettingsData(updated);
-                    } catch {
-                      // ignore
-                    }
-                  }}
-                >
-                  <Text style={{ color: settingsData?.tax_mode === mode ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
-                    {mode.toUpperCase()}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch' }]}
-              onPress={async () => {
-                try {
-                  const updated = await settingsApi.update({
-                    tax_rate: settingsData?.tax_rate ?? 0,
-                  } as any);
-                  setSettingsData(updated);
-                } catch {
-                  // ignore
-                }
-              }}
-            >
-              <Ionicons name="save-outline" size={18} color={colors.primary} />
-              <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-                {t('common.save')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.outlineButton, { marginTop: Spacing.md, opacity: testPushSending ? 0.7 : 1 }]}
-            onPress={sendTestPush}
-            disabled={testPushSending}
-          >
-            {testPushSending ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Ionicons name="paper-plane-outline" size={18} color={colors.primary} />
-            )}
-            <Text style={styles.outlineButtonText}>
-              {testPushSending ? 'Envoi en cours...' : 'Envoyer une notification de test'}
-            </Text>
-          </TouchableOpacity>
-        </SettingsAccordionSection>
-        )}
-
-        {/* Reminder Rules */}
-        {/* Synchronisation */}
-        <SettingsAccordionSection
-          title="Synchronisation"
-          description="État de connexion, dernière synchronisation et actions hors ligne."
-          icon="sync-outline"
-          accentColor={colors.info}
-          expanded={expandedSections.sync}
-          onToggle={() => toggleSection('sync')}
-          styles={styles}
-          colors={colors}
-          variant="nested"
-        >
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>{t('settings.connection_status')}</Text>
-              <Text style={styles.settingDesc}>
-                {isOnline ? t('settings.online') : t('settings.offline')}
-              </Text>
-            </View>
-            <View style={[styles.statusDot, { backgroundColor: isOnline ? colors.success : colors.danger }]} />
-          </View>
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>{t('settings.last_sync')}</Text>
-              <Text style={styles.settingDesc}>{lastSyncLabel}</Text>
-            </View>
-          </View>
-          {pendingCount > 0 && (
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>{t('settings.pending_actions')}</Text>
-                <Text style={styles.settingDesc}>
-                  {pendingCount === 1 ? t('settings.pending_actions_desc', { count: pendingCount }) : t('settings.pending_actions_desc_plural', { count: pendingCount })}
-                </Text>
-              </View>
-              <View style={[styles.pendingBadge, { backgroundColor: colors.warning + '20' }]}>
-                <Text style={{ color: colors.warning, fontSize: FontSize.sm, fontWeight: '700' }}>{pendingCount}</Text>
-              </View>
-            </View>
-          )}
-          <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
-            <TouchableOpacity
-              style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}
-              onPress={prefetchData}
-              disabled={!isOnline}
-            >
-              <Ionicons name="download-outline" size={18} color={isOnline ? colors.primary : colors.textMuted} />
-              <Text style={{ color: isOnline ? colors.primary : colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>
-                {t('settings.prefetch')}
-              </Text>
-            </TouchableOpacity>
-            {pendingCount > 0 && (
-              <TouchableOpacity
-                style={[styles.syncButton, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}
-                onPress={processQueue}
-                disabled={!isOnline || syncStatus === 'syncing'}
-              >
-                <Ionicons name="sync-outline" size={18} color={isOnline ? colors.success : colors.textMuted} />
-                <Text style={{ color: isOnline ? colors.success : colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>
-                  {syncStatus === 'syncing' ? t('settings.syncing') : t('settings.sync_now')}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </SettingsAccordionSection>
 
         </SettingsAccordionSection>
 
