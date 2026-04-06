@@ -815,7 +815,7 @@ async def create_indexes_and_init():
 
         # â”â‚¬â”â‚¬ Email helper (Resend) â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬
         RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-        RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "Stockman <noreply@stockman.app>")
+        RESEND_FROM_EMAIL = os.environ.get("RESEND_BILLING_FROM_EMAIL", os.environ.get("RESEND_FROM_EMAIL", "Stockman <billing@stockman.pro>"))
 
         async def send_trial_reminder_email(to_email: str, name: str, days_left: int):
             """Send a trial expiry reminder via Resend (no extra package needed)."""

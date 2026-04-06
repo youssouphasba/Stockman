@@ -25,7 +25,7 @@ class NotificationService:
         if access_token:
             self.headers["Authorization"] = f"Bearer {access_token}"
         self.resend_api_key = os.environ.get("RESEND_API_KEY", "")
-        self.email_from = os.environ.get("RESEND_FROM_EMAIL", "Stockman <noreply@stockman.app>")
+        self.email_from = os.environ.get("RESEND_ALERTS_FROM_EMAIL", os.environ.get("RESEND_FROM_EMAIL", "Stockman <alertes@stockman.pro>"))
 
     async def send_push_notification(
         self,
