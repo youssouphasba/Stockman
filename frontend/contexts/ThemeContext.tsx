@@ -22,7 +22,7 @@ const THEME_STORAGE_KEY = 'user_theme_preference';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const systemColorScheme = useColorScheme();
-    const [theme, setThemeState] = useState<ThemeMode>('system');
+    const [theme, setThemeState] = useState<ThemeMode>('light');
 
     useEffect(() => {
         loadTheme();

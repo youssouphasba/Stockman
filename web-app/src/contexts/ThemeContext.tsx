@@ -15,9 +15,9 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem('stockman_theme') as Theme) || 'dark';
+      return (localStorage.getItem('stockman_theme') as Theme) || 'light';
     }
-    return 'dark';
+    return 'light';
   });
 
   useEffect(() => {
