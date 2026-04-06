@@ -11,6 +11,7 @@ import Blog from './Blog';
 import BlogPost from './BlogPost';
 import About from './About';
 import DeleteAccount from './DeleteAccount';
+import AppDownload from './AppDownload';
 import EnterprisePage from './EnterprisePage';
 import BusinessTypesPage from './BusinessTypesPage';
 import DemoSelectorPage from './DemoSelectorPage';
@@ -381,6 +382,7 @@ function App() {
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/delete-account" element={<DeleteAccount />} />
             <Route path="/invite/supplier" element={<SupplierInvite />} />
+            <Route path="/app" element={<AppDownload />} />
             <Route
               path="/dashboard"
               element={<FeaturePage featureKey="dashboard" icon="Dashboard" galleryKeys={["kpi", "stats", "charts", "analysis", "history"]} />}
