@@ -3214,6 +3214,21 @@ def require_permission(module: str, level: str = "read"):
 def require_read(module: str):
     return require_permission(module, "read")
 
+def require_any_read(*modules):
+    """Allow access if user has read permission on ANY of the listed modules."""
+    async def permission_checker(request: Request, user: User = Depends(require_auth)):
+        if user.role == "superadmin":
+            return user
+        if "org_admin" in (user.account_roles or []):
+            return user
+        user_perms = user.effective_permissions or user.permissions or {}
+        for module in modules:
+            perm = user_perms.get(module, "none")
+            if perm != "none":
+                return user
+        raise HTTPException(status_code=403, detail="Accès refusé : vous n'avez pas les droits nécessaires.")
+    return permission_checker
+
 def require_write(module: str):
     return require_permission(module, "write")
 
@@ -13927,7 +13942,7 @@ async def reverse_stock_transfer(data: StockTransferReverse, user: User = Depend
 # ===================== CATEGORY ROUTES =====================
 
 @api_router.get("/categories", response_model=List[Category])
-async def get_categories(user: User = Depends(require_permission("stock", "read")), store_id: Optional[str] = None):
+async def get_categories(user: User = Depends(require_any_read("stock", "pos")), store_id: Optional[str] = None):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
     query = apply_store_scope(query, user, store_id)
@@ -14022,7 +14037,7 @@ class ProductTrashItem(BaseModel):
 
 @api_router.get("/products")
 async def get_products(
-    user: User = Depends(require_permission("stock", "read")),
+    user: User = Depends(require_any_read("stock", "pos")),
     category_id: Optional[str] = None,
     location_id: Optional[str] = None,
     is_menu_item: Optional[bool] = None,
@@ -14132,7 +14147,7 @@ async def get_product_stats(product_id: str, user: User = Depends(require_permis
     )
 
 @api_router.get("/products/{product_id}", response_model=Product)
-async def get_product(product_id: str, user: User = Depends(require_permission("stock", "read"))):
+async def get_product(product_id: str, user: User = Depends(require_any_read("stock", "pos"))):
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
