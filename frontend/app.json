@@ -2,11 +2,11 @@
   "expo": {
     "name": "Stockman",
     "slug": "stockman",
-    "version": "1.0.18",
+    "version": "1.0.19",
     "orientation": "default",
     "android": {
       "package": "com.youssouphasba.stockman",
-      "versionCode": 18,
+      "versionCode": 19,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -21,7 +21,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.youssouphasba.stockman",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -38,22 +38,6 @@
         "NSPhotoLibraryUsageDescription": "Stockman accesses your photo library so you can select an existing image to attach to a product listing, a receipt, or a business document.",
         "NSPhotoLibraryAddUsageDescription": "Stockman saves generated images to your photo library, such as receipts, product photos, or exported reports."
       },
-      "locales": {
-        "fr": "./locales/ios/fr.json",
-        "ar": "./locales/ios/ar.json",
-        "es": "./locales/ios/es.json",
-        "de": "./locales/ios/de.json",
-        "pt": "./locales/ios/pt.json",
-        "it": "./locales/ios/it.json",
-        "tr": "./locales/ios/tr.json",
-        "ru": "./locales/ios/ru.json",
-        "zh": "./locales/ios/zh.json",
-        "hi": "./locales/ios/hi.json",
-        "pl": "./locales/ios/pl.json",
-        "ro": "./locales/ios/ro.json",
-        "wo": "./locales/ios/wo.json",
-        "ff": "./locales/ios/ff.json"
-      }
     },
     "icon": "./assets/icon.png",
     "scheme": "stockman",
@@ -92,7 +76,12 @@
       ],
       "expo-local-authentication",
       "expo-updates",
-      ["expo-screen-orientation", { "initialOrientation": "DEFAULT" }],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ],
       "expo-font",
       [
         "expo-build-properties",
@@ -111,7 +100,8 @@
         {
           "microphonePermission": "Stockman uses the microphone to let you add products to the cart by speaking in the voice checkout, and to send voice messages in AI support."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "updates": {
       "url": "https://u.expo.dev/83fa27c4-f1c0-45aa-9256-096ec479ced6"

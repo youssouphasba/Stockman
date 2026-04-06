@@ -1,4 +1,4 @@
-const { withInfoPlist } = require('@expo/config-plugins');
+const { withInfoPlist } = require('expo/config-plugins');
 
 module.exports = function withRemoveBackgroundAudioMode(config) {
   return withInfoPlist(config, (config) => {

@@ -1,0 +1,618 @@
+{
+  "info": {
+    "_postman_id": "cd8dc6fb-a7d7-45cd-a1a1-c3d8bc20f4f6",
+    "name": "Stockman API Debug",
+    "description": "Collection Postman orientee diagnostic pour abonnements, alertes, employes, boutiques, notifications push et analytics.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://stockman-production-149d.up.railway.app"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "store_id",
+      "value": ""
+    },
+    {
+      "key": "sub_user_id",
+      "value": ""
+    },
+    {
+      "key": "alert_id",
+      "value": ""
+    },
+    {
+      "key": "notification_id",
+      "value": ""
+    },
+    {
+      "key": "expo_push_token",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Subscription",
+      "item": [
+        {
+          "name": "Get subscription details",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/subscription/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subscription",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sync subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purchased_plan\": \"pro\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/subscription/sync",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subscription",
+                "sync"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get public pricing",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/pricing/public?country_code=SN",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "pricing",
+                "public"
+              ],
+              "query": [
+                {
+                  "key": "country_code",
+                  "value": "SN"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "List alerts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/alerts?skip=0&limit=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "alerts"
+              ],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List alert rules",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/alert-rules",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "alert-rules"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark alert read",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/api/alerts/{{alert_id}}/read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "alerts",
+                "{{alert_id}}",
+                "read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dismiss alert",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/api/alerts/{{alert_id}}/dismiss",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "alerts",
+                "{{alert_id}}",
+                "dismiss"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clear dismissed alerts",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/alerts/dismissed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "alerts",
+                "dismissed"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sub-users",
+      "item": [
+        {
+          "name": "List sub-users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/sub-users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sub-users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create sub-user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Employe test\",\n  \"email\": \"employe@example.com\",\n  \"password\": \"ChangeMe123!\",\n  \"role\": \"employee\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sub-users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sub-users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete sub-user",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/sub-users/{{sub_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sub-users",
+                "{{sub_user_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stores",
+      "item": [
+        {
+          "name": "List stores",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create store",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nouvelle boutique\",\n  \"address\": \"Adresse de test\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/stores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update store",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Boutique mise a jour\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/stores/{{store_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stores",
+                "{{store_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get consolidated store stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stores/consolidated-stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stores",
+                "consolidated-stats"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Push notifications",
+      "item": [
+        {
+          "name": "Register Expo push token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{expo_push_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/register-token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "register-token"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Test push",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/notifications/test-push",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "test-push"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List in-app notifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/user/notifications?skip=0&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark in-app notification read",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/user/notifications/{{notification_id}}/read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "notifications",
+                "{{notification_id}}",
+                "read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark all notifications read",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/user/notifications/read-all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "notifications",
+                "read-all"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Store comparison",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/analytics/stores/compare?days=30",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "stores",
+                "compare"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Procurement overview",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/analytics/procurement/overview?days=30",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "procurement",
+                "overview"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CRM overview",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/analytics/crm/overview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "crm",
+                "overview"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Executive overview",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/analytics/executive/overview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "executive",
+                "overview"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stock health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/analytics/stock/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "stock",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Analytics filters metadata",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/analytics/filters/meta",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "filters",
+                "meta"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
