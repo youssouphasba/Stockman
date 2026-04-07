@@ -276,6 +276,11 @@ function TabLayoutInner() {
               <TouchableOpacity onPress={() => setShowHelpCenter(true)} style={{ padding: 4 }}>
                 <Ionicons name="book-outline" size={24} color={colors.text} />
               </TouchableOpacity>
+              {currentGuide && (
+                <TouchableOpacity onPress={() => setShowGuide(true)} style={{ padding: 4 }}>
+                  <Ionicons name="help-circle-outline" size={24} color={colors.text} />
+                </TouchableOpacity>
+              )}
               {hasOperationalAccess && <StoreSelector />}
             </View>
           ),
