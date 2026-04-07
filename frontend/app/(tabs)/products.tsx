@@ -68,6 +68,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useDrawer } from '../../contexts/DrawerContext';
 import { getDefaultCategoriesForSector, PRODUCT_UNITS, SHARED_CATEGORIES } from '../../constants/defaultCategories';
 import CategorySubcategoryPicker from '../../components/CategorySubcategoryPicker';
 import ScreenGuide from '../../components/ScreenGuide';
@@ -114,6 +115,7 @@ export default function ProductsScreen() {
   const insets = useSafeAreaInsets();
   const canWrite = hasPermission('stock', 'write');
   const { isConnected } = useNetwork();
+  const { setDrawerContent } = useDrawer();
 
   const [productList, setProductList] = useState<Product[]>([]);
   const [categoryList, setCategoryList] = useState<Category[]>([]);
@@ -142,6 +144,24 @@ export default function ProductsScreen() {
   const handledReminderProductRef = useRef<string | null>(null);
   const lastLoadedAtRef = useRef(0);
   const lastImportNotificationRef = useRef<string | null>(null);
+
+  // Register drawer menu items
+  useFocusEffect(
+    useCallback(() => {
+      setDrawerContent(t('tabs.products'), [
+        { label: t('products.add_product', 'Ajouter un produit'), icon: 'add-circle-outline', onPress: () => { setEditingProduct(null); setShowAddModal(true); } },
+        { label: t('products.batch_scan', 'Scanner en lot'), icon: 'barcode-outline', onPress: () => router.push('/inventory/batch-scan' as any) },
+        { label: t('products.import_csv', 'Import CSV'), icon: 'cloud-upload-outline', onPress: () => setShowBulkImportModal(true) },
+        { label: t('products.import_text', 'Import texte IA'), icon: 'document-text-outline', onPress: () => setShowTextImportModal(true), plan: 'pro' },
+        { label: t('products.manage_categories', 'Gérer les catégories'), icon: 'pricetags-outline', onPress: () => setShowCategoryModal(true) },
+        { label: '', icon: '', onPress: () => {}, separator: true },
+        { label: t('tabs.locations', 'Emplacements'), icon: 'map-outline', onPress: () => router.push('/(tabs)/locations' as any), plan: 'enterprise' },
+        { label: t('products.movement_history', 'Historique mouvements'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
+        { label: t('common.export_csv', 'Exporter CSV'), icon: 'download-outline', onPress: () => handleExportCSV() },
+        { label: t('products.trash', 'Corbeille'), icon: 'trash-outline', onPress: () => setShowTrashModal(true), destructive: true },
+      ]);
+    }, [t])
+  );
 
   // Apply filter from notification deep-link
   useEffect(() => {

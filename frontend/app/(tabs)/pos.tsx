@@ -60,6 +60,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChangeCalculatorModal from '../../components/ChangeCalculatorModal';
 import LineDiscountModal from '../../components/LineDiscountModal';
+import { useDrawer } from '../../contexts/DrawerContext';
 import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync, RecordingPresets } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -89,6 +90,7 @@ export default function POSScreen() {
     const { t, i18n } = useTranslation();
     const { user, hasPermission } = useAuth();
     const insets = useSafeAreaInsets();
+    const { setDrawerContent } = useDrawer();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const isMobile = screenWidth < 768;
     const styles = getStyles(colors, glassStyle, isMobile, screenWidth);
@@ -187,6 +189,18 @@ export default function POSScreen() {
     const [showRestaurantOptions, setShowRestaurantOptions] = useState(false);
     const [openOrderId, setOpenOrderId] = useState<string | null>(null);
     const [loadingTableOrder, setLoadingTableOrder] = useState(false);
+
+    // Register drawer menu items
+    useFocusEffect(
+        useCallback(() => {
+            setDrawerContent(t('tabs.pos'), [
+                { label: t('pos.voice_checkout', 'Checkout vocal'), icon: 'mic-outline', onPress: () => setShowVoiceModal(true) },
+                { label: t('pos.associate_customer', 'Associer un client'), icon: 'person-add-outline', onPress: () => setShowCustomerModal(true) },
+                ...(restaurantMode ? [{ label: t('pos.choose_table', 'Choisir une table'), icon: 'restaurant-outline', onPress: () => setShowTableModal(true) }] : []),
+                { label: t('pos.choose_terminal', 'Choisir un terminal'), icon: 'desktop-outline', onPress: () => setShowTerminalModal(true), plan: 'enterprise' as const },
+            ]);
+        }, [t, restaurantMode])
+    );
 
     // Tax settings
     const [taxEnabled, setTaxEnabled] = useState(false);

@@ -20,13 +20,16 @@ import { useNotifications } from '../../hooks/useNotifications';
 import ChatModal from '../../components/ChatModal';
 import TrialBanner from '../../components/TrialBanner';
 import SyncWarningBanner from '../../components/SyncWarningBanner';
+import DrawerMenu from '../../components/DrawerMenu';
+import { DrawerProvider, useDrawer } from '../../contexts/DrawerContext';
 
-export default function TabLayout() {
+function TabLayoutInner() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant, hasOperationalAccess, isBillingAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const drawer = useDrawer();
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const settingsLoadedRef = useRef(false);
   const [unreadAlertCount, setUnreadAlertCount] = useState(0);
@@ -232,6 +235,11 @@ export default function TabLayout() {
             color: colors.text,
             fontWeight: '700',
           },
+          headerLeft: () => currentRoute !== 'settings' && drawer.items.length > 0 ? (
+            <TouchableOpacity onPress={drawer.open} style={{ marginLeft: 16, padding: 4 }}>
+              <Ionicons name="menu-outline" size={26} color={colors.text} />
+            </TouchableOpacity>
+          ) : undefined,
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 12 }}>
               <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: 4 }}>
@@ -606,6 +614,21 @@ export default function TabLayout() {
           </View>
         </View>
       </Modal>}
+
+      <DrawerMenu
+        visible={drawer.isOpen}
+        onClose={drawer.close}
+        items={drawer.items}
+        title={drawer.title}
+      />
     </>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <DrawerProvider>
+      <TabLayoutInner />
+    </DrawerProvider>
   );
 }

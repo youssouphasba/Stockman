@@ -43,6 +43,7 @@ import {
 } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useDrawer } from '../../contexts/DrawerContext';
 import { Linking } from 'react-native';
 import OrderCreationModal from '../../components/OrderCreationModal';
 import ChatModal from '../../components/ChatModal';
@@ -58,6 +59,7 @@ export default function SuppliersScreen() {
   const { t, i18n } = useTranslation();
   const { user, isSuperAdmin } = useAuth();
   const insets = useSafeAreaInsets();
+  const { setDrawerContent } = useDrawer();
   const styles = getStyles(colors, glassStyle);
   const router = useRouter();
   const [tab, setTab] = useState<'manual' | 'marketplace'>('manual');
@@ -229,6 +231,19 @@ export default function SuppliersScreen() {
       lastLoadedAtRef.current = Date.now();
     }
   }, [MOBILE_PERF_ENABLED, tab]);
+
+  // Register drawer menu items
+  useFocusEffect(
+    useCallback(() => {
+      setDrawerContent(t('tabs.suppliers'), [
+        { label: t('suppliers.add_supplier', 'Ajouter un fournisseur'), icon: 'add-circle-outline', onPress: () => { setEditingSupplier(null); setShowFormModal(true); } },
+        { label: t('suppliers.create_order', 'Passer une commande'), icon: 'cart-outline', onPress: () => setShowOrderModal(true) },
+        { label: t('suppliers.invite', 'Inviter un fournisseur'), icon: 'mail-outline', onPress: () => setShowInviteModal(true), plan: 'pro' },
+        { label: '', icon: '', onPress: () => {}, separator: true },
+        { label: t('tabs.products'), icon: 'cube-outline', onPress: () => router.push('/(tabs)/products') },
+      ]);
+    }, [t])
+  );
 
   useFocusEffect(
     useCallback(() => {

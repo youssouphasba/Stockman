@@ -43,6 +43,7 @@ import KpiInfoButton from '../../components/KpiInfoButton';
 import { formatCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
 import PremiumGate from '../../components/PremiumGate';
 import { getPendingDebtEntries, mergeCustomersOfflineState } from '../../services/offlineState';
+import { useDrawer } from '../../contexts/DrawerContext';
 
 
 // ─── Tier helpers ───
@@ -98,6 +99,7 @@ export default function CRMScreen() {
     const insets = useSafeAreaInsets();
     const styles = getStyles(colors, glassStyle);
     const { user, hasPermission, isSuperAdmin } = useAuth();
+    const { setDrawerContent } = useDrawer();
     const canWrite = hasPermission('crm', 'write');
     const [customerList, setCustomerList] = useState<Customer[]>([]);
     const [promoList, setPromoList] = useState<Promotion[]>([]);
@@ -258,6 +260,20 @@ export default function CRMScreen() {
         }
 
     };
+    // Register drawer menu items
+    useFocusEffect(
+        useCallback(() => {
+            setDrawerContent(t('tabs.crm'), [
+                { label: t('crm.add_customer', 'Ajouter un client'), icon: 'person-add-outline', onPress: () => setShowCustomerModal(true) },
+                { label: t('crm.create_promo', 'Créer une promo'), icon: 'gift-outline', onPress: () => setShowPromoModal(true), plan: 'pro' },
+                { label: t('crm.launch_campaign', 'Lancer une campagne'), icon: 'megaphone-outline', onPress: () => setShowCampaignModal(true), plan: 'enterprise' },
+                { label: '', icon: '', onPress: () => {}, separator: true },
+                { label: t('common.export_csv', 'Exporter CSV'), icon: 'download-outline', onPress: () => handleExportCSV() },
+                { label: t('common.export_pdf', 'Exporter PDF'), icon: 'print-outline', onPress: () => handleExportPdf() },
+            ]);
+        }, [t])
+    );
+
     useFocusEffect(
         useCallback(() => {
             if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;

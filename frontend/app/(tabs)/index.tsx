@@ -61,6 +61,7 @@ import SmartRemindersCard from '../../components/SmartRemindersCard';
 import AiDailySummary from '../../components/AiDailySummary';
 import { formatCurrency as globalFormatCurrency, getCurrencySymbol } from '../../utils/format';
 import KpiInfoButton from '../../components/KpiInfoButton';
+import { useDrawer } from '../../contexts/DrawerContext';
 
 // screenWidth is now read via useWindowDimensions() inside the component
 
@@ -117,6 +118,7 @@ export default function DashboardScreen() {
   const { user, hasPermission, isRestaurant } = useAuth();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { setDrawerContent } = useDrawer();
   const { isConnected } = useNetwork();
   const { width: screenWidth } = useWindowDimensions();
   const [data, setData] = useState<DashboardData | null>(null);
@@ -174,6 +176,23 @@ export default function DashboardScreen() {
   const [nlResult, setNlResult] = useState<any>(null);
   const [nlLoading, setNlLoading] = useState(false);
   const dashboardCacheKey = user?.user_id ? `${KEYS.DASHBOARD}:${user.user_id}` : KEYS.DASHBOARD;
+
+  // Register drawer menu items
+  useFocusEffect(
+    useCallback(() => {
+      setDrawerContent(t('tabs.home'), [
+        { label: t('dashboard.history', 'Historique des ventes'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
+        { label: t('dashboard.statistics', 'Statistiques'), icon: 'stats-chart-outline', onPress: () => setShowStatsModal(true) },
+        { label: t('dashboard.inventory_count', 'Inventaire tournant'), icon: 'clipboard-outline', onPress: () => setShowInventoryCountModal(true), plan: 'enterprise' },
+        { label: t('dashboard.notifications', 'Notifications'), icon: 'notifications-outline', onPress: () => setShowNotifModal(true), badge: notifCount || undefined },
+        { label: '', icon: '', onPress: () => {}, separator: true },
+        { label: t('tabs.alerts'), icon: 'alert-circle-outline', onPress: () => router.push('/alerts') },
+        { label: t('tabs.users'), icon: 'people-outline', onPress: () => router.push('/users') },
+        { label: t('sidebar.multi_stores', 'Multi-boutiques'), icon: 'storefront-outline', onPress: () => router.push('/(tabs)/enterprise' as any), plan: 'enterprise' },
+        { label: t('tabs.subscription'), icon: 'card-outline', onPress: () => router.push('/subscription') },
+      ]);
+    }, [t, notifCount])
+  );
 
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);

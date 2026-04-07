@@ -52,11 +52,13 @@ import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/fo
 import { useAuth } from '../../contexts/AuthContext';
 import PremiumGate from '../../components/PremiumGate';
 import AccessDenied from '../../components/AccessDenied';
+import { useDrawer } from '../../contexts/DrawerContext';
 
 export default function OrdersScreen() {
   const { colors, glassStyle } = useTheme();
   const { t, i18n } = useTranslation();
   const { user, isSuperAdmin } = useAuth();
+  const { setDrawerContent } = useDrawer();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
 
@@ -291,6 +293,17 @@ export default function OrdersScreen() {
       setReturnsLoading(false);
     }
   }, []);
+
+  // Register drawer menu items
+  useFocusEffect(
+    useCallback(() => {
+      setDrawerContent(t('tabs.orders'), [
+        { label: t('orders.new_order', 'Nouvelle commande'), icon: 'add-circle-outline', onPress: () => setShowCreateModal(true) },
+        { label: t('orders.returns', 'Retours clients'), icon: 'arrow-undo-outline', onPress: () => setActiveTab('returns') },
+        { label: t('orders.history', 'Historique'), icon: 'time-outline', onPress: () => setShowHistoryModal(true), plan: 'pro' },
+      ]);
+    }, [t])
+  );
 
   useFocusEffect(
     useCallback(() => {

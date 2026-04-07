@@ -46,6 +46,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useDrawer } from '../../contexts/DrawerContext';
 import PremiumGate from '../../components/PremiumGate';
 import AccessDenied from '../../components/AccessDenied';
 import PeriodSelector from '../../components/PeriodSelector';
@@ -118,7 +119,23 @@ export default function AccountingScreen() {
     const [appliedStart, setAppliedStart] = useState<string>('');
     const [appliedEnd, setAppliedEnd] = useState<string>('');
     const { user, isSuperAdmin } = useAuth();
+    const { setDrawerContent } = useDrawer();
     const [currentStore, setCurrentStore] = useState<Store | null>(null);
+
+    // Scroll refs for drawer navigation
+    const scrollViewRef = useRef<ScrollView>(null);
+    const sectionRefs = {
+        kpiGrid: useRef<View>(null),
+        expenses: useRef<View>(null),
+        stockLoss: useRef<View>(null),
+        itemsPurchases: useRef<View>(null),
+        revenueTrend: useRef<View>(null),
+        revenueBreakdown: useRef<View>(null),
+        paymentBreakdown: useRef<View>(null),
+        perfTable: useRef<View>(null),
+        recentSales: useRef<View>(null),
+    };
+    const sectionOffsets = useRef<Record<string, number>>({});
 
     // Expenses
     const [expensesList, setExpensesList] = useState<Expense[]>([]);
@@ -144,6 +161,13 @@ export default function AccountingScreen() {
     const [invoiceItems, setInvoiceItems] = useState([{ desc: '', qty: '1', price: '', tva: '0' }]);
     const [invoiceNote, setInvoiceNote] = useState('');
     const [customersList, setCustomersList] = useState<Customer[]>([]);
+
+    const scrollToSection = useCallback((key: string) => {
+        const y = sectionOffsets.current[key];
+        if (y != null && scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({ y, animated: true });
+        }
+    }, []);
 
     const loadData = useCallback(async (period: number | 'custom', start?: string, end?: string) => {
         try {
@@ -906,6 +930,28 @@ export default function AccountingScreen() {
         Linking.openURL(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     };
 
+    // Register drawer menu items
+    useFocusEffect(
+        useCallback(() => {
+            setDrawerContent(t('tabs.accounting'), [
+                { label: t('accounting.kpi_revenue', "Chiffre d'affaires"), icon: 'stats-chart-outline', onPress: () => scrollToSection('kpiGrid') },
+                { label: t('accounting.expenses', 'Dépenses'), icon: 'wallet-outline', onPress: () => scrollToSection('expenses') },
+                { label: t('accounting.kpi_stock', 'Stock & Pertes'), icon: 'cube-outline', onPress: () => scrollToSection('stockLoss') },
+                { label: t('accounting.items_sold', 'Ventes & Achats'), icon: 'cart-outline', onPress: () => scrollToSection('itemsPurchases') },
+                { label: t('accounting.revenue_trend', 'Courbe CA'), icon: 'trending-up-outline', onPress: () => scrollToSection('revenueTrend') },
+                { label: t('accounting.revenue_breakdown', 'Répartition CA'), icon: 'pie-chart-outline', onPress: () => scrollToSection('revenueBreakdown'), plan: 'pro' },
+                { label: t('accounting.payment_methods', 'Moyens de paiement'), icon: 'card-outline', onPress: () => scrollToSection('paymentBreakdown') },
+                { label: t('accounting.product_performance', 'Performance produits'), icon: 'podium-outline', onPress: () => scrollToSection('perfTable'), plan: 'pro' },
+                { label: t('accounting.recent_sales', 'Ventes récentes'), icon: 'receipt-outline', onPress: () => scrollToSection('recentSales') },
+                { label: '', icon: '', onPress: () => {}, separator: true },
+                { label: t('accounting.add_expense', 'Ajouter une dépense'), icon: 'add-circle-outline', onPress: () => setShowExpenseModal(true) },
+                { label: t('accounting.free_invoice', 'Créer une facture'), icon: 'document-text-outline', onPress: () => setShowInvoiceModal(true) },
+                { label: t('accounting.report', "Rapport d'activité"), icon: 'analytics-outline', onPress: () => generateActivityReportPdf() },
+                { label: t('accounting.export_csv', 'Exporter CSV'), icon: 'download-outline', onPress: () => handleExportCSV() },
+            ]);
+        }, [t, scrollToSection])
+    );
+
     const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(user?.plan || '') || user?.subscription_status === 'expired');
 
     if (accessDenied) {
@@ -953,6 +999,7 @@ export default function AccountingScreen() {
             <View style={styles.container}>
                 <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
                     <ScrollView
+                        ref={scrollViewRef}
                         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
                     >
@@ -990,7 +1037,7 @@ export default function AccountingScreen() {
                         </View>
 
                         {/* KPI Grid */}
-                        <View style={styles.kpiGrid}>
+                        <View style={styles.kpiGrid} onLayout={e => { sectionOffsets.current.kpiGrid = e.nativeEvent.layout.y; }}>
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.success + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('revenue')}>
                                 <KpiInfoButton info={t('accounting.info_revenue')} />
                                 <View style={styles.kpiHeader}>
@@ -1067,7 +1114,7 @@ export default function AccountingScreen() {
                         )}
 
                         {/* Expenses Section */}
-                        <View style={[styles.section, { marginTop: 20 }]}>
+                        <View style={[styles.section, { marginTop: 20 }]} onLayout={e => { sectionOffsets.current.expenses = e.nativeEvent.layout.y; }}>
                             <View style={styles.sectionHeader}>
                                 <View>
                                     <Text style={styles.sectionTitle}>{t('accounting.expenses')}</Text>
@@ -1119,7 +1166,7 @@ export default function AccountingScreen() {
                         </View>
 
                         {/* KPI Grid 2: Stock & Losses */}
-                        <View style={[styles.kpiGrid, { marginTop: 10 }]}>
+                        <View style={[styles.kpiGrid, { marginTop: 10 }]} onLayout={e => { sectionOffsets.current.stockLoss = e.nativeEvent.layout.y; }}>
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.warning + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('stock')}>
                                 <KpiInfoButton info={t('accounting.info_stock_purchase')} />
                                 <View style={styles.kpiHeader}>
@@ -1149,7 +1196,7 @@ export default function AccountingScreen() {
                         </View>
 
                         {/* KPI Grid 3: Items & Purchases */}
-                        <View style={[styles.kpiGrid, { marginTop: 10 }]}>
+                        <View style={[styles.kpiGrid, { marginTop: 10 }]} onLayout={e => { sectionOffsets.current.itemsPurchases = e.nativeEvent.layout.y; }}>
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.success + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('items')}>
                                 <KpiInfoButton info={t('accounting.info_sales_count')} />
                                 <View style={styles.kpiHeader}>
@@ -1180,7 +1227,7 @@ export default function AccountingScreen() {
                         {/* Revenue Trend Chart */}
                         {
                             stats && stats.daily_revenue && stats.daily_revenue.length > 1 && (
-                                <View style={styles.section}>
+                                <View style={styles.section} onLayout={e => { sectionOffsets.current.revenueTrend = e.nativeEvent.layout.y; }}>
                                     <Text style={styles.sectionTitle}>{t('accounting.revenue_trend')}</Text>
                                     <Text style={styles.sectionSubtitle}>
                                         {revenueSeries.length > 1
@@ -1225,7 +1272,7 @@ export default function AccountingScreen() {
                         {/* Revenue Breakdown PieChart */}
                         {
                             stats && stats.revenue > 0 && (
-                                <View style={styles.section}>
+                                <View style={styles.section} onLayout={e => { sectionOffsets.current.revenueBreakdown = e.nativeEvent.layout.y; }}>
                                     <Text style={styles.sectionTitle}>{t('accounting.revenue_breakdown')}</Text>
                                     <View style={styles.chartContainer}>
                                         <PieChart
@@ -1263,7 +1310,7 @@ export default function AccountingScreen() {
                         {/* Payment Breakdown */}
                         {
                             stats && Object.keys(stats.payment_breakdown).length > 0 && (
-                                <View style={styles.section}>
+                                <View style={styles.section} onLayout={e => { sectionOffsets.current.paymentBreakdown = e.nativeEvent.layout.y; }}>
                                     <Text style={styles.sectionTitle}>{t('accounting.payment_methods')}</Text>
                                     <View style={styles.chartContainer}>
                                         <PieChart
@@ -1293,7 +1340,7 @@ export default function AccountingScreen() {
 
                         {/* Performance par Produit */}
                         {stats && stats.product_performance && stats.product_performance.length > 0 && (
-                            <View style={styles.section}>
+                            <View style={styles.section} onLayout={e => { sectionOffsets.current.perfTable = e.nativeEvent.layout.y; }}>
                                 <View style={styles.sectionHeader}>
                                     <View>
                                         <Text style={styles.sectionTitle}>{t('accounting.product_performance')}</Text>
@@ -1354,7 +1401,7 @@ export default function AccountingScreen() {
                         )}
 
                         {/* Recent Sales */}
-                        <View style={styles.section}>
+                        <View style={styles.section} onLayout={e => { sectionOffsets.current.recentSales = e.nativeEvent.layout.y; }}>
                             <Text style={styles.sectionTitle}>{t('accounting.recent_sales')}</Text>
                             {recentSales.length === 0 ? (
                                 <View style={styles.emptyState}>
