@@ -599,7 +599,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>Abonnement</Text>
           <TouchableOpacity
             style={styles.supportRow}
-            onPress={() => router.push('/subscription')}
+            onPress={() => router.push('/(tabs)/subscription' as any)}
           >
             <View style={[styles.supportIconWrapper, { backgroundColor: '#F59E0B' }]}>
               <Ionicons name="card-outline" size={20} color="#fff" />

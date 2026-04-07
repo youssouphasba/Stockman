@@ -17,6 +17,7 @@ import {
   Linking,
   LayoutAnimation,
   UIManager,
+  DeviceEventEmitter,
 } from 'react-native';
 import Skeleton from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
@@ -155,8 +156,9 @@ export default function ProductsScreen() {
         { label: t('products.import_text', 'Import texte IA'), icon: 'document-text-outline', onPress: () => setShowTextImportModal(true), plan: 'pro' },
         { label: t('products.manage_categories', 'Gérer les catégories'), icon: 'pricetags-outline', onPress: () => setShowCategoryModal(true) },
         { label: '', icon: '', onPress: () => {}, separator: true },
-        { label: t('tabs.locations', 'Emplacements'), icon: 'map-outline', onPress: () => router.push('/(tabs)/locations' as any), plan: 'enterprise' },
         { label: t('products.movement_history', 'Historique mouvements'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
+        { label: t('dashboard.statistics', 'Statistiques'), icon: 'stats-chart-outline', onPress: () => DeviceEventEmitter.emit('open:statistics') },
+        { label: t('tabs.locations', 'Emplacements'), icon: 'map-outline', onPress: () => router.push('/(tabs)/locations' as any), plan: 'enterprise' },
         { label: t('common.export_csv', 'Exporter CSV'), icon: 'download-outline', onPress: () => handleExportCSV() },
         { label: t('products.trash', 'Corbeille'), icon: 'trash-outline', onPress: () => setShowTrashModal(true), destructive: true },
       ]);

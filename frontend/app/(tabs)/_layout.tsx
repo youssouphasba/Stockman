@@ -247,7 +247,7 @@ function TabLayoutInner() {
                 <Ionicons name="sparkles-outline" size={24} color={colors.primary} />
               </TouchableOpacity>
               {hasOperationalAccess && (
-                <TouchableOpacity onPress={() => router.push('/alerts')} style={{ padding: 4, position: 'relative' }}>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/alerts' as any)} style={{ padding: 4, position: 'relative' }}>
                   <Ionicons name="notifications-outline" size={24} color={colors.text} />
                   {unreadAlertCount > 0 && (
                     <View

@@ -178,23 +178,51 @@ export default function DashboardScreen() {
   const [nlLoading, setNlLoading] = useState(false);
   const dashboardCacheKey = user?.user_id ? `${KEYS.DASHBOARD}:${user.user_id}` : KEYS.DASHBOARD;
 
+  // Scroll refs for drawer navigation
+  const scrollViewRef = useRef<ScrollView>(null);
+  const sectionOffsets = useRef<Record<string, number>>({});
+  const scrollToSection = useCallback((key: string) => {
+    const y = sectionOffsets.current[key];
+    if (y != null && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y, animated: true });
+    }
+  }, []);
+
   // Register drawer menu items
   useFocusEffect(
     useCallback(() => {
       setDrawerContent(t('tabs.home'), [
-        { label: t('dashboard.history', 'Historique des ventes'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
-        { label: t('dashboard.statistics', 'Statistiques'), icon: 'stats-chart-outline', onPress: () => setShowStatsModal(true) },
-        { label: t('dashboard.inventory_count', 'Inventaire tournant'), icon: 'clipboard-outline', onPress: () => setShowInventoryCountModal(true), plan: 'enterprise' },
-        { label: t('dashboard.notifications', 'Notifications'), icon: 'notifications-outline', onPress: () => setShowNotifModal(true), badge: notifCount || undefined },
+        // -- Sections du dashboard (scroll) --
+        { label: t('dashboard.daily_report', 'Rapport du jour'), icon: 'today-outline', onPress: () => scrollToSection('dailyReport'), plan: 'enterprise' },
+        { label: t('dashboard.profitability_analysis', 'Analyse de rentabilité'), icon: 'analytics-outline', onPress: () => scrollToSection('profitability') },
+        { label: t('dashboard.stock_status', 'État du stock'), icon: 'cube-outline', onPress: () => scrollToSection('stockStatus') },
+        { label: t('dashboard.recent_alerts', 'Alertes récentes'), icon: 'alert-circle-outline', onPress: () => scrollToSection('recentAlerts') },
+        { label: t('dashboard.recent_sales', 'Ventes récentes'), icon: 'receipt-outline', onPress: () => scrollToSection('recentSales') },
+        { label: t('dashboard.stock_evolution', 'Évolution du stock'), icon: 'trending-up-outline', onPress: () => scrollToSection('stockEvolution') },
+        { label: t('dashboard.category_distribution', 'Répartition catégories'), icon: 'pie-chart-outline', onPress: () => scrollToSection('categoryDist') },
+        { label: t('dashboard.abc_analysis', 'Analyse ABC'), icon: 'podium-outline', onPress: () => scrollToSection('abcAnalysis') },
+        { label: t('dashboard.smart_replenishment', 'Réapprovisionnement'), icon: 'reload-outline', onPress: () => scrollToSection('replenishment') },
+        { label: t('dashboard.rotating_inventory', 'Inventaire tournant'), icon: 'clipboard-outline', onPress: () => scrollToSection('rotatingInventory') },
+        { label: t('dashboard.expiry_alerts', 'Alertes péremption'), icon: 'warning-outline', onPress: () => scrollToSection('expiryAlerts') },
+        { label: '', icon: '', onPress: () => {}, separator: true },
+        // -- Actions --
+        { label: t('dashboard.notifications', 'Notifications'), icon: 'megaphone-outline', onPress: () => setShowNotifModal(true), badge: notifCount || undefined },
         { label: t('chat.title', 'Messagerie'), icon: 'chatbubbles-outline', onPress: () => DeviceEventEmitter.emit('open:chat') },
         { label: '', icon: '', onPress: () => {}, separator: true },
-        { label: t('tabs.alerts'), icon: 'alert-circle-outline', onPress: () => router.push('/alerts') },
-        { label: t('tabs.users'), icon: 'people-outline', onPress: () => router.push('/users') },
+        // -- Navigation --
+        { label: t('tabs.alerts'), icon: 'alert-circle-outline', onPress: () => router.push('/(tabs)/alerts' as any) },
+        { label: t('tabs.users'), icon: 'people-outline', onPress: () => router.push('/(tabs)/users' as any) },
         { label: t('sidebar.multi_stores', 'Multi-boutiques'), icon: 'storefront-outline', onPress: () => router.push('/(tabs)/enterprise' as any), plan: 'enterprise' },
-        { label: t('tabs.subscription'), icon: 'card-outline', onPress: () => router.push('/subscription') },
+        { label: t('tabs.subscription'), icon: 'card-outline', onPress: () => router.push('/(tabs)/subscription' as any) },
       ]);
-    }, [t, notifCount])
+    }, [t, notifCount, scrollToSection])
   );
+
+  // Listen for cross-tab events to open modals
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('open:statistics', () => setShowStatsModal(true));
+    return () => sub.remove();
+  }, []);
 
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);
@@ -720,6 +748,7 @@ export default function DashboardScreen() {
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <ScrollView
+        ref={scrollViewRef}
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
@@ -990,7 +1019,7 @@ export default function DashboardScreen() {
 
         {/* Rapport du Jour • Enterprise */}
         {(user?.plan === 'enterprise' || hasPermission('accounting', 'read')) && data && (
-          <View style={styles.section}>
+          <View style={styles.section} onLayout={e => { sectionOffsets.current.dailyReport = e.nativeEvent.layout.y; }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text style={styles.sectionTitle}>{t('dashboard.daily_report')}</Text>
               <TouchableOpacity onPress={handleShareReport} style={{ padding: 6 }}>
@@ -1059,7 +1088,7 @@ export default function DashboardScreen() {
 
         {/* Profitability Analysis — NEW */}
         {userSettings?.dashboard_layout?.show_profitability && stats?.profit_by_category && stats.profit_by_category.length > 0 && (
-          <View style={styles.section}>
+          <View style={styles.section} onLayout={e => { sectionOffsets.current.profitability = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.profitability_analysis')}</Text>
             <BarChart
               data={{
@@ -1088,7 +1117,7 @@ export default function DashboardScreen() {
 
         {/* Statut des stocks */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_stock_status) && (
-          <View style={styles.statusSection}>
+          <View style={styles.statusSection} onLayout={e => { sectionOffsets.current.stockStatus = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.stock_status')}</Text>
             <View style={styles.statusRow}>
               <StatusBadge label={t('dashboard.out_of_stock')} count={data?.out_of_stock_count ?? 0} color={colors.danger} styles={styles} />
@@ -1154,7 +1183,7 @@ export default function DashboardScreen() {
 
         {/* Alertes récentes */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_recent_alerts) && data?.recent_alerts && data.recent_alerts.length > 0 && (
-          <View style={styles.section}>
+          <View style={styles.section} onLayout={e => { sectionOffsets.current.recentAlerts = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.recent_alerts')}</Text>
             {data.recent_alerts
               .filter((alert) => Boolean(alert && (alert.title || alert.message)))
@@ -1189,7 +1218,7 @@ export default function DashboardScreen() {
 
         {/* Ventes Récentes */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_recent_sales) && data?.recent_sales && data.recent_sales.length > 0 && (
-          <View style={styles.sectionContainer}>
+          <View style={styles.sectionContainer} onLayout={e => { sectionOffsets.current.recentSales = e.nativeEvent.layout.y; }}>
             <View style={styles.sectionHeader}>
               <Ionicons name="receipt-outline" size={20} color={colors.primary} />
               <Text style={styles.sectionTitle}>{t('dashboard.recent_sales')}</Text>
@@ -1210,7 +1239,7 @@ export default function DashboardScreen() {
 
         {/* Evolution Valeur Stock */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_stock_chart) && stats?.stock_value_history && stats.stock_value_history.length > 0 && (
-          <View style={styles.section}>
+          <View style={styles.section} onLayout={e => { sectionOffsets.current.stockEvolution = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.stock_evolution')}</Text>
             <LineChart
               data={{
@@ -1260,7 +1289,7 @@ export default function DashboardScreen() {
 
         {/* Répartition par Catégorie */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_category_chart) && stats?.stock_by_category && stats.stock_by_category.length > 0 && (
-          <View style={styles.section}>
+          <View style={styles.section} onLayout={e => { sectionOffsets.current.categoryDist = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.category_distribution')}</Text>
             <PieChart
               data={stats.stock_by_category.map((c, i) => ({
@@ -1288,7 +1317,7 @@ export default function DashboardScreen() {
 
         {/* Analyse ABC */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_abc_analysis) && stats?.abc_analysis && (
-          <View style={styles.section}>
+          <View style={styles.section} onLayout={e => { sectionOffsets.current.abcAnalysis = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.abc_analysis')}</Text>
             <View style={styles.abcContainer}>
               <View style={[styles.abcCard, { borderLeftColor: colors.success, borderLeftWidth: 4 }]}>
@@ -1319,7 +1348,7 @@ export default function DashboardScreen() {
 
         {/* Réapprovisionnement Intelligent */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_reorder) && stats?.reorder_recommendations && stats.reorder_recommendations.length > 0 && (
-          <View style={styles.section}>
+          <View style={styles.section} onLayout={e => { sectionOffsets.current.replenishment = e.nativeEvent.layout.y; }}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{t('dashboard.smart_replenishment')}</Text>
               <View style={styles.badge}>
@@ -1354,7 +1383,7 @@ export default function DashboardScreen() {
 
         {/* Inventaire Tournant */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_inventory_tasks) && inventoryTasks.length > 0 && (
-          <View style={[styles.section, { marginTop: Spacing.md }]}>
+          <View style={[styles.section, { marginTop: Spacing.md }]} onLayout={e => { sectionOffsets.current.rotatingInventory = e.nativeEvent.layout.y; }}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{t('dashboard.rotating_inventory')}</Text>
               <View style={[styles.badge, { backgroundColor: colors.info }]}>
@@ -1392,7 +1421,7 @@ export default function DashboardScreen() {
 
         {/* Alertes Péremption */}
         {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_expiry_alerts) && stats?.expiry_alerts && stats.expiry_alerts.length > 0 && (
-          <View style={[styles.section, { marginTop: Spacing.md }]}>
+          <View style={[styles.section, { marginTop: Spacing.md }]} onLayout={e => { sectionOffsets.current.expiryAlerts = e.nativeEvent.layout.y; }}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{t('dashboard.expiry_alerts')}</Text>
               <View style={[styles.badge, { backgroundColor: colors.warning }]}>
