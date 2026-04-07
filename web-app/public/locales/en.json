@@ -296,6 +296,7 @@
     "chat_welcome_sector": "Hello! I am your Stockman assistant for {{sector}}. I can help with products, sales, stock, and daily decisions."
   },
   "staff": {
+    "module_dashboard": "📊 Dashboard",
     "module_pos": "🧾 Sales (POS)",
     "module_stock": "📦 Stock",
     "module_accounting": "💼 Accounting",

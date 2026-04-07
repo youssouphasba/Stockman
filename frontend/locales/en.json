@@ -3087,6 +3087,7 @@
     "perm_read_only": "Read only",
     "permissions_section_title": "Permissions & Access",
     "phone_label": "Phone",
+    "dashboard_label": "Dashboard",
     "pos_label": "Sales (POS)",
     "products_label": "Stock & Products",
     "role_admin": "Owner (Admin)",

@@ -28,6 +28,7 @@ import Modal from './Modal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 const MODULE_LABEL_KEYS: Record<string, string> = {
+    dashboard: 'staff.module_dashboard',
     pos: 'staff.module_pos',
     stock: 'staff.module_stock',
     accounting: 'staff.module_accounting',
@@ -51,6 +52,7 @@ type StaffFormState = {
 };
 
 const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
+    dashboard: 'read',
     stock: 'none',
     accounting: 'none',
     crm: 'none',

@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Set
 
 
-PERMISSION_MODULES = ("pos", "stock", "accounting", "crm", "suppliers", "staff")
+PERMISSION_MODULES = ("dashboard", "pos", "stock", "accounting", "crm", "suppliers", "staff")
 VALID_PERMISSION_LEVELS = {"none", "read", "write"}
 NOTIFICATION_CONTACT_KEYS = ("default", "stock", "procurement", "finance", "crm", "operations", "billing")
 NOTIFICATION_CHANNELS = ("in_app", "push", "email")
@@ -201,8 +201,10 @@ def is_billing_admin_doc(user_doc: dict) -> bool:
     return "billing_admin" in normalize_account_roles(user_doc)
 
 
+PERMISSION_DEFAULTS: Dict[str, str] = {"dashboard": "read"}
+
 def normalize_permission_map(permissions: Optional[dict]) -> Dict[str, str]:
-    normalized = {module: "none" for module in PERMISSION_MODULES}
+    normalized = {module: PERMISSION_DEFAULTS.get(module, "none") for module in PERMISSION_MODULES}
     for module, level in (permissions or {}).items():
         if module in normalized and level in VALID_PERMISSION_LEVELS:
             normalized[module] = level

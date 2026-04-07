@@ -25,6 +25,7 @@ import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTranslation } from 'react-i18next';
 
 const getDefaultPermissions = () => ({
+    dashboard: 'read' as const,
     stock: 'none' as const,
     accounting: 'none' as const,
     crm: 'none' as const,
@@ -461,6 +462,7 @@ export default function UsersScreen() {
                                 )}
 
                                 <Text style={styles.sectionTitle}>{t('users.permissions_section_title')}</Text>
+                                {renderPermissionRow(t('users.dashboard_label', 'Tableau de bord'), 'dashboard')}
                                 {renderPermissionRow(t('users.pos_label'), 'pos')}
                                 {renderPermissionRow(t('users.stock_label'), 'stock')}
                                 {renderPermissionRow(t('users.accounting_label'), 'accounting')}

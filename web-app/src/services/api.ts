@@ -410,6 +410,7 @@ export type UserFeatures = {
 export type PermissionLevel = 'none' | 'read' | 'write';
 
 export type UserPermissions = {
+    dashboard?: PermissionLevel;
     stock?: PermissionLevel;
     accounting?: PermissionLevel;
     crm?: PermissionLevel;

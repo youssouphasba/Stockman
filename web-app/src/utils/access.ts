@@ -1,6 +1,6 @@
 import type { User, UserPermissions } from '../services/api';
 
-const ACCESS_MODULES: (keyof UserPermissions)[] = ['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'];
+const ACCESS_MODULES: (keyof UserPermissions)[] = ['dashboard', 'pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'];
 
 export type AccessContext = {
     accountRoles: ('billing_admin' | 'org_admin')[];

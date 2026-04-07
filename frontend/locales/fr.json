@@ -3435,6 +3435,7 @@
     "perm_read_only": "Lecture seule",
     "permissions_section_title": "Permissions & Accès",
     "phone_label": "Téléphone",
+    "dashboard_label": "Tableau de bord",
     "pos_label": "Caisse (Ventes)",
     "products_label": "Stock & Produits",
     "role_admin": "Propriétaire (Admin)",

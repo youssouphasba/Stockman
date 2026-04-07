@@ -76,6 +76,7 @@ export default function TabLayout() {
   const hideOrders = isRestaurant || modules.orders === false || !hasPermission('stock', 'read');
   const hidePos = !hasPermission('pos', 'read');
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
+  const hideDashboard = !hasPermission('dashboard', 'read');
 
   const productsTabTitle = isRestaurant
     ? t('tabs.menu', 'Menu')
@@ -110,8 +111,13 @@ export default function TabLayout() {
     }
     if (user && billingOnly && currentRoute !== 'settings' && currentRoute !== 'subscription') {
       router.replace('/subscription');
+      return;
     }
-  }, [billingOnly, currentRoute, router, user]);
+    if (user && hideDashboard && currentRoute === 'index') {
+      const firstTab = !hidePos ? '/pos' : !hideStock ? '/products' : !hideAccounting ? '/accounting' : !hideSuppliers ? '/suppliers' : !hideCrm ? '/crm' : '/settings';
+      router.replace(firstTab as any);
+    }
+  }, [billingOnly, hideDashboard, currentRoute, router, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -294,7 +300,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: t('tabs.home'),
-            href: billingOnly ? null : '/',
+            href: (billingOnly || hideDashboard) ? null : '/',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
             ),

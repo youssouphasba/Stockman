@@ -143,7 +143,7 @@ export default function Sidebar({
 
     const menuEntries: SidebarEntry[] = isRestaurant ? [
         // ── RESTAURANT ──────────────────────────────────────────
-        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'dashboard' },
         { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true },
         { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
         { id: 'tables', icon: UtensilsCrossed, label: t('sidebar.tables'), roles: ['shopkeeper', 'staff', 'admin'] },
@@ -160,7 +160,7 @@ export default function Sidebar({
         ...commonBottom,
     ] : isProductionOnly ? [
         // ── PRODUCTION (boulangerie, couture, forge…) ─────────────
-        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'dashboard' },
         { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true },
         { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
         { id: 'production', icon: Factory, label: t('production.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
@@ -190,7 +190,7 @@ export default function Sidebar({
         ...commonBottom,
     ] : [
         // ── COMMERCE (défaut) ─────────────────────────────────────
-        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'] },
+        { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'dashboard' },
         { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true },
         { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
         { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },

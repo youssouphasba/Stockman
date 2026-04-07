@@ -296,6 +296,7 @@
     "chat_welcome_sector": "Bonjour ! Je suis votre assistant Stockman pour {{sector}}. Je peux vous aider sur vos produits, vos ventes, votre stock et vos décisions du jour."
   },
   "staff": {
+    "module_dashboard": "📊 Tableau de bord",
     "module_pos": "🧾 Ventes (POS)",
     "module_stock": "📦 Stock",
     "module_accounting": "💼 Comptabilité",
