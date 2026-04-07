@@ -129,39 +129,39 @@ export default function EnterpriseScreen() {
         description: 'Inviter, limiter et répartir les accès par boutique.',
         icon: 'people-outline',
         color: colors.primary,
-        onPress: () => router.push(‘/(tabs)/users’ as any),
+        onPress: () => router.push('/(tabs)/users' as any),
       },
       {
-        id: ‘activity’,
-        title: ‘Activité’,
-        description: ‘Suivre les actions réalisées sur le compte.’,
-        icon: ‘time-outline’,
+        id: 'activity',
+        title: 'Activité',
+        description: "Suivre les actions réalisées sur le compte.",
+        icon: 'time-outline',
         color: colors.info,
-        onPress: () => router.push(‘/(tabs)/activity’ as any),
+        onPress: () => router.push('/(tabs)/activity' as any),
       },
       {
-        id: ‘locations’,
-        title: ‘Emplacements’,
-        description: ‘Gérer les structures d’allées, zones, niveaux et étagères.’,
-        icon: ‘location-outline’,
+        id: 'locations',
+        title: 'Emplacements',
+        description: "Gérer les structures d'allées, zones, niveaux et étagères.",
+        icon: 'location-outline',
         color: colors.warning,
-        onPress: () => router.push(‘/(tabs)/locations’ as any),
+        onPress: () => router.push('/(tabs)/locations' as any),
       },
       {
-        id: ‘settings’,
-        title: ‘Boutique active’,
-        description: ‘Modifier l’identité et les documents de la boutique courante.’,
-        icon: ‘storefront-outline’,
+        id: 'settings',
+        title: 'Boutique active',
+        description: "Modifier l'identité et les documents de la boutique courante.",
+        icon: 'storefront-outline',
         color: colors.success,
-        onPress: () => router.push(‘/(tabs)/settings’ as any),
+        onPress: () => router.push('/(tabs)/settings' as any),
       },
       {
-        id: ‘subscription’,
-        title: ‘Abonnement’,
-        description: ‘Voir le plan, l’échéance et la facturation du compte.’,
-        icon: ‘card-outline’,
-        color: ‘#F59E0B’,
-        onPress: () => router.push(‘/(tabs)/subscription’ as any),
+        id: 'subscription',
+        title: 'Abonnement',
+        description: "Voir le plan, l'échéance et la facturation du compte.",
+        icon: 'card-outline',
+        color: '#F59E0B',
+        onPress: () => router.push('/(tabs)/subscription' as any),
       },
     ];
 
@@ -219,8 +219,8 @@ export default function EnterpriseScreen() {
         description="Le pilotage multi-boutiques et les emplacements avancés sont réservés au plan Enterprise."
         benefits={[
           'Comparer les performances de toutes les boutiques',
-          'Créer des structures d’emplacements avancées',
-          'Superviser l’équipe et les accès par boutique',
+          "Créer des structures d'emplacements avancées",
+          "Superviser l'équipe et les accès par boutique",
         ]}
         icon="business-outline"
       >
@@ -260,7 +260,7 @@ export default function EnterpriseScreen() {
             <Text style={styles.headerEyebrow}>Enterprise</Text>
             <Text style={styles.headerTitle}>Pilotage mobile</Text>
             <Text style={styles.headerSubtitle}>
-              Supervisez les boutiques, l’équipe et les emplacements avancés depuis le même backend que le web.
+              Supervisez les boutiques, l'équipe et les emplacements avancés depuis le même backend que le web.
             </Text>
           </View>
 
