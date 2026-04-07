@@ -1149,7 +1149,7 @@ export default function CRMScreen() {
                 {/* Customer Detail Modal (with tabs) */}
                 {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
                     <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { maxHeight: '95%', paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + Spacing.md }]}>
+                        <View style={[styles.modalContent, { flex: 1, maxHeight: '95%', paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + Spacing.md }]}>
                             {detailCustomer && (
                                 <>
                                     <View style={styles.modalHeader}>
