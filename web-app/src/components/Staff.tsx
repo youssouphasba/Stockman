@@ -81,11 +81,11 @@ function normalizeStaffPermissions(permissions?: Partial<UserPermissions> | null
 }
 
 const ROLE_TEMPLATE_KEYS: Record<string, { labelKey: string; permissions: StaffPermissions }> = {
-    cashier: { labelKey: 'staff.role_cashier', permissions: { pos: 'write', stock: 'read', accounting: 'none', crm: 'read', suppliers: 'none', staff: 'none' } },
-    stock_manager: { labelKey: 'staff.role_stock', permissions: { pos: 'none', stock: 'write', accounting: 'none', crm: 'none', suppliers: 'read', staff: 'none' } },
-    accountant: { labelKey: 'staff.role_accountant', permissions: { pos: 'read', stock: 'read', accounting: 'write', crm: 'none', suppliers: 'read', staff: 'none' } },
-    manager: { labelKey: 'staff.role_manager', permissions: { pos: 'write', stock: 'write', accounting: 'read', crm: 'write', suppliers: 'write', staff: 'write' } },
-    crm_agent: { labelKey: 'staff.role_crm', permissions: { pos: 'read', stock: 'none', accounting: 'none', crm: 'write', suppliers: 'none', staff: 'none' } },
+    cashier: { labelKey: 'staff.role_cashier', permissions: { dashboard: 'read', pos: 'write', stock: 'read', accounting: 'none', crm: 'read', suppliers: 'none', staff: 'none' } },
+    stock_manager: { labelKey: 'staff.role_stock', permissions: { dashboard: 'read', pos: 'none', stock: 'write', accounting: 'none', crm: 'none', suppliers: 'read', staff: 'none' } },
+    accountant: { labelKey: 'staff.role_accountant', permissions: { dashboard: 'read', pos: 'read', stock: 'read', accounting: 'write', crm: 'none', suppliers: 'read', staff: 'none' } },
+    manager: { labelKey: 'staff.role_manager', permissions: { dashboard: 'write', pos: 'write', stock: 'write', accounting: 'read', crm: 'write', suppliers: 'write', staff: 'write' } },
+    crm_agent: { labelKey: 'staff.role_crm', permissions: { dashboard: 'read', pos: 'read', stock: 'none', accounting: 'none', crm: 'write', suppliers: 'none', staff: 'none' } },
 };
 
 export default function Staff() {
