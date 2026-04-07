@@ -15,6 +15,7 @@
   useWindowDimensions,
   LayoutAnimation,
   UIManager,
+  DeviceEventEmitter,
 } from 'react-native';
 import Skeleton from '../../components/Skeleton';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -185,6 +186,7 @@ export default function DashboardScreen() {
         { label: t('dashboard.statistics', 'Statistiques'), icon: 'stats-chart-outline', onPress: () => setShowStatsModal(true) },
         { label: t('dashboard.inventory_count', 'Inventaire tournant'), icon: 'clipboard-outline', onPress: () => setShowInventoryCountModal(true), plan: 'enterprise' },
         { label: t('dashboard.notifications', 'Notifications'), icon: 'notifications-outline', onPress: () => setShowNotifModal(true), badge: notifCount || undefined },
+        { label: t('chat.title', 'Messagerie'), icon: 'chatbubbles-outline', onPress: () => DeviceEventEmitter.emit('open:chat') },
         { label: '', icon: '', onPress: () => {}, separator: true },
         { label: t('tabs.alerts'), icon: 'alert-circle-outline', onPress: () => router.push('/alerts') },
         { label: t('tabs.users'), icon: 'people-outline', onPress: () => router.push('/users') },

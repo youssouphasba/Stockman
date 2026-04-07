@@ -65,8 +65,9 @@ function TabLayoutInner() {
   }, [unreadAlertCount]);
 
   useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener('alerts:changed', refreshAlertCount);
-    return () => subscription.remove();
+    const sub1 = DeviceEventEmitter.addListener('alerts:changed', refreshAlertCount);
+    const sub2 = DeviceEventEmitter.addListener('open:chat', () => setShowChat(true));
+    return () => { sub1.remove(); sub2.remove(); };
   }, [refreshAlertCount]);
 
   const modules = userSettings?.modules ?? {};
@@ -246,11 +247,6 @@ function TabLayoutInner() {
                 <Ionicons name="sparkles-outline" size={24} color={colors.primary} />
               </TouchableOpacity>
               {hasOperationalAccess && (
-                <TouchableOpacity onPress={() => setShowChat(true)} style={{ padding: 4 }}>
-                  <Ionicons name="chatbubbles-outline" size={24} color={colors.text} />
-                </TouchableOpacity>
-              )}
-              {hasOperationalAccess && (
                 <TouchableOpacity onPress={() => router.push('/alerts')} style={{ padding: 4, position: 'relative' }}>
                   <Ionicons name="notifications-outline" size={24} color={colors.text} />
                   {unreadAlertCount > 0 && (
@@ -280,11 +276,6 @@ function TabLayoutInner() {
               <TouchableOpacity onPress={() => setShowHelpCenter(true)} style={{ padding: 4 }}>
                 <Ionicons name="book-outline" size={24} color={colors.text} />
               </TouchableOpacity>
-              {currentGuide && (
-                <TouchableOpacity onPress={() => setShowGuide(true)} style={{ padding: 4 }}>
-                  <Ionicons name="help-circle-outline" size={24} color={colors.text} />
-                </TouchableOpacity>
-              )}
               {hasOperationalAccess && <StoreSelector />}
             </View>
           ),
