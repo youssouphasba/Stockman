@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { planner as plannerApi, type PlannerChannel, type PlannerItem } from '../../services/api';
@@ -22,7 +23,7 @@ import { useDrawer } from '../../contexts/DrawerContext';
 type PlannerFilter = 'active' | 'completed' | 'all';
 
 const CHANNELS: PlannerChannel[] = ['in_app', 'push', 'email'];
-const TIME_OPTIONS = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '16:00', '18:00'];
+const DEFAULT_REMINDER_CHANNELS: PlannerChannel[] = ['in_app', 'push'];
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 function monthKey(date: Date) {
@@ -87,6 +88,13 @@ function buildReminderIso(dateValue: string, timeValue: string) {
   return new Date(`${dateValue}T${timeValue || '09:00'}:00`).toISOString();
 }
 
+function timeValueToDate(timeValue: string) {
+  const [hours, minutes] = timeValue.split(':').map((value) => Number(value) || 0);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
 function isSameMonth(reminderAt: string | null | undefined, currentMonth: Date) {
   if (!reminderAt) return false;
   return reminderAt.slice(0, 7) === monthKey(currentMonth);
@@ -110,6 +118,7 @@ export default function PlannerScreen() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [showComposer, setShowComposer] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [datePickerMonth, setDatePickerMonth] = useState(new Date());
   const [editingItem, setEditingItem] = useState<PlannerItem | null>(null);
   const [title, setTitle] = useState('');
@@ -117,7 +126,7 @@ export default function PlannerScreen() {
   const [hasReminder, setHasReminder] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('09:00');
-  const [channels, setChannels] = useState<PlannerChannel[]>(['in_app']);
+  const [channels, setChannels] = useState<PlannerChannel[]>(DEFAULT_REMINDER_CHANNELS);
 
   const loadItems = useCallback(async (showRefresh = false) => {
     if (!hasEnterprisePlan) {
@@ -211,7 +220,7 @@ export default function PlannerScreen() {
     setHasReminder(false);
     setSelectedDate('');
     setSelectedTime('09:00');
-    setChannels(['in_app']);
+    setChannels(DEFAULT_REMINDER_CHANNELS);
     setError(null);
   }
 
@@ -236,7 +245,7 @@ export default function PlannerScreen() {
     setHasReminder(Boolean(item.reminder_at));
     setSelectedDate(isoDateFromReminder(item.reminder_at));
     setSelectedTime(timeFromReminder(item.reminder_at));
-    setChannels(item.channels?.length ? item.channels : ['in_app']);
+    setChannels(item.channels?.length ? item.channels : DEFAULT_REMINDER_CHANNELS);
     setDatePickerMonth(item.reminder_at ? new Date(item.reminder_at) : new Date());
     setError(null);
     setShowComposer(true);
@@ -245,7 +254,20 @@ export default function PlannerScreen() {
   function closeComposer() {
     setShowComposer(false);
     setShowDatePicker(false);
+    setShowTimePicker(false);
     setError(null);
+  }
+
+  function handleTimeChange(event: DateTimePickerEvent, date?: Date) {
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
+    if (event.type === 'dismissed' || !date) {
+      return;
+    }
+    const nextHours = String(date.getHours()).padStart(2, '0');
+    const nextMinutes = String(date.getMinutes()).padStart(2, '0');
+    setSelectedTime(`${nextHours}:${nextMinutes}`);
   }
 
   function toggleChannel(channel: PlannerChannel) {
@@ -272,7 +294,7 @@ export default function PlannerScreen() {
         title: trimmedTitle || undefined,
         content: trimmedContent || undefined,
         reminder_at: hasReminder && selectedDate ? buildReminderIso(selectedDate, selectedTime) : null,
-        channels: hasReminder ? channels : ['in_app' as PlannerChannel],
+        channels: hasReminder ? channels : DEFAULT_REMINDER_CHANNELS,
       };
 
       if (editingItem) {
@@ -685,28 +707,28 @@ export default function PlannerScreen() {
 
                     <View>
                       <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('planner.time_title')}</Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 8 }}>
-                        {TIME_OPTIONS.map((time) => {
-                          const active = selectedTime === time;
-                          return (
-                            <TouchableOpacity
-                              key={time}
-                              onPress={() => setSelectedTime(time)}
-                              style={[
-                                styles.timeChip,
-                                {
-                                  backgroundColor: active
-                                    ? (isDark ? 'rgba(16,185,129,0.18)' : 'rgba(5,150,105,0.14)')
-                                    : colors.card,
-                                  borderColor: active ? colors.primary : colors.glassBorder,
-                                },
-                              ]}
-                            >
-                              <Text style={[styles.timeChipText, { color: active ? colors.primary : colors.textSecondary }]}>{time}</Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
+                      <TouchableOpacity
+                        onPress={() => setShowTimePicker(true)}
+                        style={[styles.datePreviewCard, { borderColor: colors.glassBorder, backgroundColor: colors.card, marginTop: 8 }]}
+                      >
+                        <Ionicons name="time-outline" size={18} color={colors.primary} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.datePreviewLabel, { color: colors.textMuted }]}>{t('planner.time_title')}</Text>
+                          <Text style={[styles.datePreviewValue, { color: colors.text }]}>{selectedTime}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward-outline" size={18} color={colors.textMuted} />
+                      </TouchableOpacity>
+                      {showTimePicker ? (
+                        <View style={[styles.nativePickerCard, { borderColor: colors.glassBorder, backgroundColor: colors.card }]}>
+                          <DateTimePicker
+                            value={timeValueToDate(selectedTime)}
+                            mode="time"
+                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                            onChange={handleTimeChange}
+                            themeVariant={isDark ? 'dark' : 'light'}
+                          />
+                        </View>
+                      ) : null}
                     </View>
 
                     <View>
@@ -1013,8 +1035,13 @@ const styles = StyleSheet.create({
   },
   datePreviewLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.4 },
   datePreviewValue: { fontSize: 15, fontWeight: '700', marginTop: 2 },
-  timeChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10 },
-  timeChipText: { fontSize: 13, fontWeight: '700' },
+  nativePickerCard: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderRadius: 18,
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
   channelsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 8 },
   channelChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10 },
   channelChipText: { fontSize: 13, fontWeight: '700' },

@@ -522,7 +522,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "time-outline",
                 title: "Choisir l'heure sans la taper",
-                description: "Après avoir choisi une date, sélectionnez simplement l'heure voulue. Vous n'avez pas besoin de saisir une date ou une heure à la main."
+                description: "Après avoir choisi une date, sélectionnez simplement l'heure voulue avec le sélecteur natif du téléphone. Les canaux dans l'application et push sont activés par défaut."
             },
             {
                 icon: "checkmark-done-outline",

@@ -27,10 +27,16 @@ Le flux recommande est le suivant :
 
 - toucher une date du calendrier pour creer un rappel ;
 - ecrire ensuite le contenu du rappel ;
-- choisir l'heure souhaitee ;
-- activer les canaux utiles si besoin.
+- choisir l'heure souhaitee avec le selecteur natif du telephone ;
+- verifier les canaux utiles si besoin.
 
 Une note simple peut etre creee sans date ni heure depuis le bouton `Nouvelle note`.
+
+Par defaut, un rappel active :
+
+- l'affichage dans l'application ;
+- la notification push ;
+- l'email reste optionnel.
 
 ## Sur le web
 

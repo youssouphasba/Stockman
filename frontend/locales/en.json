@@ -1518,7 +1518,7 @@
       },
       "f4": {
         "t": "Time and follow-up",
-        "d": "Choose the time without typing it, then mark the item as completed or reopen it later if needed."
+        "d": "Choose the time with the phone's native picker. In-app and push channels are enabled by default."
       }
       },
       "supplierDashboard": {

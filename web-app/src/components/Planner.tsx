@@ -8,6 +8,7 @@ import { planner as plannerApi, type PlannerChannel, type PlannerItem, type User
 type PlannerFilter = 'active' | 'completed' | 'all';
 
 const CHANNELS: PlannerChannel[] = ['in_app', 'push', 'email'];
+const DEFAULT_REMINDER_CHANNELS: PlannerChannel[] = ['in_app', 'push'];
 const TIME_OPTIONS = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '16:00', '18:00'];
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
@@ -101,7 +102,7 @@ export default function Planner({ user }: Props) {
   const [hasReminder, setHasReminder] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('09:00');
-  const [channels, setChannels] = useState<PlannerChannel[]>(['in_app']);
+  const [channels, setChannels] = useState<PlannerChannel[]>(DEFAULT_REMINDER_CHANNELS);
 
   const loadItems = useCallback(async () => {
     if (!hasEnterprisePlan) {
@@ -177,7 +178,7 @@ export default function Planner({ user }: Props) {
     setHasReminder(false);
     setSelectedDate('');
     setSelectedTime('09:00');
-    setChannels(['in_app']);
+    setChannels(DEFAULT_REMINDER_CHANNELS);
     setError(null);
   }
 
@@ -202,7 +203,7 @@ export default function Planner({ user }: Props) {
     setHasReminder(Boolean(item.reminder_at));
     setSelectedDate(isoDateFromReminder(item.reminder_at));
     setSelectedTime(timeFromReminder(item.reminder_at));
-    setChannels(item.channels?.length ? item.channels : ['in_app']);
+    setChannels(item.channels?.length ? item.channels : DEFAULT_REMINDER_CHANNELS);
     setDatePickerMonth(item.reminder_at ? new Date(item.reminder_at) : new Date());
     setError(null);
     setShowForm(true);
@@ -232,7 +233,7 @@ export default function Planner({ user }: Props) {
         title: trimmedTitle || undefined,
         content: trimmedContent || undefined,
         reminder_at: hasReminder && selectedDate ? buildReminderIso(selectedDate, selectedTime) : null,
-        channels: hasReminder ? channels : ['in_app' as PlannerChannel],
+        channels: hasReminder ? channels : DEFAULT_REMINDER_CHANNELS,
       };
 
       if (editingItem) {

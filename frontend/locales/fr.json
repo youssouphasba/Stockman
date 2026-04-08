@@ -1715,7 +1715,7 @@
       },
       "f4": {
         "t": "Heure et suivi",
-        "d": "Choisissez l'heure sans la taper, puis marquez l'élément comme terminé ou rouvrez-le plus tard si nécessaire."
+        "d": "Choisissez l'heure avec le sélecteur natif du téléphone. Les canaux dans l'application et push sont activés par défaut."
       }
       },
       "supplierDashboard": {
