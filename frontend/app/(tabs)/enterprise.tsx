@@ -125,40 +125,40 @@ export default function EnterpriseScreen() {
     const actions: QuickAction[] = [
       {
         id: 'users',
-        title: 'Équipe',
-        description: 'Inviter, limiter et répartir les accès par boutique.',
+        title: t('enterprise.quick_action_users_title', 'Équipe'),
+        description: t('enterprise.quick_action_users_desc', 'Inviter, limiter et répartir les accès par boutique.'),
         icon: 'people-outline',
         color: colors.primary,
         onPress: () => router.push('/(tabs)/users' as any),
       },
       {
         id: 'activity',
-        title: 'Activité',
-        description: "Suivre les actions réalisées sur le compte.",
+        title: t('enterprise.quick_action_activity_title', 'Activité'),
+        description: t('enterprise.quick_action_activity_desc', 'Suivre les actions réalisées sur le compte.'),
         icon: 'time-outline',
         color: colors.info,
         onPress: () => router.push('/(tabs)/activity' as any),
       },
       {
         id: 'locations',
-        title: 'Emplacements',
-        description: "Gérer les structures d'allées, zones, niveaux et étagères.",
+        title: t('enterprise.quick_action_locations_title', 'Emplacements'),
+        description: t('enterprise.quick_action_locations_desc', "Gérer les structures d'allées, zones, niveaux et étagères."),
         icon: 'location-outline',
         color: colors.warning,
         onPress: () => router.push('/(tabs)/locations' as any),
       },
       {
         id: 'settings',
-        title: 'Boutique active',
-        description: "Modifier l'identité et les documents de la boutique courante.",
+        title: t('enterprise.quick_action_settings_title', 'Boutique active'),
+        description: t('enterprise.quick_action_settings_desc', "Modifier l'identité et les documents de la boutique courante."),
         icon: 'storefront-outline',
         color: colors.success,
         onPress: () => router.push('/(tabs)/settings' as any),
       },
       {
         id: 'subscription',
-        title: 'Abonnement',
-        description: "Voir le plan, l'échéance et la facturation du compte.",
+        title: t('enterprise.quick_action_subscription_title', 'Abonnement'),
+        description: t('enterprise.quick_action_subscription_desc', "Voir le plan, l'échéance et la facturation du compte."),
         icon: 'card-outline',
         color: '#F59E0B',
         onPress: () => router.push('/(tabs)/subscription' as any),
@@ -180,7 +180,7 @@ export default function EnterpriseScreen() {
       await switchStore(storeId);
       await loadData();
     } catch (error: any) {
-      Alert.alert(t('common.error'), error?.message || 'Impossible de changer de boutique pour le moment.');
+      Alert.alert(t('common.error'), error?.message || t('enterprise.switch_error'));
     } finally {
       setSwitchingStoreId(null);
     }
@@ -205,7 +205,7 @@ export default function EnterpriseScreen() {
       setNewStoreAddress('');
       await loadData();
     } catch (error: any) {
-      Alert.alert(t('common.error'), error?.message || 'Impossible de créer cette boutique.');
+      Alert.alert(t('common.error'), error?.message || t('enterprise.create_error'));
     } finally {
       setCreating(false);
     }
@@ -216,11 +216,11 @@ export default function EnterpriseScreen() {
       <EnterpriseGate
         locked
         featureName="Pilotage Enterprise"
-        description="Le pilotage multi-boutiques et les emplacements avancés sont réservés au plan Enterprise."
+        description={t('enterprise.gate_desc')}
         benefits={[
-          'Comparer les performances de toutes les boutiques',
-          "Créer des structures d'emplacements avancées",
-          "Superviser l'équipe et les accès par boutique",
+          t('enterprise.gate_benefit_compare'),
+          t('enterprise.gate_benefit_locations'),
+          t('enterprise.gate_benefit_team'),
         ]}
         icon="business-outline"
       >
@@ -231,7 +231,7 @@ export default function EnterpriseScreen() {
 
   if (!isOrgAdmin) {
     return (
-      <AccessDenied message="Le pilotage Enterprise mobile est réservé aux administrateurs opérations." />
+      <AccessDenied message={t('enterprise.admin_only_msg')} />
     );
   }
 
@@ -253,7 +253,7 @@ export default function EnterpriseScreen() {
               {canManageStores ? (
                 <TouchableOpacity style={styles.headerAction} onPress={() => setShowCreateModal(true)}>
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={styles.headerActionText}>Nouvelle boutique</Text>
+                  <Text style={styles.headerActionText}>{t('enterprise.new_store')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -271,31 +271,31 @@ export default function EnterpriseScreen() {
           ) : (
             <>
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Vue consolidée</Text>
+                <Text style={styles.sectionTitle}>{t('enterprise.consolidated_view')}</Text>
                 <View style={styles.metricsGrid}>
                   <MetricCard
-                    label="Boutiques"
+                    label={t('enterprise.kpi_stores')}
                     value={formatNumber(totals?.store_count || storeList.length)}
                     icon="business-outline"
                     accent={colors.primary}
                     styles={styles}
                   />
                   <MetricCard
-                    label="CA consolidé"
+                    label={t('enterprise.kpi_consolidated_revenue')}
                     value={formatCurrency(totals?.revenue || 0, currency)}
                     icon="cash-outline"
                     accent={colors.success}
                     styles={styles}
                   />
                   <MetricCard
-                    label="Ventes"
+                    label={t('enterprise.kpi_sales')}
                     value={formatNumber(totals?.sales_count || 0)}
                     icon="receipt-outline"
                     accent={colors.info}
                     styles={styles}
                   />
                   <MetricCard
-                    label="Stock valorisé"
+                    label={t('enterprise.kpi_stock_value')}
                     value={formatCurrency(totals?.stock_value || 0, currency)}
                     icon="cube-outline"
                     accent={colors.warning}
@@ -305,7 +305,7 @@ export default function EnterpriseScreen() {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Accès rapides</Text>
+                <Text style={styles.sectionTitle}>{t('enterprise.quick_access')}</Text>
                 <View style={styles.actionsGrid}>
                   {quickActions.map((action) => (
                     <TouchableOpacity key={action.id} style={styles.quickActionCard} onPress={action.onPress}>
@@ -321,7 +321,7 @@ export default function EnterpriseScreen() {
 
               <View style={styles.section}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>Boutiques du compte</Text>
+                  <Text style={styles.sectionTitle}>{t('enterprise.account_stores')}</Text>
                   <Text style={styles.sectionMeta}>{storeList.length} au total</Text>
                 </View>
                 {storeList.length === 0 ? (
@@ -349,7 +349,7 @@ export default function EnterpriseScreen() {
                               ) : null}
                             </View>
                             <Text style={styles.storeAddress}>
-                              {store.address?.trim() || 'Adresse non renseignée'}
+                              {store.address?.trim() || t('enterprise.address_not_set')}
                             </Text>
                           </View>
                           <TouchableOpacity
@@ -367,7 +367,7 @@ export default function EnterpriseScreen() {
                                   color={isActive ? colors.success : colors.primary}
                                 />
                                 <Text style={[styles.switchButtonText, { color: isActive ? colors.success : colors.primary }]}>
-                                  {isActive ? 'Courante' : 'Basculer'}
+                                  {isActive ? t('enterprise.current_store') : t('enterprise.switch_store')}
                                 </Text>
                               </>
                             )}
@@ -378,21 +378,21 @@ export default function EnterpriseScreen() {
                             <Text style={styles.storeMetricValue}>
                               {formatCurrency(comparisonRow?.revenue || 0, currency)}
                             </Text>
-                            <Text style={styles.storeMetricLabel}>CA</Text>
+                            <Text style={styles.storeMetricLabel}>{t('enterprise.metric_revenue')}</Text>
                           </View>
                           <View style={styles.storeMetric}>
                             <Text style={styles.storeMetricValue}>{formatNumber(comparisonRow?.sales_count || 0)}</Text>
-                            <Text style={styles.storeMetricLabel}>Ventes</Text>
+                            <Text style={styles.storeMetricLabel}>{t('enterprise.metric_sales')}</Text>
                           </View>
                           <View style={styles.storeMetric}>
                             <Text style={styles.storeMetricValue}>
                               {formatCurrency(comparisonRow?.stock_value || 0, currency)}
                             </Text>
-                            <Text style={styles.storeMetricLabel}>Stock</Text>
+                            <Text style={styles.storeMetricLabel}>{t('enterprise.metric_stock')}</Text>
                           </View>
                           <View style={styles.storeMetric}>
                             <Text style={styles.storeMetricValue}>{formatNumber(comparisonRow?.low_stock_count || 0)}</Text>
-                            <Text style={styles.storeMetricLabel}>Stocks bas</Text>
+                            <Text style={styles.storeMetricLabel}>{t('enterprise.metric_low_stock')}</Text>
                           </View>
                         </View>
                       </View>
@@ -409,7 +409,7 @@ export default function EnterpriseScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nouvelle boutique</Text>
+              <Text style={styles.modalTitle}>{t('enterprise.new_store_modal_title')}</Text>
               <TouchableOpacity onPress={() => setShowCreateModal(false)}>
                 <Ionicons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
@@ -418,14 +418,14 @@ export default function EnterpriseScreen() {
             <TextInput
               value={newStoreName}
               onChangeText={setNewStoreName}
-              placeholder="Nom de la boutique"
+              placeholder={t('enterprise.store_name_placeholder')}
               placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
             <TextInput
               value={newStoreAddress}
               onChangeText={setNewStoreAddress}
-              placeholder="Adresse (facultatif)"
+              placeholder={t('enterprise.address_placeholder')}
               placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
@@ -438,7 +438,7 @@ export default function EnterpriseScreen() {
                 {creating ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.primaryButtonText}>Créer</Text>
+                  <Text style={styles.primaryButtonText}>{t('enterprise.create_btn')}</Text>
                 )}
               </TouchableOpacity>
             </View>

@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -1883,7 +1883,23 @@
     "terms": "Условия и положения (CGU)",
     "users_permissions": "Пользователи и Права",
     "users_permissions_desc": "Управляйте доступом своих сотрудников",
-    "version": "Версия"
+    "version": "Версия",
+    "section_account": "Аккаунт и приложение",
+    "section_subscription": "Подписка и оплата",
+    "subscription_title": "Подписка",
+    "section_profile": "Профиль и внешний вид",
+    "section_sync": "Синхронизация",
+    "section_org": "Организация и управление",
+    "section_team": "Команда и доступ",
+    "section_store": "Активный магазин",
+    "section_alerts": "Оповещения и уведомления",
+    "section_support": "Поддержка и инциденты",
+    "section_security": "Безопасность, юридическая информация и данные",
+    "modules_updated": "Модули обновлены.",
+    "store_updated": "Магазин обновлён.",
+    "save_preferences": "Сохранить настройки",
+    "save_documents": "Сохранить документы",
+    "save_store": "Сохранить магазин"
   },
   "stock": {
     "reasons": {
@@ -1973,7 +1989,14 @@
     "restored_success": "Ваша подписка восстановлена.",
     "title": "Моя подписка",
     "trial_banner": "1 месяц бесплатной пробной версии, затем {{price}}/месяц. Без обязательств.",
-    "trial_remaining": "{{count}} дней осталось бесплатного пробного периода"
+    "trial_remaining": "{{count}} дней осталось бесплатного пробного периода",
+    "demo_label": "Демо",
+    "enterprise_manage_web": "План Enterprise управляется только через веб.",
+    "enterprise_section_title": "Управление Enterprise",
+    "open_web_management": "Открыть веб-управление",
+    "compare_offers": "Сравнить планы",
+    "current_badge": "Текущий",
+    "discover_enterprise": "Узнать о Enterprise"
   },
   "supplier": {
     "accept": "Принять",
@@ -2378,6 +2401,62 @@
     "whatsapp_invite_msg": "Здравствуйте {{name}} !\n\nВот ваши данные для входа в приложение Stockman:\n📧 Email : {{email}}\n🔑 Пароль : {{password}}\n\nВы можете зайти в приложение здесь : {{url}}\n\nХорошей работы !",
     "whatsapp_invite_prompt": "Хотите отправить данные через WhatsApp?",
     "whatsapp_invite_send": "Отправить",
-    "whatsapp_not_installed": "WhatsApp не установлен на этом устройстве."
+    "whatsapp_not_installed": "WhatsApp не установлен на этом устройстве.",
+    "org_admin": "Администратор операций",
+    "store_specific": "Индивидуально для магазина",
+    "follows_general": "Следует общим правам",
+    "stores_section": "Назначенные магазины",
+    "roles_section": "Роли аккаунта",
+    "billing_admin": "Администратор оплаты",
+    "operations_admin": "Администратор операций"
+  },
+  "enterprise": {
+    "quick_action_users_title": "Команда",
+    "quick_action_users_desc": "Приглашать, ограничивать и распределять доступ по магазинам.",
+    "quick_action_activity_title": "Активность",
+    "quick_action_activity_desc": "Отслеживать действия в аккаунте.",
+    "quick_action_locations_title": "Расположения",
+    "quick_action_locations_desc": "Управлять структурами рядов, зон, уровней и полок.",
+    "quick_action_settings_title": "Активный магазин",
+    "quick_action_settings_desc": "Редактировать данные и документы текущего магазина.",
+    "quick_action_subscription_title": "Подписка",
+    "quick_action_subscription_desc": "Просмотр плана, срока и оплаты.",
+    "create_error": "Не удалось создать магазин.",
+    "new_store": "Новый магазин",
+    "consolidated_view": "Сводный обзор",
+    "kpi_stores": "Магазины",
+    "kpi_consolidated_revenue": "Общая выручка",
+    "kpi_sales": "Продажи",
+    "kpi_stock_value": "Стоимость запасов",
+    "quick_access": "Быстрый доступ",
+    "account_stores": "Магазины аккаунта",
+    "address_not_set": "Адрес не указан",
+    "current_store": "Текущий",
+    "switch_store": "Переключить",
+    "metric_revenue": "Выручка",
+    "metric_sales": "Продажи",
+    "metric_stock": "Запас",
+    "metric_low_stock": "Мало запасов",
+    "new_store_modal_title": "Новый магазин",
+    "store_name_placeholder": "Название магазина",
+    "address_placeholder": "Адрес (необязательно)",
+    "create_btn": "Создать",
+    "switch_error": "Не удаётся переключить магазин.",
+    "gate_desc": "Управление несколькими магазинами и расширенные расположения доступны только на плане Enterprise.",
+    "gate_benefit_compare": "Сравнение эффективности всех магазинов",
+    "gate_benefit_locations": "Создание расширенных структур расположений",
+    "gate_benefit_team": "Контроль команды и доступов по магазинам",
+    "admin_only_msg": "Мобильное управление Enterprise доступно только администраторам операций."
+  },
+  "locations": {
+    "title": "Расположения",
+    "intro": "Организуйте свой склад: ряды, зоны, полки или любую другую структуру.",
+    "create_structure": "Создать структуру",
+    "at_root": "В корне",
+    "reactivate": "Восстановить",
+    "archive": "Архивировать",
+    "show_archived": "Показать архив",
+    "hide_archived": "Скрыть архив",
+    "access_denied": "У вас нет доступа к управлению расположениями."
   }
 }
