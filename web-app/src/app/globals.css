@@ -213,6 +213,8 @@ body {
 }
 
 /* --- Backgrounds: white-alpha (subtle surfaces in dark mode) --- */
+[data-theme="light"] .bg-white\/2,
+[data-theme="light"] .bg-white\/3,
 [data-theme="light"] .bg-white\/5,
 [data-theme="light"] .bg-white\/\[0\.02\],
 [data-theme="light"] .bg-white\/\[0\.03\],
@@ -246,7 +248,8 @@ body {
   border-color: #E2E8F0 !important;
 }
 
-[data-theme="light"] .border-white\/20 {
+[data-theme="light"] .border-white\/20,
+[data-theme="light"] .border-white\/30 {
   border-color: #CBD5E1 !important;
 }
 
@@ -308,6 +311,8 @@ body {
 [data-theme="light"] .text-cyan-400 { color: #0891B2 !important; }
 [data-theme="light"] .text-pink-400 { color: #DB2777 !important; }
 [data-theme="light"] .text-teal-400 { color: #0D9488 !important; }
+[data-theme="light"] .text-green-400 { color: #16A34A !important; }
+[data-theme="light"] .text-violet-400 { color: #7C3AED !important; }
 
 /* Colored text -300 shades */
 [data-theme="light"] .text-emerald-300 { color: #059669 !important; }
@@ -317,6 +322,12 @@ body {
 [data-theme="light"] .text-blue-300 { color: #2563EB !important; }
 [data-theme="light"] .text-purple-300 { color: #7C3AED !important; }
 [data-theme="light"] .text-indigo-300 { color: #4F46E5 !important; }
+[data-theme="light"] .text-violet-300 { color: #7C3AED !important; }
+
+/* Colored text -200 and -100 shades (very light in dark mode → dark for light mode) */
+[data-theme="light"] .text-amber-200,
+[data-theme="light"] .text-amber-100 { color: #B45309 !important; }
+[data-theme="light"] .text-violet-200 { color: #6D28D9 !important; }
 
 /* --- Hover states --- */
 [data-theme="light"] .hover\:text-white:hover {
@@ -336,7 +347,8 @@ body {
   background-color: #E2E8F0 !important;
 }
 
-[data-theme="light"] .hover\:bg-white\/15:hover {
+[data-theme="light"] .hover\:bg-white\/15:hover,
+[data-theme="light"] .hover\:bg-white\/20:hover {
   background-color: #E2E8F0 !important;
 }
 
@@ -525,6 +537,11 @@ body {
 [data-theme="light"] .text-sky-300 { color: #0284C7 !important; }
 
 /* --- Placeholder text in dark containers --- */
+[data-theme="light"] .placeholder-white\/20::placeholder,
+[data-theme="light"] .placeholder-white\/30::placeholder {
+  color: #64748B !important;
+}
+
 [data-theme="light"] .placeholder\:text-slate-600::placeholder,
 [data-theme="light"] .placeholder\:text-slate-700::placeholder {
   color: #94A3B8 !important;

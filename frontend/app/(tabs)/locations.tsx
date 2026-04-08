@@ -435,10 +435,10 @@ export default function LocationsScreen() {
           <View style={[styles.header, { paddingTop: insets.top + 18 }]}>
             <View style={styles.headerRow}>
               <TouchableOpacity onPress={() => router.back()} style={styles.circleButton}>
-                <Ionicons name="arrow-back" size={22} color="#fff" />
+                <Ionicons name="arrow-back" size={22} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowArchived((current) => !current)} style={styles.chipButton}>
-                <Ionicons name={showArchived ? 'eye-off-outline' : 'archive-outline'} size={16} color="#fff" />
+                <Ionicons name={showArchived ? 'eye-off-outline' : 'archive-outline'} size={16} color={colors.text} />
                 <Text style={styles.chipButtonText}>{showArchived ? 'Masquer archivés' : 'Voir archivés'}</Text>
               </TouchableOpacity>
             </View>
@@ -831,14 +831,14 @@ const getStyles = (colors: any) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bgDark },
   header: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
-  circleButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
-  chipButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: BorderRadius.full, backgroundColor: 'rgba(255,255,255,0.16)' },
-  chipButtonText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700' },
-  title: { color: '#fff', fontSize: FontSize.xxl, fontWeight: '900' },
-  subtitle: { marginTop: Spacing.sm, color: 'rgba(255,255,255,0.86)', fontSize: FontSize.md, lineHeight: 22 },
-  introBox: { marginTop: Spacing.md, padding: Spacing.md, borderRadius: BorderRadius.lg, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
-  introTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '800', marginBottom: 4 },
-  introText: { color: 'rgba(255,255,255,0.86)', fontSize: FontSize.sm, lineHeight: 20 },
+  circleButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.glass, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.glassBorder },
+  chipButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: BorderRadius.full, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder },
+  chipButtonText: { color: colors.text, fontSize: FontSize.xs, fontWeight: '700' },
+  title: { color: colors.text, fontSize: FontSize.xxl, fontWeight: '900' },
+  subtitle: { marginTop: Spacing.sm, color: colors.textSecondary, fontSize: FontSize.md, lineHeight: 22 },
+  introBox: { marginTop: Spacing.md, padding: Spacing.md, borderRadius: BorderRadius.lg, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder },
+  introTitle: { color: colors.text, fontSize: FontSize.sm, fontWeight: '800', marginBottom: 4 },
+  introText: { color: colors.textSecondary, fontSize: FontSize.sm, lineHeight: 20 },
   card: { marginHorizontal: Spacing.lg, marginTop: Spacing.lg, padding: Spacing.lg, borderRadius: BorderRadius.xl, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder },
   cardTitle: { color: colors.text, fontSize: FontSize.lg, fontWeight: '800', marginBottom: Spacing.xs },
   sectionHelp: { color: colors.textSecondary, fontSize: FontSize.sm, lineHeight: 20, marginBottom: Spacing.md },

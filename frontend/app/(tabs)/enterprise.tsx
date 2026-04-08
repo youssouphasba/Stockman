@@ -248,11 +248,11 @@ export default function EnterpriseScreen() {
           <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
             <View style={styles.headerTop}>
               <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={22} color="#fff" />
+                <Ionicons name="arrow-back" size={22} color={colors.text} />
               </TouchableOpacity>
               {canManageStores ? (
                 <TouchableOpacity style={styles.headerAction} onPress={() => setShowCreateModal(true)}>
-                  <Ionicons name="add" size={18} color="#fff" />
+                  <Ionicons name="add" size={18} color={colors.text} />
                   <Text style={styles.headerActionText}>{t('enterprise.new_store')}</Text>
                 </TouchableOpacity>
               ) : null}
@@ -468,7 +468,9 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -479,15 +481,17 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
   },
   headerActionText: {
-    color: '#fff',
+    color: colors.text,
     fontWeight: '700',
     fontSize: FontSize.sm,
   },
   headerEyebrow: {
-    color: '#C4B5FD',
+    color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 1.4,
     fontSize: FontSize.xs,
@@ -495,13 +499,13 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     marginBottom: 6,
   },
   headerTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: FontSize.xxl,
     fontWeight: '900',
   },
   headerSubtitle: {
     marginTop: Spacing.sm,
-    color: 'rgba(255,255,255,0.86)',
+    color: colors.textSecondary,
     fontSize: FontSize.md,
     lineHeight: 22,
   },
