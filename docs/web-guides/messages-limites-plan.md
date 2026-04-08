@@ -1,4 +1,4 @@
-# Messages de limites de plan (boutiques et employes)
+# Messages de limites de plan (boutiques et equipe)
 
 ## Objectif
 
@@ -16,7 +16,7 @@ Quand le serveur renvoie un refus (403) avec un message metier, l'application do
 Exemples de messages:
 
 - "Votre plan Starter est limite a 1 boutique. Passez a un plan superieur."
-- "Votre plan Starter est limite a 3 utilisateurs. Passez a un plan superieur."
+- "Le plan Starter est limite a un seul utilisateur : le compte principal. Passez au plan Pro pour ajouter un employe."
 
 ## Pourquoi ce changement
 

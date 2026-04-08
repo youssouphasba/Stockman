@@ -40,8 +40,8 @@ Le pays et la devise de facturation sont affiches en lecture seule.
 
 ### Cartes des plans
 
-- `Starter` : usage mobile de base
-- `Pro` : usage mobile renforce
+- `Starter` : 1 utilisateur principal, sans employe supplementaire
+- `Pro` : usage mobile renforce avec equipe et fonctions etendues
 - `Enterprise` : mobile + back-office web complet
 
 Quand le compte n'est pas encore `Enterprise`, la carte `Enterprise` rappelle que le paiement met a jour le compte actuel.
@@ -89,3 +89,4 @@ La section du bas affiche l'historique disponible. Si aucun document n'existe en
 - Les donnees existantes ne sont pas supprimees lors de l'evolution.
 - Le changement de plan devient effectif apres confirmation du paiement par le prestataire.
 - Un compte `Starter` ou `Pro` peut consulter le web app, mais ne peut pas y creer ou modifier des donnees tant que `Enterprise` n'est pas actif.
+- Un compte `Starter` reste mono-utilisateur : pour ajouter des employes, il faut passer a `Pro` ou `Enterprise`.

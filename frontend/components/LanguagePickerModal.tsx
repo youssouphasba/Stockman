@@ -19,25 +19,25 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 interface Language {
     code: string;
     name: string;
-    flag: string;
+    badge: string;
 }
 
 const LANGUAGES: Language[] = [
-    { code: 'fr', name: 'Français', flag: '????' },
-    { code: 'en', name: 'English', flag: '????' },
-    { code: 'wo', name: 'Wolof', flag: '????' },
-    { code: 'ff', name: 'Pular', flag: '????' },
-    { code: 'es', name: 'Español', flag: '????' },
-    { code: 'pt', name: 'Português', flag: '????' },
-    { code: 'it', name: 'Italiano', flag: '????' },
-    { code: 'de', name: 'Deutsch', flag: '????' },
-    { code: 'pl', name: 'Polski', flag: '????' },
-    { code: 'ro', name: 'Română', flag: '????' },
-    { code: 'tr', name: 'Türkçe', flag: '????' },
-    { code: 'ar', name: '????????', flag: '????' },
-    { code: 'ru', name: '???????', flag: '????' },
-    { code: 'zh', name: '??', flag: '????' },
-    { code: 'hi', name: '??????', flag: '????' },
+    { code: 'fr', name: 'Français', badge: 'FR' },
+    { code: 'en', name: 'English', badge: 'EN' },
+    { code: 'wo', name: 'Wolof', badge: 'WO' },
+    { code: 'ff', name: 'Pulaar', badge: 'FF' },
+    { code: 'es', name: 'Español', badge: 'ES' },
+    { code: 'pt', name: 'Português', badge: 'PT' },
+    { code: 'it', name: 'Italiano', badge: 'IT' },
+    { code: 'de', name: 'Deutsch', badge: 'DE' },
+    { code: 'pl', name: 'Polski', badge: 'PL' },
+    { code: 'ro', name: 'Română', badge: 'RO' },
+    { code: 'tr', name: 'Türkçe', badge: 'TR' },
+    { code: 'ar', name: 'Arabe', badge: 'AR' },
+    { code: 'ru', name: 'Russe', badge: 'RU' },
+    { code: 'zh', name: 'Chinois', badge: 'ZH' },
+    { code: 'hi', name: 'Hindi', badge: 'HI' },
 ];
 
 interface LanguagePickerModalProps {
@@ -92,7 +92,9 @@ const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({ visible, onCl
                                 onPress={() => changeLanguage(lang.code)}
                             >
                                 <View style={styles.optionLeft}>
-                                    <Text style={styles.flag}>{lang.flag}</Text>
+                                    <View style={[styles.badge, { borderColor: colors.divider, backgroundColor: colors.card }]}>
+                                        <Text style={[styles.badgeText, { color: colors.text }]}>{lang.badge}</Text>
+                                    </View>
                                     <Text style={[styles.langName, { color: colors.text }]}>{lang.name}</Text>
                                 </View>
                                 {currentLanguage === lang.code && (
@@ -149,8 +151,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 15,
     },
-    flag: {
-        fontSize: 24,
+    badge: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    badgeText: {
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 0.4,
     },
     langName: {
         fontSize: FontSize.md,

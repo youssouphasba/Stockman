@@ -1,111 +1,50 @@
-# Guide — Dashboard
+# Guide - Dashboard
 
-## 1. Rôle du module
+## 1. Role du module
 
-Le Dashboard fournit une vue d'ensemble de l'activité commerciale : chiffre d'affaires, ventes, valeur du stock, prévisions IA et alertes. Il existe en version commerce et en version restaurant.
+Le Dashboard donne une vue d'ensemble de l'activite : ventes, stock, alertes, resume IA et certains raccourcis vers les modules importants.
 
-**Profils concernés** : shopkeeper, staff, admin.
+Profils concernes : utilisateurs connectes selon leurs droits.
 
-## 2. Accès
+## 2. Acces
 
-Cliquer sur **Dashboard** dans la barre latérale. Aucun prérequis de permission spécifique.
+Cliquer sur **Dashboard** dans la barre laterale ou revenir a l'onglet principal sur mobile.
 
-## 3. Lecture de l'écran
+## 3. Ce qui a change
 
-### En-tête
-- **Titre** : « Tableau de bord »
-- **Badge anomalies** : apparaît en rouge si l'IA a détecté des anomalies.
-- **Bouton Paramètres (⚙)** : ouvre un panneau pour masquer/afficher les sections du Dashboard.
-- **Sélecteur de période** : Aujourd'hui, 7 jours, 30 jours, 90 jours.
-- **Boutons Export** : XLS et PDF.
-- **Bouton « + Vente »** : redirige vers le POS.
+Le Dashboard sert aussi de point d'arrivee pour certains raccourcis et redirections venant d'autres menus mobiles.
 
-### Cartes KPI (mode commerce)
-| KPI | Description |
-|-----|-------------|
-| CA du jour | Chiffre d'affaires réalisé ce jour |
-| Ventes du jour | Nombre de transactions |
-| Valeur du stock | Valeur totale au coût d'achat |
-| CA du mois | Chiffre d'affaires cumulé sur le mois |
+Exemples :
 
-### Cartes KPI (mode restaurant)
-| KPI | Description |
-|-----|-------------|
-| CA du jour | Chiffre d'affaires du service |
-| Couverts servis | Nombre de couverts |
-| Ticket moyen | CA / couverts |
-| Tables occupées | Nombre de tables occupées / total + commandes en cuisine |
+- `Produits -> Statistiques`
+- `Produits -> Historique mouvements`
+- certaines ouvertures directes de rapports ou modules lies au tableau de bord
 
-### Graphiques
-- **Prévision IA** : graphique en aire comparant les revenus réels et prédits.
-- **Évolution de la valeur du stock** : graphique en aire sur la période sélectionnée.
-- **CA par heure** (restaurant) : graphique horaire du chiffre d'affaires du jour.
+Ces entrees doivent maintenant ouvrir le bon module au lieu de pointer vers un etat intermediaire incoherent.
 
-### Ventes récentes
-Tableau des dernières ventes avec référence, nombre d'articles, montant, heure et bouton pour voir le reçu.
+## 4. Contenu principal
 
-### Smart Reminders
-Bloc IA affichant les alertes contextuelles : ruptures de stock, stock bas, alertes non lues, surstock, ventes du jour. Un résumé IA est affiché sous les rappels avec un lien « Voir le rapport complet ».
+Selon le contexte et le secteur, le dashboard peut afficher :
 
-### Distribution du stock
-Graphique en donut montrant la répartition par catégorie.
+- des KPI ;
+- des alertes utiles ;
+- des rappels intelligents ;
+- des resume IA ;
+- des ventes recentes ;
+- des graphiques et repartitions ;
+- des acces rapides.
 
-### Statut du stock
-Liste des produits en rupture (quantité = 0) et en stock bas (sous le seuil minimum).
+## 5. Visibilite selon le plan
 
-## 4. Boutons et actions
+Certains acces comme `Multi-boutiques` ou certains rapports avances peuvent dependre du plan. Le comportement attendu est :
 
-| Bouton | Emplacement | Action | Effet |
-|--------|-------------|--------|-------|
-| ⚙ Paramètres | En-tête, droite | Clic | Ouvre le panneau de visibilité des sections |
-| Sélecteur de période | En-tête | Changement | Recharge les données pour la période choisie |
-| XLS | En-tête | Clic | Exporte le Dashboard en Excel |
-| PDF | En-tête | Clic | Exporte le Dashboard en PDF |
-| + Vente / + Commande | En-tête | Clic | Navigue vers le POS |
-| Voir le rapport complet | Smart Reminders | Clic | Ouvre le modal AiSummaryModal |
-| ↗ (flèche) | Ligne de vente | Clic | Ouvre le reçu numérique (DigitalReceiptModal) |
-| Voir plus | Ventes récentes | Clic | Navigue vers le POS |
+- visible si autorise ;
+- masque sinon.
 
-## 5. Filtres et recherche
+## 6. Questions frequentes
 
-- **Période** : filtre global sur les données (1, 7, 30, 90 jours).
-- **Sections visibles** : toggle par section (KPI, Prévision, Valeur stock, Ventes récentes, Rappels, Distribution, Statut stock).
-
-## 6. États de l'interface
-
-| État | Description |
-|------|-------------|
-| Chargement | Spinner centré |
-| Erreur critique | Carte d'erreur avec bouton « Réessayer » |
-| Erreur partielle | Bandeau jaune en haut indiquant les données indisponibles |
-| État vide | Texte « Aucune donnée sur cette période » dans les graphiques |
-| Données chargées | Affichage complet des sections activées |
-
-## 7. Cas d'usage typiques
-
-- **Ouverture de journée** : le commerçant consulte le Dashboard pour voir le CA de la veille et les alertes de stock.
-- **Analyse hebdomadaire** : sélectionner « 7 jours » pour comparer l'activité semaine par semaine.
-- **Erreur fréquente** : ne pas comprendre pourquoi certaines sections sont vides → vérifier la période sélectionnée.
-
-## 8. Liens avec les autres modules
-
-| Depuis | Vers | Action |
-|--------|------|--------|
-| Dashboard | POS | Bouton « + Vente » ou « Voir plus » |
-| Dashboard | Reçu numérique | Bouton ↗ sur une vente |
-| Dashboard | Rapport IA | Lien « Voir le rapport complet » |
-
-## 9. Questions fréquentes
-
-| Question | Réponse |
-|----------|---------|
-| Pourquoi les prévisions IA sont-elles vides ? | Il faut un historique de ventes suffisant pour générer des prévisions. |
-| Puis-je masquer des sections ? | Oui, cliquez sur ⚙ et désactivez les sections souhaitées. |
-| Pourquoi le KPI « Anomalies détectées » clignote ? | L'IA a identifié des écarts suspects dans vos données récentes. |
-
-## 10. Guide rapide intégré
-
-1. **Bienvenue sur votre tableau de bord** — Suivez la santé de votre activité en un coup d'œil.
-2. **Indicateurs clés (KPI)** — Suivez vos revenus, ventes et valeur du stock en temps réel.
-3. **Prévision IA** — Notre IA analyse vos données pour prédire l'activité future.
-4. **Rappels intelligents** — Recevez des conseils personnalisés et des rappels d'actions urgentes.
+| Question | Reponse |
+|---|---|
+| Pourquoi une entree du menu m'ouvre le dashboard avec un module precis ? | Le dashboard sert aussi de point d'ouverture pour certaines vues globales. |
+| Pourquoi une section n'apparait pas ? | Cela depend du plan, des permissions et des donnees disponibles. |
+| Le dashboard est-il seulement un ecran de lecture ? | Non, il peut aussi servir de point de depart vers la caisse, les rapports ou les modules de synthese. |

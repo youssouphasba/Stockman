@@ -1,107 +1,98 @@
-# Guide — Personnel
+# Guide - Personnel
 
-## 1. Rôle du module
+## 1. Role du module
 
-Le module Personnel permet de gérer les employés (sous-utilisateurs) : création de comptes, attribution de rôles prédéfinis, permissions granulaires par module et par boutique, et invitation via WhatsApp.
+Le module Personnel permet de gerer les acces a l'equipe : creation de sous-utilisateurs, attribution de roles, permissions par module, boutiques assignees et partage des acces via WhatsApp.
 
-**Profils concernés** : admin (permission `staff` requise).
+Profils concernes : administrateur ou utilisateur ayant la permission `staff`.
 
-## 2. Accès
+## 2. Acces
 
-Barre latérale → **Personnel**.
+Barre laterale -> **Personnel**.
 
-## 3. Lecture de l'écran
+## 3. Regles importantes
 
-### En-tête
-- **Titre** : « Gestion de l'Équipe ».
-- **Sous-titre** : « Gérez vos employés et leurs accès aux différents modules. »
-- **Bouton** : « Ajouter un employé ».
+- `Starter` : aucun sous-utilisateur supplementaire. Le compte principal reste l'unique utilisateur de l'organisation.
+- `Pro` et `Enterprise` : creation d'employes autorisee selon la limite du plan.
+- Les acces sont rattaches au meme compte entreprise : un employe rejoint l'organisation existante, il ne cree pas une nouvelle boutique.
 
-### Liste des employés (grille de cartes)
+## 4. Lecture de l'ecran
+
+### En-tete
+
+- Titre : `Gestion de l'equipe`
+- Sous-titre : rappel sur la gestion des acces et des permissions
+- Bouton `Ajouter un employe` : visible seulement si le plan et les permissions autorisent la creation
+
+Si le compte est en `Starter`, un bandeau rappelle qu'il faut passer a `Pro` ou `Enterprise` pour ajouter un employe.
+
+### Liste des employes
 
 Chaque carte affiche :
 
-| Élément | Contenu |
-|---------|---------|
-| Avatar | Initiale du nom en cercle coloré |
-| Nom | Nom complet de l'employé |
-| Email | Adresse email |
-| Magasins | Nombre de magasins assignés |
-| Rôles admin | Badges ambre (Admin facturation, Admin opérations) |
-| Permissions | Grille 2 colonnes avec badge par module (Gestion/Lecture/Aucun accès) |
-| Bouton WhatsApp | Envoie une invitation via WhatsApp |
-| Bouton Modifier | Ouvre la modal d'édition |
-| Bouton Supprimer | Supprime l'employé après confirmation |
+- le nom ;
+- l'email ;
+- le nombre de boutiques assignees ;
+- les droits eleves du compte si necessaire ;
+- les permissions principales ;
+- les actions `WhatsApp`, `Modifier` et `Supprimer`.
 
-### Badges de permissions
+### Modal Ajouter / Modifier
 
-| Badge | Couleur | Signification |
-|-------|---------|---------------|
-| Gestion (✏) | Vert (emerald) | Lecture + écriture |
-| Lecture seule (👁) | Bleu (primary) | Consultation uniquement |
-| Aucun accès (✕) | Gris (slate) | Module masqué |
+Le formulaire permet de renseigner :
 
-### Modal — Ajouter / Modifier un employé
+- nom complet ;
+- email ;
+- mot de passe initial lors de la creation ;
+- role modele si besoin ;
+- permissions par module ;
+- boutiques autorisees ;
+- droits de gestion avances.
 
-Le formulaire contient :
+## 5. Invitation et connexion
 
-#### Informations de base
-- **Nom complet** (obligatoire).
-- **Email** (obligatoire, création uniquement).
-- **Mot de passe** (obligatoire, création uniquement).
+Lors de la creation d'un employe, Stockman peut partager un message WhatsApp avec :
 
-#### Modèles de rôle (boutons rapides)
+- l'email de connexion ;
+- le mot de passe initial defini a la creation ;
+- un lien mobile pour ouvrir ou telecharger l'application ;
+- un lien web de secours.
 
-| Modèle | Droits appliqués |
-|--------|-----------------|
-| Caissier | POS: écriture, Stock: lecture, le reste: aucun |
-| Gestionnaire stock | Stock: écriture, Fournisseurs: lecture, le reste: aucun |
-| Comptable | Compta: écriture, POS+Stock+Fournisseurs: lecture |
-| Manager | Tout en écriture sauf Compta (lecture) |
-| Agent CRM | CRM: écriture, POS: lecture, le reste: aucun |
+Important :
 
-#### Permissions par module
-6 modules configurables : POS, Stock, Comptabilité, CRM, Fournisseurs, Personnel.
-Chaque module alterne entre : Aucun → Lecture → Gestion (clic rotatif).
+- le mot de passe initial est disponible seulement au moment de la creation ;
+- si l'on repartage plus tard l'invitation depuis la liste, le mot de passe n'est plus revele ;
+- dans ce cas, il faut redefinir un mot de passe si l'employe ne l'a plus.
 
-#### Magasins assignés
-- **Sélection** : boutons pour chaque boutique.
-- **Permissions par boutique** : droits spécifiques par module, affinant les permissions générales.
-- **Indication** : « Suit les permissions générales » ou « Droits spécifiques configurés ».
+## 6. Permissions et boutiques
 
-#### Rôles de compte
-- **Admin facturation** : gère l'abonnement.
-- **Admin opérations** : gère les magasins, les modules et l'équipe (confirmation requise).
+Les permissions peuvent etre reglees :
 
-## 4. Boutons et actions
+- par module ;
+- par niveau d'acces ;
+- par boutique quand l'organisation en gere plusieurs.
 
-| Bouton | Action | Effet |
-|--------|--------|-------|
-| Ajouter un employé | Ouvre modal de création | Formulaire avec identifiants et permissions |
-| WhatsApp (💬) | Carte employé | Envoie un message d'invitation via WhatsApp |
-| Modifier (✏) | Carte employé | Ouvre la modal d'édition avec les données actuelles |
-| Supprimer (🗑) | Carte employé | Suppression après confirmation |
-| Modèle de rôle | Modal | Applique un jeu de permissions prédéfini |
+Cela permet par exemple :
 
-## 5. États de l'interface
+- un caissier sur une seule boutique ;
+- un gestionnaire stock sur plusieurs boutiques ;
+- un responsable operation avec droits elargis ;
+- un admin facturation sans acces complet aux operations.
 
-| État | Description |
-|------|-------------|
-| Chargement | Spinner centré |
-| Erreur | Bandeau rose avec message et bouton « Réessayer » |
-| Aucun employé | Icône Users + texte |
+## 7. Actions disponibles
 
-## 6. Questions fréquentes
+| Action | Effet |
+|---|---|
+| Ajouter un employe | Ouvre la creation d'un sous-utilisateur |
+| Envoyer via WhatsApp | Partage les informations de connexion et les liens utiles |
+| Modifier | Met a jour les droits, boutiques et informations de l'employe |
+| Supprimer | Retire l'employe de l'organisation apres confirmation |
 
-| Question | Réponse |
-|----------|---------|
-| Comment donner un accès partiel ? | Utilisez les permissions par module. Par exemple, « Lecture » pour le Stock. |
-| Peut-on personnaliser les droits par boutique ? | Oui, développez la section boutique dans la modal pour ajuster module par module. |
-| L'employé peut-il se connecter immédiatement ? | Oui, dès la création du compte avec l'email et le mot de passe définis. |
+## 8. Questions frequentes
 
-## 7. Guide rapide intégré
-
-1. **Bienvenue dans Personnel** — Gérez votre équipe et les niveaux d'accès à chaque module.
-2. **Ajouter un employé** — Créez un compte avec rôle et permissions adaptés à chaque poste.
-3. **Permissions** — Contrôlez finement l'accès (lecture, écriture, aucun) pour chaque module.
-4. **Magasins** — Assignez des employés à des boutiques spécifiques avec des droits personnalisés.
+| Question | Reponse |
+|---|---|
+| Pourquoi je ne vois pas le bouton Ajouter un employe ? | Soit vous n'avez pas la permission `staff`, soit votre plan `Starter` ne permet pas d'ajouter de sous-utilisateur. |
+| Un employe peut-il se connecter tout de suite ? | Oui, s'il utilise l'email et le mot de passe initial recus lors de la creation. |
+| Peut-on limiter un employe a certaines boutiques ? | Oui, l'affectation par boutique est prevue dans le formulaire. |
+| Pourquoi le mot de passe n'apparait plus quand je repartage l'invitation ? | Par securite, le mot de passe initial n'est affiche qu'au moment de la creation. |

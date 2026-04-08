@@ -1,103 +1,103 @@
-# Guide — Paramètres
+# Guide - Parametres
 
-## 1. Rôle du module
+## 1. Role du module
 
-Le module Paramètres permet de configurer l'ensemble de l'application : profil utilisateur, préférences régionales, notifications, documents commerciaux (reçu, facture), TVA, boutiques et sécurité.
+Le module Parametres permet de gerer le compte, la boutique active, les canaux d'alerte, les documents, les options de securite et certains reglages avances de l'organisation.
 
-**Profils concernés** : shopkeeper, admin. Certaines sections nécessitent le rôle admin ou le droit de gestion organisation.
+Profils concernes : administrateurs et utilisateurs autorises selon la section.
 
-## 2. Accès
+## 2. Acces
 
-Barre latérale → **Compte** → **Paramètres**.
+Barre laterale -> **Compte** -> **Parametres**.
 
-## 3. Lecture de l'écran
+## 3. Ce qui a change
 
-### En-tête
-- **Titre** : « Paramètres de l'espace ».
-- **Sous-titre** : présentation des trois niveaux (utilisateur, compte, boutique).
-- **Carte d'aide** : explication rapide des portées de chaque réglage.
+Les reglages ont ete harmonises avec plusieurs ajustements recents :
 
-### Résumé
-Trois cartes : Compte (nom utilisateur), Organisation (éditable ou lecture seule), Boutique active.
+- les sauvegardes importantes affichent un retour visuel explicite ;
+- certains ecrans juridiques et pages annexes reviennent proprement vers Parametres ;
+- les alertes et rappels ont ete regroupes dans une logique plus claire ;
+- la synchronisation offline est mieux expliquee et plus fiable ;
+- le test des notifications push remonte l'erreur reelle quand la configuration n'est pas correcte.
 
-### Onglets
-| Onglet | Contenu |
-|--------|---------|
-| Compte | Profil, préférences régionales, contact facturation |
-| Organisation | Modules actifs, rappels automatiques |
-| Notifications | Canaux personnels, contacts par groupe (compte et boutique) |
-| Documents | TVA, terminaux, reçu, facture |
-| Boutiques | Emplacements de stock, profil boutique |
-| Sécurité | Mot de passe, suppression de compte |
+## 4. Sections principales
 
-## 4. Sections détaillées
+### Compte et application
 
-### Compte
-- **Profil** : nom affiché, email (non modifiable).
-- **Préférences régionales** : langue (fr/en/wo), devise (XOF, EUR, USD…).
-- **Contact facturation** (admin) : nom et email du contact de facturation.
+Permet de regler :
 
-### Organisation (admin)
-- **Modules actifs** : toggles pour activer/désactiver les fonctionnalités (CRM, fournisseurs, commandes, comptabilité, etc.).
-- **Rappels automatiques** : configuration des rappels envoyés automatiquement par le système.
+- langue ;
+- preferences generales ;
+- informations du compte ;
+- certains comportements de l'application.
 
-### Notifications
-- **Canaux personnels** : In-app, Push, Email avec seuils de sévérité.
-- **Contacts compte** : emails destinataires par groupe (Défaut, Stock, Appro, Finance, CRM, Opérations, Facturation).
-- **Contacts boutique** : idem mais au niveau de la boutique active.
+Dans le selecteur de langue mobile, les langues sont maintenant affichees avec des pastilles texte stables comme `FR`, `EN` ou `AR`, afin d'eviter les caracteres corrompus ou les drapeaux mal rendus selon l'appareil.
 
-### Documents (admin)
-- **TVA** : activation, taux, mode (TTC ou HT).
-- **Terminaux** : liste des terminaux de paiement enregistrés.
-- **Reçu** : nom commercial et pied de page.
-- **Facture** : nom, adresse, libellé, préfixe, pied de page, conditions de paiement.
+Quand un compte a ete cree via Google sans passer par le parcours complet, l'application peut demander une etape de completion avant de rendre l'experience normale.
 
-### Boutiques
-- **Emplacements** : création/suppression d'emplacements (étagère, entrepôt, quai).
-- **Profil boutique** (admin) : nom et adresse de chaque boutique.
+### Boutique active
 
-### Sécurité
-- **Mot de passe** : changement avec ancien + nouveau + confirmation.
-- **Suppression de compte** : action irréversible nécessitant le mot de passe.
+Cette section regroupe les informations de la boutique actuellement selectionnee :
 
-## 5. Boutons et actions
+- identite ;
+- documents ;
+- informations pratiques ;
+- contexte de travail courant.
 
-| Bouton | Section | Effet |
-|--------|---------|-------|
-| Enregistrer | Chaque section | Sauvegarde les modifications |
-| Toggle module | Organisation | Active/désactive un module |
-| + (emplacement) | Boutiques | Crée un emplacement |
-| 🗑 (emplacement) | Boutiques | Supprime un emplacement |
-| Changer le mot de passe | Sécurité | Met à jour le mot de passe |
-| Supprimer mon compte | Sécurité | Suppression définitive |
+### Organisation et pilotage
 
-## 6. États de l'interface
+On y retrouve les reglages transverses :
 
-| État | Description |
-|------|-------------|
-| Chargement | Spinner centré |
-| Succès | Bandeau vert temporaire |
-| Erreur | Bandeau rouge avec message |
-| Non autorisé | Encadré ambre « Seul un administrateur peut modifier ce paramètre. » |
+- equipe ;
+- modules visibles ;
+- options de gestion plus avancees.
 
-## 7. Cas d'usage typiques
+### Alertes et rappels
 
-- **Changer de langue** : onglet Compte → Préférences régionales → sélectionner la langue → Enregistrer.
-- **Activer la TVA** : onglet Documents → TVA → activer le toggle → saisir le taux → Enregistrer.
-- **Gérer les emplacements** : onglet Boutiques → Emplacements → ajouter un nouvel emplacement.
+Cette zone centralise :
 
-## 8. Questions fréquentes
+- canaux in-app ;
+- push ;
+- email ;
+- destinataires utiles ;
+- regles d'alerte par famille.
 
-| Question | Réponse |
-|----------|---------|
-| Pourquoi je ne peux pas modifier certains paramètres ? | Votre rôle ne dispose pas des droits nécessaires. Contactez un administrateur. |
-| Que se passe-t-il si je désactive un module ? | Le module disparaît de la barre latérale et de l'application mobile. |
-| La suppression de compte est-elle réversible ? | Non, elle est définitive. Toutes vos données seront supprimées. |
+Les alertes tres proches sur le meme sujet sont desormais mieux regroupees pour reduire le bruit.
 
-## 9. Guide rapide intégré
+### Abonnement et facturation
 
-1. **Bienvenue dans Paramètres** — Configurez votre espace de travail selon vos besoins.
-2. **Profil et préférences** — Modifiez votre nom, langue et devise dans l'onglet Compte.
-3. **Notifications** — Choisissez comment recevoir vos alertes (push, email, in-app).
-4. **Documents** — Configurez la TVA, les terminaux, les formats de reçu et facture.
-5. **Boutiques** — Gérez les emplacements de stock et les profils de vos boutiques.
+Cette section permet de :
+
+- consulter le plan ;
+- verifier la devise et le pays de facturation ;
+- relancer une recuperation d'abonnement si necessaire ;
+- comprendre les limites liees au plan actif.
+
+### Synchronisation
+
+Le bloc de synchronisation aide a comprendre :
+
+- si l'appareil est connecte ou non ;
+- quelles actions restent en attente ;
+- quels modules compatibles hors ligne seront renvoyes automatiquement.
+
+Les actions offline deja en attente ne sont plus perdues lors d'un simple changement de boutique.
+
+### Securite et donnees
+
+On y trouve notamment :
+
+- mot de passe ;
+- biometrie ;
+- export ;
+- suppression de compte ;
+- options sensibles de protection des acces.
+
+## 5. Questions frequentes
+
+| Question | Reponse |
+|---|---|
+| Pourquoi certains reglages sont en lecture seule ? | Selon le role, le plan ou la permission, certaines sections restent reservees aux administrateurs. |
+| Comment savoir si une sauvegarde a bien fonctionne ? | Les reglages importants affichent maintenant une confirmation visuelle apres enregistrement. |
+| Pourquoi le test push echoue parfois ? | Si Expo, FCM ou la configuration du terminal ne sont pas corrects, l'application affiche maintenant l'erreur reelle. |
+| Est-ce qu'un changement de boutique efface mes actions offline ? | Non, la file locale deja en attente est preservee. |

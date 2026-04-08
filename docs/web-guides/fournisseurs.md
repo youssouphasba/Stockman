@@ -55,11 +55,11 @@ Trois sous-onglets principaux :
 
 ## 5. Mode hors ligne et synchronisation
 
-Le web app prend maintenant en charge un mode hors ligne elargi sur cet ecran.
+Le comportement offline a ete fiabilise sur cet ecran.
 
 - Les fournisseurs deja charges restent consultables depuis le cache local.
 - Un fournisseur cree hors ligne apparait tout de suite dans la liste avec un badge **En attente**.
-- Une meme creation fournisseur en attente n'est synchronisee qu'une seule fois au retour du reseau.
+- La synchronisation evite maintenant de rejouer plusieurs fois la meme creation fournisseur au retour du reseau.
 - Un changement de boutique ne supprime plus la file locale des fournisseurs deja en attente de synchronisation.
 - Un bon de commande cree hors ligne apparait dans la liste des commandes avec un badge **En attente**.
 - Un bandeau de synchronisation resume le nombre total d'elements encore a envoyer au serveur.
@@ -105,6 +105,7 @@ Le web app prend maintenant en charge un mode hors ligne elargi sur cet ecran.
 |----------|---------|
 | Quelle difference entre fournisseur manuel et marketplace ? | Manuel : vous creez la fiche vous-meme. Marketplace : le fournisseur vient du reseau B2B Stockman. |
 | Comment savoir si une commande n'est pas encore envoyee au serveur ? | Elle porte un badge **En attente** et un bandeau de synchronisation peut apparaitre dans l'ecran. |
+| Pourquoi un fournisseur ne se duplique plus apres la reconnexion ? | La synchronisation offline a ete verrouillee pour eviter de rejouer plusieurs fois la meme creation locale. |
 | Le score fiabilite est-il automatique ? | Oui, il depend des donnees disponibles sur les delais, livraisons et completude. |
 | Pourquoi la detection de doublons peut etre suspendue ? | Quand le quota IA mensuel est atteint, la detection de doublons se met en pause et un message d'information apparait dans l'ecran. |
 

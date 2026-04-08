@@ -71,8 +71,10 @@ export default function UsersScreen() {
     const [assignedStoreIds, setAssignedStoreIds] = useState<string[]>(getDefaultAssignedStores(currentUser));
     const [storePermissions, setStorePermissions] = useState<StorePermissions>({});
     const [expandedStoreId, setExpandedStoreId] = useState<string | null>(null);
+    const currentPlan = (currentUser?.effective_plan || currentUser?.plan || 'starter').toLowerCase();
     const canViewStaff = isOrgAdmin || hasPermission('staff', 'read');
     const canManageStaff = isOrgAdmin || hasPermission('staff', 'write');
+    const canCreateStaff = canManageStaff && currentPlan !== 'starter';
 
     const loadUsers = useCallback(async () => {
         try {
@@ -137,6 +139,10 @@ export default function UsersScreen() {
     };
 
     const handleCreateOrUpdate = async () => {
+        if (!editingUser && !canCreateStaff) {
+            Alert.alert(t('common.error'), t('users.starter_staff_locked'));
+            return;
+        }
         if (!name || !email || (!editingUser && !password)) {
             Alert.alert(t('common.error'), t('users.form_error_fields'));
             return;
@@ -346,7 +352,7 @@ export default function UsersScreen() {
                             <Ionicons name="time-outline" size={24} color={colors.primary} />
                         </TouchableOpacity>
                     </Link>
-                    {canManageStaff && (
+                    {canCreateStaff && (
                         <TouchableOpacity
                             onPress={() => { resetForm(); setModalVisible(true); }}
                             style={styles.addBtn}
@@ -358,6 +364,12 @@ export default function UsersScreen() {
             </View>
 
             <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}>
+                {!canCreateStaff && canManageStaff && (
+                    <View style={styles.planNotice}>
+                        <Ionicons name="lock-closed-outline" size={18} color={colors.warning} />
+                        <Text style={styles.planNoticeText}>{t('users.starter_staff_locked')}</Text>
+                    </View>
+                )}
                 {loading ? (
                     <ActivityIndicator color={colors.primary} style={{ marginTop: 50 }} />
                 ) : users.length === 0 ? (
@@ -586,6 +598,23 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     container: { flex: 1 },
     content: { padding: Spacing.md },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgDark },
+    planNotice: {
+        ...glassStyle,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginBottom: Spacing.md,
+        borderWidth: 1,
+        borderColor: colors.warning + '40',
+        backgroundColor: colors.warning + '12',
+        padding: Spacing.md,
+    },
+    planNoticeText: {
+        flex: 1,
+        color: colors.text,
+        fontSize: FontSize.sm,
+        lineHeight: 20,
+    },
     emptyState: { alignItems: 'center', marginTop: 100 },
     emptyText: { color: colors.text, fontSize: FontSize.lg, fontWeight: '600', marginTop: Spacing.md },
     emptySubText: { color: colors.textMuted, textAlign: 'center', marginTop: Spacing.sm },

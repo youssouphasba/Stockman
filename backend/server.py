@@ -4748,7 +4748,7 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
         raise HTTPException(status_code=403, detail="Vous ne pouvez pas attribuer des rôles de compte")
     
     # Plan limits on staff count
-    STAFF_LIMITS = {"starter": 1, "pro": 5, "enterprise": 9999}
+    STAFF_LIMITS = {"starter": 0, "pro": 5, "enterprise": 9999}
     owner_id = get_owner_id(user)
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": owner_id, "role": "shopkeeper"})

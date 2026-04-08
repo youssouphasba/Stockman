@@ -1,61 +1,44 @@
-# Guide — Centre de Notifications
+# Guide - Notifications
 
-## 1. Rôle du module
+## 1. Role du module
 
-Le centre de notifications est un panneau latéral qui affiche les messages envoyés par l'administration (broadcasts, annonces, messages individuels). L'utilisateur peut marquer chaque notification comme lue.
+Le centre de notifications rassemble les notifications in-app et les messages utiles a l'utilisateur. Il sert aussi de point d'entree vers les alertes quand une notification demande une action metier.
 
-**Profils concernés** : tous les utilisateurs.
+## 2. Acces
 
-## 2. Accès
+- Icône cloche dans l'application
+- Ou ouverture directe depuis une notification compatible
 
-Icône cloche (🔔) dans la barre supérieure → ouvre le panneau latéral droit.
+## 3. Ce que l'utilisateur peut faire
 
-## 3. Lecture de l'écran
+- consulter les notifications recues ;
+- distinguer les non lues ;
+- marquer une notification comme lue ;
+- ouvrir l'ecran cible quand la notification est liee a un module compatible.
 
-### En-tête du panneau
-- **Titre** : « Notifications ».
-- **Badge non lues** : nombre de notifications non lues (rose).
-- **Bouton** : « Tout marquer comme lu » (visible si non lues > 0).
-- **Bouton fermer** (✕).
+## 4. Lien avec les alertes
 
-### Liste des notifications
+Les notifications et les alertes ne sont pas exactement la meme chose :
 
-Chaque notification est un bloc cliquable :
+- la notification est le signal recu ;
+- l'ecran Alertes est l'endroit ou l'on traite les alertes in-app metier.
 
-| Élément | Description |
-|---------|-------------|
-| Point bleu | Indicateur de notification non lue (primary, rond plein) |
-| Titre | Titre de la notification (gras, tronqué) |
-| Contenu | Corps du message (2 lignes max, coupé) |
-| Date / heure | Horodatage complet |
-| Expéditeur | Nom de l'émetteur |
+Quand c'est pertinent, une notification peut ouvrir directement l'ecran Alertes au bon endroit.
 
-### Comportement de lecture
-- **Clic sur une notification non lue** → la marque comme lue (API).
-- **Notifications lues** → opacité réduite, sans point bleu, non cliquables.
+## 5. Canaux
 
-### Rafraîchissement
-- Rechargement automatique toutes les **60 secondes** quand le panneau est ouvert.
-- Le compteur de non-lues est remonté au composant parent via `onUnreadChange`.
+Selon le type d'information et la configuration :
 
-## 4. États de l'interface
+- in-app ;
+- push ;
+- email.
 
-| État | Description |
-|------|-------------|
-| Chargement | Spinner centré |
-| Aucune notification | Icône Bell grise + texte |
-| Notifications présentes | Liste scrollable |
+Le test push affiche maintenant la vraie erreur technique si le branchement n'est pas correct.
 
-## 5. Questions fréquentes
+## 6. Questions frequentes
 
-| Question | Réponse |
-|----------|---------|
-| D'où viennent les notifications ? | Elles sont envoyées par l'administration via le module Broadcast du backoffice. |
-| Puis-je supprimer une notification ? | Non, vous pouvez uniquement la marquer comme lue. |
-| Le compteur se met-il à jour en temps réel ? | Il se rafraîchit automatiquement toutes les 60 secondes. |
-
-## 6. Guide rapide intégré
-
-1. **Notifications** — Consultez les messages de l'administration.
-2. **Non lues** — Les notifications non lues ont un point bleu.
-3. **Marquer comme lu** — Cliquez sur une notification ou utilisez « Tout marquer ».
+| Question | Reponse |
+|---|---|
+| Pourquoi une notification ne m'envoie pas toujours vers le meme ecran ? | Cela depend du type de notification et de l'action attendue. |
+| Peut-on supprimer une notification ? | Cela depend du flux, mais le comportement standard reste la lecture et le traitement depuis l'ecran cible. |
+| Pourquoi je ne recois pas les push ? | Verifiez les permissions du terminal et le branchement technique ; le test affiche maintenant l'erreur reelle en cas de probleme. |

@@ -1,123 +1,102 @@
-# Guide — Stock / Inventaire
+# Guide - Stock / Inventaire
 
-## 1. Rôle du module
+## 1. Role du module
 
-Le module Stock permet de gérer l'ensemble des produits : création, modification, suppression, mouvements de stock, transferts entre boutiques, import en masse et conseils de réapprovisionnement IA.
+Le module Stock permet de gerer les produits, les niveaux de stock, les mouvements, les imports et les actions de lot sur mobile et sur web.
 
-**Profils concernés** : shopkeeper, staff, admin (permission `stock` requise).
+Profils concernes : utilisateurs ayant la permission `stock`.
 
-## 2. Accès
+## 2. Acces
 
-Barre latérale → **Stock & Inventaire** → **Stock**.
+- Mobile : onglet **Produits**
+- Web app : module **Stock / Inventaire**
 
-## 3. Lecture de l'écran
+## 3. Fonctions principales
 
-### En-tête
-- **Titre** : « Stock » + nombre de produits.
-- **Mention** : « Création disponible : manuel, texte IA, import CSV et catalogue métier ».
-- **Bandeau synchronisation** (si applicable) : indique les produits/mises à jour en attente.
+- creer un produit manuellement ;
+- importer des produits par CSV, texte IA ou catalogue metier selon les options disponibles ;
+- enregistrer des mouvements de stock ;
+- consulter les statistiques et l'historique des mouvements ;
+- exporter le catalogue ;
+- envoyer un produit a la corbeille puis le restaurer ;
+- modifier rapidement des prix sur plusieurs produits.
 
-### Barre d'actions
-| Bouton | Description |
-|--------|-------------|
-| Exporter ▾ | Menu déroulant : Excel (.xlsx) ou PDF |
-| Créer / importer ▾ | Menu : Créer manuellement, Importer texte IA, Import CSV, Catalogue métier |
-| Scan par lot | Ouvre le modal de scan en lot |
-| IA Réappro | Lance l'analyse IA de réapprovisionnement |
+## 4. Mobile - fonctionnement actuel
 
-### Panneau Stock Health
-Indicateurs visuels de la santé du stock (si les données analytics sont chargées).
+### Chargement de la liste
 
-### Conseil IA Réapprovisionnement
-Bannière violette affichant le nombre de produits prioritaires et le conseil détaillé de l'IA.
+- la liste est virtualisee ;
+- les produits se chargent par lots progressifs ;
+- un bouton de chargement apparait si d'autres produits sont disponibles ;
+- la recherche serveur suit la meme logique pour eviter de remonter tout le catalogue d'un coup.
 
-### Filtres
-- **Barre de recherche** : par nom ou SKU.
-- **Bouton Filtrer** : filtres avancés.
-- **Emplacement** : puces cliquables pour filtrer par emplacement (si des emplacements sont configurés).
+### Menu de l'onglet Produits
 
-### Tableau des produits
-| Colonne | Contenu |
-|---------|---------|
-| Produit | Image miniature, nom, SKU, description |
-| Catégorie | Nom de la catégorie associée |
-| Stock | Quantité actuelle avec indicateurs visuels (rouge = rupture, orange = bas, badge = brut/matière) |
-| Prix | Prix d'achat et prix de vente |
-| Actions | Menu contextuel (…) : Modifier, Historique, Mouvement, Transférer, Supprimer |
+Le menu lateral de l'onglet Produits renvoie maintenant vers les bons modules :
 
-## 4. Boutons et actions
+- `Historique mouvements`
+- `Statistiques`
+- `Emplacements` si le plan l'autorise
+- `Exporter CSV`
+- `Corbeille`
 
-| Bouton | Action | Effet |
-|--------|--------|-------|
-| Créer manuellement | Ouvre le formulaire produit | Formulaire complet avec aide IA (catégorie, description, prix) |
-| Importer depuis un texte | Ouvre TextImportModal | L'IA structure un texte libre en produits |
-| Importer un CSV | Ouvre BulkImportModal | Import en masse avec mapping de colonnes |
-| Importer le catalogue métier | Appelle catalogApi.importAll() | Précharge un catalogue adapté au secteur |
-| Scan par lot | Ouvre BatchScanModal | Scanner plusieurs codes-barres d'affilée |
-| IA Réappro | Appelle aiApi.replenishmentAdvice() | Affiche les conseils de réapprovisionnement |
-| Modifier (crayon) | Ouvre le formulaire pré-rempli | Permet d'éditer tous les champs |
-| Historique (horloge) | Ouvre ProductHistoryModal | Affiche l'historique des mouvements |
-| Mouvement (+/-) | Ouvre le modal de mouvement de stock | Entrée (in) ou sortie (out) avec raison |
-| Transférer (flèches) | Ouvre le modal de transfert | Transfère vers une autre boutique |
-| Supprimer (corbeille) | Confirmation puis suppression | Le produit passe en inactif et peut être restauré |
-| Sélection multiple | Active le mode sélection | Barre d'actions fixe en bas avec `Tout sélectionner` et `Supprimer` |
-| Corbeille | Ouvre la liste des produits supprimés | Affiche uniquement les noms, avec restauration ou suppression définitive. Les produits en corbeille n'apparaissent pas dans la caisse |
+### Selection multiple
 
-## 5. Filtres et recherche
+Le mode `Selection` permet :
 
-- **Recherche** : filtre la liste par nom ou SKU en temps réel.
-- **Emplacements** : puces cliquables, filtrent les produits par emplacement physique.
-- **Filtre avancé** : bouton « Filtrer » (fonctionnalité de filtrage par catégorie, statut, etc.).
+- de tout selectionner ;
+- de partager le catalogue selectionne ;
+- de supprimer plusieurs produits ;
+- de modifier rapidement le prix de vente des produits selectionnes.
 
-## 6. Actions sur une fiche
+### Modification rapide des prix sur mobile
 
-Le menu contextuel (⋯) de chaque ligne offre :
-- **Modifier** : ouvre le formulaire d'édition.
-- **Historique** : consulte les mouvements passés.
-- **Mouvement de stock** : enregistre une entrée ou sortie.
-- **Transférer** : vers une autre boutique (si multi-boutiques).
-- **Supprimer** : avec confirmation préalable, puis restauration possible.
+Quand plusieurs produits sont selectionnes, l'action `Modifier le prix de vente` ouvre une liste simple :
 
-## 7. États de l'interface
+- nom du produit ;
+- prix actuel ;
+- champ pour le nouveau prix de vente.
 
-| État | Description |
-|------|-------------|
-| Chargement | Spinner centré |
-| Erreur critique | Carte d'erreur avec bouton « Réessayer » |
-| Erreur partielle | Bandeau jaune, données disponibles mais catégories/emplacements indisponibles |
-| Synchronisation en attente | Bandeau indiquant le nombre d'opérations en file |
-| Liste vide | Aucun produit ne correspond aux filtres |
+L'enregistrement se fait en lot. En mode hors ligne, la mise a jour est placee en file d'attente puis renvoyee automatiquement des le retour du reseau.
 
-## 8. Cas d'usage typiques
+### Corbeille
 
-- **Création rapide** : Créer manuellement → renseigner nom, prix, quantité → l'IA peut suggérer catégorie et description.
-- **Import initial** : utiliser « Importer le catalogue métier » pour pré-remplir le stock avec des produits standards du secteur.
-- **Réapprovisionnement** : cliquer « IA Réappro » pour obtenir la liste des produits à commander en priorité.
-- **Inventaire** : filtrer par emplacement, puis ajuster les quantités via le modal de mouvement.
+La corbeille masque les produits de la liste active et de la caisse. Elle est partagee avec le web : un produit supprime sur mobile apparait aussi dans la corbeille web, et inversement.
 
-## 9. Liens avec les autres modules
+## 5. Web app - fonctionnement actuel
 
-| Depuis | Vers | Action |
-|--------|------|--------|
-| Stock | POS | Les produits ajoutés ici sont disponibles dans le POS |
-| Stock | Alertes | Les seuils min/max déclenchent des alertes |
-| Stock | Historique stock | Chaque mouvement est journalisé |
-| Stock | Fournisseurs | Les commandes modifient le stock à réception |
+### Grille d'edition rapide
 
-## 10. Questions fréquentes
+Le web propose une edition rapide des prix en mode tableur :
 
-| Question | Réponse |
-|----------|---------|
-| Quelle est la différence entre stock physique et stock valorisé ? | Le stock physique est la quantité d'unités. Le stock valorisé est cette quantité × le prix d'achat. |
-| Comment ajuster une erreur de stock ? | Utilisez l'action « Mouvement de stock » avec le type « Entrée » ou « Sortie » et une raison explicative. |
-| Mon import CSV a échoué | Vérifiez le format du fichier et le mapping des colonnes dans le modal d'import. |
-| Comment transférer du stock ? | Menu ⋯ → Transférer. Choisissez la boutique destination et la quantité. |
+- edition directe des prix d'achat et de vente ;
+- travail sur les produits filtres ;
+- sauvegarde en lot des lignes modifiees.
 
-## 11. Guide rapide intégré
+### Selection multiple sur web
 
-1. **Bienvenue dans votre inventaire** — Gérez tous vos produits et votre stock depuis cet écran.
-2. **Créer un produit** — Cliquez « Créer / importer » pour ajouter des produits manuellement, par texte IA ou CSV.
-3. **Rechercher et filtrer** — Utilisez la barre de recherche et les filtres d'emplacement pour trouver un produit.
-4. **Mouvements de stock** — Enregistrez les entrées et sorties via le menu actions de chaque produit.
-5. **Conseils IA** — Cliquez « IA Réappro » pour savoir quels produits réapprovisionner en priorité.
-6. **Exporter** — Téléchargez votre inventaire complet en Excel ou PDF.
+Le mode `Selection` du web sert aux actions de lot :
+
+- partager le catalogue selectionne ;
+- envoyer plusieurs produits a la corbeille.
+
+L'edition des prix et la selection multiple restent deux usages distincts :
+
+- grille pour modifier ;
+- selection pour partager ou supprimer.
+
+## 6. Hors ligne et synchronisation
+
+- les creations et mises a jour compatibles hors ligne restent en attente localement ;
+- la synchronisation evite maintenant de rejouer plusieurs fois la meme action ;
+- les creations de fournisseurs et les operations stock compatibles repartent automatiquement quand le reseau revient ;
+- un changement de boutique ne vide plus la file locale deja en attente.
+
+## 7. Questions frequentes
+
+| Question | Reponse |
+|---|---|
+| Pourquoi la liste s'ouvre plus vite qu'avant ? | Le chargement est progressif et la liste mobile est virtualisee. |
+| Puis-je modifier les prix de plusieurs produits a la fois ? | Oui. Sur mobile via la selection, sur web via la grille d'edition rapide. |
+| La corbeille est-elle separee entre mobile et web ? | Non. La corbeille est commune et synchronisee. |
+| Pourquoi je ne vois pas Emplacements ? | Cette entree depend du plan et des droits disponibles. |

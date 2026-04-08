@@ -1382,7 +1382,7 @@
         },
         "f12": {
           "t": "Selection multiple & restauration",
-          "d": "La barre d'actions en bas permet de tout selectionner, de modifier rapidement les prix de vente, de partager le catalogue ou d'envoyer des produits dans la corbeille. Les boutons ont ete renforces pour rester lisibles sur les fonds sombres."
+          "d": "La barre d'actions en bas permet de tout selectionner, de modifier rapidement les prix de vente, de partager le catalogue ou d'envoyer des produits dans la corbeille. La corbeille est commune avec le web et les produits peuvent etre restaures ensuite."
         }
       },
       "pos": {
@@ -1618,7 +1618,7 @@
         "title": "Gestion des Utilisateurs",
         "f1": {
           "t": "Créer des Comptes",
-          "d": "Ajoutez un compte pour chaque employé avec email et mot de passe. Partagez les identifiants par WhatsApp."
+          "d": "Ajoutez un compte pour chaque employe si votre plan le permet. Le plan Starter reste mono-utilisateur. Lors de la creation, vous pouvez partager les acces par WhatsApp."
         },
         "f2": {
           "t": "Permissions par Module",
@@ -1638,7 +1638,7 @@
         },
         "f6": {
           "t": "Partage par WhatsApp",
-          "d": "Envoyez les identifiants de connexion par WhatsApp en un clic. L'employé se connecte avec son email et mot de passe."
+          "d": "Envoyez les informations de connexion par WhatsApp en un clic, avec un lien mobile et un lien web de secours. Le mot de passe initial n'est partage qu'au moment de la creation."
         }
       },
       "settings": {
@@ -1684,7 +1684,7 @@
         "title": "Abonnement",
         "f1": {
           "t": "Comparer les Plans",
-          "d": "Starter (2 500 FCFA/mois) : 1 boutique, 1 employé. Pro (4 900) : 2 boutiques, 5 employés. Entreprise (9 900) : illimité + web."
+          "d": "Starter (2 500 FCFA/mois) : 1 boutique, 1 utilisateur. Pro (4 900) : 2 boutiques, 5 employés. Entreprise (9 900) : illimité + web."
         },
         "f2": {
           "t": "Mise à Niveau",
@@ -3595,6 +3595,7 @@
     "role_staff": "Vendeur (Staff)",
     "save_btn": "Enregistrer",
     "search_placeholder": "Rechercher un utilisateur...",
+    "starter_staff_locked": "Le plan Starter est limite a un seul utilisateur : le compte principal. Passez au plan Pro pour ajouter un employe.",
     "share_whatsapp_btn": "Partager par WhatsApp",
     "share_whatsapp_msg": "Bonjour {{name}}, voici tes accès pour l'application Stockman : \nEmail: {{email}}\nMot de passe: {{password}}\nLien: https://stockman-app.com",
     "status_label": "Statut",

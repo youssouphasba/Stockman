@@ -1185,7 +1185,7 @@
         },
         "f12": {
           "t": "Multi-select & restore",
-          "d": "The bottom action bar lets you select all, quickly edit selling prices, share the catalog, or move products to the trash. Deleted products no longer appear in the list or checkout and can be restored when needed."
+          "d": "The bottom action bar lets you select all, quickly edit selling prices, share the catalog, or move products to the trash. The trash is shared with the web app and products can be restored when needed."
         }
       },
       "pos": {
@@ -1421,7 +1421,7 @@
         "title": "User Management",
         "f1": {
           "t": "Create Accounts",
-          "d": "Add an account for each employee with email and password. Share credentials via WhatsApp."
+          "d": "Add an account for each employee if your plan allows it. The Starter plan remains single-user. During creation, you can share access via WhatsApp."
         },
         "f2": {
           "t": "Module Permissions",
@@ -1441,7 +1441,7 @@
         },
         "f6": {
           "t": "Share via WhatsApp",
-          "d": "Send login credentials via WhatsApp with one tap. The employee logs in with their email and password."
+          "d": "Send login details via WhatsApp with one tap, including a mobile link and a fallback web link. The initial password is only shared at creation time."
         }
       },
       "settings": {
@@ -1487,7 +1487,7 @@
         "title": "Subscription",
         "f1": {
           "t": "Compare Plans",
-          "d": "Starter (2,500 FCFA/month): 1 shop, 1 employee. Pro (4,900): 2 shops, 5 employees. Enterprise (9,900): unlimited + web."
+          "d": "Starter (2,500 FCFA/month): 1 shop, 1 user. Pro (4,900): 2 shops, 5 employees. Enterprise (9,900): unlimited + web."
         },
         "f2": {
           "t": "Upgrade",
@@ -3247,6 +3247,7 @@
     "role_staff": "Staff (Seller)",
     "save_btn": "Save",
     "search_placeholder": "Search a user...",
+    "starter_staff_locked": "The Starter plan is limited to a single user: the main account. Upgrade to Pro to add an employee.",
     "share_whatsapp_btn": "Share via WhatsApp",
     "share_whatsapp_msg": "Hello {{name}}, here are your accesses for the Stockman app:\nEmail: {{email}}\nPassword: {{password}}\nLink: https://stockman-app.com",
     "status_label": "Status",
