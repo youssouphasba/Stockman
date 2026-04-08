@@ -101,6 +101,21 @@ Le tableau web garde maintenant un contraste plus fort sur les informations seco
 
 L'ecran Emplacements et les actions destructives du stock utilisent aussi un contraste plus fort en mode clair pour garder une lecture correcte des boutons `Supprimer`, `Restaurer` et des textes secondaires.
 
+### Scan par lot sur le web
+
+Le scan par lot peut utiliser :
+
+- un lecteur code-barres branche en mode clavier ;
+- ou la camera du navigateur.
+
+Pour la camera :
+
+- la web app doit autoriser `camera` dans sa politique de permissions ;
+- le navigateur doit recevoir puis accepter la demande d'autorisation ;
+- l'usage doit se faire sur une page HTTPS normale, pas dans un contexte qui bloque la camera.
+
+Si l'acces camera est refuse ou bloque, le module affiche maintenant un message explicite au lieu d'echouer silencieusement.
+
 ## 6. Hors ligne et synchronisation
 
 - les creations et mises a jour compatibles hors ligne restent en attente localement ;

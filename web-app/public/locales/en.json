@@ -2077,6 +2077,7 @@
     "bulk_delete_selected": "Delete",
     "bulk_delete_success": "{{count}} product(s) moved to the trash.",
     "bulk_share_catalog": "Share catalog",
+    "batch_scan_camera_error": "Unable to enable the camera. Check the browser permission and the site's permissions policy.",
     "quick_price_editor": "Quick price editor",
     "quick_price_editor_cancel": "Cancel",
     "quick_price_editor_changes": "{{count}} changed row(s)",

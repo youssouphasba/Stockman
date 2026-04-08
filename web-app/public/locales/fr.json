@@ -2074,6 +2074,7 @@
     "bulk_delete_selected": "Supprimer",
     "bulk_delete_success": "{{count}} produit(s) envoyés dans la corbeille.",
     "bulk_share_catalog": "Partager le catalogue",
+    "batch_scan_camera_error": "Impossible d'activer la caméra. Vérifiez l'autorisation du navigateur et la politique de permissions du site.",
     "quick_price_editor": "Édition rapide des prix",
     "quick_price_editor_cancel": "Annuler",
     "quick_price_editor_changes": "{{count}} ligne(s) modifiée(s)",

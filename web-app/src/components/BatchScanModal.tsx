@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Scan, Trash2, Package, RefreshCw, Layers, CheckCircle2 } from 'lucide-react';
 import { products as productsApi, replenishment as replenishmentApi } from '../services/api';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     onClose: () => void;
@@ -12,6 +13,7 @@ interface Props {
 type Action = 'inventory' | 'replenish' | null;
 
 export default function BatchScanModal({ onClose }: Props) {
+    const { t } = useTranslation();
     const [scannedCodes, setScannedCodes] = useState<string[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [phase, setPhase] = useState<'scan' | 'action'>('scan');
@@ -24,12 +26,35 @@ export default function BatchScanModal({ onClose }: Props) {
     const html5QrRef = useRef<Html5Qrcode | null>(null);
     const lastScanRef = useRef<{ code: string; time: number }>({ code: '', time: 0 });
 
+    async function stopScannerSafely() {
+        const scanner = html5QrRef.current;
+        if (!scanner) return;
+        try {
+            const state = scanner.getState();
+            if (state === Html5QrcodeScannerState.SCANNING || state === Html5QrcodeScannerState.PAUSED) {
+                await scanner.stop();
+            }
+        } catch (err) {
+            console.warn('Batch camera stop skipped', err);
+        } finally {
+            try {
+                await scanner.clear();
+            } catch {
+                // ignore clear errors
+            }
+            if (html5QrRef.current === scanner) {
+                html5QrRef.current = null;
+            }
+        }
+    }
+
     useEffect(() => {
         if (phase === 'scan') inputRef.current?.focus();
     }, [phase]);
 
     useEffect(() => {
         if (cameraActive) {
+            setError(null);
             const qr = new Html5Qrcode('batch-reader');
             html5QrRef.current = qr;
             qr.start(
@@ -42,22 +67,16 @@ export default function BatchScanModal({ onClose }: Props) {
                     setScannedCodes(prev => prev.includes(decodedText) ? prev : [decodedText, ...prev]);
                 },
                 undefined
-            ).catch(() => { });
+            ).catch((err: any) => {
+                console.error('Batch camera start failed', err);
+                setCameraActive(false);
+                setError(t('inventory.batch_scan_camera_error', "Impossible d'activer la caméra. Vérifiez l'autorisation du navigateur et la politique de permissions du site."));
+            });
         } else {
-            if (html5QrRef.current) {
-                html5QrRef.current.stop().catch(() => { }).finally(() => {
-                    html5QrRef.current?.clear();
-                    html5QrRef.current = null;
-                });
-            }
+            void stopScannerSafely();
         }
         return () => {
-            if (html5QrRef.current) {
-                html5QrRef.current.stop().catch(() => { }).finally(() => {
-                    html5QrRef.current?.clear();
-                    html5QrRef.current = null;
-                });
-            }
+            void stopScannerSafely();
         };
     }, [cameraActive]);
 
@@ -168,6 +187,12 @@ export default function BatchScanModal({ onClose }: Props) {
                             {cameraActive ? 'Arrêter la caméra' : 'Activer la caméra'}
                         </button>
 
+                        {error && (
+                            <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                                {error}
+                            </div>
+                        )}
+
                         {/* Camera scanner div */}
                         {cameraActive && (
                             <div
@@ -276,7 +301,7 @@ export default function BatchScanModal({ onClose }: Props) {
                         </div>
 
                         {error && (
-                            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-rose-400 text-sm">
+                            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-rose-100 text-sm">
                                 {error}
                             </div>
                         )}
