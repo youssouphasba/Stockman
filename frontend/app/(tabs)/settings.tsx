@@ -700,6 +700,7 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="language-outline" size={24} color={colors.primary} />
           </TouchableOpacity>
+
         </SettingsAccordionSection>
 
         <SettingsAccordionSection
@@ -1582,6 +1583,7 @@ export default function SettingsScreen() {
         onClose={() => setShowHelpCenter(false)}
         userRole="shopkeeper"
         isRestaurant={isRestaurant}
+        hasEnterprisePlan={hasEnterprisePlan}
         onLaunchGuide={(guideKey) => {
           const guide = (GUIDES as any)[guideKey];
           if (guide) {

@@ -37,6 +37,7 @@ import SupportPanel from "../components/SupportPanel";
 import NotificationCenter from "../components/NotificationCenter";
 import VerifyEmailPanel from "../components/VerifyEmailPanel";
 import CompleteSocialProfilePanel from "../components/CompleteSocialProfilePanel";
+import Planner from "../components/Planner";
 import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, removeToken, setWebAccessMode, clearWebAccessMode, type AuthResponse, type DemoSessionInfo } from "../services/api";
 import { completeRedirectSignIn, signInWithProvider } from "../services/firebaseAuth";
 import { getAccessContext } from "../utils/access";
@@ -986,6 +987,7 @@ export default function Home() {
                 {activeTab === 'kitchen' && <KitchenDisplay />}
                 {activeTab === 'admin' && <AdminDashboard />}
                 {activeTab === 'supplier_portal' && <SupplierPortal />}
+                {activeTab === 'planner' && <Planner user={user} />}
                 {activeTab === 'settings' && <Settings user={user} />}
               </div>
             </div>

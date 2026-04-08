@@ -1502,6 +1502,25 @@
           "d": "After reinstalling or changing phones, recover your existing subscription without paying again."
         }
       },
+      "planner": {
+        "title": "Notes, calendar and reminders",
+        "f1": {
+          "t": "Personal notes",
+          "d": "Each Enterprise user has personal notes and reminders. Your colleagues cannot see your personal items."
+        },
+        "f2": {
+          "t": "Monthly calendar",
+          "d": "The calendar highlights days that contain one or more reminders. Tap a day to filter the list immediately."
+        },
+        "f3": {
+          "t": "Reminder channels",
+          "d": "Choose whether the reminder should appear in the app, as a push notification, by email or on several channels at once."
+        },
+        "f4": {
+          "t": "Task follow-up",
+          "d": "Mark an item as completed, then reopen it later if you need to work on it again."
+        }
+      },
       "supplierDashboard": {
         "title": "Supplier Dashboard",
         "f1": {
@@ -1671,6 +1690,41 @@
     "results": "RESULTS",
     "search_placeholder": "Search a feature...",
     "title": "Help Center"
+  },
+  "planner": {
+    "badge": "Personal organisation",
+    "title": "Notes, calendar and reminders",
+    "subtitle": "Create personal notes, schedule reminders and review them in a monthly calendar. This feature is reserved for the Enterprise plan.",
+    "new_item": "New item",
+    "active_items": "Active items",
+    "due_today": "Due today",
+    "completed_items": "Completed",
+    "filter_active": "Active",
+    "filter_all": "All",
+    "filter_completed": "Completed",
+    "clear_day_filter": "Clear day filter",
+    "empty_title": "No notes in this view",
+    "empty_desc": "Add a note or a reminder to start organising your personal follow-up inside Stockman.",
+    "no_reminder": "No reminder",
+    "channel_in_app": "In-app",
+    "channel_push": "Push",
+    "channel_email": "Email",
+    "edit_item": "Edit item",
+    "title_placeholder": "Note or reminder title",
+    "content_placeholder": "Context, details or the action you do not want to forget...",
+    "date_placeholder": "YYYY-MM-DD",
+    "time_placeholder": "HH:MM",
+    "channels_title": "Reminder channels",
+    "title_required": "The title is required.",
+    "save_error": "Unable to save this item right now.",
+    "delete_error": "Unable to delete this item right now.",
+    "load_error": "Unable to load your notes and reminders right now.",
+    "enterprise_only_title": "Enterprise-only module",
+    "enterprise_only_desc": "Upgrade to Enterprise to use personal notes, your calendar and reminders inside Stockman.",
+    "discover_enterprise": "Discover Enterprise",
+    "status_active": "Active",
+    "status_completed": "Completed",
+    "saving": "Saving..."
   },
   "invoice": {
     "add_line": "Add Line",

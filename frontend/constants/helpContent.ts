@@ -15,6 +15,7 @@ export type HelpModule = {
   features: HelpFeature[];
   role: 'shopkeeper' | 'supplier' | 'all';
   audience?: 'default' | 'restaurant' | 'all';
+  enterpriseOnly?: boolean;
 };
 
 export type FAQItem = {
@@ -250,6 +251,22 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'warning-outline', title: "Déclarer un incident", description: "Utilisez ce formulaire quand vous devez remonter un incident ou une anomalie importante." },
       { icon: 'lock-closed-outline', title: "Sécurité et données", description: "Le code PIN, la biométrie, l'export et la suppression du compte sont dans cette zone sensible. Après une déconnexion, la reconnexion biométrique reste disponible si elle est activée." },
       { icon: 'help-circle-outline', title: "Centre d'aide", description: "Retrouvez ici les guides embarqués et les accès utiles quand vous avez besoin d'être accompagné dans l'application." },
+    ],
+  },
+  {
+    key: 'planner',
+    title: 'help.modules.planner.title',
+    icon: 'calendar-outline',
+    color: '#10b981',
+    guideKey: 'planner',
+    role: 'shopkeeper',
+    audience: 'all',
+    enterpriseOnly: true,
+    features: [
+      { icon: 'document-text-outline', title: 'help.modules.planner.f1.t', description: 'help.modules.planner.f1.d' },
+      { icon: 'calendar-number-outline', title: 'help.modules.planner.f2.t', description: 'help.modules.planner.f2.d' },
+      { icon: 'notifications-outline', title: 'help.modules.planner.f3.t', description: 'help.modules.planner.f3.d' },
+      { icon: 'checkmark-done-outline', title: 'help.modules.planner.f4.t', description: 'help.modules.planner.f4.d' },
     ],
   },
   {

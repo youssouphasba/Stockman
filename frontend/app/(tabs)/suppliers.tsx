@@ -242,6 +242,7 @@ export default function SuppliersScreen() {
         { label: t('suppliers.add_supplier', 'Ajouter un fournisseur'), icon: 'add-circle-outline', onPress: () => { setEditingSupplier(null); setShowFormModal(true); } },
         { label: t('suppliers.create_order', 'Passer une commande'), icon: 'cart-outline', onPress: () => setShowOrderModal(true) },
         { label: t('suppliers.invite', 'Inviter un fournisseur'), icon: 'mail-outline', onPress: () => setShowInviteModal(true) },
+        { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
         { label: '', icon: '', onPress: () => {}, separator: true },
         { label: t('tabs.products'), icon: 'cube-outline', onPress: () => router.push('/(tabs)/products') },
       ]);

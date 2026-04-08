@@ -18,7 +18,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -99,6 +99,7 @@ function buildExpenseCategories(savedCategories: string[] = [], expenses: Expens
 export default function AccountingScreen() {
     const { colors, glassStyle, isDark } = useTheme();
     const { t, i18n } = useTranslation();
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const { width: screenWidth } = useWindowDimensions();
     const styles = getStyles(colors, glassStyle, screenWidth);
@@ -944,6 +945,7 @@ export default function AccountingScreen() {
                 { label: t('accounting.product_performance', 'Performance produits'), icon: 'podium-outline', onPress: () => scrollToSection('perfTable') },
                 { label: t('accounting.recent_sales', 'Ventes récentes'), icon: 'receipt-outline', onPress: () => scrollToSection('recentSales') },
                 { label: '', icon: '', onPress: () => {}, separator: true },
+                { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
                 { label: t('accounting.add_expense', 'Ajouter une dépense'), icon: 'add-circle-outline', onPress: () => setShowExpenseModal(true) },
                 { label: t('accounting.free_invoice', 'Créer une facture'), icon: 'document-text-outline', onPress: () => setShowInvoiceModal(true) },
                 { label: t('accounting.report', "Rapport d'activité"), icon: 'analytics-outline', onPress: () => generateActivityReportPdf() },

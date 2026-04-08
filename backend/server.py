@@ -652,6 +652,7 @@ async def run_startup_migrations():
         logger.info("Background Migration: store_id + is_active backfill completed")
         # Supervised tasks
         asyncio.create_task(supervised_loop("alerts", check_alerts_loop, 300))
+        asyncio.create_task(supervised_loop("planner_reminders", check_planner_reminders_loop, 120))
         # Détection d'anomalies IA : passé de 30 min (1800s) à 12 heures (43200s) pour économiser des tokens
         asyncio.create_task(supervised_loop("ai_anomalies", check_ai_anomalies_loop, 43200))
         asyncio.create_task(supervised_loop("log_cleanup", cleanup_logs_loop, 86400))
@@ -702,6 +703,9 @@ async def create_indexes_and_init():
                 await db.products.create_index([("user_id", 1), ("store_id", 1), ("is_active", 1), ("quantity", -1)])
                 await db.products.create_index([("user_id", 1), ("store_id", 1), ("category_id", 1), ("is_active", 1)])
                 await db.products.create_index([("import_job_id", 1), ("import_row_index", 1)], unique=True, sparse=True)
+                await db.user_planner_items.create_index([("item_id", 1)], unique=True)
+                await db.user_planner_items.create_index([("user_id", 1), ("created_at", -1)])
+                await db.user_planner_items.create_index([("user_id", 1), ("is_completed", 1), ("reminder_at", 1)])
                 await db.products.create_index("sku")
                 await db.products.create_index("rfid_tag")
                 await db.sales.create_index([("user_id", 1), ("store_id", 1)])
@@ -2494,6 +2498,45 @@ class AdminMessageCreate(BaseModel):
     type: str = "broadcast"
     target: str = "all"
 
+
+class PlannerItem(BaseModel):
+    item_id: str = Field(default_factory=lambda: f"pln_{uuid.uuid4().hex[:12]}")
+    user_id: str
+    account_id: Optional[str] = None
+    store_id: Optional[str] = None
+    title: str
+    content: Optional[str] = None
+    reminder_at: Optional[datetime] = None
+    channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
+    is_completed: bool = False
+    completed_at: Optional[datetime] = None
+    last_notified_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class PlannerItemCreate(BaseModel):
+    title: str
+    content: Optional[str] = None
+    reminder_at: Optional[datetime] = None
+    channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
+
+
+class PlannerItemUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    reminder_at: Optional[datetime] = None
+    channels: Optional[List[Literal["in_app", "push", "email"]]] = None
+
+
+class PlannerItemsResponse(BaseModel):
+    items: List[PlannerItem]
+    total: int
+    month: Optional[str] = None
+    day: Optional[str] = None
+    due_today: int = 0
+    completed: int = 0
+
 class SubscriptionAdminActionRequest(BaseModel):
     note: Optional[str] = None
 
@@ -3316,6 +3359,54 @@ def ensure_enterprise_locations_allowed(
     effective_plan = normalize_plan(user.effective_plan or user.subscription_plan or user.plan)
     if effective_plan != "enterprise":
         raise HTTPException(status_code=403, detail=detail)
+
+
+def ensure_enterprise_planner_allowed(
+    user: User,
+    detail: str = "Les notes, rappels et le calendrier sont reserves au plan Enterprise.",
+) -> None:
+    if user.role in {"superadmin", "admin"}:
+        return
+    effective_plan = normalize_plan(user.effective_plan or user.subscription_plan or user.plan)
+    if effective_plan != "enterprise":
+        raise HTTPException(status_code=403, detail=detail)
+
+
+def normalize_planner_channels(channels: Optional[List[str]]) -> List[str]:
+    allowed = {"in_app", "push", "email"}
+    normalized: List[str] = []
+    for channel in channels or []:
+        value = str(channel or "").strip().lower()
+        if value in allowed and value not in normalized:
+            normalized.append(value)
+    return normalized or ["in_app"]
+
+
+def planner_month_bounds(month: Optional[str]) -> Optional[tuple[datetime, datetime]]:
+    if not month:
+        return None
+    try:
+        year_str, month_str = month.split("-", 1)
+        year = int(year_str)
+        month_number = int(month_str)
+        start = datetime(year, month_number, 1, tzinfo=timezone.utc)
+        if month_number == 12:
+            end = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+        else:
+            end = datetime(year, month_number + 1, 1, tzinfo=timezone.utc)
+        return start, end
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Le mois doit etre au format YYYY-MM.") from exc
+
+
+def planner_day_bounds(day: Optional[str]) -> Optional[tuple[datetime, datetime]]:
+    if not day:
+        return None
+    try:
+        target_day = datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        return target_day, target_day + timedelta(days=1)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Le jour doit etre au format YYYY-MM-DD.") from exc
 
 
 async def require_write_access(user: User = Depends(require_auth)) -> User:
@@ -5089,6 +5180,159 @@ async def mark_all_notifications_read(user: User = Depends(require_auth)):
     ], "read_by": {"$ne": user.user_id}}
     result = await db.admin_messages.update_many(query, {"$addToSet": {"read_by": user.user_id}})
     return {"marked": result.modified_count}
+
+
+@api_router.get("/planner/items", response_model=PlannerItemsResponse)
+async def list_planner_items(
+    month: Optional[str] = Query(default=None),
+    day: Optional[str] = Query(default=None),
+    status: Literal["active", "completed", "all"] = Query(default="active"),
+    user: User = Depends(require_auth),
+):
+    ensure_enterprise_planner_allowed(user)
+    query: Dict[str, Any] = {"user_id": user.user_id}
+    if status == "active":
+        query["is_completed"] = False
+    elif status == "completed":
+        query["is_completed"] = True
+
+    day_bounds = planner_day_bounds(day)
+    month_bounds = planner_month_bounds(month) if not day_bounds else None
+    if day_bounds:
+        query["reminder_at"] = {"$gte": day_bounds[0], "$lt": day_bounds[1]}
+    elif month_bounds:
+        query["reminder_at"] = {"$gte": month_bounds[0], "$lt": month_bounds[1]}
+
+    items = await db.user_planner_items.find(query, {"_id": 0}).sort(
+        [("is_completed", 1), ("reminder_at", 1), ("created_at", -1)]
+    ).to_list(500)
+    total = await db.user_planner_items.count_documents(query)
+
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+    due_today = await db.user_planner_items.count_documents(
+        {
+            "user_id": user.user_id,
+            "is_completed": False,
+            "reminder_at": {"$gte": today_start, "$lt": today_end},
+        }
+    )
+    completed = await db.user_planner_items.count_documents({"user_id": user.user_id, "is_completed": True})
+
+    return PlannerItemsResponse(items=[PlannerItem(**item) for item in items], total=total, month=month, day=day, due_today=due_today, completed=completed)
+
+
+@api_router.post("/planner/items", response_model=PlannerItem)
+async def create_planner_item(
+    payload: PlannerItemCreate,
+    request: Request,
+    user: User = Depends(require_auth),
+):
+    ensure_enterprise_planner_allowed(user)
+    ensure_subscription_write_allowed(user, request=request)
+    title = payload.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Le titre est obligatoire.")
+    now = datetime.now(timezone.utc)
+    item = PlannerItem(
+        user_id=user.user_id,
+        account_id=user.account_id,
+        store_id=user.active_store_id,
+        title=title,
+        content=(payload.content or "").strip() or None,
+        reminder_at=payload.reminder_at,
+        channels=normalize_planner_channels(payload.channels),
+        created_at=now,
+        updated_at=now,
+    )
+    await db.user_planner_items.insert_one(item.model_dump())
+    return item
+
+
+@api_router.put("/planner/items/{item_id}", response_model=PlannerItem)
+async def update_planner_item(
+    item_id: str,
+    payload: PlannerItemUpdate,
+    request: Request,
+    user: User = Depends(require_auth),
+):
+    ensure_enterprise_planner_allowed(user)
+    ensure_subscription_write_allowed(user, request=request)
+    existing = await db.user_planner_items.find_one({"item_id": item_id, "user_id": user.user_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Note ou rappel introuvable.")
+
+    updates: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc)}
+    payload_data = payload.model_dump(exclude_unset=True)
+    if "title" in payload_data:
+        title = str(payload_data["title"] or "").strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="Le titre est obligatoire.")
+        updates["title"] = title
+    if "content" in payload_data:
+        updates["content"] = (str(payload_data["content"] or "").strip() or None)
+    if "reminder_at" in payload_data:
+        updates["reminder_at"] = payload_data["reminder_at"]
+        updates["last_notified_at"] = None
+    if "channels" in payload_data:
+        updates["channels"] = normalize_planner_channels(payload_data["channels"])
+        updates["last_notified_at"] = None
+
+    await db.user_planner_items.update_one({"item_id": item_id, "user_id": user.user_id}, {"$set": updates})
+    updated = await db.user_planner_items.find_one({"item_id": item_id, "user_id": user.user_id}, {"_id": 0})
+    return PlannerItem(**updated)
+
+
+@api_router.post("/planner/items/{item_id}/complete", response_model=PlannerItem)
+async def complete_planner_item(
+    item_id: str,
+    request: Request,
+    user: User = Depends(require_auth),
+):
+    ensure_enterprise_planner_allowed(user)
+    ensure_subscription_write_allowed(user, request=request)
+    now = datetime.now(timezone.utc)
+    result = await db.user_planner_items.update_one(
+        {"item_id": item_id, "user_id": user.user_id},
+        {"$set": {"is_completed": True, "completed_at": now, "updated_at": now}},
+    )
+    if not result.matched_count:
+        raise HTTPException(status_code=404, detail="Note ou rappel introuvable.")
+    updated = await db.user_planner_items.find_one({"item_id": item_id, "user_id": user.user_id}, {"_id": 0})
+    return PlannerItem(**updated)
+
+
+@api_router.post("/planner/items/{item_id}/reopen", response_model=PlannerItem)
+async def reopen_planner_item(
+    item_id: str,
+    request: Request,
+    user: User = Depends(require_auth),
+):
+    ensure_enterprise_planner_allowed(user)
+    ensure_subscription_write_allowed(user, request=request)
+    now = datetime.now(timezone.utc)
+    result = await db.user_planner_items.update_one(
+        {"item_id": item_id, "user_id": user.user_id},
+        {"$set": {"is_completed": False, "completed_at": None, "updated_at": now, "last_notified_at": None}},
+    )
+    if not result.matched_count:
+        raise HTTPException(status_code=404, detail="Note ou rappel introuvable.")
+    updated = await db.user_planner_items.find_one({"item_id": item_id, "user_id": user.user_id}, {"_id": 0})
+    return PlannerItem(**updated)
+
+
+@api_router.delete("/planner/items/{item_id}")
+async def delete_planner_item(
+    item_id: str,
+    request: Request,
+    user: User = Depends(require_auth),
+):
+    ensure_enterprise_planner_allowed(user)
+    ensure_subscription_write_allowed(user, request=request)
+    result = await db.user_planner_items.delete_one({"item_id": item_id, "user_id": user.user_id})
+    if not result.deleted_count:
+        raise HTTPException(status_code=404, detail="Note ou rappel introuvable.")
+    return {"message": "Element supprime."}
 
 # ===================== ADMIN ROUTES =====================
 
@@ -12128,6 +12372,89 @@ async def check_alerts_loop():
             alert,
             data={"screen": "products", "filter": "expiry"},
         )
+
+
+async def check_planner_reminders_loop():
+    """Envoie les rappels Notes / Calendrier dus aux utilisateurs Enterprise."""
+    now = datetime.now(timezone.utc)
+    due_items = await db.user_planner_items.find(
+        {
+            "is_completed": False,
+            "reminder_at": {"$lte": now},
+            "last_notified_at": None,
+        },
+        {"_id": 0},
+    ).limit(50).to_list(50)
+
+    if not due_items:
+        return
+
+    for item in due_items:
+        try:
+            user_id = item.get("user_id")
+            if not user_id:
+                continue
+
+            user_doc = await db.users.find_one(
+                {"user_id": user_id},
+                {"email": 1, "plan": 1, "effective_plan": 1, "subscription_plan": 1, "account_id": 1},
+            )
+            if not user_doc:
+                continue
+
+            effective_plan = normalize_plan(
+                user_doc.get("effective_plan") or user_doc.get("subscription_plan") or user_doc.get("plan")
+            )
+            if effective_plan != "enterprise":
+                await db.user_planner_items.update_one(
+                    {"item_id": item["item_id"]},
+                    {"$set": {"last_notified_at": now}},
+                )
+                continue
+
+            channels = normalize_planner_channels(item.get("channels"))
+            reminder_title = item.get("title") or "Rappel"
+            reminder_content = (item.get("content") or "").strip()
+            push_body = reminder_content or "Vous avez un rappel prevu dans Stockman."
+
+            if "in_app" in channels:
+                message = AdminMessage(
+                    type="individual",
+                    title=f"Rappel : {reminder_title}",
+                    content=push_body,
+                    target=user_id,
+                    sent_by="Stockman",
+                )
+                await db.admin_messages.insert_one(message.model_dump())
+
+            if "push" in channels:
+                await notification_service.notify_user(
+                    db,
+                    user_id,
+                    f"Rappel : {reminder_title}",
+                    push_body,
+                    {"type": "planner_reminder", "item_id": item.get("item_id")},
+                    caller_owner_id=user_doc.get("account_id"),
+                )
+
+            if "email" in channels and user_doc.get("email"):
+                subject = f"Rappel Stockman : {reminder_title}"
+                html_body = (
+                    f"<p>Bonjour,</p><p>Votre rappel <strong>{reminder_title}</strong> est arrive a echeance.</p>"
+                    f"<p>{reminder_content or 'Ouvrez Stockman pour le consulter et le marquer comme termine.'}</p>"
+                )
+                text_body = (
+                    f"Votre rappel Stockman \"{reminder_title}\" est arrive a echeance.\n\n"
+                    f"{reminder_content or 'Ouvrez Stockman pour le consulter et le marquer comme termine.'}"
+                )
+                await notification_service.send_email_notification([user_doc["email"]], subject, html_body, text_body=text_body)
+
+            await db.user_planner_items.update_one(
+                {"item_id": item["item_id"]},
+                {"$set": {"last_notified_at": now}},
+            )
+        except Exception as exc:
+            logger.warning(f"Planner reminder notification failed for {item.get('item_id')}: {exc}")
 
 
 

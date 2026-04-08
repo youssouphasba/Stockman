@@ -2549,6 +2549,48 @@ export const userNotifications = {
         request<any>('/user/notifications/read-all', { method: 'POST' }),
 };
 
+export type PlannerChannel = 'in_app' | 'push' | 'email';
+
+export type PlannerItem = {
+    item_id: string;
+    user_id: string;
+    account_id?: string;
+    store_id?: string;
+    title: string;
+    content?: string | null;
+    reminder_at?: string | null;
+    channels: PlannerChannel[];
+    is_completed: boolean;
+    completed_at?: string | null;
+    last_notified_at?: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type PlannerItemsResponse = {
+    items: PlannerItem[];
+    total: number;
+    month?: string | null;
+    day?: string | null;
+    due_today: number;
+    completed: number;
+};
+
+export const planner = {
+    list: (params?: { month?: string; day?: string; status?: 'active' | 'completed' | 'all' }) =>
+        request<PlannerItemsResponse>('/planner/items', { params }),
+    create: (data: { title: string; content?: string; reminder_at?: string | null; channels?: PlannerChannel[] }) =>
+        request<PlannerItem>('/planner/items', { method: 'POST', body: data }),
+    update: (itemId: string, data: { title?: string; content?: string; reminder_at?: string | null; channels?: PlannerChannel[] }) =>
+        request<PlannerItem>(`/planner/items/${itemId}`, { method: 'PUT', body: data }),
+    complete: (itemId: string) =>
+        request<PlannerItem>(`/planner/items/${itemId}/complete`, { method: 'POST' }),
+    reopen: (itemId: string) =>
+        request<PlannerItem>(`/planner/items/${itemId}/reopen`, { method: 'POST' }),
+    remove: (itemId: string) =>
+        request<{ message: string }>(`/planner/items/${itemId}`, { method: 'DELETE' }),
+};
+
 // Legal (public, unauthenticated)
 export const legal = {
     getCGU: (lang = 'fr') => request<{ content: string; updated_at?: string }>(`/cgu?lang=${encodeURIComponent(lang)}`),

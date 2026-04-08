@@ -20,9 +20,10 @@ type Props = {
   onLaunchGuide: (guideKey: string) => void;
   userRole?: 'shopkeeper' | 'supplier' | 'all';
   isRestaurant?: boolean;
+  hasEnterprisePlan?: boolean;
 };
 
-export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole = 'shopkeeper', isRestaurant = false }: Props) {
+export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole = 'shopkeeper', isRestaurant = false, hasEnterprisePlan = false }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,11 +34,12 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
     return HELP_MODULES.filter(
       (m) =>
         (m.role === 'all' || m.role === userRole) &&
+        (!m.enterpriseOnly || hasEnterprisePlan) &&
         (isRestaurant
           ? m.audience === 'restaurant' || m.audience === 'all'
           : m.audience == null || m.audience === 'default' || m.audience === 'all')
     );
-  }, [userRole, isRestaurant]);
+  }, [userRole, isRestaurant, hasEnterprisePlan]);
 
   const filteredFaq = useMemo(() => {
     return FAQ.filter(

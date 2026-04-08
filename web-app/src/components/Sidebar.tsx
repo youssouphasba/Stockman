@@ -209,6 +209,7 @@ export default function Sidebar({
             ],
         },
         { id: 'crm', icon: Users, label: t('crm.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'crm' },
+        ...(hasEnterpriseLocations ? [{ id: 'planner', icon: CalendarCheck, label: t('planner.title'), roles: ['shopkeeper', 'staff', 'admin'] } as SidebarItem] : []),
         { id: 'staff', icon: UserCheck, label: t('sidebar.staff'), roles: ['shopkeeper', 'admin', 'staff'], permission: 'staff' },
         {
             id: 'suppliers_group', icon: Truck, label: t('tabs.suppliers'), roles: ['shopkeeper', 'staff', 'supplier', 'admin'],

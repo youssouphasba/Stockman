@@ -213,6 +213,7 @@ export default function DashboardScreen() {
         // -- Navigation --
         { label: t('tabs.alerts'), icon: 'alert-circle-outline', onPress: () => router.push('/(tabs)/alerts' as any) },
         { label: t('tabs.users'), icon: 'people-outline', onPress: () => router.push('/(tabs)/users' as any) },
+        { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
         { label: t('sidebar.multi_stores', 'Multi-boutiques'), icon: 'storefront-outline', onPress: () => router.push('/(tabs)/enterprise' as any), plan: 'enterprise' },
         { label: t('tabs.subscription'), icon: 'card-outline', onPress: () => router.push('/(tabs)/subscription' as any) },
       ]);

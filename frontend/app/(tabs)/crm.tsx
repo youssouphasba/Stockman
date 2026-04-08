@@ -19,7 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
     customers as customersApi,
     promotions as promotionsApi,
@@ -96,6 +96,7 @@ import { useAuth } from '../../contexts/AuthContext';
 export default function CRMScreen() {
     const { colors, glassStyle } = useTheme();
     const { t, i18n } = useTranslation();
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const styles = getStyles(colors, glassStyle);
     const { user, hasPermission, isSuperAdmin } = useAuth();
@@ -268,6 +269,7 @@ export default function CRMScreen() {
                 { label: t('crm.create_promo', 'Créer une promo'), icon: 'gift-outline', onPress: () => setShowPromoModal(true) },
                 { label: t('crm.launch_campaign', 'Lancer une campagne'), icon: 'megaphone-outline', onPress: () => setShowCampaignModal(true) },
                 { label: '', icon: '', onPress: () => {}, separator: true },
+                { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
                 { label: t('common.export_csv', 'Exporter CSV'), icon: 'download-outline', onPress: () => handleExportCSV() },
                 { label: t('common.export_pdf', 'Exporter PDF'), icon: 'print-outline', onPress: () => handleExportPdf() },
             ]);

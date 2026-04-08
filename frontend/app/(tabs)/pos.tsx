@@ -19,7 +19,7 @@ import DigitalReceiptModal from '../../components/DigitalReceiptModal';
 import { mergePosProductsOfflineState } from '../../services/offlineState';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import {
@@ -88,6 +88,7 @@ export type POSSession = {
 export default function POSScreen() {
     const { colors, glassStyle } = useTheme();
     const { t, i18n } = useTranslation();
+    const router = useRouter();
     const { user, hasPermission } = useAuth();
     const insets = useSafeAreaInsets();
     const { setDrawerContent } = useDrawer();
@@ -197,6 +198,7 @@ export default function POSScreen() {
                 { label: t('pos.voice_checkout', 'Checkout vocal'), icon: 'mic-outline', onPress: () => setShowVoiceModal(true) },
                 { label: t('pos.associate_customer', 'Associer un client'), icon: 'person-add-outline', onPress: () => setShowCustomerModal(true) },
                 ...(restaurantMode ? [{ label: t('pos.choose_table', 'Choisir une table'), icon: 'restaurant-outline', onPress: () => setShowTableModal(true) }] : []),
+                { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' as const },
                 { label: t('pos.choose_terminal', 'Choisir un terminal'), icon: 'desktop-outline', onPress: () => setShowTerminalModal(true), plan: 'enterprise' as const },
             ]);
         }, [t, restaurantMode])

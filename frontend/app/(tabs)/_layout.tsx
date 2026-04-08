@@ -81,6 +81,7 @@ function TabLayoutInner() {
   const hidePos = !hasPermission('pos', 'read');
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
   const hideDashboard = !hasPermission('dashboard', 'read');
+  const hasEnterprisePlan = (user?.effective_plan || user?.plan) === 'enterprise';
 
   const productsTabTitle = isRestaurant
     ? t('tabs.menu', 'Menu')
@@ -185,6 +186,7 @@ function TabLayoutInner() {
       case 'users': return GUIDES.users;
       case 'settings': return GUIDES.settings;
       case 'subscription': return GUIDES.subscription;
+      case 'planner': return GUIDES.planner;
       case 'restaurant': return GUIDES.restaurantHub;
       case 'tables': return GUIDES.restaurantTables;
       case 'reservations': return GUIDES.restaurantReservations;
@@ -243,9 +245,6 @@ function TabLayoutInner() {
           ) : undefined,
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 12 }}>
-              <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: 4 }}>
-                <Ionicons name="sparkles-outline" size={24} color={colors.primary} />
-              </TouchableOpacity>
               {hasOperationalAccess && (
                 <TouchableOpacity onPress={() => router.push('/(tabs)/alerts' as any)} style={{ padding: 4, position: 'relative' }}>
                   <Ionicons name="notifications-outline" size={24} color={colors.text} />
@@ -273,6 +272,14 @@ function TabLayoutInner() {
                   )}
                 </TouchableOpacity>
               )}
+              {currentRoute === 'index' && hasEnterprisePlan && (
+                <TouchableOpacity onPress={() => router.push('/(tabs)/planner' as any)} style={{ padding: 4 }}>
+                  <Ionicons name="calendar-outline" size={24} color={colors.text} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: 4 }}>
+                <Ionicons name="sparkles-outline" size={24} color={colors.primary} />
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowHelpCenter(true)} style={{ padding: 4 }}>
                 <Ionicons name="book-outline" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -435,6 +442,13 @@ function TabLayoutInner() {
           }}
         />
         <Tabs.Screen
+          name="planner"
+          options={{
+            title: t('planner.title'),
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="locations"
           options={{
             title: t('tabs.locations', 'Emplacements'),
@@ -487,6 +501,7 @@ function TabLayoutInner() {
         onClose={() => setShowHelpCenter(false)}
         userRole="shopkeeper"
         isRestaurant={isRestaurant}
+        hasEnterprisePlan={hasEnterprisePlan}
         onLaunchGuide={(guideKey) => {
           const guide = GUIDES[guideKey];
           if (guide) {

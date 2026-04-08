@@ -501,6 +501,36 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             }
         ]
     },
+    planner: {
+        title: "Notes, calendrier et rappels",
+        steps: [
+            {
+                icon: "calendar-outline",
+                title: "Un agenda personnel dans Stockman",
+                description: "Chaque utilisateur Enterprise dispose de ses propres notes et rappels. Les éléments créés ici ne remplacent pas les alertes automatiques du système."
+            },
+            {
+                icon: "create-outline",
+                title: "Créer une note ou un rappel",
+                description: "Ajoutez un titre, un contenu libre puis, si nécessaire, une date et une heure. Une note sans date reste visible dans votre liste personnelle."
+            },
+            {
+                icon: "notifications-outline",
+                title: "Choisir les canaux",
+                description: "Activez l'affichage dans l'application, le push ou l'email selon le type de rappel que vous voulez recevoir."
+            },
+            {
+                icon: "grid-outline",
+                title: "Relire le calendrier",
+                description: "Le calendrier mensuel met en évidence les jours qui contiennent un ou plusieurs rappels. Touchez un jour pour filtrer immédiatement la liste."
+            },
+            {
+                icon: "checkmark-done-outline",
+                title: "Terminer ou rouvrir un élément",
+                description: "Marquez une tâche comme terminée quand elle est faite. Vous pouvez la rouvrir plus tard si vous devez la reprendre."
+            }
+        ]
+    },
     subscription: {
         title: "Abonnement",
         steps: [

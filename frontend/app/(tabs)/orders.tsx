@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   orders as ordersApi,
@@ -57,6 +57,7 @@ import { useDrawer } from '../../contexts/DrawerContext';
 export default function OrdersScreen() {
   const { colors, glassStyle } = useTheme();
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const { user, isSuperAdmin } = useAuth();
   const { setDrawerContent } = useDrawer();
   const insets = useSafeAreaInsets();
@@ -301,6 +302,7 @@ export default function OrdersScreen() {
         { label: t('orders.new_order', 'Nouvelle commande'), icon: 'add-circle-outline', onPress: () => setShowCreateModal(true) },
         { label: t('orders.returns', 'Retours clients'), icon: 'arrow-undo-outline', onPress: () => setActiveTab('returns') },
         { label: t('orders.history', 'Historique'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
+        { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
       ]);
     }, [t])
   );

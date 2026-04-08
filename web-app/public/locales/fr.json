@@ -1250,6 +1250,25 @@
           "d": "Activez les notifications pour être alerté en temps réel des ruptures, stocks bas et produits dormants."
         }
       },
+      "planner": {
+        "title": "Notes, calendrier et rappels",
+        "f1": {
+          "t": "Notes personnelles",
+          "d": "Chaque utilisateur Enterprise dispose de ses propres notes et rappels. Vos collègues ne voient pas vos éléments personnels."
+        },
+        "f2": {
+          "t": "Calendrier mensuel",
+          "d": "Le calendrier affiche les jours qui contiennent un ou plusieurs rappels. Touchez un jour pour filtrer rapidement la liste."
+        },
+        "f3": {
+          "t": "Canaux de rappel",
+          "d": "Choisissez si le rappel doit apparaître dans l'application, en notification push, par email ou sur plusieurs canaux à la fois."
+        },
+        "f4": {
+          "t": "Suivi des tâches",
+          "d": "Marquez un élément comme terminé puis rouvrez-le plus tard si vous devez le reprendre."
+        }
+      },
       "supplierDashboard": {
         "title": "Dashboard Fournisseur",
         "f1": {
@@ -1313,6 +1332,41 @@
     "results": "RÉSULTATS",
     "search_placeholder": "Rechercher une fonctionnalité...",
     "title": "Centre d'Aide"
+  },
+  "planner": {
+    "badge": "Organisation personnelle",
+    "title": "Notes, calendrier et rappels",
+    "subtitle": "Créez vos notes personnelles, planifiez vos rappels et relisez-les dans un calendrier mensuel. Cette fonctionnalité est réservée au plan Enterprise.",
+    "new_item": "Nouvel élément",
+    "active_items": "Éléments actifs",
+    "due_today": "À faire aujourd'hui",
+    "completed_items": "Terminés",
+    "filter_active": "Actifs",
+    "filter_all": "Tous",
+    "filter_completed": "Terminés",
+    "clear_day_filter": "Retirer le filtre jour",
+    "empty_title": "Aucune note pour cette vue",
+    "empty_desc": "Ajoutez une note ou un rappel pour commencer à organiser votre suivi personnel dans Stockman.",
+    "no_reminder": "Sans rappel",
+    "channel_in_app": "Dans l'application",
+    "channel_push": "Push",
+    "channel_email": "Email",
+    "edit_item": "Modifier l'élément",
+    "title_placeholder": "Titre de la note ou du rappel",
+    "content_placeholder": "Contenu, contexte ou action à ne pas oublier...",
+    "date_placeholder": "AAAA-MM-JJ",
+    "time_placeholder": "HH:MM",
+    "channels_title": "Canaux de rappel",
+    "title_required": "Le titre est obligatoire.",
+    "save_error": "Impossible d'enregistrer cet élément pour le moment.",
+    "delete_error": "Impossible de supprimer cet élément pour le moment.",
+    "load_error": "Impossible de charger vos notes et rappels pour le moment.",
+    "enterprise_only_title": "Module réservé au plan Enterprise",
+    "enterprise_only_desc": "Passez au plan Enterprise pour utiliser vos notes personnelles, votre calendrier et vos rappels dans Stockman.",
+    "discover_enterprise": "Découvrir Enterprise",
+    "status_active": "Actif",
+    "status_completed": "Terminé",
+    "saving": "Enregistrement..."
   },
   "invoice": {
     "add_line": "Ajouter une ligne",

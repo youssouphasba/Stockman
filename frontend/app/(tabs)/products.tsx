@@ -158,6 +158,7 @@ export default function ProductsScreen() {
         { label: t('products.movement_history', 'Historique mouvements'), icon: 'time-outline', onPress: () => router.push({ pathname: '/(tabs)', params: { openModal: 'history' } } as any) },
         { label: t('dashboard.statistics', 'Statistiques'), icon: 'stats-chart-outline', onPress: () => router.push({ pathname: '/(tabs)', params: { openModal: 'statistics' } } as any) },
         { label: t('tabs.locations', 'Emplacements'), icon: 'map-outline', onPress: () => router.push('/(tabs)/locations' as any), plan: 'enterprise' },
+        { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
         { label: t('common.export_csv', 'Exporter CSV'), icon: 'download-outline', onPress: () => handleExportCSV() },
         { label: t('products.trash', 'Corbeille'), icon: 'trash-outline', onPress: () => setShowTrashModal(true), destructive: true },
       ]);
@@ -5274,9 +5275,8 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: colors.glassBorder,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     gap: Spacing.sm,
     shadowColor: '#020617',
     shadowOpacity: 0.28,
@@ -5287,7 +5287,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   selectionInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    width: '100%',
   },
   selectAllBtn: {
     flexDirection: 'row',
@@ -5308,11 +5308,14 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   selectionActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
+    width: '100%',
   },
   selectionActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -5320,6 +5323,9 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     backgroundColor: colors.card || colors.bgMid,
     borderWidth: 1,
     borderColor: colors.glassBorder,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: '48%',
   },
   selectionActionBtnPrimary: {
     backgroundColor: colors.primary + '24',
@@ -5336,6 +5342,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: '700',
     color: colors.text,
+    flexShrink: 1,
   },
   inventoryReconciliation: {
     flexDirection: 'row',
