@@ -273,8 +273,17 @@ function TabLayoutInner() {
                 </TouchableOpacity>
               )}
               {currentRoute === 'index' && hasEnterprisePlan && (
-                <TouchableOpacity onPress={() => router.push('/(tabs)/planner' as any)} style={{ padding: 4 }}>
-                  <Ionicons name="calendar-outline" size={24} color={colors.text} />
+                <TouchableOpacity
+                  onPress={() => router.push('/(tabs)/planner' as any)}
+                  style={{
+                    padding: 6,
+                    borderRadius: 999,
+                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(5, 150, 105, 0.12)',
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(16, 185, 129, 0.28)' : 'rgba(5, 150, 105, 0.22)',
+                  }}
+                >
+                  <Ionicons name="alarm-outline" size={22} color={colors.primary} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: 4 }}>

@@ -2579,7 +2579,7 @@ export type PlannerItemsResponse = {
 export const planner = {
     list: (params?: { month?: string; day?: string; status?: 'active' | 'completed' | 'all' }) =>
         request<PlannerItemsResponse>('/planner/items', { params }),
-    create: (data: { title: string; content?: string; reminder_at?: string | null; channels?: PlannerChannel[] }) =>
+    create: (data: { title?: string; content?: string; reminder_at?: string | null; channels?: PlannerChannel[] }) =>
         request<PlannerItem>('/planner/items', { method: 'POST', body: data }),
     update: (itemId: string, data: { title?: string; content?: string; reminder_at?: string | null; channels?: PlannerChannel[] }) =>
         request<PlannerItem>(`/planner/items/${itemId}`, { method: 'PUT', body: data }),

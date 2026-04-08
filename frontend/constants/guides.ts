@@ -505,24 +505,24 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         title: "Notes, calendrier et rappels",
         steps: [
             {
-                icon: "calendar-outline",
-                title: "Un agenda personnel dans Stockman",
-                description: "Chaque utilisateur Enterprise dispose de ses propres notes et rappels. Les éléments créés ici ne remplacent pas les alertes automatiques du système."
+                icon: "alarm-outline",
+                title: "Un espace personnel bien visible",
+                description: "Le module regroupe vos notes privées et vos rappels personnels. Il reste distinct des alertes automatiques générées par Stockman."
             },
             {
-                icon: "create-outline",
-                title: "Créer une note ou un rappel",
-                description: "Ajoutez un titre, un contenu libre puis, si nécessaire, une date et une heure. Une note sans date reste visible dans votre liste personnelle."
+                icon: "calendar-number-outline",
+                title: "Le calendrier crée les rappels",
+                description: "Touchez directement un jour du calendrier pour ouvrir un nouveau rappel avec cette date déjà préremplie."
             },
             {
-                icon: "notifications-outline",
-                title: "Choisir les canaux",
-                description: "Activez l'affichage dans l'application, le push ou l'email selon le type de rappel que vous voulez recevoir."
+                icon: "document-text-outline",
+                title: "Les notes restent séparées",
+                description: "Les notes sans date sont visibles dans leur propre section. Vous pouvez les garder simples ou leur ajouter un rappel plus tard."
             },
             {
-                icon: "grid-outline",
-                title: "Relire le calendrier",
-                description: "Le calendrier mensuel met en évidence les jours qui contiennent un ou plusieurs rappels. Touchez un jour pour filtrer immédiatement la liste."
+                icon: "time-outline",
+                title: "Choisir l'heure sans la taper",
+                description: "Après avoir choisi une date, sélectionnez simplement l'heure voulue. Vous n'avez pas besoin de saisir une date ou une heure à la main."
             },
             {
                 icon: "checkmark-done-outline",

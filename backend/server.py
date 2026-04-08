@@ -2516,7 +2516,7 @@ class PlannerItem(BaseModel):
 
 
 class PlannerItemCreate(BaseModel):
-    title: str
+    title: Optional[str] = None
     content: Optional[str] = None
     reminder_at: Optional[datetime] = None
     channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
@@ -5230,16 +5230,17 @@ async def create_planner_item(
 ):
     ensure_enterprise_planner_allowed(user)
     ensure_subscription_write_allowed(user, request=request)
-    title = payload.title.strip()
-    if not title:
-        raise HTTPException(status_code=400, detail="Le titre est obligatoire.")
+    title = str(payload.title or "").strip()
+    content = (payload.content or "").strip()
+    if not title and not content:
+        raise HTTPException(status_code=400, detail="Saisissez au moins une note ou un rappel.")
     now = datetime.now(timezone.utc)
     item = PlannerItem(
         user_id=user.user_id,
         account_id=user.account_id,
         store_id=user.active_store_id,
         title=title,
-        content=(payload.content or "").strip() or None,
+        content=content or None,
         reminder_at=payload.reminder_at,
         channels=normalize_planner_channels(payload.channels),
         created_at=now,
@@ -5265,10 +5266,7 @@ async def update_planner_item(
     updates: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc)}
     payload_data = payload.model_dump(exclude_unset=True)
     if "title" in payload_data:
-        title = str(payload_data["title"] or "").strip()
-        if not title:
-            raise HTTPException(status_code=400, detail="Le titre est obligatoire.")
-        updates["title"] = title
+        updates["title"] = str(payload_data["title"] or "").strip()
     if "content" in payload_data:
         updates["content"] = (str(payload_data["content"] or "").strip() or None)
     if "reminder_at" in payload_data:
@@ -5277,6 +5275,11 @@ async def update_planner_item(
     if "channels" in payload_data:
         updates["channels"] = normalize_planner_channels(payload_data["channels"])
         updates["last_notified_at"] = None
+
+    final_title = updates.get("title", existing.get("title") or "").strip()
+    final_content = str(updates.get("content", existing.get("content") or "") or "").strip()
+    if not final_title and not final_content:
+        raise HTTPException(status_code=400, detail="Saisissez au moins une note ou un rappel.")
 
     await db.user_planner_items.update_one({"item_id": item_id, "user_id": user.user_id}, {"$set": updates})
     updated = await db.user_planner_items.find_one({"item_id": item_id, "user_id": user.user_id}, {"_id": 0})

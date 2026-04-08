@@ -6,9 +6,9 @@ Ce module aide chaque utilisateur Enterprise a organiser son propre suivi de tra
 
 Vous pouvez :
 
-- ecrire une note personnelle ;
-- planifier un rappel manuel ;
-- relire vos rappels dans un calendrier mensuel ;
+- ecrire une note personnelle sans date ;
+- creer un rappel en touchant directement une date dans le calendrier ;
+- choisir l'heure sans la taper ;
 - marquer un element comme termine ou le rouvrir.
 
 ## Ce qui est personnel
@@ -21,24 +21,30 @@ Les notes et rappels sont personnels a chaque utilisateur.
 
 ## Sur mobile
 
-Le module est accessible directement depuis le menu lateral des onglets compatibles.
+Le module est visible depuis l'entete du tableau de bord principal, entre les alertes et l'assistant IA. Il reste aussi disponible dans les menus lateraux des ecrans compatibles.
 
-Vous pouvez :
+Le flux recommande est le suivant :
 
-- creer un nouvel element ;
-- choisir une date et une heure ;
-- activer le canal dans l'application, en push ou par email ;
-- filtrer la liste et le calendrier.
+- toucher une date du calendrier pour creer un rappel ;
+- ecrire ensuite le contenu du rappel ;
+- choisir l'heure souhaitee ;
+- activer les canaux utiles si besoin.
+
+Une note simple peut etre creee sans date ni heure depuis le bouton `Nouvelle note`.
 
 ## Sur le web
 
 Le module est visible dans la sidebar.
 
-Le calendrier mensuel permet de reperer rapidement les jours qui contiennent des rappels, puis de filtrer la liste du jour choisi.
+Le calendrier est le point d'entree principal pour les rappels :
+
+- un clic sur une date ouvre directement un nouveau rappel avec cette date preselectionnee ;
+- les rappels du mois restent visibles dans leur propre liste ;
+- les notes sans date disposent de leur propre espace.
 
 ## Conseils d'usage
 
 - utilisez une note sans date pour garder une information utile ;
-- ajoutez une date si l'element doit revenir plus tard ;
+- touchez une date du calendrier si l'element doit revenir plus tard ;
 - marquez un rappel comme termine des qu'il est traite ;
 - rouvrez-le seulement si l'action doit etre reprise.
