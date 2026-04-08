@@ -13,8 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
 
 export type DrawerItem = {
   label: string;
@@ -44,18 +42,19 @@ function planMeetsMinimum(userPlan: string | undefined, required: string): boole
 export default function DrawerMenu({ visible, onClose, items, title }: Props) {
   const { colors, isDark } = useTheme();
   const { user, isSuperAdmin } = useAuth();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
 
   const userPlan = user?.effective_plan || user?.plan || 'starter';
+  const visibleItems = items
+    .filter((item) => !item.plan || isSuperAdmin || planMeetsMinimum(userPlan, item.plan))
+    .filter((item, index, list) => {
+      if (!item.separator) return true;
+      const previous = list[index - 1];
+      const next = list[index + 1];
+      return Boolean(previous && next && !previous.separator && !next.separator);
+    });
 
   const handlePress = (item: DrawerItem) => {
-    if (item.plan && !isSuperAdmin && !planMeetsMinimum(userPlan, item.plan)) {
-      onClose();
-      router.push('/(tabs)/subscription' as any);
-      return;
-    }
     onClose();
     item.onPress();
   };
@@ -90,7 +89,7 @@ export default function DrawerMenu({ visible, onClose, items, title }: Props) {
             </View>
           )}
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-            {items.map((item, index) => {
+            {visibleItems.map((item, index) => {
               if (item.separator) {
                 return (
                   <View
@@ -100,13 +99,10 @@ export default function DrawerMenu({ visible, onClose, items, title }: Props) {
                 );
               }
 
-              const locked = !!(item.plan && !isSuperAdmin && !planMeetsMinimum(userPlan, item.plan));
-              const planLabel = item.plan === 'enterprise' ? 'Enterprise' : item.plan === 'pro' ? 'Pro' : null;
-
               return (
                 <TouchableOpacity
                   key={`${item.label}-${index}`}
-                  style={[styles.item, locked && styles.itemLocked]}
+                  style={styles.item}
                   onPress={() => handlePress(item)}
                   activeOpacity={0.7}
                 >
@@ -114,12 +110,12 @@ export default function DrawerMenu({ visible, onClose, items, title }: Props) {
                     <Ionicons
                       name={item.icon as any}
                       size={20}
-                      color={locked ? colors.textMuted : item.destructive ? colors.danger : colors.primary}
+                      color={item.destructive ? colors.danger : colors.primary}
                     />
                     <Text
                       style={[
                         styles.itemLabel,
-                        { color: locked ? colors.textMuted : item.destructive ? colors.danger : colors.text },
+                        { color: item.destructive ? colors.danger : colors.text },
                       ]}
                       numberOfLines={1}
                     >
@@ -130,12 +126,6 @@ export default function DrawerMenu({ visible, onClose, items, title }: Props) {
                     {item.badge != null && (
                       <View style={[styles.badge, { backgroundColor: colors.danger }]}>
                         <Text style={styles.badgeText}>{item.badge}</Text>
-                      </View>
-                    )}
-                    {locked && planLabel && (
-                      <View style={[styles.planBadge, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '40' }]}>
-                        <Ionicons name="lock-closed" size={10} color={colors.primary} />
-                        <Text style={[styles.planBadgeText, { color: colors.primary }]}>{planLabel}</Text>
                       </View>
                     )}
                   </View>
@@ -197,9 +187,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     marginVertical: 1,
   },
-  itemLocked: {
-    opacity: 0.6,
-  },
   itemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -226,19 +213,6 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#FFF',
     fontSize: 11,
-    fontWeight: '700',
-  },
-  planBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  planBadgeText: {
-    fontSize: 10,
     fontWeight: '700',
   },
 });

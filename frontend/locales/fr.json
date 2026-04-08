@@ -1382,7 +1382,7 @@
         },
         "f12": {
           "t": "Selection multiple & restauration",
-          "d": "La barre d'actions en bas permet de tout selectionner, d'exporter le catalogue ou d'envoyer des produits dans la corbeille. Les boutons ont ete renforces pour rester lisibles sur les fonds sombres."
+          "d": "La barre d'actions en bas permet de tout selectionner, de modifier rapidement les prix de vente, de partager le catalogue ou d'envoyer des produits dans la corbeille. Les boutons ont ete renforces pour rester lisibles sur les fonds sombres."
         }
       },
       "pos": {
@@ -2472,6 +2472,19 @@
     "batch_number_placeholder_hint": "Ex: LOT2024-001",
     "bulk_delete_msg": "Voulez-vous supprimer les {{count}} produits sélectionnés ?",
     "bulk_delete_title": "Suppression groupée",
+    "bulk_price_current_value": "Prix actuel : {{value}}",
+    "bulk_price_edit_cta": "Modifier le prix de vente",
+    "bulk_price_error": "Impossible de modifier les prix de vente pour le moment.",
+    "bulk_price_invalid_value": "Le nouveau prix de vente de {{name}} est invalide.",
+    "bulk_price_modal_subtitle": "{{count}} produit(s) sélectionné(s). Modifiez les prix un par un puis enregistrez.",
+    "bulk_price_modal_title": "Modifier le prix de vente",
+    "bulk_price_no_changes": "Aucun changement de prix à enregistrer.",
+    "bulk_price_offline_queued": "{{count}} mise(s) à jour de prix seront synchronisées dès le retour du réseau.",
+    "bulk_price_partial_error": "Certaines lignes n'ont pas pu être mises à jour.",
+    "bulk_price_partial_success": "{{updated}} produit(s) mis à jour. {{failed}} ligne(s) ont échoué : {{error}}",
+    "bulk_price_save": "Enregistrer les prix",
+    "bulk_price_success": "{{count}} produit(s) mis à jour avec succès.",
+    "bulk_share_catalog": "Partager le catalogue",
     "camera": "Caméra",
     "catalog": "Catalogue",
     "catalog_title": "Catalogue Produits",
@@ -3345,6 +3358,7 @@
     "reset_filters": "Réinitialiser les filtres",
     "reviews_title": "Avis ({{count}})",
     "save_error": "Impossible de sauvegarder le fournisseur",
+    "offline_create_queued": "Le fournisseur sera synchronisé automatiquement dès le retour du réseau.",
     "search_placeholder": "Nom, contact, produit, téléphone...",
     "see_less": "Voir moins",
     "see_more_others": "Voir les {{count}} autres",

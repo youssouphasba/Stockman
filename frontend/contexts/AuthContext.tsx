@@ -194,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       business_type: data.businessType,
       how_did_you_hear: data.referralSource?.trim() || undefined,
     });
-    await cache.clear();
+    await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
     await hydrateAuthenticatedUser(response.user);
     return response.user;
   }
@@ -255,7 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     try {
       const updatedUser = await storesApi.setActive(storeId);
-      await cache.clear();
+      await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
       setUser(updatedUser);
     } catch (e) {
       console.error('Failed to switch store', e);

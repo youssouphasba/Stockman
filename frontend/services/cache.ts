@@ -48,9 +48,13 @@ export const cache = {
         }
     },
 
-    async clear(): Promise<void> {
+    async clear(options?: { preserveSyncQueue?: boolean; preserveLastSync?: boolean }): Promise<void> {
         try {
-            const cacheKeys = Object.values(KEYS);
+            const cacheKeys = Object.values(KEYS).filter((key) => {
+                if (options?.preserveSyncQueue && key === KEYS.SYNC_QUEUE) return false;
+                if (options?.preserveLastSync && key === KEYS.LAST_SYNC) return false;
+                return true;
+            });
             await AsyncStorage.multiRemove(cacheKeys);
         } catch (e) {
             console.error('Cache clear error', e);

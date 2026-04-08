@@ -624,6 +624,11 @@ export const products = {
     request<Product>('/products', { method: 'POST', body: data }),
   update: (id: string, data: Partial<ProductCreate>) =>
     request<Product>(`/products/${id}`, { method: 'PUT', body: data }),
+  bulkUpdatePrices: (updates: BulkProductPriceUpdateItem[]) =>
+    request<BulkProductPriceUpdateResponse>('/products/bulk-update-prices', {
+      method: 'POST',
+      body: { updates },
+    }),
   delete: (id: string) =>
     request<{ message: string }>(`/products/${id}`, { method: 'DELETE' }),
   deletePermanent: (id: string) =>
@@ -1874,6 +1879,21 @@ export type ProductVariant = {
   purchase_price?: number;
   selling_price?: number;
   is_active: boolean;
+};
+
+export type BulkProductPriceUpdateItem = {
+  product_id: string;
+  purchase_price?: number;
+  selling_price?: number;
+};
+
+export type BulkProductPriceUpdateResponse = {
+  updated: number;
+  failed: number;
+  errors: Array<{
+    product_id: string;
+    message: string;
+  }>;
 };
 
 export type Product = {

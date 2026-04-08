@@ -1,7 +1,19 @@
 # Roadmap Edition Rapide des Prix
 
-Date de mise a jour : 2026-04-06
-Statut : a implementer
+Date de mise a jour : 2026-04-08
+Statut : lot 1 et lot 2 implementes
+
+## Etat actuel
+
+Les points suivants sont maintenant implementes :
+
+- backend : endpoint de mise a jour en lot des prix produits
+- mobile : modification rapide du prix de vente depuis le mode `Selection`
+- web app : grille d'edition rapide des prix basee sur les produits filtres
+- web app : selection multiple pour suppression et partage
+- web et mobile : corbeille commune conservee
+
+Le lot 3 reste optionnel et n'est pas active dans cette intervention.
 
 ## Objectif
 

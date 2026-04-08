@@ -59,6 +59,8 @@ Le web app prend maintenant en charge un mode hors ligne elargi sur cet ecran.
 
 - Les fournisseurs deja charges restent consultables depuis le cache local.
 - Un fournisseur cree hors ligne apparait tout de suite dans la liste avec un badge **En attente**.
+- Une meme creation fournisseur en attente n'est synchronisee qu'une seule fois au retour du reseau.
+- Un changement de boutique ne supprime plus la file locale des fournisseurs deja en attente de synchronisation.
 - Un bon de commande cree hors ligne apparait dans la liste des commandes avec un badge **En attente**.
 - Un bandeau de synchronisation resume le nombre total d'elements encore a envoyer au serveur.
 - Des modifications locales compatibles restent visibles jusqu'au retour du reseau.

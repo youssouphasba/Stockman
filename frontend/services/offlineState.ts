@@ -213,6 +213,76 @@ export async function mergeCustomersOfflineState(customers: any[]) {
   };
 }
 
+export async function mergeSuppliersOfflineState(suppliers: any[]) {
+  const queue = (await syncService.getQueue()).slice().sort((a, b) => a.timestamp - b.timestamp);
+  const items = new Map<string, any>();
+  const order: string[] = [];
+  let pendingSuppliers = 0;
+
+  (Array.isArray(suppliers) ? suppliers : []).forEach((supplier) => {
+    items.set(supplier.supplier_id, { ...supplier });
+    order.push(supplier.supplier_id);
+  });
+
+  queue.forEach((action) => {
+    const isSupplierAction =
+      action.entity === 'supplier' ||
+      action.endpoint === '/suppliers' ||
+      action.endpoint?.startsWith('/suppliers/');
+
+    if (!isSupplierAction) return;
+
+    if (action.type === 'create' || (action.endpoint === '/suppliers' && action.method === 'POST')) {
+      pendingSuppliers += 1;
+      const supplierId = `offline-supplier-${action.id}`;
+      if (!items.has(supplierId)) {
+        items.set(supplierId, {
+          supplier_id: supplierId,
+          user_id: '',
+          created_at: new Date(action.timestamp).toISOString(),
+          updated_at: new Date(action.timestamp).toISOString(),
+          ...(action.payload || {}),
+          offline_pending: true,
+          offline_request_id: action.id,
+        });
+        order.unshift(supplierId);
+      }
+      return;
+    }
+
+    const supplierId = action.payload?.supplier_id || action.payload?.id || getEndpointId(action.endpoint || '', '/suppliers/');
+    if (!supplierId) return;
+
+    if (action.type === 'update' || action.method === 'PUT') {
+      const current = items.get(supplierId);
+      if (!current) return;
+      items.set(supplierId, {
+        ...current,
+        ...(action.payload?.data ?? action.payload ?? {}),
+        supplier_id: current.supplier_id,
+        offline_pending: true,
+        offline_request_id: action.id,
+        updated_at: new Date(action.timestamp).toISOString(),
+      });
+      return;
+    }
+
+    if (action.type === 'delete' || action.method === 'DELETE') {
+      items.delete(supplierId);
+      const index = order.indexOf(supplierId);
+      if (index >= 0) order.splice(index, 1);
+    }
+  });
+
+  return {
+    suppliers: order.map((supplierId) => items.get(supplierId)).filter(Boolean),
+    summary: {
+      pendingSuppliers,
+      pendingTotal: pendingSuppliers,
+    },
+  };
+}
+
 export async function getPendingDebtEntries(customerId: string): Promise<DebtTransaction[]> {
   const queue = (await syncService.getQueue())
     .filter((action) => action.endpoint === `/customers/${customerId}/payments` && action.method === 'POST')

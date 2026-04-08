@@ -18,6 +18,10 @@ export interface FailedSyncAction extends SyncAction {
     reason: string;
 }
 
+type QueueActionInput = Omit<SyncAction, 'id' | 'timestamp' | 'retries'> & Partial<Pick<SyncAction, 'id' | 'timestamp' | 'retries'>>;
+
+let activeProcessQueuePromise: Promise<{ processed: number; failed: number; dead: number }> | null = null;
+
 const MAX_RETRIES = 5; // Increased from 3 — more persistent
 const DEAD_LETTER_KEY = 'sync_dead_letter';
 
@@ -31,13 +35,13 @@ export const syncService = {
         onFailureCallback = cb;
     },
 
-    async addToQueue(action: Omit<SyncAction, 'id' | 'timestamp' | 'retries'>) {
+    async addToQueue(action: QueueActionInput) {
         const queue = (await cache.get<SyncAction[]>(KEYS.SYNC_QUEUE)) || [];
         const newAction: SyncAction = {
             ...action,
-            id: Math.random().toString(36).substr(2, 9),
-            timestamp: Date.now(),
-            retries: 0,
+            id: action.id || Math.random().toString(36).substr(2, 9),
+            timestamp: action.timestamp ?? Date.now(),
+            retries: action.retries ?? 0,
         };
         queue.push(newAction);
         await cache.set(KEYS.SYNC_QUEUE, queue);
@@ -103,6 +107,19 @@ export const syncService = {
     },
 
     async processQueue(): Promise<{ processed: number; failed: number; dead: number }> {
+        if (activeProcessQueuePromise) {
+            return activeProcessQueuePromise;
+        }
+
+        activeProcessQueuePromise = this.processQueueInternal();
+        try {
+            return await activeProcessQueuePromise;
+        } finally {
+            activeProcessQueuePromise = null;
+        }
+    },
+
+    async processQueueInternal(): Promise<{ processed: number; failed: number; dead: number }> {
         const queue = await this.getQueue();
         if (queue.length === 0) return { processed: 0, failed: 0, dead: 0 };
 
@@ -162,53 +179,67 @@ export const syncService = {
     async processAction(action: SyncAction) {
         // Lazy import to break circular dependency (api.ts imports sync.ts)
         const { rawRequest } = require('./api');
+        const requestOptions = {
+            headers: {
+                'X-Idempotency-Key': `offline-sync:${action.entity}:${action.id}`,
+            },
+        };
+        const payloadId =
+            action.payload?.product_id ||
+            action.payload?.supplier_id ||
+            action.payload?.customer_id ||
+            action.payload?.expense_id ||
+            action.payload?.rule_id ||
+            action.payload?.id;
+        const payloadBody = action.payload?.data ?? action.payload;
 
         // If action has a direct endpoint/method, use that
         if (action.endpoint && action.method) {
             await rawRequest(action.endpoint, {
+                ...requestOptions,
                 method: action.method,
-                body: action.payload,
+                body: payloadBody,
             });
             return;
         }
 
         switch (action.entity) {
             case 'product':
-                if (action.type === 'create') await rawRequest('/products', { method: 'POST', body: action.payload });
-                if (action.type === 'update') await rawRequest(`/products/${action.payload.product_id}`, { method: 'PUT', body: action.payload });
-                if (action.type === 'delete') await rawRequest(`/products/${action.payload.product_id}`, { method: 'DELETE' });
+                if (action.type === 'create') await rawRequest('/products', { ...requestOptions, method: 'POST', body: payloadBody });
+                if (action.type === 'update' && payloadId) await rawRequest(`/products/${payloadId}`, { ...requestOptions, method: 'PUT', body: payloadBody });
+                if (action.type === 'delete' && payloadId) await rawRequest(`/products/${payloadId}`, { ...requestOptions, method: 'DELETE' });
                 break;
             case 'sale':
             case 'order':
-                if (action.type === 'create') await rawRequest('/sales', { method: 'POST', body: action.payload });
+                if (action.type === 'create') await rawRequest('/sales', { ...requestOptions, method: 'POST', body: payloadBody });
                 break;
             case 'settings':
-                if (action.type === 'update') await rawRequest('/settings', { method: 'PUT', body: action.payload });
+                if (action.type === 'update') await rawRequest('/settings', { ...requestOptions, method: 'PUT', body: payloadBody });
                 break;
             case 'supplier':
-                if (action.type === 'create') await rawRequest('/suppliers', { method: 'POST', body: action.payload });
-                if (action.type === 'update') await rawRequest(`/suppliers/${action.payload.supplier_id}`, { method: 'PUT', body: action.payload });
-                if (action.type === 'delete') await rawRequest(`/suppliers/${action.payload.supplier_id}`, { method: 'DELETE' });
+                if (action.type === 'create') await rawRequest('/suppliers', { ...requestOptions, method: 'POST', body: payloadBody });
+                if (action.type === 'update' && payloadId) await rawRequest(`/suppliers/${payloadId}`, { ...requestOptions, method: 'PUT', body: payloadBody });
+                if (action.type === 'delete' && payloadId) await rawRequest(`/suppliers/${payloadId}`, { ...requestOptions, method: 'DELETE' });
                 break;
             case 'stock':
-                if (action.type === 'create') await rawRequest('/stock/movement', { method: 'POST', body: action.payload });
+                if (action.type === 'create') await rawRequest('/stock/movement', { ...requestOptions, method: 'POST', body: payloadBody });
                 break;
             case 'customer':
-                if (action.type === 'create') await rawRequest('/customers', { method: 'POST', body: action.payload });
-                if (action.type === 'update') await rawRequest(`/customers/${action.payload.customer_id}`, { method: 'PUT', body: action.payload });
-                if (action.type === 'delete') await rawRequest(`/customers/${action.payload.customer_id}`, { method: 'DELETE' });
+                if (action.type === 'create') await rawRequest('/customers', { ...requestOptions, method: 'POST', body: payloadBody });
+                if (action.type === 'update' && payloadId) await rawRequest(`/customers/${payloadId}`, { ...requestOptions, method: 'PUT', body: payloadBody });
+                if (action.type === 'delete' && payloadId) await rawRequest(`/customers/${payloadId}`, { ...requestOptions, method: 'DELETE' });
                 break;
             case 'expense':
-                if (action.type === 'create') await rawRequest('/expenses', { method: 'POST', body: action.payload });
-                if (action.type === 'delete') await rawRequest(`/expenses/${action.payload.expense_id}`, { method: 'DELETE' });
+                if (action.type === 'create') await rawRequest('/expenses', { ...requestOptions, method: 'POST', body: payloadBody });
+                if (action.type === 'delete' && payloadId) await rawRequest(`/expenses/${payloadId}`, { ...requestOptions, method: 'DELETE' });
                 break;
             case 'alert_rule':
-                if (action.type === 'create') await rawRequest('/alert-rules', { method: 'POST', body: action.payload });
-                if (action.type === 'update') await rawRequest(`/alert-rules/${action.payload.rule_id}`, { method: 'PUT', body: action.payload });
-                if (action.type === 'delete') await rawRequest(`/alert-rules/${action.payload.rule_id}`, { method: 'DELETE' });
+                if (action.type === 'create') await rawRequest('/alert-rules', { ...requestOptions, method: 'POST', body: payloadBody });
+                if (action.type === 'update' && payloadId) await rawRequest(`/alert-rules/${payloadId}`, { ...requestOptions, method: 'PUT', body: payloadBody });
+                if (action.type === 'delete' && payloadId) await rawRequest(`/alert-rules/${payloadId}`, { ...requestOptions, method: 'DELETE' });
                 break;
             case 'notification':
-                if (action.type === 'create') await rawRequest('/notifications/register-token', { method: 'POST', body: action.payload });
+                if (action.type === 'create') await rawRequest('/notifications/register-token', { ...requestOptions, method: 'POST', body: payloadBody });
                 break;
         }
     }

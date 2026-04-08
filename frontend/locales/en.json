@@ -1185,7 +1185,7 @@
         },
         "f12": {
           "t": "Multi-select & restore",
-          "d": "Deleted products go to the trash. They no longer appear in the product list or checkout, and can be restored when needed."
+          "d": "The bottom action bar lets you select all, quickly edit selling prices, share the catalog, or move products to the trash. Deleted products no longer appear in the list or checkout and can be restored when needed."
         }
       },
       "pos": {
@@ -2194,6 +2194,19 @@
     "batch_number_placeholder_hint": "Ex: LOT2024-001",
     "bulk_delete_msg": "Do you want to delete the {{count}} selected products?",
     "bulk_delete_title": "Bulk delete",
+    "bulk_price_current_value": "Current price: {{value}}",
+    "bulk_price_edit_cta": "Edit selling price",
+    "bulk_price_error": "Unable to update selling prices right now.",
+    "bulk_price_invalid_value": "The new selling price for {{name}} is invalid.",
+    "bulk_price_modal_subtitle": "{{count}} selected product(s). Edit prices one by one, then save.",
+    "bulk_price_modal_title": "Edit selling price",
+    "bulk_price_no_changes": "No price changes to save.",
+    "bulk_price_offline_queued": "{{count}} price update(s) will sync as soon as the network is back.",
+    "bulk_price_partial_error": "Some rows could not be updated.",
+    "bulk_price_partial_success": "{{updated}} product(s) updated. {{failed}} row(s) failed: {{error}}",
+    "bulk_price_save": "Save prices",
+    "bulk_price_success": "{{count}} product(s) updated successfully.",
+    "bulk_share_catalog": "Share catalog",
     "camera": "Camera",
     "catalog": "Catalog",
     "catalog_title": "Products Catalog",
@@ -3016,6 +3029,7 @@
     "reset_filters": "Reset filters",
     "reviews_title": "Reviews ({{count}})",
     "save_error": "Could not save supplier",
+    "offline_create_queued": "The supplier will sync automatically as soon as the connection is restored.",
     "search_placeholder": "Name, contact, product, phone...",
     "see_less": "See less",
     "see_more_others": "See {{count}} others",

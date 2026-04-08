@@ -24,6 +24,7 @@ import {
     FileSpreadsheet,
     FileText,
     X,
+    Share2,
     TrendingUp,
     TrendingDown,
     Undo2,
@@ -136,6 +137,12 @@ export default function Inventory() {
     const hasEnterpriseLocations = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || (currentUser?.effective_plan || currentUser?.plan) === 'enterprise';
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [showCreateMenu, setShowCreateMenu] = useState(false);
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+    const [isBulkPriceEditorOpen, setIsBulkPriceEditorOpen] = useState(false);
+    const [bulkPriceDrafts, setBulkPriceDrafts] = useState<Record<string, { purchase_price: string; selling_price: string }>>({});
+    const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
+    const [bulkActionLoading, setBulkActionLoading] = useState(false);
     const [catalogImportLoading, setCatalogImportLoading] = useState(false);
     const [stockHealth, setStockHealth] = useState<AnalyticsStockHealth | null>(null);
     const [stockHealthLoading, setStockHealthLoading] = useState(true);
@@ -1091,6 +1098,198 @@ export default function Inventory() {
         });
     }, [safeProducts, supplierCoverageFilter, supplierLinksByProduct]);
 
+    const selectedProducts = useMemo(
+        () => filteredProducts.filter((product) => selectedProductIds.has(product.product_id)),
+        [filteredProducts, selectedProductIds],
+    );
+
+    const allVisibleSelected = filteredProducts.length > 0
+        && filteredProducts.every((product) => selectedProductIds.has(product.product_id));
+
+    const editedBulkPriceCount = useMemo(
+        () => Object.values(bulkPriceDrafts).filter((draft) => draft.purchase_price !== '' || draft.selling_price !== '').length,
+        [bulkPriceDrafts],
+    );
+
+    const toggleSelectProduct = (productId: string) => {
+        setSelectedProductIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(productId)) next.delete(productId);
+            else next.add(productId);
+            return next;
+        });
+    };
+
+    const toggleSelectVisibleProducts = () => {
+        setSelectedProductIds((prev) => {
+            const next = new Set(prev);
+            if (allVisibleSelected) {
+                filteredProducts.forEach((product) => next.delete(product.product_id));
+            } else {
+                filteredProducts.forEach((product) => next.add(product.product_id));
+            }
+            return next;
+        });
+    };
+
+    const openBulkPriceEditor = () => {
+        const initialDrafts: Record<string, { purchase_price: string; selling_price: string }> = {};
+        filteredProducts.forEach((product) => {
+            initialDrafts[product.product_id] = {
+                purchase_price: product.purchase_price != null ? String(product.purchase_price) : '',
+                selling_price: product.selling_price != null ? String(product.selling_price) : '',
+            };
+        });
+        setBulkPriceDrafts(initialDrafts);
+        setIsBulkPriceEditorOpen(true);
+    };
+
+    const closeBulkPriceEditor = () => {
+        setIsBulkPriceEditorOpen(false);
+        setBulkPriceDrafts({});
+        setBulkPriceSaving(false);
+    };
+
+    const updateBulkPriceDraft = (
+        productId: string,
+        field: 'purchase_price' | 'selling_price',
+        value: string,
+    ) => {
+        setBulkPriceDrafts((prev) => ({
+            ...prev,
+            [productId]: {
+                purchase_price: prev[productId]?.purchase_price ?? '',
+                selling_price: prev[productId]?.selling_price ?? '',
+                [field]: value,
+            },
+        }));
+    };
+
+    const handleBulkPriceSave = async () => {
+        const updates: Array<{ product_id: string; purchase_price?: number; selling_price?: number }> = [];
+
+        for (const product of filteredProducts) {
+            const draft = bulkPriceDrafts[product.product_id];
+            if (!draft) continue;
+
+            const nextUpdate: { product_id: string; purchase_price?: number; selling_price?: number } = {
+                product_id: product.product_id,
+            };
+
+            const purchaseValue = draft.purchase_price.replace(',', '.').trim();
+            if (purchaseValue !== '') {
+                const parsedPurchase = Number(purchaseValue);
+                if (!Number.isFinite(parsedPurchase) || parsedPurchase < 0) {
+                    window.alert(t('inventory.quick_price_editor_invalid', { name: product.name }));
+                    return;
+                }
+                if (parsedPurchase !== Number(product.purchase_price ?? 0)) {
+                    nextUpdate.purchase_price = parsedPurchase;
+                }
+            }
+
+            const sellingValue = draft.selling_price.replace(',', '.').trim();
+            if (sellingValue !== '') {
+                const parsedSelling = Number(sellingValue);
+                if (!Number.isFinite(parsedSelling) || parsedSelling < 0) {
+                    window.alert(t('inventory.quick_price_editor_invalid', { name: product.name }));
+                    return;
+                }
+                if (parsedSelling !== Number(product.selling_price ?? 0)) {
+                    nextUpdate.selling_price = parsedSelling;
+                }
+            }
+
+            if (nextUpdate.purchase_price !== undefined || nextUpdate.selling_price !== undefined) {
+                updates.push(nextUpdate);
+            }
+        }
+
+        if (updates.length === 0) {
+            window.alert(t('inventory.quick_price_editor_no_changes'));
+            return;
+        }
+
+        setBulkPriceSaving(true);
+        try {
+            const result = await productsApi.bulkUpdatePrices(updates);
+            if (result.failed > 0) {
+                const firstError = result.errors[0]?.message || t('inventory.quick_price_editor_error');
+                window.alert(t('inventory.quick_price_editor_partial', { updated: result.updated, failed: result.failed, error: firstError }));
+            } else {
+                window.alert(t('inventory.quick_price_editor_success', { count: result.updated }));
+            }
+            closeBulkPriceEditor();
+            await fetchProducts();
+            await loadStockHealth();
+        } catch (err: any) {
+            window.alert(err.message || t('inventory.quick_price_editor_error'));
+        } finally {
+            setBulkPriceSaving(false);
+        }
+    };
+
+    const handleShareSelectedProducts = async () => {
+        const targetProducts = selectedProducts;
+        if (targetProducts.length === 0) {
+            window.alert(t('inventory.selection_required'));
+            return;
+        }
+
+        const lines = targetProducts.map((product) => {
+            const sku = product.sku ? ` (${product.sku})` : '';
+            return `- ${product.name}${sku} · ${product.selling_price} F`;
+        });
+        const shareText = [
+            t('inventory.bulk_share_catalog'),
+            '',
+            ...lines,
+        ].join('\n');
+
+        try {
+            if (navigator.share) {
+                await navigator.share({ text: shareText });
+            } else if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(shareText);
+            } else {
+                throw new Error(t('inventory.share_selection_error'));
+            }
+            window.alert(t('inventory.share_selection_success', { count: targetProducts.length }));
+        } catch (err: any) {
+            if (err?.name === 'AbortError') return;
+            window.alert(err?.message || t('inventory.share_selection_error'));
+        }
+    };
+
+    const handleDeleteSelectedProducts = async () => {
+        if (selectedProducts.length === 0 || bulkActionLoading) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            t('inventory.bulk_delete_confirm', { count: selectedProducts.length }),
+        );
+        if (!confirmed) {
+            return;
+        }
+
+        setBulkActionLoading(true);
+        try {
+            for (const product of selectedProducts) {
+                await productsApi.delete(product.product_id);
+            }
+            setSelectedProductIds(new Set());
+            setSelectionMode(false);
+            window.alert(t('inventory.bulk_delete_success', { count: selectedProducts.length }));
+            await fetchProducts();
+            await loadStockHealth();
+        } catch (err: any) {
+            window.alert(err.message || t('inventory.bulk_delete_error'));
+        } finally {
+            setBulkActionLoading(false);
+        }
+    };
+
     if (loading && safeProducts.length === 0 && !error) {
         return (
             <div className="flex-1 flex items-center justify-center">
@@ -1126,12 +1325,14 @@ export default function Inventory() {
         },
         {
             title: t('guide.inventory.header_title', "Barre d'en-tête"),
-            content: t('guide.inventory.header_content', "Les boutons du haut servent à créer des produits, importer en lot, lancer un scan, exporter le stock et ouvrir les actions utiles sans quitter l'écran."),
+            content: t('guide.inventory.header_content', "Les boutons du haut servent à créer des produits, importer en lot, lancer un scan, exporter le stock, ouvrir l'édition rapide des prix et activer la sélection multiple sans quitter l'écran."),
             details: [
                 { label: t('guide.inventory.btn_add', "Nouveau produit"), description: t('guide.inventory.btn_add_desc', "Ouvre la fiche complète de création : nom, SKU, quantité initiale, unité, prix, seuils, catégorie, emplacement et description."), type: 'button' },
                 { label: t('guide.inventory.btn_import_csv', "Import CSV"), description: t('guide.inventory.btn_import_csv_desc', "Utilisez cet import pour créer plusieurs produits d'un coup. Préparez votre fichier avec les bonnes colonnes, vérifiez l'aperçu puis validez la création."), type: 'button' },
                 { label: t('guide.inventory.btn_import_text', "Import texte"), description: t('guide.inventory.btn_import_text_desc', "Collez une liste brute quand vous n'avez pas encore un fichier propre. Relisez toujours le résultat avant d'enregistrer pour éviter une création incorrecte."), type: 'button' },
                 { label: t('guide.inventory.btn_scan', "Scan en lot"), description: t('guide.inventory.btn_scan_desc', "Le scan en série accélère les entrées de stock, les réceptions et certains contrôles. Il est utile quand vous manipulez beaucoup d'articles en peu de temps."), type: 'button' },
+                { label: t('guide.inventory.btn_quick_prices', "Édition rapide des prix"), description: t('guide.inventory.btn_quick_prices_desc', "Ouvre une grille d'édition pour corriger en lot les prix d'achat et de vente des produits déjà filtrés."), type: 'button' },
+                { label: t('guide.inventory.btn_selection', "Sélection"), description: t('guide.inventory.btn_selection_desc', "Active la sélection multiple pour partager le catalogue visible ou envoyer plusieurs produits dans la corbeille commune."), type: 'button' },
                 { label: t('guide.inventory.btn_export_xls', "Exporter Excel"), description: t('guide.inventory.btn_export_xls_desc', "Exporte le stock affiché avec ses colonnes utiles pour le contrôle, la comptabilité, le partage interne ou le travail hors application."), type: 'button' },
                 { label: t('guide.inventory.btn_export_pdf', "Exporter PDF"), description: t('guide.inventory.btn_export_pdf_desc', "Génère un document plus lisible pour l'impression, la validation terrain ou le partage rapide."), type: 'button' },
             ],
@@ -1158,7 +1359,7 @@ export default function Inventory() {
         },
         {
             title: t('guide.inventory.actions_title', "Actions sur un produit"),
-            content: t('guide.inventory.actions_content', "Chaque produit propose des actions directes pour corriger le stock, gérer le rangement et préparer l'approvisionnement sans quitter l'écran."),
+            content: t('guide.inventory.actions_content', "Chaque produit propose des actions directes pour corriger le stock, gérer le rangement et préparer l'approvisionnement. Les actions de lot passent par la sélection multiple et l'édition rapide des prix."),
             details: [
                 { label: t('guide.inventory.action_edit', "Modifier"), description: t('guide.inventory.action_edit_desc', "Corrigez ici les informations de base : prix, seuils, catégorie, description, unité, emplacement et liaisons utiles."), type: 'button' },
                 { label: t('guide.inventory.action_movement', "Mouvement de stock"), description: t('guide.inventory.action_movement_desc', "Utilisez cette action pour enregistrer une entrée, une sortie ou une correction avec une raison claire. Elle sert aux livraisons, pertes, casses et ajustements."), type: 'button' },
@@ -1232,6 +1433,32 @@ export default function Inventory() {
                     )}
                 </div>
                 <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={openBulkPriceEditor}
+                        disabled={filteredProducts.length === 0}
+                        className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Edit size={16} />
+                        {t('inventory.quick_price_editor')}
+                    </button>
+                    <button
+                        onClick={() => {
+                            setSelectionMode((prev) => {
+                                if (prev) {
+                                    setSelectedProductIds(new Set());
+                                }
+                                return !prev;
+                            });
+                        }}
+                        className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 rounded-2xl border ${
+                            selectionMode
+                                ? 'border-primary bg-primary/15 text-primary'
+                                : 'glass-card text-white hover:bg-white/10'
+                        }`}
+                    >
+                        <Layers size={16} />
+                        {selectionMode ? t('inventory.selection_mode_close') : t('inventory.selection_mode')}
+                    </button>
                     {/* Export Dropdown */}
                     <div className="relative">
                         <button
@@ -1343,6 +1570,43 @@ export default function Inventory() {
                     </button>
                 </div>
             </header>
+
+            {selectionMode && (
+                <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/10 p-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-white">
+                        <label className="inline-flex items-center gap-2 font-semibold">
+                            <input
+                                type="checkbox"
+                                checked={allVisibleSelected}
+                                onChange={toggleSelectVisibleProducts}
+                                className="h-4 w-4 rounded border-white/20 bg-transparent"
+                            />
+                            {t('inventory.selection_select_page', { count: filteredProducts.length })}
+                        </label>
+                        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-primary">
+                            {t('inventory.selection_count', { count: selectedProductIds.size })}
+                        </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => void handleShareSelectedProducts()}
+                            disabled={selectedProductIds.size === 0}
+                            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Share2 size={16} />
+                            {t('inventory.bulk_share_catalog')}
+                        </button>
+                        <button
+                            onClick={() => void handleDeleteSelectedProducts()}
+                            disabled={selectedProductIds.size === 0 || bulkActionLoading}
+                            className="inline-flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Trash2 size={16} />
+                            {t('inventory.bulk_delete_selected')}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <StockHealthPanel data={stockHealth} loading={stockHealthLoading} />
 
@@ -1621,6 +1885,17 @@ export default function Inventory() {
                 <table className="w-full min-w-[600px] text-left border-collapse">
                     <thead>
                         <tr className="border-b border-white/10 text-slate-400 text-sm bg-white/5 uppercase tracking-wider">
+                            {selectionMode && (
+                                <th className="py-4 px-4 font-semibold text-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={allVisibleSelected}
+                                        onChange={toggleSelectVisibleProducts}
+                                        className="h-4 w-4 rounded border-white/20 bg-transparent"
+                                        aria-label={t('inventory.selection_select_page', { count: filteredProducts.length })}
+                                    />
+                                </th>
+                            )}
                             <th className="py-4 px-6 font-semibold">Produit</th>
                             <th className="py-4 px-6 font-semibold">Catégorie</th>
                             <th className="py-4 px-6 font-semibold">Fournisseurs</th>
@@ -1640,6 +1915,17 @@ export default function Inventory() {
 
                             return (
                                 <tr key={p.product_id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                                    {selectionMode && (
+                                        <td className="py-4 px-4 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedProductIds.has(p.product_id)}
+                                                onChange={() => toggleSelectProduct(p.product_id)}
+                                                className="h-4 w-4 rounded border-white/20 bg-transparent"
+                                                aria-label={p.name}
+                                            />
+                                        </td>
+                                    )}
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-4">
                                             {p.image ? (
@@ -1842,6 +2128,99 @@ export default function Inventory() {
                         : t('products.all_products_loaded', { defaultValue: 'Tous les produits affichés ({{total}})', total: productsTotal })}
                 </p>
             )}
+
+            <Modal
+                isOpen={isBulkPriceEditorOpen}
+                onClose={closeBulkPriceEditor}
+                title={t('inventory.quick_price_editor_title')}
+                maxWidth="full"
+            >
+                <div className="space-y-4">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <p className="text-sm text-slate-300">
+                                {t('inventory.quick_price_editor_subtitle', { count: filteredProducts.length })}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                {t('inventory.quick_price_editor_changes', { count: editedBulkPriceCount })}
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={closeBulkPriceEditor}
+                                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/10"
+                            >
+                                {t('inventory.quick_price_editor_cancel')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void handleBulkPriceSave()}
+                                disabled={bulkPriceSaving}
+                                className="rounded-xl border border-primary/30 bg-primary/15 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {bulkPriceSaving ? t('common.saving', { defaultValue: 'Enregistrement...' }) : t('inventory.quick_price_editor_save')}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-2xl border border-white/10">
+                        <table className="w-full min-w-[760px] border-collapse">
+                            <thead className="bg-white/5 text-left text-xs uppercase tracking-[0.18em] text-slate-400">
+                                <tr>
+                                    <th className="px-4 py-3">{t('inventory.quick_price_editor_product')}</th>
+                                    <th className="px-4 py-3">{t('inventory.quick_price_editor_sku')}</th>
+                                    <th className="px-4 py-3 text-right">{t('inventory.quick_price_editor_purchase')}</th>
+                                    <th className="px-4 py-3 text-right">{t('inventory.quick_price_editor_selling')}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 text-sm text-white">
+                                {filteredProducts.map((product) => {
+                                    const draft = bulkPriceDrafts[product.product_id] || {
+                                        purchase_price: product.purchase_price != null ? String(product.purchase_price) : '',
+                                        selling_price: product.selling_price != null ? String(product.selling_price) : '',
+                                    };
+                                    const isChanged =
+                                        draft.purchase_price !== String(product.purchase_price ?? '')
+                                        || draft.selling_price !== String(product.selling_price ?? '');
+
+                                    return (
+                                        <tr key={product.product_id} className={isChanged ? 'bg-primary/5' : ''}>
+                                            <td className="px-4 py-3">
+                                                <div className="flex flex-col">
+                                                    <span className="font-semibold text-white">{product.name}</span>
+                                                    <span className="text-xs text-slate-500">{product.quantity} en stock</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-xs font-mono uppercase text-slate-400">
+                                                {product.sku || 'SANS-REF'}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    value={draft.purchase_price}
+                                                    onChange={(event) => updateBulkPriceDraft(product.product_id, 'purchase_price', event.target.value)}
+                                                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-right text-sm text-white outline-none transition focus:border-primary"
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    value={draft.selling_price}
+                                                    onChange={(event) => updateBulkPriceDraft(product.product_id, 'selling_price', event.target.value)}
+                                                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-right text-sm text-white outline-none transition focus:border-primary"
+                                                />
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Stock Movement Modal */}
             <Modal

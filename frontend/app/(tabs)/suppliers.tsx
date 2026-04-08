@@ -50,6 +50,7 @@ import ChatModal from '../../components/ChatModal';
 import PremiumGate from '../../components/PremiumGate';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../utils/format';
+import { mergeSuppliersOfflineState } from '../../services/offlineState';
 
 
 export default function SuppliersScreen() {
@@ -180,15 +181,17 @@ export default function SuppliersScreen() {
       ]);
       if (suppRes.status === 'fulfilled') {
         const suppliers = suppRes.value.items ?? suppRes.value as any;
-        setSupplierList(suppliers);
+        const mergedSuppliers = (await mergeSuppliersOfflineState(suppliers)).suppliers as Supplier[];
+        setSupplierList(mergedSuppliers);
         // Vague 3: load AI ratings in background
-        if (Array.isArray(suppliers) && suppliers.length > 0) {
-          Promise.allSettled(suppliers.map((s: Supplier) => aiApi.supplierRating(s.supplier_id)))
+        const syncVisibleSuppliers = mergedSuppliers.filter((supplier) => !supplier.supplier_id.startsWith('offline-supplier-'));
+        if (syncVisibleSuppliers.length > 0) {
+          Promise.allSettled(syncVisibleSuppliers.map((s: Supplier) => aiApi.supplierRating(s.supplier_id)))
             .then(results => {
               const ratingsMap: Record<string, any> = {};
               results.forEach((r, i) => {
                 if (r.status === 'fulfilled' && r.value?.overall_score != null) {
-                  ratingsMap[suppliers[i].supplier_id] = r.value;
+                  ratingsMap[syncVisibleSuppliers[i].supplier_id] = r.value;
                 }
               });
               setSupplierAiRatings(ratingsMap);
@@ -196,7 +199,7 @@ export default function SuppliersScreen() {
             .catch(() => {});
         }
         const statsEntries = await Promise.all(
-          (Array.isArray(suppliers) ? suppliers : []).map(async (supplier: Supplier) => {
+          syncVisibleSuppliers.map(async (supplier: Supplier) => {
             try {
               const stats = await suppliersApi.getStats(supplier.supplier_id);
               return [supplier.supplier_id, stats] as const;
@@ -238,7 +241,7 @@ export default function SuppliersScreen() {
       setDrawerContent(t('tabs.suppliers'), [
         { label: t('suppliers.add_supplier', 'Ajouter un fournisseur'), icon: 'add-circle-outline', onPress: () => { setEditingSupplier(null); setShowFormModal(true); } },
         { label: t('suppliers.create_order', 'Passer une commande'), icon: 'cart-outline', onPress: () => setShowOrderModal(true) },
-        { label: t('suppliers.invite', 'Inviter un fournisseur'), icon: 'mail-outline', onPress: () => setShowInviteModal(true), plan: 'pro' },
+        { label: t('suppliers.invite', 'Inviter un fournisseur'), icon: 'mail-outline', onPress: () => setShowInviteModal(true) },
         { label: '', icon: '', onPress: () => {}, separator: true },
         { label: t('tabs.products'), icon: 'cube-outline', onPress: () => router.push('/(tabs)/products') },
       ]);
@@ -550,14 +553,18 @@ export default function SuppliersScreen() {
       notes: formNotes.trim() || undefined,
     };
     try {
+      let response: any;
       if (editingSupplier) {
-        await suppliersApi.update(editingSupplier.supplier_id, data);
+        response = await suppliersApi.update(editingSupplier.supplier_id, data);
       } else {
-        await suppliersApi.create(data);
+        response = await suppliersApi.create(data);
       }
       setShowFormModal(false);
       resetForm();
-      loadData();
+      await loadData();
+      if (response?.offline_pending) {
+        Alert.alert(t('common.offline_mode'), t('suppliers.offline_create_queued'));
+      }
     } catch {
       Alert.alert(t('common.error'), t('suppliers.save_error'));
     } finally {

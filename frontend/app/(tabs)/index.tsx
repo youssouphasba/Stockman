@@ -21,7 +21,7 @@ import Skeleton from '../../components/Skeleton';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import * as Print from 'expo-print';
@@ -116,6 +116,7 @@ export default function DashboardScreen() {
   const MOBILE_DASHBOARD_FOCUS_TTL_MS = 60_000;
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
   const { t } = useTranslation();
+  const { openModal } = useLocalSearchParams<{ openModal?: string }>();
   const { user, hasPermission, isRestaurant } = useAuth();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -193,7 +194,7 @@ export default function DashboardScreen() {
     useCallback(() => {
       setDrawerContent(t('tabs.home'), [
         // -- Sections du dashboard (scroll) --
-        { label: t('dashboard.daily_report', 'Rapport du jour'), icon: 'today-outline', onPress: () => scrollToSection('dailyReport'), plan: 'enterprise' },
+        { label: t('dashboard.daily_report', 'Rapport du jour'), icon: 'today-outline', onPress: () => scrollToSection('dailyReport') },
         { label: t('dashboard.profitability_analysis', 'Analyse de rentabilité'), icon: 'analytics-outline', onPress: () => scrollToSection('profitability') },
         { label: t('dashboard.stock_status', 'État du stock'), icon: 'cube-outline', onPress: () => scrollToSection('stockStatus') },
         { label: t('dashboard.recent_alerts', 'Alertes récentes'), icon: 'alert-circle-outline', onPress: () => scrollToSection('recentAlerts') },
@@ -623,6 +624,18 @@ export default function DashboardScreen() {
       setStatsLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (openModal !== 'statistics' && openModal !== 'history') return;
+
+    if (openModal === 'statistics') {
+      void openStatsModal();
+    } else {
+      void openHistoryModal();
+    }
+
+    router.replace('/(tabs)' as any);
+  }, [openModal, router]);
 
   function openInventoryCountModal(task: InventoryTask) {
     setInventoryTaskToCount(task);

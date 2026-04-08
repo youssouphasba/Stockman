@@ -1827,6 +1827,27 @@ class PriceHistory(BaseModel):
     recorded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class BulkProductPriceUpdateItem(BaseModel):
+    product_id: str
+    purchase_price: Optional[float] = None
+    selling_price: Optional[float] = None
+
+
+class BulkProductPriceUpdateRequest(BaseModel):
+    updates: List[BulkProductPriceUpdateItem]
+
+
+class BulkProductPriceUpdateError(BaseModel):
+    product_id: str
+    message: str
+
+
+class BulkProductPriceUpdateResponse(BaseModel):
+    updated: int
+    failed: int
+    errors: List[BulkProductPriceUpdateError] = []
+
+
 # ===================== PRODUCTION MODULE MODELS =====================
 
 class RecipeIngredient(BaseModel):
@@ -14267,6 +14288,95 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
     await check_and_create_alerts(product, owner_id, store_id=user.active_store_id)
 
     return product
+
+
+@api_router.post("/products/bulk-update-prices", response_model=BulkProductPriceUpdateResponse)
+async def bulk_update_product_prices(
+    data: BulkProductPriceUpdateRequest,
+    user: User = Depends(require_permission("stock", "write")),
+):
+    owner_id = get_owner_id(user)
+    if not data.updates:
+        raise HTTPException(status_code=400, detail="Aucune mise a jour a appliquer")
+
+    errors: List[BulkProductPriceUpdateError] = []
+    updated = 0
+
+    for item in data.updates:
+        if item.purchase_price is None and item.selling_price is None:
+            errors.append(BulkProductPriceUpdateError(product_id=item.product_id, message="Aucun prix fourni"))
+            continue
+        if item.purchase_price is not None and item.purchase_price < 0:
+            errors.append(BulkProductPriceUpdateError(product_id=item.product_id, message="Prix d'achat invalide"))
+            continue
+        if item.selling_price is not None and item.selling_price < 0:
+            errors.append(BulkProductPriceUpdateError(product_id=item.product_id, message="Prix de vente invalide"))
+            continue
+
+        current_product = await db.products.find_one(
+            {"product_id": item.product_id, "user_id": owner_id},
+            {"_id": 0},
+        )
+        if not current_product:
+            errors.append(BulkProductPriceUpdateError(product_id=item.product_id, message="Produit non trouve"))
+            continue
+
+        try:
+            ensure_scoped_document_access(user, current_product, detail="Acces refuse pour ce produit")
+        except HTTPException as exc:
+            errors.append(BulkProductPriceUpdateError(product_id=item.product_id, message=str(exc.detail)))
+            continue
+
+        update_payload: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc)}
+        if item.purchase_price is not None:
+            update_payload["purchase_price"] = item.purchase_price
+        if item.selling_price is not None:
+            update_payload["selling_price"] = item.selling_price
+
+        result = await db.products.update_one(
+            {"product_id": item.product_id, "user_id": owner_id},
+            {"$set": update_payload},
+        )
+        if result.matched_count == 0:
+            errors.append(BulkProductPriceUpdateError(product_id=item.product_id, message="Produit non trouve"))
+            continue
+
+        old_purchase = current_product.get("purchase_price")
+        old_selling = current_product.get("selling_price")
+        new_purchase = update_payload.get("purchase_price", old_purchase)
+        new_selling = update_payload.get("selling_price", old_selling)
+
+        if new_purchase != old_purchase or new_selling != old_selling:
+            await db.price_history.insert_one(
+                PriceHistory(
+                    product_id=item.product_id,
+                    user_id=owner_id,
+                    purchase_price=new_purchase,
+                    selling_price=new_selling,
+                ).model_dump()
+            )
+
+        updated += 1
+        _invalidate_dashboard_ai_caches(owner_id, current_product.get("store_id") or user.active_store_id)
+
+    if updated > 0:
+        await log_activity(
+            user,
+            "product_prices_bulk_updated",
+            "stock",
+            f"{updated} prix produit(s) mis a jour en lot",
+            {
+                "updated": updated,
+                "failed": len(errors),
+                "product_ids": [item.product_id for item in data.updates],
+            },
+        )
+
+    return BulkProductPriceUpdateResponse(
+        updated=updated,
+        failed=len(errors),
+        errors=errors,
+    )
 
 @api_router.post("/products/{product_id}/transfer-location", response_model=Product)
 async def transfer_product_location(

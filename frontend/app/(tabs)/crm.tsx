@@ -265,8 +265,8 @@ export default function CRMScreen() {
         useCallback(() => {
             setDrawerContent(t('tabs.crm'), [
                 { label: t('crm.add_customer', 'Ajouter un client'), icon: 'person-add-outline', onPress: () => setShowCustomerModal(true) },
-                { label: t('crm.create_promo', 'Créer une promo'), icon: 'gift-outline', onPress: () => setShowPromoModal(true), plan: 'pro' },
-                { label: t('crm.launch_campaign', 'Lancer une campagne'), icon: 'megaphone-outline', onPress: () => setShowCampaignModal(true), plan: 'enterprise' },
+                { label: t('crm.create_promo', 'Créer une promo'), icon: 'gift-outline', onPress: () => setShowPromoModal(true) },
+                { label: t('crm.launch_campaign', 'Lancer une campagne'), icon: 'megaphone-outline', onPress: () => setShowCampaignModal(true) },
                 { label: '', icon: '', onPress: () => {}, separator: true },
                 { label: t('common.export_csv', 'Exporter CSV'), icon: 'download-outline', onPress: () => handleExportCSV() },
                 { label: t('common.export_pdf', 'Exporter PDF'), icon: 'print-outline', onPress: () => handleExportPdf() },

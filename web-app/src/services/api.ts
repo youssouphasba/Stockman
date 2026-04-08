@@ -1642,6 +1642,11 @@ export const products = {
     get: (id: string) => request<any>(`/products/${id}`),
     create: (data: any) => request<any>('/products', { method: 'POST', body: data }),
     update: (id: string, data: any) => request<any>(`/products/${id}`, { method: 'PUT', body: data }),
+    bulkUpdatePrices: (updates: Array<{ product_id: string; purchase_price?: number; selling_price?: number }>) =>
+        request<{ updated: number; failed: number; errors: Array<{ product_id: string; message: string }> }>('/products/bulk-update-prices', {
+            method: 'POST',
+            body: { updates },
+        }),
     delete: (id: string) => request<any>(`/products/${id}`, { method: 'DELETE' }),
     transferLocation: (id: string, data: { to_location_id?: string | null; note?: string | null }) =>
         request<any>(`/products/${id}/transfer-location`, { method: 'POST', body: data }),

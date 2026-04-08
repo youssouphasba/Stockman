@@ -17,7 +17,6 @@ import {
   Linking,
   LayoutAnimation,
   UIManager,
-  DeviceEventEmitter,
 } from 'react-native';
 import Skeleton from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
@@ -153,11 +152,11 @@ export default function ProductsScreen() {
         { label: t('products.add_product', 'Ajouter un produit'), icon: 'add-circle-outline', onPress: () => { setEditingProduct(null); setShowAddModal(true); } },
         { label: t('products.batch_scan', 'Scanner en lot'), icon: 'barcode-outline', onPress: () => router.push('/inventory/batch-scan' as any) },
         { label: t('products.import_csv', 'Import CSV'), icon: 'cloud-upload-outline', onPress: () => setShowBulkImportModal(true) },
-        { label: t('products.import_text', 'Import texte IA'), icon: 'document-text-outline', onPress: () => setShowTextImportModal(true), plan: 'pro' },
+        { label: t('products.import_text', 'Import texte IA'), icon: 'document-text-outline', onPress: () => setShowTextImportModal(true) },
         { label: t('products.manage_categories', 'Gérer les catégories'), icon: 'pricetags-outline', onPress: () => setShowCategoryModal(true) },
         { label: '', icon: '', onPress: () => {}, separator: true },
-        { label: t('products.movement_history', 'Historique mouvements'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
-        { label: t('dashboard.statistics', 'Statistiques'), icon: 'stats-chart-outline', onPress: () => DeviceEventEmitter.emit('open:statistics') },
+        { label: t('products.movement_history', 'Historique mouvements'), icon: 'time-outline', onPress: () => router.push({ pathname: '/(tabs)', params: { openModal: 'history' } } as any) },
+        { label: t('dashboard.statistics', 'Statistiques'), icon: 'stats-chart-outline', onPress: () => router.push({ pathname: '/(tabs)', params: { openModal: 'statistics' } } as any) },
         { label: t('tabs.locations', 'Emplacements'), icon: 'map-outline', onPress: () => router.push('/(tabs)/locations' as any), plan: 'enterprise' },
         { label: t('common.export_csv', 'Exporter CSV'), icon: 'download-outline', onPress: () => handleExportCSV() },
         { label: t('products.trash', 'Corbeille'), icon: 'trash-outline', onPress: () => setShowTrashModal(true), destructive: true },
@@ -231,6 +230,9 @@ export default function ProductsScreen() {
   }, [trackedImportJob?.job_id, trackedImportJob?.status]);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
+  const [bulkPriceValues, setBulkPriceValues] = useState<Record<string, string>>({});
+  const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [locationList, setLocationList] = useState<Location[]>([]);
@@ -1618,7 +1620,7 @@ export default function ProductsScreen() {
         await syncService.addToQueue({
           entity: 'product',
           type: editingProduct ? 'update' : 'create',
-          payload: editingProduct ? { id: offlineId, data } : data,
+          payload: editingProduct ? { product_id: offlineId, data } : data,
         });
 
         const categoryObj = categoryList.find(c => c.category_id === data.category_id);
@@ -1941,7 +1943,7 @@ export default function ProductsScreen() {
                 await syncService.addToQueue({
                   entity: 'product',
                   type: 'delete',
-                  payload: { id: productId }
+                  payload: { product_id: productId }
                 });
                 setProductList(prev => {
                   const updated = prev.filter(p => p.product_id !== productId);
@@ -2058,6 +2060,114 @@ export default function ProductsScreen() {
       setSelectedProductIds(new Set());
     } else {
       setSelectedProductIds(new Set(filtered.map(p => p.product_id)));
+    }
+  }
+
+  const selectedProducts = useMemo(
+    () => filtered.filter((product) => selectedProductIds.has(product.product_id)),
+    [filtered, selectedProductIds],
+  );
+
+  function openBulkPriceModal() {
+    if (selectedProducts.length === 0) return;
+    const initialValues: Record<string, string> = {};
+    selectedProducts.forEach((product) => {
+      initialValues[product.product_id] = String(product.selling_price ?? '');
+    });
+    setBulkPriceValues(initialValues);
+    setShowBulkPriceModal(true);
+  }
+
+  function closeBulkPriceModal() {
+    setShowBulkPriceModal(false);
+    setBulkPriceValues({});
+    setBulkPriceSaving(false);
+  }
+
+  function updateLocalProductSellingPrices(updates: Array<{ product_id: string; selling_price: number }>) {
+    if (updates.length === 0) return;
+    const updatesMap = new Map(updates.map((entry) => [entry.product_id, entry.selling_price]));
+    const applyUpdates = (items: Product[]) =>
+      items.map((product) => {
+        const nextSellingPrice = updatesMap.get(product.product_id);
+        if (nextSellingPrice === undefined) return product;
+        return {
+          ...product,
+          selling_price: nextSellingPrice,
+          updated_at: new Date().toISOString(),
+        };
+      });
+
+    setProductList((prev) => applyUpdates(prev));
+    setServerSearchResults((prev) => (prev ? applyUpdates(prev) : prev));
+  }
+
+  async function handleBulkSellingPriceUpdate() {
+    if (selectedProducts.length === 0) return;
+
+    const updates: Array<{ product_id: string; selling_price: number }> = [];
+    for (const product of selectedProducts) {
+      const rawValue = bulkPriceValues[product.product_id];
+      if (rawValue == null) continue;
+      const normalizedValue = rawValue.replace(',', '.').trim();
+      if (!normalizedValue) continue;
+      const parsedValue = Number(normalizedValue);
+      if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+        Alert.alert(
+          t('common.error'),
+          t('products.bulk_price_invalid_value', { name: product.name }),
+        );
+        return;
+      }
+      if (parsedValue !== Number(product.selling_price ?? 0)) {
+        updates.push({
+          product_id: product.product_id,
+          selling_price: parsedValue,
+        });
+      }
+    }
+
+    if (updates.length === 0) {
+      Alert.alert(t('common.info'), t('products.bulk_price_no_changes'));
+      return;
+    }
+
+    setBulkPriceSaving(true);
+    try {
+      if (isConnected) {
+        const result = await productsApi.bulkUpdatePrices(updates);
+        updateLocalProductSellingPrices(updates);
+        closeBulkPriceModal();
+        setSelectedProductIds(new Set());
+        setIsSelectionMode(false);
+        await loadData();
+        if (result.failed > 0) {
+          const firstError = result.errors[0]?.message || t('products.bulk_price_partial_error');
+          Alert.alert(
+            t('common.warning'),
+            t('products.bulk_price_partial_success', { updated: result.updated, failed: result.failed, error: firstError }),
+          );
+        } else {
+          Alert.alert(t('common.success'), t('products.bulk_price_success', { count: result.updated }));
+        }
+      } else {
+        await syncService.addToQueue({
+          entity: 'product',
+          type: 'update',
+          endpoint: '/products/bulk-update-prices',
+          method: 'POST',
+          payload: { updates },
+        });
+        updateLocalProductSellingPrices(updates);
+        closeBulkPriceModal();
+        setSelectedProductIds(new Set());
+        setIsSelectionMode(false);
+        Alert.alert(t('common.offline_mode'), t('products.bulk_price_offline_queued', { count: updates.length }));
+      }
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error?.message || t('products.bulk_price_error'));
+    } finally {
+      setBulkPriceSaving(false);
     }
   }
 
@@ -3019,9 +3129,23 @@ export default function ProductsScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.selectionActions}>
+              {canWrite && (
+                <TouchableOpacity
+                  style={[
+                    styles.selectionActionBtn,
+                    styles.selectionActionBtnPrimary,
+                    selectedProductIds.size === 0 && styles.selectionActionBtnDisabled,
+                  ]}
+                  onPress={openBulkPriceModal}
+                  disabled={selectedProductIds.size === 0}
+                >
+                  <Ionicons name="cash-outline" size={20} color={colors.primaryLight} />
+                  <Text style={styles.selectionActionText}>{t('products.bulk_price_edit_cta')}</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={[styles.selectionActionBtn, styles.selectionActionBtnPrimary]} onPress={exportCatalog}>
                 <Ionicons name="share-social-outline" size={20} color={colors.primaryLight} />
-                <Text style={styles.selectionActionText}>{t('products.catalog')}</Text>
+                <Text style={styles.selectionActionText}>{t('products.bulk_share_catalog')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -3039,6 +3163,67 @@ export default function ProductsScreen() {
           </View>
         </View>
       )}
+
+      <Modal visible={showBulkPriceModal} animationType="slide" transparent onRequestClose={closeBulkPriceModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1, paddingRight: Spacing.md }}>
+                <Text style={styles.modalTitle}>{t('products.bulk_price_modal_title')}</Text>
+                <Text style={styles.modalSubtitle}>
+                  {t('products.bulk_price_modal_subtitle', { count: selectedProducts.length })}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={closeBulkPriceModal} disabled={bulkPriceSaving}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+            >
+              <FlatList
+                data={selectedProducts}
+                keyExtractor={(item) => item.product_id}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: Spacing.lg }}
+                renderItem={({ item }) => (
+                  <View style={styles.bulkPriceRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.bulkPriceName}>{item.name}</Text>
+                      <Text style={styles.bulkPriceCurrent}>
+                        {t('products.bulk_price_current_value', { value: formatUserCurrency(item.selling_price, user) })}
+                      </Text>
+                    </View>
+                    <TextInput
+                      style={styles.bulkPriceInput}
+                      value={bulkPriceValues[item.product_id] ?? ''}
+                      onChangeText={(value) => setBulkPriceValues((prev) => ({ ...prev, [item.product_id]: value }))}
+                      keyboardType="decimal-pad"
+                      placeholder={String(item.selling_price ?? 0)}
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </View>
+                )}
+                ListFooterComponent={
+                  <TouchableOpacity
+                    style={[styles.submitBtn, bulkPriceSaving && styles.submitBtnDisabled]}
+                    onPress={handleBulkSellingPriceUpdate}
+                    disabled={bulkPriceSaving}
+                  >
+                    {bulkPriceSaving ? (
+                      <ActivityIndicator color={colors.text} />
+                    ) : (
+                      <Text style={styles.submitBtnText}>{t('products.bulk_price_save')}</Text>
+                    )}
+                  </TouchableOpacity>
+                }
+              />
+            </KeyboardAvoidingView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Add Product Modal */}
       < Modal visible={showAddModal} animationType="slide" transparent onRequestClose={requestCloseAddModal} >
@@ -4763,6 +4948,37 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.text,
     fontSize: FontSize.md,
     fontWeight: '700',
+  },
+  bulkPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  bulkPriceName: {
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  bulkPriceCurrent: {
+    color: colors.textMuted,
+    fontSize: FontSize.sm,
+    marginTop: 2,
+  },
+  bulkPriceInput: {
+    minWidth: 110,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.inputBg,
+    color: colors.text,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    textAlign: 'right',
   },
   // Category row
   categoryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },

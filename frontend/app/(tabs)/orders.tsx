@@ -300,7 +300,7 @@ export default function OrdersScreen() {
       setDrawerContent(t('tabs.orders'), [
         { label: t('orders.new_order', 'Nouvelle commande'), icon: 'add-circle-outline', onPress: () => setShowCreateModal(true) },
         { label: t('orders.returns', 'Retours clients'), icon: 'arrow-undo-outline', onPress: () => setActiveTab('returns') },
-        { label: t('orders.history', 'Historique'), icon: 'time-outline', onPress: () => setShowHistoryModal(true), plan: 'pro' },
+        { label: t('orders.history', 'Historique'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
       ]);
     }, [t])
   );
