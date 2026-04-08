@@ -245,7 +245,7 @@ export default function SettingsScreen() {
   const [disputeSubject, setDisputeSubject] = useState('');
   const [disputeDesc, setDisputeDesc] = useState('');
   const [disputeType, setDisputeType] = useState('other');
-  const showManagerZone = (settingsData?.mobile_preferences?.show_manager_zone ?? true) && (isOrgAdmin || isBillingAdmin);
+  const showManagerZone = isOrgAdmin || isBillingAdmin;
   const hasEnterprisePlan = (user?.effective_plan || user?.plan) === 'enterprise';
   const canViewTeam = isOrgAdmin || hasPermission('staff', 'read');
   const canManageOrganizationSettings = isOrgAdmin;
@@ -690,21 +690,6 @@ export default function SettingsScreen() {
             />
           </View>
 
-          {(isOrgAdmin || isBillingAdmin) && (
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Outils de gestion avancés</Text>
-                <Text style={styles.settingDesc}>Affiche ou masque les réglages avancés liés à l'organisation, à la boutique et au pilotage.</Text>
-              </View>
-              <Switch
-                value={settingsData?.mobile_preferences?.show_manager_zone ?? true}
-                onValueChange={toggleManagerZone}
-                trackColor={{ false: colors.divider, true: colors.primary + '60' }}
-                thumbColor={(settingsData?.mobile_preferences?.show_manager_zone ?? true) ? colors.primary : colors.textMuted}
-              />
-            </View>
-          )}
-
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomWidth: 0 }]}
             onPress={() => setShowLanguageModal(true)}
@@ -795,57 +780,20 @@ export default function SettingsScreen() {
           styles={styles}
           colors={colors}
         >
-        {/* Team / Manager zone */}
+        {/* Team link (direct, no sub-dropdown) */}
         {canViewTeam && (
-          <SettingsAccordionSection
-            title="Équipe et accès"
-            description="Gérez les utilisateurs autorisés et leurs permissions."
-            icon="people-outline"
-            accentColor={colors.success}
-            expanded={expandedSections.team}
-            onToggle={() => toggleSection('team')}
-            styles={styles}
-            colors={colors}
-            variant="nested"
-          >
-            <Link href="/(tabs)/users" asChild>
-              <TouchableOpacity style={styles.supportRow}>
-                <View style={[styles.supportIconWrapper, { backgroundColor: colors.info }]}>
-                  <Ionicons name="people" size={20} color="#fff" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.settingLabel}>{t('settings.users_permissions')}</Text>
-                  <Text style={styles.settingDesc}>{t('settings.users_permissions_desc')}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-              </TouchableOpacity>
-            </Link>
-          </SettingsAccordionSection>
-        )}
-
-        {showManagerZone && isOrgAdmin && hasEnterprisePlan && (
-          <SettingsAccordionSection
-            title="Centre de pilotage"
-            description="Accédez aux réglages avancés pour les boutiques, l'équipe et les emplacements."
-            icon="business-outline"
-            accentColor={colors.primary}
-            expanded={expandedSections.enterpriseHub}
-            onToggle={() => toggleSection('enterpriseHub')}
-            styles={styles}
-            colors={colors}
-            variant="nested"
-          >
-            <TouchableOpacity style={styles.supportRow} onPress={() => router.push('/(tabs)/enterprise' as never)}>
-              <View style={[styles.supportIconWrapper, { backgroundColor: colors.primary }]}>
-                <Ionicons name="business-outline" size={20} color="#fff" />
+          <Link href="/(tabs)/users" asChild>
+            <TouchableOpacity style={styles.supportRow}>
+              <View style={[styles.supportIconWrapper, { backgroundColor: colors.info }]}>
+                <Ionicons name="people" size={20} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingLabel}>Centre de pilotage</Text>
-                <Text style={styles.settingDesc}>Pilotage multi-boutiques, quipe et emplacements avancs.</Text>
+                <Text style={styles.settingLabel}>{t('settings.users_permissions')}</Text>
+                <Text style={styles.settingDesc}>{t('settings.users_permissions_desc')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </TouchableOpacity>
-          </SettingsAccordionSection>
+          </Link>
         )}
 
         {/* Modules */}
