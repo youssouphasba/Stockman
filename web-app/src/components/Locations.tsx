@@ -393,7 +393,7 @@ export default function Locations() {
             <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 className="text-3xl font-black tracking-tight text-white">{t('settings_workspace.stores.locations.title')}</h1>
-                    <p className="mt-2 max-w-3xl text-sm text-slate-400">
+                    <p className="mt-2 max-w-3xl text-sm theme-text-muted">
                         Organisez vos zones de stockage avec une structure guidée : allées, zones, rayons, niveaux,
                         étagères ou toute autre configuration choisie.
                     </p>
@@ -401,24 +401,24 @@ export default function Locations() {
                 <button
                     type="button"
                     onClick={() => setShowArchived((value) => !value)}
-                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-300 transition-colors hover:border-white/20"
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] theme-text transition-colors hover:border-white/20"
                 >
                     {showArchived ? 'Masquer les archivés' : 'Voir les archivés'}
                 </button>
             </header>
 
             {error && (
-                <div className="mb-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                <div className="mb-6 rounded-2xl border border-rose-400/35 bg-rose-500/15 px-4 py-3 text-sm text-rose-50">
                     {error}
                 </div>
             )}
 
             <section className="glass-card mb-8 p-6">
-                <div className="mb-4 flex items-center gap-3 text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
+                <div className="mb-4 flex items-center gap-3 text-sm font-bold uppercase tracking-[0.2em] theme-text-muted">
                     <Wand2 size={16} className="text-primary" />
                     Génération guidée
                 </div>
-                <p className="mb-5 max-w-3xl text-sm text-slate-400">
+                <p className="mb-5 max-w-3xl text-sm theme-text-muted">
                     Configurez votre structure en quelques étapes. Vous pouvez partir d’un modèle, ajuster les niveaux,
                     choisir une numérotation ou des noms libres, puis générer toute l’arborescence d’un coup.
                 </p>
@@ -432,14 +432,14 @@ export default function Locations() {
                             className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-left transition hover:border-primary/40 hover:bg-primary/10"
                         >
                             <div className="text-sm font-black text-white">{template.label}</div>
-                            <p className="mt-2 text-xs leading-5 text-slate-400">{template.description}</p>
+                            <p className="mt-2 text-xs leading-5 theme-text-muted">{template.description}</p>
                         </button>
                     ))}
                 </div>
 
                 {sortedActiveLocations.length > 0 && (
                     <div className="mb-5">
-                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] theme-text-muted">
                             Créer sous
                         </label>
                         <select
@@ -459,12 +459,12 @@ export default function Locations() {
 
                 <div className="mb-5 grid gap-4 xl:grid-cols-[220px,1fr]">
                     <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                        <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Prévision</div>
+                        <div className="text-xs font-black uppercase tracking-[0.18em] theme-text-muted">Prévision</div>
                         <div className="mt-3 text-3xl font-black text-primary">{totalGeneratedCount || 0}</div>
-                        <div className="mt-1 text-xs text-slate-400">emplacement(s) prévus</div>
+                        <div className="mt-1 text-xs theme-text-muted">emplacement(s) prévus</div>
                     </div>
                     <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                        <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Exemple de chemin</div>
+                        <div className="text-xs font-black uppercase tracking-[0.18em] theme-text-muted">Exemple de chemin</div>
                         <div className="mt-3 text-sm font-semibold text-white">
                             {examplePath || 'Ajoutez des niveaux pour voir un aperçu.'}
                         </div>
@@ -485,7 +485,7 @@ export default function Locations() {
                                 <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                     <div>
                                         <div className="text-sm font-black text-white">Niveau {index + 1}</div>
-                                        <p className="mt-1 text-xs text-slate-400">
+                                        <p className="mt-1 text-xs theme-text-muted">
                                             Définissez le type du niveau et la manière de créer ses éléments.
                                         </p>
                                     </div>
@@ -493,7 +493,7 @@ export default function Locations() {
                                         <button
                                             type="button"
                                             onClick={() => removeLevel(level.id)}
-                                            className="inline-flex items-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-200"
+                                            className="inline-flex items-center gap-2 rounded-2xl border border-rose-400/40 bg-rose-500/20 px-3 py-2 text-xs font-bold text-rose-50"
                                         >
                                             <Trash2 size={14} />
                                             Supprimer
@@ -579,7 +579,7 @@ export default function Locations() {
                                 )}
 
                                 <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Aperçu</div>
+                                    <div className="text-[11px] font-black uppercase tracking-[0.18em] theme-text-muted">Aperçu</div>
                                     <div className="mt-2 text-sm font-semibold text-white">
                                         {preview.length ? preview.join(' • ') : 'Complétez ce niveau pour voir un aperçu.'}
                                     </div>
@@ -633,7 +633,7 @@ export default function Locations() {
             </section>
 
             <section className="glass-card mb-8 p-6">
-                <div className="mb-4 flex items-center gap-3 text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
+                <div className="mb-4 flex items-center gap-3 text-sm font-bold uppercase tracking-[0.2em] theme-text-muted">
                     <MapPin size={16} className="text-primary" />
                     Ajout ponctuel
                 </div>
@@ -686,11 +686,11 @@ export default function Locations() {
             <section className="glass-card p-6">
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-lg font-black text-white">Liste des emplacements</h2>
-                    {loading && <span className="text-xs text-slate-400">Chargement...</span>}
+                    {loading && <span className="text-xs theme-text-muted">Chargement...</span>}
                 </div>
 
                 {visibleLocations.length === 0 && !loading && (
-                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-slate-400">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm theme-text-muted">
                         Aucun emplacement pour le moment.
                     </div>
                 )}
@@ -709,8 +709,8 @@ export default function Locations() {
                                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                                         <div className="space-y-1">
                                             <p className="text-sm font-bold text-white">{loc.name}</p>
-                                            <p className="text-xs text-slate-400">{path}</p>
-                                            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                                        <p className="text-xs theme-text-muted">{path}</p>
+                                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] theme-text-muted">
                                                 {typeLabel}
                                             </span>
                                         </div>
@@ -771,7 +771,7 @@ export default function Locations() {
                                                             type="button"
                                                             onClick={() => deleteLocation(loc)}
                                                             disabled={actionId === loc.location_id}
-                                                            className="inline-flex items-center gap-1 rounded-xl bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-200 disabled:opacity-50"
+                                                    className="inline-flex items-center gap-1 rounded-xl border border-rose-400/40 bg-rose-500/20 px-3 py-2 text-xs font-bold text-rose-50 disabled:opacity-50"
                                                         >
                                                             <Trash2 size={14} />
                                                             Supprimer

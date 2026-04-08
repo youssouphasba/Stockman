@@ -519,6 +519,12 @@ export type SubscriptionData = {
     demo_expires_at?: string | null;
 };
 
+export type ProductTrashItem = {
+    product_id: string;
+    name: string;
+    deleted_at?: string | null;
+};
+
 export type DemoSessionInfo = {
     demo_session_id: string;
     demo_type: string;
@@ -1662,6 +1668,12 @@ export const products = {
             method: 'POST',
             body: { text, auto_create: autoCreate },
         }),
+    listTrash: (skip = 0, limit = 50) =>
+        request<{ items: ProductTrashItem[]; total: number }>(`/products/trash?skip=${skip}&limit=${limit}`),
+    restore: (productId: string) =>
+        request<any>(`/products/${productId}/restore`, { method: 'POST' }),
+    deletePermanent: (productId: string) =>
+        request<any>(`/products/${productId}/permanent`, { method: 'DELETE' }),
     getPriceHistory: (id: string) => request<any[]>(`/products/${id}/price-history`),
     batchStockUpdate: (codes: string[], increment: number = 1) =>
         request<{ message: string; updated_count: number; not_found_count?: number; not_found?: string[] }>('/products/batch-stock-update', { method: 'POST', body: { codes, increment } }),

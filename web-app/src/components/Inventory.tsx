@@ -46,6 +46,7 @@ import {
     userFeatures as userFeaturesApi,
     ApiError,
     AnalyticsStockHealth,
+    ProductTrashItem,
     UserFeatures,
 } from '../services/api';
 import Modal from './Modal';
@@ -140,6 +141,11 @@ export default function Inventory() {
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
     const [isBulkPriceEditorOpen, setIsBulkPriceEditorOpen] = useState(false);
+    const [isTrashOpen, setIsTrashOpen] = useState(false);
+    const [trashItems, setTrashItems] = useState<ProductTrashItem[]>([]);
+    const [trashTotal, setTrashTotal] = useState(0);
+    const [trashLoading, setTrashLoading] = useState(false);
+    const [trashActionId, setTrashActionId] = useState<string | null>(null);
     const [bulkPriceDrafts, setBulkPriceDrafts] = useState<Record<string, { purchase_price: string; selling_price: string }>>({});
     const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
@@ -416,6 +422,52 @@ export default function Inventory() {
             setStockHealthLoading(false);
         }
     }, []);
+
+    const loadTrash = useCallback(async () => {
+        setTrashLoading(true);
+        try {
+            const response = await productsApi.listTrash(0, 100);
+            setTrashItems(sanitizeRows<ProductTrashItem>(response.items));
+            setTrashTotal(response.total || 0);
+        } catch (err) {
+            console.error('Error loading product trash', err);
+            window.alert(t('inventory.trash_load_error', { defaultValue: 'Impossible de charger la corbeille pour le moment.' }));
+        } finally {
+            setTrashLoading(false);
+        }
+    }, [t]);
+
+    const handleOpenTrash = async () => {
+        setIsTrashOpen(true);
+        await loadTrash();
+    };
+
+    const handleRestoreTrashItem = async (productId: string) => {
+        setTrashActionId(productId);
+        try {
+            await productsApi.restore(productId);
+            await Promise.all([loadTrash(), fetchProducts(), loadStockHealth()]);
+        } catch (err: any) {
+            window.alert(err?.message || t('inventory.trash_restore_error', { defaultValue: 'Impossible de restaurer ce produit.' }));
+        } finally {
+            setTrashActionId(null);
+        }
+    };
+
+    const handleDeleteTrashItemPermanently = async (item: ProductTrashItem) => {
+        if (!window.confirm(t('inventory.trash_delete_confirm', { defaultValue: `Supprimer définitivement "${item.name}" ?`, name: item.name }))) {
+            return;
+        }
+        setTrashActionId(item.product_id);
+        try {
+            await productsApi.deletePermanent(item.product_id);
+            await Promise.all([loadTrash(), fetchProducts(), loadStockHealth()]);
+        } catch (err: any) {
+            window.alert(err?.message || t('inventory.trash_delete_error', { defaultValue: 'Impossible de supprimer définitivement ce produit.' }));
+        } finally {
+            setTrashActionId(null);
+        }
+    };
 
     useEffect(() => {
         void fetchProducts();
@@ -1407,7 +1459,7 @@ export default function Inventory() {
             <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8 md:mb-10">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{t('common.stock')}</h1>
-                    <p className="text-slate-400">{t('catalog.product_count', { count: productsTotal })}</p>
+                    <p className="theme-text-muted">{t('catalog.product_count', { count: productsTotal })}</p>
                     {error && (
                         <div className="mt-4 inline-flex max-w-2xl flex-wrap items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-200">
                             <AlertCircle size={14} />
@@ -1420,7 +1472,7 @@ export default function Inventory() {
                             </button>
                         </div>
                     )}
-                    <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                    <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] theme-text-muted">
                         Création disponible : manuel, texte IA, import CSV et catalogue métier
                     </p>
                     {pendingInventorySummary.pendingTotal > 0 && (
@@ -1436,10 +1488,17 @@ export default function Inventory() {
                     <button
                         onClick={openBulkPriceEditor}
                         disabled={filteredProducts.length === 0}
-                        className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="glass-card theme-text px-4 py-2 text-sm font-semibold hover:bg-white/10 transition-colors flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <Edit size={16} />
                         {t('inventory.quick_price_editor')}
+                    </button>
+                    <button
+                        onClick={() => void handleOpenTrash()}
+                        className="glass-card theme-text px-4 py-2 text-sm font-semibold hover:bg-white/10 transition-colors flex items-center gap-2"
+                    >
+                        <Trash2 size={16} />
+                        {t('inventory.trash_button', { defaultValue: 'Corbeille' })}
                     </button>
                     <button
                         onClick={() => {
@@ -1453,7 +1512,7 @@ export default function Inventory() {
                         className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 rounded-2xl border ${
                             selectionMode
                                 ? 'border-primary bg-primary/15 text-primary'
-                                : 'glass-card text-white hover:bg-white/10'
+                                : 'glass-card theme-text hover:bg-white/10'
                         }`}
                     >
                         <Layers size={16} />
@@ -1463,7 +1522,7 @@ export default function Inventory() {
                     <div className="relative">
                         <button
                             onClick={() => setShowExportMenu(v => !v)}
-                            className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+                            className="glass-card theme-text px-4 py-2 text-sm font-semibold hover:bg-white/10 transition-colors flex items-center gap-2"
                         >
                             <Download size={16} />
                             Exporter
@@ -1473,14 +1532,14 @@ export default function Inventory() {
                             <div className="absolute right-0 top-full mt-1 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
                                 <button
                                     onClick={() => { exportInventory(filteredProducts, 'F', 'excel'); setShowExportMenu(false); }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm theme-text hover:bg-white/10 transition-colors"
                                 >
                                     <FileSpreadsheet size={16} className="text-emerald-400" />
                                     Excel (.xlsx)
                                 </button>
                                 <button
                                     onClick={() => { exportInventory(filteredProducts, 'F', 'pdf'); setShowExportMenu(false); }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm theme-text hover:bg-white/10 transition-colors"
                                 >
                                     <FileText size={16} className="text-red-400" />
                                     PDF
@@ -1506,7 +1565,7 @@ export default function Inventory() {
                                     <Plus size={16} className="text-primary" />
                                     <div>
                                         <p className="font-bold">Créer manuellement</p>
-                                        <p className="text-xs text-slate-400">Formulaire complet avec aide IA dans la fiche produit.</p>
+                                        <p className="text-xs theme-text-muted">Formulaire complet avec aide IA dans la fiche produit.</p>
                                     </div>
                                 </button>
                                 <button
@@ -1519,7 +1578,7 @@ export default function Inventory() {
                                     <Sparkles size={16} className="text-violet-400" />
                                     <div>
                                         <p className="font-bold">Importer depuis un texte</p>
-                                        <p className="text-xs text-slate-400">Colle une liste libre, l'IA structure et crée les produits.</p>
+                                        <p className="text-xs theme-text-muted">Colle une liste libre, l'IA structure et crée les produits.</p>
                                     </div>
                                 </button>
                                 <button
@@ -1532,7 +1591,7 @@ export default function Inventory() {
                                     <Upload size={16} className="text-emerald-400" />
                                     <div>
                                         <p className="font-bold">Importer un CSV</p>
-                                        <p className="text-xs text-slate-400">Import en masse avec mapping intelligent des colonnes.</p>
+                                        <p className="text-xs theme-text-muted">Import en masse avec mapping intelligent des colonnes.</p>
                                     </div>
                                 </button>
                                 <button
@@ -1547,7 +1606,7 @@ export default function Inventory() {
                                                 ? 'Import du catalogue?'
                                             : `Importer le catalogue ${currentFeatures?.sector_label || 'du metier'}`}
                                         </p>
-                                        <p className="text-xs text-slate-400">Précharge un catalogue adapté à ton type d'activité.</p>
+                                        <p className="text-xs theme-text-muted">Précharge un catalogue adapté à ton type d'activité.</p>
                                     </div>
                                 </button>
                             </div>
@@ -1555,7 +1614,7 @@ export default function Inventory() {
                     </div>
                     <button
                         onClick={() => setIsBatchScanOpen(true)}
-                        className="glass-card px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+                        className="glass-card theme-text px-4 py-2 text-sm font-semibold hover:bg-white/10 transition-colors flex items-center gap-2"
                     >
                         <Layers size={16} />
                         Scan par lot
@@ -1566,7 +1625,7 @@ export default function Inventory() {
                         className="glass-card px-4 py-2 text-sm font-medium text-violet-400 border border-violet-500/30 hover:bg-violet-500/10 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                         <Sparkles size={16} />
-                        {replenishLoading ? 'Analyse...' : 'IA R?appro'}
+                        {replenishLoading ? 'Analyse...' : 'IA Réappro'}
                     </button>
                 </div>
             </header>
@@ -1599,7 +1658,7 @@ export default function Inventory() {
                         <button
                             onClick={() => void handleDeleteSelectedProducts()}
                             disabled={selectedProductIds.size === 0 || bulkActionLoading}
-                            className="inline-flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex items-center gap-2 rounded-xl border border-rose-400/45 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition-colors hover:bg-rose-500/30 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <Trash2 size={16} />
                             {t('inventory.bulk_delete_selected')}
@@ -1622,16 +1681,16 @@ export default function Inventory() {
                                     {replenishAdvice && ` (${replenishAdvice.priority_count} produits prioritaires)`}
                                 </p>
                                 {replenishLoading ? (
-                                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                        <div className="flex items-center gap-2 theme-text-muted text-sm">
                                         <div className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
                                         Analyse en cours...
                                     </div>
                                 ) : (
-                                    <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{replenishAdvice?.advice || ''}</p>
+                                    <p className="theme-text-secondary text-sm leading-relaxed whitespace-pre-line">{replenishAdvice?.advice || ''}</p>
                                 )}
                             </div>
                         </div>
-                        <button onClick={() => setShowReplenish(false)} className="text-slate-500 hover:text-slate-300 transition-colors shrink-0">
+                        <button onClick={() => setShowReplenish(false)} className="theme-text-muted hover:text-white transition-colors shrink-0">
                             <X size={16} />
                         </button>
                     </div>
@@ -1884,7 +1943,7 @@ export default function Inventory() {
             <div className="glass-card overflow-x-auto">
                 <table className="w-full min-w-[600px] text-left border-collapse">
                     <thead>
-                        <tr className="border-b border-white/10 text-slate-400 text-sm bg-white/5 uppercase tracking-wider">
+                        <tr className="border-b border-white/10 text-slate-300 text-sm bg-white/5 uppercase tracking-wider">
                             {selectionMode && (
                                 <th className="py-4 px-4 font-semibold text-center">
                                     <input
@@ -1944,12 +2003,12 @@ export default function Inventory() {
                                                         </span>
                                                     )}
                                                 </span>
-                                                <span className="text-xs text-slate-500 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
+                                                <span className="text-xs text-slate-400 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
                                                 <span className={`mt-1 text-[11px] font-semibold ${supplyMeta.tone === 'rose' ? 'text-rose-300' : supplyMeta.tone === 'sky' ? 'text-sky-300' : 'text-emerald-300'}`}>
                                                     {supplyMeta.status}
                                                 </span>
                                                 {hasEnterpriseLocations && p.location_id && (
-                                                    <span className="flex items-center gap-1 text-[10px] text-primary/70 font-medium mt-0.5">
+                                                    <span className="flex items-center gap-1 text-[10px] text-primary/90 font-medium mt-0.5">
                                                         <MapPin size={9} /> {getLocationLabel(p.location_id)}
                                                     </span>
                                                 )}
@@ -1957,36 +2016,36 @@ export default function Inventory() {
                                         </div>
                                     </td>
                                     <td className="py-4 px-6">
-                                        <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+                                        <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-200">
                                             {safeCategoriesList.find(c => c.category_id === p.category_id)?.name || t('common.uncategorized')}
                                         </span>
                                     </td>
                                     <td className="py-4 px-6">
                                         {productLinks.length === 0 ? (
-                                            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2">
-                                                <p className="text-xs font-bold text-rose-300">Aucun fournisseur</p>
+                                            <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-3">
+                                                <p className="text-xs font-bold text-rose-200">Aucun fournisseur</p>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenSupplierMarketplace(p)}
-                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-[11px] font-bold text-rose-200 transition-colors hover:bg-rose-500/20"
+                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-rose-300/50 bg-rose-500/15 px-3 py-1.5 text-[11px] font-bold text-rose-100 transition-colors hover:bg-rose-500/25"
                                                 >
                                                     <Plus size={12} />
                                                     Associer un fournisseur
                                                 </button>
-                                                <p className="mt-1 text-[11px] text-slate-300">Produit non préparé pour le réapprovisionnement.</p>
+                                                <p className="mt-2 text-[11px] text-rose-100/90">Produit non préparé pour le réapprovisionnement.</p>
                                             </div>
                                         ) : (
-                                            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                                            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
                                                 <span className="text-xs font-bold text-white">
-                                                    {hasPrimary ? `${productLinks.length} fournisseur(s) - principal defini` : `${productLinks.length} fournisseur(s) - principal manquant`}
+                                                    {hasPrimary ? `${productLinks.length} fournisseur(s) - principal défini` : `${productLinks.length} fournisseur(s) - principal manquant`}
                                                 </span>
                                                 {!hasPrimary && (
-                                                    <span className="mt-1 block text-[11px] text-sky-300">Choisissez un fournisseur principal dans la fiche produit.</span>
+                                                    <span className="mt-1 block text-[11px] text-sky-200">Choisissez un fournisseur principal dans la fiche produit.</span>
                                                 )}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleManageProductSuppliers(p)}
-                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-slate-200 transition-colors hover:bg-white/10"
+                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/8 px-3 py-1.5 text-[11px] font-bold text-slate-100 transition-colors hover:bg-white/12"
                                                 >
                                                     <Edit size={12} />
                                                     Gérer les fournisseurs
@@ -2017,12 +2076,12 @@ export default function Inventory() {
                                                     {fc ? (
                                                         <>
                                                             <span className="text-sm font-bold text-emerald-400">+{fc.forecast_7d}</span>
-                                                            <span className="text-[10px] text-slate-500">{fc.velocity_per_day.toFixed(1)}/j</span>
+                                                            <span className="text-[10px] theme-text-muted">{fc.velocity_per_day.toFixed(1)}/j</span>
                                                             {fc.alert && (
                                                                 <span className="text-[9px] text-rose-400 font-bold uppercase">{fc.alert === 'stock_insufficient_7d' ? '⚠ Rupture <7j' : '⚠ Rupture <30j'}</span>
                                                             )}
                                                         </>
-                                                    ) : <span className="text-slate-600 text-xs">—</span>}
+                                                    ) : <span className="theme-text-muted text-xs">—</span>}
                                                     {hasSeasonPeak && (
                                                         <span className="text-[9px] text-amber-400 font-bold uppercase mt-0.5" title={`Pic saisonnier ${season.upcoming_peak_name} — prévoir ${season.expected_demand} unités`}>
                                                             🔥 {t('inventory.season_peak', 'Pic')} {season.upcoming_peak_name}
@@ -2035,7 +2094,7 @@ export default function Inventory() {
                                     <td className="py-4 px-6">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-white">{p.selling_price} F</span>
-                                            <span className="text-xs text-slate-500">Achat: {p.purchase_price} F</span>
+                                            <span className="text-xs theme-text-muted">Achat: {p.purchase_price} F</span>
                                         </div>
                                     </td>
                                     <td className="py-4 px-6 text-right">
@@ -2059,7 +2118,7 @@ export default function Inventory() {
                                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={() => handleOpenHistory(p)}
-                                                    className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-primary transition-colors"
+                                                    className="p-2 hover:bg-white/10 rounded-lg theme-text-muted hover:text-primary transition-colors"
                                                     title="Historique"
                                                 >
                                                     <History size={18} />
@@ -2067,24 +2126,24 @@ export default function Inventory() {
                                                 {activeLocationsList.length > 0 && (
                                                     <button
                                                         onClick={() => handleOpenLocationTransfer(p)}
-                                                        className="p-2 hover:bg-emerald-500/10 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
-                                                        title="Transf?rer d'emplacement"
-                                                    >
-                                                        <MapPin size={18} />
-                                                    </button>
+                                                    className="p-2 hover:bg-emerald-500/10 rounded-lg text-slate-300 hover:text-emerald-300 transition-colors"
+                                                    title="Transférer d'emplacement"
+                                                >
+                                                    <MapPin size={18} />
+                                                </button>
                                                 )}
                                                 {storeList.length > 1 && (
                                                     <button
                                                         onClick={() => handleOpenTransfer(p)}
-                                                        className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-400 hover:text-blue-400 transition-colors"
-                                                        title="Transf?rer vers une autre boutique"
+                                                        className="p-2 hover:bg-blue-500/10 rounded-lg text-slate-300 hover:text-blue-300 transition-colors"
+                                                        title="Transférer vers une autre boutique"
                                                     >
                                                         <ArrowLeftRight size={18} />
                                                     </button>
                                                 )}
                                                 <button
                                                     onClick={() => handleOpenEditModal(p)}
-                                                    className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                                    className="p-2 hover:bg-white/10 rounded-lg theme-text-muted hover:text-white transition-colors"
                                                 >
                                                     <Edit size={18} />
                                                 </button>
@@ -2092,7 +2151,7 @@ export default function Inventory() {
                                                     type="button"
                                                     onClick={() => void handleDeleteProduct(p)}
                                                     disabled={deletingProductId === p.product_id}
-                                                    className="p-2 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                                                    className="p-2 hover:bg-red-500/10 rounded-lg theme-text-muted hover:text-red-500 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                                     title="Supprimer"
                                                 >
                                                     <Trash2 size={18} />
@@ -2113,7 +2172,7 @@ export default function Inventory() {
                     <button
                         onClick={() => void loadMoreProducts()}
                         disabled={loadingMore}
-                        className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                        className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl theme-text font-semibold hover:bg-white/10 transition-colors disabled:opacity-50"
                     >
                         {loadingMore
                             ? t('products.loading_more', 'Chargement...')
@@ -2349,8 +2408,8 @@ export default function Inventory() {
                             })}
                         </div>
                     ) : (
-                        <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-slate-400">
-                            Aucun fournisseur pertinent n?a ?t? trouv? pour ce produit.
+                        <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-slate-300">
+                            Aucun fournisseur pertinent n'a été trouvé pour ce produit.
                         </div>
                     )}
                     <div className="flex justify-end gap-3">
@@ -2981,6 +3040,80 @@ export default function Inventory() {
                     </div>
                 </div>
             )}
+
+            <Modal
+                isOpen={isTrashOpen}
+                onClose={() => setIsTrashOpen(false)}
+                title={t('inventory.trash_title', { defaultValue: 'Corbeille du stock' })}
+            >
+                <div className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                        <div>
+                            <p className="text-sm font-bold theme-text">{t('inventory.trash_subtitle', { defaultValue: 'Produits supprimés depuis le stock web ou mobile.' })}</p>
+                            <p className="text-xs theme-text-muted">{t('inventory.trash_count', { defaultValue: '{{count}} produit(s) dans la corbeille', count: trashTotal })}</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => void loadTrash()}
+                            disabled={trashLoading}
+                            className="glass-card theme-text px-4 py-2 text-sm font-semibold hover:bg-white/10 disabled:opacity-50"
+                        >
+                            {t('common.refresh', { defaultValue: 'Actualiser' })}
+                        </button>
+                    </div>
+
+                    {trashLoading ? (
+                        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-10 text-center text-sm theme-text-muted">
+                            {t('common.loading', { defaultValue: 'Chargement...' })}
+                        </div>
+                    ) : trashItems.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 px-4 py-10 text-center text-sm theme-text-muted">
+                            {t('inventory.trash_empty', { defaultValue: 'La corbeille est vide.' })}
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {trashItems.map((item) => {
+                                const busy = trashActionId === item.product_id;
+                                return (
+                                    <div key={item.product_id} className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 md:flex-row md:items-center md:justify-between">
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-bold theme-text">{item.name}</p>
+                                            <p className="text-xs theme-text-muted">
+                                                {item.deleted_at
+                                                    ? t('inventory.trash_deleted_at', {
+                                                        defaultValue: 'Supprimé le {{date}}',
+                                                        date: new Date(item.deleted_at).toLocaleString(i18n.language || 'fr-FR'),
+                                                    })
+                                                    : t('inventory.trash_deleted_unknown', { defaultValue: 'Date de suppression indisponible' })}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleRestoreTrashItem(item.product_id)}
+                                                disabled={busy}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-50 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
+                                            >
+                                                <Undo2 size={15} />
+                                                {t('inventory.trash_restore', { defaultValue: 'Restaurer' })}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleDeleteTrashItemPermanently(item)}
+                                                disabled={busy}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/45 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 transition-colors hover:bg-rose-500/30 disabled:opacity-50"
+                                            >
+                                                <Trash2 size={15} />
+                                                {t('inventory.trash_delete_forever', { defaultValue: 'Supprimer définitivement' })}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     );
 }

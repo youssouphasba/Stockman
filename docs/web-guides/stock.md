@@ -49,6 +49,8 @@ Le mode `Selection` permet :
 - de supprimer plusieurs produits ;
 - de modifier rapidement le prix de vente des produits selectionnes.
 
+Sur mobile, la barre d'actions de selection est compacte et revient a la ligne proprement sur petit ecran pour eviter les chevauchements ou debordements visuels.
+
 ### Modification rapide des prix sur mobile
 
 Quand plusieurs produits sont selectionnes, l'action `Modifier le prix de vente` ouvre une liste simple :
@@ -73,6 +75,16 @@ Le web propose une edition rapide des prix en mode tableur :
 - travail sur les produits filtres ;
 - sauvegarde en lot des lignes modifiees.
 
+### Corbeille sur le web
+
+Sur le web, la corbeille est accessible directement dans l'en-tete du module Stock, a cote de `Edition rapide des prix`.
+
+Elle permet :
+
+- de voir les produits deja envoyes a la corbeille ;
+- de restaurer un produit ;
+- de supprimer definitivement un produit si necessaire.
+
 ### Selection multiple sur web
 
 Le mode `Selection` du web sert aux actions de lot :
@@ -84,6 +96,10 @@ L'edition des prix et la selection multiple restent deux usages distincts :
 
 - grille pour modifier ;
 - selection pour partager ou supprimer.
+
+Le tableau web garde maintenant un contraste plus fort sur les informations secondaires importantes, notamment le SKU, le prix d'achat, les statuts d'approvisionnement et les actions de ligne.
+
+L'ecran Emplacements et les actions destructives du stock utilisent aussi un contraste plus fort en mode clair pour garder une lecture correcte des boutons `Supprimer`, `Restaurer` et des textes secondaires.
 
 ## 6. Hors ligne et synchronisation
 
