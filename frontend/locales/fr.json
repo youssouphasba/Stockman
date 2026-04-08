@@ -2952,7 +2952,14 @@
     "email_channel_finance": "Finance",
     "email_channel_crm": "CRM",
     "email_channel_operations": "Opérations",
-    "email_channel_billing": "Facturation"
+    "email_channel_billing": "Facturation",
+    "email_step_1": "Activer le canal \"E-mail\" dans Canaux de réception.",
+    "email_step_2": "Choisir un seuil de sévérité minimum.",
+    "email_step_3": "Ajouter votre adresse dans Destinataires du compte → Par défaut.",
+    "example": "Exemple",
+    "emails_placeholder": "email1@entreprise.com, email2@entreprise.com",
+    "recipients": "Destinataires",
+    "store_emails_placeholder": "email1@boutique.com, email2@boutique.com"
   },
   "stock": {
     "reasons": {

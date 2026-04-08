@@ -54,14 +54,14 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   minimum_severity_for_email: 'critical' as 'info' | 'warning' | 'critical',
 };
 
-const NOTIFICATION_CONTACT_FIELDS: { key: keyof typeof DEFAULT_NOTIFICATION_CONTACTS; label: string; placeholder: string; requiredModule?: string }[] = [
-  { key: 'default', label: 'Par défaut', placeholder: 'direction@entreprise.com' },
-  { key: 'stock', label: 'Stock', placeholder: 'stock@entreprise.com', requiredModule: 'stock_management' },
-  { key: 'procurement', label: 'Appro', placeholder: 'appro@entreprise.com', requiredModule: 'suppliers' },
-  { key: 'finance', label: 'Finance', placeholder: 'finance@entreprise.com', requiredModule: 'accounting' },
-  { key: 'crm', label: 'CRM', placeholder: 'crm@entreprise.com', requiredModule: 'crm' },
-  { key: 'operations', label: 'Opérations', placeholder: 'ops@entreprise.com' },
-  { key: 'billing', label: 'Facturation', placeholder: 'billing@entreprise.com' },
+const NOTIFICATION_CONTACT_FIELDS: { key: keyof typeof DEFAULT_NOTIFICATION_CONTACTS; labelKey: string; placeholder: string; requiredModule?: string }[] = [
+  { key: 'default', labelKey: 'settings.email_channel_default', placeholder: 'direction@entreprise.com' },
+  { key: 'stock', labelKey: 'settings.email_channel_stock', placeholder: 'stock@entreprise.com', requiredModule: 'stock_management' },
+  { key: 'procurement', labelKey: 'settings.email_channel_procurement', placeholder: 'appro@entreprise.com', requiredModule: 'suppliers' },
+  { key: 'finance', labelKey: 'settings.email_channel_finance', placeholder: 'finance@entreprise.com', requiredModule: 'accounting' },
+  { key: 'crm', labelKey: 'settings.email_channel_crm', placeholder: 'crm@entreprise.com', requiredModule: 'crm' },
+  { key: 'operations', labelKey: 'settings.email_channel_operations', placeholder: 'ops@entreprise.com' },
+  { key: 'billing', labelKey: 'settings.email_channel_billing', placeholder: 'billing@entreprise.com' },
 ];
 
 type SettingsSectionKey =
@@ -575,8 +575,8 @@ export default function SettingsScreen() {
 
 
         <SettingsAccordionSection
-          title="Compte et application"
-          description="Abonnement, préférences personnelles et réglages de votre appareil."
+          title={t('settings.section_account')}
+          description={t('settings.section_account_desc')}
           icon="settings-outline"
           accentColor={colors.primary}
           expanded={expandedSections.accountAppGroup}
@@ -586,8 +586,8 @@ export default function SettingsScreen() {
         >
         {canManageBillingSettings && (
         <SettingsAccordionSection
-          title="Abonnement et facturation"
-          description="Plan actuel, changement de formule et contact de facturation."
+          title={t('settings.section_subscription')}
+          description={t('settings.section_subscription_desc')}
           icon="card-outline"
           accentColor={colors.warning}
           expanded={expandedSections.billing}
@@ -596,7 +596,7 @@ export default function SettingsScreen() {
           colors={colors}
           variant="nested"
         >
-          <Text style={styles.sectionTitle}>Abonnement</Text>
+          <Text style={styles.sectionTitle}>{t('settings.subscription_title')}</Text>
           <TouchableOpacity
             style={styles.supportRow}
             onPress={() => router.push('/(tabs)/subscription' as any)}
@@ -606,19 +606,19 @@ export default function SettingsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>{t('settings.my_subscription')}</Text>
-              <Text style={styles.settingDesc}>Consultez votre plan actuel, comparez les offres et restaurez vos achats.</Text>
+              <Text style={styles.settingDesc}>{t('settings.subscription_view_desc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
           <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm, borderBottomWidth: 0, marginTop: Spacing.md }]}>
-            <Text style={styles.settingLabel}>Contact de facturation</Text>
-            <Text style={styles.settingDesc}>Reçoit les mises à jour et informations d'abonnement du compte.</Text>
+            <Text style={styles.settingLabel}>{t('settings.billing_contact')}</Text>
+            <Text style={styles.settingDesc}>{t('settings.billing_contact_desc')}</Text>
             <TextInput
               style={styles.input}
               value={billingContactName}
               onChangeText={setBillingContactName}
-              placeholder="Nom du contact"
+              placeholder={t('settings.billing_name_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
@@ -646,15 +646,15 @@ export default function SettingsScreen() {
             >
               <Ionicons name="save-outline" size={18} color={colors.primary} />
               <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-                Enregistrer le contact
+                {t('settings.save_billing_contact')}
               </Text>
             </TouchableOpacity>
           </View>
         </SettingsAccordionSection>
         )}
         <SettingsAccordionSection
-          title="Profil et apparence"
-          description="Profil, thème, langue et accès au compte."
+          title={t('settings.section_profile')}
+          description={t('settings.section_profile_desc')}
           icon="person-outline"
           accentColor={colors.primary}
           expanded={expandedSections.profile}
@@ -703,8 +703,8 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
 
         <SettingsAccordionSection
-          title="Synchronisation"
-          description="État de connexion, dernière synchronisation et actions hors ligne."
+          title={t('settings.section_sync')}
+          description={t('settings.section_sync_desc')}
           icon="sync-outline"
           accentColor={colors.info}
           expanded={expandedSections.sync}
@@ -771,8 +771,8 @@ export default function SettingsScreen() {
 
         {canViewOrganizationGroup && (
         <SettingsAccordionSection
-          title="Organisation et pilotage"
-          description="Équipe, modules, accès avancés et réglages de gestion."
+          title={t('settings.section_org')}
+          description={t('settings.section_org_desc')}
           icon="business-outline"
           accentColor={colors.success}
           expanded={expandedSections.organizationGroup}
@@ -799,8 +799,8 @@ export default function SettingsScreen() {
         {/* Modules */}
         {canManageOrganizationSettings && (
         <SettingsAccordionSection
-          title="Modules visibles"
-          description="Activez ou désactivez les modules affichés dans l'application."
+          title={t('settings.section_modules')}
+          description={t('settings.section_modules_desc')}
           icon="grid-outline"
           accentColor={colors.success}
           expanded={expandedSections.organization}
@@ -828,8 +828,8 @@ export default function SettingsScreen() {
 
         {canViewStoreGroup && (
         <SettingsAccordionSection
-          title="Boutique active"
-          description="Nom, documents et paramètres liés au point de vente sélectionné."
+          title={t('settings.section_store')}
+          description={t('settings.section_store_desc')}
           icon="storefront-outline"
           accentColor={colors.info}
           expanded={expandedSections.storeGroup}
@@ -839,8 +839,8 @@ export default function SettingsScreen() {
         >
         {isOrgAdmin && currentStore && (
         <SettingsAccordionSection
-          title="Boutique · Identité"
-          description="Nom, adresse et identité du point de vente actuellement sélectionné."
+          title={t('settings.section_store_identity')}
+          description={t('settings.section_store_identity_desc')}
           icon="storefront-outline"
           accentColor={colors.info}
           expanded={expandedSections.storeIdentity}
@@ -849,21 +849,21 @@ export default function SettingsScreen() {
           colors={colors}
           variant="nested"
         >
-          <Text style={styles.settingDesc}>Mettez à jour le nom et ladresse de la boutique actuellement sélectionnée.</Text>
+          <Text style={styles.settingDesc}>{t('settings.store_identity_info')}</Text>
 
           <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
             <TextInput
               style={styles.input}
               value={storeName}
               onChangeText={setStoreName}
-              placeholder="Nom de la boutique"
+              placeholder={t('settings.store_name_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
               style={styles.input}
               value={storeAddress}
               onChangeText={setStoreAddress}
-              placeholder="Adresse"
+              placeholder={t('settings.store_address_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
           </View>
@@ -874,7 +874,7 @@ export default function SettingsScreen() {
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer ma boutique
+              {t('settings.save_store')}
             </Text>
           </TouchableOpacity>
         </SettingsAccordionSection>
@@ -882,8 +882,8 @@ export default function SettingsScreen() {
 
         {isOrgAdmin && currentStore && (
         <SettingsAccordionSection
-          title="Boutique · Documents"
-          description="Reçus et factures de la boutique active."
+          title={t('settings.section_store_docs')}
+          description={t('settings.section_store_docs_desc')}
           icon="document-text-outline"
           accentColor={colors.info}
           expanded={expandedSections.storeDocuments}
@@ -892,68 +892,68 @@ export default function SettingsScreen() {
           colors={colors}
           variant="nested"
         >
-          <Text style={styles.settingDesc}>Reçu et facture de la boutique active. Les règles avancées restent mieux gérées sur le web.</Text>
+          <Text style={styles.settingDesc}>{t('settings.store_docs_info')}</Text>
 
-          <Text style={[styles.sectionTitle, { marginTop: Spacing.sm, marginBottom: Spacing.sm }]}>Reçu</Text>
+          <Text style={[styles.sectionTitle, { marginTop: Spacing.sm, marginBottom: Spacing.sm }]}>{t('settings.receipt_title')}</Text>
           <View style={{ gap: Spacing.sm }}>
             <TextInput
               style={styles.input}
               value={receiptName}
               onChangeText={setReceiptName}
-              placeholder="Nom sur le reçu"
+              placeholder={t('settings.receipt_name_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
               style={styles.input}
               value={receiptFooter}
               onChangeText={setReceiptFooter}
-              placeholder="Pied de reçu"
+              placeholder={t('settings.receipt_footer_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
           </View>
 
-          <Text style={[styles.sectionTitle, { marginTop: Spacing.lg, marginBottom: Spacing.sm }]}>Factures</Text>
+          <Text style={[styles.sectionTitle, { marginTop: Spacing.lg, marginBottom: Spacing.sm }]}>{t('settings.invoice_title_section')}</Text>
           <View style={{ gap: Spacing.sm }}>
             <TextInput
               style={styles.input}
               value={invoiceName}
               onChangeText={setInvoiceName}
-              placeholder="Nom sur la facture"
+              placeholder={t('settings.invoice_name_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
               style={styles.input}
               value={invoiceAddress}
               onChangeText={setInvoiceAddress}
-              placeholder="Adresse de facturation"
+              placeholder={t('settings.invoice_address_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
               style={styles.input}
               value={invoiceLabel}
               onChangeText={setInvoiceLabel}
-              placeholder="Type de facture"
+              placeholder={t('settings.invoice_type_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
               style={styles.input}
               value={invoicePrefix}
               onChangeText={setInvoicePrefix}
-              placeholder="Préfixe"
+              placeholder={t('settings.invoice_prefix_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
               style={styles.input}
               value={invoicePaymentTerms}
               onChangeText={setInvoicePaymentTerms}
-              placeholder="Conditions de paiement"
+              placeholder={t('settings.invoice_payment_terms_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
             <TextInput
               style={styles.input}
               value={invoiceFooter}
               onChangeText={setInvoiceFooter}
-              placeholder="Pied de facture"
+              placeholder={t('settings.invoice_footer_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
           </View>
@@ -964,7 +964,7 @@ export default function SettingsScreen() {
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer les documents
+              {t('settings.save_documents')}
             </Text>
           </TouchableOpacity>
         </SettingsAccordionSection>
@@ -989,8 +989,8 @@ export default function SettingsScreen() {
         {/* TVA / Taxes */}
         {isOrgAdmin && (
         <SettingsAccordionSection
-          title="Fiscalité"
-          description="TVA, mode de calcul et taux appliqué au compte."
+          title={t('settings.section_tax')}
+          description={t('settings.section_tax_desc')}
           icon="calculator-outline"
           accentColor={colors.warning}
           expanded={expandedSections.tax}
@@ -1083,8 +1083,8 @@ export default function SettingsScreen() {
         )}
 
         <SettingsAccordionSection
-          title="Alertes & Notifications"
-          description="Canaux de réception, seuils de sévérité et destinataires e-mail."
+          title={t('settings.section_alerts')}
+          description={t('settings.section_alerts_desc')}
           icon="notifications-outline"
           accentColor={colors.warning}
           expanded={expandedSections.alertsGroup}
@@ -1097,12 +1097,12 @@ export default function SettingsScreen() {
         <View style={[styles.feedbackBanner, { marginBottom: Spacing.md, borderColor: colors.warning + '40', backgroundColor: colors.warning + '12', flexDirection: 'column', alignItems: 'flex-start' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <Ionicons name="mail-outline" size={16} color={colors.warning} />
-            <Text style={[styles.settingLabel, { color: colors.warning }]}>Pour recevoir les alertes par e-mail</Text>
+            <Text style={[styles.settingLabel, { color: colors.warning }]}>{t('settings.email_alert_setup_label')}</Text>
           </View>
           {[
-            { n: '1', text: 'Activer le canal "E-mail" dans Canaux de réception.' },
-            { n: '2', text: 'Choisir un seuil de sévérité minimum.' },
-            { n: '3', text: 'Ajouter votre adresse dans Destinataires du compte → Par défaut.' },
+            { n: '1', text: t('settings.email_step_1') },
+            { n: '2', text: t('settings.email_step_2') },
+            { n: '3', text: t('settings.email_step_3') },
           ].map((step) => (
             <View key={step.n} style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
               <Text style={[styles.settingDesc, { fontWeight: '700', color: colors.warning, minWidth: 16 }]}>{step.n}.</Text>
@@ -1113,8 +1113,8 @@ export default function SettingsScreen() {
 
         {/* ── 1. Canaux de réception ── */}
         <SettingsAccordionSection
-          title="Canaux de réception"
-          description="Comment recevez-vous les alertes ?"
+          title={t('settings.section_channels')}
+          description={t('settings.section_channels_desc')}
           icon="megaphone-outline"
           accentColor={colors.info}
           expanded={expandedSections.notifications}
@@ -1124,13 +1124,13 @@ export default function SettingsScreen() {
           variant="nested"
         >
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
-            Activez les canaux sur lesquels vous souhaitez recevoir les alertes (rupture de stock, stock bas, rappels, etc.).
+            {t('settings.channels_intro')}
           </Text>
 
           {[
-            { key: 'in_app', label: "Dans l'application", desc: "Visibles dans le centre d'alertes de l'app." },
-            { key: 'push', label: 'Push mobile', desc: 'Notification sur votre téléphone même si l\'app est fermée.' },
-            { key: 'email', label: 'E-mail', desc: 'Envoyé aux destinataires configurés ci-dessous (ou à votre adresse par défaut).' },
+            { key: 'in_app', label: t('settings.channel_in_app'), desc: t('settings.channel_in_app_desc') },
+            { key: 'push', label: t('settings.channel_push'), desc: t('settings.channel_push_desc') },
+            { key: 'email', label: t('settings.channel_email'), desc: t('settings.channel_email_desc') },
           ].map((item, index, array) => (
             <View
               key={item.key}
@@ -1158,8 +1158,8 @@ export default function SettingsScreen() {
           ))}
 
           <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
-            <Text style={styles.settingLabel}>Sévérité minimale pour les push</Text>
-            <Text style={[styles.settingDesc, { marginBottom: Spacing.xs }]}>Vous ne recevrez un push que si l'alerte atteint ce niveau.</Text>
+            <Text style={styles.settingLabel}>{t('settings.push_severity_label')}</Text>
+            <Text style={[styles.settingDesc, { marginBottom: Spacing.xs }]}>{t('settings.push_severity_desc')}</Text>
             <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
               {(['info', 'warning', 'critical'] as const).map((severity) => (
                 <TouchableOpacity
@@ -1180,7 +1180,7 @@ export default function SettingsScreen() {
                   }
                 >
                   <Text style={{ color: notificationPreferences.minimum_severity_for_push === severity ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
-                    {severity === 'info' ? 'Info' : severity === 'warning' ? 'Alerte' : 'Critique'}
+                    {severity === 'info' ? 'Info' : severity === 'warning' ? t('settings.severity_warning') : t('settings.severity_critical')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -1188,8 +1188,8 @@ export default function SettingsScreen() {
           </View>
 
           <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
-            <Text style={styles.settingLabel}>Sévérité minimale pour les e-mails</Text>
-            <Text style={[styles.settingDesc, { marginBottom: Spacing.xs }]}>Vous ne recevrez un e-mail que si l'alerte atteint ce niveau.</Text>
+            <Text style={styles.settingLabel}>{t('settings.email_severity_label')}</Text>
+            <Text style={[styles.settingDesc, { marginBottom: Spacing.xs }]}>{t('settings.email_severity_desc')}</Text>
             <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
               {(['info', 'warning', 'critical'] as const).map((severity) => (
                 <TouchableOpacity
@@ -1210,7 +1210,7 @@ export default function SettingsScreen() {
                   }
                 >
                   <Text style={{ color: notificationPreferences.minimum_severity_for_email === severity ? colors.primary : colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>
-                    {severity === 'info' ? 'Info' : severity === 'warning' ? 'Alerte' : 'Critique'}
+                    {severity === 'info' ? 'Info' : severity === 'warning' ? t('settings.severity_warning') : t('settings.severity_critical')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -1223,7 +1223,7 @@ export default function SettingsScreen() {
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer mes préférences
+              {t('settings.save_preferences')}
             </Text>
           </TouchableOpacity>
 
@@ -1238,7 +1238,7 @@ export default function SettingsScreen() {
               <Ionicons name="paper-plane-outline" size={18} color={colors.primary} />
             )}
             <Text style={styles.outlineButtonText}>
-              {testPushSending ? 'Envoi en cours...' : 'Envoyer une notification de test'}
+              {testPushSending ? t('settings.test_push_sending') : t('settings.test_push_btn')}
             </Text>
           </TouchableOpacity>
         </SettingsAccordionSection>
@@ -1246,8 +1246,8 @@ export default function SettingsScreen() {
         {/* ── 2. Destinataires e-mail du compte ── */}
         {canManageAlertSettings && (
         <SettingsAccordionSection
-          title="Destinataires du compte"
-          description="Qui reçoit les e-mails d'alerte pour tout le compte ?"
+          title={t('settings.section_account_recipients')}
+          description={t('settings.section_account_recipients_desc')}
           icon="mail-outline"
           accentColor={colors.warning}
           expanded={expandedSections.accountAlerts}
@@ -1257,18 +1257,18 @@ export default function SettingsScreen() {
           variant="nested"
         >
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
-            Ces adresses reçoivent les alertes e-mail de toutes vos boutiques. Vous pouvez séparer par domaine (stock, finance, etc.). Si aucune adresse n'est renseignée, les alertes seront envoyées à votre adresse de connexion.
+            {t('settings.account_recipients_intro')}
           </Text>
           <View style={{ gap: Spacing.sm }}>
             {NOTIFICATION_CONTACT_FIELDS.filter((field) => !field.requiredModule || settingsData?.modules?.[field.requiredModule]).map((field) => (
               <View key={field.key} style={{ gap: 6 }}>
-                <Text style={styles.settingLabel}>{field.label}</Text>
-                <Text style={styles.settingDesc}>Exemple : {field.placeholder}</Text>
+                <Text style={styles.settingLabel}>{t(field.labelKey)}</Text>
+                <Text style={styles.settingDesc}>{t('settings.example')}: {field.placeholder}</Text>
                 <TextInput
                   style={styles.input}
                   value={(notificationContacts[field.key] || []).join(', ')}
                   onChangeText={(value) => updateNotificationGroup(setNotificationContacts, field.key, value)}
-                  placeholder="email1@entreprise.com, email2@entreprise.com"
+                  placeholder={t('settings.emails_placeholder')}
                   placeholderTextColor={colors.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -1282,7 +1282,7 @@ export default function SettingsScreen() {
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer les destinataires du compte
+              {t('settings.save_account_recipients')}
             </Text>
           </TouchableOpacity>
         </SettingsAccordionSection>
@@ -1291,8 +1291,8 @@ export default function SettingsScreen() {
         {/* ── 3. Destinataires e-mail de la boutique ── */}
         {canManageAlertSettings && currentStore && (
         <SettingsAccordionSection
-          title={`Destinataires : ${currentStore.name || 'Boutique active'}`}
-          description="Surcharge les destinataires du compte pour cette boutique uniquement."
+          title={`${t('settings.recipients')}: ${currentStore.name || t('settings.section_store')}`}
+          description={t('settings.section_store_recipients_desc')}
           icon="storefront-outline"
           accentColor={colors.info}
           expanded={expandedSections.storeAlerts}
@@ -1302,18 +1302,18 @@ export default function SettingsScreen() {
           variant="nested"
         >
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
-            Si renseignés, ces destinataires remplaceront ceux du compte pour les alertes de cette boutique. Laissez vide pour utiliser les destinataires du compte.
+            {t('settings.store_recipients_intro')}
           </Text>
           <View style={{ gap: Spacing.sm }}>
             {NOTIFICATION_CONTACT_FIELDS.filter((field) => !field.requiredModule || settingsData?.modules?.[field.requiredModule]).map((field) => (
               <View key={field.key} style={{ gap: 6 }}>
-                <Text style={styles.settingLabel}>{field.label}</Text>
-                <Text style={styles.settingDesc}>Exemple : {field.placeholder}</Text>
+                <Text style={styles.settingLabel}>{t(field.labelKey)}</Text>
+                <Text style={styles.settingDesc}>{t('settings.example')}: {field.placeholder}</Text>
                 <TextInput
                   style={styles.input}
                   value={(storeNotificationContacts[field.key] || []).join(', ')}
                   onChangeText={(value) => updateNotificationGroup(setStoreNotificationContacts, field.key, value)}
-                  placeholder="email1@boutique.com, email2@boutique.com"
+                  placeholder={t('settings.store_emails_placeholder')}
                   placeholderTextColor={colors.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -1327,7 +1327,7 @@ export default function SettingsScreen() {
           >
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              Enregistrer les destinataires de la boutique
+              {t('settings.save_store_recipients')}
             </Text>
           </TouchableOpacity>
         </SettingsAccordionSection>
@@ -1337,8 +1337,8 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
 
         <SettingsAccordionSection
-          title="Support et incidents"
-          description="Guides, assistance, contact et signalement d'un incident."
+          title={t('settings.section_support')}
+          description={t('settings.section_support_desc')}
           icon="help-circle-outline"
           accentColor={colors.info}
           expanded={expandedSections.supportGroup}
@@ -1348,8 +1348,8 @@ export default function SettingsScreen() {
         >
         {/* Support */}
         <SettingsAccordionSection
-          title="Assistance"
-          description="Centre d'aide, assistant IA et contact rapide."
+          title={t('settings.section_assistance')}
+          description={t('settings.section_assistance_desc')}
           icon="help-circle-outline"
           accentColor={colors.info}
           expanded={expandedSections.support}
@@ -1391,8 +1391,8 @@ export default function SettingsScreen() {
 
         {/* Signaler un incident */}
         <SettingsAccordionSection
-          title="Déclarer un incident"
-          description="Déclare un incident de paiement, produit, service ou livraison."
+          title={t('settings.section_incident')}
+          description={t('settings.section_incident_desc')}
           icon="warning-outline"
           accentColor={colors.danger}
           expanded={expandedSections.incident}
@@ -1444,8 +1444,8 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
 
         <SettingsAccordionSection
-          title="Sécurité, légal et données"
-          description="Protection de l'accès, informations légales et opérations sensibles."
+          title={t('settings.section_security')}
+          description={t('settings.section_security_desc')}
           icon="shield-checkmark-outline"
           accentColor={colors.warning}
           expanded={expandedSections.securityGroup}
@@ -1455,8 +1455,8 @@ export default function SettingsScreen() {
         >
         {/* Security */}
         <SettingsAccordionSection
-          title="Sécurité du compte"
-          description="Code PIN, biométrie et protection locale de l'application."
+          title={t('settings.section_account_security')}
+          description={t('settings.section_account_security_desc')}
           icon="shield-checkmark-outline"
           accentColor={colors.warning}
           expanded={expandedSections.security}
@@ -1498,8 +1498,8 @@ export default function SettingsScreen() {
 
         {/* About */}
         <SettingsAccordionSection
-          title="Informations légales"
-          description="Version de l'application, conditions d'utilisation et politique de confidentialité."
+          title={t('settings.section_legal')}
+          description={t('settings.section_legal_desc')}
           icon="information-circle-outline"
           accentColor={colors.info}
           expanded={expandedSections.legal}
@@ -1533,8 +1533,8 @@ export default function SettingsScreen() {
 
         {/* GDPR - Danger Zone */}
         <SettingsAccordionSection
-          title="Données et suppression"
-          description="Export de données et suppression définitive du compte."
+          title={t('settings.section_data')}
+          description={t('settings.section_data_desc')}
           icon="warning-outline"
           accentColor={colors.danger}
           expanded={expandedSections.data}

@@ -1999,7 +1999,14 @@
     "email_channel_finance": "Finanças",
     "email_channel_crm": "CRM",
     "email_channel_operations": "Operações",
-    "email_channel_billing": "Faturação"
+    "email_channel_billing": "Faturação",
+    "email_step_1": "Ativar o canal \"Email\" em Canais de receção.",
+    "email_step_2": "Escolher um limiar de severidade mínimo.",
+    "email_step_3": "Adicionar o seu endereço em Destinatários da conta → Padrão.",
+    "example": "Exemplo",
+    "emails_placeholder": "email1@empresa.com, email2@empresa.com",
+    "recipients": "Destinatários",
+    "store_emails_placeholder": "email1@loja.com, email2@loja.com"
   },
   "stock": {
     "reasons": {

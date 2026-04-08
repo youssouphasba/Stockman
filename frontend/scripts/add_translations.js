@@ -207,7 +207,14 @@ const NEW_KEYS = {
       email_channel_finance: "Finance",
       email_channel_crm: "CRM",
       email_channel_operations: "Operations",
-      email_channel_billing: "Billing"
+      email_channel_billing: "Billing",
+      email_step_1: "Enable the \"Email\" channel in Receiving channels.",
+      email_step_2: "Choose a minimum severity threshold.",
+      email_step_3: "Add your address in Account recipients → Default.",
+      example: "Example",
+      emails_placeholder: "email1@company.com, email2@company.com",
+      recipients: "Recipients",
+      store_emails_placeholder: "email1@store.com, email2@store.com"
     },
     fr: {
       section_account: "Compte et application",
@@ -325,7 +332,14 @@ const NEW_KEYS = {
       email_channel_finance: "Finance",
       email_channel_crm: "CRM",
       email_channel_operations: "Opérations",
-      email_channel_billing: "Facturation"
+      email_channel_billing: "Facturation",
+      email_step_1: "Activer le canal \"E-mail\" dans Canaux de réception.",
+      email_step_2: "Choisir un seuil de sévérité minimum.",
+      email_step_3: "Ajouter votre adresse dans Destinataires du compte → Par défaut.",
+      example: "Exemple",
+      emails_placeholder: "email1@entreprise.com, email2@entreprise.com",
+      recipients: "Destinataires",
+      store_emails_placeholder: "email1@boutique.com, email2@boutique.com"
     }
   },
   locations: {
@@ -571,7 +585,11 @@ const TRANSLATIONS = {
       emails_store_saved: "Emails de tienda guardados.", emails_store_error: "Error al guardar emails de tienda.",
       store_updated: "Tienda actualizada.", store_update_error: "Error al actualizar tienda.",
       email_channel_default: "Por defecto", email_channel_stock: "Stock", email_channel_procurement: "Compras",
-      email_channel_finance: "Finanzas", email_channel_crm: "CRM", email_channel_operations: "Operaciones", email_channel_billing: "Facturación"
+      email_channel_finance: "Finanzas", email_channel_crm: "CRM", email_channel_operations: "Operaciones", email_channel_billing: "Facturación",
+      email_step_1: "Activar el canal \"Email\" en Canales de recepción.", email_step_2: "Elegir un umbral de severidad mínimo.",
+      email_step_3: "Añadir su dirección en Destinatarios de la cuenta → Por defecto.",
+      example: "Ejemplo", emails_placeholder: "email1@empresa.com, email2@empresa.com",
+      recipients: "Destinatarios", store_emails_placeholder: "email1@tienda.com, email2@tienda.com"
     },
     locations: {
       title: "Ubicaciones", intro: "Organice su stock como en la realidad: pasillos, zonas, estantes o cualquier estructura.",
@@ -688,7 +706,11 @@ const TRANSLATIONS = {
       emails_store_saved: "Emails da loja guardados.", emails_store_error: "Erro ao guardar emails da loja.",
       store_updated: "Loja atualizada.", store_update_error: "Erro ao atualizar loja.",
       email_channel_default: "Padrão", email_channel_stock: "Stock", email_channel_procurement: "Compras",
-      email_channel_finance: "Finanças", email_channel_crm: "CRM", email_channel_operations: "Operações", email_channel_billing: "Faturação"
+      email_channel_finance: "Finanças", email_channel_crm: "CRM", email_channel_operations: "Operações", email_channel_billing: "Faturação",
+      email_step_1: "Ativar o canal \"Email\" em Canais de receção.", email_step_2: "Escolher um limiar de severidade mínimo.",
+      email_step_3: "Adicionar o seu endereço em Destinatários da conta → Padrão.",
+      example: "Exemplo", emails_placeholder: "email1@empresa.com, email2@empresa.com",
+      recipients: "Destinatários", store_emails_placeholder: "email1@loja.com, email2@loja.com"
     },
     locations: {
       title: "Localizações", intro: "Organize o seu stock: corredores, zonas, prateleiras ou qualquer estrutura.",
@@ -761,7 +783,11 @@ const TRANSLATIONS = {
       section_alerts: "التنبيهات والإشعارات", section_support: "الدعم والحوادث",
       section_security: "الأمان والقانون والبيانات",
       modules_updated: "تم تحديث الوحدات.", store_updated: "تم تحديث المتجر.",
-      save_preferences: "حفظ التفضيلات", save_documents: "حفظ المستندات", save_store: "حفظ متجري"
+      save_preferences: "حفظ التفضيلات", save_documents: "حفظ المستندات", save_store: "حفظ متجري",
+      email_step_1: "تفعيل قناة \"البريد الإلكتروني\" في قنوات الاستقبال.", email_step_2: "اختيار حد أدنى للخطورة.",
+      email_step_3: "إضافة عنوانك في مستلمو الحساب → افتراضي.",
+      example: "مثال", emails_placeholder: "email1@company.com, email2@company.com",
+      recipients: "المستلمون", store_emails_placeholder: "email1@store.com, email2@store.com"
     },
     locations: {
       title: "المواقع", intro: "نظم مخزونك: ممرات، مناطق، رفوف أو أي هيكل آخر.",
@@ -806,7 +832,11 @@ const TRANSLATIONS = {
       section_team: "团队和权限", section_store: "当前门店", section_alerts: "提醒和通知",
       section_support: "支持和事件", section_security: "安全、法律和数据",
       modules_updated: "模块已更新。", store_updated: "门店已更新。",
-      save_preferences: "保存偏好设置", save_documents: "保存文档", save_store: "保存我的门店"
+      save_preferences: "保存偏好设置", save_documents: "保存文档", save_store: "保存我的门店",
+      email_step_1: "在接收渠道中启用\"电子邮件\"渠道。", email_step_2: "选择最低严重性阈值。",
+      email_step_3: "在账户收件人→默认中添加您的地址。",
+      example: "示例", emails_placeholder: "email1@company.com, email2@company.com",
+      recipients: "收件人", store_emails_placeholder: "email1@store.com, email2@store.com"
     },
     locations: {
       title: "位置", intro: "像现实中一样组织您的库存：通道、区域、货架或任何其他结构。",
@@ -849,7 +879,11 @@ const TRANSLATIONS = {
       section_team: "Команда и доступ", section_store: "Активный магазин", section_alerts: "Оповещения и уведомления",
       section_support: "Поддержка и инциденты", section_security: "Безопасность, юридическая информация и данные",
       modules_updated: "Модули обновлены.", store_updated: "Магазин обновлён.",
-      save_preferences: "Сохранить настройки", save_documents: "Сохранить документы", save_store: "Сохранить магазин"
+      save_preferences: "Сохранить настройки", save_documents: "Сохранить документы", save_store: "Сохранить магазин",
+      email_step_1: "Активировать канал «Email» в Каналах получения.", email_step_2: "Выбрать минимальный уровень серьёзности.",
+      email_step_3: "Добавить ваш адрес в Получатели аккаунта → По умолчанию.",
+      example: "Пример", emails_placeholder: "email1@company.com, email2@company.com",
+      recipients: "Получатели", store_emails_placeholder: "email1@store.com, email2@store.com"
     },
     locations: {
       title: "Расположения", intro: "Организуйте свой склад: ряды, зоны, полки или любую другую структуру.",
