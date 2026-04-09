@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -33,32 +33,32 @@ export default function StockHistory() {
         : `${filters.days} derniers jours`;
 
     useEffect(() => {
-        loadMovements();
-    }, [filter, filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange, page]);
+        const loadMovements = async () => {
+            setLoading(true);
+            try {
+                const res = await stockApi.getMovements(
+                    undefined,
+                    hasCustomRange ? undefined : filters.days,
+                    hasCustomRange ? filters.startDate : undefined,
+                    hasCustomRange ? filters.endDate : undefined,
+                    page * limit,
+                    limit,
+                    filters.storeId || undefined,
+                    filters.categoryId || undefined,
+                    filters.supplierId || undefined,
+                );
+                const items = res.items || res;
+                setMovements(items);
+                setTotal(res.total || items.length);
+            } catch (err) {
+                console.error('Error loading movements', err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const loadMovements = async () => {
-        setLoading(true);
-        try {
-            const res = await stockApi.getMovements(
-                undefined,
-                hasCustomRange ? undefined : filters.days,
-                hasCustomRange ? filters.startDate : undefined,
-                hasCustomRange ? filters.endDate : undefined,
-                page * limit,
-                limit,
-                filters.storeId || undefined,
-                filters.categoryId || undefined,
-                filters.supplierId || undefined,
-            );
-            const items = res.items || res;
-            setMovements(items);
-            setTotal(res.total || items.length);
-        } catch (err) {
-            console.error('Error loading movements', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        loadMovements();
+    }, [filter, filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange, hasCustomRange, page]);
 
     const filteredMovements = movements
         .filter((movement) => filter === 'all' ? true : movement.type === filter)
@@ -69,6 +69,7 @@ export default function StockHistory() {
 
     const movementsIn = filteredMovements.filter((movement) => movement.type === 'in').reduce((sum, movement) => sum + (movement.quantity || 0), 0);
     const movementsOut = filteredMovements.filter((movement) => movement.type === 'out').reduce((sum, movement) => sum + (movement.quantity || 0), 0);
+    const totalAdjustments = filteredMovements.filter((movement) => movement.type === 'adjustment').length;
     const uniqueProducts = new Set(filteredMovements.map((movement) => movement.product_id)).size;
 
     const getTypeColor = (type: string) => {
@@ -109,39 +110,39 @@ export default function StockHistory() {
 
     const stockHistorySteps: GuideStep[] = [
         {
-            title: "Rôle de l'historique de stock",
-            content: "L'historique de stock est votre journal d'audit complet. Il trace chaque mouvement de stock : entrées fournisseurs, sorties de vente, ajustements manuels, transferts entre boutiques et corrections d'inventaire. Utile pour comprendre comment votre stock évolue et détecter des anomalies.",
+            title: 'Role de l historique de stock',
+            content: 'L historique de stock est votre journal d audit complet. Il trace chaque mouvement : entrees fournisseurs, sorties de vente, ajustements manuels, transferts entre boutiques et corrections d inventaire.',
         },
         {
-            title: "Cartes KPI",
-            content: "Les 4 cartes en haut donnent un aperçu rapide de l'activité de stock sur la période.",
+            title: 'Cartes KPI',
+            content: 'Les 4 cartes en haut donnent un apercu rapide de l activite. Elles servent aussi de filtres rapides sur le tableau.',
             details: [
-                { label: "Total mouvements", description: "Nombre total d'opérations de stock enregistrées sur la période.", type: 'card' as const },
-                { label: "Entrées", description: "Nombre de mouvements d'entrée (réceptions fournisseurs, retours clients, corrections positives).", type: 'card' as const },
-                { label: "Sorties", description: "Nombre de mouvements de sortie (ventes, pertes, casses, corrections négatives).", type: 'card' as const },
-                { label: "Produits uniques", description: "Nombre de références distinctes ayant eu un mouvement sur la période.", type: 'card' as const },
+                { label: 'Mouvements', description: 'Revient a la vue complete de tous les mouvements.', type: 'card' as const },
+                { label: 'Entrees', description: 'Filtre uniquement les entrees de stock.', type: 'card' as const },
+                { label: 'Sorties', description: 'Filtre uniquement les sorties de stock.', type: 'card' as const },
+                { label: 'Ajustements', description: 'Filtre uniquement les ajustements manuels ou automatiques.', type: 'card' as const },
             ],
         },
         {
-            title: "Filtres",
-            content: "Affinez la liste pour trouver exactement ce que vous cherchez.",
+            title: 'Filtres',
+            content: 'Affinez la liste pour trouver exactement ce que vous cherchez.',
             details: [
-                { label: "Barre de recherche", description: "Recherche par nom de produit ou mot-clé dans les raisons de mouvement.", type: 'filter' as const },
-                { label: "Boutons de type (Tous / Entrées / Sorties / Ajustements)", description: "Filtrez par type de mouvement. 'Tous' affiche l'intégralité du journal.", type: 'filter' as const },
-                { label: "Filtre de période", description: "Limitez l'affichage à une plage de dates. Par défaut : 30 derniers jours.", type: 'filter' as const },
+                { label: 'Barre de recherche', description: 'Recherche par nom de produit ou mot cle dans les raisons de mouvement.', type: 'filter' as const },
+                { label: 'Boutons de type', description: 'Filtrent la liste par type de mouvement : tous, entrees, sorties ou ajustements.', type: 'filter' as const },
+                { label: 'Filtre de periode', description: 'Limite l affichage a une plage de dates. Par defaut : 30 derniers jours.', type: 'filter' as const },
             ],
         },
         {
-            title: "Tableau des mouvements",
-            content: "Chaque ligne du tableau représente un mouvement de stock avec toutes les informations associées.",
+            title: 'Tableau des mouvements',
+            content: 'Chaque ligne du tableau represente un mouvement de stock avec toutes les informations associees.',
             details: [
-                { label: "Date & heure", description: "Horodatage exact du mouvement.", type: 'info' as const },
-                { label: "Produit", description: "Nom du produit concerné avec son initiale en avatar.", type: 'info' as const },
-                { label: "Type de mouvement", description: "Badge coloré : vert (entrée), rouge (sortie), orange (ajustement).", type: 'info' as const },
-                { label: "Quantité", description: "La quantité du mouvement. En vert pour les entrées, rouge pour les sorties.", type: 'info' as const },
-                { label: "Auteur", description: "L'utilisateur ou le système qui a déclenché le mouvement (vente POS, import, modification manuelle).", type: 'info' as const },
-                { label: "Raison / Notes", description: "La justification saisie lors de l'ajustement manuel.", type: 'info' as const },
-                { label: "Export CSV", description: "Télécharge l'historique filtré au format CSV pour une analyse dans Excel.", type: 'button' as const },
+                { label: 'Date et heure', description: 'Horodatage exact du mouvement.', type: 'info' as const },
+                { label: 'Produit', description: 'Nom du produit concerne avec son initiale en avatar.', type: 'info' as const },
+                { label: 'Mouvement', description: 'Badge colore : vert pour une entree, rouge pour une sortie, orange pour un ajustement.', type: 'info' as const },
+                { label: 'Quantite', description: 'Quantite du mouvement, affichee avec un signe quand c est utile.', type: 'info' as const },
+                { label: 'Auteur', description: 'Utilisateur ou systeme ayant declenche le mouvement.', type: 'info' as const },
+                { label: 'Raison / notes', description: 'Contexte du mouvement saisi par l utilisateur ou genere automatiquement.', type: 'info' as const },
+                { label: 'Export CSV', description: 'Telecharge l historique filtre au format CSV.', type: 'button' as const },
             ],
         },
     ];
@@ -153,9 +154,9 @@ export default function StockHistory() {
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                         <Clock className="text-primary" />
-                        Historique des Stocks
+                        Historique des stocks
                     </h1>
-                    <p className="text-slate-400">Journal d'audit filtré par période, magasin, catégorie et fournisseur.</p>
+                    <p className="text-slate-400">Journal d audit filtre par periode, magasin, categorie et fournisseur.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="relative">
@@ -179,10 +180,10 @@ export default function StockHistory() {
             </header>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
-                <KpiCard icon={Clock} label="Mouvements" value={total.toLocaleString('fr-FR')} hint={periodLabel} />
-                <KpiCard icon={ArrowUpCircle} label="Entrées" value={movementsIn.toLocaleString('fr-FR')} hint="Quantités reçues / ajustées" />
-                <KpiCard icon={ArrowDownCircle} label="Sorties" value={movementsOut.toLocaleString('fr-FR')} hint="Quantités consommées / vendues" />
-                <KpiCard icon={Boxes} label="Produits touchés" value={uniqueProducts.toLocaleString('fr-FR')} hint="Références impliquées" />
+                <KpiCard icon={Clock} label="Mouvements" value={total.toLocaleString('fr-FR')} hint={filter === 'all' ? 'Vue complete active' : periodLabel} onClick={() => { setFilter('all'); setPage(0); }} />
+                <KpiCard icon={ArrowUpCircle} label="Entrees" value={movementsIn.toLocaleString('fr-FR')} hint="Quantites recues / ajustees" onClick={() => { setFilter('in'); setPage(0); }} />
+                <KpiCard icon={ArrowDownCircle} label="Sorties" value={movementsOut.toLocaleString('fr-FR')} hint="Quantites consommees / vendues" onClick={() => { setFilter('out'); setPage(0); }} />
+                <KpiCard icon={Boxes} label="Ajustements" value={totalAdjustments.toLocaleString('fr-FR')} hint={`${uniqueProducts.toLocaleString('fr-FR')} references touchees`} onClick={() => { setFilter('adjustment'); setPage(0); }} />
             </div>
 
             <div className="glass-card overflow-hidden">
@@ -208,10 +209,10 @@ export default function StockHistory() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-white/5">
-                                <th className="px-6 py-4">Date & heure</th>
+                                <th className="px-6 py-4">Date et heure</th>
                                 <th className="px-6 py-4">Produit</th>
                                 <th className="px-6 py-4">Mouvement</th>
-                                <th className="px-6 py-4">Quantité</th>
+                                <th className="px-6 py-4">Quantite</th>
                                 <th className="px-6 py-4">Auteur</th>
                                 <th className="px-6 py-4">Raison / notes</th>
                             </tr>
@@ -225,7 +226,7 @@ export default function StockHistory() {
                                 ))
                             ) : filteredMovements.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center text-slate-500 italic">Aucun mouvement enregistré.</td>
+                                    <td colSpan={6} className="px-6 py-20 text-center text-slate-500 italic">Aucun mouvement enregistre.</td>
                                 </tr>
                             ) : filteredMovements.map((movement) => (
                                 <tr key={movement.movement_id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
@@ -255,7 +256,7 @@ export default function StockHistory() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-slate-400 font-medium">{movement.user_name || 'Systeme'}</td>
-                                    <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate">{movement.reason || 'Operation stock'}</td>
+                                    <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate">{movement.reason || 'Operation de stock'}</td>
                                 </tr>
                             ))}
                         </tbody>

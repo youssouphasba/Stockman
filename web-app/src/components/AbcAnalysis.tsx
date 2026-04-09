@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 
-import React, { useEffect, useState } from 'react';
-import { BarChart3, Boxes, Search, TrendingUp, Link2 } from 'lucide-react';
-import { analytics as analyticsApi, AnalyticsStockAbc, AnalyticsStockAbcItem, ai as aiApi } from '../services/api';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BarChart3, Boxes, Link2, Search, TrendingUp } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { ai as aiApi, analytics as analyticsApi, AnalyticsStockAbc, AnalyticsStockAbcItem } from '../services/api';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
@@ -19,36 +20,88 @@ export default function AbcAnalysis() {
     const [abcData, setAbcData] = useState<AnalyticsStockAbc | null>(null);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [selectedClass, setSelectedClass] = useState<'all' | 'A' | 'B' | 'C'>('all');
     const [correlations, setCorrelations] = useState<any>(null);
     const { filters } = useAnalyticsFilters();
     const hasCustomRange = filters.useCustomRange && !!filters.startDate && !!filters.endDate;
-    const analyticsFilters = {
+    const analyticsFilters = useMemo(() => ({
         ...(hasCustomRange ? { start_date: filters.startDate, end_date: filters.endDate } : { days: filters.days }),
         store_id: filters.storeId || undefined,
         category_id: filters.categoryId || undefined,
         supplier_id: filters.supplierId || undefined,
-    };
+    }), [filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, hasCustomRange]);
     const periodLabel = hasCustomRange
         ? `du ${new Date(filters.startDate).toLocaleDateString('fr-FR')} au ${new Date(filters.endDate).toLocaleDateString('fr-FR')}`
         : `sur ${filters.days} jours`;
 
-    useEffect(() => {
-        loadAbc();
-    }, [filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange]);
+    const allProducts = abcData ? [
+        ...(abcData.classes.A || []),
+        ...(abcData.classes.B || []),
+        ...(abcData.classes.C || []),
+    ] : [];
 
-    const loadAbc = async () => {
-        setLoading(true);
-        try {
-            const response = await analyticsApi.getStockAbc(analyticsFilters);
-            setAbcData(response);
-        } catch (err) {
-            console.error('Error loading ABC analysis', err);
-        } finally {
-            setLoading(false);
-        }
-        // Vague 5: load product correlations in background
-        aiApi.productCorrelations().then(res => setCorrelations(res)).catch(() => {});
-    };
+    const products = allProducts.filter((product) => {
+        const matchesSearch = (product.name || '').toLowerCase().includes(search.toLowerCase());
+        const matchesClass = selectedClass === 'all' || product.class === selectedClass;
+        return matchesSearch && matchesClass;
+    });
+
+    const abcChartData = useMemo(() => (['A', 'B', 'C'] as const).map((classe) => {
+        const classProducts = abcData?.classes?.[classe] || [];
+        return {
+            name: `Classe ${classe}`,
+            classe,
+            produits: classProducts.length,
+            chiffreAffaires: classProducts.reduce((sum, product) => sum + (product.revenue || 0), 0),
+        };
+    }), [abcData]);
+
+    useEffect(() => {
+        const loadAbc = async () => {
+            setLoading(true);
+            try {
+                const response = await analyticsApi.getStockAbc(analyticsFilters);
+                setAbcData(response);
+            } catch (err) {
+                console.error('Error loading ABC analysis', err);
+            } finally {
+                setLoading(false);
+            }
+
+            aiApi.productCorrelations().then((res) => setCorrelations(res)).catch(() => {});
+        };
+
+        loadAbc();
+    }, [analyticsFilters, filters.useCustomRange]);
+
+    const abcSteps: GuideStep[] = [
+        {
+            title: 'Role de l analyse ABC',
+            content: 'L analyse ABC classe vos produits selon leur contribution au chiffre d affaires. Classe A : produits prioritaires, classe B : produits intermediaires, classe C : produits a faible contribution.',
+        },
+        {
+            title: 'Cartes KPI et filtres rapides',
+            content: 'Les cartes en haut de l ecran servent aussi de filtres. Cliquez sur une carte pour limiter le tableau et les graphiques a la classe choisie.',
+            details: [
+                { label: 'CA analyse', description: 'Revient a la vue complete sur toute la selection.', type: 'card' as const },
+                { label: 'Produits classes', description: 'Affiche l ensemble des produits analyses.', type: 'card' as const },
+                { label: 'Classe A', description: 'Filtre les produits strategiques a securiser en priorite.', type: 'card' as const },
+                { label: 'Classe B', description: 'Filtre les produits intermediaires a optimiser.', type: 'card' as const },
+                { label: 'Classe C', description: 'Filtre les produits a faible rotation a reevaluer.', type: 'card' as const },
+            ],
+        },
+        {
+            title: 'Graphiques et tableau',
+            content: 'Les graphiques resument la structure de vos ventes, puis le tableau detaille chaque produit selon le filtre actif.',
+            details: [
+                { label: 'Graphique repartition des produits', description: 'Compare le nombre de references dans les classes A, B et C.', type: 'card' as const },
+                { label: 'Graphique poids du chiffre d affaires', description: 'Compare la contribution au chiffre d affaires de chaque classe.', type: 'card' as const },
+                { label: 'Barre de recherche', description: 'Filtre le tableau par nom de produit.', type: 'filter' as const },
+                { label: 'Filtres de classe', description: 'Conservent uniquement les classes A, B ou C dans la liste.', type: 'filter' as const },
+                { label: 'Colonne conseil', description: 'Affiche la recommandation de gestion du stock pour le produit.', type: 'tip' as const },
+            ],
+        },
+    ];
 
     if (loading && !abcData) {
         return (
@@ -58,136 +111,102 @@ export default function AbcAnalysis() {
         );
     }
 
-    const allProducts = abcData ? [
-        ...(abcData.classes.A || []),
-        ...(abcData.classes.B || []),
-        ...(abcData.classes.C || []),
-    ] : [];
-
-    const products = allProducts.filter((product) =>
-        (product.name || '').toLowerCase().includes(search.toLowerCase())
-    );
-
-    const classCards = [
-        { key: 'A', title: 'Classe A', accent: 'text-emerald-400', hint: 'Les produits qui portent l’essentiel du CA.' },
-        { key: 'B', title: 'Classe B', accent: 'text-primary', hint: 'La zone à optimiser pour la marge et la couverture.' },
-        { key: 'C', title: 'Classe C', accent: 'text-slate-400', hint: 'Le stock à surveiller pour éviter l’immobilisation.' },
-    ] as const;
-
-    const abcSteps: GuideStep[] = [
-        {
-            title: "Rôle de l'analyse ABC",
-            content: "L'analyse ABC classe vos produits selon leur contribution au chiffre d'affaires. Classe A : les 20% de produits qui génèrent 80% du CA. Classe B : les produits moyens. Classe C : les produits à faible contribution. Cette classification aide à prioriser les efforts de gestion de stock.",
-        },
-        {
-            title: "Cartes KPI et résumé des classes",
-            content: "En haut de l'écran, les KPI globaux et les 3 cartes de classe donnent une vue d'ensemble.",
-            details: [
-                { label: "CA analysé", description: "Chiffre d'affaires total pris en compte dans l'analyse sur la période.", type: 'card' as const },
-                { label: "Produits classés", description: "Nombre de produits ayant suffisamment de données pour être classés.", type: 'card' as const },
-                { label: "Carte Classe A (vert)", description: "Nombre de produits classés A. Ces produits doivent toujours être en stock.", type: 'card' as const },
-                { label: "Carte Classe B (bleu)", description: "Produits à rotation normale. Gestion standard.", type: 'card' as const },
-                { label: "Carte Classe C (gris)", description: "Produits à faible contribution. Évaluez s'il faut les maintenir ou les retirer.", type: 'card' as const },
-            ],
-        },
-        {
-            title: "Tableau de classement",
-            content: "Le tableau liste tous vos produits avec leur classe, leurs ventes et les conseils associés.",
-            details: [
-                { label: "Barre de recherche", description: "Filtrez le tableau par nom de produit.", type: 'filter' as const },
-                { label: "Colonne Produit", description: "Nom du produit + % de contribution au CA total (ex : 12,4% du CA).", type: 'info' as const },
-                { label: "Colonne Classe", description: "Badge A (vert), B (bleu) ou C (gris). Calculé automatiquement selon la part de CA.", type: 'info' as const },
-                { label: "Colonne Ventes", description: "Nombre de fois que le produit a été vendu sur la période analysée.", type: 'info' as const },
-                { label: "Colonne CA généré", description: "Chiffre d'affaires généré + marge brute du produit.", type: 'info' as const },
-                { label: "Colonne Stock actuel", description: "Quantité disponible + unité de mesure.", type: 'info' as const },
-                { label: "Colonne Conseil", description: "Recommandation IA : 'Maintenir le stock', 'Réduire', 'Déréférencer'…", type: 'tip' as const },
-            ],
-        },
-        {
-            title: "Filtres globaux",
-            content: "L'analyse peut être affinée selon plusieurs axes.",
-            details: [
-                { label: "Période", description: "Choisissez la durée d'analyse : 30, 60 ou 90 jours. Une période plus longue donne une analyse plus stable.", type: 'filter' as const },
-                { label: "Boutique", description: "Filtrez l'analyse par boutique active pour voir le classement local.", type: 'filter' as const },
-                { label: "Catégorie / Fournisseur", description: "Focalisez l'analyse sur une catégorie ou un fournisseur spécifique.", type: 'filter' as const },
-            ],
-        },
-        {
-            title: "Utilisation de l'IA",
-            content: "L'IA complète ici l'analyse ABC avec des corrélations entre produits pour repérer ce qui s'achète souvent ensemble.",
-            details: [
-                { label: 'Corrélations produits', description: "Le bloc en bas de page n'apparaît que si des associations suffisamment fortes ont été trouvées dans vos paniers.", type: 'card' as const },
-                { label: 'Lecture du lift', description: "Plus le lift est élevé, plus l'association est intéressante pour le merchandising, les offres groupées ou le rangement.", type: 'info' as const },
-            ],
-        },
-    ];
-
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
             <ScreenGuide steps={abcSteps} guideKey="abc_tour" />
             <header className="mb-10">
                 <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                     <BarChart3 className="text-primary" size={32} />
-                    Analyse ABC stock & rotation
+                    Analyse ABC stock et rotation
                 </h1>
                 <p className="text-slate-400 max-w-2xl text-sm leading-relaxed">
-                    {`Classement dynamique ${periodLabel}, filtrable par magasin, catégorie et fournisseur pour piloter les priorités de stock.`}
+                    {`Classement dynamique ${periodLabel}, filtrable par magasin, categorie et fournisseur pour piloter les priorites de stock.`}
                 </p>
             </header>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
-                <KpiCard
-                    icon={TrendingUp}
-                    label="CA analysé"
-                    value={formatCurrency(abcData?.totals.revenue || 0, abcData?.currency)}
-                    hint={`${abcData?.totals.product_count || 0} produits vendus`}
-                />
-                <KpiCard
-                    icon={Boxes}
-                    label="Produits classés"
-                    value={(abcData?.totals.product_count || 0).toLocaleString('fr-FR')}
-                    hint="Base ABC de la période"
-                />
-                <KpiCard
-                    icon={BarChart3}
-                    label="Classe A"
-                    value={(abcData?.totals.class_a_count || 0).toLocaleString('fr-FR')}
-                    hint="Produits stratégiques"
-                />
-                <KpiCard
-                    icon={BarChart3}
-                    label="Classe C"
-                    value={(abcData?.totals.class_c_count || 0).toLocaleString('fr-FR')}
-                    hint="Produits à faible rotation"
-                />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5 mb-8">
+                <KpiCard icon={TrendingUp} label="CA analyse" value={formatCurrency(abcData?.totals.revenue || 0, abcData?.currency)} hint={selectedClass === 'all' ? 'Vue complete active' : 'Cliquer pour tout afficher'} onClick={() => setSelectedClass('all')} />
+                <KpiCard icon={Boxes} label="Produits classes" value={(abcData?.totals.product_count || 0).toLocaleString('fr-FR')} hint={selectedClass === 'all' ? 'Vue complete active' : 'Cliquer pour tout afficher'} onClick={() => setSelectedClass('all')} />
+                <KpiCard icon={BarChart3} label="Classe A" value={(abcData?.totals.class_a_count || 0).toLocaleString('fr-FR')} hint={selectedClass === 'A' ? 'Filtre actif' : 'Produits strategiques'} onClick={() => setSelectedClass('A')} />
+                <KpiCard icon={BarChart3} label="Classe B" value={(abcData?.totals.class_b_count || 0).toLocaleString('fr-FR')} hint={selectedClass === 'B' ? 'Filtre actif' : 'Produits a optimiser'} onClick={() => setSelectedClass('B')} />
+                <KpiCard icon={BarChart3} label="Classe C" value={(abcData?.totals.class_c_count || 0).toLocaleString('fr-FR')} hint={selectedClass === 'C' ? 'Filtre actif' : 'Faible rotation'} onClick={() => setSelectedClass('C')} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-                {classCards.map((card) => (
-                    <div key={card.key} className="glass-card p-6 border-l-4 border-white/10">
-                        <h3 className={`${card.accent} text-xs font-black uppercase tracking-widest mb-2`}>{card.title}</h3>
-                        <div className="text-3xl font-black text-white mb-2">
-                            {(abcData?.totals[`class_${card.key.toLowerCase()}_count` as 'class_a_count' | 'class_b_count' | 'class_c_count'] || 0).toLocaleString('fr-FR')}
-                        </div>
-                        <p className="text-[10px] text-slate-500 font-medium">{card.hint}</p>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-10">
+                <div className="glass-card p-6">
+                    <div className="mb-6">
+                        <h2 className="text-lg font-black text-white">Repartition des produits</h2>
+                        <p className="text-xs text-slate-400">Nombre de references par classe sur la periode filtree.</p>
                     </div>
-                ))}
+                    <div className="h-72">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={abcChartData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.12)" />
+                                <XAxis dataKey="name" stroke="#94A3B8" tickLine={false} axisLine={false} />
+                                <YAxis allowDecimals={false} stroke="#94A3B8" tickLine={false} axisLine={false} />
+                                <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: 'rgba(255,255,255,0.08)', borderRadius: 16, color: '#E2E8F0' }} />
+                                <Bar dataKey="produits" radius={[10, 10, 0, 0]} fill="#34D399" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="glass-card p-6">
+                    <div className="mb-6">
+                        <h2 className="text-lg font-black text-white">Poids du chiffre d affaires</h2>
+                        <p className="text-xs text-slate-400">Contribution de chaque classe au chiffre d affaires total.</p>
+                    </div>
+                    <div className="h-72">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={abcChartData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.12)" />
+                                <XAxis dataKey="name" stroke="#94A3B8" tickLine={false} axisLine={false} />
+                                <YAxis stroke="#94A3B8" tickLine={false} axisLine={false} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
+                                <Tooltip formatter={(value: number) => formatCurrency(Number(value), abcData?.currency)} contentStyle={{ backgroundColor: '#0F172A', borderColor: 'rgba(255,255,255,0.08)', borderRadius: 16, color: '#E2E8F0' }} />
+                                <Bar dataKey="chiffreAffaires" radius={[10, 10, 0, 0]} fill="#38BDF8" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
 
             <div className="glass-card overflow-hidden">
-                <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                    <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Rechercher un produit..."
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-white text-sm outline-none focus:border-primary/50"
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                        />
+                <div className="p-4 border-b border-white/5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                    <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+                        <div className="relative flex-1 min-w-[260px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <input
+                                type="text"
+                                placeholder="Rechercher un produit..."
+                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-white text-sm outline-none focus:border-primary/50"
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                            />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { key: 'all', label: 'Toutes les classes' },
+                                { key: 'A', label: 'Classe A' },
+                                { key: 'B', label: 'Classe B' },
+                                { key: 'C', label: 'Classe C' },
+                            ].map((option) => (
+                                <button
+                                    key={option.key}
+                                    type="button"
+                                    onClick={() => setSelectedClass(option.key as 'all' | 'A' | 'B' | 'C')}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${
+                                        selectedClass === option.key
+                                            ? 'bg-primary text-white border-primary/50'
+                                            : 'text-slate-300 border-white/10 bg-white/5 hover:border-primary/30 hover:text-white'
+                                    }`}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="flex items-center gap-2 text-primary text-xs font-bold bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
-                        Analyse basée sur la période filtrée
+                        {selectedClass === 'all' ? 'Analyse complete' : `Filtre actif : classe ${selectedClass}`}
                     </div>
                 </div>
 
@@ -198,7 +217,7 @@ export default function AbcAnalysis() {
                                 <th className="px-6 py-4">Produit</th>
                                 <th className="px-6 py-4">Classe</th>
                                 <th className="px-6 py-4">Ventes</th>
-                                <th className="px-6 py-4">CA généré</th>
+                                <th className="px-6 py-4">CA genere</th>
                                 <th className="px-6 py-4">Stock actuel</th>
                                 <th className="px-6 py-4 text-right">Conseil</th>
                             </tr>
@@ -206,7 +225,7 @@ export default function AbcAnalysis() {
                         <tbody className="text-sm">
                             {products.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center text-slate-500 italic">Aucun produit classé sur cette sélection.</td>
+                                    <td colSpan={6} className="px-6 py-20 text-center text-slate-500 italic">Aucun produit classe sur cette selection.</td>
                                 </tr>
                             ) : products.map((product: AnalyticsStockAbcItem) => (
                                 <tr key={product.product_id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
@@ -215,12 +234,7 @@ export default function AbcAnalysis() {
                                         <div className="text-[10px] text-slate-500 mt-1">{(product.share_of_revenue * 100).toFixed(1)}% du CA</div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded text-[10px] font-black ${product.class === 'A'
-                                            ? 'bg-emerald-500/10 text-emerald-400'
-                                            : product.class === 'B'
-                                                ? 'bg-primary/10 text-primary'
-                                                : 'bg-white/5 text-slate-400'
-                                        }`}>
+                                        <span className={`px-2 py-1 rounded text-[10px] font-black ${product.class === 'A' ? 'bg-emerald-500/10 text-emerald-400' : product.class === 'B' ? 'bg-primary/10 text-primary' : 'bg-white/5 text-slate-400'}`}>
                                             CLASSE {product.class}
                                         </span>
                                     </td>
@@ -242,14 +256,13 @@ export default function AbcAnalysis() {
                 </div>
             </div>
 
-            {/* Vague 5: Product Correlations */}
             {correlations && correlations.pairs?.length > 0 && (
                 <div className="glass-card p-6">
                     <div className="flex items-center gap-3 mb-6">
                         <Link2 size={20} className="text-primary" />
                         <div>
-                            <h2 className="text-lg font-black text-white">Produits souvent achetés ensemble</h2>
-                            <p className="text-xs text-slate-500">{correlations.total_baskets} paniers analysés sur 90 jours · Lift ≥ 1.5×</p>
+                            <h2 className="text-lg font-black text-white">Produits souvent achetes ensemble</h2>
+                            <p className="text-xs text-slate-500">{correlations.total_baskets} paniers analyses sur 90 jours · Lift ≥ 1.5×</p>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

@@ -1,94 +1,104 @@
-# Guide — Analyse ABC
+# Guide - Analyse ABC
 
-## 1. Rôle du module
+## 1. Role du module
 
-L'analyse ABC classe vos produits en trois groupes (A, B, C) selon leur contribution au chiffre d'affaires et au volume de ventes. Cela permet d'identifier les produits stratégiques, intermédiaires et à faible rotation.
+L'analyse ABC classe vos produits en trois groupes selon leur contribution au chiffre d'affaires :
 
-**Profils concernés** : shopkeeper, admin.
+- **Classe A** : produits prioritaires qui portent l'essentiel des ventes.
+- **Classe B** : produits intermediaires a optimiser.
+- **Classe C** : produits a faible contribution, a surveiller pour eviter d'immobiliser trop de stock.
 
-## 2. Accès
+**Profils concernes** : shopkeeper, admin.
 
-Barre latérale → **Analyse ABC** (ou via Analytics → ABC).
+## 2. Acces
 
-## 3. Lecture de l'écran
+Barre laterale -> **Analyse ABC**.
 
-### En-tête
-- **Icône** : BarChart3 (primary).
-- **Titre** : « Analyse ABC — Priorisation du stock ».
-- **Sous-titre** : « Classifiez vos produits selon leur impact sur le chiffre d'affaires et les ventes. »
+## 3. Lecture de l'ecran
 
-### Cartes KPI (3 indicateurs)
+### En-tete
 
-| KPI | Description | Détail |
-|-----|-------------|--------|
-| Classe A | Nombre de produits stratégiques | % du CA total |
-| Classe B | Nombre de produits intermédiaires | % du CA total |
-| Classe C | Nombre de produits à surveiller | % du CA total |
+- **Titre** : `Analyse ABC stock & rotation`
+- **Sous-titre** : resume dynamique selon la periode, la boutique, la categorie et le fournisseur selectionnes.
 
-### Barres résumées par classe
+### Cartes KPI
 
-Chaque classe est présentée avec :
+Les cartes en haut de l'ecran servent a la fois de resume et de filtres rapides.
 
-| Classe | Couleur | Rôle |
-|--------|---------|------|
-| A (stratégique) | Primary | Top produits : ~20 % des références générant ~80 % du CA |
-| B (intermédiaire) | Ambre | Produits de soutien : ~30 % des références, ~15 % du CA |
-| C (à surveiller) | Gris (slate) | Stock à risque d'immobilisation : ~50 % des références, ~5 % du CA |
+| Carte | Effet |
+|------|-------|
+| CA analyse | Revient a la vue complete |
+| Produits classes | Revient a la vue complete |
+| Classe A | Affiche seulement les produits de classe A |
+| Classe B | Affiche seulement les produits de classe B |
+| Classe C | Affiche seulement les produits de classe C |
 
-### Tableau des produits par classe
+### Graphiques
 
-Chaque section de classe affiche un tableau avec :
+Deux graphiques completent la lecture :
+
+| Graphique | Lecture |
+|----------|---------|
+| Repartition des produits | Compare le nombre de references dans les classes A, B et C |
+| Poids du chiffre d'affaires | Compare la contribution au chiffre d'affaires de chaque classe |
+
+### Zone de filtres locale
+
+| Element | Usage |
+|--------|-------|
+| Recherche | Filtre le tableau par nom de produit |
+| Boutons `Toutes les classes`, `Classe A`, `Classe B`, `Classe C` | Restreignent la liste au segment choisi |
+| Badge de filtre actif | Rappelle si l'ecran affiche toute l'analyse ou une seule classe |
+
+### Tableau des produits
 
 | Colonne | Contenu |
 |---------|---------|
-| Produit | Nom du produit |
-| Catégorie | Catégorie principale |
-| CA | Chiffre d'affaires sur la période |
-| Quantité vendue | Volume total de ventes |
-| % du CA | Contribution au CA total |
-| % cumulé | Pourcentage cumulé (pour déterminer la classe) |
+| Produit | Nom du produit et part du chiffre d'affaires |
+| Classe | Badge A, B ou C |
+| Ventes | Nombre de ventes sur la periode |
+| CA genere | Chiffre d'affaires et marge brute |
+| Stock actuel | Quantite disponible et unite |
+| Conseil | Recommandation de gestion du stock |
 
-### Barre de recherche
-Filtre texte pour rechercher un produit dans l'ensemble des résultats.
+## 4. Filtres globaux
 
-## 4. Filtres
-
-Les filtres globaux du panneau AnalyticsFilters s'appliquent :
+Les filtres globaux du panneau Analytics s'appliquent :
 
 | Filtre | Impact |
 |--------|--------|
-| Période | Change la fenêtre d'analyse |
-| Boutique | Restreint l'analyse à une boutique |
-| Catégorie | Filtre par catégorie |
+| Periode | Change la fenetre d'analyse |
+| Boutique | Restreint l'analyse a une boutique |
+| Categorie | Filtre par categorie |
 | Fournisseur | Filtre par fournisseur |
 
-## 5. États de l'interface
+## 5. Etats de l'interface
 
-| État | Description |
+| Etat | Description |
 |------|-------------|
-| Chargement | Spinner centré avec texte « Analyse en cours... » |
-| Aucune donnée | Message « Aucune donnée de vente pour cette période. » |
-| Erreur | Message d'erreur dans un bandeau |
+| Chargement | Spinner central pendant le calcul |
+| Aucun produit classe | Message indiquant qu'aucun produit n'entre dans la selection |
+| Bloc correlations | Apparait seulement si des produits sont souvent achetes ensemble |
 
 ## 6. Cas d'utilisation
 
-| Scénario | Action recommandée |
+| Scenario | Action recommandee |
 |----------|--------------------|
-| Identifier les produits critiques | Consultez la classe A et veillez à ne jamais manquer de stock |
-| Réduire les coûts de stockage | Analysez la classe C : envisagez le déréférencement des produits sans vente |
-| Optimiser les réapprovisionnements | Priorisez les commandes fournisseur sur les produits de classe A |
+| Prioriser les achats | Ouvrir la classe A pour securiser les produits critiques |
+| Revoir le stock dormant | Filtrer la classe C pour identifier les produits a faible rotation |
+| Optimiser un segment moyen | Analyser la classe B pour faire progresser les ventes ou la marge |
 
-## 7. Questions fréquentes
+## 7. Questions frequentes
 
-| Question | Réponse |
+| Question | Reponse |
 |----------|---------|
-| Comment sont calculées les classes ? | Par contribution cumulative au CA : A = 0-80 %, B = 80-95 %, C = 95-100 %. |
-| La classification change-t-elle avec la période ? | Oui, modifiez la période dans les filtres pour voir l'évolution. |
-| Puis-je exporter l'analyse ? | Utilisez la bibliothèque de rapports pour un export Excel. |
+| Comment sont calculees les classes ? | Par contribution cumulative au chiffre d'affaires sur la periode analysee. |
+| Le tableau change-t-il quand je clique sur une carte ? | Oui. Les cartes KPI servent de filtres rapides. |
+| A quoi servent les graphiques ? | A visualiser rapidement la structure du portefeuille produit avant d'entrer dans le detail. |
 
-## 8. Guide rapide intégré
+## 8. Guide rapide integre
 
-1. **Analyse ABC** — Identifiez vos produits phares (A) et ceux à faible rotation (C).
-2. **Classe A — Stratégique** — Vos top produits : surveillez leur stock de près pour éviter les ruptures.
-3. **Classe C — À surveiller** — Produits à faible contribution : évaluez s'il faut les maintenir ou les déréférencer.
-4. **Recherche & filtres** — Utilisez la barre de recherche et les filtres analytics pour affiner l'analyse.
+1. **Analyse ABC** - Reperez les produits prioritaires et ceux a faible rotation.
+2. **Cartes KPI** - Cliquez sur une carte pour filtrer la vue.
+3. **Graphiques** - Comparez en un coup d'oeil le poids de chaque classe.
+4. **Tableau** - Detaillez chaque produit et appliquez les actions de gestion adaptees.

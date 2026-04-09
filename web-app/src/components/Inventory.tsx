@@ -2353,30 +2353,30 @@ export default function Inventory() {
                                     </td>
                                     <td className="py-4 px-6">
                                         {productLinks.length === 0 ? (
-                                            <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-3">
-                                                <p className="text-xs font-bold text-rose-200">Aucun fournisseur</p>
+                                            <div className="inventory-supplier-card inventory-supplier-card--warning rounded-xl px-3 py-3">
+                                                <p className="inventory-supplier-card__title text-xs font-bold">Aucun fournisseur</p>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenSupplierMarketplace(p)}
-                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-rose-700 bg-rose-600 px-3 py-1.5 text-[11px] font-black text-white shadow-sm transition-colors hover:bg-rose-700"
+                                                    className="inventory-supplier-card__button mt-3 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-[11px] font-black shadow-sm transition-colors"
                                                 >
                                                     <Plus size={12} />
                                                     Associer un fournisseur
                                                 </button>
-                                                <p className="mt-2 text-[11px] text-rose-100/90">Produit non préparé pour le réapprovisionnement.</p>
+                                                <p className="inventory-supplier-card__hint mt-2 text-[11px]">Produit non préparé pour le réapprovisionnement.</p>
                                             </div>
                                         ) : (
-                                            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
-                                                <span className="text-xs font-bold text-white">
+                                            <div className="inventory-supplier-card rounded-xl px-3 py-3">
+                                                <span className="inventory-supplier-card__title text-xs font-bold">
                                                     {hasPrimary ? `${productLinks.length} fournisseur(s) - principal défini` : `${productLinks.length} fournisseur(s) - principal manquant`}
                                                 </span>
                                                 {!hasPrimary && (
-                                                    <span className="mt-1 block text-[11px] text-sky-200">Choisissez un fournisseur principal dans la fiche produit.</span>
+                                                    <span className="inventory-supplier-card__hint inventory-supplier-card__hint--info mt-1 block text-[11px]">Choisissez un fournisseur principal dans la fiche produit.</span>
                                                 )}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleManageProductSuppliers(p)}
-                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/8 px-3 py-1.5 text-[11px] font-bold text-slate-100 transition-colors hover:bg-white/12"
+                                                    className="inventory-supplier-card__secondary-button mt-3 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors"
                                                 >
                                                     <Edit size={12} />
                                                     Gérer les fournisseurs

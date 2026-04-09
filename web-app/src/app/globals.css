@@ -143,6 +143,48 @@ body {
   color: var(--foreground);
 }
 
+.inventory-supplier-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.inventory-supplier-card--warning {
+  border-color: rgba(251, 113, 133, 0.35);
+  background: rgba(244, 63, 94, 0.12);
+}
+
+.inventory-supplier-card__title {
+  color: #f8fafc;
+}
+
+.inventory-supplier-card__hint {
+  color: #cbd5e1;
+}
+
+.inventory-supplier-card__hint--info {
+  color: #7dd3fc;
+}
+
+.inventory-supplier-card__button {
+  border: 1px solid rgba(190, 24, 93, 0.55);
+  background: #e11d48;
+  color: #ffffff;
+}
+
+.inventory-supplier-card__button:hover {
+  background: #be123c;
+}
+
+.inventory-supplier-card__secondary-button {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.inventory-supplier-card__secondary-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
 /* ============================================================
    LIGHT MODE — Comprehensive overrides for dark-first classes
    ============================================================ */
@@ -228,6 +270,42 @@ body {
 [data-theme="light"] .bg-white\/15 {
   background-color: #F1F5F9 !important;
   border: 1px solid #E2E8F0 !important;
+}
+
+[data-theme="light"] .inventory-supplier-card {
+  border-color: #dbe4f0;
+  background: #f8fafc;
+}
+
+[data-theme="light"] .inventory-supplier-card--warning {
+  border-color: rgba(225, 29, 72, 0.24);
+  background: rgba(255, 241, 242, 0.96);
+}
+
+[data-theme="light"] .inventory-supplier-card__title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .inventory-supplier-card--warning .inventory-supplier-card__title {
+  color: #be123c;
+}
+
+[data-theme="light"] .inventory-supplier-card__hint {
+  color: #475569;
+}
+
+[data-theme="light"] .inventory-supplier-card__hint--info {
+  color: #0369a1;
+}
+
+[data-theme="light"] .inventory-supplier-card__secondary-button {
+  border-color: #cbd5e1;
+  background: #eef2f7;
+  color: #0f172a;
+}
+
+[data-theme="light"] .inventory-supplier-card__secondary-button:hover {
+  background: #e2e8f0;
 }
 
 [data-theme="light"] .bg-white\/20 {

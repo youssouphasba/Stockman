@@ -1,91 +1,95 @@
-# Guide — Historique des stocks
+# Guide - Historique des stocks
 
-## 1. Rôle du module
+## 1. Role du module
 
-L'Historique des stocks est un journal d'audit de tous les mouvements de stock : entrées, sorties et ajustements. Il permet de retracer chaque opération avec date, produit, quantité, auteur et raison.
+L'historique des stocks est le journal d'audit de tous les mouvements de stock : entrees, sorties et ajustements. Il permet de retracer chaque operation avec la date, le produit, la quantite, l'auteur et la raison.
 
-**Profils concernés** : shopkeeper, staff, admin (permission `stock` requise).
+**Profils concernes** : shopkeeper, staff, admin avec la permission `stock`.
 
-## 2. Accès
+## 2. Acces
 
-Barre latérale → **Stock & Inventaire** → **Historique stock**.
+Barre laterale -> **Stock & Inventaire** -> **Historique stock**.
 
-## 3. Lecture de l'écran
+## 3. Lecture de l'ecran
 
-### En-tête
-- **Titre** : « Historique des Stocks ».
-- **Sous-titre** : « Journal d'audit filtré par période, magasin, catégorie et fournisseur. »
-- **Recherche** : par nom de produit.
-- **Export CSV** : télécharge l'historique filtré.
+### En-tete
 
-### KPI
-| KPI | Description |
-|-----|-------------|
-| Mouvements | Nombre total de mouvements sur la période |
-| Entrées | Somme des quantités reçues / ajustées à la hausse |
-| Sorties | Somme des quantités consommées / vendues |
-| Produits touchés | Nombre de références distinctes impliquées |
+- **Titre** : `Historique des stocks`
+- **Sous-titre** : journal d'audit filtre par periode, magasin, categorie et fournisseur
+- **Recherche** : recherche par nom de produit ou raison
+- **Export CSV** : telecharge l'historique filtre
 
-### Filtres par type
-Boutons : Tous, Entrées, Sorties, Ajustements.
+### Cartes KPI
+
+Les cartes du haut servent aussi de filtres rapides.
+
+| Carte | Effet |
+|------|-------|
+| Mouvements | Revient a la vue complete |
+| Entrees | N'affiche que les entrees |
+| Sorties | N'affiche que les sorties |
+| Ajustements | N'affiche que les ajustements |
+
+### Filtres locaux
+
+| Element | Usage |
+|--------|-------|
+| Boutons `Tous`, `Entrees`, `Sorties`, `Ajustements` | Filtrent la liste par type |
+| Recherche | Filtre par produit ou raison |
+| Periode globale | Applique la fenetre temporelle choisie dans Analytics |
 
 ### Tableau
+
 | Colonne | Contenu |
 |---------|---------|
-| Date & heure | Date et heure du mouvement |
-| Produit | Initiale + nom du produit |
-| Mouvement | Badge coloré (vert=entrée, rouge=sortie, ambre=ajustement) |
-| Quantité | Quantité avec signe (+/-) |
-| Auteur | Nom de l'utilisateur ou « Système » |
+| Date et heure | Horodatage du mouvement |
+| Produit | Initiale et nom du produit |
+| Mouvement | Badge colore selon le type |
+| Quantite | Quantite du mouvement |
+| Auteur | Utilisateur ou systeme |
 | Raison / notes | Contexte du mouvement |
 
 ### Pagination
-Navigation page par page avec compteur.
 
-## 4. Filtres et recherche
+La pagination permet de parcourir l'historique page par page.
 
-| Filtre | Source | Impact |
-|--------|--------|--------|
-| Type | Boutons locaux | Tous, Entrées, Sorties, Ajustements |
-| Recherche | Barre locale | Par nom de produit ou raison |
-| Période | AnalyticsFiltersContext | Jours ou plage personnalisée |
-| Boutique | AnalyticsFiltersContext | Filtre par boutique |
-| Catégorie | AnalyticsFiltersContext | Filtre par catégorie produit |
-| Fournisseur | AnalyticsFiltersContext | Filtre par fournisseur |
+## 4. Boutons et actions
 
-## 5. Boutons et actions
+| Action | Effet |
+|--------|-------|
+| Carte KPI | Applique un filtre rapide |
+| Bouton de type | Applique un filtre rapide dans le tableau |
+| Export CSV | Telecharge l'historique filtre |
+| Fleche precedente | Ouvre la page precedente |
+| Fleche suivante | Ouvre la page suivante |
 
-| Bouton | Action | Effet |
-|--------|--------|-------|
-| Filtre type | Clic | Filtre la liste par type de mouvement |
-| Export CSV | Clic | Télécharge l'historique filtré en CSV |
-| Page ◀ | Clic | Page précédente |
-| Page ▶ | Clic | Page suivante |
+## 5. Etats de l'interface
 
-## 6. États de l'interface
-
-| État | Description |
+| Etat | Description |
 |------|-------------|
-| Chargement | Squelettes animés dans le tableau |
-| Aucun mouvement | Texte « Aucun mouvement enregistré. » |
+| Chargement | Lignes de squelette dans le tableau |
+| Aucun mouvement | Message `Aucun mouvement enregistre.` |
 
-## 7. Cas d'usage typiques
+## 6. Cas d'usage typiques
 
-- **Audit** : filtrer par « Sorties » pour vérifier les ventes du jour.
-- **Investigation** : rechercher un produit spécifique pour retracer ses mouvements.
-- **Export** : télécharger le CSV pour analyse dans un tableur.
+| Scenario | Action recommandee |
+|----------|--------------------|
+| Verifier les receptions | Cliquer sur la carte `Entrees` |
+| Auditer les sorties | Cliquer sur la carte `Sorties` |
+| Controler les corrections | Cliquer sur la carte `Ajustements` |
+| Exporter l'audit | Utiliser le bouton CSV apres avoir filtre la vue |
 
-## 8. Questions fréquentes
+## 7. Questions frequentes
 
-| Question | Réponse |
+| Question | Reponse |
 |----------|---------|
-| Les mouvements sont-ils modifiables ? | Non, c'est un journal d'audit en lecture seule. |
-| Comment filtrer par période ? | Utilisez le panneau de filtres analytics de la page Rapports. |
-| Que signifie « Système » comme auteur ? | Le mouvement a été généré automatiquement (vente, réception, etc.). |
+| Les mouvements sont-ils modifiables ? | Non. C'est un journal d'audit en lecture seule. |
+| Pourquoi les cartes sont cliquables ? | Pour filtrer plus vite sans passer par les boutons du tableau. |
+| Que signifie `Systeme` comme auteur ? | Le mouvement a ete genere automatiquement par l'application. |
 
-## 9. Guide rapide intégré
+## 8. Guide rapide integre
 
-1. **Journal d'audit** — Consultez tous les mouvements de stock enregistrés.
-2. **Filtrez par type** — Entrées, sorties ou ajustements selon votre besoin.
-3. **Recherche** — Trouvez rapidement un produit ou une raison de mouvement.
-4. **Export** — Téléchargez l'historique en CSV pour une analyse approfondie.
+1. **Journal d'audit** - Consultez tous les mouvements de stock enregistres.
+2. **Cartes KPI** - Cliquez sur une carte pour filtrer immediatement la liste.
+3. **Recherche** - Trouvez rapidement un produit ou une raison.
+4. **Export** - Telechargez le resultat filtre en CSV pour analyse.
