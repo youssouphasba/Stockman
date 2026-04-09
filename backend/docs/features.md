@@ -59,6 +59,12 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - **Sortie de stock** (perte, casse, correction) : bouton **-** ou "Sortie" sur la fiche produit
 - Chaque mouvement est tracé dans l'historique avec la date, la raison et l'utilisateur
 
+### Comment modifier rapidement le stock sur le web ?
+- Depuis **Stock** → bouton **Édition rapide du stock**
+- L'éditeur charge tous les produits du filtre actif, y compris ceux qui ne sont pas encore visibles dans la pagination
+- Saisir le **stock réel** dans la colonne dédiée
+- À l'enregistrement, Stockman crée uniquement les mouvements d'entrée ou de sortie nécessaires pour conserver l'historique du stock
+
 ### Comment lire les badges de stock ?
 - **Rouge** : Rupture de stock (quantité = 0)
 - **Orange** : Stock bas (quantité ≤ seuil minimum défini)

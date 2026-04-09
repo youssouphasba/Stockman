@@ -28,7 +28,8 @@ import {
     TrendingUp,
     TrendingDown,
     Undo2,
-    Clock
+    Clock,
+    Package as PackageIcon
 } from 'lucide-react';
 import { exportInventory } from '../utils/ExportService';
 import {
@@ -143,6 +144,8 @@ export default function Inventory() {
     const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
     const [isBulkPriceEditorOpen, setIsBulkPriceEditorOpen] = useState(false);
     const [bulkPriceProducts, setBulkPriceProducts] = useState<any[]>([]);
+    const [isBulkStockEditorOpen, setIsBulkStockEditorOpen] = useState(false);
+    const [bulkStockProducts, setBulkStockProducts] = useState<any[]>([]);
     const [isTrashOpen, setIsTrashOpen] = useState(false);
     const [trashItems, setTrashItems] = useState<ProductTrashItem[]>([]);
     const [trashTotal, setTrashTotal] = useState(0);
@@ -151,6 +154,9 @@ export default function Inventory() {
     const [bulkPriceDrafts, setBulkPriceDrafts] = useState<Record<string, { purchase_price: string; selling_price: string }>>({});
     const [bulkPriceLoading, setBulkPriceLoading] = useState(false);
     const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
+    const [bulkStockDrafts, setBulkStockDrafts] = useState<Record<string, string>>({});
+    const [bulkStockLoading, setBulkStockLoading] = useState(false);
+    const [bulkStockSaving, setBulkStockSaving] = useState(false);
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
     const [trackedDeleteJob, setTrackedDeleteJob] = useState<ProductDeleteJob | null>(null);
     const [bulkDeleteProcessedCount, setBulkDeleteProcessedCount] = useState(0);
@@ -1273,6 +1279,11 @@ export default function Inventory() {
         [bulkPriceProducts, productMatchesSupplierCoverage],
     );
 
+    const filteredBulkStockProducts = useMemo(
+        () => sanitizeRows<any>(bulkStockProducts).filter(productMatchesSupplierCoverage),
+        [bulkStockProducts, productMatchesSupplierCoverage],
+    );
+
     const selectedProducts = useMemo(
         () => filteredProducts.filter((product) => selectedProductIds.has(product.product_id)),
         [filteredProducts, selectedProductIds],
@@ -1284,6 +1295,16 @@ export default function Inventory() {
     const editedBulkPriceCount = useMemo(
         () => Object.values(bulkPriceDrafts).filter((draft) => draft.purchase_price !== '' || draft.selling_price !== '').length,
         [bulkPriceDrafts],
+    );
+
+    const editedBulkStockCount = useMemo(
+        () => filteredBulkStockProducts.filter((product) => {
+            const draft = bulkStockDrafts[product.product_id];
+            if (draft == null || draft.trim() === '') return false;
+            const parsed = Number(draft.replace(',', '.').trim());
+            return Number.isFinite(parsed) && parsed !== Number(product.quantity ?? 0);
+        }).length,
+        [bulkStockDrafts, filteredBulkStockProducts],
     );
 
     const toggleSelectProduct = (productId: string) => {
@@ -1343,6 +1364,39 @@ export default function Inventory() {
         setBulkPriceSaving(false);
     };
 
+    const openBulkStockEditor = async () => {
+        setBulkStockLoading(true);
+        setIsBulkStockEditorOpen(true);
+        setBulkStockDrafts({});
+        setBulkStockProducts([]);
+        try {
+            const editorProducts = safeProducts.length < productsTotal
+                ? await fetchAllProductsForCurrentFilter()
+                : safeProducts;
+            const editableProducts = editorProducts.filter(productMatchesSupplierCoverage);
+            const initialDrafts: Record<string, string> = {};
+            editableProducts.forEach((product) => {
+                initialDrafts[product.product_id] = String(product.quantity ?? 0);
+            });
+            setBulkStockProducts(editorProducts);
+            setBulkStockDrafts(initialDrafts);
+        } catch (err: any) {
+            console.error('Error loading products for quick stock editor', err);
+            setIsBulkStockEditorOpen(false);
+            window.alert(err.message || t('inventory.quick_stock_editor_load_error', { defaultValue: "Impossible de charger tous les produits pour l'édition rapide du stock." }));
+        } finally {
+            setBulkStockLoading(false);
+        }
+    };
+
+    const closeBulkStockEditor = () => {
+        setIsBulkStockEditorOpen(false);
+        setBulkStockProducts([]);
+        setBulkStockDrafts({});
+        setBulkStockLoading(false);
+        setBulkStockSaving(false);
+    };
+
     const updateBulkPriceDraft = (
         productId: string,
         field: 'purchase_price' | 'selling_price',
@@ -1355,6 +1409,13 @@ export default function Inventory() {
                 selling_price: prev[productId]?.selling_price ?? '',
                 [field]: value,
             },
+        }));
+    };
+
+    const updateBulkStockDraft = (productId: string, value: string) => {
+        setBulkStockDrafts((prev) => ({
+            ...prev,
+            [productId]: value,
         }));
     };
 
@@ -1419,6 +1480,77 @@ export default function Inventory() {
             window.alert(err.message || t('inventory.quick_price_editor_error'));
         } finally {
             setBulkPriceSaving(false);
+        }
+    };
+
+    const handleBulkStockSave = async () => {
+        const movements: Array<{ product_id: string; name: string; type: 'in' | 'out'; quantity: number }> = [];
+
+        for (const product of filteredBulkStockProducts) {
+            const rawValue = bulkStockDrafts[product.product_id];
+            if (rawValue == null) continue;
+            const normalizedValue = rawValue.replace(',', '.').trim();
+            if (!normalizedValue) continue;
+            const nextQuantity = Number(normalizedValue);
+            if (!Number.isFinite(nextQuantity) || nextQuantity < 0) {
+                window.alert(t('inventory.quick_stock_editor_invalid', { defaultValue: 'Stock invalide pour {{name}}.', name: product.name }));
+                return;
+            }
+            const currentQuantity = Number(product.quantity ?? 0);
+            const delta = nextQuantity - currentQuantity;
+            if (Math.abs(delta) < 0.000001) continue;
+            movements.push({
+                product_id: product.product_id,
+                name: product.name,
+                type: delta > 0 ? 'in' : 'out',
+                quantity: Math.abs(delta),
+            });
+        }
+
+        if (movements.length === 0) {
+            window.alert(t('inventory.quick_stock_editor_no_changes', { defaultValue: 'Aucun stock modifié.' }));
+            return;
+        }
+
+        setBulkStockSaving(true);
+        try {
+            const failed: Array<{ name: string; message: string }> = [];
+            for (const movement of movements) {
+                try {
+                    await stockApi.addMovement({
+                        product_id: movement.product_id,
+                        type: movement.type,
+                        quantity: movement.quantity,
+                        reason: t('inventory.quick_stock_editor_reason', { defaultValue: 'Correction rapide du stock web' }),
+                    });
+                } catch (err: any) {
+                    failed.push({
+                        name: movement.name,
+                        message: err?.message || t('common.generic_error', { defaultValue: 'Une erreur est survenue.' }),
+                    });
+                }
+            }
+
+            if (failed.length > 0) {
+                const firstError = failed[0];
+                window.alert(t('inventory.quick_stock_editor_partial', {
+                    defaultValue: '{{updated}} stock(s) mis à jour, {{failed}} échec(s). Premier échec : {{name}} - {{error}}',
+                    updated: movements.length - failed.length,
+                    failed: failed.length,
+                    name: firstError.name,
+                    error: firstError.message,
+                }));
+            } else {
+                window.alert(t('inventory.quick_stock_editor_success', { defaultValue: '{{count}} stock(s) mis à jour.', count: movements.length }));
+            }
+
+            closeBulkStockEditor();
+            await fetchProducts();
+            await loadStockHealth();
+        } catch (err: any) {
+            window.alert(err.message || t('inventory.quick_stock_editor_error', { defaultValue: "Impossible d'enregistrer les stocks pour le moment." }));
+        } finally {
+            setBulkStockSaving(false);
         }
     };
 
@@ -1534,13 +1666,14 @@ export default function Inventory() {
         },
         {
             title: t('guide.inventory.header_title', "Barre d'en-tête"),
-            content: t('guide.inventory.header_content', "Les boutons du haut servent à créer des produits, importer en lot, lancer un scan, exporter le stock, ouvrir l'édition rapide des prix et activer la sélection multiple sans quitter l'écran."),
+            content: t('guide.inventory.header_content', "Les boutons du haut servent à créer des produits, importer en lot, lancer un scan, exporter le stock, ouvrir les éditions rapides des prix ou du stock et activer la sélection multiple sans quitter l'écran."),
             details: [
                 { label: t('guide.inventory.btn_add', "Nouveau produit"), description: t('guide.inventory.btn_add_desc', "Ouvre la fiche complète de création : nom, SKU, quantité initiale, unité, prix, seuils, catégorie, emplacement et description."), type: 'button' },
                 { label: t('guide.inventory.btn_import_csv', "Import CSV"), description: t('guide.inventory.btn_import_csv_desc', "Utilisez cet import pour créer plusieurs produits d'un coup. Préparez votre fichier avec les bonnes colonnes, vérifiez l'aperçu puis validez la création."), type: 'button' },
                 { label: t('guide.inventory.btn_import_text', "Import texte"), description: t('guide.inventory.btn_import_text_desc', "Collez une liste brute quand vous n'avez pas encore un fichier propre. Relisez toujours le résultat avant d'enregistrer pour éviter une création incorrecte."), type: 'button' },
                 { label: t('guide.inventory.btn_scan', "Scan en lot"), description: t('guide.inventory.btn_scan_desc', "Le scan en série accélère les entrées de stock, les réceptions et certains contrôles. Il est utile quand vous manipulez beaucoup d'articles en peu de temps."), type: 'button' },
                 { label: t('guide.inventory.btn_quick_prices', "Édition rapide des prix"), description: t('guide.inventory.btn_quick_prices_desc', "Ouvre une grille d'édition pour corriger en lot les prix d'achat et de vente des produits déjà filtrés."), type: 'button' },
+                { label: t('guide.inventory.btn_quick_stock', "Édition rapide du stock"), description: t('guide.inventory.btn_quick_stock_desc', "Charge tous les produits du filtre actif. Saisissez le stock réel : Stockman enregistre seulement les écarts sous forme de mouvements d'entrée ou de sortie."), type: 'button' },
                 { label: t('guide.inventory.btn_selection', "Sélection"), description: t('guide.inventory.btn_selection_desc', "Active la sélection multiple pour partager le catalogue visible ou envoyer plusieurs produits dans la corbeille commune."), type: 'button' },
                 { label: t('guide.inventory.btn_export_xls', "Exporter Excel"), description: t('guide.inventory.btn_export_xls_desc', "Exporte le stock affiché avec ses colonnes utiles pour le contrôle, la comptabilité, le partage interne ou le travail hors application."), type: 'button' },
                 { label: t('guide.inventory.btn_export_pdf', "Exporter PDF"), description: t('guide.inventory.btn_export_pdf_desc', "Génère un document plus lisible pour l'impression, la validation terrain ou le partage rapide."), type: 'button' },
@@ -1649,6 +1782,16 @@ export default function Inventory() {
                     >
                         <Edit size={16} />
                         {bulkPriceLoading ? t('common.loading', { defaultValue: 'Chargement...' }) : t('inventory.quick_price_editor')}
+                    </button>
+                    <button
+                        onClick={() => void openBulkStockEditor()}
+                        disabled={productsTotal === 0 || bulkStockLoading}
+                        className="glass-card theme-text px-4 py-2 text-sm font-semibold hover:bg-white/10 transition-colors flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <PackageIcon size={16} />
+                        {bulkStockLoading
+                            ? t('common.loading', { defaultValue: 'Chargement...' })
+                            : t('inventory.quick_stock_editor', { defaultValue: 'Édition rapide du stock' })}
                     </button>
                     <button
                         onClick={() => void handleOpenTrash()}
@@ -2477,6 +2620,113 @@ export default function Inventory() {
                                                     onChange={(event) => updateBulkPriceDraft(product.product_id, 'selling_price', event.target.value)}
                                                     className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-right text-sm text-white outline-none transition focus:border-primary"
                                                 />
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={isBulkStockEditorOpen}
+                onClose={closeBulkStockEditor}
+                title={t('inventory.quick_stock_editor_title', { defaultValue: 'Édition rapide du stock' })}
+                maxWidth="full"
+            >
+                <div className="space-y-4">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <p className="text-sm text-slate-300">
+                                {t('inventory.quick_stock_editor_subtitle', { defaultValue: '{{count}} produit(s) dans le filtre actuel. Saisissez le stock réel : Stockman enregistrera uniquement les écarts.', count: filteredBulkStockProducts.length })}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                {t('inventory.quick_stock_editor_changes', { defaultValue: '{{count}} stock(s) modifié(s)', count: editedBulkStockCount })}
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={closeBulkStockEditor}
+                                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/10"
+                            >
+                                {t('common.cancel')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void handleBulkStockSave()}
+                                disabled={bulkStockLoading || bulkStockSaving}
+                                className="rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {bulkStockSaving
+                                    ? t('common.saving', { defaultValue: 'Enregistrement...' })
+                                    : bulkStockLoading
+                                        ? t('common.loading', { defaultValue: 'Chargement...' })
+                                        : t('inventory.quick_stock_editor_save', { defaultValue: 'Enregistrer les stocks' })}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-2xl border border-white/10">
+                        <table className="w-full min-w-[760px] border-collapse">
+                            <thead className="bg-white/5 text-left text-xs uppercase tracking-[0.18em] text-slate-400">
+                                <tr>
+                                    <th className="px-4 py-3">{t('inventory.quick_stock_editor_product', { defaultValue: 'Produit' })}</th>
+                                    <th className="px-4 py-3">{t('inventory.quick_stock_editor_sku', { defaultValue: 'Référence' })}</th>
+                                    <th className="px-4 py-3 text-right">{t('inventory.quick_stock_editor_current', { defaultValue: 'Stock actuel' })}</th>
+                                    <th className="px-4 py-3 text-right">{t('inventory.quick_stock_editor_next', { defaultValue: 'Stock réel' })}</th>
+                                    <th className="px-4 py-3 text-right">{t('inventory.quick_stock_editor_delta', { defaultValue: 'Écart' })}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 text-sm text-white">
+                                {bulkStockLoading && (
+                                    <tr>
+                                        <td colSpan={5} className="px-4 py-10 text-center text-sm font-semibold text-slate-300">
+                                            {t('inventory.quick_stock_editor_loading_all', { defaultValue: 'Chargement de tous les produits...' })}
+                                        </td>
+                                    </tr>
+                                )}
+                                {!bulkStockLoading && filteredBulkStockProducts.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-4 py-10 text-center text-sm font-semibold text-slate-300">
+                                            {t('inventory.quick_stock_editor_empty', { defaultValue: 'Aucun produit ne correspond aux filtres actuels.' })}
+                                        </td>
+                                    </tr>
+                                )}
+                                {!bulkStockLoading && filteredBulkStockProducts.map((product) => {
+                                    const draftValue = bulkStockDrafts[product.product_id] ?? String(product.quantity ?? 0);
+                                    const currentQuantity = Number(product.quantity ?? 0);
+                                    const parsedDraft = Number(draftValue.replace(',', '.').trim());
+                                    const delta = Number.isFinite(parsedDraft) ? parsedDraft - currentQuantity : 0;
+                                    const isChanged = Math.abs(delta) >= 0.000001;
+
+                                    return (
+                                        <tr key={product.product_id} className={isChanged ? 'bg-emerald-500/5' : ''}>
+                                            <td className="px-4 py-3">
+                                                <div className="flex flex-col">
+                                                    <span className="font-semibold text-white">{product.name}</span>
+                                                    <span className="text-xs text-slate-500">{product.unit || product.display_unit || 'unité'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-xs font-mono uppercase text-slate-400">
+                                                {product.sku || 'SANS-REF'}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-bold text-slate-200">
+                                                {formatMeasurementQuantity(currentQuantity, product.display_unit || product.unit)}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    value={draftValue}
+                                                    onChange={(event) => updateBulkStockDraft(product.product_id, event.target.value)}
+                                                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-right text-sm text-white outline-none transition focus:border-emerald-400"
+                                                />
+                                            </td>
+                                            <td className={`px-4 py-3 text-right text-sm font-black ${delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-orange-300' : 'text-slate-500'}`}>
+                                                {isChanged ? `${delta > 0 ? '+' : ''}${delta}` : '—'}
                                             </td>
                                         </tr>
                                     );
