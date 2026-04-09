@@ -9,7 +9,6 @@ type PlannerFilter = 'active' | 'completed' | 'all';
 
 const CHANNELS: PlannerChannel[] = ['in_app', 'push', 'email'];
 const DEFAULT_REMINDER_CHANNELS: PlannerChannel[] = ['in_app', 'push'];
-const TIME_OPTIONS = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '16:00', '18:00'];
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 function monthKey(date: Date) {
@@ -611,24 +610,14 @@ export default function Planner({ user }: Props) {
 
                     <div>
                       <p className="mb-2 text-sm font-bold text-slate-900">{t('planner.time_title')}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {TIME_OPTIONS.map((time) => {
-                          const active = selectedTime === time;
-                          return (
-                            <button
-                              key={time}
-                              type="button"
-                              onClick={() => setSelectedTime(time)}
-                              className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
-                                active
-                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
-                              }`}
-                            >
-                              {time}
-                            </button>
-                          );
-                        })}
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <input
+                          type="time"
+                          value={selectedTime}
+                          onChange={(event) => setSelectedTime(event.target.value || '09:00')}
+                          step={300}
+                          className="w-full bg-transparent text-base font-bold text-slate-900 outline-none"
+                        />
                       </div>
                     </div>
 

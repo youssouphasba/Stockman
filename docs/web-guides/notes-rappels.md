@@ -45,6 +45,7 @@ Le module est visible dans la sidebar.
 Le calendrier est le point d'entree principal pour les rappels :
 
 - un clic sur une date ouvre directement un nouveau rappel avec cette date preselectionnee ;
+- l'heure se choisit ensuite avec le selecteur horaire du navigateur ;
 - les rappels du mois restent visibles dans leur propre liste ;
 - les notes sans date disposent de leur propre espace.
 

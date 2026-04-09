@@ -2,11 +2,11 @@
   "expo": {
     "name": "Stockman",
     "slug": "stockman",
-    "version": "1.0.19",
+    "version": "1.0.20",
     "orientation": "default",
     "android": {
       "package": "com.youssouphasba.stockman",
-      "versionCode": 19,
+      "versionCode": 20,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -21,7 +21,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.youssouphasba.stockman",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -83,14 +83,6 @@
         }
       ],
       "expo-font",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          }
-        }
-      ],
       "./plugins/withFirebaseModularHeaders",
       "./plugins/withRemoveBackgroundAudioMode",
       "expo-sharing",
