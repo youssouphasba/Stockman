@@ -13738,6 +13738,8 @@ async def verify_email(request: Request, response: Response, data: VerifyEmailRe
         raise HTTPException(status_code=429, detail="Trop de tentatives. Veuillez demander un nouveau code.")
 
     otp_expiry = user_doc.get("email_otp_expiry")
+    if otp_expiry and otp_expiry.tzinfo is None:
+        otp_expiry = otp_expiry.replace(tzinfo=timezone.utc)
     if otp_expiry and datetime.now(timezone.utc) > otp_expiry:
         await log_verification_event(
             "otp_expired",
