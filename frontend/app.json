@@ -88,12 +88,7 @@
         {
           "ios": {
             "useFrameworks": "static",
-            "buildReactNativeFromSource": true,
-            "forceStaticLinking": [
-              "React-Core-prebuilt",
-              "ReactNativeDependencies",
-              "hermes-engine"
-            ]
+            "buildReactNativeFromSource": true
           }
         }
       ],
