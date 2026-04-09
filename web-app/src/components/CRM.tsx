@@ -850,7 +850,9 @@ export default function CRM({ user }: CRMProps) {
                                             Exemples : {segment.examples.join(', ')}
                                         </p>
                                     ) : (
-                                        <p className="mt-3 text-xs text-slate-300/80">Voir le detail</p>
+                                        <span className="mt-3 inline-flex rounded-full border border-current/30 bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] shadow-sm">
+                                            Voir le détail
+                                        </span>
                                     )}
                                 </button>
                             );

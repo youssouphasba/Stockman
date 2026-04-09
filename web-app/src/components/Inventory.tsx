@@ -2009,7 +2009,7 @@ export default function Inventory() {
                                                     <button
                                                         onClick={() => void handleResolveDuplicate(d.item_a.id, d.item_b.id, 'different')}
                                                         disabled={duplicateActionKey === d.pair_key}
-                                                        className="rounded-lg border border-white/10 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+                                                        className="rounded-lg border border-emerald-700 bg-emerald-600 px-2 py-1 text-[11px] font-black text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
                                                     >
                                                         Marquer différent
                                                     </button>
@@ -2205,7 +2205,7 @@ export default function Inventory() {
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-200">
-                                            {safeCategoriesList.find(c => c.category_id === p.category_id)?.name || t('common.uncategorized')}
+                                            {safeCategoriesList.find(c => c.category_id === p.category_id)?.name || t('common.uncategorized', { defaultValue: 'Non catégorisé' })}
                                         </span>
                                     </td>
                                     <td className="py-4 px-6">
@@ -2215,7 +2215,7 @@ export default function Inventory() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenSupplierMarketplace(p)}
-                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-rose-300/50 bg-rose-500/15 px-3 py-1.5 text-[11px] font-bold text-rose-100 transition-colors hover:bg-rose-500/25"
+                                                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-rose-700 bg-rose-600 px-3 py-1.5 text-[11px] font-black text-white shadow-sm transition-colors hover:bg-rose-700"
                                                 >
                                                     <Plus size={12} />
                                                     Associer un fournisseur
@@ -2696,7 +2696,7 @@ export default function Inventory() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300">{t('common.category')}</label>
+                                    <label className="block text-sm font-medium text-slate-300">{t('common.category', { defaultValue: 'Catégorie' })}</label>
                                     <select
                                         value={form.category_id}
                                         onChange={(e) => setForm({ ...form, category_id: e.target.value })}
@@ -2736,7 +2736,7 @@ export default function Inventory() {
                                     className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
                                 >
                                     <option value="standard">Produit fini / Plat</option>
-                                    <option value="raw_material">Ingr?dient / Mati?re premi?re</option>
+                                    <option value="raw_material">Ingrédient / matière première</option>
                                 </select>
                             </div>
 
@@ -2751,7 +2751,7 @@ export default function Inventory() {
                                         <option value="">Aucun emplacement</option>
                                         {formLocationOptions.map(loc => (
                                             <option key={loc.location_id} value={loc.location_id}>
-                                                {getLocationLabel(loc.location_id)}{loc.is_active === false ? ' (archiv?)' : ''}
+                                                {getLocationLabel(loc.location_id)}{loc.is_active === false ? ' (archivé)' : ''}
                                             </option>
                                         ))}
                                     </select>
@@ -2899,7 +2899,7 @@ export default function Inventory() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300">{t('common.purchase_price')}</label>
+                                    <label className="block text-sm font-medium text-slate-300">{t('common.purchase_price', { defaultValue: "Prix d'achat" })}</label>
                                     <input
                                         type="number"
                                         value={form.purchase_price}
@@ -2909,7 +2909,7 @@ export default function Inventory() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-300 flex justify-between">
-                                        {t('common.selling_price')}
+                                        {t('common.selling_price', { defaultValue: 'Prix de vente' })}
                                         <button type="button" onClick={handleAiSuggestPrice} disabled={aiLoading.price} className="text-primary hover:underline text-[10px] flex items-center gap-1 font-bold italic">
                                             <Sparkles size={10} className={aiLoading.price ? 'animate-pulse' : ''} /> Suggestion IA
                                         </button>

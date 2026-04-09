@@ -12,9 +12,9 @@ function getVariant(days: number): Variant {
 }
 
 const VARIANTS: Record<Variant, { bg: string; border: string; text: string; Icon: React.ElementType }> = {
-    info:    { bg: 'bg-blue-950/60',  border: 'border-blue-500/30',  text: 'text-blue-300',  Icon: Clock },
-    warning: { bg: 'bg-yellow-950/60', border: 'border-yellow-500/30', text: 'text-yellow-300', Icon: AlertTriangle },
-    danger:  { bg: 'bg-red-950/60',   border: 'border-red-500/30',   text: 'text-red-400',   Icon: AlertOctagon },
+    info:    { bg: 'bg-blue-700',   border: 'border-blue-400/60',   text: 'text-white', Icon: Clock },
+    warning: { bg: 'bg-amber-700',  border: 'border-amber-300/70',  text: 'text-white', Icon: AlertTriangle },
+    danger:  { bg: 'bg-rose-700',   border: 'border-rose-300/70',   text: 'text-white', Icon: AlertOctagon },
 };
 
 interface Props {
@@ -74,7 +74,7 @@ export default function TrialBanner({ onNavigateToSubscription, userRole }: Prop
         return (
             <button
                 onClick={onNavigateToSubscription}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border-b ${bg} ${border} ${text} hover:opacity-90 transition-opacity`}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-black border-b shadow-sm ${bg} ${border} ${text} hover:brightness-110 transition-all`}
             >
                 <Icon size={15} className="shrink-0" />
                 <span>{label}</span>
@@ -105,7 +105,7 @@ export default function TrialBanner({ onNavigateToSubscription, userRole }: Prop
     return (
         <button
             onClick={onNavigateToSubscription}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border-b ${bg} ${border} ${text} hover:opacity-90 transition-opacity`}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-black border-b shadow-sm ${bg} ${border} ${text} hover:brightness-110 transition-all`}
         >
             <Icon size={15} className="shrink-0" />
             <span>{label}</span>

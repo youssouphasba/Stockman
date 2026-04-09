@@ -541,7 +541,7 @@ export default function Accounting() {
             title: t('guide.accounting.filters_title', "Filtres de période"),
             content: t('guide.accounting.filters_content', "Toutes les données s'adaptent à la période sélectionnée."),
             details: [
-                { label: t('guide.accounting.filter_periods', "Boutons de p?riode"), description: t('guide.accounting.filter_periods_desc', "7 jours ? 30 jours ? 90 jours ? 1 an. Cliquez pour changer la p?riode d'analyse."), type: 'filter' },
+                { label: t('guide.accounting.filter_periods', "Boutons de période"), description: t('guide.accounting.filter_periods_desc', "7 jours, 30 jours, 90 jours ou 1 an. Cliquez pour changer la période d'analyse."), type: 'filter' },
                 { label: t('guide.accounting.filter_custom', "Icône calendrier à plage personnalisée"), description: t('guide.accounting.filter_custom_desc', "Active les champs de dates pour définir une période sur mesure (ex : du 1er au 31 mars). Cliquez sur OK pour appliquer."), type: 'filter' },
             ],
         },
@@ -682,7 +682,7 @@ export default function Accounting() {
                         onClick={handleOpenAddExpense}
                         className="btn-primary rounded-xl px-4 py-2 flex items-center gap-2 text-sm shadow-lg shadow-primary/20"
                     >
-                        <Plus size={18} /> Nouvelle D?pense
+                        <Plus size={18} /> Nouvelle dépense
                     </button>
                 </div>
             </header>
@@ -874,7 +874,7 @@ export default function Accounting() {
                         <div>
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Valeur Stock (Cout)</p>
                             <p className="text-white font-black text-xl">{formatCurrency(stats.stock_value)}</p>
-                            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-primary">Voir le detail</p>
+                            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-primary">Voir le détail</p>
                         </div>
                     </button>
                     <button
@@ -888,7 +888,7 @@ export default function Accounting() {
                         <div>
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Valeur Stock (Vente)</p>
                             <p className="text-white font-black text-xl">{formatCurrency(stats.stock_selling_value)}</p>
-                            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-primary">Voir le detail</p>
+                            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-primary">Voir le détail</p>
                         </div>
                     </button>
                 </div>
@@ -939,7 +939,7 @@ export default function Accounting() {
                                     </AreaChart>
                             </SafeResponsiveContainer>
                             ) : (
-                                <div className="h-full flex items-center justify-center text-slate-600 text-sm">Aucune donn?e sur cette p?riode</div>
+                                <div className="h-full flex items-center justify-center text-slate-600 text-sm">Aucune donnée sur cette période</div>
                             )}
                         </div>
                     </div>
@@ -1027,7 +1027,7 @@ export default function Accounting() {
                                 </div>
                             )}
                             {filteredExpenses.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500 font-medium">Aucune d?pense sur cette p?riode.</div>
+                                <div className="text-center py-10 text-slate-500 font-medium">Aucune dépense sur cette période.</div>
                             ) : (
                                 filteredExpenses.map((exp: any) => (
                                     <div key={exp.expense_id} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-white/10 transition-all">
@@ -1133,7 +1133,7 @@ export default function Accounting() {
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">M?thodes de Paiement</h3>
                             <div className="space-y-4">
                                 {Object.keys(stats.payment_breakdown || {}).length === 0 ? (
-                                    <p className="text-xs text-slate-500 italic text-center py-4">Aucune vente sur cette p?riode.</p>
+                                    <p className="text-xs text-slate-500 italic text-center py-4">Aucune vente sur cette période.</p>
                                 ) : (
                                     Object.entries(stats.payment_breakdown || {}).map(([method, amount]: [string, any]) => (
                                         <div key={method} className="p-4 bg-white/5 rounded-2xl border border-white/5">
@@ -1187,10 +1187,10 @@ export default function Accounting() {
                     {/* Charges breakdown Tab */}
                     {rightTab === 'products' && (
                         <div className="glass-card p-6">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">R?partition des Charges</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Répartition des charges</h3>
                             <div className="space-y-3">
                                 {Object.keys(stats.expenses_breakdown || {}).length === 0 ? (
-                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune d?pense sur cette p?riode.</p>
+                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune dépense sur cette période.</p>
                                 ) : (
                                     Object.entries(stats.expenses_breakdown || {})
                                         .sort(([, a]: any, [, b]: any) => b - a)
@@ -1466,7 +1466,7 @@ export default function Accounting() {
                                         type="text"
                                         value={freeInvPaymentTerms}
                                         onChange={e => setFreeInvPaymentTerms(e.target.value)}
-                                        placeholder="Ex: Paiement ? 30 jours"
+                                        placeholder="Ex : paiement à 30 jours"
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:border-primary focus:outline-none"
                                     />
                                 </div>
@@ -1486,7 +1486,7 @@ export default function Accounting() {
 
                             {/* Total preview */}
                             <div className="flex justify-between items-center bg-primary/10 rounded-xl p-4 border border-primary/20">
-                                <span className="text-sm font-bold text-slate-300">Total estim?</span>
+                                <span className="text-sm font-bold text-slate-300">Total estimé</span>
                                 <span className="text-xl font-black text-primary">{freeInvTotal.toLocaleString('fr-FR')} F</span>
                             </div>
                         </div>
@@ -1526,7 +1526,7 @@ export default function Accounting() {
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={requestCloseExpenseModal} />
                     <div className="glass-card w-full max-w-md relative z-10 p-8">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-white">{editingExpense ? 'Modifier la d?pense' : 'Nouvelle D?pense'}</h2>
+                            <h2 className="text-2xl font-bold text-white">{editingExpense ? 'Modifier la dépense' : 'Nouvelle dépense'}</h2>
                             <button onClick={requestCloseExpenseModal} className="p-2 text-slate-500 hover:text-white transition-colors">
                                 <X size={20} />
                             </button>
@@ -1549,7 +1549,7 @@ export default function Accounting() {
                                 <div className="flex gap-2 mt-1">
                                     <input
                                         type="text"
-                                        placeholder={t('accounting.new_category_placeholder') || 'Nouvelle catégorie...'}
+                                        placeholder={t('accounting.new_category_placeholder', { defaultValue: 'Nouvelle catégorie...' })}
                                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-primary/50"
                                         value={newCategoryDraft}
                                         onChange={(e) => setNewCategoryDraft(e.target.value)}

@@ -57,19 +57,19 @@ export default function TextImportModal({ isOpen, onClose, onSuccess }: TextImpo
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title={t('products.import_text_title')} maxWidth="xl">
+        <Modal isOpen={isOpen} onClose={handleClose} title={t('products.import_text_title', { defaultValue: 'Importer des produits depuis un texte' })} maxWidth="xl">
             <div className="space-y-5">
                 <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">Import IA</p>
                     <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                        {t('products.import_text_help')}
+                        {t('products.import_text_help', { defaultValue: "Collez votre liste de produits. L'IA peut créer les fiches avec nom, stock, prix, unité et catégorie quand ces informations sont présentes." })}
                     </p>
                 </div>
 
                 <textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    placeholder={t('products.import_text_placeholder')}
+                    placeholder={t('products.import_text_placeholder', { defaultValue: 'Exemple :\nDoliprane 500 mg, stock 24, achat 800, vente 1000\nCompresses stériles, stock 12, vente 1500' })}
                     rows={10}
                     className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white outline-none transition-all focus:border-primary/40"
                 />
@@ -96,7 +96,7 @@ export default function TextImportModal({ isOpen, onClose, onSuccess }: TextImpo
                         className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <Sparkles size={16} className={loading ? 'animate-pulse' : ''} />
-                        {loading ? t('common.loading', 'Chargement...') : t('products.import_text_btn')}
+                        {loading ? t('common.loading', 'Chargement...') : t('products.import_text_btn', { defaultValue: 'Importer avec l’IA' })}
                     </button>
                 </div>
             </div>
