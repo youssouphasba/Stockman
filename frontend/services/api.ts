@@ -603,6 +603,23 @@ export type ProductImportJob = {
   can_resume: boolean;
 };
 
+export type ProductDeleteJob = {
+  job_id: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  requested_count: number;
+  total_products: number;
+  processed_products: number;
+  deleted_count: number;
+  error_count: number;
+  errors: Array<{ product_id: string; message: string }>;
+  last_error?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  progress_pct: number;
+};
+
 export const products = {
   list: (categoryId?: string, skip = 0, limit = 50, isMenuItem?: boolean, search?: string) => {
     const qs = new URLSearchParams();
@@ -631,6 +648,15 @@ export const products = {
     }),
   delete: (id: string) =>
     request<{ message: string }>(`/products/${id}`, { method: 'DELETE' }),
+  createDeleteJob: (productIds: string[]) =>
+    request<ProductDeleteJob>('/products/delete-jobs', {
+      method: 'POST',
+      body: { product_ids: productIds },
+    }),
+  getActiveDeleteJob: () =>
+    request<{ job: ProductDeleteJob | null }>('/products/delete-jobs/active'),
+  getDeleteJob: (jobId: string) =>
+    request<ProductDeleteJob>(`/products/delete-jobs/${jobId}`),
   deletePermanent: (id: string) =>
     request<{ message: string }>(`/products/${id}/permanent`, { method: 'DELETE' }),
   restore: (id: string) =>

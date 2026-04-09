@@ -93,7 +93,7 @@ function isConsultationOnlyWebMode() {
 }
 
 function canMutateInConsultationMode(endpoint: string) {
-    return ['/auth/logout', '/subscription', '/billing'].some((prefix) => endpoint.startsWith(prefix));
+    return ['/auth/', '/subscription', '/billing'].some((prefix) => endpoint.startsWith(prefix));
 }
 
 function getAiDuplicatesBlockedUntil() {
@@ -129,6 +129,7 @@ const ONLINE_ONLY_MUTATION_PREFIXES = [
     '/auth/refresh',
     '/auth/verify',
     '/auth/resend',
+    '/auth/complete',
     '/billing',
     '/subscription/sync',
     '/ai/',
@@ -523,6 +524,23 @@ export type ProductTrashItem = {
     product_id: string;
     name: string;
     deleted_at?: string | null;
+};
+
+export type ProductDeleteJob = {
+    job_id: string;
+    status: 'queued' | 'running' | 'completed' | 'failed';
+    requested_count: number;
+    total_products: number;
+    processed_products: number;
+    deleted_count: number;
+    error_count: number;
+    errors: Array<{ product_id: string; message: string }>;
+    last_error?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    started_at?: string | null;
+    completed_at?: string | null;
+    progress_pct: number;
 };
 
 export type DemoSessionInfo = {
@@ -1654,6 +1672,15 @@ export const products = {
             body: { updates },
         }),
     delete: (id: string) => request<any>(`/products/${id}`, { method: 'DELETE' }),
+    createDeleteJob: (productIds: string[]) =>
+        request<ProductDeleteJob>('/products/delete-jobs', {
+            method: 'POST',
+            body: { product_ids: productIds },
+        }),
+    getActiveDeleteJob: () =>
+        request<{ job: ProductDeleteJob | null }>('/products/delete-jobs/active'),
+    getDeleteJob: (jobId: string) =>
+        request<ProductDeleteJob>(`/products/delete-jobs/${jobId}`),
     transferLocation: (id: string, data: { to_location_id?: string | null; note?: string | null }) =>
         request<any>(`/products/${id}/transfer-location`, { method: 'POST', body: data }),
     importParse: (file: File) => {

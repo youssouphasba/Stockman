@@ -12,7 +12,7 @@ import hmac
 import google.generativeai as genai
 from pathlib import Path as PathLib
 from pydantic import BaseModel, Field, EmailStr
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Set
 import uuid
 import secrets
 from datetime import datetime, timezone, timedelta
@@ -183,6 +183,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Background tasks monitoring (I8)
 background_tasks_status = {}
 product_import_tasks: Dict[str, asyncio.Task] = {}
+product_delete_tasks: Dict[str, asyncio.Task] = {}
 
 async def supervised_loop(name: str, func, interval: int = 300):
     """Wrapper to supervise background tasks and report status (I8)"""
@@ -243,6 +244,157 @@ def schedule_product_import_job(job_id: str, user_id: str) -> None:
             product_import_tasks.pop(job_id, None)
 
     product_import_tasks[job_id] = asyncio.create_task(_runner())
+
+
+def serialize_product_delete_job(job: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not job:
+        return None
+    total_products = int(job.get("total_products", 0) or 0)
+    processed_products = int(job.get("processed_products", 0) or 0)
+    progress_pct = round((processed_products / total_products) * 100, 1) if total_products > 0 else 0.0
+    return {
+        "job_id": job.get("job_id"),
+        "status": job.get("status"),
+        "requested_count": int(job.get("requested_count", total_products) or total_products),
+        "total_products": total_products,
+        "processed_products": processed_products,
+        "deleted_count": int(job.get("deleted_count", 0) or 0),
+        "error_count": int(job.get("error_count", 0) or 0),
+        "errors": job.get("errors", []),
+        "last_error": job.get("last_error"),
+        "created_at": job.get("created_at"),
+        "updated_at": job.get("updated_at"),
+        "started_at": job.get("started_at"),
+        "completed_at": job.get("completed_at"),
+        "progress_pct": progress_pct,
+    }
+
+
+async def process_product_delete_job(job_id: str, user_id: str) -> None:
+    job = await db.product_delete_jobs.find_one({"job_id": job_id, "user_id": user_id})
+    if not job:
+        return
+
+    if job.get("status") == "completed":
+        return
+
+    now = datetime.now(timezone.utc)
+    await db.product_delete_jobs.update_one(
+        {"job_id": job_id, "user_id": user_id},
+        {
+            "$set": {
+                "status": "running",
+                "started_at": job.get("started_at") or now,
+                "updated_at": now,
+                "last_error": None,
+            }
+        },
+    )
+
+    product_ids = list(dict.fromkeys(job.get("product_ids", [])))
+    deleted_count = int(job.get("deleted_count", 0) or 0)
+    processed_products = int(job.get("processed_products", 0) or 0)
+    errors = list(job.get("errors", []))
+    batch_size = 100
+    touched_store_ids: Set[str] = set(job.get("store_ids", []))
+
+    try:
+        for index in range(processed_products, len(product_ids), batch_size):
+            batch_ids = product_ids[index:index + batch_size]
+            batch_products = await db.products.find(
+                {
+                    "user_id": user_id,
+                    "product_id": {"$in": batch_ids},
+                    "is_active": {"$ne": False},
+                },
+                {"_id": 0, "product_id": 1, "store_id": 1},
+            ).to_list(len(batch_ids))
+
+            active_ids = [product["product_id"] for product in batch_products]
+            touched_store_ids.update(
+                product.get("store_id") for product in batch_products if product.get("store_id")
+            )
+
+            if active_ids:
+                batch_now = datetime.now(timezone.utc)
+                result = await db.products.update_many(
+                    {
+                        "user_id": user_id,
+                        "product_id": {"$in": active_ids},
+                        "is_active": {"$ne": False},
+                    },
+                    {"$set": {"is_active": False, "deleted_at": batch_now, "updated_at": batch_now}},
+                )
+                deleted_count += int(result.modified_count or 0)
+
+            missing_ids = [product_id for product_id in batch_ids if product_id not in set(active_ids)]
+            for missing_id in missing_ids:
+                errors.append({"product_id": missing_id, "message": "Produit introuvable ou deja supprime"})
+
+            processed_products = min(index + len(batch_ids), len(product_ids))
+            await db.product_delete_jobs.update_one(
+                {"job_id": job_id, "user_id": user_id},
+                {
+                    "$set": {
+                        "processed_products": processed_products,
+                        "deleted_count": deleted_count,
+                        "error_count": len(errors),
+                        "errors": errors,
+                        "updated_at": datetime.now(timezone.utc),
+                        "store_ids": list(touched_store_ids),
+                    }
+                },
+            )
+
+        for store_id in touched_store_ids:
+            _invalidate_dashboard_ai_caches(user_id, store_id)
+
+        await db.product_delete_jobs.update_one(
+            {"job_id": job_id, "user_id": user_id},
+            {
+                "$set": {
+                    "status": "completed",
+                    "processed_products": len(product_ids),
+                    "deleted_count": deleted_count,
+                    "error_count": len(errors),
+                    "errors": errors,
+                    "updated_at": datetime.now(timezone.utc),
+                    "completed_at": datetime.now(timezone.utc),
+                    "store_ids": list(touched_store_ids),
+                }
+            },
+        )
+    except Exception as exc:
+        logger.error(f"Product delete job {job_id} failed: {exc}")
+        await db.product_delete_jobs.update_one(
+            {"job_id": job_id, "user_id": user_id},
+            {
+                "$set": {
+                    "status": "failed",
+                    "last_error": str(exc),
+                    "error_count": len(errors),
+                    "errors": errors,
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
+        )
+        raise
+
+
+def schedule_product_delete_job(job_id: str, user_id: str) -> None:
+    existing_task = product_delete_tasks.get(job_id)
+    if existing_task and not existing_task.done():
+        return
+
+    async def _runner():
+        try:
+            await process_product_delete_job(job_id, user_id)
+        except Exception:
+            pass
+        finally:
+            product_delete_tasks.pop(job_id, None)
+
+    product_delete_tasks[job_id] = asyncio.create_task(_runner())
 app = FastAPI(title="Stock Management API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -1850,6 +2002,32 @@ class BulkProductPriceUpdateResponse(BaseModel):
     updated: int
     failed: int
     errors: List[BulkProductPriceUpdateError] = []
+
+
+class BulkProductDeleteRequest(BaseModel):
+    product_ids: List[str]
+
+
+class BulkProductDeleteError(BaseModel):
+    product_id: str
+    message: str
+
+
+class ProductDeleteJobResponse(BaseModel):
+    job_id: str
+    status: str
+    requested_count: int
+    total_products: int
+    processed_products: int
+    deleted_count: int
+    error_count: int
+    errors: List[BulkProductDeleteError] = []
+    last_error: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    progress_pct: float = 0.0
 
 
 # ===================== PRODUCTION MODULE MODELS =====================
@@ -13322,10 +13500,31 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
                     update_payload["verification_completed_at"] = datetime.now(timezone.utc)
                 update_payload["required_verification"] = None
                 update_payload["verification_channel"] = None
-        if not user_doc.get("signup_surface") and data.signup_surface:
-            update_payload["signup_surface"] = resolve_signup_surface(data.signup_surface, user_doc.get("plan"))
+        signup_surface = user_doc.get("signup_surface")
+        if not signup_surface and data.signup_surface:
+            signup_surface = resolve_signup_surface(data.signup_surface, user_doc.get("plan"))
+            update_payload["signup_surface"] = signup_surface
+        upgrade_web_social_to_enterprise = (
+            signup_surface == "web"
+            and user_doc.get("auth_type") in {"google", "apple"}
+            and needs_social_profile_completion(user_doc)
+            and normalize_plan(user_doc.get("plan")) != "enterprise"
+        )
+        if upgrade_web_social_to_enterprise:
+            update_payload["plan"] = "enterprise"
+            update_payload["subscription_status"] = "active"
+            update_payload["trial_ends_at"] = user_doc.get("trial_ends_at") or datetime.now(timezone.utc) + timedelta(days=30)
         await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": update_payload})
         user_doc.update(update_payload)
+        if upgrade_web_social_to_enterprise:
+            await update_business_account_for_owner(
+                user_doc["user_id"],
+                {
+                    "plan": "enterprise",
+                    "subscription_status": "active",
+                    "trial_ends_at": user_doc["trial_ends_at"],
+                },
+            )
     else:
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         store_id = f"store_{uuid.uuid4().hex[:12]}"
@@ -13336,7 +13535,8 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
         )
         await db.stores.insert_one(store.model_dump())
 
-        signup_surface = resolve_signup_surface(data.signup_surface, "starter")
+        signup_surface = resolve_signup_surface(data.signup_surface, None)
+        initial_plan = "enterprise" if signup_surface == "web" else "starter"
         trial_ends_at = datetime.now(timezone.utc) + timedelta(days=30)
 
         user_doc = {
@@ -13353,7 +13553,7 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
             "account_roles": ["billing_admin", "org_admin"],
             "active_store_id": store_id,
             "store_ids": [store_id],
-            "plan": "starter",
+            "plan": initial_plan,
             "subscription_status": "active",
             "trial_ends_at": trial_ends_at,
             "currency": DEFAULT_CURRENCY,
@@ -13918,15 +14118,30 @@ async def complete_social_profile(data: SocialProfileCompletionUpdate, user: Use
     if required_verification == "phone":
         update_payload["is_phone_verified"] = False
         update_payload["verification_completed_at"] = None
+    upgrade_web_social_to_enterprise = (
+        user_doc.get("signup_surface") == "web"
+        and normalize_plan(user_doc.get("plan")) != "enterprise"
+    )
+    if upgrade_web_social_to_enterprise:
+        update_payload["plan"] = "enterprise"
+        update_payload["subscription_status"] = "active"
+        update_payload["trial_ends_at"] = user_doc.get("trial_ends_at") or datetime.now(timezone.utc) + timedelta(days=30)
 
     await db.users.update_one({"user_id": user.user_id}, {"$set": update_payload})
+    account_updates = {
+        "country_code": country_code,
+        "currency": resolved_currency,
+        "business_type": business_type,
+    }
+    if upgrade_web_social_to_enterprise:
+        account_updates.update({
+            "plan": "enterprise",
+            "subscription_status": "active",
+            "trial_ends_at": update_payload["trial_ends_at"],
+        })
     await update_business_account_for_owner(
         get_owner_id(user),
-        {
-            "country_code": country_code,
-            "currency": resolved_currency,
-            "business_type": business_type,
-        },
+        account_updates,
     )
 
     updated_user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
@@ -14852,6 +15067,101 @@ async def delete_product(product_id: str, user: User = Depends(require_permissio
         {"product_id": product_id},
     )
     return {"message": "Produit supprime"}
+
+
+@api_router.post("/products/delete-jobs", response_model=ProductDeleteJobResponse)
+async def create_product_delete_job(
+    data: BulkProductDeleteRequest,
+    user: User = Depends(require_permission("stock", "write")),
+):
+    owner_id = get_owner_id(user)
+    requested_ids = list(dict.fromkeys([product_id for product_id in data.product_ids if product_id]))
+    if not requested_ids:
+        raise HTTPException(status_code=400, detail="Aucun produit selectionne")
+
+    query = {
+        "user_id": owner_id,
+        "product_id": {"$in": requested_ids},
+    }
+    query = apply_store_scope(query, user)
+    products = await db.products.find(
+        query,
+        {"_id": 0, "product_id": 1, "name": 1, "store_id": 1, "is_active": 1},
+    ).to_list(len(requested_ids))
+
+    found_ids = {product["product_id"] for product in products}
+    active_products = [product for product in products if product.get("is_active") is not False]
+    active_ids = [product["product_id"] for product in active_products]
+    inactive_ids = [product["product_id"] for product in products if product.get("is_active") is False]
+    missing_ids = [product_id for product_id in requested_ids if product_id not in found_ids]
+
+    initial_errors = [
+        {"product_id": product_id, "message": "Produit introuvable"}
+        for product_id in missing_ids
+    ] + [
+        {"product_id": product_id, "message": "Produit deja supprime"}
+        for product_id in inactive_ids
+    ]
+
+    if not active_ids:
+        raise HTTPException(status_code=400, detail="Aucun produit actif a supprimer")
+
+    now = datetime.now(timezone.utc)
+    job = {
+        "job_id": f"prod_delete_{uuid.uuid4().hex[:12]}",
+        "user_id": owner_id,
+        "store_id": user.active_store_id,
+        "product_ids": active_ids,
+        "store_ids": list({product.get("store_id") for product in active_products if product.get("store_id")}),
+        "status": "queued",
+        "requested_count": len(requested_ids),
+        "total_products": len(active_ids),
+        "processed_products": 0,
+        "deleted_count": 0,
+        "error_count": len(initial_errors),
+        "errors": initial_errors,
+        "last_error": None,
+        "created_at": now,
+        "updated_at": now,
+        "started_at": None,
+        "completed_at": None,
+    }
+    await db.product_delete_jobs.insert_one(job)
+    schedule_product_delete_job(job["job_id"], owner_id)
+    return ProductDeleteJobResponse(**serialize_product_delete_job(job))
+
+
+@api_router.get("/products/delete-jobs/active")
+async def get_active_product_delete_job(current_user: User = Depends(require_auth)):
+    user_id = get_owner_id(current_user)
+    query: Dict[str, Any] = {
+        "user_id": user_id,
+        "status": {"$in": ["queued", "running"]},
+    }
+    if current_user.active_store_id:
+        query["store_id"] = current_user.active_store_id
+    job = await db.product_delete_jobs.find_one(query, sort=[("created_at", -1)])
+    if not job:
+        return {"job": None}
+    if job.get("status") in {"queued", "running"}:
+        schedule_product_delete_job(job["job_id"], user_id)
+        job = await db.product_delete_jobs.find_one({"job_id": job["job_id"], "user_id": user_id})
+    return {"job": serialize_product_delete_job(job)}
+
+
+@api_router.get("/products/delete-jobs/{job_id}", response_model=ProductDeleteJobResponse)
+async def get_product_delete_job_status(job_id: str, current_user: User = Depends(require_auth)):
+    user_id = get_owner_id(current_user)
+    job = await db.product_delete_jobs.find_one({"job_id": job_id, "user_id": user_id})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job de suppression introuvable")
+    if job.get("status") in {"queued", "running"}:
+        schedule_product_delete_job(job["job_id"], user_id)
+        job = await db.product_delete_jobs.find_one({"job_id": job_id, "user_id": user_id})
+    serialized_job = serialize_product_delete_job(job)
+    if not serialized_job:
+        raise HTTPException(status_code=404, detail="Job de suppression introuvable")
+    return ProductDeleteJobResponse(**serialized_job)
 
 
 @api_router.post("/products/{product_id}/restore", response_model=Product)

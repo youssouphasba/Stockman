@@ -34,6 +34,16 @@ Si le compte est en `Starter` ou `Pro`, un bloc explique clairement que :
 - les boutiques, utilisateurs et donnees sont conserves ;
 - le web complet se debloque apres confirmation du paiement.
 
+### Creation d'un compte depuis le web
+
+Une personne qui commence directement sur la web app cree un compte web `Enterprise`.
+Le comportement doit rester le meme avec une inscription email/mot de passe et avec une
+inscription sociale Google ou Apple.
+
+Quand le compte est cree avec Google ou Apple, Stockman peut demander de terminer le profil :
+pays, telephone et secteur d'activite. Cette finalisation fait partie du parcours
+d'authentification et ne doit pas etre bloquee par le mode web en consultation.
+
 ### Pays et devise
 
 Le pays et la devise de facturation sont affiches en lecture seule.
@@ -88,5 +98,6 @@ La section du bas affiche l'historique disponible. Si aucun document n'existe en
 - Le passage a `Enterprise` ne cree pas un nouveau compte.
 - Les donnees existantes ne sont pas supprimees lors de l'evolution.
 - Le changement de plan devient effectif apres confirmation du paiement par le prestataire.
+- Une nouvelle inscription lancee depuis la web app initialise le compte pour le parcours web `Enterprise`, y compris lorsque l'utilisateur continue avec Google ou Apple.
 - Un compte `Starter` ou `Pro` peut consulter le web app, mais ne peut pas y creer ou modifier des donnees tant que `Enterprise` n'est pas actif.
 - Un compte `Starter` reste mono-utilisateur : pour ajouter des employes, il faut passer a `Pro` ou `Enterprise`.

@@ -47,6 +47,7 @@ import {
     ApiError,
     AnalyticsStockHealth,
     ProductTrashItem,
+    ProductDeleteJob,
     UserFeatures,
 } from '../services/api';
 import Modal from './Modal';
@@ -149,6 +150,10 @@ export default function Inventory() {
     const [bulkPriceDrafts, setBulkPriceDrafts] = useState<Record<string, { purchase_price: string; selling_price: string }>>({});
     const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
+    const [trackedDeleteJob, setTrackedDeleteJob] = useState<ProductDeleteJob | null>(null);
+    const [bulkDeleteProcessedCount, setBulkDeleteProcessedCount] = useState(0);
+    const [bulkDeleteTotalCount, setBulkDeleteTotalCount] = useState(0);
+    const deleteJobNotificationRef = useRef<string | null>(null);
     const [catalogImportLoading, setCatalogImportLoading] = useState(false);
     const [stockHealth, setStockHealth] = useState<AnalyticsStockHealth | null>(null);
     const [stockHealthLoading, setStockHealthLoading] = useState(true);
@@ -468,6 +473,81 @@ export default function Inventory() {
             setTrashActionId(null);
         }
     };
+
+    useEffect(() => {
+        let cancelled = false;
+        productsApi.getActiveDeleteJob()
+            .then((response) => {
+                if (cancelled || !response.job) return;
+                setTrackedDeleteJob(response.job);
+                setBulkActionLoading(true);
+                setBulkDeleteProcessedCount(response.job.processed_products);
+                setBulkDeleteTotalCount(response.job.total_products);
+            })
+            .catch((err) => {
+                console.warn('Active product delete job unavailable', err);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!trackedDeleteJob?.job_id) return;
+        if (trackedDeleteJob.status !== 'queued' && trackedDeleteJob.status !== 'running') return;
+
+        let cancelled = false;
+        const refreshJob = async () => {
+            try {
+                const job = await productsApi.getDeleteJob(trackedDeleteJob.job_id);
+                if (cancelled) return;
+                setTrackedDeleteJob(job);
+                setBulkDeleteProcessedCount(job.processed_products);
+                setBulkDeleteTotalCount(job.total_products);
+            } catch (err) {
+                console.warn('Product delete job polling failed', err);
+            }
+        };
+
+        void refreshJob();
+        const interval = window.setInterval(() => void refreshJob(), 2000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
+    }, [trackedDeleteJob?.job_id, trackedDeleteJob?.status]);
+
+    useEffect(() => {
+        if (!trackedDeleteJob?.job_id) return;
+
+        if (trackedDeleteJob.status === 'completed') {
+            if (deleteJobNotificationRef.current === trackedDeleteJob.job_id) return;
+            deleteJobNotificationRef.current = trackedDeleteJob.job_id;
+            setBulkActionLoading(false);
+            setBulkDeleteProcessedCount(trackedDeleteJob.processed_products);
+            setBulkDeleteTotalCount(trackedDeleteJob.total_products);
+            void Promise.all([
+                fetchProducts(),
+                loadStockHealth(),
+                isTrashOpen ? loadTrash() : Promise.resolve(),
+            ]);
+            window.alert(t('inventory.bulk_delete_job_completed', {
+                defaultValue: 'Suppression terminée : {{deleted}} produit(s) envoyé(s) dans la corbeille.',
+                deleted: trackedDeleteJob.deleted_count,
+            }));
+            return;
+        }
+
+        if (trackedDeleteJob.status === 'failed') {
+            if (deleteJobNotificationRef.current === `${trackedDeleteJob.job_id}:failed`) return;
+            deleteJobNotificationRef.current = `${trackedDeleteJob.job_id}:failed`;
+            setBulkActionLoading(false);
+            void fetchProducts();
+            window.alert(trackedDeleteJob.last_error || t('inventory.bulk_delete_error'));
+        }
+    }, [fetchProducts, isTrashOpen, loadStockHealth, loadTrash, t, trackedDeleteJob]);
 
     useEffect(() => {
         void fetchProducts();
@@ -1313,32 +1393,48 @@ export default function Inventory() {
         }
     };
 
+    const removeProductsLocally = (productIds: string[]) => {
+        if (productIds.length === 0) return;
+        const idsToRemove = new Set(productIds);
+        setProducts(prev => prev.filter(product => !idsToRemove.has(product.product_id)));
+        setProductsTotal(prev => Math.max(0, prev - productIds.length));
+    };
+
     const handleDeleteSelectedProducts = async () => {
         if (selectedProducts.length === 0 || bulkActionLoading) {
             return;
         }
+        const productsToDelete = selectedProducts;
+        const productIds = productsToDelete.map((product) => product.product_id);
 
         const confirmed = window.confirm(
-            t('inventory.bulk_delete_confirm', { count: selectedProducts.length }),
+            t('inventory.bulk_delete_confirm', { count: productsToDelete.length }),
         );
         if (!confirmed) {
             return;
         }
 
         setBulkActionLoading(true);
+        setBulkDeleteProcessedCount(0);
+        setBulkDeleteTotalCount(productIds.length);
+        removeProductsLocally(productIds);
+        setSelectedProductIds(new Set());
+        setSelectionMode(false);
         try {
-            for (const product of selectedProducts) {
-                await productsApi.delete(product.product_id);
-            }
-            setSelectedProductIds(new Set());
-            setSelectionMode(false);
-            window.alert(t('inventory.bulk_delete_success', { count: selectedProducts.length }));
-            await fetchProducts();
-            await loadStockHealth();
+            const job = await productsApi.createDeleteJob(productIds);
+            setTrackedDeleteJob(job);
+            setBulkDeleteProcessedCount(job.processed_products);
+            setBulkDeleteTotalCount(job.total_products);
+            window.alert(t('inventory.bulk_delete_job_started', {
+                defaultValue: '{{count}} produit(s) vont être déplacés vers la corbeille en arrière-plan.',
+                count: job.total_products,
+            }));
         } catch (err: any) {
             window.alert(err.message || t('inventory.bulk_delete_error'));
-        } finally {
+            await fetchProducts();
             setBulkActionLoading(false);
+            setBulkDeleteProcessedCount(0);
+            setBulkDeleteTotalCount(0);
         }
     };
 
@@ -1664,6 +1760,37 @@ export default function Inventory() {
                             {t('inventory.bulk_delete_selected')}
                         </button>
                     </div>
+                </div>
+            )}
+
+            {trackedDeleteJob && (trackedDeleteJob.status === 'queued' || trackedDeleteJob.status === 'running') && (
+                <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-rose-400/30 bg-rose-500/10 p-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-3">
+                        <div className="mt-1 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-rose-300/30 border-t-rose-200" />
+                        <div>
+                            <p className="text-sm font-black uppercase tracking-[0.18em] text-rose-200">
+                                {t('inventory.bulk_delete_running_title', { defaultValue: 'Suppression en arrière-plan' })}
+                            </p>
+                            <p className="mt-1 text-sm text-rose-50/80">
+                                {t('inventory.bulk_delete_running_msg', {
+                                    defaultValue: '{{processed}}/{{total}} produit(s) traités. Vous pouvez continuer à travailler.',
+                                    processed: bulkDeleteProcessedCount || trackedDeleteJob.processed_products,
+                                    total: bulkDeleteTotalCount || trackedDeleteJob.total_products,
+                                })}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => void productsApi.getDeleteJob(trackedDeleteJob.job_id).then((job) => {
+                            setTrackedDeleteJob(job);
+                            setBulkDeleteProcessedCount(job.processed_products);
+                            setBulkDeleteTotalCount(job.total_products);
+                        })}
+                        className="inline-flex items-center justify-center rounded-xl border border-rose-300/30 bg-white/5 px-4 py-2 text-sm font-semibold text-rose-50 transition-colors hover:bg-white/10"
+                    >
+                        {t('common.refresh', { defaultValue: 'Actualiser' })}
+                    </button>
                 </div>
             )}
 

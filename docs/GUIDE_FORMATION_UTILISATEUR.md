@@ -224,6 +224,17 @@ Pour compter ou enregistrer plusieurs produits d'un coup :
    - **Inventaire rapide** : Marquer ces articles comme présents.
    - **Réapprovisionnement auto** : Générer des bons de commande pour les manquants.
 
+### 2.12 Supprimer plusieurs produits
+
+Quand vous devez nettoyer un grand catalogue :
+
+1. Dans **📦 Produits**, activez la sélection multiple.
+2. Sélectionnez les produits concernés.
+3. Appuyez sur l'action de suppression et confirmez.
+4. Les produits quittent la liste immédiatement. Stockman les déplace ensuite vers la **corbeille** en arrière-plan et affiche l'avancement si le traitement est encore en cours.
+
+> 💡 **Bon à savoir** : La suppression groupée n'efface pas définitivement les produits. Ils restent restaurables depuis la corbeille tant qu'ils n'ont pas été supprimés définitivement.
+
 ---
 
 ## Chapitre 3 — Le Tableau de Bord

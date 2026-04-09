@@ -61,6 +61,7 @@ import {
   ProductImportJob,
   Supplier,
   SupplierProduct,
+  ProductDeleteJob,
 } from '../../services/api';
 import AccessDenied from '../../components/AccessDenied';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
@@ -141,9 +142,12 @@ export default function ProductsScreen() {
   const [correlationsMap, setCorrelationsMap] = useState<Record<string, Array<{name: string; lift: number}>>>({});
   const [supplierCoverageFilter, setSupplierCoverageFilter] = useState<'all' | 'no_supplier' | 'multi_supplier' | 'missing_primary'>('all');
   const [trackedImportJob, setTrackedImportJob] = useState<ProductImportJob | null>(null);
+  const [trackedDeleteJob, setTrackedDeleteJob] = useState<ProductDeleteJob | null>(null);
   const handledReminderProductRef = useRef<string | null>(null);
   const lastLoadedAtRef = useRef(0);
   const lastImportNotificationRef = useRef<string | null>(null);
+  const lastDeleteNotificationRef = useRef<string | null>(null);
+  const lastBulkDeletedIdsRef = useRef<string[]>([]);
 
   // Register drawer menu items
   useFocusEffect(
@@ -229,11 +233,83 @@ export default function ProductsScreen() {
       clearInterval(interval);
     };
   }, [trackedImportJob?.job_id, trackedImportJob?.status]);
+
+  useEffect(() => {
+    if (!trackedDeleteJob?.job_id) return;
+    if (trackedDeleteJob.status === 'completed') {
+      if (lastDeleteNotificationRef.current === trackedDeleteJob.job_id) return;
+      lastDeleteNotificationRef.current = trackedDeleteJob.job_id;
+      setBulkDeleteSaving(false);
+      setBulkDeleteProcessedCount(trackedDeleteJob.processed_products);
+      setBulkDeleteTotalCount(trackedDeleteJob.total_products);
+      loadData();
+      const restorableIds = lastBulkDeletedIdsRef.current;
+      Alert.alert(
+        t('common.success'),
+        t('products.bulk_delete_completed', {
+          deleted: trackedDeleteJob.deleted_count,
+          failed: trackedDeleteJob.error_count,
+        }),
+        restorableIds.length > 0
+          ? [
+              { text: t('common.close', 'Fermer'), style: 'cancel' },
+              {
+                text: t('products.restore_cta', 'Restaurer'),
+                onPress: async () => {
+                  const idsToRestore = [...lastBulkDeletedIdsRef.current];
+                  lastBulkDeletedIdsRef.current = [];
+                  await restoreDeletedProducts(idsToRestore);
+                },
+              },
+            ]
+          : undefined,
+      );
+      return;
+    }
+    if (trackedDeleteJob.status === 'failed') {
+      if (lastDeleteNotificationRef.current === `${trackedDeleteJob.job_id}:failed`) return;
+      lastDeleteNotificationRef.current = `${trackedDeleteJob.job_id}:failed`;
+      setBulkDeleteSaving(false);
+      Alert.alert(
+        t('common.error'),
+        trackedDeleteJob.last_error || t('products.error_delete_failed'),
+      );
+    }
+  }, [t, trackedDeleteJob]);
+
+  useEffect(() => {
+    if (!trackedDeleteJob?.job_id) return;
+    if (trackedDeleteJob.status !== 'queued' && trackedDeleteJob.status !== 'running') return;
+
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      try {
+        const job = await productsApi.getDeleteJob(trackedDeleteJob.job_id);
+        if (!cancelled) {
+          setTrackedDeleteJob(job);
+          setBulkDeleteProcessedCount(job.processed_products);
+          setBulkDeleteTotalCount(job.total_products);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Delete job polling failed:', err);
+        }
+      }
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [trackedDeleteJob?.job_id, trackedDeleteJob?.status]);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
   const [bulkPriceValues, setBulkPriceValues] = useState<Record<string, string>>({});
   const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
+  const [bulkDeleteSaving, setBulkDeleteSaving] = useState(false);
+  const [bulkDeleteProcessedCount, setBulkDeleteProcessedCount] = useState(0);
+  const [bulkDeleteTotalCount, setBulkDeleteTotalCount] = useState(0);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [locationList, setLocationList] = useState<Location[]>([]);
@@ -773,6 +849,22 @@ export default function ProductsScreen() {
       } catch (err) {
         if (!cancelled) {
           console.error('Active import job lookup failed:', err);
+        }
+      }
+    })();
+
+    (async () => {
+      try {
+        const response = await productsApi.getActiveDeleteJob();
+        if (!cancelled && response.job) {
+          setTrackedDeleteJob(response.job);
+          setBulkDeleteSaving(true);
+          setBulkDeleteProcessedCount(response.job.processed_products);
+          setBulkDeleteTotalCount(response.job.total_products);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Active delete job lookup failed:', err);
         }
       }
     })();
@@ -2103,6 +2195,26 @@ export default function ProductsScreen() {
     setServerSearchResults((prev) => (prev ? applyUpdates(prev) : prev));
   }
 
+  function removeProductsLocally(productIds: string[]) {
+    if (productIds.length === 0) return;
+    const idsToRemove = new Set(productIds);
+    setProductList((prev) => prev.filter((product) => !idsToRemove.has(product.product_id)));
+    setServerSearchResults((prev) => (
+      prev ? prev.filter((product) => !idsToRemove.has(product.product_id)) : prev
+    ));
+    setProductsTotal((prev) => Math.max(0, prev - productIds.length));
+    setDeletedProducts((prev) => prev.filter((product) => !idsToRemove.has(product.product_id)));
+    cache.get<Product[]>(KEYS.PRODUCTS)
+      .then((cached) => {
+        if (!cached) return;
+        return cache.set(
+          KEYS.PRODUCTS,
+          cached.filter((product) => !idsToRemove.has(product.product_id))
+        );
+      })
+      .catch(() => { /* ignore cache write errors */ });
+  }
+
   async function handleBulkSellingPriceUpdate() {
     if (selectedProducts.length === 0) return;
 
@@ -2183,33 +2295,32 @@ export default function ProductsScreen() {
           text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
-            setLoading(true);
+            const ids = Array.from(selectedProductIds);
+            setBulkDeleteSaving(true);
+            setBulkDeleteProcessedCount(0);
+            setBulkDeleteTotalCount(ids.length);
+            lastBulkDeletedIdsRef.current = ids;
+            removeProductsLocally(ids);
             try {
-              const ids = Array.from(selectedProductIds);
-              for (const id of ids) {
-                await productsApi.delete(id);
-              }
+              const job = await productsApi.createDeleteJob(ids);
+              setTrackedDeleteJob(job);
+              setBulkDeleteProcessedCount(job.processed_products);
+              setBulkDeleteTotalCount(job.total_products);
               setSelectedProductIds(new Set());
               setIsSelectionMode(false);
-              await loadData();
               Alert.alert(
-                t('common.success'),
-                t('products.success_deleted'),
-                [
-                  { text: t('common.close', 'Fermer'), style: 'cancel' },
-                  {
-                    text: t('products.restore_cta', 'Restaurer'),
-                    onPress: async () => {
-                      await restoreDeletedProducts(ids);
-                    }
-                  },
-                ]
+                t('products.bulk_delete_started_title'),
+                t('products.bulk_delete_started_msg', { count: job.total_products }),
               );
             } catch (error) {
+              lastBulkDeletedIdsRef.current = [];
               Alert.alert(t('common.error'), t('products.error_delete_failed'));
               await loadData();
-            } finally {
-              setLoading(false);
+              setBulkDeleteSaving(false);
+              setBulkDeleteProcessedCount(0);
+              setBulkDeleteTotalCount(0);
+              setSelectedProductIds(new Set());
+              setIsSelectionMode(false);
             }
           }
         }
@@ -2428,6 +2539,22 @@ export default function ProductsScreen() {
   function renderProductsHeader() {
     return (
       <>
+        {trackedDeleteJob && (trackedDeleteJob.status === 'queued' || trackedDeleteJob.status === 'running') && (
+          <View style={[styles.supplyCard, { borderColor: colors.danger + '40', backgroundColor: colors.danger + '12' }]}>
+            <ActivityIndicator color={colors.danger} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.supplyTitle, { color: colors.danger }]}>
+                {t('products.bulk_delete_running_title')}
+              </Text>
+              <Text style={styles.supplySubtitle}>
+                {t('products.bulk_delete_running_msg', {
+                  processed: bulkDeleteProcessedCount || trackedDeleteJob.processed_products,
+                  total: bulkDeleteTotalCount || trackedDeleteJob.total_products,
+                })}
+              </Text>
+            </View>
+          </View>
+        )}
         <View style={styles.headerActionRow}>
           <View style={styles.headerActionRowGroup}>
             {!isRestaurant && (
@@ -3106,6 +3233,8 @@ export default function ProductsScreen() {
           correlationsMap,
           supplierLinksByProduct,
           locationList,
+          trackedDeleteJob,
+          bulkDeleteProcessedCount,
         }}
         contentContainerStyle={[
           styles.content,
@@ -3135,16 +3264,24 @@ export default function ProductsScreen() {
                   style={[
                     styles.selectionActionBtn,
                     styles.selectionActionBtnPrimary,
-                    selectedProductIds.size === 0 && styles.selectionActionBtnDisabled,
+                    (selectedProductIds.size === 0 || bulkDeleteSaving) && styles.selectionActionBtnDisabled,
                   ]}
                   onPress={openBulkPriceModal}
-                  disabled={selectedProductIds.size === 0}
+                  disabled={selectedProductIds.size === 0 || bulkDeleteSaving}
                 >
                   <Ionicons name="cash-outline" size={20} color={colors.primaryLight} />
                   <Text style={styles.selectionActionText}>{t('products.bulk_price_edit_cta')}</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity style={[styles.selectionActionBtn, styles.selectionActionBtnPrimary]} onPress={exportCatalog}>
+              <TouchableOpacity
+                style={[
+                  styles.selectionActionBtn,
+                  styles.selectionActionBtnPrimary,
+                  bulkDeleteSaving && styles.selectionActionBtnDisabled,
+                ]}
+                onPress={exportCatalog}
+                disabled={bulkDeleteSaving}
+              >
                 <Ionicons name="share-social-outline" size={20} color={colors.primaryLight} />
                 <Text style={styles.selectionActionText}>{t('products.bulk_share_catalog')}</Text>
               </TouchableOpacity>
@@ -3152,13 +3289,21 @@ export default function ProductsScreen() {
                 style={[
                   styles.selectionActionBtn,
                   styles.selectionActionBtnDanger,
-                  selectedProductIds.size === 0 && styles.selectionActionBtnDisabled,
+                  (selectedProductIds.size === 0 || bulkDeleteSaving) && styles.selectionActionBtnDisabled,
                 ]}
                 onPress={handleBulkDelete}
-                disabled={selectedProductIds.size === 0}
+                disabled={selectedProductIds.size === 0 || bulkDeleteSaving}
               >
-                <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                <Text style={[styles.selectionActionText, { color: colors.danger }]}>{t('products.delete')}</Text>
+                {bulkDeleteSaving ? (
+                  <ActivityIndicator color={colors.danger} />
+                ) : (
+                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                )}
+                <Text style={[styles.selectionActionText, { color: colors.danger }]}>
+                  {bulkDeleteSaving
+                    ? `${t('products.delete')} (${bulkDeleteProcessedCount}/${bulkDeleteTotalCount})`
+                    : t('products.delete')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
