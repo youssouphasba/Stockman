@@ -66,6 +66,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'download-outline', title: 'help.modules.products.f10.t', description: "help.modules.products.f10.d" },
       { icon: 'arrow-undo-outline', title: 'help.modules.products.f11.t', description: "help.modules.products.f11.d" },
       { icon: 'checkbox-outline', title: 'help.modules.products.f12.t', description: "help.modules.products.f12.d" },
+      { icon: 'cube-outline', title: 'help.modules.products.f13.t', description: "help.modules.products.f13.d" },
     ],
   },
   {
@@ -448,5 +449,6 @@ export const FAQ: FAQItem[] = [
   { question: 'help.faq.q20.q', answer: "help.faq.q20.a" },
   { question: 'help.faq.q21.q', answer: "help.faq.q21.a" },
   { question: 'help.faq.q22.q', answer: "help.faq.q22.a" },
+  { question: 'help.faq.q23.q', answer: "help.faq.q23.a", audience: 'default' },
 ];
 

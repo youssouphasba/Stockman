@@ -59,10 +59,11 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - **Sortie de stock** (perte, casse, correction) : bouton **-** ou "Sortie" sur la fiche produit
 - Chaque mouvement est tracé dans l'historique avec la date, la raison et l'utilisateur
 
-### Comment modifier rapidement le stock sur le web ?
-- Depuis **Stock** → bouton **Édition rapide du stock**
-- L'éditeur charge tous les produits du filtre actif, y compris ceux qui ne sont pas encore visibles dans la pagination
-- Saisir le **stock réel** dans la colonne dédiée
+### Comment modifier rapidement le stock en lot ?
+- **Web** : depuis **Stock** → bouton **Édition rapide du stock**
+- **Mobile** : depuis **Produits** → bouton **Sélection** → choisir les produits → **Modifier le stock**
+- Sur le web, l'éditeur charge tous les produits du filtre actif, y compris ceux qui ne sont pas encore visibles dans la pagination
+- Saisir le **stock réel** dans la colonne/champ dédié
 - À l'enregistrement, Stockman crée uniquement les mouvements d'entrée ou de sortie nécessaires pour conserver l'historique du stock
 
 ### Comment lire les badges de stock ?
@@ -398,7 +399,7 @@ R: Aller dans **Activité** et filtrer par "Caisse", ou dans **Comptabilité** p
 R: **Comptabilité** → graphique **Produits les plus vendus** ou demander à l'IA "Quels sont mes meilleurs produits ?"
 
 **Q: Comment corriger une erreur de stock ?**
-R: Aller sur la fiche du produit → **Sortie** (pour retirer du stock) ou **Entrée** (pour en ajouter) avec la raison "Correction".
+R: Pour un produit : aller sur la fiche du produit → **Sortie** ou **Entrée** avec la raison "Correction". Pour plusieurs produits : sur le web utiliser **Stock → Édition rapide du stock** ; sur mobile utiliser **Produits → Sélection → Modifier le stock**. Saisir le stock réel : Stockman crée les mouvements d'écart.
 
 **Q: Comment supprimer un produit ?**
 R: Fiche produit → bouton **Supprimer** (ou trois points → Supprimer). Attention : les ventes passées conservent la trace du produit.

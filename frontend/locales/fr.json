@@ -1288,6 +1288,10 @@
       "q22": {
         "q": "Comment récupérer mon abonnement après un changement de téléphone ?",
         "a": "Dans Abonnement, touchez 'Récupérer mon abonnement'. L'app retrouve votre achat via votre compte Play Store, App Store ou Flutterwave sans repayer."
+      },
+      "q23": {
+        "q": "Comment modifier le stock de plusieurs produits à la fois ?",
+        "a": "Sur mobile, activez Sélection dans Produits, choisissez les produits puis touchez Modifier le stock. Sur le web, ouvrez Stock puis Édition rapide du stock. Dans les deux cas, saisissez le stock réel : Stockman enregistre automatiquement uniquement les écarts sous forme de mouvements d'entrée ou de sortie."
       }
     },
     "faq_title": "QUESTIONS FRÉQUENTES",
@@ -1381,8 +1385,12 @@
           "d": "Dans l'historique d'un produit, annulez un mouvement erroné. Le stock est automatiquement corrigé."
         },
         "f12": {
-          "t": "Selection multiple & restauration",
-          "d": "La barre d'actions en bas permet de tout selectionner, de modifier rapidement les prix de vente, de partager le catalogue ou d'envoyer des produits dans la corbeille. La corbeille est commune avec le web et les produits peuvent etre restaures ensuite."
+          "t": "Sélection multiple & restauration",
+          "d": "La barre d'actions en bas permet de tout sélectionner, de modifier rapidement les prix de vente ou le stock, de partager le catalogue ou d'envoyer des produits dans la corbeille. La corbeille est commune avec le web et les produits peuvent être restaurés ensuite."
+        },
+        "f13": {
+          "t": "Édition rapide du stock",
+          "d": "Sur mobile, sélectionnez plusieurs produits puis touchez Modifier le stock. Sur le web, utilisez Édition rapide du stock dans Stock. Saisissez le stock réel : Stockman crée seulement les mouvements d'entrée ou de sortie nécessaires."
         }
       },
       "pos": {
