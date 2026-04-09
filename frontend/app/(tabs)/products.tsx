@@ -307,6 +307,9 @@ export default function ProductsScreen() {
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
   const [bulkPriceValues, setBulkPriceValues] = useState<Record<string, string>>({});
   const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
+  const [showBulkStockModal, setShowBulkStockModal] = useState(false);
+  const [bulkStockValues, setBulkStockValues] = useState<Record<string, string>>({});
+  const [bulkStockSaving, setBulkStockSaving] = useState(false);
   const [bulkDeleteSaving, setBulkDeleteSaving] = useState(false);
   const [bulkDeleteProcessedCount, setBulkDeleteProcessedCount] = useState(0);
   const [bulkDeleteTotalCount, setBulkDeleteTotalCount] = useState(0);
@@ -2177,6 +2180,22 @@ export default function ProductsScreen() {
     setBulkPriceSaving(false);
   }
 
+  function openBulkStockModal() {
+    if (selectedProducts.length === 0) return;
+    const initialValues: Record<string, string> = {};
+    selectedProducts.forEach((product) => {
+      initialValues[product.product_id] = String(product.quantity ?? 0);
+    });
+    setBulkStockValues(initialValues);
+    setShowBulkStockModal(true);
+  }
+
+  function closeBulkStockModal() {
+    setShowBulkStockModal(false);
+    setBulkStockValues({});
+    setBulkStockSaving(false);
+  }
+
   function updateLocalProductSellingPrices(updates: Array<{ product_id: string; selling_price: number }>) {
     if (updates.length === 0) return;
     const updatesMap = new Map(updates.map((entry) => [entry.product_id, entry.selling_price]));
@@ -2187,6 +2206,24 @@ export default function ProductsScreen() {
         return {
           ...product,
           selling_price: nextSellingPrice,
+          updated_at: new Date().toISOString(),
+        };
+      });
+
+    setProductList((prev) => applyUpdates(prev));
+    setServerSearchResults((prev) => (prev ? applyUpdates(prev) : prev));
+  }
+
+  function updateLocalProductQuantities(updates: Array<{ product_id: string; quantity: number }>) {
+    if (updates.length === 0) return;
+    const updatesMap = new Map(updates.map((entry) => [entry.product_id, entry.quantity]));
+    const applyUpdates = (items: Product[]) =>
+      items.map((product) => {
+        const nextQuantity = updatesMap.get(product.product_id);
+        if (nextQuantity === undefined) return product;
+        return {
+          ...product,
+          quantity: nextQuantity,
           updated_at: new Date().toISOString(),
         };
       });
@@ -2281,6 +2318,96 @@ export default function ProductsScreen() {
       Alert.alert(t('common.error'), error?.message || t('products.bulk_price_error'));
     } finally {
       setBulkPriceSaving(false);
+    }
+  }
+
+  async function handleBulkStockUpdate() {
+    if (selectedProducts.length === 0) return;
+
+    const movements: Array<{ product_id: string; name: string; type: 'in' | 'out'; quantity: number }> = [];
+    const targetQuantities: Array<{ product_id: string; quantity: number }> = [];
+
+    for (const product of selectedProducts) {
+      const rawValue = bulkStockValues[product.product_id];
+      if (rawValue == null) continue;
+      const normalizedValue = rawValue.replace(',', '.').trim();
+      if (!normalizedValue) continue;
+      const targetQuantity = Number(normalizedValue);
+      if (!Number.isFinite(targetQuantity) || targetQuantity < 0) {
+        Alert.alert(
+          t('common.error'),
+          t('products.bulk_stock_invalid_value', { name: product.name }),
+        );
+        return;
+      }
+
+      const currentQuantity = Number(product.quantity ?? 0);
+      const delta = targetQuantity - currentQuantity;
+      if (Math.abs(delta) < 0.000001) continue;
+      movements.push({
+        product_id: product.product_id,
+        name: product.name,
+        type: delta > 0 ? 'in' : 'out',
+        quantity: Math.abs(delta),
+      });
+      targetQuantities.push({ product_id: product.product_id, quantity: targetQuantity });
+    }
+
+    if (movements.length === 0) {
+      Alert.alert(t('common.info'), t('products.bulk_stock_no_changes'));
+      return;
+    }
+
+    setBulkStockSaving(true);
+    const successfulTargetQuantities: Array<{ product_id: string; quantity: number }> = [];
+    const failed: Array<{ name: string; message: string }> = [];
+
+    try {
+      for (const movement of movements) {
+        try {
+          await stockApi.createMovement({
+            product_id: movement.product_id,
+            type: movement.type,
+            quantity: movement.quantity,
+            reason: t('products.bulk_stock_reason'),
+          });
+          const target = targetQuantities.find((item) => item.product_id === movement.product_id);
+          if (target) successfulTargetQuantities.push(target);
+        } catch (error: any) {
+          failed.push({
+            name: movement.name,
+            message: error?.message || t('products.bulk_stock_error'),
+          });
+        }
+      }
+
+      updateLocalProductQuantities(successfulTargetQuantities);
+      closeBulkStockModal();
+      setSelectedProductIds(new Set());
+      setIsSelectionMode(false);
+      if (isConnected) await loadData();
+
+      const updatedCount = successfulTargetQuantities.length;
+      if (failed.length > 0) {
+        const firstError = failed[0];
+        Alert.alert(
+          t('common.warning'),
+          t('products.bulk_stock_partial_success', {
+            updated: updatedCount,
+            failed: failed.length,
+            name: firstError.name,
+            error: firstError.message,
+          }),
+        );
+      } else if (isConnected) {
+        Alert.alert(t('common.success'), t('products.bulk_stock_success', { count: updatedCount }));
+      } else {
+        Alert.alert(t('common.offline_mode'), t('products.bulk_stock_offline_queued', { count: updatedCount }));
+      }
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error?.message || t('products.bulk_stock_error'));
+    } finally {
+      setBulkStockSaving(false);
     }
   }
 
@@ -3273,6 +3400,20 @@ export default function ProductsScreen() {
                   <Text style={styles.selectionActionText}>{t('products.bulk_price_edit_cta')}</Text>
                 </TouchableOpacity>
               )}
+              {canWrite && !isRestaurant && (
+                <TouchableOpacity
+                  style={[
+                    styles.selectionActionBtn,
+                    styles.selectionActionBtnPrimary,
+                    (selectedProductIds.size === 0 || bulkStockSaving || bulkDeleteSaving) && styles.selectionActionBtnDisabled,
+                  ]}
+                  onPress={openBulkStockModal}
+                  disabled={selectedProductIds.size === 0 || bulkStockSaving || bulkDeleteSaving}
+                >
+                  <Ionicons name="cube-outline" size={20} color={colors.primaryLight} />
+                  <Text style={styles.selectionActionText}>{t('products.bulk_stock_edit_cta')}</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={[
                   styles.selectionActionBtn,
@@ -3362,6 +3503,83 @@ export default function ProductsScreen() {
                       <ActivityIndicator color={colors.text} />
                     ) : (
                       <Text style={styles.submitBtnText}>{t('products.bulk_price_save')}</Text>
+                    )}
+                  </TouchableOpacity>
+                }
+              />
+            </KeyboardAvoidingView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showBulkStockModal} animationType="slide" transparent onRequestClose={closeBulkStockModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1, paddingRight: Spacing.md }}>
+                <Text style={styles.modalTitle}>{t('products.bulk_stock_modal_title')}</Text>
+                <Text style={styles.modalSubtitle}>
+                  {t('products.bulk_stock_modal_subtitle', { count: selectedProducts.length })}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={closeBulkStockModal} disabled={bulkStockSaving}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+            >
+              <FlatList
+                data={selectedProducts}
+                keyExtractor={(item) => item.product_id}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: Spacing.lg }}
+                renderItem={({ item }) => {
+                  const draftValue = bulkStockValues[item.product_id] ?? '';
+                  const parsedValue = Number(draftValue.replace(',', '.').trim());
+                  const delta = Number.isFinite(parsedValue) ? parsedValue - Number(item.quantity ?? 0) : 0;
+                  const deltaLabel = delta === 0 ? '0' : `${delta > 0 ? '+' : ''}${formatNumber(delta)}`;
+
+                  return (
+                    <View style={styles.bulkPriceRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.bulkPriceName}>{item.name}</Text>
+                        <Text style={styles.bulkPriceCurrent}>
+                          {t('products.bulk_stock_current_value', {
+                            quantity: formatMeasurementQuantity(item.quantity, item.display_unit || item.unit),
+                          })}
+                        </Text>
+                        <Text style={[
+                          styles.bulkPriceCurrent,
+                          delta > 0 && { color: colors.success },
+                          delta < 0 && { color: colors.danger },
+                        ]}>
+                          {t('products.bulk_stock_delta_value', { delta: deltaLabel })}
+                        </Text>
+                      </View>
+                      <TextInput
+                        style={styles.bulkPriceInput}
+                        value={draftValue}
+                        onChangeText={(value) => setBulkStockValues((prev) => ({ ...prev, [item.product_id]: value }))}
+                        keyboardType="decimal-pad"
+                        placeholder={String(item.quantity ?? 0)}
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+                  );
+                }}
+                ListFooterComponent={
+                  <TouchableOpacity
+                    style={[styles.submitBtn, bulkStockSaving && styles.submitBtnDisabled]}
+                    onPress={handleBulkStockUpdate}
+                    disabled={bulkStockSaving}
+                  >
+                    {bulkStockSaving ? (
+                      <ActivityIndicator color={colors.text} />
+                    ) : (
+                      <Text style={styles.submitBtnText}>{t('products.bulk_stock_save')}</Text>
                     )}
                   </TouchableOpacity>
                 }

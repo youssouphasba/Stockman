@@ -112,7 +112,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "checkbox-outline",
                 title: "Utiliser la sélection multiple",
-                description: "Utilisez la barre d'actions en bas pour tout sélectionner, exporter le catalogue ou envoyer des produits dans la corbeille. Quand vous supprimez beaucoup d'articles, ils disparaissent de la liste immédiatement, puis Stockman continue le traitement en arrière-plan et affiche l'avancement."
+                description: "Utilisez la barre d'actions en bas pour modifier les prix ou les stocks des produits sélectionnés, exporter le catalogue ou envoyer des produits dans la corbeille. Pour le stock, saisissez le stock réel : Stockman enregistre seulement les écarts sous forme de mouvements."
             }
         ]
     },
