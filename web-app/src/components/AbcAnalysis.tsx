@@ -162,7 +162,7 @@ export default function AbcAnalysis() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.12)" />
                                 <XAxis dataKey="name" stroke="#94A3B8" tickLine={false} axisLine={false} />
                                 <YAxis stroke="#94A3B8" tickLine={false} axisLine={false} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
-                                <Tooltip formatter={(value: number) => formatCurrency(Number(value), abcData?.currency)} contentStyle={{ backgroundColor: '#0F172A', borderColor: 'rgba(255,255,255,0.08)', borderRadius: 16, color: '#E2E8F0' }} />
+                                <Tooltip formatter={(value: any) => formatCurrency(Number(value), abcData?.currency)} contentStyle={{ backgroundColor: '#0F172A', borderColor: 'rgba(255,255,255,0.08)', borderRadius: 16, color: '#E2E8F0' }} />
                                 <Bar dataKey="chiffreAffaires" radius={[10, 10, 0, 0]} fill="#38BDF8" />
                             </BarChart>
                         </ResponsiveContainer>
