@@ -7,6 +7,10 @@
         "development": {
             "developmentClient": true,
             "distribution": "internal",
+            "node": "22.12.0",
+            "ios": {
+                "image": "macos-sequoia-15.3-xcode-16.2"
+            },
             "env": {
                 "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
                 "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_fZwXGZxukUyrjTzadbSlKOkzdKs",
@@ -21,7 +25,7 @@
             }
         },
         "preview": {
-            "node": "20.18.1",
+            "node": "22.12.0",
             "distribution": "internal",
             "env": {
                 "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
@@ -40,12 +44,17 @@
                 "image": "ubuntu-22.04-jdk-17-ndk-r26b"
             },
             "ios": {
-                "simulator": false
+                "simulator": false,
+                "image": "macos-sequoia-15.3-xcode-16.2"
             },
             "channel": "preview"
         },
         "production": {
             "environment": "production",
+            "node": "22.12.0",
+            "ios": {
+                "image": "macos-sequoia-15.3-xcode-16.2"
+            },
             "env": {
                 "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
                 "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_fZwXGZxukUyrjTzadbSlKOkzdKs",
