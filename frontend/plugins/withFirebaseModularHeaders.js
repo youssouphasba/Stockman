@@ -9,20 +9,8 @@ module.exports = function withFirebaseModularHeaders(config) {
       const podfilePath = path.join(config.modRequest.platformProjectRoot, 'Podfile');
       let podfile = fs.readFileSync(podfilePath, 'utf-8');
 
-      if (!podfile.includes('use_modular_headers!')) {
-        if (podfile.includes("platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'")) {
-          podfile = podfile.replace(
-            "platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'",
-            "platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'\nuse_modular_headers!"
-          );
-        } else if (podfile.includes('platform :ios')) {
-          podfile = podfile.replace(
-            /platform :ios[^\n]*/,
-            (match) => `${match}\nuse_modular_headers!`
-          );
-        } else {
-          podfile = `use_modular_headers!\n${podfile}`;
-        }
+      if (!podfile.includes('$RNFirebaseAsStaticFramework = true')) {
+        podfile = `$RNFirebaseAsStaticFramework = true\n${podfile}`;
       }
 
       if (!podfile.includes('CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES')) {

@@ -83,6 +83,15 @@
         }
       ],
       "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "buildReactNativeFromSource": true
+          }
+        }
+      ],
       "./plugins/withFirebaseModularHeaders",
       "./plugins/withRemoveBackgroundAudioMode",
       "expo-sharing",
