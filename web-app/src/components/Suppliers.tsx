@@ -55,6 +55,54 @@ import { mergeSuppliersOfflineState } from '../services/offlineState';
 
 type TabType = 'manual' | 'orders' | 'replenishment' | 'marketplace' | 'insights';
 
+const createEmptyProcurementOverview = (days: number) => ({
+    days,
+    scope_label: '',
+    approval: {
+        pending_orders: 0,
+        workflow_enabled: false,
+    },
+    kpis: {
+        total_spend: 0,
+        suppliers_count: 0,
+        open_orders: 0,
+        average_supplier_score: 0,
+        group_opportunities: 0,
+        local_replenishment_items: 0,
+    },
+    supplier_ranking: [],
+    local_suggestions: [],
+    recommendations: [],
+    store_summaries: [],
+    group_opportunities: [],
+});
+
+const normalizeProcurementOverview = (overview: any, days: number) => {
+    const fallback = createEmptyProcurementOverview(days);
+    if (!overview || typeof overview !== 'object') {
+        return fallback;
+    }
+
+    return {
+        ...fallback,
+        ...overview,
+        days: Number(overview.days || days),
+        approval: {
+            ...fallback.approval,
+            ...(overview.approval || {}),
+        },
+        kpis: {
+            ...fallback.kpis,
+            ...(overview.kpis || {}),
+        },
+        supplier_ranking: Array.isArray(overview.supplier_ranking) ? overview.supplier_ranking : [],
+        local_suggestions: Array.isArray(overview.local_suggestions) ? overview.local_suggestions : [],
+        recommendations: Array.isArray(overview.recommendations) ? overview.recommendations : [],
+        store_summaries: Array.isArray(overview.store_summaries) ? overview.store_summaries : [],
+        group_opportunities: Array.isArray(overview.group_opportunities) ? overview.group_opportunities : [],
+    };
+};
+
 export default function Suppliers() {
     const { t } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
@@ -100,8 +148,8 @@ export default function Suppliers() {
     const [benchmarkProduct, setBenchmarkProduct] = useState<any | null>(null);
     const [benchmarkResults, setBenchmarkResults] = useState<any[]>([]);
     const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
-    const [procurementOverview, setProcurementOverview] = useState<any | null>(null);
     const [procurementDays, setProcurementDays] = useState(90);
+    const [procurementOverview, setProcurementOverview] = useState<any>(() => createEmptyProcurementOverview(90));
 
     // Vague 2: Supplier duplicates
     const [supplierDuplicates, setSupplierDuplicates] = useState<any>(null);
@@ -588,10 +636,13 @@ export default function Suppliers() {
                 }
             } else if (activeTab === 'insights') {
                 const res = await procurementAnalytics.getOverview(procurementDays);
-                setProcurementOverview(res);
+                setProcurementOverview(normalizeProcurementOverview(res, procurementDays));
             }
         } catch (err) {
             console.error(`Error loading ${activeTab} data`, err);
+            if (activeTab === 'insights') {
+                setProcurementOverview(createEmptyProcurementOverview(procurementDays));
+            }
         } finally {
             if (isPerfEnabled) {
                 const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
