@@ -127,6 +127,16 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [sectorOpen, countryOpen, howOpen]);
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm';
   const labelClass = 'block text-xs font-semibold text-slate-400 mb-1';
 
@@ -187,8 +197,9 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="relative bg-[#0f0c29] border border-white/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors z-10"
+          className="sticky top-3 left-full mr-3 mt-3 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 !bg-slate-950 !text-white shadow-xl shadow-black/30 transition-colors hover:!bg-white hover:!text-slate-950 focus:outline-none focus:ring-2 focus:ring-primary"
           aria-label="Fermer"
         >
           <X size={20} />
@@ -206,7 +217,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
             </button>
           </div>
         ) : (
-          <div className="p-6">
+          <div className="px-6 pb-6 pt-0">
             <div className="mb-5">
               <span className="text-xs font-bold bg-primary/20 text-primary px-3 py-1 rounded-full">
                 1 mois gratuit - sans carte bancaire
@@ -233,16 +244,16 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                 </button>
 
                 {countryOpen && (
-                  <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1a1040] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
-                    <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
-                      <Search size={14} className="text-white/30" />
+                  <div className="absolute z-40 left-0 right-0 mt-1 bg-white text-slate-950 border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200 bg-slate-50">
+                      <Search size={14} className="text-slate-500" />
                       <input
                         ref={countrySearchRef}
                         type="text"
                         value={countrySearch}
                         onChange={(e) => setCountrySearch(e.target.value)}
                         placeholder="Rechercher un pays..."
-                        className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
+                        className="flex-1 bg-transparent text-sm text-slate-950 placeholder:text-slate-500 outline-none"
                       />
                     </div>
                     <div className="max-h-56 overflow-y-auto">
@@ -253,8 +264,8 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                           onClick={() => { setSelectedCountryCode(country.code); setCountryOpen(false); }}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors ${
                             selectedCountryCode === country.code
-                              ? 'bg-primary/20 text-white'
-                              : 'text-slate-300 hover:bg-white/5'
+                              ? 'bg-primary/10 text-primary font-bold'
+                              : 'text-slate-900 hover:bg-slate-100'
                           }`}
                         >
                           <span className="text-base">{country.flag}</span>
@@ -262,7 +273,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                         </button>
                       ))}
                       {filteredCountries.length === 0 && (
-                        <p className="text-center text-white/30 text-xs py-4">Aucun pays trouvé</p>
+                        <p className="text-center text-slate-500 text-xs py-4">Aucun pays trouvé</p>
                       )}
                     </div>
                   </div>
@@ -383,16 +394,16 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                 </button>
 
                 {sectorOpen && (
-                  <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1a1040] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
-                    <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
-                      <Search size={14} className="text-white/30" />
+                  <div className="absolute z-40 left-0 right-0 mt-1 bg-white text-slate-950 border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200 bg-slate-50">
+                      <Search size={14} className="text-slate-500" />
                       <input
                         ref={sectorSearchRef}
                         type="text"
                         value={sectorSearch}
                         onChange={(e) => setSectorSearch(e.target.value)}
                         placeholder="Rechercher..."
-                        className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
+                        className="flex-1 bg-transparent text-sm text-slate-950 placeholder:text-slate-500 outline-none"
                       />
                     </div>
                     <div className="max-h-48 overflow-y-auto">
@@ -403,8 +414,8 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                           onClick={() => { setBusinessType(sector.key); setSectorOpen(false); }}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors ${
                             businessType === sector.key
-                              ? 'bg-primary/20 text-white'
-                              : 'text-slate-300 hover:bg-white/5'
+                              ? 'bg-primary/10 text-primary font-bold'
+                              : 'text-slate-900 hover:bg-slate-100'
                           }`}
                         >
                           <span className="text-base">{sector.icon}</span>
@@ -412,7 +423,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                         </button>
                       ))}
                       {filteredSectors.length === 0 && (
-                        <p className="text-center text-white/30 text-xs py-4">Aucun résultat</p>
+                        <p className="text-center text-slate-500 text-xs py-4">Aucun résultat</p>
                       )}
                     </div>
                   </div>
@@ -436,7 +447,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                 </button>
 
                 {howOpen && (
-                  <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1a1040] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                  <div className="absolute z-40 left-0 right-0 mt-1 bg-white text-slate-950 border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
                     {HOW_OPTIONS.map((opt) => (
                       <button
                         key={opt.key}
@@ -444,8 +455,8 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
                         onClick={() => { setHowDidYouHear(opt.key); setHowOpen(false); }}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors ${
                           howDidYouHear === opt.key
-                            ? 'bg-primary/20 text-white'
-                            : 'text-slate-300 hover:bg-white/5'
+                            ? 'bg-primary/10 text-primary font-bold'
+                            : 'text-slate-900 hover:bg-slate-100'
                         }`}
                       >
                         <span>{opt.label}</span>
