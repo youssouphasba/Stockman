@@ -25,6 +25,7 @@ export default function InvoiceModal({ isOpen, onClose, invoice }: InvoiceModalP
     if (!invoice) {
         return null;
     }
+    const resolvedBusinessName = invoice.business_name || t('invoice.business_name_not_configured', { defaultValue: "Nom de l'établissement à configurer" });
 
     const handlePrint = () => {
         window.print();
@@ -32,7 +33,7 @@ export default function InvoiceModal({ isOpen, onClose, invoice }: InvoiceModalP
 
     const handleDownload = () => {
         const doc = new jsPDF();
-        const businessName = invoice.business_name || 'Mon commerce';
+        const businessName = resolvedBusinessName;
         const businessAddress = invoice.business_address || '';
         const label = invoice.invoice_label || 'Facture';
 
@@ -105,7 +106,7 @@ export default function InvoiceModal({ isOpen, onClose, invoice }: InvoiceModalP
                     <div className="flex items-start justify-between border-b border-slate-200 pb-6 mb-6">
                         <div>
                             <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 mb-2">{invoice.invoice_label || 'Facture'}</p>
-                            <h2 className="text-3xl font-black tracking-tight">{invoice.business_name || 'Mon commerce'}</h2>
+                            <h2 className="text-3xl font-black tracking-tight">{resolvedBusinessName}</h2>
                             {invoice.business_address && (
                                 <p className="text-sm text-slate-500 mt-2 max-w-md">{invoice.business_address}</p>
                             )}

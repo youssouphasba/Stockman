@@ -518,10 +518,10 @@ export default function Accounting() {
 
     if (!stats) return null;
 
-    // Chart data ? backend returns daily_revenue array; filter out items with missing date
+    // Chart data: backend returns daily_revenue array; filter out items with missing date
     const chartData = stats.daily_revenue.filter((d: any) => d.date != null);
 
-    // Product performance ? top 8 by revenue
+    // Product performance: top 8 by revenue
     const topProducts = stats.product_performance
         .filter((p: any) => p.revenue > 0)
         .sort((a: any, b: any) => b.revenue - a.revenue)
@@ -552,7 +552,7 @@ export default function Accounting() {
                 { label: t('guide.accounting.kpi_revenue', "Chiffre d'affaires"), description: t('guide.accounting.kpi_revenue_desc', "Total des ventes encaissées. Ouvrez la carte pour relire l'évolution, les jours clés et les détails utiles."), type: 'card' },
                 { label: t('guide.accounting.kpi_gross', "Marge brute"), description: t('guide.accounting.kpi_gross_desc', "Différence entre le chiffre d'affaires et le coût d'achat des produits vendus, exprimée en montant et en pourcentage."), type: 'card' },
                 { label: t('guide.accounting.kpi_expenses', "Dépenses"), description: t('guide.accounting.kpi_expenses_desc', "Total des charges enregistrées manuellement, avec détail par catégorie dans le panneau associé."), type: 'card' },
-                { label: t('guide.accounting.kpi_net', "Résultat net"), description: t('guide.accounting.kpi_net_desc', "Marge brute moins dépenses. Positif = bénéfice, négatif = perte."), type: 'card' },
+                { label: t('guide.accounting.kpi_net', "Résultat net"), description: t('guide.accounting.kpi_net_desc', "Résultat net opérationnel : chiffre d'affaires moins coût d'achat des produits vendus, moins charges, moins pertes de stock enregistrées. La valeur totale du stock restant n'est pas soustraite."), type: 'card' },
             ],
         },
         {
@@ -829,7 +829,7 @@ export default function Accounting() {
                     onClick={() => handleOpenFinanceDetail('expenses')}
                 />
                 <KpiCard
-                    label="Resultat net"
+                    label="Résultat net"
                     icon={TrendingDown}
                     value={formatCurrency(stats.net_profit || 0)}
                     hint={`${netMarginPct.toFixed(1)}% de marge nette`}
@@ -858,6 +858,26 @@ export default function Accounting() {
                         onClick={() => handleOpenFinanceDetail('tax_collected')}
                     />
                 )}
+            </div>
+
+            <div className="mb-8 rounded-3xl border border-primary/20 bg-primary/8 p-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary">Lecture rapide</p>
+                        <h3 className="mt-2 text-lg font-black text-white">Comment lire le résultat net</h3>
+                        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300">
+                            Le résultat net correspond au chiffre d&apos;affaires, moins le coût d&apos;achat des produits vendus, moins les charges, moins les pertes de stock enregistrées.
+                            La valeur du stock restant n&apos;est pas retirée de ce calcul.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => handleOpenFinanceDetail('net_profit')}
+                        className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black text-primary transition-all hover:bg-primary/20"
+                    >
+                        Ouvrir le détail du résultat net
+                    </button>
+                </div>
             </div>
 
             {/* Stock value row */}
@@ -1063,7 +1083,7 @@ export default function Accounting() {
                     </div>
                 </div>
 
-                {/* Right Panel ? tabs */}
+                {/* Right Panel: tabs */}
                 <div ref={rightPanelRef} className="flex flex-col gap-6">
                     {/* Tab selector */}
                     <div className="glass-card p-1.5 flex gap-1">
@@ -1101,7 +1121,7 @@ export default function Accounting() {
                             <div className="w-full space-y-3">
                                 {[
                                     { label: 'Chiffre d\'affaires', value: stats.revenue || 0, color: 'bg-emerald-500', pct: 100 },
-                                    { label: 'Co?t des ventes', value: stats.cogs || 0, color: 'bg-blue-500', pct: stats.revenue > 0 ? (stats.cogs / stats.revenue) * 100 : 0 },
+                                    { label: "Coût d'achat des produits vendus", value: stats.cogs || 0, color: 'bg-blue-500', pct: stats.revenue > 0 ? (stats.cogs / stats.revenue) * 100 : 0 },
                                     { label: 'Charges fixes', value: stats.expenses || 0, color: 'bg-rose-500', pct: stats.revenue > 0 ? (stats.expenses / stats.revenue) * 100 : 0 },
                                     { label: 'Pertes stock', value: stats.total_losses || 0, color: 'bg-orange-500', pct: stats.revenue > 0 ? (stats.total_losses / stats.revenue) * 100 : 0 },
                                 ].map(row => (
@@ -1117,7 +1137,7 @@ export default function Accounting() {
                                 ))}
                                 <div className="mt-2 p-3 rounded-xl border-2 border-primary/30 bg-primary/5">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs font-black text-primary uppercase tracking-widest">B?n?fice Net</span>
+                                        <span className="text-xs font-black text-primary uppercase tracking-widest">Résultat net</span>
                                         <span className={`text-sm font-black ${(stats.net_profit || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                             {formatCurrency(stats.net_profit || 0)}
                                         </span>
@@ -1130,7 +1150,7 @@ export default function Accounting() {
                     {/* Payments Tab */}
                     {rightTab === 'payments' && (
                         <div className="glass-card p-6">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">M?thodes de Paiement</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Méthodes de paiement</h3>
                             <div className="space-y-4">
                                 {Object.keys(stats.payment_breakdown || {}).length === 0 ? (
                                     <p className="text-xs text-slate-500 italic text-center py-4">Aucune vente sur cette période.</p>

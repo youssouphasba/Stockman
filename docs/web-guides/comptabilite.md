@@ -18,7 +18,20 @@ Barre laterale -> **Finance et comptabilite**.
 - certaines analyses et rapports ;
 - diagnostic ou resume IA selon le contexte.
 
-## 4. Menus et visibilite
+## 4. Lecture des indicateurs
+
+- le chiffre d'affaires correspond au total des ventes sur la periode ;
+- la marge brute correspond au chiffre d'affaires moins le cout d'achat des produits vendus ;
+- les charges correspondent aux depenses enregistrees manuellement ;
+- les pertes de stock correspondent aux sorties declarees comme perte, casse ou ajustement ;
+- le resultat net correspond au chiffre d'affaires moins le cout d'achat des produits vendus, moins les charges, moins les pertes de stock enregistrees.
+
+Points importants :
+
+- la valeur du stock restant n'est pas retiree du resultat net ;
+- les cartes KPI sont cliquables pour ouvrir leur detail.
+
+## 5. Menus et visibilite
 
 Les sous-modules visibles doivent suivre le vrai code metier :
 
@@ -26,7 +39,7 @@ Les sous-modules visibles doivent suivre le vrai code metier :
 - les elements reserves a `Enterprise` doivent etre masques pour `Starter` et `Pro` ;
 - les entrees ouvertes depuis le menu mobile doivent renvoyer vers le bon module.
 
-## 5. Hors ligne et synchronisation
+## 6. Hors ligne et synchronisation
 
 Le module conserve un comportement offline partiel sur les flux compatibles :
 
@@ -34,7 +47,7 @@ Le module conserve un comportement offline partiel sur les flux compatibles :
 - certaines actions sont synchronisees automatiquement au retour du reseau ;
 - les bandeaux ou badges **En attente** signalent ce qui n'est pas encore envoye.
 
-## 6. Questions frequentes
+## 7. Questions frequentes
 
 | Question | Reponse |
 |---|---|

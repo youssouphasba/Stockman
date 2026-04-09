@@ -59,8 +59,8 @@
     "margin_on_sales": "Marge brute sur ventes",
     "margin_on_sales_info": "Bénéfice brut calculé comme Revenue - Coût d'achat des produits vendus.",
     "margin_percentage": "Marge : {{percentage}}%",
-    "net_profit": "Bénéfice Net",
-    "net_profit_info": "Bénéfice net calculé comme Marge brute - Charges.",
+    "net_profit": "Résultat net",
+    "net_profit_info": "Résultat net calculé comme chiffre d'affaires - coût d'achat des produits vendus - charges - pertes de stock enregistrées. La valeur du stock restant n'est pas soustraite.",
     "new_expense": "Nouvelle dépense",
     "new_category_placeholder": "Nouvelle catégorie...",
     "new_invoice": "Facture",
@@ -1320,6 +1320,7 @@
   },
   "invoice": {
     "add_line": "Ajouter une ligne",
+    "business_name_not_configured": "Nom de l'établissement à configurer",
     "client": "Client",
     "client_name_placeholder": "Nom du client...",
     "create_invoice": "Créer une Facture",

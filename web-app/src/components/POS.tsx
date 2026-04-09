@@ -802,7 +802,7 @@ export default function POS() {
             </div>
 
             {/* Cart Column */}
-            <div className="hidden lg:flex w-[450px] bg-white/[0.02] border-l border-white/10 flex-col p-6 backdrop-blur-3xl" id="pos-cart">
+            <div className="hidden lg:flex w-[450px] bg-[#111827]/95 border-l border-white/10 flex-col p-6 backdrop-blur-3xl shadow-[-24px_0_80px_-60px_rgba(0,0,0,0.95)]" id="pos-cart">
                 <div className="flex-1 flex flex-col min-h-0">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-black text-white flex items-center gap-3">
@@ -856,9 +856,12 @@ export default function POS() {
                     {/* Cart Items */}
                     <div className="flex-1 overflow-y-auto mb-6 pr-2 custom-scrollbar space-y-3">
                         {cart.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-800 opacity-50">
-                                <ShoppingCart size={64} strokeWidth={1} className="mb-4" />
-                                <p className="font-black text-xs uppercase tracking-widest">{t('pos.empty_cart')}</p>
+                            <div className="h-full flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/[0.03] px-6 text-center text-slate-400">
+                                <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                    <ShoppingCart size={40} strokeWidth={1.6} />
+                                </div>
+                                <p className="font-black text-xs uppercase tracking-widest text-slate-200">{t('pos.empty_cart')}</p>
+                                <p className="mt-2 text-xs leading-5 text-slate-400">Scannez un article ou sélectionnez un produit pour commencer la vente.</p>
                             </div>
                         ) : (
                             cart.map((item) => (

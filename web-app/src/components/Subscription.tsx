@@ -216,25 +216,25 @@ export default function Subscription() {
             title: 'Comprendre votre statut actuel',
             content: "Le grand bloc du haut vous indique si votre abonnement est actif, s'il arrive à échéance ou si une continuité d'activité est en cours. Commencez toujours ici pour savoir si vous devez agir immédiatement ou non.",
             details: [
-                { label: 'Plan actuel', description: "Affiche la formule active sur votre compte pour ?viter toute confusion avant un paiement.", type: 'card' },
-                { label: 'Dates importantes', description: "Montre les ?ch?ances de fin de p?riode, de gr?ce ou de passage en lecture seule quand elles existent.", type: 'info' },
+                { label: 'Plan actuel', description: "Affiche la formule active sur le compte pour éviter toute confusion avant un paiement.", type: 'card' },
+                { label: 'Dates importantes', description: "Montre les échéances de fin de période, de grâce ou de passage en lecture seule quand elles existent.", type: 'info' },
             ],
         },
         {
-            title: 'V?rifier pays et devise',
-            content: "La carte ? Pays et devise de facturation ? vous rappelle le cadre tarifaire appliqu? ? votre compte. Utilisez-la pour confirmer que les prix affich?s et les canaux de paiement correspondent bien ? votre contexte.",
+            title: 'Vérifier le pays et la devise',
+            content: "La carte « Pays et devise de facturation » rappelle le cadre tarifaire appliqué au compte. Elle permet de vérifier que les prix affichés et les canaux de paiement correspondent au pays de facturation.",
         },
         {
             title: 'Comparer les formules',
-            content: "Chaque carte de formule presente le prix effectif et les principaux avantages. Si vous etes deja en Starter ou Pro, le passage a Enterprise se fait sur le meme compte, sans recreer vos donnees.",
+            content: "Chaque carte de formule présente le prix effectif et les principaux avantages. Si le compte est déjà en Starter ou Pro, le passage à Enterprise se fait sur le même compte, sans recréer les données.",
             details: [
                 { label: 'Carte de formule', description: "Affiche le nom, le prix mensuel et les éléments clés inclus dans la formule.", type: 'card' },
                 { label: 'Plan actuel', description: "La formule active reste visible avec un état clair pour éviter toute ambiguïté avant un changement.", type: 'info' },
             ],
         },
         {
-            title: 'Passer de Starter ou Pro a Enterprise',
-            content: "Le passage a Enterprise conserve votre compte, vos boutiques et vos donnees. Le web complet s active apres confirmation du paiement par le prestataire de facturation.",
+            title: 'Passer de Starter ou Pro à Enterprise',
+            content: "Le passage à Enterprise conserve le compte, les boutiques et les données. L'application web complète s'active après confirmation du paiement par le prestataire de facturation.",
         },
         {
             title: 'Choisir le bon mode de paiement',
@@ -454,7 +454,7 @@ export default function Subscription() {
                             <div className="flex flex-col gap-3">
                                 {plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade && (
                                     <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-slate-200">
-                                        Le paiement Enterprise met a jour votre compte actuel. Le web complet s active apres confirmation du paiement.
+                                        Le paiement Enterprise met à jour le compte actuel. L&apos;application web complète s&apos;active après confirmation du paiement.
                                     </div>
                                 )}
                                 <button
@@ -464,7 +464,7 @@ export default function Subscription() {
                                 >
                                     {purchasing === 'stripe' ? <RefreshCw className="animate-spin" size={18} /> : <CreditCard size={18} />}
                                     {plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade
-                                        ? `Passer a Enterprise par carte (${currency})`
+                                        ? `Passer à Enterprise par carte (${currency})`
                                         : `Payer par carte bancaire (${currency})`} <ArrowRight size={16} />
                                 </button>
                                 {canUseMobileMoney ? (
@@ -475,7 +475,7 @@ export default function Subscription() {
                                     >
                                         {purchasing === 'flutterwave' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
                                         {plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade
-                                            ? `Passer a Enterprise via Mobile Money (${currency})`
+                                            ? `Passer à Enterprise via Mobile Money (${currency})`
                                             : `Payer via Mobile Money (${currency})`}
                                     </button>
                                 ) : (
@@ -521,7 +521,7 @@ export default function Subscription() {
                     className="btn-primary mt-8 px-6 py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
                 >
                     <Save size={18} />
-                    {savingBillingContact ? 'Enregistrement...' : 'Mettre a jour le contact'}
+                    {savingBillingContact ? 'Enregistrement...' : 'Mettre à jour le contact'}
                 </button>
             </div>
 
@@ -541,7 +541,7 @@ export default function Subscription() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h4 className="text-white font-bold mb-1 tracking-tight">Carte bancaire</h4>
-                        <p className="text-slate-400 text-sm">Stripe gere les devises carte configurees pour le web.</p>
+                        <p className="text-slate-400 text-sm">Stripe gère les paiements par carte configurés pour l&apos;application web.</p>
                     </div>
                 </div>
             </div>

@@ -38,6 +38,7 @@ import {
     ai as aiApi,
     crmAnalytics as crmAnalyticsApi,
     customers as customersApi,
+    planner as plannerApi,
     promotions as promotionsApi,
     type AnalyticsKpiDetail,
     type CrmAnalyticsOverview,
@@ -107,6 +108,11 @@ export default function CRM({ user }: CRMProps) {
     const [messageCopied, setMessageCopied] = useState(false);
     const [debtHistory, setDebtHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [isEditingCustomerNotes, setIsEditingCustomerNotes] = useState(false);
+    const [customerNotesDraft, setCustomerNotesDraft] = useState('');
+    const [customerNotesSaving, setCustomerNotesSaving] = useState(false);
+    const [plannerNoteSaving, setPlannerNoteSaving] = useState(false);
+    const [customerNoteStatus, setCustomerNoteStatus] = useState<string | null>(null);
     const [customerForm, setCustomerForm] = useState({
         name: '',
         phone: '',
@@ -374,6 +380,9 @@ export default function CRM({ user }: CRMProps) {
         setSelectedCustomer(customer);
         setDetailTab('info');
         setIsDetailModalOpen(true);
+        setIsEditingCustomerNotes(false);
+        setCustomerNotesDraft(customer.notes || '');
+        setCustomerNoteStatus(null);
         setLoadingHistory(true);
         setCustomerSales([]);
         setCustomerSummaryText(null);
@@ -421,6 +430,58 @@ export default function CRM({ user }: CRMProps) {
         if (!phone) return;
         const cleanPhone = phone.replace(/\D/g, '');
         window.open(`https://wa.me/${cleanPhone}`, '_blank');
+    };
+
+    const handleSaveCustomerNotes = async () => {
+        if (!selectedCustomer?.customer_id) return;
+        setCustomerNotesSaving(true);
+        setCustomerNoteStatus(null);
+        try {
+            const updated = await customersApi.update(selectedCustomer.customer_id, {
+                name: selectedCustomer.name || '',
+                phone: selectedCustomer.phone || '',
+                email: selectedCustomer.email || '',
+                notes: customerNotesDraft.trim(),
+                birthday: selectedCustomer.birthday || '',
+                category: selectedCustomer.category || 'particulier',
+            });
+            setSelectedCustomer((current: any) => ({ ...current, ...updated, notes: updated.notes || '' }));
+            setCustomers((current) => current.map((customer) =>
+                customer.customer_id === selectedCustomer.customer_id ? { ...customer, ...updated } : customer
+            ));
+            setIsEditingCustomerNotes(false);
+            setCustomerNoteStatus('Note client enregistrée.');
+        } catch (err) {
+            console.error('Save customer notes error', err);
+            setCustomerNoteStatus("Impossible d'enregistrer la note client.");
+        } finally {
+            setCustomerNotesSaving(false);
+        }
+    };
+
+    const handleCreatePlannerNoteFromCustomer = async () => {
+        if (!selectedCustomer?.customer_id) return;
+        const noteText = (isEditingCustomerNotes ? customerNotesDraft : selectedCustomer.notes || '').trim();
+        if (!noteText) {
+            setCustomerNoteStatus("Ajoutez d'abord une note client, puis envoyez-la vers Notes.");
+            setIsEditingCustomerNotes(true);
+            return;
+        }
+        setPlannerNoteSaving(true);
+        setCustomerNoteStatus(null);
+        try {
+            await plannerApi.create({
+                title: `Note client - ${selectedCustomer.name}`,
+                content: `Client : ${selectedCustomer.name}\nTéléphone : ${selectedCustomer.phone || 'non renseigné'}\n\n${noteText}`,
+                channels: ['in_app'],
+            });
+            setCustomerNoteStatus('Note créée dans Notes.');
+        } catch (err) {
+            console.error('Create planner note error', err);
+            setCustomerNoteStatus("Impossible de créer la note dans Notes. Vérifiez que le compte a accès à Notes et Rappels.");
+        } finally {
+            setPlannerNoteSaving(false);
+        }
     };
 
     if (loading && customers.length === 0) {
@@ -1542,12 +1603,78 @@ export default function CRM({ user }: CRMProps) {
 
                         {/* Notes */}
                         <div className="glass-card p-6">
-                            <h4 className="text-white font-bold mb-3 flex items-center gap-2 text-sm uppercase tracking-widest text-slate-400">
-                                <MoreVertical size={14} /> Notes & Informations
-                            </h4>
-                            <p className="text-slate-300 text-sm leading-relaxed">
-                                {selectedCustomer.notes || "Aucune note particulière pour ce client. Utilisez cet espace pour noter ses préférences ou habitudes d'achat."}
-                            </p>
+                            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-300">
+                                        <MoreVertical size={14} /> Note client
+                                    </h4>
+                                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                                        Cette note reste dans la fiche CRM. Le bouton Notes crée une copie dans Notes et Rappels pour la retrouver dans l&apos;agenda.
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setCustomerNotesDraft(selectedCustomer.notes || '');
+                                            setIsEditingCustomerNotes(true);
+                                            setCustomerNoteStatus(null);
+                                        }}
+                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-300 transition-all hover:border-primary/30 hover:text-white"
+                                    >
+                                        Modifier
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleCreatePlannerNoteFromCustomer}
+                                        disabled={plannerNoteSaving}
+                                        className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-primary transition-all hover:bg-primary/20 disabled:opacity-50"
+                                    >
+                                        {plannerNoteSaving ? 'Création...' : 'Créer dans Notes'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {isEditingCustomerNotes ? (
+                                <div className="space-y-3">
+                                    <textarea
+                                        value={customerNotesDraft}
+                                        onChange={(e) => setCustomerNotesDraft(e.target.value)}
+                                        rows={5}
+                                        className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white outline-none transition-all placeholder:text-slate-600 focus:border-primary/50"
+                                        placeholder="Ex : préfère être contacté par WhatsApp le matin, demande toujours la facture, allergie à noter..."
+                                    />
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsEditingCustomerNotes(false);
+                                                setCustomerNotesDraft(selectedCustomer.notes || '');
+                                            }}
+                                            className="rounded-xl px-4 py-2 text-sm font-bold text-slate-400 transition-all hover:text-white"
+                                        >
+                                            Annuler
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveCustomerNotes}
+                                            disabled={customerNotesSaving}
+                                            className="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white transition-all hover:brightness-110 disabled:opacity-50"
+                                        >
+                                            {customerNotesSaving ? 'Enregistrement...' : 'Enregistrer la note'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-300">
+                                    {selectedCustomer.notes || "Aucune note client enregistrée. Cliquez sur Modifier pour ajouter une préférence, une consigne de livraison, un contexte de dette ou une habitude d'achat."}
+                                </p>
+                            )}
+                            {customerNoteStatus && (
+                                <p className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300">
+                                    {customerNoteStatus}
+                                </p>
+                            )}
                         </div>
                     </div>
                 )}

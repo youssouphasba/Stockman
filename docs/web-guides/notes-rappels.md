@@ -49,6 +49,12 @@ Le calendrier est le point d'entree principal pour les rappels :
 - les rappels du mois restent visibles dans leur propre liste ;
 - les notes sans date disposent de leur propre espace.
 
+Le CRM web peut aussi y envoyer une copie d'une note client :
+
+- la fiche client conserve la note commerciale dans le CRM ;
+- le bouton **Creer dans Notes** ajoute une copie dans **Notes et rappels** ;
+- cette copie reste personnelle a l'utilisateur connecte.
+
 ## Conseils d'usage
 
 - utilisez une note sans date pour garder une information utile ;

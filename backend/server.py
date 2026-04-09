@@ -14134,6 +14134,24 @@ async def complete_social_profile(data: SocialProfileCompletionUpdate, user: Use
         update_payload["trial_ends_at"] = user_doc.get("trial_ends_at") or datetime.now(timezone.utc) + timedelta(days=30)
 
     await db.users.update_one({"user_id": user.user_id}, {"$set": update_payload})
+    normalized_business_name = update_payload.get("name")
+    if normalized_business_name and user.active_store_id:
+        current_store = await db.stores.find_one(
+            {"store_id": user.active_store_id, "user_id": get_owner_id(user)},
+            {"_id": 0, "name": 1},
+        )
+        current_store_name = (current_store or {}).get("name") or ""
+        old_profile_name = (user_doc.get("name") or "").strip()
+        auto_names = {
+            f"Magasin de {old_profile_name}".strip(),
+            f"Magasin de {user.name}".strip(),
+            "Magasin de",
+        }
+        if not current_store_name or current_store_name in auto_names:
+            await db.stores.update_one(
+                {"store_id": user.active_store_id, "user_id": get_owner_id(user)},
+                {"$set": {"name": normalized_business_name, "updated_at": datetime.now(timezone.utc)}},
+            )
     account_updates = {
         "country_code": country_code,
         "currency": resolved_currency,
