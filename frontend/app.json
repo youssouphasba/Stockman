@@ -93,6 +93,7 @@
         }
       ],
       "./plugins/withFirebaseModularHeaders",
+      "./plugins/withReactNativeHeaderFix",
       "./plugins/withRemoveBackgroundAudioMode",
       "expo-sharing",
       "expo-web-browser",
