@@ -41,8 +41,9 @@ Le comportement doit rester le meme avec une inscription email/mot de passe et a
 inscription sociale Google ou Apple.
 
 Quand le compte est cree avec Google ou Apple, Stockman peut demander de terminer le profil :
-pays, telephone et secteur d'activite. Cette finalisation fait partie du parcours
+pays, telephone, secteur d'activite et mot de passe Stockman. Cette finalisation fait partie du parcours
 d'authentification et ne doit pas etre bloquee par le mode web en consultation.
+Le mot de passe n'empeche pas la connexion Google : il sert de second mode de connexion et protege les actions sensibles qui demandent une confirmation, comme la suppression du compte.
 
 ### Pays et devise
 

@@ -460,6 +460,7 @@ export type User = {
     can_access_app?: boolean;
     can_access_web?: boolean;
     needs_profile_completion?: boolean;
+    password_set?: boolean;
     is_demo?: boolean;
     demo_session_id?: string | null;
     demo_type?: string | null;
@@ -1631,6 +1632,7 @@ export const auth = {
         phone: string;
         business_type: string;
         how_did_you_hear?: string;
+        new_password?: string;
     }) =>
         request<{ message: string; user: User }>('/auth/complete-social-profile', { method: 'PUT', body: data }),
     verifyEmail: (otp: string) =>

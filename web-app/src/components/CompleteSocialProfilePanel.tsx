@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CheckCircle2, ChevronDown, Globe2, Phone, UserRound, BriefcaseBusiness } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Globe2, Phone, UserRound, BriefcaseBusiness, LockKeyhole } from 'lucide-react';
 import { auth, type User } from '../services/api';
 import { COUNTRIES } from '../data/countries';
 import { BUSINESS_SECTORS } from '../data/businessSectors';
@@ -32,6 +32,8 @@ export default function CompleteSocialProfilePanel({ user, onCompleted, onLogout
   const [phone, setPhone] = useState('');
   const [businessType, setBusinessType] = useState(typeof user?.business_type === 'string' ? user.business_type : '');
   const [howDidYouHear, setHowDidYouHear] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -60,6 +62,20 @@ export default function CompleteSocialProfilePanel({ user, onCompleted, onLogout
       setError("Le secteur d'activite est obligatoire.");
       return;
     }
+    if (!user?.password_set && (!newPassword || !confirmPassword)) {
+      setError('Creez un mot de passe Stockman pour proteger les actions sensibles du compte.');
+      return;
+    }
+    if (newPassword || confirmPassword) {
+      if (newPassword.length < 8) {
+        setError('Le mot de passe doit contenir au moins 8 caracteres.');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setError('Les mots de passe ne correspondent pas.');
+        return;
+      }
+    }
 
     setLoading(true);
     setError('');
@@ -71,6 +87,7 @@ export default function CompleteSocialProfilePanel({ user, onCompleted, onLogout
         phone: normalizePhone(),
         business_type: businessType,
         how_did_you_hear: howDidYouHear || undefined,
+        new_password: newPassword || undefined,
       });
       setMessage(response.message);
       onCompleted(response.user);
@@ -171,6 +188,48 @@ export default function CompleteSocialProfilePanel({ user, onCompleted, onLogout
               <ChevronDown size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
           </label>
+
+          {!user?.password_set && (
+            <div className="md:col-span-2 rounded-2xl border border-primary/20 bg-primary/10 p-4">
+              <div className="mb-4 flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-primary">
+                  <LockKeyhole size={18} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-white">Creez votre mot de passe Stockman</h2>
+                  <p className="mt-1 text-xs leading-5 text-slate-300">
+                    Vous pourrez toujours vous connecter avec Google. Ce mot de passe sert aussi pour la connexion par email et les actions sensibles comme la suppression du compte.
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-widest text-slate-400">
+                    Mot de passe
+                  </span>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder="8 caracteres minimum"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white outline-none transition-colors focus:border-primary/50"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-widest text-slate-400">
+                    Confirmer le mot de passe
+                  </span>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Repetez votre mot de passe"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white outline-none transition-colors focus:border-primary/50"
+                  />
+                </label>
+              </div>
+            </div>
+          )}
 
           <label className="block md:col-span-2">
             <span className="mb-2 block text-xs font-semibold uppercase tracking-widest text-slate-400">

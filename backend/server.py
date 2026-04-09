@@ -1747,6 +1747,7 @@ class SocialProfileCompletionUpdate(BaseModel):
     phone: str
     business_type: str
     how_did_you_hear: Optional[str] = None
+    new_password: Optional[str] = Field(default=None, min_length=8)
 
 
 class BillingContactUpdate(BaseModel):
@@ -14115,6 +14116,11 @@ async def complete_social_profile(data: SocialProfileCompletionUpdate, user: Use
     }
     if data.name and data.name.strip():
         update_payload["name"] = data.name.strip()
+    if data.new_password and data.new_password.strip():
+        if user_doc.get("password_set"):
+            raise HTTPException(status_code=400, detail="Un mot de passe est deja defini sur ce compte.")
+        update_payload["password_hash"] = get_password_hash(data.new_password.strip())
+        update_payload["password_set"] = True
     if required_verification == "phone":
         update_payload["is_phone_verified"] = False
         update_payload["verification_completed_at"] = None
