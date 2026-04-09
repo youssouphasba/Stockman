@@ -142,12 +142,14 @@ export default function Inventory() {
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
     const [isBulkPriceEditorOpen, setIsBulkPriceEditorOpen] = useState(false);
+    const [bulkPriceProducts, setBulkPriceProducts] = useState<any[]>([]);
     const [isTrashOpen, setIsTrashOpen] = useState(false);
     const [trashItems, setTrashItems] = useState<ProductTrashItem[]>([]);
     const [trashTotal, setTrashTotal] = useState(0);
     const [trashLoading, setTrashLoading] = useState(false);
     const [trashActionId, setTrashActionId] = useState<string | null>(null);
     const [bulkPriceDrafts, setBulkPriceDrafts] = useState<Record<string, { purchase_price: string; selling_price: string }>>({});
+    const [bulkPriceLoading, setBulkPriceLoading] = useState(false);
     const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
     const [trackedDeleteJob, setTrackedDeleteJob] = useState<ProductDeleteJob | null>(null);
@@ -415,6 +417,37 @@ export default function Inventory() {
             setLoadingMore(false);
         }
     }, [loadingMore, products.length, search, selectedLocation]);
+
+    const fetchAllProductsForCurrentFilter = useCallback(async () => {
+        const resolvedLocation = selectedLocation || undefined;
+        const resolvedSearch = search || undefined;
+        const allProducts: any[] = [];
+        const seenIds = new Set<string>();
+        let skip = 0;
+        let total = 0;
+
+        do {
+            const response = await productsApi.list(
+                undefined,
+                skip,
+                WEB_PRODUCTS_PAGE_SIZE,
+                resolvedLocation,
+                undefined,
+                resolvedSearch,
+            );
+            const pageItems = sanitizeRows<any>(response.items || response);
+            total = Number(response.total ?? pageItems.length);
+            pageItems.forEach((product) => {
+                if (!product.product_id || seenIds.has(product.product_id)) return;
+                seenIds.add(product.product_id);
+                allProducts.push(product);
+            });
+            skip += pageItems.length;
+            if (pageItems.length === 0) break;
+        } while (allProducts.length < total);
+
+        return allProducts;
+    }, [search, selectedLocation]);
 
     const loadStockHealth = useCallback(async () => {
         setStockHealthLoading(true);
@@ -1219,16 +1252,26 @@ export default function Inventory() {
         }).length,
     }), [safeProducts, supplierLinksByProduct]);
 
-    const filteredProducts = useMemo(() => {
-        return safeProducts.filter((p) => {
-            const links = supplierLinksByProduct[p.product_id] || [];
-            if (supplierCoverageFilter === 'all') return true;
-            if (supplierCoverageFilter === 'no_supplier') return links.length === 0;
-            if (supplierCoverageFilter === 'multi_supplier') return links.length > 1;
-            if (supplierCoverageFilter === 'missing_primary') return links.length > 0 && !links.some((link) => link.is_preferred);
-            return true;
-        });
-    }, [safeProducts, supplierCoverageFilter, supplierLinksByProduct]);
+    const productMatchesSupplierCoverage = useCallback((product: any) => {
+        const links = supplierLinksByProduct[product.product_id] || [];
+        if (supplierCoverageFilter === 'all') return true;
+        if (supplierCoverageFilter === 'no_supplier') return links.length === 0;
+        if (supplierCoverageFilter === 'multi_supplier') return links.length > 1;
+        if (supplierCoverageFilter === 'missing_primary') {
+            return links.length > 0 && !links.some((link) => link.is_preferred);
+        }
+        return true;
+    }, [supplierCoverageFilter, supplierLinksByProduct]);
+
+    const filteredProducts = useMemo(
+        () => safeProducts.filter(productMatchesSupplierCoverage),
+        [productMatchesSupplierCoverage, safeProducts],
+    );
+
+    const filteredBulkPriceProducts = useMemo(
+        () => sanitizeRows<any>(bulkPriceProducts).filter(productMatchesSupplierCoverage),
+        [bulkPriceProducts, productMatchesSupplierCoverage],
+    );
 
     const selectedProducts = useMemo(
         () => filteredProducts.filter((product) => selectedProductIds.has(product.product_id)),
@@ -1264,21 +1307,39 @@ export default function Inventory() {
         });
     };
 
-    const openBulkPriceEditor = () => {
-        const initialDrafts: Record<string, { purchase_price: string; selling_price: string }> = {};
-        filteredProducts.forEach((product) => {
-            initialDrafts[product.product_id] = {
-                purchase_price: product.purchase_price != null ? String(product.purchase_price) : '',
-                selling_price: product.selling_price != null ? String(product.selling_price) : '',
-            };
-        });
-        setBulkPriceDrafts(initialDrafts);
+    const openBulkPriceEditor = async () => {
+        setBulkPriceLoading(true);
         setIsBulkPriceEditorOpen(true);
+        setBulkPriceDrafts({});
+        setBulkPriceProducts([]);
+        try {
+            const editorProducts = safeProducts.length < productsTotal
+                ? await fetchAllProductsForCurrentFilter()
+                : safeProducts;
+            const editableProducts = editorProducts.filter(productMatchesSupplierCoverage);
+            const initialDrafts: Record<string, { purchase_price: string; selling_price: string }> = {};
+            editableProducts.forEach((product) => {
+                initialDrafts[product.product_id] = {
+                    purchase_price: product.purchase_price != null ? String(product.purchase_price) : '',
+                    selling_price: product.selling_price != null ? String(product.selling_price) : '',
+                };
+            });
+            setBulkPriceProducts(editorProducts);
+            setBulkPriceDrafts(initialDrafts);
+        } catch (err: any) {
+            console.error('Error loading products for quick price editor', err);
+            setIsBulkPriceEditorOpen(false);
+            window.alert(err.message || t('inventory.quick_price_editor_load_error', { defaultValue: "Impossible de charger tous les produits pour l'édition rapide." }));
+        } finally {
+            setBulkPriceLoading(false);
+        }
     };
 
     const closeBulkPriceEditor = () => {
         setIsBulkPriceEditorOpen(false);
+        setBulkPriceProducts([]);
         setBulkPriceDrafts({});
+        setBulkPriceLoading(false);
         setBulkPriceSaving(false);
     };
 
@@ -1300,7 +1361,7 @@ export default function Inventory() {
     const handleBulkPriceSave = async () => {
         const updates: Array<{ product_id: string; purchase_price?: number; selling_price?: number }> = [];
 
-        for (const product of filteredProducts) {
+        for (const product of filteredBulkPriceProducts) {
             const draft = bulkPriceDrafts[product.product_id];
             if (!draft) continue;
 
@@ -1582,12 +1643,12 @@ export default function Inventory() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                     <button
-                        onClick={openBulkPriceEditor}
-                        disabled={filteredProducts.length === 0}
+                        onClick={() => void openBulkPriceEditor()}
+                        disabled={productsTotal === 0 || bulkPriceLoading}
                         className="glass-card theme-text px-4 py-2 text-sm font-semibold hover:bg-white/10 transition-colors flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <Edit size={16} />
-                        {t('inventory.quick_price_editor')}
+                        {bulkPriceLoading ? t('common.loading', { defaultValue: 'Chargement...' }) : t('inventory.quick_price_editor')}
                     </button>
                     <button
                         onClick={() => void handleOpenTrash()}
@@ -2325,7 +2386,7 @@ export default function Inventory() {
                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <div>
                             <p className="text-sm text-slate-300">
-                                {t('inventory.quick_price_editor_subtitle', { count: filteredProducts.length })}
+                                {t('inventory.quick_price_editor_subtitle', { count: filteredBulkPriceProducts.length })}
                             </p>
                             <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                                 {t('inventory.quick_price_editor_changes', { count: editedBulkPriceCount })}
@@ -2342,10 +2403,14 @@ export default function Inventory() {
                             <button
                                 type="button"
                                 onClick={() => void handleBulkPriceSave()}
-                                disabled={bulkPriceSaving}
+                                disabled={bulkPriceLoading || bulkPriceSaving}
                                 className="rounded-xl border border-primary/30 bg-primary/15 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                {bulkPriceSaving ? t('common.saving', { defaultValue: 'Enregistrement...' }) : t('inventory.quick_price_editor_save')}
+                                {bulkPriceSaving
+                                    ? t('common.saving', { defaultValue: 'Enregistrement...' })
+                                    : bulkPriceLoading
+                                        ? t('common.loading', { defaultValue: 'Chargement...' })
+                                        : t('inventory.quick_price_editor_save')}
                             </button>
                         </div>
                     </div>
@@ -2361,7 +2426,21 @@ export default function Inventory() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5 text-sm text-white">
-                                {filteredProducts.map((product) => {
+                                {bulkPriceLoading && (
+                                    <tr>
+                                        <td colSpan={4} className="px-4 py-10 text-center text-sm font-semibold text-slate-300">
+                                            {t('inventory.quick_price_editor_loading_all', { defaultValue: 'Chargement de tous les produits...' })}
+                                        </td>
+                                    </tr>
+                                )}
+                                {!bulkPriceLoading && filteredBulkPriceProducts.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="px-4 py-10 text-center text-sm font-semibold text-slate-300">
+                                            {t('inventory.quick_price_editor_empty', { defaultValue: 'Aucun produit ne correspond aux filtres actuels.' })}
+                                        </td>
+                                    </tr>
+                                )}
+                                {!bulkPriceLoading && filteredBulkPriceProducts.map((product) => {
                                     const draft = bulkPriceDrafts[product.product_id] || {
                                         purchase_price: product.purchase_price != null ? String(product.purchase_price) : '',
                                         selling_price: product.selling_price != null ? String(product.selling_price) : '',
