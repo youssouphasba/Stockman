@@ -13,6 +13,24 @@ module.exports = function withFirebaseModularHeaders(config) {
         podfile = `$RNFirebaseAsStaticFramework = true\n${podfile}`;
       }
 
+      const firebasePodsSnippet = `
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'Firebase', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'FirebaseCoreExtension', :modular_headers => true
+  pod 'FirebaseAppCheckInterop', :modular_headers => true
+  pod 'FirebaseAuth', :modular_headers => true
+  pod 'FirebaseAuthInterop', :modular_headers => true
+  pod 'RecaptchaInterop', :modular_headers => true`;
+
+      if (!podfile.includes("pod 'FirebaseAuth', :modular_headers => true")) {
+        podfile = podfile.replace(
+          /target ['"][^'"]+['"] do\s*\n/,
+          (match) => `${match}${firebasePodsSnippet}\n`
+        );
+      }
+
       if (!podfile.includes('CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES')) {
         const snippet = `
   installer.pods_project.targets.each do |target|
