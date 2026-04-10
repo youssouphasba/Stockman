@@ -150,6 +150,15 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 - Les factures fournisseur mobiles peuvent etre creees depuis une commande eligible ou manuellement, meme sans commande prealable.
 - Les parametres fournisseur mobiles couvrent aussi les preferences de facturation, l'aide, le support et le mot de passe.
 
+## Multi-comptes sur mobile
+
+- Un meme telephone peut memoriser plusieurs comptes distincts.
+- Cette bascule doit etre decrite comme un changement de compte local sur l'appareil.
+- L'IA ne doit pas presenter cela comme une fusion de roles ou comme un passage automatique d'un compte fournisseur gratuit vers un compte commercant payant.
+- Ajouter un autre compte demande une authentification complete avec l'adresse e-mail et le mot de passe de ce compte.
+- Une fois les comptes memorises, la bascule peut se faire sans reconnexion complete.
+- Les notifications peuvent continuer a arriver sur le meme appareil pour plusieurs comptes memorises si le token push a ete enregistre pour chacun.
+
 ## Web admin
 
 - Administration, securite, support, litiges, abonnements, catalogues et reglages globaux.
@@ -173,7 +182,7 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 - Web : information, pilotage et facturation plus complets.
 - Mobile : consultation du plan, changement de plan et restauration selon plateforme.
 - Les plans Starter et Pro peuvent etre geres par achat integre mobile quand la plateforme le permet.
-- Mobile commercant : sur le dashboard, les plans Starter et Pro utilisent une vue simplifiee et ne doivent pas etre presentes comme ayant les blocs `performance de boutique`, `analyse de rentabilite`, `alertes recentes`, `evolution valeur du stock`, `analyse ABC` et `conseils du moment`.
+- Mobile commercant : sur le dashboard, les plans Starter et Pro utilisent une vue simplifiee et ne doivent pas etre presentes comme ayant les blocs `performance de boutique`, `analyse de rentabilite`, `alertes recentes`, `evolution valeur du stock`, `analyse ABC`, `inventaire tournant` et `conseils du moment`.
 - Mobile commercant : sur le dashboard, les plans Starter et Pro ne doivent pas non plus etre presentes comme ayant les briques IA `score de sante business`, `projection`, `recherche en langage naturel`, `resume IA du jour`, `rappels intelligents du dashboard` et `previsions de vente du dashboard`.
 - Web commercant : les plans Starter et Pro peuvent consulter le back-office web, mais les creations, editions et suppressions y restent bloquees.
 - Passage de Starter ou Pro vers Enterprise : il se fait sur le meme compte. L'utilisateur conserve ses donnees, ses boutiques et ses utilisateurs ; seul le plan evolue apres confirmation du paiement web.

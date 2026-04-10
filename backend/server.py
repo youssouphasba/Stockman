@@ -13095,6 +13095,26 @@ class CatalogProductCreate(BaseModel):
     publication_status: str = "draft"
 
 
+class SupplierCatalogBulkCreateRequest(BaseModel):
+    items: List[CatalogProductCreate]
+
+
+class SupplierCatalogBulkUpdateItem(BaseModel):
+    catalog_id: str
+    name: Optional[str] = None
+    price: Optional[float] = None
+    stock_available: Optional[int] = None
+    available: Optional[bool] = None
+
+
+class SupplierCatalogBulkUpdateRequest(BaseModel):
+    items: List[SupplierCatalogBulkUpdateItem]
+
+
+class SupplierCatalogBulkDeleteRequest(BaseModel):
+    catalog_ids: List[str]
+
+
 def normalize_catalog_publication_status(value: Optional[str]) -> str:
     normalized = (value or "").strip().lower()
     if normalized in {"draft", "ready", "published", "archived"}:
@@ -13856,6 +13876,10 @@ async def verify_email(request: Request, response: Response, data: VerifyEmailRe
     if not user_doc:
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
 
+    normalized_otp = re.sub(r"\D", "", str(data.otp or "")).strip()
+    if len(normalized_otp) != 6:
+        raise HTTPException(status_code=400, detail="Code de verification invalide")
+
     attempts = user_doc.get("email_otp_attempts", 0)
     if attempts >= 5:
         raise HTTPException(status_code=429, detail="Trop de tentatives. Veuillez demander un nouveau code.")
@@ -13874,7 +13898,7 @@ async def verify_email(request: Request, response: Response, data: VerifyEmailRe
         )
         raise HTTPException(status_code=400, detail="Code expire. Veuillez demander un nouveau code.")
 
-    if otp_matches(user_doc.get("email_otp_digest"), data.otp):
+    if otp_matches(user_doc.get("email_otp_digest"), normalized_otp):
         update_payload = {
             "is_email_verified": True,
             "email_otp": None,
@@ -23225,6 +23249,36 @@ async def create_catalog_product(data: CatalogProductCreate, user: User = Depend
     await db.catalog_products.insert_one(item.model_dump())
     return item
 
+
+@api_router.post("/supplier/catalog/bulk-create")
+async def bulk_create_catalog_products(
+    data: SupplierCatalogBulkCreateRequest,
+    user: User = Depends(require_supplier),
+):
+    if not data.items:
+        raise HTTPException(status_code=400, detail="Aucun produit à créer")
+
+    now = datetime.now(timezone.utc)
+    documents: List[Dict[str, Any]] = []
+    errors: List[Dict[str, Any]] = []
+
+    for index, item_data in enumerate(data.items):
+        payload = item_data.model_dump()
+        payload["publication_status"] = normalize_catalog_publication_status(payload.get("publication_status"))
+        if not str(payload.get("name") or "").strip():
+            errors.append({"index": index, "error": "Nom du produit manquant"})
+            continue
+        payload["created_at"] = now
+        payload["updated_at"] = now
+        document = CatalogProduct(**payload, supplier_user_id=user.user_id)
+        documents.append(document.model_dump())
+
+    if not documents:
+        raise HTTPException(status_code=400, detail="Aucun produit valide à créer")
+
+    await db.catalog_products.insert_many(documents)
+    return {"count": len(documents), "errors": errors}
+
 @api_router.put("/supplier/catalog/{catalog_id}", response_model=CatalogProduct)
 async def update_catalog_product(catalog_id: str, data: CatalogProductCreate, user: User = Depends(require_supplier)):
     update_dict = data.model_dump()
@@ -23239,6 +23293,48 @@ async def update_catalog_product(catalog_id: str, data: CatalogProductCreate, us
         raise HTTPException(status_code=404, detail="Produit catalogue non trouvé")
     result.pop("_id", None)
     return CatalogProduct(**result)
+
+
+@api_router.put("/supplier/catalog/bulk-update")
+async def bulk_update_catalog_products(
+    data: SupplierCatalogBulkUpdateRequest,
+    user: User = Depends(require_supplier),
+):
+    if not data.items:
+        raise HTTPException(status_code=400, detail="Aucune modification à appliquer")
+
+    updated = 0
+    errors: List[Dict[str, Any]] = []
+
+    for item in data.items:
+      update_fields: Dict[str, Any] = {}
+      if item.name is not None:
+          if not str(item.name).strip():
+              errors.append({"catalog_id": item.catalog_id, "error": "Nom du produit vide"})
+              continue
+          update_fields["name"] = str(item.name).strip()
+      if item.price is not None:
+          update_fields["price"] = max(0.0, float(item.price))
+      if item.stock_available is not None:
+          update_fields["stock_available"] = max(0, int(item.stock_available))
+      if item.available is not None:
+          update_fields["available"] = bool(item.available)
+          update_fields["publication_status"] = "published" if item.available else "draft"
+
+      if not update_fields:
+          continue
+
+      update_fields["updated_at"] = datetime.now(timezone.utc)
+      result = await db.catalog_products.update_one(
+          {"catalog_id": item.catalog_id, "supplier_user_id": user.user_id},
+          {"$set": update_fields},
+      )
+      if result.matched_count == 0:
+          errors.append({"catalog_id": item.catalog_id, "error": "Produit catalogue non trouvé"})
+          continue
+      updated += 1
+
+    return {"updated": updated, "errors": errors}
 
 
 @api_router.post("/supplier/catalog/{catalog_id}/duplicate", response_model=CatalogProduct)
@@ -23266,6 +23362,21 @@ async def delete_catalog_product(catalog_id: str, user: User = Depends(require_s
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Produit catalogue non trouvé")
     return {"message": "Produit supprimé du catalogue"}
+
+
+@api_router.post("/supplier/catalog/bulk-delete")
+async def bulk_delete_catalog_products(
+    data: SupplierCatalogBulkDeleteRequest,
+    user: User = Depends(require_supplier),
+):
+    catalog_ids = [catalog_id for catalog_id in data.catalog_ids if catalog_id]
+    if not catalog_ids:
+        raise HTTPException(status_code=400, detail="Aucun produit à supprimer")
+
+    result = await db.catalog_products.delete_many(
+        {"catalog_id": {"$in": catalog_ids}, "supplier_user_id": user.user_id}
+    )
+    return {"deleted": result.deleted_count}
 
 
 @api_router.post("/supplier/catalog/import/parse")

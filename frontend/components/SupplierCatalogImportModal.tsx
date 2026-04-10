@@ -1,18 +1,9 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useTheme } from '../contexts/ThemeContext';
-import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { supplierCatalog } from '../services/api';
 
 type Props = {
@@ -21,29 +12,26 @@ type Props = {
   onSuccess: () => void;
 };
 
-const REQUIRED_FIELDS = [
-  { key: 'name', label: 'Nom' },
-];
-
+const REQUIRED_FIELDS = [{ key: 'name', label: 'Nom' }];
 const OPTIONAL_FIELDS = [
   { key: 'description', label: 'Description' },
-  { key: 'category', label: 'Catégorie' },
-  { key: 'subcategory', label: 'Sous-catégorie' },
+  { key: 'category', label: 'Categorie' },
+  { key: 'subcategory', label: 'Sous-categorie' },
   { key: 'price', label: 'Prix' },
-  { key: 'unit', label: 'Unité' },
+  { key: 'unit', label: 'Unite' },
   { key: 'stock_available', label: 'Stock disponible' },
-  { key: 'min_order_quantity', label: 'Quantité minimale' },
+  { key: 'min_order_quantity', label: 'Quantite minimale' },
   { key: 'sku', label: 'SKU' },
   { key: 'barcode', label: 'Code-barres' },
   { key: 'brand', label: 'Marque' },
   { key: 'origin', label: 'Origine' },
-  { key: 'delivery_time', label: 'Délai de livraison' },
-  { key: 'publication_status', label: 'Statut' },
+  { key: 'delivery_time', label: 'Delai de livraison' },
+  { key: 'publication_status', label: 'Visibilite' },
 ];
 
 export default function SupplierCatalogImportModal({ visible, onClose, onSuccess }: Props) {
   const { colors } = useTheme();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -51,6 +39,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
   const [rawData, setRawData] = useState<any[]>([]);
   const [fileName, setFileName] = useState('');
   const [result, setResult] = useState<{ count: number; errors?: any[] } | null>(null);
+  const [importVisibility, setImportVisibility] = useState<'published' | 'draft'>('published');
 
   function reset() {
     setStep(0);
@@ -60,6 +49,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
     setRawData([]);
     setFileName('');
     setResult(null);
+    setImportVisibility('published');
   }
 
   function handleClose() {
@@ -69,12 +59,12 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
 
   async function handlePickFile() {
     try {
-      const resultPicker = await DocumentPicker.getDocumentAsync({
+      const picker = await DocumentPicker.getDocumentAsync({
         type: ['text/comma-separated-values', 'text/csv'],
         copyToCacheDirectory: true,
       });
-      if (resultPicker.canceled || !resultPicker.assets?.[0]) return;
-      const asset = resultPicker.assets[0];
+      if (picker.canceled || !picker.assets?.[0]) return;
+      const asset = picker.assets[0];
       setFileName(asset.name || 'catalogue.csv');
       setLoading(true);
       const formData = new FormData();
@@ -89,7 +79,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
       setRawData(parsed.data || []);
       setMapping(parsed.ai_mapping || {});
       setStep(1);
-    } catch (error) {
+    } catch {
       Alert.alert('Erreur', "Impossible d'analyser le fichier.");
     } finally {
       setLoading(false);
@@ -108,7 +98,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
     });
   }
 
-  async function handleConfirmMapping() {
+  function handleConfirmMapping() {
     const missing = REQUIRED_FIELDS.filter((field) => !mapping[field.key]);
     if (missing.length > 0) {
       Alert.alert('Champ manquant', `Mappez au moins : ${missing.map((field) => field.label).join(', ')}`);
@@ -124,7 +114,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
         importData: rawData,
         mapping,
         fileName,
-        publicationStatus: 'draft',
+        publicationStatus: importVisibility,
       });
       setResult(importResult);
       setStep(3);
@@ -141,7 +131,8 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
         <Ionicons name="cloud-upload-outline" size={60} color={colors.primary} />
         <Text style={styles.stepTitle}>Importer un fichier CSV</Text>
         <Text style={styles.stepDescription}>
-          Importez plusieurs produits fournisseur en une seule fois. Les lignes importées arrivent en brouillon pour pouvoir être relues avant publication.
+          Importez plusieurs produits fournisseur en une seule fois. Ce flux sert a creer
+          rapidement un catalogue propre a partir d un tableau CSV.
         </Text>
         <TouchableOpacity style={styles.primaryButton} onPress={handlePickFile} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Choisir un fichier</Text>}
@@ -155,32 +146,26 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
       <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
         <Text style={styles.stepTitle}>Mapper les colonnes</Text>
         <Text style={styles.stepDescription}>
-          Vérifiez la correspondance entre vos colonnes CSV et les champs du catalogue fournisseur.
+          Verifiez la correspondance entre vos colonnes CSV et les champs du catalogue fournisseur.
         </Text>
-
         {[...REQUIRED_FIELDS, ...OPTIONAL_FIELDS].map((field) => (
           <View key={field.key} style={styles.mappingBlock}>
-            <Text style={styles.mappingLabel}>{field.label}{REQUIRED_FIELDS.some((item) => item.key === field.key) ? ' *' : ''}</Text>
+            <Text style={styles.mappingLabel}>
+              {field.label}
+              {REQUIRED_FIELDS.some((item) => item.key === field.key) ? ' *' : ''}
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <TouchableOpacity
-                style={[styles.chip, !mapping[field.key] && styles.chipActive]}
-                onPress={() => toggleMapping(field.key, null)}
-              >
+              <TouchableOpacity style={[styles.chip, !mapping[field.key] && styles.chipActive]} onPress={() => toggleMapping(field.key, null)}>
                 <Text style={[styles.chipText, !mapping[field.key] && styles.chipTextActive]}>Ignorer</Text>
               </TouchableOpacity>
               {headers.map((header) => (
-                <TouchableOpacity
-                  key={`${field.key}-${header}`}
-                  style={[styles.chip, mapping[field.key] === header && styles.chipActive]}
-                  onPress={() => toggleMapping(field.key, header)}
-                >
+                <TouchableOpacity key={`${field.key}-${header}`} style={[styles.chip, mapping[field.key] === header && styles.chipActive]} onPress={() => toggleMapping(field.key, header)}>
                   <Text style={[styles.chipText, mapping[field.key] === header && styles.chipTextActive]}>{header}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
         ))}
-
         <TouchableOpacity style={styles.primaryButton} onPress={handleConfirmMapping}>
           <Text style={styles.primaryButtonText}>Continuer</Text>
         </TouchableOpacity>
@@ -192,22 +177,28 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
     const previewRows = rawData.slice(0, 5);
     return (
       <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
-        <Text style={styles.stepTitle}>Aperçu avant import</Text>
+        <Text style={styles.stepTitle}>Apercu avant import</Text>
         <Text style={styles.stepDescription}>
-          Vérifiez quelques lignes avant de créer vos fiches catalogue.
+          Verifiez quelques lignes avant de creer vos fiches catalogue.
         </Text>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryText}>Fichier : {fileName}</Text>
-          <Text style={styles.summaryText}>Lignes détectées : {rawData.length}</Text>
-          <Text style={styles.summaryText}>Les produits seront créés en brouillon.</Text>
+          <Text style={styles.summaryText}>Lignes detectees : {rawData.length}</Text>
+          <Text style={styles.summaryText}>Visibilite des produits importes :</Text>
+          <View style={styles.importVisibilityRow}>
+            <TouchableOpacity style={[styles.choiceChip, importVisibility === 'published' && styles.choiceChipActive]} onPress={() => setImportVisibility('published')}>
+              <Text style={[styles.choiceChipText, importVisibility === 'published' && styles.choiceChipTextActive]}>Visible</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.choiceChip, importVisibility === 'draft' && styles.choiceChipActive]} onPress={() => setImportVisibility('draft')}>
+              <Text style={[styles.choiceChipText, importVisibility === 'draft' && styles.choiceChipTextActive]}>Masque</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         {previewRows.map((row, index) => (
           <View key={index} style={styles.previewCard}>
             <Text style={styles.previewTitle}>{mapping.name ? row[mapping.name] : 'Sans nom'}</Text>
             <Text style={styles.previewMeta}>
-              {mapping.price ? `${row[mapping.price] || 0} FCFA` : 'Prix non mappé'}
-              {' • '}
-              {mapping.category ? row[mapping.category] || 'Sans catégorie' : 'Sans catégorie'}
+              {mapping.price ? `${row[mapping.price] || 0} FCFA` : 'Prix non mappe'} - {mapping.category ? row[mapping.category] || 'Sans categorie' : 'Sans categorie'}
             </Text>
           </View>
         ))}
@@ -229,25 +220,19 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
         <View style={styles.successCircle}>
           <Ionicons name="checkmark" size={40} color={colors.success} />
         </View>
-        <Text style={styles.stepTitle}>Import terminé</Text>
+        <Text style={styles.stepTitle}>Import termine</Text>
         <Text style={styles.stepDescription}>
-          {result?.count || 0} produit(s) ont été créés dans le catalogue fournisseur.
+          {result?.count || 0} produit(s) ont ete crees dans le catalogue fournisseur.
         </Text>
         {!!result?.errors?.length && (
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryText}>Lignes à corriger : {result.errors.length}</Text>
+            <Text style={styles.summaryText}>Lignes a corriger : {result.errors.length}</Text>
             {result.errors.slice(0, 5).map((error, index) => (
               <Text key={index} style={styles.errorText}>Ligne {error.row + 1} : {error.error}</Text>
             ))}
           </View>
         )}
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => {
-            onSuccess();
-            handleClose();
-          }}
-        >
+        <TouchableOpacity style={styles.primaryButton} onPress={() => { onSuccess(); handleClose(); }}>
           <Text style={styles.primaryButtonText}>Retour au catalogue</Text>
         </TouchableOpacity>
       </View>
@@ -277,165 +262,36 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
 }
 
 const createStyles = (colors: any) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  modal: {
-    backgroundColor: colors.bgDark,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '92%',
-    minHeight: '72%',
-    padding: Spacing.lg,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  headerTitle: {
-    color: colors.text,
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-  },
-  scrollContent: {
-    flex: 1,
-  },
-  scrollInner: {
-    paddingBottom: Spacing.xl,
-  },
-  stepTitle: {
-    color: colors.text,
-    fontSize: FontSize.xl,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginTop: Spacing.md,
-  },
-  stepDescription: {
-    color: colors.textSecondary,
-    fontSize: FontSize.md,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.xl,
-    lineHeight: 22,
-  },
-  primaryButton: {
-    width: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: colors.divider,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-  },
-  secondaryButtonText: {
-    color: colors.text,
-    fontSize: FontSize.md,
-    fontWeight: '600',
-  },
-  mappingBlock: {
-    marginBottom: Spacing.md,
-  },
-  mappingLabel: {
-    color: colors.text,
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-    marginBottom: Spacing.xs,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    backgroundColor: colors.inputBg,
-    marginRight: 8,
-  },
-  chipActive: {
-    borderColor: colors.primary,
-    backgroundColor: `${colors.primary}20`,
-  },
-  chipText: {
-    color: colors.textSecondary,
-    fontSize: FontSize.xs,
-    fontWeight: '700',
-  },
-  chipTextActive: {
-    color: colors.primary,
-  },
-  summaryCard: {
-    width: '100%',
-    backgroundColor: colors.glass,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  summaryText: {
-    color: colors.text,
-    fontSize: FontSize.sm,
-    marginBottom: 4,
-  },
-  previewCard: {
-    backgroundColor: colors.glass,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  previewTitle: {
-    color: colors.text,
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  previewMeta: {
-    color: colors.textSecondary,
-    fontSize: FontSize.sm,
-    marginTop: 4,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
-  successCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: `${colors.success}20`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  errorText: {
-    color: colors.warning,
-    fontSize: FontSize.xs,
-    marginTop: 4,
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modal: { backgroundColor: colors.bgDark, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, maxHeight: '92%', minHeight: '72%', padding: Spacing.lg },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
+  headerTitle: { color: colors.text, fontSize: FontSize.lg, fontWeight: '700' },
+  centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Spacing.lg },
+  scrollContent: { flex: 1 },
+  scrollInner: { paddingBottom: Spacing.xl },
+  stepTitle: { color: colors.text, fontSize: FontSize.xl, fontWeight: '700', textAlign: 'center', marginBottom: Spacing.sm },
+  stepDescription: { color: colors.textSecondary, fontSize: FontSize.sm, lineHeight: 20, textAlign: 'center', marginBottom: Spacing.lg },
+  primaryButton: { backgroundColor: colors.primary, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderRadius: BorderRadius.lg, alignItems: 'center', justifyContent: 'center' },
+  primaryButtonText: { color: '#fff', fontWeight: '700', fontSize: FontSize.md },
+  secondaryButton: { borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.inputBg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderRadius: BorderRadius.lg, alignItems: 'center', justifyContent: 'center' },
+  secondaryButtonText: { color: colors.textSecondary, fontWeight: '700', fontSize: FontSize.md },
+  mappingBlock: { marginBottom: Spacing.lg },
+  mappingLabel: { color: colors.text, fontSize: FontSize.sm, fontWeight: '700', marginBottom: Spacing.sm },
+  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.inputBg, marginRight: 8 },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' },
+  chipTextActive: { color: '#fff' },
+  summaryCard: { backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.md },
+  summaryText: { color: colors.textSecondary, fontSize: FontSize.sm, lineHeight: 20 },
+  previewCard: { backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.sm },
+  previewTitle: { color: colors.text, fontWeight: '700', fontSize: FontSize.md, marginBottom: 4 },
+  previewMeta: { color: colors.textSecondary, fontSize: FontSize.sm },
+  actionRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
+  successCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: `${colors.success}18`, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md },
+  errorText: { color: colors.danger, fontSize: FontSize.sm, lineHeight: 20 },
+  importVisibilityRow: { flexDirection: 'row', gap: 8, marginTop: Spacing.sm },
+  choiceChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.inputBg },
+  choiceChipActive: { backgroundColor: colors.secondary, borderColor: colors.secondary },
+  choiceChipText: { color: colors.textSecondary, fontSize: FontSize.sm, fontWeight: '700' },
+  choiceChipTextActive: { color: '#fff' },
 });

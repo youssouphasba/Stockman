@@ -92,6 +92,7 @@
           }
         }
       ],
+      "./plugins/withGlogFix",
       "./plugins/withFirebaseModularHeaders",
       "./plugins/withReactNativeHeaderFix",
       "./plugins/withRemoveBackgroundAudioMode",

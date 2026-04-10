@@ -4,7 +4,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { router } from 'expo-router';
-import { notifications as notificationsApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -18,6 +18,7 @@ Notifications.setNotificationHandler({
 
 export function useNotifications(userId?: string, onNotificationsChanged?: () => void) {
     const [expoPushToken, setExpoPushToken] = useState('');
+    const { registerPushTokenForStoredAccounts } = useAuth();
     const notificationListener = useRef<any>(null);
     const responseListener = useRef<any>(null);
 
@@ -26,7 +27,7 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
             registerForPushNotificationsAsync().then(token => {
                 if (token) {
                     setExpoPushToken(token);
-                    notificationsApi.registerToken(token).catch(console.warn);
+                    registerPushTokenForStoredAccounts(token).catch(console.warn);
                 }
             });
         }
@@ -65,7 +66,7 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
                 responseListener.current.remove();
             }
         };
-    }, [userId, onNotificationsChanged]);
+    }, [userId, onNotificationsChanged, registerPushTokenForStoredAccounts]);
 
     return { expoPushToken };
 }

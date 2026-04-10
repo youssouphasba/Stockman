@@ -112,6 +112,14 @@ async function removeAccessToken(): Promise<void> {
   }
 }
 
+async function removeRefreshToken(): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  } else {
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  }
+}
+
 async function getRefreshToken(): Promise<string | null> {
   if (Platform.OS === 'web') return localStorage.getItem(REFRESH_TOKEN_KEY);
   return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
@@ -1223,12 +1231,27 @@ export const supplierProfile = {
 export const supplierCatalog = {
   list: () => request<CatalogProductData[]>('/supplier/catalog'),
   create: (data: CatalogProductCreate) => request<CatalogProductData>('/supplier/catalog', { method: 'POST', body: data }),
+  bulkCreate: (items: CatalogProductCreate[]) =>
+    request<{ count: number; errors?: { index: number; error: string }[] }>('/supplier/catalog/bulk-create', {
+      method: 'POST',
+      body: { items },
+    }),
   update: (id: string, data: CatalogProductCreate) => request<CatalogProductData>(`/supplier/catalog/${id}`, { method: 'PUT', body: data }),
+  bulkUpdate: (items: { catalog_id: string; name?: string; price?: number; stock_available?: number; available?: boolean }[]) =>
+    request<{ updated: number; errors?: { catalog_id: string; error: string }[] }>('/supplier/catalog/bulk-update', {
+      method: 'PUT',
+      body: { items },
+    }),
   duplicate: (id: string) => request<CatalogProductData>(`/supplier/catalog/${id}/duplicate`, { method: 'POST' }),
   delete: (id: string) => request<{ message: string }>(`/supplier/catalog/${id}`, { method: 'DELETE' }),
-  parseImport: (formData: FormData) =>
-    request<any>('/supplier/catalog/import/parse', {
+  bulkDelete: (catalogIds: string[]) =>
+    request<{ deleted: number }>('/supplier/catalog/bulk-delete', {
       method: 'POST',
+      body: { catalog_ids: catalogIds },
+    }),
+  parseImport: (formData: FormData) =>
+      request<any>('/supplier/catalog/import/parse', {
+        method: 'POST',
       body: formData,
     }),
   confirmImport: (data: { importData: any[]; mapping: Record<string, string>; fileName?: string; publicationStatus?: string }) =>
@@ -1289,6 +1312,12 @@ export const supplierInvoices = {
 // Notifications
 export const notifications = {
   registerToken: (token: string) => request<{ message: string }>('/notifications/register-token', { method: 'POST', body: { token } }),
+  registerTokenWithAccessToken: (token: string, accessToken: string) =>
+    rawRequest<{ message: string }>('/notifications/register-token', {
+      method: 'POST',
+      body: { token },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
   testPush: () => request<{ message: string }>('/notifications/test-push', { method: 'POST' }),
 };
 
@@ -1801,7 +1830,7 @@ export const exportApi = {
   movementsUrl: () => `${API_URL}/api/export/movements/csv`,
 };
 
-export { getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeAccessToken };
+export { getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeAccessToken, removeRefreshToken };
 
 // =================== Pagination ===================
 

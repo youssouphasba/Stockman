@@ -103,7 +103,8 @@ export default function VerifyPhoneScreen() {
     }, []);
 
     async function handleVerify() {
-        if (otp.length !== 6) {
+        const normalizedOtp = otp.replace(/\D/g, '').slice(0, 6);
+        if (normalizedOtp.length !== 6) {
             setError(t('auth.verifyPhone.errorCode'));
             return;
         }
@@ -112,7 +113,7 @@ export default function VerifyPhoneScreen() {
         setSuccess('');
         setLoading(true);
         try {
-            const firebaseIdToken = await confirmPhoneCode(otp);
+            const firebaseIdToken = await confirmPhoneCode(normalizedOtp);
             const verifiedUser = await verifyPhone(firebaseIdToken);
             if (verifiedUser.needs_profile_completion) {
                 router.replace('/(auth)/complete-social-profile' as any);
@@ -209,7 +210,7 @@ export default function VerifyPhoneScreen() {
                                     placeholder={authText.placeholder}
                                     placeholderTextColor={colors.textMuted}
                                     value={otp}
-                                    onChangeText={setOtp}
+                                    onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, 6))}
                                     keyboardType="number-pad"
                                     maxLength={6}
                                     textAlign="center"

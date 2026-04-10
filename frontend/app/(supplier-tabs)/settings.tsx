@@ -26,6 +26,7 @@ import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import ContactSupportModal from '../../components/ContactSupportModal';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
+import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 
 export default function SupplierSettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -44,6 +45,7 @@ export default function SupplierSettingsScreen() {
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [helpGuide, setHelpGuide] = useState<{ title: string; steps: any[] } | null>(null);
 
   // Form state
@@ -511,6 +513,16 @@ export default function SupplierSettingsScreen() {
         </View>
 
         {/* Logout */}
+        <TouchableOpacity style={styles.card} onPress={() => setShowAccountSwitcher(true)}>
+          <View style={styles.utilityRow}>
+            <View>
+              <Text style={infoStyles.label}>Comptes sur cet appareil</Text>
+              <Text style={infoStyles.value}>Ajouter un compte commerçant, staff ou fournisseur, puis basculer sans vous reconnecter.</Text>
+            </View>
+            <Ionicons name="swap-horizontal-outline" size={20} color={colors.secondary} />
+          </View>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={colors.danger} />
           <Text style={styles.logoutText}>{t('auth.logout_btn')}</Text>
@@ -549,6 +561,11 @@ export default function SupplierSettingsScreen() {
           visible={showPasswordModal}
           onClose={() => setShowPasswordModal(false)}
           mode={user?.password_set ? 'change' : 'set'}
+        />
+
+        <AccountSwitcherModal
+          visible={showAccountSwitcher}
+          onClose={() => setShowAccountSwitcher(false)}
         />
 
         <View style={{ height: Spacing.xxl }} />

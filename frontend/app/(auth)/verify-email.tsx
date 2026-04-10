@@ -42,6 +42,7 @@ export default function VerifyEmailScreen() {
   const [success, setSuccess] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const [switching, setSwitching] = useState(false);
+  const [initialSent, setInitialSent] = useState(false);
   const styles = createStyles(colors, glassStyle);
 
   function toggleThemeQuick() {
@@ -63,8 +64,31 @@ export default function VerifyEmailScreen() {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
+  useEffect(() => {
+    if (initialSent || !user?.email) return;
+    setInitialSent(true);
+    (async () => {
+      setResending(true);
+      setError('');
+      setSuccess('');
+      try {
+        const result = await authApi.resendEmailOtp();
+        setSuccess(result.message || t('auth.verifyEmail.resendSuccess'));
+        if (result.otp_fallback) {
+          Alert.alert(t('auth.verifyEmail.devCodeTitle'), t('auth.verifyEmail.devCodeBody', { code: result.otp_fallback }));
+        }
+        setCooldown(RESEND_COOLDOWN);
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : t('auth.verifyEmail.resendError'));
+      } finally {
+        setResending(false);
+      }
+    })();
+  }, [initialSent, t, user?.email]);
+
   async function handleVerify() {
-    if (otp.length !== 6) {
+    const normalizedOtp = otp.replace(/\D/g, '').slice(0, 6);
+    if (normalizedOtp.length !== 6) {
       setError(t('auth.verifyEmail.errorCode'));
       return;
     }
@@ -73,7 +97,7 @@ export default function VerifyEmailScreen() {
     setSuccess('');
     setLoading(true);
     try {
-      const verifiedUser = await verifyEmail(otp);
+      const verifiedUser = await verifyEmail(normalizedOtp);
       if (verifiedUser.needs_profile_completion) {
         router.replace('/(auth)/complete-social-profile' as any);
       } else {
@@ -167,7 +191,7 @@ export default function VerifyEmailScreen() {
                   placeholder={authText.placeholder}
                   placeholderTextColor={colors.textMuted}
                   value={otp}
-                  onChangeText={setOtp}
+                  onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, 6))}
                   keyboardType="number-pad"
                   maxLength={6}
                   textAlign="center"

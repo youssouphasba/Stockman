@@ -33,6 +33,7 @@ import ChangePasswordModal from '../../components/ChangePasswordModal';
 import DeleteAccountModal from '../../components/DeleteAccountModal';
 import { disputes } from '../../services/api';
 import LanguagePickerModal from '../../components/LanguagePickerModal';
+import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 
 // Sector selection removed - defined at registration
 
@@ -164,6 +165,7 @@ export default function SettingsScreen() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<SettingsSectionKey, boolean>>({
     accountAppGroup: true,
     storeGroup: true,
@@ -1570,6 +1572,19 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
 
         {/* Logout */}
+        <TouchableOpacity style={styles.card} onPress={() => setShowAccountSwitcher(true)}>
+          <View style={styles.supportRow}>
+            <View style={[styles.supportIconWrapper, { backgroundColor: colors.primary }]}>
+              <Ionicons name="swap-horizontal-outline" size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Comptes sur cet appareil</Text>
+              <Text style={styles.settingDesc}>Ajouter un autre compte ou basculer entre vos espaces commerçant, staff et fournisseur.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </View>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={colors.danger} />
           <Text style={styles.logoutText}>{t('settings.logout_btn')}</Text>
@@ -1627,6 +1642,11 @@ export default function SettingsScreen() {
       <LanguagePickerModal
         visible={showLanguageModal}
         onClose={() => setShowLanguageModal(false)}
+      />
+
+      <AccountSwitcherModal
+        visible={showAccountSwitcher}
+        onClose={() => setShowAccountSwitcher(false)}
       />
 
       {/* Sector modal removed  sector is defined at registration */}

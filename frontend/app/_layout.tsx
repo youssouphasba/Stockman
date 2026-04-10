@@ -13,6 +13,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../services/i18n';
+import { getFirstAuthorizedShopkeeperRoute } from '../utils/accountRouting';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, isSupplier, isSuperAdmin, isAppLocked, user } = useAuth();
@@ -70,7 +71,7 @@ function RootLayoutNav() {
       } else if (isSupplier) {
         router.replace('/(supplier-tabs)');
       } else {
-        router.replace('/(tabs)');
+        router.replace(getFirstAuthorizedShopkeeperRoute(user) as any);
       }
     }
   }, [isAuthenticated, isLoading, isSupplier, isSuperAdmin, router, segments, user]);

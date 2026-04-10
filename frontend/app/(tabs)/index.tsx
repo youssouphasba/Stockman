@@ -191,6 +191,7 @@ export default function DashboardScreen() {
         'show_recent_alerts',
         'show_stock_chart',
         'show_abc_analysis',
+        'show_inventory_tasks',
       ];
 
   // Scroll refs for drawer navigation
@@ -213,7 +214,6 @@ export default function DashboardScreen() {
         { label: t('dashboard.recent_sales', 'Ventes récentes'), icon: 'receipt-outline', onPress: () => scrollToSection('recentSales') },
         { label: t('dashboard.category_distribution', 'Répartition catégories'), icon: 'pie-chart-outline', onPress: () => scrollToSection('categoryDist') },
         { label: t('dashboard.smart_replenishment', 'Réapprovisionnement'), icon: 'reload-outline', onPress: () => scrollToSection('replenishment') },
-        { label: t('dashboard.rotating_inventory', 'Inventaire tournant'), icon: 'clipboard-outline', onPress: () => scrollToSection('rotatingInventory') },
         { label: t('dashboard.expiry_alerts', 'Alertes péremption'), icon: 'warning-outline', onPress: () => scrollToSection('expiryAlerts') },
         { label: '', icon: '', onPress: () => {}, separator: true },
         // -- Actions --
@@ -233,6 +233,7 @@ export default function DashboardScreen() {
         dashboardItems.splice(3, 0, { label: t('dashboard.recent_alerts', 'Alertes récentes'), icon: 'alert-circle-outline', onPress: () => scrollToSection('recentAlerts') });
         dashboardItems.splice(5, 0, { label: t('dashboard.stock_evolution', 'Évolution du stock'), icon: 'trending-up-outline', onPress: () => scrollToSection('stockEvolution') });
         dashboardItems.splice(7, 0, { label: t('dashboard.abc_analysis', 'Analyse ABC'), icon: 'podium-outline', onPress: () => scrollToSection('abcAnalysis') });
+        dashboardItems.splice(9, 0, { label: t('dashboard.rotating_inventory', 'Inventaire tournant'), icon: 'clipboard-outline', onPress: () => scrollToSection('rotatingInventory') });
       }
 
       setDrawerContent(t('tabs.home'), dashboardItems);
@@ -263,12 +264,16 @@ export default function DashboardScreen() {
     try {
       if (isConnectedRef.current) {
         // Load all APIs in parallel for faster screen load
-        const [dashRes, settingsRes, statsRes, tasksRes] = await Promise.allSettled([
+        const requests: Array<Promise<any>> = [
           dashboardApi.get(),
           settingsApi.get(),
           statisticsApi.get(),
-          inventory.getTasks('pending'),
-        ]);
+        ];
+        if (showAdvancedDashboardSections) {
+          requests.push(inventory.getTasks('pending'));
+        }
+
+        const [dashRes, settingsRes, statsRes, tasksRes] = await Promise.allSettled(requests);
 
         if (dashRes.status === 'fulfilled') {
           setData(dashRes.value);
@@ -279,15 +284,25 @@ export default function DashboardScreen() {
         }
         if (settingsRes.status === 'fulfilled') setUserSettings(settingsRes.value);
         if (statsRes.status === 'fulfilled') { setStats(statsRes.value); setStatsData(statsRes.value); }
-        if (tasksRes.status === 'fulfilled') setInventoryTasks(tasksRes.value);
+        if (showAdvancedDashboardSections && tasksRes?.status === 'fulfilled') {
+          setInventoryTasks(tasksRes.value);
+        } else {
+          setInventoryTasks([]);
+        }
       } else {
         // Offline: only use cache if we don't already have fresh data
         const cached = await cache.get<DashboardData>(dashboardCacheKey);
         if (cached) setData(prev => prev ?? cached);
+        if (!showAdvancedDashboardSections) {
+          setInventoryTasks([]);
+        }
       }
     } catch {
       const cached = await cache.get<DashboardData>(dashboardCacheKey);
       if (cached) setData(prev => prev ?? cached);
+      if (!showAdvancedDashboardSections) {
+        setInventoryTasks([]);
+      }
     } finally {
       if (Platform.OS !== 'web') {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -309,7 +324,7 @@ export default function DashboardScreen() {
       loadingRef.current = false;
       lastLoadedAtRef.current = Date.now();
     }
-  }, [MOBILE_PERF_ENABLED, dashboardCacheKey, user?.active_store_id]);
+  }, [MOBILE_PERF_ENABLED, dashboardCacheKey, showAdvancedDashboardSections, user?.active_store_id]);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -793,12 +808,14 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View style={[styles.headerSection, { paddingTop: insets.top }]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-              <Text style={styles.greeting}>{t('dashboard.greeting', { name: user?.name })}</Text>
-              <Text style={styles.subGreeting}>{t('dashboard.sub_greeting')}</Text>
+          <View style={styles.dashboardHeaderRow}>
+            <View style={styles.dashboardHeaderCopy}>
+              <Text style={styles.greeting} numberOfLines={2}>
+                {t('dashboard.greeting', { name: user?.name })}
+              </Text>
+              <Text style={styles.subGreeting} numberOfLines={1}>{t('dashboard.sub_greeting')}</Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={styles.dashboardHeaderActions}>
               <TouchableOpacity
                 onPress={toggleThemeQuick}
                 style={{
@@ -1423,7 +1440,7 @@ export default function DashboardScreen() {
         )}
 
         {/* Inventaire Tournant */}
-        {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_inventory_tasks) && inventoryTasks.length > 0 && (
+        {showAdvancedDashboardSections && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_inventory_tasks) && inventoryTasks.length > 0 && (
           <View style={[styles.section, { marginTop: Spacing.md }]} onLayout={e => { sectionOffsets.current.rotatingInventory = e.nativeEvent.layout.y; }}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{t('dashboard.rotating_inventory')}</Text>
@@ -1909,6 +1926,23 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => S
   },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerSection: { marginBottom: Spacing.lg, paddingHorizontal: Spacing.xs },
+  dashboardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  dashboardHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: Spacing.xs,
+  },
+  dashboardHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 0,
+  },
   greeting: { fontSize: FontSize.xl, fontWeight: '700', color: colors.text },
   username: { fontSize: FontSize.md, color: colors.textSecondary },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.glass },

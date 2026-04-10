@@ -3,15 +3,26 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Linking from 'expo-linking';
-import { auth as authApi, stores as storesApi, userFeatures, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeAccessToken, User } from '../services/api';
+import { auth as authApi, stores as storesApi, userFeatures, notifications as notificationsApi, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeRefreshToken, User } from '../services/api';
 import { initPurchases } from '../services/purchases';
 import { cache } from '../services/cache';
 import { isRestaurantBusiness } from '../utils/business';
 import { getAccessContext, hasModulePermission } from '../utils/access';
 import { useTranslation } from 'react-i18next';
-
+import {
+  clearActiveStoredAccountId,
+  getActiveStoredAccountId,
+  getStoredAccountSession,
+  listStoredAccountSessions,
+  removeStoredAccountSession,
+  saveStoredAccountSession,
+  setActiveStoredAccountId,
+  StoredAccountSession,
+} from '../services/accountSessions';
 type AuthState = {
   user: User | null;
+  storedAccounts: StoredAccountSession[];
+  activeAccountId: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isShopkeeper: boolean;
@@ -33,6 +44,10 @@ type AuthState = {
   verifyPhone: (firebaseIdToken: string) => Promise<User>;
   verifyEmail: (otp: string) => Promise<User>;
   restoreSession: (allowRefreshFallback?: boolean) => Promise<User | null>;
+  addAccount: (email: string, password: string) => Promise<User>;
+  switchAccount: (userId: string) => Promise<User | null>;
+  removeStoredAccount: (userId: string) => Promise<void>;
+  registerPushTokenForStoredAccounts: (pushToken: string) => Promise<void>;
   logout: () => Promise<void>;
   switchStore: (storeId: string) => Promise<void>;
   setPin: (pin: string) => Promise<void>;
@@ -49,6 +64,8 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
+  const [storedAccounts, setStoredAccounts] = useState<StoredAccountSession[]>([]);
+  const [activeAccountId, setActiveAccountIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [isPinSet, setIsPinSet] = useState(false);
@@ -70,26 +87,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const persistCurrentSession = useCallback(async (userData: User) => {
+    const currentAccessToken = await getToken();
+    if (!currentAccessToken) return;
+    const currentRefreshToken = await getRefreshToken();
+    const updatedAccounts = await saveStoredAccountSession(userData, currentAccessToken, currentRefreshToken);
+    setStoredAccounts(updatedAccounts);
+    setActiveAccountIdState(userData.user_id);
+  }, []);
+
+  const hydrateAndPersistUser = useCallback(async (userData: User) => {
+    await hydrateAuthenticatedUser(userData);
+    await persistCurrentSession(userData);
+  }, [hydrateAuthenticatedUser, persistCurrentSession]);
+
   const restoreSession = useCallback(async (allowRefreshFallback: boolean = false) => {
     const token = await getToken();
     const refreshToken = !token ? await getRefreshToken() : null;
-    if (!token && (!allowRefreshFallback || !refreshToken)) {
-      setUser(null);
-      setHasProduction(false);
-      setIsRestaurant(false);
-      return null;
-    }
-    try {
+    const hydrateFromActiveToken = async () => {
+      if (!token && (!allowRefreshFallback || !refreshToken)) {
+        return null;
+      }
       const userData = await authApi.me();
-      await hydrateAuthenticatedUser(userData);
+      await hydrateAndPersistUser(userData);
       return userData;
+    };
+
+    try {
+      const restoredFromActive = await hydrateFromActiveToken();
+      if (restoredFromActive) return restoredFromActive;
     } catch {
-      setUser(null);
-      setHasProduction(false);
-      setIsRestaurant(false);
-      return null;
+      // Ignore and fall back to remembered accounts.
     }
-  }, [hydrateAuthenticatedUser]);
+
+    const rememberedAccounts = await listStoredAccountSessions();
+    setStoredAccounts(rememberedAccounts);
+
+    const preferredAccountId = await getActiveStoredAccountId();
+    const orderedAccounts = [
+      ...rememberedAccounts.filter((entry) => entry.user.user_id === preferredAccountId),
+      ...rememberedAccounts.filter((entry) => entry.user.user_id !== preferredAccountId),
+    ];
+
+    for (const session of orderedAccounts) {
+      try {
+        await setToken(session.access_token);
+        if (session.refresh_token) {
+          await setRefreshToken(session.refresh_token);
+        } else {
+          await removeRefreshToken();
+        }
+        const userData = await authApi.me();
+        await hydrateAndPersistUser(userData);
+        return userData;
+      } catch {
+        // Try the next remembered account.
+      }
+    }
+
+    setUser(null);
+    setHasProduction(false);
+    setIsRestaurant(false);
+    setActiveAccountIdState(null);
+    await removeToken();
+    return null;
+  }, [hydrateAndPersistUser]);
 
   const consumeDemoLink = useCallback(async (url?: string | null) => {
     if (!url) return false;
@@ -125,6 +187,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setHasProduction(false);
       setIsRestaurant(false);
+      setStoredAccounts([]);
+      setActiveAccountIdState(null);
     } finally {
       setIsLoading(false);
     }
@@ -173,8 +237,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
     await cache.clear();
-    await hydrateAuthenticatedUser(response.user);
+    await hydrateAndPersistUser(response.user);
     return response.user;
+  }
+
+  async function addAccount(email: string, password: string) {
+    const previousAccessToken = await getToken();
+    const previousRefreshToken = await getRefreshToken();
+    const previousUser = user;
+    const previousActiveAccountId = activeAccountId;
+    try {
+      const response = await authApi.login(email, password);
+      const updatedAccounts = await saveStoredAccountSession(response.user, response.access_token, response.refresh_token);
+      setStoredAccounts(updatedAccounts);
+      if (previousActiveAccountId) {
+        await setActiveStoredAccountId(previousActiveAccountId);
+        setActiveAccountIdState(previousActiveAccountId);
+      }
+      return response.user;
+    } finally {
+      if (previousAccessToken) {
+        await setToken(previousAccessToken);
+      } else {
+        await removeToken();
+      }
+      if (previousRefreshToken) {
+        await setRefreshToken(previousRefreshToken);
+      } else {
+        await removeRefreshToken();
+      }
+      if (previousUser) {
+        await hydrateAuthenticatedUser(previousUser);
+      }
+    }
   }
 
   async function loginWithSocial(firebaseIdToken: string, signupSurface: 'mobile' | 'web' = 'mobile') {
@@ -182,7 +277,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
     await cache.clear();
-    await hydrateAuthenticatedUser(response.user);
+    await hydrateAndPersistUser(response.user);
     return response.user;
   }
 
@@ -195,7 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       how_did_you_hear: data.referralSource?.trim() || undefined,
     });
     await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
-    await hydrateAuthenticatedUser(response.user);
+    await hydrateAndPersistUser(response.user);
     return response.user;
   }
 
@@ -216,39 +311,105 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setToken(response.access_token);
     if (response.refresh_token) await setRefreshToken(response.refresh_token);
     await cache.clear();
-    await hydrateAuthenticatedUser(response.user);
+    await hydrateAndPersistUser(response.user);
     return response.user;
   }
 
   async function verifyPhone(firebaseIdToken: string) {
     const response = await authApi.verifyPhone(firebaseIdToken);
-    setUser(response.user);
+    await hydrateAndPersistUser(response.user);
     return response.user;
   }
 
   async function verifyEmail(otp: string) {
     const response = await authApi.verifyEmail(otp);
-    setUser(response.user);
+    await hydrateAndPersistUser(response.user);
     return response.user;
   }
 
   async function logout() {
-    setUser(null);
-    setHasProduction(false);
-    setIsRestaurant(false);
-    setIsAppLocked(false);
-    await cache.clear();
-    if (Platform.OS !== 'web' && isBiometricsEnabled) {
-      await removeAccessToken();
-    } else {
-      await removeToken();
-    }
-
+    const currentUserId = user?.user_id;
     try {
       await authApi.logout();
     } catch {
       // ignore server-side failure
     }
+
+    setIsAppLocked(false);
+    await cache.clear();
+
+    if (currentUserId) {
+      const updatedAccounts = await removeStoredAccountSession(currentUserId);
+      setStoredAccounts(updatedAccounts);
+      const nextAccount = updatedAccounts[0] || null;
+      if (nextAccount) {
+        await setToken(nextAccount.access_token);
+        if (nextAccount.refresh_token) {
+          await setRefreshToken(nextAccount.refresh_token);
+        } else {
+          await removeRefreshToken();
+        }
+        await setActiveStoredAccountId(nextAccount.user.user_id);
+        setActiveAccountIdState(nextAccount.user.user_id);
+        await restoreSession(true);
+        return;
+      }
+    }
+
+    setUser(null);
+    setHasProduction(false);
+    setIsRestaurant(false);
+    setActiveAccountIdState(null);
+    await clearActiveStoredAccountId();
+    await removeToken();
+  }
+
+  async function switchAccount(userId: string) {
+    const targetSession = await getStoredAccountSession(userId);
+    if (!targetSession) return null;
+
+    await setToken(targetSession.access_token);
+    if (targetSession.refresh_token) {
+      await setRefreshToken(targetSession.refresh_token);
+    } else {
+      await removeRefreshToken();
+    }
+    await setActiveStoredAccountId(userId);
+    setActiveAccountIdState(userId);
+    await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
+    const restoredUser = await restoreSession(true);
+    return restoredUser;
+  }
+
+  async function removeStoredAccount(userId: string) {
+    const isCurrentAccount = user?.user_id === userId;
+    const updatedAccounts = await removeStoredAccountSession(userId);
+    setStoredAccounts(updatedAccounts);
+
+    if (!isCurrentAccount) {
+      return;
+    }
+
+    const nextAccount = updatedAccounts[0] || null;
+    if (nextAccount) {
+      await setToken(nextAccount.access_token);
+      if (nextAccount.refresh_token) {
+        await setRefreshToken(nextAccount.refresh_token);
+      } else {
+        await removeRefreshToken();
+      }
+      await setActiveStoredAccountId(nextAccount.user.user_id);
+      setActiveAccountIdState(nextAccount.user.user_id);
+      await restoreSession(true);
+      return;
+    }
+
+    await clearActiveStoredAccountId();
+    await removeToken();
+    setUser(null);
+    setHasProduction(false);
+    setIsRestaurant(false);
+    setActiveAccountIdState(null);
   }
 
   async function switchStore(storeId: string) {
@@ -256,11 +417,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const updatedUser = await storesApi.setActive(storeId);
       await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
-      setUser(updatedUser);
+      await hydrateAndPersistUser(updatedUser);
     } catch (e) {
       console.error('Failed to switch store', e);
     }
   }
+
+  const registerPushTokenForStoredAccounts = useCallback(async (pushToken: string) => {
+    const accounts = await listStoredAccountSessions();
+    setStoredAccounts(accounts);
+    await Promise.all(
+      accounts.map(async (account) => {
+        try {
+          await notificationsApi.registerTokenWithAccessToken(pushToken, account.access_token);
+        } catch (error) {
+          console.warn(`Push token registration failed for account ${account.user.user_id}`, error);
+        }
+      }),
+    );
+  }, []);
 
   async function setPin(pin: string) {
     await SecureStore.setItemAsync('user_pin', pin);
@@ -320,6 +495,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        storedAccounts,
+        activeAccountId,
         isLoading,
         isAuthenticated: !!user,
         isShopkeeper: role === 'shopkeeper',
@@ -340,6 +517,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         verifyPhone,
         verifyEmail,
         restoreSession,
+        addAccount,
+        switchAccount,
+        removeStoredAccount,
+        registerPushTokenForStoredAccounts,
         logout,
         switchStore,
         isAppLocked,

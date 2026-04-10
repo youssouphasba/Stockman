@@ -23,6 +23,9 @@ type RuleConfig = {
   icon: keyof typeof Ionicons.glyphMap;
   unit?: string;
   color: string;
+  defaultLabel: string;
+  defaultDescription: string;
+  defaultUnit?: string;
 };
 
 const RULE_CONFIGS: RuleConfig[] = [
@@ -34,6 +37,9 @@ const RULE_CONFIGS: RuleConfig[] = [
     icon: 'clipboard-outline',
     unit: 'reminders.unit_days',
     color: '#F59E0B',
+    defaultLabel: 'Vérification inventaire',
+    defaultDescription: "Alerte si aucun inventaire n'a été fait depuis X jours",
+    defaultUnit: 'jours',
   },
   {
     key: 'dormant_products',
@@ -43,6 +49,9 @@ const RULE_CONFIGS: RuleConfig[] = [
     icon: 'moon-outline',
     unit: 'reminders.unit_days',
     color: '#F59E0B',
+    defaultLabel: 'Produits dormants',
+    defaultDescription: 'Produits sans vente depuis X jours',
+    defaultUnit: 'jours',
   },
   {
     key: 'late_deliveries',
@@ -52,6 +61,9 @@ const RULE_CONFIGS: RuleConfig[] = [
     icon: 'alert-circle',
     unit: 'reminders.unit_days',
     color: '#EF4444',
+    defaultLabel: 'Livraisons en retard',
+    defaultDescription: 'Alerte si une livraison fournisseur dépasse le délai prévu',
+    defaultUnit: 'jours',
   },
   {
     key: 'replenishment',
@@ -60,6 +72,8 @@ const RULE_CONFIGS: RuleConfig[] = [
     description: 'reminders.replenishment_desc',
     icon: 'cart-outline',
     color: '#3B82F6',
+    defaultLabel: 'Réapprovisionnement',
+    defaultDescription: 'Produits sous le stock minimum',
   },
   {
     key: 'pending_invitations',
@@ -69,6 +83,9 @@ const RULE_CONFIGS: RuleConfig[] = [
     icon: 'mail-unread-outline',
     unit: 'reminders.unit_days',
     color: '#3B82F6',
+    defaultLabel: 'Invitations en attente',
+    defaultDescription: 'Invitations laissées en attente depuis X jours',
+    defaultUnit: 'jours',
   },
   {
     key: 'debt_recovery',
@@ -78,6 +95,9 @@ const RULE_CONFIGS: RuleConfig[] = [
     icon: 'wallet-outline',
     unit: 'common.currency_default',
     color: '#8B5CF6',
+    defaultLabel: 'Recouvrement de dettes',
+    defaultDescription: 'Paiements clients en retard',
+    defaultUnit: 'FCFA',
   },
   {
     key: 'client_reactivation',
@@ -87,6 +107,9 @@ const RULE_CONFIGS: RuleConfig[] = [
     icon: 'person-outline',
     unit: 'reminders.unit_days',
     color: '#8B5CF6',
+    defaultLabel: 'Réactivation clients',
+    defaultDescription: 'Clients fidèles inactifs depuis X jours',
+    defaultUnit: 'jours',
   },
   {
     key: 'birthdays',
@@ -96,6 +119,9 @@ const RULE_CONFIGS: RuleConfig[] = [
     icon: 'gift-outline',
     unit: 'reminders.unit_days',
     color: '#8B5CF6',
+    defaultLabel: 'Anniversaires clients',
+    defaultDescription: 'Notification pour les anniversaires',
+    defaultUnit: 'jours',
   },
   {
     key: 'monthly_report',
@@ -105,6 +131,9 @@ const RULE_CONFIGS: RuleConfig[] = [
     icon: 'document-text-outline',
     unit: 'reminders.unit_days',
     color: '#10B981',
+    defaultLabel: 'Rapport mensuel',
+    defaultDescription: 'Résumé des performances',
+    defaultUnit: 'jours',
   },
   {
     key: 'expense_spike',
@@ -114,6 +143,9 @@ const RULE_CONFIGS: RuleConfig[] = [
     icon: 'trending-up',
     unit: '%',
     color: '#10B981',
+    defaultLabel: 'Pic de dépenses',
+    defaultDescription: "Alerte si les dépenses augmentent de X%",
+    defaultUnit: '%',
   },
 ];
 
@@ -170,6 +202,11 @@ export default function ReminderRulesSettings({
     return editableDomains.includes(domain);
   }
 
+  function translateWithFallback(key: string, fallback: string) {
+    const translated = t(key);
+    return translated && translated !== key ? translated : fallback;
+  }
+
   const visibleRules = RULE_CONFIGS.filter((config) => allowedDomains.includes(config.domain));
 
   return (
@@ -192,9 +229,11 @@ export default function ReminderRulesSettings({
             </View>
 
             <View style={styles.ruleContent}>
-              <Text style={[styles.ruleLabel, { color: colors.text }]}>{t(config.label)}</Text>
+              <Text style={[styles.ruleLabel, { color: colors.text }]}>
+                {translateWithFallback(config.label, config.defaultLabel)}
+              </Text>
               <Text style={[styles.ruleDesc, { color: colors.textMuted }]}>
-                {t(config.description)}
+                {translateWithFallback(config.description, config.defaultDescription)}
               </Text>
 
               {config.unit && rule.enabled && (
@@ -227,7 +266,7 @@ export default function ReminderRulesSettings({
                     </Text>
                   )}
                   <Text style={[styles.thresholdUnit, { color: colors.textSecondary }]}>
-                    {t(config.unit)}
+                    {translateWithFallback(config.unit, config.defaultUnit ?? config.unit)}
                   </Text>
                 </View>
               )}

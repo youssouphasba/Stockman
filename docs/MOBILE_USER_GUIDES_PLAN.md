@@ -22,9 +22,20 @@ L'objectif est donc de structurer les guides mobiles avec une logique claire, ma
 
 Les parcours fournisseur mobiles couvrent désormais plus clairement :
 
-- le catalogue avec import CSV, création rapide utile, édition rapide et gestion des brouillons ;
+- le catalogue avec import CSV, création par texte, édition rapide du prix et du stock, sélection multiple et suppression en lot ;
 - les commandes et factures, avec création de facture depuis une commande ou en saisie manuelle ;
 - les paramètres fournisseur, avec préférences de facturation, accès au centre d'aide, support et mot de passe.
+- les détails de facture fournisseur, avec un en-tête de document affiché en haut pour présenter clairement le vendeur, le client, le numéro et les mentions avant les lignes facturées.
+
+## Mise à jour multi-comptes sur le même appareil
+
+Le mobile doit maintenant documenter un vrai usage multi-comptes sur un seul téléphone :
+
+- plusieurs comptes peuvent être mémorisés localement sur le même appareil ;
+- chaque compte conserve son rôle métier réel : commerçant, staff, fournisseur ou admin ;
+- l'utilisateur peut ajouter un autre compte avec son adresse e-mail et son mot de passe sans fermer la session courante ;
+- la bascule entre comptes déjà mémorisés se fait ensuite sans reconnexion complète ;
+- ce flux doit toujours être présenté comme un changement de compte sur l'appareil, et non comme une transformation d'un compte fournisseur gratuit en compte commerçant payant.
 
 ## Objectif produit
 
@@ -466,6 +477,7 @@ Certaines sections analytiques avancees ne restent visibles sur mobile qu'en `En
 - alertes recentes ;
 - evolution valeur du stock ;
 - analyse ABC ;
+- inventaire tournant ;
 - conseils du moment.
 
 ### Briques IA reservees au plan Enterprise sur le dashboard mobile
@@ -1713,11 +1725,12 @@ L'écran admin est organisé en segments navigables horizontalement.
 
 | Élément | Type | Description |
 |---------|------|-------------|
-| Liste des produits | FlatList | Produits du catalogue fournisseur |
-| Bouton ajouter | `add` (flottant) | Ouvre le formulaire de création |
-| Toggle disponibilité | Switch | Active/désactive un produit |
-| Prix | TextInput | Modifiable en ligne |
-| Catégories | Filtre par catégorie |
+| Liste des produits | Liste filtrable | Produits du catalogue fournisseur avec recherche et filtres simples |
+| Actions rapides | Feuille d'actions | Import CSV, création par texte, édition rapide, sélection multiple |
+| Édition rapide | Modale | Correction en lot du nom, du prix, du stock et de la visibilité |
+| Sélection multiple | Barre d'actions | Modifier plusieurs produits, les masquer, les rendre visibles ou les supprimer |
+| Formulaire produit | Modale complète | Création et modification avec les champs essentiels du compte commerçant adaptés au fournisseur |
+| Import CSV | Assistant guidé | Mapping des colonnes, aperçu puis choix de visibilité immédiate ou masquée |
 
 ### C. Commandes reçues (`frontend/app/(supplier-tabs)/orders.tsx`)
 

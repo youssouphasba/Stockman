@@ -2,7 +2,7 @@ import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 let confirmationResult: FirebaseAuthTypes.ConfirmationResult | null = null;
 
-const PHONE_AUTH_TIMEOUT_MS = 15_000; // 15 seconds
+const PHONE_AUTH_TIMEOUT_MS = 90_000; // 90 seconds
 
 function normalizePhoneNumber(phone: string): string {
   const trimmed = phone.trim();

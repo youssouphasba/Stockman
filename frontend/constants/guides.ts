@@ -22,7 +22,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "layers-outline",
                 title: "Vue simplifiée selon le plan",
-                description: "Sur mobile, les comptes Starter et Pro voient un tableau de bord plus simple. Les blocs d'analyse avancée et les briques IA du dashboard restent réservés au plan Enterprise."
+                description: "Sur mobile, les comptes Starter et Pro voient un tableau de bord plus simple. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
             },
             {
                 icon: "pie-chart-outline",
@@ -480,6 +480,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 description: "Cette rubrique sert à régler l'apparence, la langue, les préférences de votre compte et certains paramètres de fonctionnement de l'application sur votre appareil. Les comptes créés via Google y finalisent aussi leur contexte métier si le pays ou le secteur n'ont pas encore été confirmés."
             },
             {
+                icon: "swap-horizontal-outline",
+                title: "Comptes sur cet appareil",
+                description: "Ajoutez plusieurs comptes sur le même téléphone avec leur adresse e-mail et leur mot de passe. Vous pourrez ensuite passer d'un espace commerçant, staff ou fournisseur à un autre sans vous reconnecter complètement à chaque fois."
+            },
+            {
                 icon: "storefront-outline",
                 title: "Boutique active",
                 description: "Retrouvez ici les réglages liés au point de vente sélectionné : identité, documents de vente et informations pratiques de la boutique active."
@@ -659,10 +664,10 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     supplierCatalog: {
         title: "Gestion du Catalogue",
         steps: [
-            { icon: "flash-outline", title: "Création rapide utile", description: "La création rapide fournisseur ne sert plus à afficher un mini formulaire. Elle regroupe maintenant les vraies actions de productivité : import CSV, nouveau produit, édition rapide, brouillons et fiches prêtes." },
-            { icon: "cloud-upload-outline", title: "Importer un CSV", description: "Préparez votre fichier catalogue, mappez les colonnes puis validez l'import. Les fiches importées arrivent comme brouillons ou selon le statut choisi." },
-            { icon: "create-outline", title: "Édition rapide", description: "L'édition rapide permet de corriger vite le nom, le prix, le stock et le statut de publication sans rouvrir chaque fiche." },
-            { icon: "checkmark-done-outline", title: "Préparer la publication", description: "Utilisez les filtres Brouillons, À compléter et Prêts pour finir vos fiches avant publication. Publiez seulement les produits réellement prêts pour les commerçants." }
+            { icon: "flash-outline", title: "Actions rapides utiles", description: "Le catalogue fournisseur reprend maintenant les vrais usages attendus : import CSV, création par texte, édition rapide du prix et du stock, sélection multiple et suppression." },
+            { icon: "cloud-upload-outline", title: "Importer un CSV", description: "Préparez votre fichier catalogue, mappez les colonnes puis validez l'import. Avant confirmation, choisissez si les produits importés doivent être visibles tout de suite ou gardés masqués." },
+            { icon: "document-text-outline", title: "Créer par texte", description: "Collez plusieurs lignes au format nom ; prix ; stock ; unité ; catégorie ; description pour créer rapidement plusieurs produits." },
+            { icon: "create-outline", title: "Édition rapide et sélection multiple", description: "L'édition rapide sert à modifier en lot les prix, les stocks et la visibilité. La sélection multiple permet ensuite d'agir sur plusieurs produits à la fois, y compris pour les supprimer." }
         ]
     },
     supplierOrders: {
@@ -671,7 +676,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             { icon: "list-outline", title: "Nouvelles Commandes", description: "Les commandes en attente apparaissent ici. Consultez le détail (articles, quantités, montant) avant d'accepter ou refuser." },
             { icon: "checkmark-circle-outline", title: "Confirmer & Expédier", description: "Acceptez la commande puis marquez-la comme expédiée quand la livraison est en route." },
             { icon: "document-text-outline", title: "Créer une facture comme un commerçant", description: "Depuis l'onglet Factures, vous pouvez désormais créer une facture à partir d'une commande ou créer une facture manuelle complète avec client, lignes d'articles, quantités et prix unitaires." },
-            { icon: "analytics-outline", title: "Suivi & Historique", description: "Filtrez par statut ou par période pour suivre toutes vos commandes passées, puis ouvrez les détails de facture pour relire les montants, les lignes et le statut de paiement." }
+            { icon: "analytics-outline", title: "Suivi & Historique", description: "Filtrez par statut ou par période pour suivre toutes vos commandes passées, puis ouvrez les détails de facture pour relire l'en-tête du document, le client, les lignes, les montants et le statut de paiement dans un ordre de lecture plus clair." }
         ]
     },
     supplierSettings: {
@@ -680,6 +685,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             { icon: "person-circle-outline", title: "Votre Profil", description: "Complétez votre profil fournisseur : nom d'entreprise, description, coordonnées, zones de livraison, délai moyen et montant minimum de commande." },
             { icon: "document-outline", title: "Documents et CGV", description: "Définissez le nom affiché sur vos documents, l'en-tête, le préfixe, vos CGV et le pied de page utilisés dans vos factures et autres documents de vente." },
             { icon: "information-circle-outline", title: "CGU et confidentialité", description: "Relisez directement depuis cet écran les CGU Stockman et la politique de confidentialité sans quitter l'espace fournisseur." },
+            { icon: "swap-horizontal-outline", title: "Comptes sur cet appareil", description: "Ajoutez aussi un compte commerçant, staff ou un autre fournisseur sur ce téléphone. Vous pourrez ensuite basculer entre ces comptes sans refaire toute la connexion." },
             { icon: "help-circle-outline", title: "Aide, sécurité et suppression", description: "Le centre d'aide, le contact support, la gestion du mot de passe et la suppression du compte sont accessibles directement depuis les paramètres fournisseur." }
         ]
     },
@@ -687,7 +693,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     login: {
         title: "Connexion",
         steps: [
-            { icon: "log-in-outline", title: "Se connecter", description: "Saisissez votre email et mot de passe. L'app vous redirige automatiquement vers votre espace selon votre rôle." },
+            { icon: "log-in-outline", title: "Se connecter", description: "Saisissez votre email et mot de passe. L'app vous redirige automatiquement vers votre espace selon votre rôle et, pour un compte staff, vers le premier module réellement autorisé." },
             { icon: "logo-google", title: "Connexion sociale", description: "Selon votre appareil, vous pouvez continuer avec Google ou Apple. Sur mobile, Google s'ouvre via le flux natif de l'app. Si c'est votre première inscription sociale, Stockman vous demande maintenant de confirmer votre pays, votre téléphone et votre secteur avant d'entrer dans l'application." },
             { icon: "eye-outline", title: "Mot de passe oublié", description: "Touchez 'Mot de passe oublié' pour recevoir un email de réinitialisation." },
             { icon: "flask-outline", title: "Mode Démo", description: "Testez l'app sans inscription avec des données pré-remplies. La session expire après un délai limité." }

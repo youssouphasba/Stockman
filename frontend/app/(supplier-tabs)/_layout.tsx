@@ -11,10 +11,13 @@ import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
 import AiSupportModal from '../../components/AiSupportModal';
 import HelpCenter from '../../components/HelpCenter';
+import { useNotifications } from '../../hooks/useNotifications';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function SupplierTabLayout() {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
 
@@ -28,6 +31,8 @@ export default function SupplierTabLayout() {
   const [showAiModal, setShowAiModal] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [guideOverride, setGuideOverride] = useState<{ title: string; steps: any[] } | null>(null);
+
+  useNotifications(user?.user_id);
 
   const getGuideForRoute = () => {
     const routeName = (segments[segments.length - 1] || 'index') as string;

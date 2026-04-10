@@ -843,10 +843,47 @@ export default function SupplierOrdersScreen() {
 
             {selectedInvoice && (
               <ScrollView style={styles.modalScroll}>
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>{t('supplier.invoice_client')}</Text>
-                  <Text style={styles.detailText}>{selectedInvoice.shopkeeper_name || selectedInvoice.client_name || 'Client'}</Text>
-                </View>
+                {(selectedInvoice.invoice_business_name || selectedInvoice.invoice_business_address || selectedInvoice.invoice_label || selectedInvoice.invoice_payment_terms || selectedInvoice.invoice_footer) && (
+                  <View style={styles.invoiceDocumentHeader}>
+                    <View style={styles.invoiceDocumentTopRow}>
+                      <View style={styles.invoiceDocumentBusiness}>
+                        <Text style={styles.invoiceDocumentLabel}>
+                          {selectedInvoice.invoice_label || 'Facture'}
+                        </Text>
+                        {selectedInvoice.invoice_business_name ? (
+                          <Text style={styles.invoiceDocumentBusinessName}>{selectedInvoice.invoice_business_name}</Text>
+                        ) : null}
+                        {selectedInvoice.invoice_business_address ? (
+                          <Text style={styles.invoiceDocumentBusinessMeta}>{selectedInvoice.invoice_business_address}</Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.invoiceDocumentMeta}>
+                        <Text style={styles.invoiceDocumentMetaLabel}>Numéro</Text>
+                        <Text style={styles.invoiceDocumentMetaValue}>{selectedInvoice.invoice_number}</Text>
+                        <Text style={[styles.invoiceDocumentMetaLabel, { marginTop: 10 }]}>Date</Text>
+                        <Text style={styles.invoiceDocumentMetaValue}>
+                          {selectedInvoice.created_at ? new Date(selectedInvoice.created_at).toLocaleDateString(i18n.language) : ''}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.invoiceRecipientCard}>
+                      <Text style={styles.invoiceRecipientLabel}>Client</Text>
+                      <Text style={styles.invoiceRecipientValue}>
+                        {selectedInvoice.shopkeeper_name || selectedInvoice.client_name || 'Client'}
+                      </Text>
+                    </View>
+
+                    {selectedInvoice.invoice_payment_terms ? (
+                      <Text style={styles.invoiceDocumentFootnote}>
+                        Conditions de vente : {selectedInvoice.invoice_payment_terms}
+                      </Text>
+                    ) : null}
+                    {selectedInvoice.invoice_footer ? (
+                      <Text style={styles.invoiceDocumentFootnote}>{selectedInvoice.invoice_footer}</Text>
+                    ) : null}
+                  </View>
+                )}
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailSectionTitle}>{t('orders.status')}</Text>
@@ -888,16 +925,6 @@ export default function SupplierOrdersScreen() {
                   <View style={styles.detailSection}>
                     <Text style={styles.detailSectionTitle}>{t('supplier.invoice_notes')}</Text>
                     <Text style={styles.detailText}>{selectedInvoice.notes}</Text>
-                  </View>
-                )}
-
-                {(selectedInvoice.invoice_business_name || selectedInvoice.invoice_business_address || selectedInvoice.invoice_footer || selectedInvoice.invoice_payment_terms) && (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailSectionTitle}>En-tête et mentions</Text>
-                    {selectedInvoice.invoice_business_name ? <Text style={styles.detailText}>{selectedInvoice.invoice_business_name}</Text> : null}
-                    {selectedInvoice.invoice_business_address ? <Text style={styles.detailMuted}>{selectedInvoice.invoice_business_address}</Text> : null}
-                    {selectedInvoice.invoice_payment_terms ? <Text style={styles.detailMuted}>Conditions : {selectedInvoice.invoice_payment_terms}</Text> : null}
-                    {selectedInvoice.invoice_footer ? <Text style={styles.detailMuted}>{selectedInvoice.invoice_footer}</Text> : null}
                   </View>
                 )}
 
@@ -1283,6 +1310,82 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalScroll: {
     padding: Spacing.md,
+  },
+  invoiceDocumentHeader: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.secondary + '25',
+    backgroundColor: colors.secondary + '0F',
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  invoiceDocumentTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+    alignItems: 'flex-start',
+  },
+  invoiceDocumentBusiness: {
+    flex: 1,
+  },
+  invoiceDocumentMeta: {
+    minWidth: 96,
+    alignItems: 'flex-end',
+  },
+  invoiceDocumentLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+    color: colors.secondary,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    letterSpacing: 0.4,
+  },
+  invoiceDocumentBusinessName: {
+    fontSize: FontSize.lg,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  invoiceDocumentBusinessMeta: {
+    fontSize: FontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  invoiceDocumentMetaLabel: {
+    fontSize: FontSize.xs,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  invoiceDocumentMetaValue: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'right',
+  },
+  invoiceRecipientCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.bgDark + '55',
+    padding: Spacing.md,
+  },
+  invoiceRecipientLabel: {
+    fontSize: FontSize.xs,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  invoiceRecipientValue: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  invoiceDocumentFootnote: {
+    fontSize: FontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   deliveryInfoCard: {
     backgroundColor: colors.glass,
