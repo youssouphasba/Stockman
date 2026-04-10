@@ -19,9 +19,10 @@ interface Props {
     onClose: () => void;
     settings: UserSettings | null;
     onUpdate: (layout: NonNullable<UserSettings['dashboard_layout']>) => void;
+    hiddenWidgetKeys?: string[];
 }
 
-export default function DashboardSettingsModal({ visible, onClose, settings, onUpdate }: Props) {
+export default function DashboardSettingsModal({ visible, onClose, settings, onUpdate, hiddenWidgetKeys = [] }: Props) {
     const { colors } = useTheme();
     const { t } = useTranslation();
 
@@ -62,7 +63,7 @@ export default function DashboardSettingsModal({ visible, onClose, settings, onU
         { key: 'show_reorder', labelKey: 'dashboard.widget_reorder', icon: 'refresh-outline' },
         { key: 'show_inventory_tasks', labelKey: 'dashboard.widget_inventory_tasks', icon: 'checkbox-outline' },
         { key: 'show_expiry_alerts', labelKey: 'dashboard.widget_expiry_alerts', icon: 'time-outline' },
-    ];
+    ].filter((item) => !hiddenWidgetKeys.includes(item.key));
 
     return (
         <Modal

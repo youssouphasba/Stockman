@@ -102,6 +102,11 @@ export function isWeightedProduct(product: MeasurementAwareProduct) {
     return normalized.allows_fractional_sale || normalized.measurement_type !== 'unit';
 }
 
+export function isDiscreteUnitProduct(product: MeasurementAwareProduct) {
+    const normalized = normalizeProductMeasurement(product);
+    return normalized.measurement_type === 'unit' && !normalized.allows_fractional_sale;
+}
+
 export function getAllowedSaleUnits(product: MeasurementAwareProduct) {
     const normalized = normalizeProductMeasurement(product);
     if (normalized.measurement_type === 'weight') return ['g', 'kg'];
@@ -180,6 +185,9 @@ export function formatSaleQuantity(item: {
 
 export function getInputStep(product: MeasurementAwareProduct, selectedUnit?: string) {
     const normalized = normalizeProductMeasurement(product);
+    if (isDiscreteUnitProduct(normalized)) {
+        return 1;
+    }
     const unit = normalizeUnitLabel(selectedUnit || normalized.pricing_unit || normalized.unit);
     const step = convertMeasurementQuantity(
         normalized.quantity_precision || defaultPrecisionForUnit(normalized.pricing_unit, normalized.measurement_type),
@@ -188,6 +196,10 @@ export function getInputStep(product: MeasurementAwareProduct, selectedUnit?: st
         normalized.measurement_type as MeasurementType,
     );
     return roundQuantity(step || 1);
+}
+
+export function getQuantityInputMin(product: MeasurementAwareProduct, selectedUnit?: string) {
+    return isDiscreteUnitProduct({ ...product, pricing_unit: selectedUnit || product.pricing_unit }) ? 1 : getInputStep(product, selectedUnit);
 }
 
 export function getQuickMeasurementPresets(product: MeasurementAwareProduct) {

@@ -146,6 +146,9 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 
 - Oriente traitement des commandes recues, statuts, messages, factures et catalogue fournisseur.
 - Ne doit pas etre decrit comme equivalent du web commercant.
+- Le catalogue fournisseur mobile inclut des actions rapides utiles : import CSV, creation de fiche, edition rapide, reprise des brouillons et fiches pretes.
+- Les factures fournisseur mobiles peuvent etre creees depuis une commande eligible ou manuellement, meme sans commande prealable.
+- Les parametres fournisseur mobiles couvrent aussi les preferences de facturation, l'aide, le support et le mot de passe.
 
 ## Web admin
 
@@ -170,6 +173,8 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 - Web : information, pilotage et facturation plus complets.
 - Mobile : consultation du plan, changement de plan et restauration selon plateforme.
 - Les plans Starter et Pro peuvent etre geres par achat integre mobile quand la plateforme le permet.
+- Mobile commercant : sur le dashboard, les plans Starter et Pro utilisent une vue simplifiee et ne doivent pas etre presentes comme ayant les blocs `performance de boutique`, `analyse de rentabilite`, `alertes recentes`, `evolution valeur du stock`, `analyse ABC` et `conseils du moment`.
+- Mobile commercant : sur le dashboard, les plans Starter et Pro ne doivent pas non plus etre presentes comme ayant les briques IA `score de sante business`, `projection`, `recherche en langage naturel`, `resume IA du jour`, `rappels intelligents du dashboard` et `previsions de vente du dashboard`.
 - Web commercant : les plans Starter et Pro peuvent consulter le back-office web, mais les creations, editions et suppressions y restent bloquees.
 - Passage de Starter ou Pro vers Enterprise : il se fait sur le meme compte. L'utilisateur conserve ses donnees, ses boutiques et ses utilisateurs ; seul le plan evolue apres confirmation du paiement web.
 - Enterprise : conserve le pilotage web complet avec actions et administration avancee.
@@ -180,7 +185,7 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 
 - Web commercant : pilotage, marketplace, benchmark, liaisons produit/fournisseur.
 - Mobile commercant : execution rapide, retours, avoirs, actions terrain.
-- Mobile fournisseur : traitement des commandes recues, pas pilotage equivalent au web commercant.
+- Mobile fournisseur : traitement des commandes recues, factures manuelles ou liees a une commande, et catalogue fournisseur avec import / edition rapide. Pas de pilotage equivalent au web commercant.
 
 ### Stock
 

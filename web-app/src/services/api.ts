@@ -2072,6 +2072,11 @@ export const customers = {
             method: 'PUT',
             body: data,
         }),
+    saveNotes: (id: string, data: { content?: string | null }) =>
+        request<any>(`/customers/${id}/notes`, {
+            method: 'POST',
+            body: data,
+        }),
     delete: (id: string) => request<any>(`/customers/${id}`, { method: 'DELETE' }),
     getDebts: (id: string) => request<any>(`/customers/${id}/debt-history`),
     addDebt: (id: string, data: { amount: number; is_payment: boolean; description?: string }) =>
@@ -2589,6 +2594,9 @@ export type PlannerItem = {
     content?: string | null;
     reminder_at?: string | null;
     channels: PlannerChannel[];
+    source?: string | null;
+    linked_customer_id?: string | null;
+    linked_customer_name?: string | null;
     is_completed: boolean;
     completed_at?: string | null;
     last_notified_at?: string | null;
@@ -2608,9 +2616,9 @@ export type PlannerItemsResponse = {
 export const planner = {
     list: (params?: { month?: string; day?: string; status?: 'active' | 'completed' | 'all' }) =>
         request<PlannerItemsResponse>('/planner/items', { params }),
-    create: (data: { title?: string; content?: string; reminder_at?: string | null; channels?: PlannerChannel[] }) =>
+    create: (data: { title?: string; content?: string; reminder_at?: string | null; channels?: PlannerChannel[]; source?: string | null; linked_customer_id?: string | null; linked_customer_name?: string | null }) =>
         request<PlannerItem>('/planner/items', { method: 'POST', body: data }),
-    update: (itemId: string, data: { title?: string; content?: string; reminder_at?: string | null; channels?: PlannerChannel[] }) =>
+    update: (itemId: string, data: { title?: string; content?: string; reminder_at?: string | null; channels?: PlannerChannel[]; source?: string | null; linked_customer_id?: string | null; linked_customer_name?: string | null }) =>
         request<PlannerItem>(`/planner/items/${itemId}`, { method: 'PUT', body: data }),
     complete: (itemId: string) =>
         request<PlannerItem>(`/planner/items/${itemId}/complete`, { method: 'POST' }),

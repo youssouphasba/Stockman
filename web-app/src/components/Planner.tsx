@@ -275,7 +275,7 @@ export default function Planner({ user }: Props) {
 
   if (!hasEnterprisePlan) {
     return (
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="planner-shell rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
           <AlarmClock className="h-7 w-7" />
         </div>
@@ -286,7 +286,7 @@ export default function Planner({ user }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="planner-shell space-y-6">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -453,6 +453,11 @@ export default function Planner({ user }: Props) {
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${item.is_completed ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}>
                           {item.is_completed ? t('planner.status_completed') : t('planner.status_active')}
                         </span>
+                        {item.linked_customer_name ? (
+                          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+                            Client : {item.linked_customer_name}
+                          </span>
+                        ) : null}
                       </div>
                       <p className="mt-2 text-sm font-semibold text-slate-500">
                         {formatReminderDate(item.reminder_at, locale, true)}
@@ -510,7 +515,14 @@ export default function Planner({ user }: Props) {
                 <div key={item.item_id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-extrabold text-slate-900">{item.title || t('planner.untitled_note')}</h3>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="text-lg font-extrabold text-slate-900">{item.title || t('planner.untitled_note')}</h3>
+                        {item.linked_customer_name ? (
+                          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+                            Client : {item.linked_customer_name}
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="mt-2 text-sm font-semibold text-slate-500">
                         {t('planner.updated_label', { value: formatReminderDate(item.updated_at, locale, true) })}
                       </p>

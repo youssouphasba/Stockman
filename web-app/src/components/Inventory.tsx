@@ -62,7 +62,10 @@ import { getPendingInventorySummary, mergeInventoryOfflineState } from '../servi
 import {
     defaultPrecisionForUnit,
     formatMeasurementQuantity,
+    getInputStep,
+    getQuantityInputMin,
     inferMeasurementType,
+    isDiscreteUnitProduct,
     normalizeProductMeasurement,
 } from '../utils/measurement';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
@@ -2762,11 +2765,11 @@ export default function Inventory() {
                             <label className="block text-sm font-medium text-slate-300 mb-2">Quantité *</label>
                             <input
                                 type="number"
-                                min="0.001"
-                                step="0.001"
+                                min={String(getQuantityInputMin(stockModalProduct))}
+                                step={String(getInputStep(stockModalProduct))}
                                 value={stockMovQty}
                                 onChange={e => setStockMovQty(e.target.value)}
-                                placeholder="Ex: 0.25"
+                                placeholder={isDiscreteUnitProduct(stockModalProduct) ? 'Ex: 3' : 'Ex: 0.25'}
                                 autoFocus
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
                             />
@@ -2774,10 +2777,13 @@ export default function Inventory() {
                                 <p className="text-xs mt-1.5 text-slate-400">
                                     Nouveau stock :{' '}
                                     <span className={`font-bold ${stockMovType === 'in' ? 'text-emerald-400' : 'text-orange-400'}`}>
-                                        {stockMovType === 'in'
-                                            ? stockModalProduct.quantity + parseFloat(stockMovQty)
-                                            : Math.max(0, stockModalProduct.quantity - parseFloat(stockMovQty))}
-                                    </span> {stockModalProduct.unit || 'unite(s)'}
+                                        {formatMeasurementQuantity(
+                                            stockMovType === 'in'
+                                                ? stockModalProduct.quantity + parseFloat(stockMovQty)
+                                                : Math.max(0, stockModalProduct.quantity - parseFloat(stockMovQty)),
+                                            stockModalProduct.display_unit || stockModalProduct.unit
+                                        )}
+                                    </span>
                                 </p>
                             )}
                         </div>
@@ -3073,7 +3079,7 @@ export default function Inventory() {
                                     <label className="block text-sm font-medium text-slate-300">Stock initial</label>
                                     <input
                                         type="number"
-                                        step="0.001"
+                                        step={String(isDiscreteUnitProduct(form) ? 1 : getInputStep(form))}
                                         value={form.quantity}
                                         onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary/50"
@@ -3098,7 +3104,7 @@ export default function Inventory() {
                                         }}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white outline-none focus:border-primary/50 text-sm"
                                     >
-                                        {['pice', 'kg', 'g', 'L', 'cL', 'mL', 'Paquet', 'Bote', 'Bouteille', 'Sac', 'Carton', 'Lot'].map(unit => (
+                                        {['piece', 'kg', 'g', 'L', 'cL', 'mL', 'Paquet', 'Boite', 'Bouteille', 'Sac', 'Carton', 'Lot'].map(unit => (
                                             <option key={unit} value={unit}>{unit}</option>
                                         ))}
                                     </select>
@@ -3129,7 +3135,7 @@ export default function Inventory() {
                                     <label className="block text-sm font-medium text-slate-300">Stock minimum</label>
                                     <input
                                         type="number"
-                                        step="0.001"
+                                        step={String(isDiscreteUnitProduct(form) ? 1 : getInputStep(form))}
                                         value={form.min_stock}
                                         onChange={(e) => setForm({ ...form, min_stock: Number(e.target.value) })}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary/50"
@@ -3139,7 +3145,7 @@ export default function Inventory() {
                                     <label className="block text-sm font-medium text-slate-300">Stock maximum</label>
                                     <input
                                         type="number"
-                                        step="0.001"
+                                        step={String(isDiscreteUnitProduct(form) ? 1 : getInputStep(form))}
                                         value={form.max_stock}
                                         onChange={(e) => setForm({ ...form, max_stock: Number(e.target.value) })}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary/50"
@@ -3400,11 +3406,11 @@ export default function Inventory() {
                                 </label>
                                 <input
                                     type="number"
-                                    min={0.001}
-                                    step="0.001"
+                                    min={getQuantityInputMin(transferProduct)}
+                                    step={String(getInputStep(transferProduct))}
                                     max={transferProduct.quantity}
                                     value={transferQty}
-                                    onChange={e => setTransferQty(Math.max(0.001, parseFloat(e.target.value) || 0.001))}
+                                    onChange={e => setTransferQty(Math.max(getQuantityInputMin(transferProduct), parseFloat(e.target.value) || getQuantityInputMin(transferProduct)))}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50"
                                 />
                             </div>

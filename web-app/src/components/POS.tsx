@@ -121,6 +121,7 @@ export default function POS() {
 
     // AI Suggestions
     const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const suggestTimeout = useRef<any>(null);
     const draftCartItems = useMemo(() => cart.filter(item => !item.persisted), [cart]);
 
@@ -212,6 +213,12 @@ export default function POS() {
         }, 800);
         return () => { if (suggestTimeout.current) clearTimeout(suggestTimeout.current); };
     }, [cart, allProducts]);
+
+    useEffect(() => {
+        if (suggestions.length === 0) {
+            setShowSuggestions(false);
+        }
+    }, [suggestions.length]);
 
     const closeWeightedModal = () => {
         setShowWeightedModal(false);
@@ -802,7 +809,7 @@ export default function POS() {
             </div>
 
             {/* Cart Column */}
-            <div className="hidden lg:flex w-[450px] bg-[#111827]/95 border-l border-white/10 flex-col p-6 backdrop-blur-3xl shadow-[-24px_0_80px_-60px_rgba(0,0,0,0.95)]" id="pos-cart">
+            <div className="pos-cart-panel hidden lg:flex w-[450px] bg-[#111827]/95 border-l border-white/10 flex-col p-6 backdrop-blur-3xl shadow-[-24px_0_80px_-60px_rgba(0,0,0,0.95)]" id="pos-cart">
                 <div className="flex-1 flex flex-col min-h-0">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-black text-white flex items-center gap-3">
@@ -817,7 +824,7 @@ export default function POS() {
                     </div>
 
                     {/* Customer Section */}
-                    <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mb-6 group relative">
+                    <div className="pos-cart-surface rounded-2xl p-4 border border-white/10 mb-6 group relative">
                         {selectedCustomer ? (
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
@@ -856,7 +863,7 @@ export default function POS() {
                     {/* Cart Items */}
                     <div className="flex-1 overflow-y-auto mb-6 pr-2 custom-scrollbar space-y-3">
                         {cart.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/[0.03] px-6 text-center text-slate-400">
+                            <div className="pos-cart-empty h-full flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/[0.03] px-6 text-center text-slate-400">
                                 <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
                                     <ShoppingCart size={40} strokeWidth={1.6} />
                                 </div>
@@ -865,7 +872,7 @@ export default function POS() {
                             </div>
                         ) : (
                             cart.map((item) => (
-                                <div key={item.cart_key || item.product_id} className="bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col gap-3 group">
+                                <div key={item.cart_key || item.product_id} className="pos-cart-item rounded-2xl p-4 border border-white/10 flex flex-col gap-3 group">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1">
                                             <p className="text-white font-bold text-sm leading-tight">{item.name}</p>
@@ -912,7 +919,7 @@ export default function POS() {
                                             className="w-full text-[10px] text-slate-400 bg-transparent border-b border-white/5 outline-none placeholder:text-slate-600 px-1 pb-1"
                                         />
                                     )}
-                                    <div className="flex justify-between items-center bg-black/20 rounded-xl p-1 border border-white/5">
+                                    <div className="pos-cart-qty flex justify-between items-center bg-black/20 rounded-xl p-1 border border-white/5">
                                         {(isWeightedProduct(item) || item.sold_unit) ? (
                                             <button
                                                 onClick={() => !item.persisted && openWeightedModal(item, item)}
@@ -939,34 +946,9 @@ export default function POS() {
                         )}
                     </div>
 
-                    {/* AI Suggestions */}
-                    {suggestions.length > 0 && (
-                        <div className="mb-6 bg-primary/5 border border-primary/20 rounded-2xl p-4">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 flex items-center gap-1">
-                                <Sparkles size={12} /> {t('pos.suggestions_title')}
-                            </h4>
-                            <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                                {suggestions.map((s: any) => (
-                                    <button
-                                        key={s.product_id}
-                                        onClick={() => addToCart(allProducts.find(p => p.product_id === s.product_id))}
-                                        className="bg-white/5 border border-white/10 rounded-xl p-3 min-w-[140px] text-left hover:bg-white/10 transition-all group"
-                                    >
-                                        <p className="text-white font-bold text-[10px] line-clamp-1">{s.name}</p>
-                                        <p className="text-primary font-black text-xs">{formatCurrency(s.selling_price)}</p>
-                                        <div className="mt-1 flex justify-between items-center">
-                                            <span className="text-[8px] text-slate-500 font-medium">{t('pos.ai_suggest')}</span>
-                                            <Plus size={12} className="text-primary opacity-0 group-hover:opacity-100" />
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
                     {/* Terminal selector */}
                     {storeSettings?.terminals?.length > 1 && (
-                        <div className="mb-2 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
+                        <div className="pos-cart-surface mb-2 flex items-center gap-2 rounded-xl px-3 py-2 border border-white/10">
                             <span className="text-xs text-slate-400 font-medium shrink-0">{t('pos.terminal_label')}</span>
                             <select
                                 value={selectedTerminal}
@@ -983,7 +965,7 @@ export default function POS() {
 
                     {/* Restaurant Options Panel */}
                     {restaurantMode && (
-                        <div className="mt-4 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
+                        <div className="pos-cart-surface mt-4 p-4 rounded-2xl border border-white/10 space-y-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-bold text-white">{t('pos.restaurant_options', 'Options restaurant')}</span>
                             </div>
@@ -1270,6 +1252,47 @@ export default function POS() {
                                 ⇄ Paiement partagé
                             </button>
                         </div>
+                        )}
+
+                        {suggestions.length > 0 && (
+                            <div className="pos-cart-suggestions rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSuggestions((current) => !current)}
+                                    className="flex w-full items-center justify-between gap-3 text-left"
+                                >
+                                    <div>
+                                        <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
+                                            <Sparkles size={12} /> {t('pos.suggestions_title')}
+                                        </h4>
+                                        <p className="mt-1 text-xs text-slate-400">
+                                            Produits proposes pour completer le panier sans cacher vos lignes de vente.
+                                        </p>
+                                    </div>
+                                    <ChevronRight
+                                        size={16}
+                                        className={`text-primary transition-transform ${showSuggestions ? 'rotate-90' : ''}`}
+                                    />
+                                </button>
+                                {showSuggestions && (
+                                    <div className="mt-3 flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                                        {suggestions.map((s: any) => (
+                                            <button
+                                                key={s.product_id}
+                                                onClick={() => addToCart(allProducts.find(p => p.product_id === s.product_id))}
+                                                className="pos-cart-suggestion-card min-w-[160px] rounded-xl border border-white/10 p-3 text-left transition-all group"
+                                            >
+                                                <p className="text-white font-bold text-[11px] line-clamp-1">{s.name}</p>
+                                                <p className="text-primary font-black text-sm">{formatCurrency(s.selling_price)}</p>
+                                                <div className="mt-1 flex justify-between items-center">
+                                                    <span className="text-[9px] text-slate-500 font-medium">{t('pos.ai_suggest')}</span>
+                                                    <Plus size={12} className="text-primary opacity-0 group-hover:opacity-100" />
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

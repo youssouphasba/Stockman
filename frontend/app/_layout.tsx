@@ -34,6 +34,9 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inSupplierTabs = segments[0] === '(supplier-tabs)';
+    const inShopkeeperTabs = segments[0] === '(tabs)';
+    const inAdminGroup = segments[0] === '(admin)';
     const isPublicPage = segments[0] === 'terms' || segments[0] === 'privacy';
 
     // User is authenticated but still needs verification — stay in auth group
@@ -45,6 +48,12 @@ function RootLayoutNav() {
 
     if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
       router.replace('/(auth)' as any);
+    } else if (isAuthenticated && isSuperAdmin && !inAdminGroup && !needsVerification && !needsProfileCompletion) {
+      router.replace('/(admin)' as any);
+    } else if (isAuthenticated && isSupplier && inShopkeeperTabs && !needsVerification && !needsProfileCompletion) {
+      router.replace('/(supplier-tabs)' as any);
+    } else if (isAuthenticated && !isSupplier && inSupplierTabs && !isSuperAdmin && !needsVerification && !needsProfileCompletion) {
+      router.replace('/(tabs)' as any);
     } else if (needsVerification && !onVerificationScreen) {
       // User needs verification but isn't on the verification screen — redirect there
       if (user.required_verification === 'phone') {

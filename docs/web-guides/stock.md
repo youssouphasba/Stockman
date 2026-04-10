@@ -101,6 +101,20 @@ Le tableau web garde maintenant un contraste plus fort sur les informations seco
 
 L'ecran Emplacements et les actions destructives du stock utilisent aussi un contraste plus fort en mode clair pour garder une lecture correcte des boutons `Supprimer`, `Restaurer` et des textes secondaires.
 
+Les cartes `Fournisseurs` du tableau doivent aussi rester lisibles en mode clair :
+
+- le statut `Aucun fournisseur` doit etre visible ;
+- le texte d'aide ne doit pas se fondre dans le fond ;
+- les boutons `Associer un fournisseur` et `Gerer les fournisseurs` doivent rester clairement lisibles.
+
+### Quantites en unites
+
+Pour les produits vendus a la piece :
+
+- les champs de stock doivent proposer un pas entier ;
+- les mouvements de stock et les transferts ne doivent pas pousser vers des decimales inutiles ;
+- les quantites fractionnees restent reservees aux produits vendus au poids ou au volume.
+
 ### Scan par lot sur le web
 
 Le scan par lot peut utiliser :

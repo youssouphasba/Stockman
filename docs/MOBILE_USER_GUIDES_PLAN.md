@@ -14,9 +14,17 @@ En revanche, l'ensemble reste encore incomplet et hétérogène :
 - certains modules ont un guide rapide, mais pas de guide complet ;
 - certains parcours critiques ne sont pas documentés ;
 - les écrans transverses et les rôles spécifiques ne sont pas couverts de manière homogène ;
-- l'administration mobile et l'espace fournisseur ne disposent pas encore d'une architecture de guide clairement définie.
+- l'administration mobile reste à homogénéiser, mais l'espace fournisseur dispose maintenant d'une première base de guides ciblés pour le catalogue, les commandes / factures et les paramètres.
 
 L'objectif est donc de structurer les guides mobiles avec une logique claire, maintenable et adaptée aux usages terrain.
+
+## Mise à jour espace fournisseur
+
+Les parcours fournisseur mobiles couvrent désormais plus clairement :
+
+- le catalogue avec import CSV, création rapide utile, édition rapide et gestion des brouillons ;
+- les commandes et factures, avec création de facture depuis une commande ou en saisie manuelle ;
+- les paramètres fournisseur, avec préférences de facturation, accès au centre d'aide, support et mot de passe.
 
 ## Objectif produit
 
@@ -440,6 +448,8 @@ Les valeurs sont animées via `AnimatedCounter`.
 
 ### Sections du dashboard
 
+Certaines sections analytiques avancees ne restent visibles sur mobile qu'en `Enterprise`.
+
 | Section | Contenu | Éléments |
 |---------|---------|----------|
 | Santé du stock | Badges colorés | Rouge (rupture), Orange (stock bas), Bleu (surstock), Vert (normal) avec compteurs |
@@ -448,6 +458,24 @@ Les valeurs sont animées via `AnimatedCounter`.
 | Réapprovisionnement | Liste + bouton « Commander » | Produits sous seuil min avec suggestion de commande |
 | Inventaires en cours | Carte compteur | Tâches d'inventaire en statut `pending` avec bouton « Compter » |
 | Paramètres dashboard | `DashboardSettingsModal` | Toggle d'affichage des sections KPI, stock, rappels, etc. |
+
+### Sections reservees au plan Enterprise sur mobile
+
+- performance de boutique ;
+- analyse de rentabilite ;
+- alertes recentes ;
+- evolution valeur du stock ;
+- analyse ABC ;
+- conseils du moment.
+
+### Briques IA reservees au plan Enterprise sur le dashboard mobile
+
+- score de sante business ;
+- projection de fin de mois ;
+- recherche en langage naturel ;
+- resume IA du jour ;
+- rappels intelligents du dashboard ;
+- previsions de vente du dashboard.
 
 ### Boutons et actions
 

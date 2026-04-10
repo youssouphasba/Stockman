@@ -21,6 +21,24 @@ Profils concernes : utilisateurs ayant la permission `pos`.
 
 ## 4. Particularites recentes
 
+### Panier web
+
+Le panier web Enterprise a ete retouche pour rester lisible en mode clair :
+
+- les cartes du panier ont un contraste plus fort ;
+- la zone client et les surfaces de resume restent lisibles ;
+- les suggestions IA ne doivent plus cacher les lignes du panier.
+
+Les suggestions IA sont maintenant repliees par defaut. Vous pouvez les ouvrir seulement quand vous en avez besoin.
+
+### Impression du recu
+
+L'impression du recu de caisse se fait sur une mise en page dediee au ticket :
+
+- le recu imprime ne depend plus du fond du modal ;
+- le titre, les lignes, les totaux et les paiements sont mieux structures ;
+- l'impression est plus stable sur les navigateurs desktop.
+
 ### Client par defaut
 
 Le POS gere un client par defaut quand aucun client connu n'est rattache a la vente. L'affichage et les chips doivent rester lisibles, sans chevauchement visuel.

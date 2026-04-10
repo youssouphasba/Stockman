@@ -178,6 +178,20 @@ export default function DashboardScreen() {
   const [nlResult, setNlResult] = useState<any>(null);
   const [nlLoading, setNlLoading] = useState(false);
   const dashboardCacheKey = user?.user_id ? `${KEYS.DASHBOARD}:${user.user_id}` : KEYS.DASHBOARD;
+  const effectivePlan = user?.effective_plan || user?.plan;
+  const isStarterOrProPlan = effectivePlan === 'starter' || effectivePlan === 'pro';
+  const showAdvancedDashboardSections = !isStarterOrProPlan;
+  const showDashboardAiSections = effectivePlan === 'enterprise';
+  const hiddenDashboardWidgetKeys = showAdvancedDashboardSections
+    ? []
+    : [
+        'show_profitability',
+        'show_smart_reminders',
+        'show_forecast',
+        'show_recent_alerts',
+        'show_stock_chart',
+        'show_abc_analysis',
+      ];
 
   // Scroll refs for drawer navigation
   const scrollViewRef = useRef<ScrollView>(null);
@@ -192,16 +206,12 @@ export default function DashboardScreen() {
   // Register drawer menu items
   useFocusEffect(
     useCallback(() => {
-      setDrawerContent(t('tabs.home'), [
+      const dashboardItems = [
         // -- Sections du dashboard (scroll) --
         { label: t('dashboard.daily_report', 'Rapport du jour'), icon: 'today-outline', onPress: () => scrollToSection('dailyReport') },
-        { label: t('dashboard.profitability_analysis', 'Analyse de rentabilité'), icon: 'analytics-outline', onPress: () => scrollToSection('profitability') },
         { label: t('dashboard.stock_status', 'État du stock'), icon: 'cube-outline', onPress: () => scrollToSection('stockStatus') },
-        { label: t('dashboard.recent_alerts', 'Alertes récentes'), icon: 'alert-circle-outline', onPress: () => scrollToSection('recentAlerts') },
         { label: t('dashboard.recent_sales', 'Ventes récentes'), icon: 'receipt-outline', onPress: () => scrollToSection('recentSales') },
-        { label: t('dashboard.stock_evolution', 'Évolution du stock'), icon: 'trending-up-outline', onPress: () => scrollToSection('stockEvolution') },
         { label: t('dashboard.category_distribution', 'Répartition catégories'), icon: 'pie-chart-outline', onPress: () => scrollToSection('categoryDist') },
-        { label: t('dashboard.abc_analysis', 'Analyse ABC'), icon: 'podium-outline', onPress: () => scrollToSection('abcAnalysis') },
         { label: t('dashboard.smart_replenishment', 'Réapprovisionnement'), icon: 'reload-outline', onPress: () => scrollToSection('replenishment') },
         { label: t('dashboard.rotating_inventory', 'Inventaire tournant'), icon: 'clipboard-outline', onPress: () => scrollToSection('rotatingInventory') },
         { label: t('dashboard.expiry_alerts', 'Alertes péremption'), icon: 'warning-outline', onPress: () => scrollToSection('expiryAlerts') },
@@ -216,8 +226,17 @@ export default function DashboardScreen() {
         { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
         { label: t('sidebar.multi_stores', 'Multi-boutiques'), icon: 'storefront-outline', onPress: () => router.push('/(tabs)/enterprise' as any), plan: 'enterprise' },
         { label: t('tabs.subscription'), icon: 'card-outline', onPress: () => router.push('/(tabs)/subscription' as any) },
-      ]);
-    }, [t, notifCount, scrollToSection])
+      ];
+
+      if (showAdvancedDashboardSections) {
+        dashboardItems.splice(1, 0, { label: t('dashboard.profitability_analysis', 'Analyse de rentabilité'), icon: 'analytics-outline', onPress: () => scrollToSection('profitability') });
+        dashboardItems.splice(3, 0, { label: t('dashboard.recent_alerts', 'Alertes récentes'), icon: 'alert-circle-outline', onPress: () => scrollToSection('recentAlerts') });
+        dashboardItems.splice(5, 0, { label: t('dashboard.stock_evolution', 'Évolution du stock'), icon: 'trending-up-outline', onPress: () => scrollToSection('stockEvolution') });
+        dashboardItems.splice(7, 0, { label: t('dashboard.abc_analysis', 'Analyse ABC'), icon: 'podium-outline', onPress: () => scrollToSection('abcAnalysis') });
+      }
+
+      setDrawerContent(t('tabs.home'), dashboardItems);
+    }, [t, notifCount, scrollToSection, showAdvancedDashboardSections])
   );
 
   // Listen for cross-tab events to open modals
@@ -327,6 +346,12 @@ export default function DashboardScreen() {
       };
     }
 
+    if (!showDashboardAiSections) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     Promise.allSettled([
       aiApi.businessHealthScore(),
       aiApi.dashboardPrediction(),
@@ -353,7 +378,7 @@ export default function DashboardScreen() {
     return () => {
       cancelled = true;
     };
-  }, [user?.user_id, user?.active_store_id]);
+  }, [user?.user_id, user?.active_store_id, showDashboardAiSections]);
 
   // Reload when tab regains focus (e.g. tab switch back)
   useFocusEffect(
@@ -838,7 +863,7 @@ export default function DashboardScreen() {
         {renderKPIs()}
 
         {/* Vague 1: Health Score + Monthly Prediction */}
-        {(healthScore || prediction) && (
+        {showDashboardAiSections && (healthScore || prediction) && (
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
             {healthScore && (
               <View style={{
@@ -917,53 +942,55 @@ export default function DashboardScreen() {
         )}
 
         {/* Vague 7: Natural Language Search */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.glass, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12 }}>
-              <Ionicons name="search-outline" size={16} color={colors.textMuted} />
-              <TextInput
-                value={nlQuery}
-                onChangeText={t => { setNlQuery(t); setNlResult(null); }}
-                placeholder="Posez une question, ex: top produits"
-                placeholderTextColor={colors.textMuted}
-                style={{ flex: 1, fontSize: 13, color: colors.text, paddingVertical: 10, marginLeft: 8 }}
-                onSubmitEditing={async () => {
-                  if (!nlQuery.trim()) return;
-                  setNlLoading(true);
-                  setNlResult(null);
-                  try {
-                    const res = await aiApi.naturalQuery(nlQuery.trim());
-                    setNlResult(res);
-                  } catch {
-                    setNlResult({ answer: 'Erreur lors de la recherche.', data: [] });
-                  } finally {
-                    setNlLoading(false);
-                  }
-                }}
-                returnKeyType="search"
-              />
-              {nlLoading && <ActivityIndicator size="small" color={colors.primary} />}
+        {showDashboardAiSections && (
+          <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.glass, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12 }}>
+                <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+                <TextInput
+                  value={nlQuery}
+                  onChangeText={t => { setNlQuery(t); setNlResult(null); }}
+                  placeholder="Posez une question, ex: top produits"
+                  placeholderTextColor={colors.textMuted}
+                  style={{ flex: 1, fontSize: 13, color: colors.text, paddingVertical: 10, marginLeft: 8 }}
+                  onSubmitEditing={async () => {
+                    if (!nlQuery.trim()) return;
+                    setNlLoading(true);
+                    setNlResult(null);
+                    try {
+                      const res = await aiApi.naturalQuery(nlQuery.trim());
+                      setNlResult(res);
+                    } catch {
+                      setNlResult({ answer: 'Erreur lors de la recherche.', data: [] });
+                    } finally {
+                      setNlLoading(false);
+                    }
+                  }}
+                  returnKeyType="search"
+                />
+                {nlLoading && <ActivityIndicator size="small" color={colors.primary} />}
+              </View>
             </View>
+            {nlResult && (
+              <View style={{ marginTop: 10, backgroundColor: colors.glass, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 8 }}>{nlResult.answer}</Text>
+                {nlResult.data && nlResult.data.length > 0 && (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {nlResult.data.slice(0, 8).map((item: any, i: number) => (
+                      <View key={i} style={{ backgroundColor: colors.background, borderRadius: 8, padding: 8, minWidth: 100, borderWidth: 1, borderColor: colors.border }}>
+                        <Text style={{ fontSize: 10, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase' }} numberOfLines={1}>{item.label}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '900', color: colors.text, marginTop: 2 }}>{typeof item.value === 'number' ? item.value.toLocaleString() : item.value}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
           </View>
-          {nlResult && (
-            <View style={{ marginTop: 10, backgroundColor: colors.glass, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 12 }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 8 }}>{nlResult.answer}</Text>
-              {nlResult.data && nlResult.data.length > 0 && (
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {nlResult.data.slice(0, 8).map((item: any, i: number) => (
-                    <View key={i} style={{ backgroundColor: colors.background, borderRadius: 8, padding: 8, minWidth: 100, borderWidth: 1, borderColor: colors.border }}>
-                      <Text style={{ fontSize: 10, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase' }} numberOfLines={1}>{item.label}</Text>
-                      <Text style={{ fontSize: 14, fontWeight: '900', color: colors.text, marginTop: 2 }}>{typeof item.value === 'number' ? item.value.toLocaleString() : item.value}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-        </View>
+        )}
 
         {/* Vague 6: Contextual Tips */}
-        {contextualTips.length > 0 && (
+        {showDashboardAiSections && showAdvancedDashboardSections && contextualTips.length > 0 && (
           <View style={[styles.section, { paddingHorizontal: 0 }]}>
             <Text style={[styles.sectionTitle, { paddingHorizontal: 20, marginBottom: 8 }]}>
               {t('dashboard.tips_title', 'Conseils du moment')}
@@ -1013,7 +1040,7 @@ export default function DashboardScreen() {
         )}
 
         {/* Vague 4: Store Benchmark */}
-        {storeBenchmark && storeBenchmark.stores?.length >= 2 && (
+        {showDashboardAiSections && showAdvancedDashboardSections && storeBenchmark && storeBenchmark.stores?.length >= 2 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Performance boutiques</Text>
             {storeBenchmark.stores.map((s: any) => (
@@ -1101,7 +1128,7 @@ export default function DashboardScreen() {
         )}
 
         {/* Profitability Analysis — NEW */}
-        {userSettings?.dashboard_layout?.show_profitability && stats?.profit_by_category && stats.profit_by_category.length > 0 && (
+        {showAdvancedDashboardSections && userSettings?.dashboard_layout?.show_profitability && stats?.profit_by_category && stats.profit_by_category.length > 0 && (
           <View style={styles.section} onLayout={e => { sectionOffsets.current.profitability = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.profitability_analysis')}</Text>
             <BarChart
@@ -1183,20 +1210,20 @@ export default function DashboardScreen() {
         )}
 
         {/* AI Daily Summary */}
-        <AiDailySummary />
+        {showDashboardAiSections && <AiDailySummary />}
 
         {/* Smart Reminders */}
-        {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_smart_reminders) && (
+        {showDashboardAiSections && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_smart_reminders) && (
           <SmartRemindersCard onNavigate={handleSmartReminderNavigate} />
         )}
 
         {/* Sales Forecast */}
-        {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_forecast) && (
+        {showDashboardAiSections && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_forecast) && (
           <ForecastCard />
         )}
 
         {/* Alertes récentes */}
-        {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_recent_alerts) && data?.recent_alerts && data.recent_alerts.length > 0 && (
+        {showAdvancedDashboardSections && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_recent_alerts) && data?.recent_alerts && data.recent_alerts.length > 0 && (
           <View style={styles.section} onLayout={e => { sectionOffsets.current.recentAlerts = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.recent_alerts')}</Text>
             {data.recent_alerts
@@ -1252,7 +1279,7 @@ export default function DashboardScreen() {
         )}
 
         {/* Evolution Valeur Stock */}
-        {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_stock_chart) && stats?.stock_value_history && stats.stock_value_history.length > 0 && (
+        {showAdvancedDashboardSections && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_stock_chart) && stats?.stock_value_history && stats.stock_value_history.length > 0 && (
           <View style={styles.section} onLayout={e => { sectionOffsets.current.stockEvolution = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.stock_evolution')}</Text>
             <LineChart
@@ -1330,7 +1357,7 @@ export default function DashboardScreen() {
         )}
 
         {/* Analyse ABC */}
-        {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_abc_analysis) && stats?.abc_analysis && (
+        {showAdvancedDashboardSections && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_abc_analysis) && stats?.abc_analysis && (
           <View style={styles.section} onLayout={e => { sectionOffsets.current.abcAnalysis = e.nativeEvent.layout.y; }}>
             <Text style={styles.sectionTitle}>{t('dashboard.abc_analysis')}</Text>
             <View style={styles.abcContainer}>
@@ -1850,6 +1877,7 @@ export default function DashboardScreen() {
         onClose={() => setShowDashboardSettings(false)}
         settings={userSettings}
         onUpdate={updateDashboardLayout}
+        hiddenWidgetKeys={hiddenDashboardWidgetKeys}
       />
     </LinearGradient>
   );

@@ -27,6 +27,8 @@ import ChatModal from '../../components/ChatModal';
 const FILTERS = ['all', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'] as const;
 
 type StatusAction = { label: string; status: string; color: string; icon: string };
+type InvoiceMode = 'order' | 'manual';
+type InvoiceDraftItem = { id: string; description: string; quantity: string; unitPrice: string };
 
 export default function SupplierOrdersScreen() {
   const { t } = useTranslation();
@@ -56,12 +58,58 @@ export default function SupplierOrdersScreen() {
   const [invoices, setInvoices] = useState<SupplierInvoiceData[]>([]);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
   const [showInvoiceCreate, setShowInvoiceCreate] = useState(false);
+  const [invoiceMode, setInvoiceMode] = useState<InvoiceMode>('manual');
   const [invoiceOrderId, setInvoiceOrderId] = useState('');
+  const [invoiceClientName, setInvoiceClientName] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceNotes, setInvoiceNotes] = useState('');
   const [creatingSaving, setCreatingSaving] = useState(false);
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<SupplierInvoiceData | null>(null);
+  const [invoiceItems, setInvoiceItems] = useState<InvoiceDraftItem[]>([
+    { id: `${Date.now()}`, description: '', quantity: '1', unitPrice: '' },
+  ]);
+
+  const resetInvoiceForm = useCallback((mode: InvoiceMode = 'manual') => {
+    setInvoiceMode(mode);
+    setInvoiceOrderId('');
+    setInvoiceClientName('');
+    setInvoiceNumber('');
+    setInvoiceNotes('');
+    setInvoiceItems([{ id: `${Date.now()}`, description: '', quantity: '1', unitPrice: '' }]);
+  }, []);
+
+  const addInvoiceLine = useCallback(() => {
+    setInvoiceItems((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${prev.length}`, description: '', quantity: '1', unitPrice: '' },
+    ]);
+  }, []);
+
+  const removeInvoiceLine = useCallback((id: string) => {
+    setInvoiceItems((prev) => (prev.length > 1 ? prev.filter((item) => item.id !== id) : prev));
+  }, []);
+
+  const updateInvoiceLine = useCallback((id: string, patch: Partial<InvoiceDraftItem>) => {
+    setInvoiceItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  }, []);
+
+  const manualInvoiceItems = invoiceItems
+    .map((item) => {
+      const quantity = parseFloat(item.quantity.replace(',', '.'));
+      const unitPrice = parseFloat(item.unitPrice.replace(',', '.'));
+      return {
+        description: item.description.trim(),
+        quantity,
+        unit_price: unitPrice,
+      };
+    })
+    .filter((item) => item.description && item.quantity > 0 && item.unit_price >= 0);
+
+  const manualInvoiceTotal = manualInvoiceItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+  const canSubmitInvoice = invoiceMode === 'order'
+    ? Boolean(invoiceOrderId)
+    : Boolean(invoiceClientName.trim()) && manualInvoiceItems.length > 0;
 
   const loadInvoices = useCallback(async () => {
     setInvoicesLoading(true);
@@ -73,21 +121,33 @@ export default function SupplierOrdersScreen() {
   }, []);
 
   async function handleCreateInvoice() {
-    if (!invoiceOrderId) return;
+    if (!canSubmitInvoice) return;
     setCreatingSaving(true);
     try {
-      await supplierInvoices.create({
-        order_id: invoiceOrderId,
-        invoice_number: invoiceNumber.trim() || undefined,
-        notes: invoiceNotes.trim() || undefined,
-      });
+      if (invoiceMode === 'order') {
+        await supplierInvoices.create({
+          order_id: invoiceOrderId,
+          invoice_number: invoiceNumber.trim() || undefined,
+          notes: invoiceNotes.trim() || undefined,
+        });
+      } else {
+        await supplierInvoices.create({
+          client_name: invoiceClientName.trim(),
+          invoice_number: invoiceNumber.trim() || undefined,
+          notes: invoiceNotes.trim() || undefined,
+          items: manualInvoiceItems,
+        });
+      }
       setShowInvoiceCreate(false);
-      setInvoiceOrderId('');
-      setInvoiceNumber('');
-      setInvoiceNotes('');
+      resetInvoiceForm('manual');
       loadInvoices();
     } catch (e: any) {
-      Alert.alert(t('common.error'), t('supplier.invoice_already_exists'));
+      Alert.alert(
+        t('common.error'),
+        invoiceMode === 'order'
+          ? t('supplier.invoice_already_exists')
+          : "Impossible de créer cette facture pour le moment."
+      );
     } finally {
       setCreatingSaving(false);
     }
@@ -95,6 +155,7 @@ export default function SupplierOrdersScreen() {
 
   async function handleGenerateFromDetail() {
     if (!selectedOrder) return;
+    resetInvoiceForm('order');
     setInvoiceOrderId(selectedOrder.order_id);
     setInvoiceNumber('');
     setInvoiceNotes('');
@@ -407,9 +468,7 @@ export default function SupplierOrdersScreen() {
             <TouchableOpacity
               style={styles.addInvoiceBtn}
               onPress={() => {
-                setInvoiceOrderId('');
-                setInvoiceNumber('');
-                setInvoiceNotes('');
+                resetInvoiceForm('manual');
                 setShowInvoiceCreate(true);
               }}
             >
@@ -437,7 +496,7 @@ export default function SupplierOrdersScreen() {
                   <View style={styles.orderHeader}>
                     <View>
                       <Text style={styles.orderShopkeeper}>{inv.invoice_number}</Text>
-                      <Text style={styles.orderDate}>{inv.shopkeeper_name}</Text>
+                      <Text style={styles.orderDate}>{inv.shopkeeper_name || inv.client_name || 'Client'}</Text>
                       <Text style={styles.orderDate}>
                         {inv.created_at ? new Date(inv.created_at).toLocaleDateString(i18n.language) : ''}
                       </Text>
@@ -602,41 +661,136 @@ export default function SupplierOrdersScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('supplier.create_invoice')}</Text>
-              <TouchableOpacity onPress={() => setShowInvoiceCreate(false)}>
+              <TouchableOpacity onPress={() => { setShowInvoiceCreate(false); resetInvoiceForm('manual'); }}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScroll}>
-              <Text style={styles.detailSectionTitle}>{t('supplier.select_order')}</Text>
-              {invoiceableOrders.length === 0 ? (
-                <Text style={{ color: colors.textMuted, padding: Spacing.md }}>{t('supplier.no_invoiceable_orders')}</Text>
-              ) : (
-                invoiceableOrders.map((order) => (
-                  <TouchableOpacity
-                    key={order.order_id}
-                    style={[
-                      styles.orderSelectItem,
-                      invoiceOrderId === order.order_id && styles.orderSelectItemActive,
-                    ]}
-                    onPress={() => setInvoiceOrderId(order.order_id)}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.text, fontWeight: '600', fontSize: FontSize.sm }}>
-                        {order.shopkeeper_name}
-                      </Text>
-                      <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>
-                        {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''} — {getStatusLabel(order.status)}
+              <View style={styles.invoiceModeRow}>
+                <TouchableOpacity
+                  style={[styles.invoiceModeBtn, invoiceMode === 'manual' && styles.invoiceModeBtnActive]}
+                  onPress={() => resetInvoiceForm('manual')}
+                >
+                  <Ionicons name="create-outline" size={16} color={invoiceMode === 'manual' ? '#fff' : colors.textMuted} />
+                  <Text style={[styles.invoiceModeText, invoiceMode === 'manual' && styles.invoiceModeTextActive]}>
+                    Facture manuelle
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.invoiceModeBtn, invoiceMode === 'order' && styles.invoiceModeBtnActive]}
+                  onPress={() => resetInvoiceForm('order')}
+                >
+                  <Ionicons name="receipt-outline" size={16} color={invoiceMode === 'order' ? '#fff' : colors.textMuted} />
+                  <Text style={[styles.invoiceModeText, invoiceMode === 'order' && styles.invoiceModeTextActive]}>
+                    Depuis une commande
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {invoiceMode === 'order' ? (
+                <>
+                  <Text style={styles.detailSectionTitle}>{t('supplier.select_order')}</Text>
+                  {invoiceableOrders.length === 0 ? (
+                    <View style={styles.invoiceHintCard}>
+                      <Text style={styles.invoiceHintTitle}>Aucune commande prête</Text>
+                      <Text style={styles.invoiceHintText}>
+                        Confirmez, expédiez ou livrez une commande pour pouvoir générer une facture à partir de celle-ci.
                       </Text>
                     </View>
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: FontSize.sm }}>
-                      {formatNumber(order.total_amount)} {t('common.currency_short')}
-                    </Text>
-                    {invoiceOrderId === order.order_id && (
-                      <Ionicons name="checkmark-circle" size={20} color={colors.success} style={{ marginLeft: 8 }} />
-                    )}
+                  ) : (
+                    invoiceableOrders.map((order) => (
+                      <TouchableOpacity
+                        key={order.order_id}
+                        style={[
+                          styles.orderSelectItem,
+                          invoiceOrderId === order.order_id && styles.orderSelectItemActive,
+                        ]}
+                        onPress={() => setInvoiceOrderId(order.order_id)}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.text, fontWeight: '600', fontSize: FontSize.sm }}>
+                            {order.shopkeeper_name}
+                          </Text>
+                          <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>
+                            {order.created_at ? new Date(order.created_at).toLocaleDateString(i18n.language) : ''} — {getStatusLabel(order.status)}
+                          </Text>
+                        </View>
+                        <Text style={{ color: colors.text, fontWeight: '700', fontSize: FontSize.sm }}>
+                          {formatNumber(order.total_amount)} {t('common.currency_short')}
+                        </Text>
+                        {invoiceOrderId === order.order_id && (
+                          <Ionicons name="checkmark-circle" size={20} color={colors.success} style={{ marginLeft: 8 }} />
+                        )}
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </>
+              ) : (
+                <>
+                  <Text style={styles.detailSectionTitle}>Client</Text>
+                  <TextInput
+                    style={styles.invoiceInput}
+                    value={invoiceClientName}
+                    onChangeText={setInvoiceClientName}
+                    placeholder="Nom du client"
+                    placeholderTextColor={colors.textMuted}
+                  />
+
+                  <Text style={[styles.detailSectionTitle, { marginTop: Spacing.md }]}>Lignes de facture</Text>
+                  {invoiceItems.map((item, index) => (
+                    <View key={item.id} style={styles.invoiceLineCard}>
+                      <View style={styles.invoiceLineHeader}>
+                        <Text style={styles.invoiceLineTitle}>Article {index + 1}</Text>
+                        <TouchableOpacity
+                          onPress={() => removeInvoiceLine(item.id)}
+                          disabled={invoiceItems.length === 1}
+                        >
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color={invoiceItems.length === 1 ? colors.textMuted : colors.danger}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      <TextInput
+                        style={styles.invoiceInput}
+                        value={item.description}
+                        onChangeText={(value) => updateInvoiceLine(item.id, { description: value })}
+                        placeholder="Nom ou description"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                      <View style={styles.invoiceLineRow}>
+                        <TextInput
+                          style={[styles.invoiceInput, styles.invoiceLineHalf]}
+                          value={item.quantity}
+                          onChangeText={(value) => updateInvoiceLine(item.id, { quantity: value })}
+                          placeholder="Qté"
+                          placeholderTextColor={colors.textMuted}
+                          keyboardType="numeric"
+                        />
+                        <TextInput
+                          style={[styles.invoiceInput, styles.invoiceLineHalf]}
+                          value={item.unitPrice}
+                          onChangeText={(value) => updateInvoiceLine(item.id, { unitPrice: value })}
+                          placeholder="Prix unitaire"
+                          placeholderTextColor={colors.textMuted}
+                          keyboardType="numeric"
+                        />
+                      </View>
+                    </View>
+                  ))}
+                  <TouchableOpacity style={styles.addLineBtn} onPress={addInvoiceLine}>
+                    <Ionicons name="add-circle-outline" size={18} color={colors.secondary} />
+                    <Text style={styles.addLineText}>Ajouter une ligne</Text>
                   </TouchableOpacity>
-                ))
+                  <View style={styles.manualTotalCard}>
+                    <Text style={styles.manualTotalLabel}>Total estimé</Text>
+                    <Text style={styles.manualTotalValue}>
+                      {formatNumber(manualInvoiceTotal)} {t('common.currency_default')}
+                    </Text>
+                  </View>
+                </>
               )}
 
               <Text style={[styles.detailSectionTitle, { marginTop: Spacing.lg }]}>{t('supplier.invoice_number')}</Text>
@@ -660,14 +814,16 @@ export default function SupplierOrdersScreen() {
             </ScrollView>
 
             <TouchableOpacity
-              style={[styles.invoiceSaveBtn, (!invoiceOrderId || creatingSaving) && { opacity: 0.5 }]}
+              style={[styles.invoiceSaveBtn, (!canSubmitInvoice || creatingSaving) && { opacity: 0.5 }]}
               onPress={handleCreateInvoice}
-              disabled={!invoiceOrderId || creatingSaving}
+              disabled={!canSubmitInvoice || creatingSaving}
             >
               {creatingSaving ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.modalActionText}>{t('supplier.create_invoice')}</Text>
+                <Text style={styles.modalActionText}>
+                  {invoiceMode === 'order' ? t('supplier.create_invoice') : 'Créer la facture'}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -689,7 +845,7 @@ export default function SupplierOrdersScreen() {
               <ScrollView style={styles.modalScroll}>
                 <View style={styles.detailSection}>
                   <Text style={styles.detailSectionTitle}>{t('supplier.invoice_client')}</Text>
-                  <Text style={styles.detailText}>{selectedInvoice.shopkeeper_name}</Text>
+                  <Text style={styles.detailText}>{selectedInvoice.shopkeeper_name || selectedInvoice.client_name || 'Client'}</Text>
                 </View>
 
                 <View style={styles.detailSection}>
@@ -732,6 +888,16 @@ export default function SupplierOrdersScreen() {
                   <View style={styles.detailSection}>
                     <Text style={styles.detailSectionTitle}>{t('supplier.invoice_notes')}</Text>
                     <Text style={styles.detailText}>{selectedInvoice.notes}</Text>
+                  </View>
+                )}
+
+                {(selectedInvoice.invoice_business_name || selectedInvoice.invoice_business_address || selectedInvoice.invoice_footer || selectedInvoice.invoice_payment_terms) && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>En-tête et mentions</Text>
+                    {selectedInvoice.invoice_business_name ? <Text style={styles.detailText}>{selectedInvoice.invoice_business_name}</Text> : null}
+                    {selectedInvoice.invoice_business_address ? <Text style={styles.detailMuted}>{selectedInvoice.invoice_business_address}</Text> : null}
+                    {selectedInvoice.invoice_payment_terms ? <Text style={styles.detailMuted}>Conditions : {selectedInvoice.invoice_payment_terms}</Text> : null}
+                    {selectedInvoice.invoice_footer ? <Text style={styles.detailMuted}>{selectedInvoice.invoice_footer}</Text> : null}
                   </View>
                 )}
 
@@ -835,6 +1001,53 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.secondary,
     backgroundColor: colors.secondary + '10',
   },
+  invoiceModeRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  invoiceModeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: colors.inputBg || colors.glass,
+  },
+  invoiceModeBtnActive: {
+    backgroundColor: colors.secondary,
+    borderColor: colors.secondary,
+  },
+  invoiceModeText: {
+    color: colors.textSecondary,
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+  },
+  invoiceModeTextActive: {
+    color: '#fff',
+  },
+  invoiceHintCard: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.glass,
+  },
+  invoiceHintTitle: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  invoiceHintText: {
+    color: colors.textSecondary,
+    fontSize: FontSize.sm,
+    lineHeight: 20,
+  },
   invoiceInput: {
     backgroundColor: colors.inputBg || colors.glass,
     borderRadius: BorderRadius.md,
@@ -844,6 +1057,70 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: FontSize.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  invoiceLineCard: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.glass,
+    marginBottom: Spacing.sm,
+  },
+  invoiceLineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  invoiceLineTitle: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  invoiceLineRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  invoiceLineHalf: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  addLineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.secondary,
+    backgroundColor: colors.secondary + '12',
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  addLineText: {
+    color: colors.secondary,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  manualTotalCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.secondary + '35',
+    backgroundColor: colors.secondary + '12',
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  manualTotalLabel: {
+    color: colors.textSecondary,
+    fontSize: FontSize.xs,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  manualTotalValue: {
+    color: colors.secondary,
+    fontSize: FontSize.lg,
+    fontWeight: '800',
   },
   invoiceSaveBtn: {
     backgroundColor: colors.secondary,
@@ -1050,6 +1327,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   detailText: {
     fontSize: FontSize.md,
     color: colors.text,
+  },
+  detailMuted: {
+    fontSize: FontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   itemRow: {
     flexDirection: 'row',

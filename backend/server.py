@@ -858,6 +858,7 @@ async def create_indexes_and_init():
                 await db.user_planner_items.create_index([("item_id", 1)], unique=True)
                 await db.user_planner_items.create_index([("user_id", 1), ("created_at", -1)])
                 await db.user_planner_items.create_index([("user_id", 1), ("is_completed", 1), ("reminder_at", 1)])
+                await db.user_planner_items.create_index([("user_id", 1), ("linked_customer_id", 1), ("created_at", -1)])
                 await db.products.create_index("sku")
                 await db.products.create_index("rfid_tag")
                 await db.sales.create_index([("user_id", 1), ("store_id", 1)])
@@ -2542,6 +2543,7 @@ class Customer(BaseModel):
     total_spent: float = 0.0
     current_debt: float = 0.0  # NEW: Track customer debt
     notes: Optional[str] = None
+    note_history: List[Dict[str, Any]] = Field(default_factory=list)
     birthday: Optional[str] = None
     category: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -2687,6 +2689,9 @@ class PlannerItem(BaseModel):
     content: Optional[str] = None
     reminder_at: Optional[datetime] = None
     channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
+    source: Optional[str] = None
+    linked_customer_id: Optional[str] = None
+    linked_customer_name: Optional[str] = None
     is_completed: bool = False
     completed_at: Optional[datetime] = None
     last_notified_at: Optional[datetime] = None
@@ -2699,6 +2704,9 @@ class PlannerItemCreate(BaseModel):
     content: Optional[str] = None
     reminder_at: Optional[datetime] = None
     channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
+    source: Optional[str] = None
+    linked_customer_id: Optional[str] = None
+    linked_customer_name: Optional[str] = None
 
 
 class PlannerItemUpdate(BaseModel):
@@ -2706,6 +2714,9 @@ class PlannerItemUpdate(BaseModel):
     content: Optional[str] = None
     reminder_at: Optional[datetime] = None
     channels: Optional[List[Literal["in_app", "push", "email"]]] = None
+    source: Optional[str] = None
+    linked_customer_id: Optional[str] = None
+    linked_customer_name: Optional[str] = None
 
 
 class PlannerItemsResponse(BaseModel):
@@ -3543,6 +3554,17 @@ def ensure_enterprise_locations_allowed(
 def ensure_enterprise_planner_allowed(
     user: User,
     detail: str = "Les notes, rappels et le calendrier sont reserves au plan Enterprise.",
+) -> None:
+    if user.role in {"superadmin", "admin"}:
+        return
+    effective_plan = normalize_plan(user.effective_plan or user.subscription_plan or user.plan)
+    if effective_plan != "enterprise":
+        raise HTTPException(status_code=403, detail=detail)
+
+
+def ensure_enterprise_mobile_dashboard_advanced_allowed(
+    user: User,
+    detail: str = "Ces analyses avancees du dashboard mobile sont reservees au plan Enterprise.",
 ) -> None:
     if user.role in {"superadmin", "admin"}:
         return
@@ -5422,6 +5444,9 @@ async def create_planner_item(
         content=content or None,
         reminder_at=payload.reminder_at,
         channels=normalize_planner_channels(payload.channels),
+        source=(str(payload.source or "").strip() or None),
+        linked_customer_id=(str(payload.linked_customer_id or "").strip() or None),
+        linked_customer_name=(str(payload.linked_customer_name or "").strip() or None),
         created_at=now,
         updated_at=now,
     )
@@ -5454,6 +5479,12 @@ async def update_planner_item(
     if "channels" in payload_data:
         updates["channels"] = normalize_planner_channels(payload_data["channels"])
         updates["last_notified_at"] = None
+    if "source" in payload_data:
+        updates["source"] = str(payload_data["source"] or "").strip() or None
+    if "linked_customer_id" in payload_data:
+        updates["linked_customer_id"] = str(payload_data["linked_customer_id"] or "").strip() or None
+    if "linked_customer_name" in payload_data:
+        updates["linked_customer_name"] = str(payload_data["linked_customer_name"] or "").strip() or None
 
     final_title = updates.get("title", existing.get("title") or "").strip()
     final_content = str(updates.get("content", existing.get("content") or "") or "").strip()
@@ -7861,6 +7892,10 @@ Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe.
 @limiter.limit("10/minute")
 async def ai_daily_summary(request: Request, lang: str = "fr", user: User = Depends(require_permission("ai", "read"))):
     """Generate a daily AI-powered business summary"""
+    ensure_enterprise_mobile_dashboard_advanced_allowed(
+        user,
+        detail="Le resume IA du dashboard mobile est reserve au plan Enterprise.",
+    )
     await check_ai_limit(user, "daily_summary")
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
@@ -8743,6 +8778,10 @@ async def ai_business_health_score(
     user: User = Depends(require_operational_access),
 ):
     """Score sante business 0-100. Algo pur, tous plans."""
+    ensure_enterprise_mobile_dashboard_advanced_allowed(
+        user,
+        detail="Le score de sante du dashboard mobile est reserve au plan Enterprise.",
+    )
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
     await check_ai_limit(user, "business_health_score")
@@ -8891,6 +8930,10 @@ async def ai_dashboard_prediction(
     user: User = Depends(require_operational_access),
 ):
     """Projection CA fin de mois. Algo pur, Pro+Enterprise."""
+    ensure_enterprise_mobile_dashboard_advanced_allowed(
+        user,
+        detail="La projection avancee du dashboard mobile est reservee au plan Enterprise.",
+    )
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
     await check_ai_limit(user, "dashboard_prediction")
@@ -10461,6 +10504,10 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
 
 @api_router.get("/ai/contextual-tips")
 async def get_contextual_tips(user: User = Depends(require_operational_access)):
+    ensure_enterprise_mobile_dashboard_advanced_allowed(
+        user,
+        detail="Les conseils du moment du dashboard mobile sont reserves au plan Enterprise.",
+    )
     """
     Rule-based contextual tips — no LLM. All plans get basic tips, Pro+ get advanced.
     Cached 1h per user.
@@ -10594,6 +10641,10 @@ async def get_product_correlations(
 
 @api_router.get("/ai/rebalance-suggestions")
 async def get_rebalance_suggestions(user: User = Depends(require_operational_access)):
+    ensure_enterprise_mobile_dashboard_advanced_allowed(
+        user,
+        detail="Le reequilibrage avance du dashboard mobile est reserve au plan Enterprise.",
+    )
     """
     Suggest stock transfers between stores based on stock level vs sales velocity.
     Enterprise only.
@@ -10775,6 +10826,10 @@ async def get_rebalance_suggestions(user: User = Depends(require_operational_acc
 
 @api_router.get("/ai/store-benchmark")
 async def get_store_benchmark(user: User = Depends(require_operational_access)):
+    ensure_enterprise_mobile_dashboard_advanced_allowed(
+        user,
+        detail="La performance multi-boutiques du dashboard mobile est reservee au plan Enterprise.",
+    )
     """
     Compare performance metrics across all stores: revenue, margin, stock rotation.
     Enterprise only.
@@ -11328,6 +11383,10 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, user:
 @api_router.post("/ai/natural-query")
 async def natural_language_query(body: dict = Body(...), user: User = Depends(require_operational_access)):
     """Parse a natural language query and return structured business data."""
+    ensure_enterprise_mobile_dashboard_advanced_allowed(
+        user,
+        detail="La recherche en langage naturel du dashboard mobile est reservee au plan Enterprise.",
+    )
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
     if plan not in ("enterprise",):
@@ -12836,8 +12895,13 @@ class CustomerCreate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
+    note_history: Optional[List[Dict[str, Any]]] = None
     birthday: Optional[str] = None
     category: Optional[str] = None
+
+
+class CustomerNoteSaveRequest(BaseModel):
+    content: Optional[str] = None
 
 class Promotion(BaseModel):
     promotion_id: str = Field(default_factory=lambda: f"promo_{uuid.uuid4().hex[:12]}")
@@ -12959,6 +13023,12 @@ class SupplierProfile(BaseModel):
     delivery_zones: List[str] = []
     min_order_amount: float = 0.0
     average_delivery_days: int = 3
+    invoice_business_name: str = ""
+    invoice_business_address: str = ""
+    invoice_label: str = "Facture"
+    invoice_prefix: str = "FAC"
+    invoice_footer: str = ""
+    invoice_payment_terms: str = ""
     rating_average: float = 0.0
     rating_count: int = 0
     is_verified: bool = False
@@ -12975,6 +13045,12 @@ class SupplierProfileCreate(BaseModel):
     delivery_zones: List[str] = []
     min_order_amount: float = 0.0
     average_delivery_days: int = 3
+    invoice_business_name: str = ""
+    invoice_business_address: str = ""
+    invoice_label: str = "Facture"
+    invoice_prefix: str = "FAC"
+    invoice_footer: str = ""
+    invoice_payment_terms: str = ""
 
 class CatalogProduct(BaseModel):
     catalog_id: str = Field(default_factory=lambda: f"cata_{uuid.uuid4().hex[:12]}")
@@ -13024,6 +13100,53 @@ def normalize_catalog_publication_status(value: Optional[str]) -> str:
     if normalized in {"draft", "ready", "published", "archived"}:
         return normalized
     return "draft"
+
+
+def parse_supplier_catalog_float(value: Any, default: float = 0.0) -> float:
+    if value in (None, ""):
+        return default
+    try:
+        normalized = str(value).strip().replace("\u202f", "").replace(" ", "").replace(",", ".")
+        return float(normalized)
+    except (TypeError, ValueError):
+        return default
+
+
+def parse_supplier_catalog_int(value: Any, default: int = 0) -> int:
+    if value in (None, ""):
+        return default
+    try:
+        normalized = str(value).strip().replace("\u202f", "").replace(" ", "").replace(",", ".")
+        return int(float(normalized))
+    except (TypeError, ValueError):
+        return default
+
+
+def infer_supplier_catalog_mapping(columns: List[str]) -> Dict[str, str]:
+    aliases: Dict[str, List[str]] = {
+        "name": ["name", "nom", "designation", "produit", "article"],
+        "description": ["description", "details", "detail"],
+        "category": ["category", "categorie", "famille"],
+        "subcategory": ["subcategory", "sous_categorie", "sous categorie", "sous-famille"],
+        "price": ["price", "prix", "sale_price", "selling_price", "prix_vente"],
+        "unit": ["unit", "unite"],
+        "stock_available": ["stock", "quantity", "quantite", "stock_available"],
+        "min_order_quantity": ["min_order_quantity", "minimum", "quantite_min", "min_qty"],
+        "sku": ["sku", "reference", "ref"],
+        "barcode": ["barcode", "codebarres", "code_barres", "ean"],
+        "brand": ["brand", "marque"],
+        "origin": ["origin", "origine", "provenance"],
+        "delivery_time": ["delivery_time", "delai", "delai_livraison", "livraison"],
+        "publication_status": ["publication_status", "statut", "status"],
+    }
+    mapping: Dict[str, str] = {}
+    normalized_columns = {column: str(column or "").strip().lower() for column in columns}
+    for target, candidates in aliases.items():
+        for original, normalized in normalized_columns.items():
+            if any(candidate == normalized or candidate in normalized for candidate in candidates):
+                mapping[target] = original
+                break
+    return mapping
 
 
 def published_catalog_query(extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -17202,6 +17325,81 @@ async def update_customer(customer_id: str, customer_data: CustomerCreate, user:
     )
     if not result:
         raise HTTPException(status_code=404, detail="Client non trouvé")
+    result.pop("_id", None)
+    return Customer(**result)
+
+
+@api_router.post("/customers/{customer_id}/notes", response_model=Customer)
+async def save_customer_note(
+    customer_id: str,
+    payload: CustomerNoteSaveRequest,
+    request: Request,
+    user: User = Depends(require_permission("crm", "write")),
+):
+    owner_id = get_owner_id(user)
+    existing = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
+    existing = await backfill_legacy_store_field(
+        db.customers,
+        {"customer_id": customer_id, "user_id": owner_id},
+        existing,
+        user,
+    )
+    ensure_scoped_document_access(user, existing, detail="Acces refuse pour ce client")
+
+    note_content = str(payload.content or "").strip()
+    previous_note = str(existing.get("notes") or "").strip()
+    note_history = list(existing.get("note_history") or [])
+    planner_item_id = None
+    now = datetime.now(timezone.utc)
+
+    can_sync_to_planner = (
+        (getattr(user, "effective_plan", None) or getattr(user, "plan", None)) == "enterprise"
+        and getattr(user, "can_write_data", True) is not False
+    )
+
+    if note_content and note_content != previous_note:
+        if can_sync_to_planner:
+            planner_item = PlannerItem(
+                user_id=user.user_id,
+                account_id=user.account_id,
+                store_id=user.active_store_id,
+                title="Note client",
+                content=note_content,
+                channels=["in_app"],
+                source="crm_customer_note",
+                linked_customer_id=customer_id,
+                linked_customer_name=existing.get("name"),
+                created_at=now,
+                updated_at=now,
+            )
+            await db.user_planner_items.insert_one(planner_item.model_dump())
+            planner_item_id = planner_item.item_id
+
+        note_history.append(
+            {
+                "entry_id": f"cn_{uuid.uuid4().hex[:12]}",
+                "content": note_content,
+                "created_at": now,
+                "linked_planner_item_id": planner_item_id,
+            }
+        )
+
+    customer_query = {"customer_id": customer_id, "user_id": owner_id}
+    if existing and existing.get("store_id"):
+        customer_query["store_id"] = existing["store_id"]
+
+    result = await db.customers.find_one_and_update(
+        customer_query,
+        {
+            "$set": {
+                "notes": note_content or None,
+                "note_history": note_history,
+            }
+        },
+        return_document=True,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Client non trouve")
     result.pop("_id", None)
     return Customer(**result)
 
@@ -23069,6 +23267,102 @@ async def delete_catalog_product(catalog_id: str, user: User = Depends(require_s
         raise HTTPException(status_code=404, detail="Produit catalogue non trouvé")
     return {"message": "Produit supprimé du catalogue"}
 
+
+@api_router.post("/supplier/catalog/import/parse")
+async def parse_supplier_catalog_import_file(
+    file: UploadFile = File(...),
+    user: User = Depends(require_supplier),
+):
+    max_upload_size = 5 * 1024 * 1024
+    content = await file.read()
+    if len(content) > max_upload_size:
+        raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 5 Mo)")
+    if file.content_type and file.content_type not in [
+        "text/csv",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/octet-stream",
+    ]:
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé. CSV ou Excel uniquement.")
+
+    try:
+        parsed = await import_service.parse_csv(content)
+        return {
+            **parsed,
+            "ai_mapping": infer_supplier_catalog_mapping(parsed.get("columns") or []),
+        }
+    except Exception as exc:
+        logger.error(f"Supplier catalog import parse error: {exc}")
+        raise HTTPException(status_code=400, detail=f"Erreur lors de l'analyse du fichier: {str(exc)}")
+
+
+@api_router.post("/supplier/catalog/import/confirm")
+async def confirm_supplier_catalog_import(
+    data: dict,
+    user: User = Depends(require_supplier),
+):
+    import_data = data.get("importData") or []
+    mapping = data.get("mapping") or {}
+    default_status = normalize_catalog_publication_status(data.get("publicationStatus"))
+    if not import_data or not mapping:
+        raise HTTPException(status_code=400, detail="Données d'importation ou mappage manquants")
+
+    now = datetime.now(timezone.utc)
+    documents: List[Dict[str, Any]] = []
+    errors: List[Dict[str, Any]] = []
+
+    for index, raw_row in enumerate(import_data):
+        mapped_row = {}
+        for target_field, source_field in mapping.items():
+            if source_field in raw_row:
+                mapped_row[target_field] = raw_row[source_field]
+
+        name = str(mapped_row.get("name") or "").strip()
+        if not name:
+            errors.append({"row": index, "error": "Nom du produit manquant"})
+            continue
+
+        publication_status = normalize_catalog_publication_status(
+            mapped_row.get("publication_status") or default_status
+        )
+        price = parse_supplier_catalog_float(mapped_row.get("price"), 0.0)
+        stock_available = parse_supplier_catalog_int(mapped_row.get("stock_available"), 0)
+        min_order_quantity = max(1, parse_supplier_catalog_int(mapped_row.get("min_order_quantity"), 1))
+
+        document = CatalogProduct(
+            supplier_user_id=user.user_id,
+            name=name,
+            description=str(mapped_row.get("description") or "").strip(),
+            category=str(mapped_row.get("category") or "").strip(),
+            subcategory=str(mapped_row.get("subcategory") or "").strip(),
+            price=max(0.0, price),
+            unit=str(mapped_row.get("unit") or "pièce").strip() or "pièce",
+            min_order_quantity=min_order_quantity,
+            stock_available=max(0, stock_available),
+            available=publication_status == "published",
+            sku=str(mapped_row.get("sku") or "").strip(),
+            barcode=str(mapped_row.get("barcode") or "").strip(),
+            brand=str(mapped_row.get("brand") or "").strip(),
+            origin=str(mapped_row.get("origin") or "").strip(),
+            delivery_time=str(mapped_row.get("delivery_time") or "").strip(),
+            publication_status=publication_status,
+            created_at=now,
+            updated_at=now,
+        )
+        documents.append(document.model_dump())
+
+    if not documents and errors:
+        raise HTTPException(status_code=400, detail="Aucun produit valide à importer")
+
+    if documents:
+        await db.catalog_products.insert_many(documents)
+
+    return {
+        "message": f"{len(documents)} produits catalogue importés avec succès",
+        "count": len(documents),
+        "errors": errors,
+    }
+
 # ===================== SUPPLIER DASHBOARD (CAS 1) =====================
 
 @api_router.get("/supplier/dashboard")
@@ -23303,20 +23597,29 @@ async def supplier_update_order_status(order_id: str, status_data: OrderStatusUp
 # â”â‚¬â”â‚¬ Supplier Invoices â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬â”â‚¬
 
 class SupplierInvoiceCreate(BaseModel):
-    order_id: str
+    order_id: Optional[str] = None
+    client_name: Optional[str] = None
     invoice_number: Optional[str] = None
     notes: Optional[str] = None
+    items: List[Dict[str, Any]] = []
 
 class SupplierInvoiceOut(BaseModel):
     invoice_id: str
     supplier_user_id: str
-    order_id: str
+    order_id: Optional[str] = None
+    shopkeeper_user_id: Optional[str] = None
     shopkeeper_name: str
     invoice_number: str
     items: list = []
     total_amount: float = 0
     status: str = "unpaid"
     notes: Optional[str] = None
+    invoice_business_name: Optional[str] = None
+    invoice_business_address: Optional[str] = None
+    invoice_label: Optional[str] = None
+    invoice_prefix: Optional[str] = None
+    invoice_footer: Optional[str] = None
+    invoice_payment_terms: Optional[str] = None
     created_at: datetime
 
 @api_router.get("/supplier/invoices")
@@ -23329,45 +23632,95 @@ async def get_supplier_invoices_list(user: User = Depends(require_supplier)):
 
 @api_router.post("/supplier/invoices")
 async def create_supplier_invoice_from_order(data: SupplierInvoiceCreate, user: User = Depends(require_supplier)):
-    """Generate an invoice from a delivered/confirmed order"""
-    order = await db.orders.find_one(
-        {"order_id": data.order_id, "supplier_user_id": user.user_id, "is_connected": True},
-        {"_id": 0}
-    )
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    # Check not already invoiced
-    existing = await db.supplier_generated_invoices.find_one(
-        {"order_id": data.order_id, "supplier_user_id": user.user_id}
-    )
-    if existing:
-        raise HTTPException(status_code=400, detail="Invoice already exists for this order")
-
-    # Get order items
-    items = await db.order_items.find(
-        {"order_id": data.order_id}, {"_id": 0}
-    ).to_list(100)
-
-    # Get shopkeeper name
-    shopkeeper = await db.users.find_one({"user_id": order.get("user_id")}, {"_id": 0, "business_name": 1, "name": 1})
-    shopkeeper_name = (shopkeeper or {}).get("business_name") or (shopkeeper or {}).get("name", "")
-
-    # Auto-generate invoice number if not provided
+    """Generate an invoice from an order or create a manual supplier invoice"""
     count = await db.supplier_generated_invoices.count_documents({"supplier_user_id": user.user_id})
-    inv_number = data.invoice_number or f"INV-{count + 1:04d}"
+    profile = await db.supplier_profiles.find_one({"user_id": user.user_id}, {"_id": 0})
+    inv_prefix = (profile or {}).get("invoice_prefix") or "FAC"
+    inv_label = (profile or {}).get("invoice_label") or "Facture"
+    inv_number = data.invoice_number or f"{inv_prefix}-{count + 1:04d}"
+
+    shopkeeper_name = (data.client_name or "").strip()
+    shopkeeper_user_id = ""
+    order_total = 0.0
+    normalized_items: List[Dict[str, Any]] = []
+
+    if data.order_id:
+        order = await db.orders.find_one(
+            {"order_id": data.order_id, "supplier_user_id": user.user_id, "is_connected": True},
+            {"_id": 0}
+        )
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        existing = await db.supplier_generated_invoices.find_one(
+            {"order_id": data.order_id, "supplier_user_id": user.user_id}
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="Invoice already exists for this order")
+
+        items = await db.order_items.find(
+            {"order_id": data.order_id}, {"_id": 0}
+        ).to_list(100)
+        shopkeeper = await db.users.find_one(
+            {"user_id": order.get("user_id")},
+            {"_id": 0, "business_name": 1, "name": 1},
+        )
+        shopkeeper_name = (shopkeeper or {}).get("business_name") or (shopkeeper or {}).get("name", "")
+        shopkeeper_user_id = order.get("user_id", "")
+        normalized_items = [
+            {
+                "name": it.get("product_name", ""),
+                "quantity": it.get("quantity", 0),
+                "unit_price": it.get("unit_price", 0),
+                "total": it.get("total_price", 0),
+                "description": it.get("product_name", ""),
+            }
+            for it in items
+        ]
+        order_total = float(order.get("total_amount", 0) or 0)
+    else:
+        if not shopkeeper_name:
+            raise HTTPException(status_code=400, detail="Le nom du client est obligatoire")
+        if not data.items:
+            raise HTTPException(status_code=400, detail="Ajoutez au moins une ligne de facture")
+        for item in data.items:
+            description = str(item.get("description") or item.get("name") or "").strip()
+            quantity = parse_supplier_catalog_float(item.get("quantity"), 0.0)
+            unit_price = parse_supplier_catalog_float(item.get("unit_price"), 0.0)
+            if not description:
+                continue
+            if quantity <= 0 or unit_price < 0:
+                continue
+            line_total = round(quantity * unit_price, 2)
+            normalized_items.append({
+                "name": description,
+                "description": description,
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "total": line_total,
+            })
+            order_total += line_total
+
+        if not normalized_items:
+            raise HTTPException(status_code=400, detail="Ajoutez au moins une ligne valide")
 
     invoice = {
         "invoice_id": f"sinv_{uuid.uuid4().hex[:12]}",
         "supplier_user_id": user.user_id,
         "order_id": data.order_id,
-        "shopkeeper_user_id": order.get("user_id", ""),
+        "shopkeeper_user_id": shopkeeper_user_id,
         "shopkeeper_name": shopkeeper_name,
         "invoice_number": inv_number,
-        "items": [{"name": it.get("product_name", ""), "quantity": it.get("quantity", 0), "unit_price": it.get("unit_price", 0), "total": it.get("total_price", 0)} for it in items],
-        "total_amount": order.get("total_amount", 0),
+        "items": normalized_items,
+        "total_amount": round(order_total, 2),
         "status": "unpaid",
         "notes": data.notes,
+        "invoice_business_name": (profile or {}).get("invoice_business_name") or (profile or {}).get("company_name") or user.name,
+        "invoice_business_address": (profile or {}).get("invoice_business_address") or (profile or {}).get("address") or "",
+        "invoice_label": inv_label,
+        "invoice_prefix": inv_prefix,
+        "invoice_footer": (profile or {}).get("invoice_footer") or "",
+        "invoice_payment_terms": (profile or {}).get("invoice_payment_terms") or "",
         "created_at": datetime.now(timezone.utc),
     }
     await db.supplier_generated_invoices.insert_one(invoice)

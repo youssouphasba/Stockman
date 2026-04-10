@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { supplierProfile, SupplierProfileData, SupplierProfileCreate } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
@@ -21,9 +21,15 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { formatNumber } from '../../utils/format';
 import LanguagePickerModal from '../../components/LanguagePickerModal';
 import DeleteAccountModal from '../../components/DeleteAccountModal';
+import HelpCenter from '../../components/HelpCenter';
+import ScreenGuide from '../../components/ScreenGuide';
+import { GUIDES } from '../../constants/guides';
+import ContactSupportModal from '../../components/ContactSupportModal';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
 
 export default function SupplierSettingsScreen() {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const infoStyles = React.useMemo(() => createInfoStyles(colors), [colors]);
@@ -35,6 +41,10 @@ export default function SupplierSettingsScreen() {
   const [isNew, setIsNew] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [helpGuide, setHelpGuide] = useState<{ title: string; steps: any[] } | null>(null);
 
   // Form state
   const [companyName, setCompanyName] = useState('');
@@ -46,6 +56,12 @@ export default function SupplierSettingsScreen() {
   const [zonesText, setZonesText] = useState('');
   const [minOrder, setMinOrder] = useState('');
   const [avgDays, setAvgDays] = useState('');
+  const [invoiceBusinessName, setInvoiceBusinessName] = useState('');
+  const [invoiceBusinessAddress, setInvoiceBusinessAddress] = useState('');
+  const [invoiceLabel, setInvoiceLabel] = useState('Facture');
+  const [invoicePrefix, setInvoicePrefix] = useState('FAC');
+  const [invoicePaymentTerms, setInvoicePaymentTerms] = useState('');
+  const [invoiceFooter, setInvoiceFooter] = useState('');
 
   const loadProfile = useCallback(async () => {
     try {
@@ -54,6 +70,22 @@ export default function SupplierSettingsScreen() {
       populateForm(result);
       setIsNew(false);
     } catch {
+      setProfile(null);
+      setCompanyName('');
+      setDescription('');
+      setPhone('');
+      setAddress('');
+      setCity('');
+      setCategoriesText('');
+      setZonesText('');
+      setMinOrder('0');
+      setAvgDays('3');
+      setInvoiceBusinessName('');
+      setInvoiceBusinessAddress('');
+      setInvoiceLabel('Facture');
+      setInvoicePrefix('FAC');
+      setInvoicePaymentTerms('');
+      setInvoiceFooter('');
       setIsNew(true);
       setIsEditing(true);
     } finally {
@@ -77,6 +109,12 @@ export default function SupplierSettingsScreen() {
     setZonesText((p.delivery_zones || []).join(', '));
     setMinOrder(p.min_order_amount?.toString() || '0');
     setAvgDays(p.average_delivery_days?.toString() || '3');
+    setInvoiceBusinessName(p.invoice_business_name || p.company_name || '');
+    setInvoiceBusinessAddress(p.invoice_business_address || p.address || '');
+    setInvoiceLabel(p.invoice_label || 'Facture');
+    setInvoicePrefix(p.invoice_prefix || 'FAC');
+    setInvoicePaymentTerms(p.invoice_payment_terms || '');
+    setInvoiceFooter(p.invoice_footer || '');
   }
 
   async function handleSave() {
@@ -95,6 +133,12 @@ export default function SupplierSettingsScreen() {
       delivery_zones: zonesText.split(',').map(s => s.trim()).filter(Boolean),
       min_order_amount: parseFloat(minOrder) || 0,
       average_delivery_days: parseInt(avgDays) || 3,
+      invoice_business_name: invoiceBusinessName.trim() || companyName.trim(),
+      invoice_business_address: invoiceBusinessAddress.trim() || undefined,
+      invoice_label: invoiceLabel.trim() || 'Facture',
+      invoice_prefix: invoicePrefix.trim() || 'FAC',
+      invoice_payment_terms: invoicePaymentTerms.trim() || undefined,
+      invoice_footer: invoiceFooter.trim() || undefined,
     };
     try {
       let result: SupplierProfileData;
@@ -127,6 +171,13 @@ export default function SupplierSettingsScreen() {
           { text: t('auth.logout_btn'), style: 'destructive', onPress: () => logout() },
         ]
       );
+    }
+  }
+
+  function launchGuide(guideKey: string) {
+    const guide = GUIDES[guideKey];
+    if (guide) {
+      setHelpGuide(guide);
     }
   }
 
@@ -275,9 +326,176 @@ export default function SupplierSettingsScreen() {
               <Ionicons name="language-outline" size={20} color={colors.secondary} />
             </View>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={infoStyles.row}
+            onPress={() => launchGuide('supplierSettings')}
+          >
+            <View style={styles.utilityRow}>
+              <View>
+                <Text style={infoStyles.label}>Guide de l'espace fournisseur</Text>
+                <Text style={infoStyles.value}>Comprendre les paramètres et les documents</Text>
+              </View>
+              <Ionicons name="play-circle-outline" size={20} color={colors.secondary} />
+            </View>
+          </TouchableOpacity>
         </View>
 
-        {/* GDPR - Danger Zone */}
+        {/* Sales documents */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Documents de vente</Text>
+            {!isEditing && profile && (
+              <TouchableOpacity onPress={() => setIsEditing(true)}>
+                <Ionicons name="create-outline" size={20} color={colors.secondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {isEditing ? (
+            <>
+              <Text style={styles.label}>Nom affiché sur vos documents</Text>
+              <TextInput
+                style={styles.input}
+                value={invoiceBusinessName}
+                onChangeText={setInvoiceBusinessName}
+                placeholder="Nom commercial"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={styles.label}>En-tête du document</Text>
+              <TextInput
+                style={[styles.input, styles.multiline]}
+                value={invoiceBusinessAddress}
+                onChangeText={setInvoiceBusinessAddress}
+                placeholder="Adresse, ville, téléphone, e-mail..."
+                placeholderTextColor={colors.textMuted}
+                multiline
+                numberOfLines={3}
+              />
+
+              <View style={styles.formRow}>
+                <View style={styles.formHalf}>
+                  <Text style={styles.label}>Type de document</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={invoiceLabel}
+                    onChangeText={setInvoiceLabel}
+                    placeholder="Facture"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+                <View style={styles.formHalf}>
+                  <Text style={styles.label}>Préfixe des numéros</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={invoicePrefix}
+                    onChangeText={setInvoicePrefix}
+                    placeholder="FAC"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.label}>Conditions générales de vente</Text>
+              <TextInput
+                style={styles.input}
+                value={invoicePaymentTerms}
+                onChangeText={setInvoicePaymentTerms}
+                placeholder="Exemple : paiement comptant à la livraison"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={styles.label}>Pied de page</Text>
+              <TextInput
+                style={[styles.input, styles.multiline]}
+                value={invoiceFooter}
+                onChangeText={setInvoiceFooter}
+                placeholder="Informations complémentaires, remerciement, mentions..."
+                placeholderTextColor={colors.textMuted}
+                multiline
+                numberOfLines={3}
+              />
+            </>
+          ) : (
+            <>
+              <InfoRow label="Nom sur le document" value={profile?.invoice_business_name || profile?.company_name || 'Non renseigné'} />
+              <InfoRow label="Type de document" value={profile?.invoice_label || 'Facture'} />
+              <InfoRow label="Préfixe de numérotation" value={profile?.invoice_prefix || 'FAC'} />
+              <InfoRow label="Conditions de vente" value={profile?.invoice_payment_terms || 'Aucune condition spécifique'} />
+              <InfoRow label="Pied de page" value={profile?.invoice_footer || 'Aucun pied de page personnalisé'} />
+            </>
+          )}
+        </View>
+
+        {/* Legal */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Informations légales</Text>
+
+          <TouchableOpacity
+            style={infoStyles.row}
+            onPress={() => router.push({ pathname: '/terms', params: { returnTo: '/(supplier-tabs)/settings' } } as any)}
+          >
+            <View style={styles.utilityRow}>
+              <View>
+                <Text style={infoStyles.label}>CGU Stockman</Text>
+                <Text style={infoStyles.value}>Relire les conditions d'utilisation de l'application</Text>
+              </View>
+              <Ionicons name="document-text-outline" size={20} color={colors.secondary} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[infoStyles.row, { borderBottomWidth: 0 }]}
+            onPress={() => router.push({ pathname: '/privacy', params: { returnTo: '/(supplier-tabs)/settings' } } as any)}
+          >
+            <View style={styles.utilityRow}>
+              <View>
+                <Text style={infoStyles.label}>Politique de confidentialité</Text>
+                <Text style={infoStyles.value}>Comprendre le traitement de vos données</Text>
+              </View>
+              <Ionicons name="shield-checkmark-outline" size={20} color={colors.secondary} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Support and security */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Assistance et sécurité</Text>
+
+          <TouchableOpacity style={infoStyles.row} onPress={() => setShowHelpCenter(true)}>
+            <View style={styles.utilityRow}>
+              <View>
+                <Text style={infoStyles.label}>Centre d'aide</Text>
+                <Text style={infoStyles.value}>Retrouver les guides et bonnes pratiques fournisseur</Text>
+              </View>
+              <Ionicons name="help-circle-outline" size={20} color={colors.secondary} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={infoStyles.row} onPress={() => setShowSupportModal(true)}>
+            <View style={styles.utilityRow}>
+              <View>
+                <Text style={infoStyles.label}>Contacter le support</Text>
+                <Text style={infoStyles.value}>Ouvrir un ticket ou discuter avec l'équipe Stockman</Text>
+              </View>
+              <Ionicons name="chatbubbles-outline" size={20} color={colors.secondary} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[infoStyles.row, { borderBottomWidth: 0 }]} onPress={() => setShowPasswordModal(true)}>
+            <View style={styles.utilityRow}>
+              <View>
+                <Text style={infoStyles.label}>{user?.password_set ? 'Mot de passe' : 'Créer un mot de passe'}</Text>
+                <Text style={infoStyles.value}>
+                  {user?.password_set ? 'Modifier votre mot de passe de connexion' : 'Définir un mot de passe en plus de votre connexion actuelle'}
+                </Text>
+              </View>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.secondary} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Danger zone */}
         <View style={[styles.card, { borderColor: colors.danger + '30', borderWidth: 1 }]}>
           <Text style={[styles.sectionTitle, { color: colors.danger }]}>{t('settings.danger_zone')}</Text>
           <Text style={[infoStyles.label, { marginBottom: Spacing.md }]}>
@@ -306,6 +524,31 @@ export default function SupplierSettingsScreen() {
         <DeleteAccountModal
           visible={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
+        />
+
+        <HelpCenter
+          visible={showHelpCenter}
+          onClose={() => setShowHelpCenter(false)}
+          onLaunchGuide={launchGuide}
+          userRole="supplier"
+        />
+
+        <ScreenGuide
+          visible={!!helpGuide}
+          title={helpGuide?.title || ''}
+          steps={helpGuide?.steps || []}
+          onClose={() => setHelpGuide(null)}
+        />
+
+        <ContactSupportModal
+          visible={showSupportModal}
+          onClose={() => setShowSupportModal(false)}
+        />
+
+        <ChangePasswordModal
+          visible={showPasswordModal}
+          onClose={() => setShowPasswordModal(false)}
+          mode={user?.password_set ? 'change' : 'set'}
         />
 
         <View style={{ height: Spacing.xxl }} />
@@ -402,6 +645,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: '600',
     color: colors.secondary,
+  },
+  utilityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   label: {
     fontSize: FontSize.sm,

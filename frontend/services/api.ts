@@ -1226,6 +1226,16 @@ export const supplierCatalog = {
   update: (id: string, data: CatalogProductCreate) => request<CatalogProductData>(`/supplier/catalog/${id}`, { method: 'PUT', body: data }),
   duplicate: (id: string) => request<CatalogProductData>(`/supplier/catalog/${id}/duplicate`, { method: 'POST' }),
   delete: (id: string) => request<{ message: string }>(`/supplier/catalog/${id}`, { method: 'DELETE' }),
+  parseImport: (formData: FormData) =>
+    request<any>('/supplier/catalog/import/parse', {
+      method: 'POST',
+      body: formData,
+    }),
+  confirmImport: (data: { importData: any[]; mapping: Record<string, string>; fileName?: string; publicationStatus?: string }) =>
+    request<{ message: string; count: number; errors?: any[] }>('/supplier/catalog/import/confirm', {
+      method: 'POST',
+      body: data,
+    }),
 };
 
 // Supplier Dashboard (CAS 1)
@@ -1250,20 +1260,27 @@ export const supplierOrders = {
 export type SupplierInvoiceData = {
   invoice_id: string;
   supplier_user_id: string;
-  order_id: string;
-  shopkeeper_user_id: string;
+  order_id?: string | null;
+  shopkeeper_user_id?: string | null;
   shopkeeper_name: string;
+  client_name?: string | null;
   invoice_number: string;
-  items: { name: string; quantity: number; unit_price: number; total: number }[];
+  items: { name: string; description?: string; quantity: number; unit_price: number; total: number }[];
   total_amount: number;
   status: 'paid' | 'unpaid' | 'partial';
   notes: string | null;
+  invoice_business_name?: string | null;
+  invoice_business_address?: string | null;
+  invoice_label?: string | null;
+  invoice_prefix?: string | null;
+  invoice_footer?: string | null;
+  invoice_payment_terms?: string | null;
   created_at: string;
 };
 
 export const supplierInvoices = {
   list: () => request<SupplierInvoiceData[]>('/supplier/invoices'),
-  create: (data: { order_id: string; invoice_number?: string; notes?: string }) =>
+  create: (data: { order_id?: string; client_name?: string; invoice_number?: string; notes?: string; items?: { description: string; quantity: number; unit_price: number }[] }) =>
     request<SupplierInvoiceData>('/supplier/invoices', { method: 'POST', body: data }),
   updateStatus: (invoiceId: string, status: string) =>
     request<any>(`/supplier/invoices/${invoiceId}/status`, { method: 'PUT', body: { status } }),
@@ -3027,6 +3044,12 @@ export type SupplierProfileData = {
   delivery_zones: string[];
   min_order_amount: number;
   average_delivery_days: number;
+  invoice_business_name: string;
+  invoice_business_address: string;
+  invoice_label: string;
+  invoice_prefix: string;
+  invoice_footer: string;
+  invoice_payment_terms: string;
   rating_average: number;
   rating_count: number;
   is_verified: boolean;
@@ -3044,6 +3067,12 @@ export type SupplierProfileCreate = {
   delivery_zones?: string[];
   min_order_amount?: number;
   average_delivery_days?: number;
+  invoice_business_name?: string;
+  invoice_business_address?: string;
+  invoice_label?: string;
+  invoice_prefix?: string;
+  invoice_footer?: string;
+  invoice_payment_terms?: string;
 };
 
 export type CatalogProductData = {

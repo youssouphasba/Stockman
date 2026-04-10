@@ -20,6 +20,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 description: "Appuyez sur l'icône d'options dans le header pour choisir quelles sections afficher : KPIs, santé du stock, rappels, prévisions IA."
             },
             {
+                icon: "layers-outline",
+                title: "Vue simplifiée selon le plan",
+                description: "Sur mobile, les comptes Starter et Pro voient un tableau de bord plus simple. Les blocs d'analyse avancée et les briques IA du dashboard restent réservés au plan Enterprise."
+            },
+            {
                 icon: "pie-chart-outline",
                 title: "Santé du Stock",
                 description: "Badges colorés : Rouge (rupture), Orange (stock bas), Bleu (surstock), Vert (normal). Touchez 'Tout voir' pour la liste complète."
@@ -167,7 +172,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "cart-outline",
                 title: "Gestion du Panier",
-                description: "Ajustez les quantités avec +/−, supprimez une ligne, ou videz tout le panier. Le total se calcule en temps réel."
+                description: "Ajustez les quantités avec +/−, supprimez une ligne, ou videz tout le panier. Le total se calcule en temps réel et le panneau reste lisible en mode clair."
             },
             {
                 icon: "layers-outline",
@@ -197,7 +202,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "receipt-outline",
                 title: "Reçu Digital",
-                description: "Après validation, le ticket local reste visible même hors ligne. Les partages QR, PDF ou WhatsApp complets redeviennent disponibles dès que la vente est synchronisée."
+                description: "Après validation, le ticket local reste visible même hors ligne. L'impression utilise une mise en page dédiée pour garder un rendu propre sur le web."
             }
         ]
     },
@@ -273,6 +278,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "call-outline",
                 title: "Contact Direct",
                 description: "Depuis la fiche client : appelez, envoyez un SMS, ouvrez WhatsApp ou envoyez un email en un seul toucher."
+            },
+            {
+                icon: "document-text-outline",
+                title: "Notes client reliées",
+                description: "Quand vous enregistrez une note depuis la fiche client, elle reste dans le CRM, s'ajoute a l'historique du client et cree aussi une note liee dans Notes et rappels."
             },
             {
                 icon: "download-outline",
@@ -517,7 +527,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "document-text-outline",
                 title: "Les notes restent séparées",
-                description: "Les notes sans date sont visibles dans leur propre section. Vous pouvez les garder simples ou leur ajouter un rappel plus tard."
+                description: "Les notes sans date sont visibles dans leur propre section. Une note creee depuis le CRM affiche aussi le nom du client pour rester compréhensible."
             },
             {
                 icon: "time-outline",
@@ -649,9 +659,10 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     supplierCatalog: {
         title: "Gestion du Catalogue",
         steps: [
-            { icon: "add-circle-outline", title: "Ajouter un Produit", description: "Ajoutez vos produits au catalogue avec nom, description, prix, quantité minimum de commande et photos." },
-            { icon: "pricetag-outline", title: "Prix & Disponibilité", description: "Mettez à jour vos prix et basculez la disponibilité d'un produit en un clic. Les commerçants voient les changements en temps réel." },
-            { icon: "grid-outline", title: "Catégories", description: "Organisez votre catalogue par catégories et sous-catégories pour faciliter la recherche des commerçants." }
+            { icon: "flash-outline", title: "Création rapide utile", description: "La création rapide fournisseur ne sert plus à afficher un mini formulaire. Elle regroupe maintenant les vraies actions de productivité : import CSV, nouveau produit, édition rapide, brouillons et fiches prêtes." },
+            { icon: "cloud-upload-outline", title: "Importer un CSV", description: "Préparez votre fichier catalogue, mappez les colonnes puis validez l'import. Les fiches importées arrivent comme brouillons ou selon le statut choisi." },
+            { icon: "create-outline", title: "Édition rapide", description: "L'édition rapide permet de corriger vite le nom, le prix, le stock et le statut de publication sans rouvrir chaque fiche." },
+            { icon: "checkmark-done-outline", title: "Préparer la publication", description: "Utilisez les filtres Brouillons, À compléter et Prêts pour finir vos fiches avant publication. Publiez seulement les produits réellement prêts pour les commerçants." }
         ]
     },
     supplierOrders: {
@@ -659,14 +670,17 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             { icon: "list-outline", title: "Nouvelles Commandes", description: "Les commandes en attente apparaissent ici. Consultez le détail (articles, quantités, montant) avant d'accepter ou refuser." },
             { icon: "checkmark-circle-outline", title: "Confirmer & Expédier", description: "Acceptez la commande puis marquez-la comme expédiée quand la livraison est en route." },
-            { icon: "analytics-outline", title: "Suivi & Historique", description: "Filtrez par statut ou par période pour suivre toutes vos commandes passées et en cours." }
+            { icon: "document-text-outline", title: "Créer une facture comme un commerçant", description: "Depuis l'onglet Factures, vous pouvez désormais créer une facture à partir d'une commande ou créer une facture manuelle complète avec client, lignes d'articles, quantités et prix unitaires." },
+            { icon: "analytics-outline", title: "Suivi & Historique", description: "Filtrez par statut ou par période pour suivre toutes vos commandes passées, puis ouvrez les détails de facture pour relire les montants, les lignes et le statut de paiement." }
         ]
     },
     supplierSettings: {
         title: "Paramètres Fournisseur",
         steps: [
-            { icon: "person-circle-outline", title: "Votre Profil", description: "Complétez votre profil fournisseur : nom d'entreprise, description, logo, coordonnées." },
-            { icon: "business-outline", title: "Infos Entreprise", description: "Renseignez vos zones de livraison, délai moyen et montant minimum de commande." }
+            { icon: "person-circle-outline", title: "Votre Profil", description: "Complétez votre profil fournisseur : nom d'entreprise, description, coordonnées, zones de livraison, délai moyen et montant minimum de commande." },
+            { icon: "document-outline", title: "Documents et CGV", description: "Définissez le nom affiché sur vos documents, l'en-tête, le préfixe, vos CGV et le pied de page utilisés dans vos factures et autres documents de vente." },
+            { icon: "information-circle-outline", title: "CGU et confidentialité", description: "Relisez directement depuis cet écran les CGU Stockman et la politique de confidentialité sans quitter l'espace fournisseur." },
+            { icon: "help-circle-outline", title: "Aide, sécurité et suppression", description: "Le centre d'aide, le contact support, la gestion du mot de passe et la suppression du compte sont accessibles directement depuis les paramètres fournisseur." }
         ]
     },
     // ============ TRANSVERSES ============

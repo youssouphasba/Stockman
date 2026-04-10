@@ -1,5 +1,11 @@
 # Plan des guides vocaux contextuels
 
+## Document complementaire
+
+Pour la piste specifique d'un assistant vocal wolof guide par la voix, voir aussi :
+
+- `docs/WOLOF_VOICE_ASSISTANT_ROADMAP.md`
+
 ## Objectif
 
 Mettre en place un systeme de guides vocaux contextuels dans Stockman, consultables depuis le mobile et le web, et administrables depuis l'admin mobile et l'admin web.

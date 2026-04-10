@@ -44,14 +44,16 @@ Depuis la fiche d'un client, on peut :
 - suivre sa dette ;
 - enregistrer ou annuler certains mouvements selon les droits accordes ;
 - ajouter ou modifier une note client directement dans la fiche ;
-- creer une copie de cette note dans **Notes et rappels**.
+- retrouver l'historique des notes deja enregistrees pour ce client ;
+- envoyer automatiquement la note dans **Notes et rappels** au moment de l'enregistrement.
 
 ## 7. Note client et Notes
 
-- la note client reste dans le CRM pour garder les preferences, habitudes et consignes utiles ;
-- le bouton **Creer dans Notes** envoie une copie dans le module personnel **Notes et rappels** ;
-- cette copie ne transforme pas la fiche client en agenda partage ;
-- le module Notes reste personnel a l'utilisateur connecte.
+- la note visible dans la fiche client reste la note la plus recente ;
+- chaque nouvel enregistrement ajoute aussi une entree dans l'historique des notes du client ;
+- si le compte a acces au module **Notes et rappels**, l'enregistrement cree automatiquement une note liee a ce client ;
+- dans le module Notes, le nom du client apparait pour eviter toute ambiguite ;
+- le module Notes reste personnel a l'utilisateur connecte, meme si la note vient du CRM.
 
 ## 8. Questions frequentes
 

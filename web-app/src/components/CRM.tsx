@@ -38,7 +38,6 @@ import {
     ai as aiApi,
     crmAnalytics as crmAnalyticsApi,
     customers as customersApi,
-    planner as plannerApi,
     promotions as promotionsApi,
     type AnalyticsKpiDetail,
     type CrmAnalyticsOverview,
@@ -111,7 +110,6 @@ export default function CRM({ user }: CRMProps) {
     const [isEditingCustomerNotes, setIsEditingCustomerNotes] = useState(false);
     const [customerNotesDraft, setCustomerNotesDraft] = useState('');
     const [customerNotesSaving, setCustomerNotesSaving] = useState(false);
-    const [plannerNoteSaving, setPlannerNoteSaving] = useState(false);
     const [customerNoteStatus, setCustomerNoteStatus] = useState<string | null>(null);
     const [customerForm, setCustomerForm] = useState({
         name: '',
@@ -437,50 +435,26 @@ export default function CRM({ user }: CRMProps) {
         setCustomerNotesSaving(true);
         setCustomerNoteStatus(null);
         try {
-            const updated = await customersApi.update(selectedCustomer.customer_id, {
-                name: selectedCustomer.name || '',
-                phone: selectedCustomer.phone || '',
-                email: selectedCustomer.email || '',
-                notes: customerNotesDraft.trim(),
-                birthday: selectedCustomer.birthday || '',
-                category: selectedCustomer.category || 'particulier',
+            const noteContent = customerNotesDraft.trim();
+            const previousNote = String(selectedCustomer.notes || '').trim();
+            const updated = await customersApi.saveNotes(selectedCustomer.customer_id, {
+                content: noteContent,
             });
             setSelectedCustomer((current: any) => ({ ...current, ...updated, notes: updated.notes || '' }));
             setCustomers((current) => current.map((customer) =>
                 customer.customer_id === selectedCustomer.customer_id ? { ...customer, ...updated } : customer
             ));
             setIsEditingCustomerNotes(false);
-            setCustomerNoteStatus('Note client enregistrée.');
+            setCustomerNoteStatus(
+                noteContent && noteContent !== previousNote
+                    ? 'Note client enregistrée et ajoutée dans Notes et rappels.'
+                    : 'Note client enregistrée.'
+            );
         } catch (err) {
             console.error('Save customer notes error', err);
             setCustomerNoteStatus("Impossible d'enregistrer la note client.");
         } finally {
             setCustomerNotesSaving(false);
-        }
-    };
-
-    const handleCreatePlannerNoteFromCustomer = async () => {
-        if (!selectedCustomer?.customer_id) return;
-        const noteText = (isEditingCustomerNotes ? customerNotesDraft : selectedCustomer.notes || '').trim();
-        if (!noteText) {
-            setCustomerNoteStatus("Ajoutez d'abord une note client, puis envoyez-la vers Notes.");
-            setIsEditingCustomerNotes(true);
-            return;
-        }
-        setPlannerNoteSaving(true);
-        setCustomerNoteStatus(null);
-        try {
-            await plannerApi.create({
-                title: `Note client - ${selectedCustomer.name}`,
-                content: `Client : ${selectedCustomer.name}\nTéléphone : ${selectedCustomer.phone || 'non renseigné'}\n\n${noteText}`,
-                channels: ['in_app'],
-            });
-            setCustomerNoteStatus('Note créée dans Notes.');
-        } catch (err) {
-            console.error('Create planner note error', err);
-            setCustomerNoteStatus("Impossible de créer la note dans Notes. Vérifiez que le compte a accès à Notes et Rappels.");
-        } finally {
-            setPlannerNoteSaving(false);
         }
     };
 
@@ -1624,14 +1598,6 @@ export default function CRM({ user }: CRMProps) {
                                     >
                                         Modifier
                                     </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleCreatePlannerNoteFromCustomer}
-                                        disabled={plannerNoteSaving}
-                                        className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-primary transition-all hover:bg-primary/20 disabled:opacity-50"
-                                    >
-                                        {plannerNoteSaving ? 'Création...' : 'Créer dans Notes'}
-                                    </button>
                                 </div>
                             </div>
 
@@ -1674,6 +1640,39 @@ export default function CRM({ user }: CRMProps) {
                                 <p className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300">
                                     {customerNoteStatus}
                                 </p>
+                            )}
+                            {Array.isArray(selectedCustomer.note_history) && selectedCustomer.note_history.length > 0 && (
+                                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <div className="mb-3 flex items-center justify-between gap-3">
+                                        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                                            Historique des notes
+                                        </p>
+                                        <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[11px] font-bold text-slate-300">
+                                            {selectedCustomer.note_history.length}
+                                        </span>
+                                    </div>
+                                    <div className="max-h-64 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
+                                        {[...selectedCustomer.note_history]
+                                            .sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+                                            .map((entry: any) => (
+                                                <div key={entry.entry_id || entry.created_at} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                                                    <div className="mb-2 flex items-center justify-between gap-3">
+                                                        <span className="text-xs font-bold text-primary">
+                                                            {formatDate(entry.created_at)}
+                                                        </span>
+                                                        {entry.linked_planner_item_id && (
+                                                            <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-primary">
+                                                                Dans Notes
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-200">
+                                                        {entry.content}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>
