@@ -37,7 +37,7 @@
         "NSMicrophoneUsageDescription": "Stockman uses the microphone to let you add products to the cart by speaking in the voice checkout, and to send voice messages in AI support.",
         "NSPhotoLibraryUsageDescription": "Stockman accesses your photo library so you can select an existing image to attach to a product listing, a receipt, or a business document.",
         "NSPhotoLibraryAddUsageDescription": "Stockman saves generated images to your photo library, such as receipts, product photos, or exported reports."
-      },
+      }
     },
     "icon": "./assets/icon.png",
     "scheme": "stockman",
@@ -94,6 +94,7 @@
       ],
       "./plugins/withGlogFix",
       "./plugins/withIosSwiftCompatibility",
+      "./plugins/withExpoDevLauncherBuildFix",
       "./plugins/withFirebaseModularHeaders",
       "./plugins/withReactNativeHeaderFix",
       "./plugins/withRemoveBackgroundAudioMode",
