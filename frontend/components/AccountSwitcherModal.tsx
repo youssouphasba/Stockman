@@ -32,7 +32,7 @@ function getRoleLabel(role: string): string {
     case 'superadmin':
       return 'Administration';
     default:
-      return 'Commercant';
+      return 'Commerçant';
   }
 }
 
@@ -59,7 +59,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
     if (!email.trim() || !password.trim()) {
       Alert.alert(
         'Informations manquantes',
-        "Saisissez l'adresse e-mail et le mot de passe du compte a ajouter.",
+        "Saisissez l'adresse e-mail et le mot de passe du compte à ajouter.",
       );
       return;
     }
@@ -69,7 +69,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
       await addAccount(email.trim().toLowerCase(), password);
       setEmail('');
       setPassword('');
-      Alert.alert('Compte ajoute', 'Ce compte est maintenant disponible sur cet appareil.');
+      Alert.alert('Compte ajouté', 'Ce compte est maintenant disponible sur cet appareil.');
     } catch (error: any) {
       Alert.alert('Ajout impossible', error?.message || "Impossible d'ajouter ce compte pour le moment.");
     } finally {
@@ -97,7 +97,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
 
   const confirmRemoveAccount = (targetUserId: string, accountLabel: string) => {
     const title = 'Retirer ce compte';
-    const message = "Ce compte sera retire de cet appareil. Vous pourrez le reconnecter plus tard avec son adresse e-mail et son mot de passe.";
+    const message = "Ce compte sera retiré de cet appareil. Vous pourrez le reconnecter plus tard avec son adresse e-mail et son mot de passe.";
     const proceed = async () => {
       try {
         await removeStoredAccount(targetUserId);
@@ -130,7 +130,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
             <View style={styles.headerCopy}>
               <Text style={styles.title}>Comptes sur cet appareil</Text>
               <Text style={styles.subtitle}>
-                Ajoutez plusieurs comptes, puis basculez rapidement de l&apos;un a l&apos;autre sans vous reconnecter a chaque fois.
+                Ajoutez plusieurs comptes, puis basculez rapidement de l&apos;un à l&apos;autre sans vous reconnecter à chaque fois.
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -140,13 +140,13 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
 
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Comptes memorises</Text>
+              <Text style={styles.sectionTitle}>Comptes mémorisés</Text>
               <Text style={styles.helperText}>
-                Le changement de compte utilise les sessions deja enregistrees sur ce telephone.
+                Le changement de compte utilise les sessions déjà enregistrées sur ce téléphone.
               </Text>
 
               {storedAccounts.length === 0 ? (
-                <Text style={styles.emptyText}>Aucun autre compte n&apos;est encore enregistre sur cet appareil.</Text>
+                <Text style={styles.emptyText}>Aucun autre compte n&apos;est encore enregistré sur cet appareil.</Text>
               ) : (
                 storedAccounts.map((entry) => {
                   const isActive = entry.user.user_id === activeAccountId;
@@ -168,7 +168,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
                         <Text style={styles.accountMeta}>
                           {isActive
                             ? 'Compte actif'
-                            : `Derniere utilisation : ${new Date(entry.last_used_at).toLocaleString()}`}
+                            : `Dernière utilisation : ${new Date(entry.last_used_at).toLocaleString()}`}
                         </Text>
                       </View>
 
@@ -204,7 +204,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Ajouter un autre compte</Text>
               <Text style={styles.helperText}>
-                Saisissez l&apos;adresse e-mail et le mot de passe du compte fournisseur, commercant ou staff a memoriser sur ce telephone.
+                Saisissez l&apos;adresse e-mail et le mot de passe du compte fournisseur, commerçant ou staff à mémoriser sur ce téléphone.
               </Text>
 
               <Text style={styles.label}>Adresse e-mail</Text>

@@ -868,18 +868,13 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          <TouchableOpacity style={styles.accountSwitcherEntry} onPress={() => setShowAccountSwitcher(true)}>
-            <View style={styles.accountSwitcherEntryCopy}>
-              <View style={styles.accountSwitcherEntryBadge}>
-                <Ionicons name="swap-horizontal-outline" size={15} color={colors.primary} />
-                <Text style={styles.accountSwitcherEntryBadgeText}>Multi-compte</Text>
-              </View>
-              <Text style={styles.accountSwitcherEntryTitle}>Changer de compte</Text>
-              <Text style={styles.accountSwitcherEntrySubtitle}>
-                Basculez rapidement vers un autre compte memorise sur cet appareil.
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward-outline" size={20} color={colors.textMuted} />
+          <TouchableOpacity
+            style={styles.accountSwitcherIconButton}
+            onPress={() => setShowAccountSwitcher(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Ouvrir le changement de compte"
+          >
+            <Ionicons name="swap-horizontal-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -1959,48 +1954,17 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => S
     gap: 10,
     flexShrink: 0,
   },
-  accountSwitcherEntry: {
+  accountSwitcherIconButton: {
     marginTop: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.glassBorder,
     backgroundColor: colors.glass,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  accountSwitcherEntryCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  accountSwitcherEntryBadge: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-    backgroundColor: colors.primary + '18',
-    marginBottom: 8,
-  },
-  accountSwitcherEntryBadgeText: {
-    color: colors.primary,
-    fontSize: FontSize.xs,
-    fontWeight: '700',
-  },
-  accountSwitcherEntryTitle: {
-    color: colors.text,
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  accountSwitcherEntrySubtitle: {
-    color: colors.textSecondary,
-    fontSize: FontSize.xs,
-    marginTop: 4,
-    lineHeight: 18,
   },
   greeting: { fontSize: FontSize.xl, fontWeight: '700', color: colors.text },
   username: { fontSize: FontSize.md, color: colors.textSecondary },

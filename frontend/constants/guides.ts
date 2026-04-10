@@ -22,7 +22,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "swap-horizontal-outline",
                 title: "Changer de compte",
-                description: "Une carte Multi-compte est visible juste sous le message d'accueil. Utilisez-la pour basculer rapidement vers un autre compte mémorisé sur ce téléphone sans empiler d'icônes dans le header."
+                description: "Une icône Multi-compte est visible sous le message d'accueil. Utilisez-la pour ouvrir la modale de bascule sans surcharger la rangée d'actions du header."
             },
             {
                 icon: "layers-outline",

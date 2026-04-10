@@ -328,7 +328,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
-    const currentUserId = user?.user_id;
     const rememberedAccounts = await listStoredAccountSessions();
     try {
       await authApi.logout();
@@ -338,33 +337,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setIsAppLocked(false);
     await cache.clear();
-
-    if (currentUserId && rememberedAccounts.length > 1) {
-      const nextAccount = rememberedAccounts.find((entry) => entry.user.user_id !== currentUserId) || null;
-      if (nextAccount) {
-        await setToken(nextAccount.access_token);
-        if (nextAccount.refresh_token) {
-          await setRefreshToken(nextAccount.refresh_token);
-        } else {
-          await removeRefreshToken();
-        }
-        await setActiveStoredAccountId(nextAccount.user.user_id);
-        setActiveAccountIdState(nextAccount.user.user_id);
-        setStoredAccounts(rememberedAccounts);
-        await restoreSession(true);
-        return;
-      }
-    }
-
-    if (currentUserId) {
-      const updatedAccounts = await removeStoredAccountSession(currentUserId);
-      setStoredAccounts(updatedAccounts);
-    }
-
     setUser(null);
     setHasProduction(false);
     setIsRestaurant(false);
     setActiveAccountIdState(null);
+    setStoredAccounts(rememberedAccounts);
     await clearActiveStoredAccountId();
     await removeToken();
   }
@@ -397,16 +374,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     void (async () => {
       try {
-        const freshUser = await authApi.me();
-        await hydrateAndPersistUser(freshUser);
-      } catch {
-        try {
-          const features = await userFeatures.get();
-          setHasProduction(features.has_production);
-          setIsRestaurant(isRestaurantBusiness(features));
-        } catch (error) {
-          console.warn('Failed to refresh switched account features:', error);
-        }
+        const features = await userFeatures.get();
+        setHasProduction(features.has_production);
+        setIsRestaurant(isRestaurantBusiness(features));
+      } catch (error) {
+        console.warn('Failed to refresh switched account features:', error);
       }
     })();
 

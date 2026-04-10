@@ -158,7 +158,7 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 - Ajouter un autre compte demande une authentification complete avec l'adresse e-mail et le mot de passe de ce compte.
 - Une fois les comptes memorises, la bascule peut se faire sans reconnexion complete.
 - Les notifications peuvent continuer a arriver sur le meme appareil pour plusieurs comptes memorises si le token push a ete enregistre pour chacun.
-- Sur le dashboard commercant mobile, l'acces principal au changement de compte doit rester une entree distincte sous l'accueil.
+- Sur le dashboard commercant mobile, l'acces principal au changement de compte doit rester une icone dediee sous l'accueil.
 - Sur l'espace fournisseur mobile, le changement de compte peut etre place dans l'entete si cela ne brouille pas les autres actions.
 
 ## Web admin

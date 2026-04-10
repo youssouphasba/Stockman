@@ -39,7 +39,7 @@ Le mobile doit maintenant documenter un vrai usage multi-comptes sur un seul té
 
 Le guide doit aussi expliquer le nouvel emplacement du changement de compte :
 
-- sur le dashboard commercant, l'entree principale doit rester une carte ou un bouton distinct sous l'accueil ;
+- sur le dashboard commercant, l'acces principal reste une icone dediee sous l'accueil ;
 - sur l'espace fournisseur, le changement de compte peut apparaitre directement dans l'entete.
 
 ## Objectif produit
