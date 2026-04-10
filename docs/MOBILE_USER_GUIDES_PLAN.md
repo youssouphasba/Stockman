@@ -37,6 +37,11 @@ Le mobile doit maintenant documenter un vrai usage multi-comptes sur un seul té
 - la bascule entre comptes déjà mémorisés se fait ensuite sans reconnexion complète ;
 - ce flux doit toujours être présenté comme un changement de compte sur l'appareil, et non comme une transformation d'un compte fournisseur gratuit en compte commerçant payant.
 
+Le guide doit aussi expliquer le nouvel emplacement du changement de compte :
+
+- sur le dashboard commercant, l'entree principale doit rester une carte ou un bouton distinct sous l'accueil ;
+- sur l'espace fournisseur, le changement de compte peut apparaitre directement dans l'entete.
+
 ## Objectif produit
 
 Chaque module mobile doit disposer de deux niveaux de guide complémentaires :
@@ -1727,7 +1732,7 @@ L'écran admin est organisé en segments navigables horizontalement.
 |---------|------|-------------|
 | Liste des produits | Liste filtrable | Produits du catalogue fournisseur avec recherche et filtres simples |
 | Actions rapides | Feuille d'actions | Import CSV, création par texte, édition rapide, sélection multiple |
-| Édition rapide | Modale | Correction en lot du nom, du prix, du stock et de la visibilité |
+| Édition rapide | Modale | Correction en lot du nom, du prix, du stock et de la visibilité avec libellés et consignes claires |
 | Sélection multiple | Barre d'actions | Modifier plusieurs produits, les masquer, les rendre visibles ou les supprimer |
 | Formulaire produit | Modale complète | Création et modification avec les champs essentiels du compte commerçant adaptés au fournisseur |
 | Import CSV | Assistant guidé | Mapping des colonnes, aperçu puis choix de visibilité immédiate ou masquée |

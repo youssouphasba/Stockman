@@ -1,0 +1,3 @@
+name,description,category,subcategory,price,unit,stock_available,min_order_quantity,sku,barcode,brand,origin,delivery_time,publication_status
+Paracetamol 500,Boite de 16 comprimes,Antalgique,Comprime,1200,boite,25,1,PARA500,1234567890123,Sanofi,France,24h,published
+Vitamine C 1000,Tube de comprimes effervescents,Complement,Tubes,3500,tube,12,1,VITC1000,2345678901234,UPSA,France,48h,draft

@@ -20,6 +20,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 description: "Appuyez sur l'icône d'options dans le header pour choisir quelles sections afficher : KPIs, santé du stock, rappels, prévisions IA."
             },
             {
+                icon: "swap-horizontal-outline",
+                title: "Changer de compte",
+                description: "Une carte Multi-compte est visible juste sous le message d'accueil. Utilisez-la pour basculer rapidement vers un autre compte mémorisé sur ce téléphone sans empiler d'icônes dans le header."
+            },
+            {
                 icon: "layers-outline",
                 title: "Vue simplifiée selon le plan",
                 description: "Sur mobile, les comptes Starter et Pro voient un tableau de bord plus simple. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
@@ -667,7 +672,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             { icon: "flash-outline", title: "Actions rapides utiles", description: "Le catalogue fournisseur reprend maintenant les vrais usages attendus : import CSV, création par texte, édition rapide du prix et du stock, sélection multiple et suppression." },
             { icon: "cloud-upload-outline", title: "Importer un CSV", description: "Préparez votre fichier catalogue, mappez les colonnes puis validez l'import. Avant confirmation, choisissez si les produits importés doivent être visibles tout de suite ou gardés masqués." },
             { icon: "document-text-outline", title: "Créer par texte", description: "Collez plusieurs lignes au format nom ; prix ; stock ; unité ; catégorie ; description pour créer rapidement plusieurs produits." },
-            { icon: "create-outline", title: "Édition rapide et sélection multiple", description: "L'édition rapide sert à modifier en lot les prix, les stocks et la visibilité. La sélection multiple permet ensuite d'agir sur plusieurs produits à la fois, y compris pour les supprimer." }
+            { icon: "create-outline", title: "Édition rapide et sélection multiple", description: "L'édition rapide affiche maintenant des libellés clairs pour le nom, le prix, le stock et la visibilité. La sélection multiple permet ensuite d'agir sur plusieurs produits à la fois, y compris pour les supprimer." }
         ]
     },
     supplierOrders: {

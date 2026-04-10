@@ -146,7 +146,7 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 
 - Oriente traitement des commandes recues, statuts, messages, factures et catalogue fournisseur.
 - Ne doit pas etre decrit comme equivalent du web commercant.
-- Le catalogue fournisseur mobile inclut des actions rapides utiles : import CSV, creation de fiche, edition rapide, reprise des brouillons et fiches pretes.
+- Le catalogue fournisseur mobile inclut des actions rapides utiles : import CSV, creation de fiche, creation par texte, edition rapide, selection multiple et suppression en lot.
 - Les factures fournisseur mobiles peuvent etre creees depuis une commande eligible ou manuellement, meme sans commande prealable.
 - Les parametres fournisseur mobiles couvrent aussi les preferences de facturation, l'aide, le support et le mot de passe.
 
@@ -158,6 +158,8 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 - Ajouter un autre compte demande une authentification complete avec l'adresse e-mail et le mot de passe de ce compte.
 - Une fois les comptes memorises, la bascule peut se faire sans reconnexion complete.
 - Les notifications peuvent continuer a arriver sur le meme appareil pour plusieurs comptes memorises si le token push a ete enregistre pour chacun.
+- Sur le dashboard commercant mobile, l'acces principal au changement de compte doit rester une entree distincte sous l'accueil.
+- Sur l'espace fournisseur mobile, le changement de compte peut etre place dans l'entete si cela ne brouille pas les autres actions.
 
 ## Web admin
 

@@ -63,6 +63,7 @@ import AiDailySummary from '../../components/AiDailySummary';
 import { formatCurrency as globalFormatCurrency, getCurrencySymbol } from '../../utils/format';
 import KpiInfoButton from '../../components/KpiInfoButton';
 import { useDrawer } from '../../contexts/DrawerContext';
+import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 
 // screenWidth is now read via useWindowDimensions() inside the component
 
@@ -164,6 +165,7 @@ export default function DashboardScreen() {
   const [notifCount, setNotifCount] = useState(0);
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showDashboardSettings, setShowDashboardSettings] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
 
   // Vague 1: Health Score + Prediction
   const [healthScore, setHealthScore] = useState<any>(null);
@@ -866,6 +868,19 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          <TouchableOpacity style={styles.accountSwitcherEntry} onPress={() => setShowAccountSwitcher(true)}>
+            <View style={styles.accountSwitcherEntryCopy}>
+              <View style={styles.accountSwitcherEntryBadge}>
+                <Ionicons name="swap-horizontal-outline" size={15} color={colors.primary} />
+                <Text style={styles.accountSwitcherEntryBadgeText}>Multi-compte</Text>
+              </View>
+              <Text style={styles.accountSwitcherEntryTitle}>Changer de compte</Text>
+              <Text style={styles.accountSwitcherEntrySubtitle}>
+                Basculez rapidement vers un autre compte memorise sur cet appareil.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward-outline" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
         </View>
 
         {/* Daily Tip */}
@@ -1896,6 +1911,7 @@ export default function DashboardScreen() {
         onUpdate={updateDashboardLayout}
         hiddenWidgetKeys={hiddenDashboardWidgetKeys}
       />
+      <AccountSwitcherModal visible={showAccountSwitcher} onClose={() => setShowAccountSwitcher(false)} />
     </LinearGradient>
   );
 }
@@ -1942,6 +1958,49 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => S
     alignItems: 'center',
     gap: 10,
     flexShrink: 0,
+  },
+  accountSwitcherEntry: {
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.glass,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  accountSwitcherEntryCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  accountSwitcherEntryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+    backgroundColor: colors.primary + '18',
+    marginBottom: 8,
+  },
+  accountSwitcherEntryBadgeText: {
+    color: colors.primary,
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+  },
+  accountSwitcherEntryTitle: {
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  accountSwitcherEntrySubtitle: {
+    color: colors.textSecondary,
+    fontSize: FontSize.xs,
+    marginTop: 4,
+    lineHeight: 18,
   },
   greeting: { fontSize: FontSize.xl, fontWeight: '700', color: colors.text },
   username: { fontSize: FontSize.md, color: colors.textSecondary },

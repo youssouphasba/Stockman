@@ -13,6 +13,7 @@ import AiSupportModal from '../../components/AiSupportModal';
 import HelpCenter from '../../components/HelpCenter';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../contexts/AuthContext';
+import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 
 export default function SupplierTabLayout() {
   const { colors, isDark } = useTheme();
@@ -30,6 +31,7 @@ export default function SupplierTabLayout() {
 
   const [showAiModal, setShowAiModal] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [guideOverride, setGuideOverride] = useState<{ title: string; steps: any[] } | null>(null);
 
   useNotifications(user?.user_id);
@@ -68,6 +70,9 @@ export default function SupplierTabLayout() {
           },
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 12 }}>
+              <TouchableOpacity onPress={() => setShowAccountSwitcher(true)} style={{ padding: 4 }}>
+                <Ionicons name="swap-horizontal-outline" size={24} color={colors.text} />
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: 4 }}>
                 <Ionicons name="sparkles-outline" size={24} color={colors.primary} />
               </TouchableOpacity>
@@ -154,6 +159,8 @@ export default function SupplierTabLayout() {
       )}
 
       {showAiModal && <AiSupportModal visible={showAiModal} onClose={() => setShowAiModal(false)} />}
+
+      <AccountSwitcherModal visible={showAccountSwitcher} onClose={() => setShowAccountSwitcher(false)} />
 
       <HelpCenter
         visible={showHelpCenter}
