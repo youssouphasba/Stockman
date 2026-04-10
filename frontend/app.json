@@ -93,6 +93,7 @@
         }
       ],
       "./plugins/withGlogFix",
+      "./plugins/withIosSwiftCompatibility",
       "./plugins/withFirebaseModularHeaders",
       "./plugins/withReactNativeHeaderFix",
       "./plugins/withRemoveBackgroundAudioMode",
