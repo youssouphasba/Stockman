@@ -1,6 +1,6 @@
 ﻿import '../utils/trusted-types';
 import { Slot, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
@@ -19,6 +19,7 @@ function RootLayoutNav() {
   const { isDark, colors } = useTheme();
   const segments = useSegments();
   const router = useRouter();
+  const lastRedirectRef = useRef<string | null>(null);
 
   // Immersive mode for Android + unlock rotation
   useEffect(() => {
@@ -46,32 +47,40 @@ function RootLayoutNav() {
     const currentAuthScreen = String(currentChildSegment || '');
     const onProfileCompletionScreen = inAuthGroup && currentAuthScreen === 'complete-social-profile';
 
+    let target: string | null = null;
+
     if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
-      router.replace('/(auth)' as any);
+      target = '/(auth)';
     } else if (isAuthenticated && isSuperAdmin && !inAdminGroup && !needsVerification && !needsProfileCompletion) {
-      router.replace('/(admin)' as any);
+      target = '/(admin)';
     } else if (isAuthenticated && isSupplier && inShopkeeperTabs && !needsVerification && !needsProfileCompletion) {
-      router.replace('/(supplier-tabs)' as any);
+      target = '/(supplier-tabs)';
     } else if (isAuthenticated && !isSupplier && inSupplierTabs && !isSuperAdmin && !needsVerification && !needsProfileCompletion) {
-      router.replace('/(tabs)' as any);
+      target = '/(tabs)';
     } else if (needsVerification && !onVerificationScreen) {
-      // User needs verification but isn't on the verification screen — redirect there
       if (user.required_verification === 'phone') {
-        router.replace('/(auth)/verify-phone');
+        target = '/(auth)/verify-phone';
       } else if (user.required_verification === 'email') {
-        router.replace('/(auth)/verify-email');
+        target = '/(auth)/verify-email';
       }
     } else if (needsProfileCompletion && !onProfileCompletionScreen) {
-      router.replace('/(auth)/complete-social-profile' as any);
+      target = '/(auth)/complete-social-profile';
     } else if (isAuthenticated && inAuthGroup && !needsVerification && !needsProfileCompletion) {
-      // Verified user still on auth screens — redirect to main app
       if (isSuperAdmin) {
-        router.replace('/(admin)' as any);
+        target = '/(admin)';
       } else if (isSupplier) {
-        router.replace('/(supplier-tabs)');
+        target = '/(supplier-tabs)';
       } else {
-        router.replace(getFirstAuthorizedShopkeeperRoute(user) as any);
+        target = getFirstAuthorizedShopkeeperRoute(user) as string;
       }
+    }
+
+    // Guard: skip if we already redirected to this target (prevents redirect loops)
+    if (target && target !== lastRedirectRef.current) {
+      lastRedirectRef.current = target;
+      router.replace(target as any);
+    } else if (!target) {
+      lastRedirectRef.current = null;
     }
   }, [isAuthenticated, isLoading, isSupplier, isSuperAdmin, router, segments, user]);
 

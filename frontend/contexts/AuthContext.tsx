@@ -359,30 +359,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setActiveStoredAccountId(userId);
     setActiveAccountIdState(userId);
     await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
-    setUser(targetSession.user);
-    setHasProduction(false);
-    setIsRestaurant(false);
-    if (Platform.OS !== 'web') {
-      initPurchases(targetSession.user.user_id).catch(console.warn);
+
+    // Validate token by fetching fresh user data (handles expired tokens)
+    let freshUser: User;
+    try {
+      freshUser = await authApi.me();
+    } catch {
+      // Token invalid — remove this account and fall back
+      const updatedAccounts = await removeStoredAccountSession(userId);
+      setStoredAccounts(updatedAccounts);
+      await removeToken();
+      await removeRefreshToken();
+      return null;
     }
-    const updatedAccounts = await saveStoredAccountSession(
-      targetSession.user,
-      targetSession.access_token,
-      targetSession.refresh_token,
-    );
-    setStoredAccounts(updatedAccounts);
 
-    void (async () => {
-      try {
-        const features = await userFeatures.get();
-        setHasProduction(features.has_production);
-        setIsRestaurant(isRestaurantBusiness(features));
-      } catch (error) {
-        console.warn('Failed to refresh switched account features:', error);
-      }
-    })();
-
-    return targetSession.user;
+    await hydrateAndPersistUser(freshUser);
+    return freshUser;
   }
 
   async function removeStoredAccount(userId: string) {

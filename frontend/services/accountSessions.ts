@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { User } from './api';
@@ -13,9 +14,14 @@ export type StoredAccountSession = {
   last_used_at: string;
 };
 
+// Accounts JSON can exceed SecureStore's 2048-byte iOS limit.
+// Use AsyncStorage for the large JSON, SecureStore only for the small active ID.
 async function getStoredValue(key: string): Promise<string | null> {
   if (Platform.OS === 'web') {
     return localStorage.getItem(key);
+  }
+  if (key === STORED_ACCOUNTS_KEY) {
+    return AsyncStorage.getItem(key);
   }
   return SecureStore.getItemAsync(key);
 }
@@ -25,12 +31,20 @@ async function setStoredValue(key: string, value: string): Promise<void> {
     localStorage.setItem(key, value);
     return;
   }
+  if (key === STORED_ACCOUNTS_KEY) {
+    await AsyncStorage.setItem(key, value);
+    return;
+  }
   await SecureStore.setItemAsync(key, value);
 }
 
 async function removeStoredValue(key: string): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.removeItem(key);
+    return;
+  }
+  if (key === STORED_ACCOUNTS_KEY) {
+    await AsyncStorage.removeItem(key);
     return;
   }
   await SecureStore.deleteItemAsync(key);

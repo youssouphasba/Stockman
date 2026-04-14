@@ -23,14 +23,24 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   });
 }
 
+let _sendInProgress = false;
+
 export async function sendPhoneVerification(phone: string) {
-  const normalizedPhone = normalizePhoneNumber(phone);
-  confirmationResult = await withTimeout(
-    auth().signInWithPhoneNumber(normalizedPhone),
-    PHONE_AUTH_TIMEOUT_MS,
-    'La verification par telephone a expire. Verifiez votre connexion et reessayez.',
-  );
-  return confirmationResult;
+  if (_sendInProgress) {
+    throw new Error('Une verification est deja en cours. Veuillez patienter.');
+  }
+  _sendInProgress = true;
+  try {
+    const normalizedPhone = normalizePhoneNumber(phone);
+    confirmationResult = await withTimeout(
+      auth().signInWithPhoneNumber(normalizedPhone),
+      PHONE_AUTH_TIMEOUT_MS,
+      'La verification par telephone a expire. Verifiez votre connexion et reessayez.',
+    );
+    return confirmationResult;
+  } finally {
+    _sendInProgress = false;
+  }
 }
 
 export async function resendPhoneVerification(phone: string) {

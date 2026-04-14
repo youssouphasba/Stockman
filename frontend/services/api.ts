@@ -73,9 +73,18 @@ const generateIdempotencyKey = () =>
 
 const IDEMPOTENT_MUTATION_PREFIXES = ['/sales', '/payments', '/stock/movement', '/stock/transfer', '/orders'];
 
-async function isOnline() {
-  const state = await NetInfo.fetch();
-  return !!state.isConnected && !!state.isInternetReachable;
+// Cached network state — updated by event listener, avoids async NetInfo.fetch() on every request
+let _cachedOnline = true;
+NetInfo.addEventListener(state => {
+  _cachedOnline = !!state.isConnected && !!state.isInternetReachable;
+});
+// Initialize once
+NetInfo.fetch().then(state => {
+  _cachedOnline = !!state.isConnected && !!state.isInternetReachable;
+});
+
+function isOnline(): boolean {
+  return _cachedOnline;
 }
 
 // For web, use localStorage; for native, use SecureStore
@@ -191,7 +200,7 @@ function buildOfflineMutationResponse<T>(endpoint: string, method: string, body:
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, headers = {} } = options;
-  const online = await isOnline();
+  const online = isOnline();
 
   // 1. Handle GET requests (Caching)
   if (method === 'GET') {
@@ -218,7 +227,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   try {
     return await rawRequest<T>(endpoint, options);
   } catch (error) {
-    const offlineNow = !online || !(await isOnline());
+    const offlineNow = !isOnline();
     if (offlineNow) {
       // Don't queue logouts or account deletion for sync - must be live operations
       if (endpoint === '/auth/logout') {

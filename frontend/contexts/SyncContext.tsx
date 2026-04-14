@@ -57,7 +57,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const interval = setInterval(async () => {
             const count = await syncService.getPendingCount();
             setPendingCount(count);
-        }, 10000);
+        }, 60000);
         return () => clearInterval(interval);
     }, []);
 

@@ -21,25 +21,29 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
     const { registerPushTokenForStoredAccounts } = useAuth();
     const notificationListener = useRef<any>(null);
     const responseListener = useRef<any>(null);
+    const registerRef = useRef(registerPushTokenForStoredAccounts);
+    const onChangedRef = useRef(onNotificationsChanged);
+    registerRef.current = registerPushTokenForStoredAccounts;
+    onChangedRef.current = onNotificationsChanged;
 
     useEffect(() => {
         if (userId) {
             registerForPushNotificationsAsync().then(token => {
                 if (token) {
                     setExpoPushToken(token);
-                    registerPushTokenForStoredAccounts(token).catch(console.warn);
+                    registerRef.current(token).catch(console.warn);
                 }
             });
         }
 
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
             console.log('Notification Received:', notification);
-            onNotificationsChanged?.();
+            onChangedRef.current?.();
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             const data = response.notification.request.content.data as any;
-            onNotificationsChanged?.();
+            onChangedRef.current?.();
             if (data?.url) {
                 Linking.openURL(String(data.url)).catch(() => null);
                 return;
@@ -66,7 +70,7 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
                 responseListener.current.remove();
             }
         };
-    }, [userId, onNotificationsChanged, registerPushTokenForStoredAccounts]);
+    }, [userId]);
 
     return { expoPushToken };
 }

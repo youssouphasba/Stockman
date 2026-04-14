@@ -32,9 +32,15 @@ export const cache = {
     async set(key: string, value: any): Promise<void> {
         try {
             const jsonValue = JSON.stringify(value);
-            await AsyncStorage.setItem(key, jsonValue);
-            // Also save timestamp
-            await this.setTimestamp(key);
+            // Batch value + timestamp in a single multiSet to halve AsyncStorage writes
+            const now = Date.now();
+            const tsRaw = await AsyncStorage.getItem(KEYS.CACHE_TIMESTAMPS);
+            const timestamps = tsRaw ? JSON.parse(tsRaw) : {};
+            timestamps[key] = now;
+            await AsyncStorage.multiSet([
+                [key, jsonValue],
+                [KEYS.CACHE_TIMESTAMPS, JSON.stringify(timestamps)],
+            ]);
         } catch (e) {
             console.error('Cache write error', e);
         }
