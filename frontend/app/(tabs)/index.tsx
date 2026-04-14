@@ -64,6 +64,7 @@ import { formatCurrency as globalFormatCurrency, getCurrencySymbol } from '../..
 import KpiInfoButton from '../../components/KpiInfoButton';
 import { useDrawer } from '../../contexts/DrawerContext';
 import AccountSwitcherModal from '../../components/AccountSwitcherModal';
+import type { DrawerItem } from '../../components/DrawerMenu';
 
 // screenWidth is now read via useWindowDimensions() inside the component
 
@@ -115,6 +116,7 @@ function StatusBadge({ label, count, color, styles }: { label: string; count: nu
 
 export default function DashboardScreen() {
   const MOBILE_DASHBOARD_FOCUS_TTL_MS = 60_000;
+  const MOBILE_NOTIFICATIONS_TTL_MS = 30_000;
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
   const { t } = useTranslation();
   const { openModal } = useLocalSearchParams<{ openModal?: string }>();
@@ -209,7 +211,7 @@ export default function DashboardScreen() {
   // Register drawer menu items
   useFocusEffect(
     useCallback(() => {
-      const dashboardItems = [
+      const dashboardItems: DrawerItem[] = [
         // -- Sections du dashboard (scroll) --
         { label: t('dashboard.daily_report', 'Rapport du jour'), icon: 'today-outline', onPress: () => scrollToSection('dailyReport') },
         { label: t('dashboard.stock_status', 'État du stock'), icon: 'cube-outline', onPress: () => scrollToSection('stockStatus') },
@@ -252,6 +254,7 @@ export default function DashboardScreen() {
   const isConnectedRef = useRef(isConnected);
   const loadingRef = useRef(false);
   const lastLoadedAtRef = useRef(0);
+  const lastNotificationsLoadedAtRef = useRef(0);
 
   useEffect(() => {
     isConnectedRef.current = isConnected;
@@ -328,13 +331,22 @@ export default function DashboardScreen() {
     }
   }, [MOBILE_PERF_ENABLED, dashboardCacheKey, showAdvancedDashboardSections, user?.active_store_id]);
 
-  const loadNotifications = useCallback(async () => {
+  const loadNotifications = useCallback(async (force = false) => {
+    if (
+      !force &&
+      lastNotificationsLoadedAtRef.current > 0 &&
+      Date.now() - lastNotificationsLoadedAtRef.current < MOBILE_NOTIFICATIONS_TTL_MS
+    ) {
+      return;
+    }
+
     try {
       const result = await userNotifications.list(0, 5);
       setNotifications(result.items);
       setNotifCount(result.total);
+      lastNotificationsLoadedAtRef.current = Date.now();
     } catch { /* ignore */ }
-  }, []);
+  }, [MOBILE_NOTIFICATIONS_TTL_MS]);
 
   // Initial load and reload when the authenticated user changes
   useEffect(() => {
@@ -344,8 +356,12 @@ export default function DashboardScreen() {
     setStatsData(null);
     setInventoryTasks([]);
     setLoading(true);
-    loadData();
-  }, [loadData]);
+    loadingRef.current = false;
+    lastLoadedAtRef.current = 0;
+    lastNotificationsLoadedAtRef.current = 0;
+    void loadData();
+    void loadNotifications(true);
+  }, [loadData, loadNotifications]);
 
   useEffect(() => {
     let cancelled = false;
@@ -405,11 +421,10 @@ export default function DashboardScreen() {
         lastLoadedAtRef.current > 0 &&
         Date.now() - lastLoadedAtRef.current < MOBILE_DASHBOARD_FOCUS_TTL_MS
       );
-      loadingRef.current = false; // Reset guard so focus-triggered reload works
-      if (!hasRecentData) {
-        loadData();
+      if (!loadingRef.current && !hasRecentData) {
+        void loadData();
       }
-      loadNotifications();
+      void loadNotifications();
     }, [data, loadData, loadNotifications])
   );
 

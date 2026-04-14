@@ -7,8 +7,7 @@ import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import PinScreen from './pin';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import OfflineBanner from '../components/OfflineBanner';
-import { SyncProvider, useSync } from '../contexts/SyncContext';
-import { syncService } from '../services/sync';
+import { SyncProvider } from '../contexts/SyncContext';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -17,7 +16,6 @@ import { getFirstAuthorizedShopkeeperRoute } from '../utils/accountRouting';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, isSupplier, isSuperAdmin, isAppLocked, user } = useAuth();
-  const { isOnline, processQueue, prefetchData } = useSync();
   const { isDark, colors } = useTheme();
   const segments = useSegments();
   const router = useRouter();
@@ -39,12 +37,13 @@ function RootLayoutNav() {
     const inShopkeeperTabs = segments[0] === '(tabs)';
     const inAdminGroup = segments[0] === '(admin)';
     const isPublicPage = segments[0] === 'terms' || segments[0] === 'privacy';
+    const currentChildSegment = segments.slice(1)[0];
 
     // User is authenticated but still needs verification — stay in auth group
     const needsVerification = isAuthenticated && user && !user.can_access_app && !!user.required_verification;
-    const onVerificationScreen = inAuthGroup && (segments[1] === 'verify-phone' || segments[1] === 'verify-email');
+    const onVerificationScreen = inAuthGroup && (currentChildSegment === 'verify-phone' || currentChildSegment === 'verify-email');
     const needsProfileCompletion = isAuthenticated && !!user?.needs_profile_completion;
-    const currentAuthScreen = String(segments[1] || '');
+    const currentAuthScreen = String(currentChildSegment || '');
     const onProfileCompletionScreen = inAuthGroup && currentAuthScreen === 'complete-social-profile';
 
     if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
@@ -75,14 +74,6 @@ function RootLayoutNav() {
       }
     }
   }, [isAuthenticated, isLoading, isSupplier, isSuperAdmin, router, segments, user]);
-
-  // Auto-sync and prefetch when online and authenticated
-  useEffect(() => {
-    if (isOnline && isAuthenticated) {
-      processQueue();
-      prefetchData();
-    }
-  }, [isOnline, isAuthenticated]);
 
   if (isLoading) {
     return (
