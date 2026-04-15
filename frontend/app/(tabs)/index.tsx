@@ -16,6 +16,7 @@
   LayoutAnimation,
   UIManager,
   DeviceEventEmitter,
+  InteractionManager,
 } from 'react-native';
 import Skeleton from '../../components/Skeleton';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -117,6 +118,8 @@ function StatusBadge({ label, count, color, styles }: { label: string; count: nu
 export default function DashboardScreen() {
   const MOBILE_DASHBOARD_FOCUS_TTL_MS = 60_000;
   const MOBILE_NOTIFICATIONS_TTL_MS = 30_000;
+  const DEFERRED_DASHBOARD_LOAD_DELAY_MS = 350;
+  const DEFERRED_DASHBOARD_STEP_DELAY_MS = 200;
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
   const { t } = useTranslation();
   const { openModal } = useLocalSearchParams<{ openModal?: string }>();
@@ -168,6 +171,7 @@ export default function DashboardScreen() {
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showDashboardSettings, setShowDashboardSettings] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const [showDeferredEnterpriseCards, setShowDeferredEnterpriseCards] = useState(false);
 
   // Vague 1: Health Score + Prediction
   const [healthScore, setHealthScore] = useState<any>(null);
@@ -253,61 +257,89 @@ export default function DashboardScreen() {
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);
   const loadingRef = useRef(false);
+  const deferredLoadingRef = useRef(false);
   const lastLoadedAtRef = useRef(0);
   const lastNotificationsLoadedAtRef = useRef(0);
+  const deferredLoadVersionRef = useRef(0);
+  const deferredLoadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deferredInteractionHandleRef = useRef<{ cancel?: () => void } | null>(null);
 
   useEffect(() => {
     isConnectedRef.current = isConnected;
   }, [isConnected]);
 
-  const loadData = useCallback(async () => {
+  const loadNotifications = useCallback(async (force = false) => {
+    if (
+      !force &&
+      lastNotificationsLoadedAtRef.current > 0 &&
+      Date.now() - lastNotificationsLoadedAtRef.current < MOBILE_NOTIFICATIONS_TTL_MS
+    ) {
+      return;
+    }
+
+    try {
+      const result = await userNotifications.list(0, 5);
+      setNotifications(result.items);
+      setNotifCount(result.total);
+      lastNotificationsLoadedAtRef.current = Date.now();
+    } catch { /* ignore */ }
+  }, [MOBILE_NOTIFICATIONS_TTL_MS]);
+
+  const cancelDeferredLoads = useCallback(() => {
+    deferredLoadVersionRef.current += 1;
+
+    if (deferredLoadTimerRef.current) {
+      clearTimeout(deferredLoadTimerRef.current);
+      deferredLoadTimerRef.current = null;
+    }
+
+    deferredInteractionHandleRef.current?.cancel?.();
+    deferredInteractionHandleRef.current = null;
+    deferredLoadingRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cancelDeferredLoads();
+    };
+  }, [cancelDeferredLoads]);
+
+  const waitForDeferredStep = useCallback((ms: number) => new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  }), []);
+
+  const loadCoreData = useCallback(async () => {
     const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    // Guard against concurrent loads (prevents double-render overwrite)
     if (loadingRef.current) return;
     loadingRef.current = true;
 
     try {
       if (isConnectedRef.current) {
-        // Load all APIs in parallel for faster screen load
-        const requests: Array<Promise<any>> = [
-          dashboardApi.get(),
-          settingsApi.get(),
-          statisticsApi.get(),
-        ];
-        if (showAdvancedDashboardSections) {
-          requests.push(inventory.getTasks('pending'));
-        }
+        const settingsPromise = settingsApi.get()
+          .then((result) => {
+            setUserSettings(result);
+          })
+          .catch(() => {
+            // Le dashboard principal ne doit pas attendre ce chargement.
+          });
 
-        const [dashRes, settingsRes, statsRes, tasksRes] = await Promise.allSettled(requests);
-
-        if (dashRes.status === 'fulfilled') {
-          setData(dashRes.value);
-          cache.set(dashboardCacheKey, dashRes.value);
-        } else {
+        try {
+          const dashboardResult = await dashboardApi.get();
+          setData(dashboardResult);
+          cache.set(dashboardCacheKey, dashboardResult);
+        } catch {
           const cached = await cache.get<DashboardData>(dashboardCacheKey);
           if (cached) setData(prev => prev ?? cached);
         }
-        if (settingsRes.status === 'fulfilled') setUserSettings(settingsRes.value);
-        if (statsRes.status === 'fulfilled') { setStats(statsRes.value); setStatsData(statsRes.value); }
-        if (showAdvancedDashboardSections && tasksRes?.status === 'fulfilled') {
-          setInventoryTasks(tasksRes.value);
-        } else {
-          setInventoryTasks([]);
-        }
+
+        void settingsPromise;
       } else {
-        // Offline: only use cache if we don't already have fresh data
         const cached = await cache.get<DashboardData>(dashboardCacheKey);
         if (cached) setData(prev => prev ?? cached);
-        if (!showAdvancedDashboardSections) {
-          setInventoryTasks([]);
-        }
       }
     } catch {
       const cached = await cache.get<DashboardData>(dashboardCacheKey);
       if (cached) setData(prev => prev ?? cached);
-      if (!showAdvancedDashboardSections) {
-        setInventoryTasks([]);
-      }
     } finally {
       if (Platform.OS !== 'web') {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -329,72 +361,69 @@ export default function DashboardScreen() {
       loadingRef.current = false;
       lastLoadedAtRef.current = Date.now();
     }
-  }, [MOBILE_PERF_ENABLED, dashboardCacheKey, showAdvancedDashboardSections, user?.active_store_id]);
+  }, [MOBILE_PERF_ENABLED, dashboardCacheKey, user?.active_store_id]);
 
-  const loadNotifications = useCallback(async (force = false) => {
-    if (
-      !force &&
-      lastNotificationsLoadedAtRef.current > 0 &&
-      Date.now() - lastNotificationsLoadedAtRef.current < MOBILE_NOTIFICATIONS_TTL_MS
-    ) {
+  const loadDeferredDashboardData = useCallback(async (version: number) => {
+    if (deferredLoadingRef.current || !isConnectedRef.current) {
       return;
     }
 
+    deferredLoadingRef.current = true;
+
     try {
-      const result = await userNotifications.list(0, 5);
-      setNotifications(result.items);
-      setNotifCount(result.total);
-      lastNotificationsLoadedAtRef.current = Date.now();
-    } catch { /* ignore */ }
-  }, [MOBILE_NOTIFICATIONS_TTL_MS]);
+      const statsResult = await statisticsApi.get().catch(() => null);
+      if (version !== deferredLoadVersionRef.current) return;
+      if (statsResult) {
+        setStats(statsResult);
+        setStatsData(statsResult);
+      }
 
-  // Initial load and reload when the authenticated user changes
-  useEffect(() => {
-    setData(null);
-    setUserSettings(null);
-    setStats(null);
-    setStatsData(null);
-    setInventoryTasks([]);
-    setLoading(true);
-    loadingRef.current = false;
-    lastLoadedAtRef.current = 0;
-    lastNotificationsLoadedAtRef.current = 0;
-    void loadData();
-    void loadNotifications(true);
-  }, [loadData, loadNotifications]);
+      if (showAdvancedDashboardSections) {
+        await waitForDeferredStep(DEFERRED_DASHBOARD_STEP_DELAY_MS);
+        if (version !== deferredLoadVersionRef.current) return;
 
-  useEffect(() => {
-    let cancelled = false;
+        const tasksResult = await inventory.getTasks('pending').catch(() => null);
+        if (version !== deferredLoadVersionRef.current) return;
+        if (tasksResult) {
+          setInventoryTasks(tasksResult);
+        }
+      } else {
+        setInventoryTasks([]);
+      }
 
-    setHealthScore(null);
-    setPrediction(null);
-    setContextualTips([]);
-    setRebalance(null);
-    setStoreBenchmark(null);
-    setNlResult(null);
+      await waitForDeferredStep(DEFERRED_DASHBOARD_STEP_DELAY_MS);
+      if (version !== deferredLoadVersionRef.current) return;
+      await loadNotifications(true);
 
-    if (!user?.user_id) {
-      return () => {
-        cancelled = true;
-      };
-    }
+      if (!showDashboardAiSections) {
+        setShowDeferredEnterpriseCards(false);
+        return;
+      }
 
-    if (!showDashboardAiSections) {
-      return () => {
-        cancelled = true;
-      };
-    }
+      setShowDeferredEnterpriseCards(true);
 
-    Promise.allSettled([
-      aiApi.businessHealthScore(),
-      aiApi.dashboardPrediction(),
-      aiApi.contextualTips(),
-      aiApi.rebalanceSuggestions(),
-      aiApi.storeBenchmark(),
-    ]).then(([healthRes, predRes, tipsRes, rebalRes, benchRes]) => {
-      if (cancelled) return;
+      await waitForDeferredStep(DEFERRED_DASHBOARD_STEP_DELAY_MS);
+      if (version !== deferredLoadVersionRef.current) return;
+
+      const [healthRes, predRes] = await Promise.allSettled([
+        aiApi.businessHealthScore(),
+        aiApi.dashboardPrediction(),
+      ]);
+      if (version !== deferredLoadVersionRef.current) return;
+
       setHealthScore(healthRes.status === 'fulfilled' ? healthRes.value : null);
       setPrediction(predRes.status === 'fulfilled' ? predRes.value : null);
+
+      await waitForDeferredStep(DEFERRED_DASHBOARD_STEP_DELAY_MS);
+      if (version !== deferredLoadVersionRef.current) return;
+
+      const [tipsRes, rebalRes, benchRes] = await Promise.allSettled([
+        aiApi.contextualTips(),
+        aiApi.rebalanceSuggestions(),
+        aiApi.storeBenchmark(),
+      ]);
+      if (version !== deferredLoadVersionRef.current) return;
+
       setContextualTips(tipsRes.status === 'fulfilled' ? (tipsRes.value?.tips || []) : []);
       setRebalance(
         rebalRes.status === 'fulfilled' && (rebalRes.value?.suggestions?.length ?? 0) > 0
@@ -406,12 +435,64 @@ export default function DashboardScreen() {
           ? benchRes.value
           : null
       );
-    });
+    } finally {
+      if (version === deferredLoadVersionRef.current) {
+        deferredLoadingRef.current = false;
+        deferredLoadTimerRef.current = null;
+        deferredInteractionHandleRef.current = null;
+      }
+    }
+  }, [
+    DEFERRED_DASHBOARD_STEP_DELAY_MS,
+    loadNotifications,
+    showAdvancedDashboardSections,
+    showDashboardAiSections,
+    waitForDeferredStep,
+  ]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.user_id, user?.active_store_id, showDashboardAiSections]);
+  const scheduleDeferredDashboardDataLoad = useCallback(() => {
+    cancelDeferredLoads();
+
+    if (!isConnectedRef.current) {
+      setShowDeferredEnterpriseCards(false);
+      return;
+    }
+
+    const version = deferredLoadVersionRef.current;
+
+    deferredInteractionHandleRef.current = InteractionManager.runAfterInteractions(() => {
+      deferredLoadTimerRef.current = setTimeout(() => {
+        void loadDeferredDashboardData(version);
+      }, DEFERRED_DASHBOARD_LOAD_DELAY_MS);
+    }) as unknown as { cancel?: () => void };
+  }, [DEFERRED_DASHBOARD_LOAD_DELAY_MS, cancelDeferredLoads, loadDeferredDashboardData]);
+
+  const loadData = useCallback(async () => {
+    await loadCoreData();
+    scheduleDeferredDashboardDataLoad();
+  }, [loadCoreData, scheduleDeferredDashboardDataLoad]);
+
+  // Initial load and reload when the authenticated user changes
+  useEffect(() => {
+    cancelDeferredLoads();
+    setData(null);
+    setUserSettings(null);
+    setStats(null);
+    setStatsData(null);
+    setInventoryTasks([]);
+    setHealthScore(null);
+    setPrediction(null);
+    setContextualTips([]);
+    setRebalance(null);
+    setStoreBenchmark(null);
+    setNlResult(null);
+    setShowDeferredEnterpriseCards(false);
+    setLoading(true);
+    loadingRef.current = false;
+    lastLoadedAtRef.current = 0;
+    lastNotificationsLoadedAtRef.current = 0;
+    void loadData();
+  }, [cancelDeferredLoads, loadData]);
 
   // Reload when tab regains focus (e.g. tab switch back)
   useFocusEffect(
@@ -424,14 +505,17 @@ export default function DashboardScreen() {
       if (!loadingRef.current && !hasRecentData) {
         void loadData();
       }
-      void loadNotifications();
+      if (!loadingRef.current) {
+        void loadNotifications();
+      }
     }, [data, loadData, loadNotifications])
   );
 
   function onRefresh() {
     setRefreshing(true);
+    cancelDeferredLoads();
     loadingRef.current = false; // Reset guard so refresh always triggers a load
-    loadData();
+    void loadData();
   }
 
   const handleSmartReminderNavigate = useCallback(
@@ -1252,15 +1336,15 @@ export default function DashboardScreen() {
         )}
 
         {/* AI Daily Summary */}
-        {showDashboardAiSections && <AiDailySummary />}
+        {showDashboardAiSections && showDeferredEnterpriseCards && <AiDailySummary />}
 
         {/* Smart Reminders */}
-        {showDashboardAiSections && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_smart_reminders) && (
+        {showDashboardAiSections && showDeferredEnterpriseCards && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_smart_reminders) && (
           <SmartRemindersCard onNavigate={handleSmartReminderNavigate} />
         )}
 
         {/* Sales Forecast */}
-        {showDashboardAiSections && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_forecast) && (
+        {showDashboardAiSections && showDeferredEnterpriseCards && (!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_forecast) && (
           <ForecastCard />
         )}
 
