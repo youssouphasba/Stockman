@@ -29,12 +29,18 @@ function BlogPost() {
     }
 
     const title = t(`blog.posts.${slug}.title`);
+    const excerpt = t(`blog.posts.${slug}.excerpt`);
     const content = t(`blog.posts.${slug}.content`);
     const date = t(`blog.posts.${slug}.date`);
 
     return (
         <div className="landing-page">
-            <SEO title={title} description={title} />
+            <SEO
+                title={title}
+                description={excerpt}
+                url={`https://stockman.pro/blog/${slug}`}
+                type="article"
+            />
             <nav className="navbar">
                 <div className="container">
                     <Link to="/" className="logo" style={{ textDecoration: 'none' }}>

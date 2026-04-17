@@ -12,6 +12,7 @@ function About() {
             <SEO
                 title={t('about.seo_title')}
                 description={t('about.seo_desc')}
+                url="https://stockman.pro/about"
             />
 
             <nav className="navbar">

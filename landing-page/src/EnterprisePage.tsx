@@ -46,7 +46,27 @@ export default function EnterprisePage() {
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web, iOS, Android',
       url: 'https://stockman.pro/enterprise',
+      image: 'https://stockman.pro/assets/screenshots/enterprise-executive-dashboard.png',
+      description: t('enterprise_page.subtitle'),
       offers: { '@type': 'Offer', url: ENTERPRISE_PRICING_URL, priceCurrency: 'XOF', price: '9900' },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Accueil',
+          item: 'https://stockman.pro',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Stockman Enterprise',
+          item: 'https://stockman.pro/enterprise',
+        },
+      ],
     },
   ];
 
@@ -56,6 +76,7 @@ export default function EnterprisePage() {
         title={t('enterprise_page.h1_pre') + ' ' + t('enterprise_page.h1_gradient') + ' - Stockman'}
         description={t('enterprise_page.subtitle')}
         url="https://stockman.pro/enterprise"
+        image="https://stockman.pro/assets/screenshots/enterprise-executive-dashboard.png"
         keywords={[...LANDING_KEYWORDS, 'Stockman Enterprise', 'application web gestion entreprise']}
         structuredData={structuredData}
       />

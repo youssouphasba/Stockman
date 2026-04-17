@@ -2,6 +2,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import SEO from './components/SEO';
+import { LANDING_KEYWORDS } from './data/marketing';
 import './App.css';
 
 interface FeaturePageProps {
@@ -17,6 +19,7 @@ const FeaturePage: React.FC<FeaturePageProps> = ({ featureKey, icon, screenshot,
     const title = t(`feature_pages.${featureKey}.title`);
     const subtitle = t(`feature_pages.${featureKey}.subtitle`);
     const description = t(`feature_pages.${featureKey}.description`);
+    const canonicalUrl = `https://stockman.pro/${featureKey}`;
 
     const featureItems = [1, 2, 3].map(i => ({
         title: t(`feature_pages.${featureKey}.f${i}_title`),
@@ -32,6 +35,23 @@ const FeaturePage: React.FC<FeaturePageProps> = ({ featureKey, icon, screenshot,
 
     return (
         <div className="landing-page feature-page">
+            <SEO
+                title={title}
+                description={subtitle || description}
+                url={canonicalUrl}
+                image={screenshot ? `https://stockman.pro${screenshot}` : undefined}
+                keywords={[...LANDING_KEYWORDS, title, subtitle]}
+                structuredData={{
+                    '@context': 'https://schema.org',
+                    '@type': 'SoftwareApplication',
+                    name: `Stockman ${title}`,
+                    applicationCategory: 'BusinessApplication',
+                    operatingSystem: 'iOS, Android, Web',
+                    url: canonicalUrl,
+                    description: subtitle || description,
+                }}
+            />
+
             <nav className="navbar">
                 <div className="container">
                     <div className="logo">

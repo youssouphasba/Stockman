@@ -117,15 +117,15 @@ function Landing() {
           name: 'Comment fonctionne Stockman selon le plan ?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Starter et Pro demarrent sur mobile. Enterprise ajoute un back-office web sur app.stockman.pro pour la gestion avancee.',
+            text: 'Starter et Pro démarrent sur mobile. Enterprise ajoute un back-office web sur app.stockman.pro pour la gestion avancée.',
           },
         },
         {
           '@type': 'Question',
-          name: 'Pour quels business types Stockman est adapte ?',
+          name: 'Pour quels types d’activité Stockman est-il adapté ?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Stockman couvre le commerce, la restauration et la production legere avec des parcours adaptes a chaque activite.',
+            text: 'Stockman couvre le commerce, la restauration et la production légère avec des parcours adaptés à chaque activité.',
           },
         },
       ],
@@ -135,8 +135,8 @@ function Landing() {
   return (
     <div className="landing-page">
       <SEO
-        title="Stockman - Logiciel de gestion stock, caisse POS et app web Enterprise"
-        description="Stockman relie application mobile terrain et back-office web Enterprise pour commerce, supermarche, restaurant, boulangerie et production legere."
+        title="Stockman - Logiciel de gestion de stock, caisse POS et app web Enterprise"
+        description="Stockman relie application mobile terrain et back-office web Enterprise pour commerce, supermarché, restaurant, boulangerie et production légère."
         url="https://stockman.pro"
         keywords={LANDING_KEYWORDS}
         structuredData={homepageStructuredData}
@@ -237,7 +237,7 @@ function Landing() {
               {t('demo_banner.subtitle', "Testez l'application en conditions réelles avec nos bases de données de démonstration. Pas d'inscription requise, 100% gratuit.")}
             </p>
             <Link to="/demo" className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.2rem' }}>
-              {t('demo_banner.cta', 'Lancer la Démo Interactive')}
+              {t('demo_banner.cta', 'Lancer la démo interactive')}
             </Link>
           </div>
         </div>

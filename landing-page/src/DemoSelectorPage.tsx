@@ -158,7 +158,33 @@ export default function DemoSelectorPage() {
     name: t('demo_page.badge'),
     url: 'https://stockman.pro/demo',
     description: t('demo_page.subtitle'),
+    hasPart: DEMO_CHOICE_IDS.map((choice, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: t(`demo_page.choices.${choice}.title`),
+      url: `https://stockman.pro/demo?type=${choice}`,
+    })),
+  }, {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Accueil',
+        item: 'https://stockman.pro',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: t('demo_page.badge'),
+        item: 'https://stockman.pro/demo',
+      },
+    ],
   }];
+  const seoDemoChoice = DEMO_CHOICE_IDS.includes(preset as DemoChoiceId)
+    ? preset as DemoChoiceId
+    : 'enterprise';
 
   return (
     <div className="landing-page">
@@ -166,6 +192,7 @@ export default function DemoSelectorPage() {
         title={t('demo_page.badge') + ' - Stockman'}
         description={t('demo_page.subtitle')}
         url="https://stockman.pro/demo"
+        image={`https://stockman.pro${DEMO_CHOICE_SCREENSHOTS[seoDemoChoice]}`}
         keywords={[...LANDING_KEYWORDS, 'demo Stockman', 'demo enterprise', 'demo commerce', 'demo restaurant']}
         structuredData={structuredData}
       />

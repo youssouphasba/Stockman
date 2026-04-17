@@ -14,6 +14,7 @@ function Blog() {
             <SEO
                 title={t('blog.seo_title')}
                 description={t('blog.seo_desc')}
+                url="https://stockman.pro/blog"
             />
 
             <nav className="navbar">

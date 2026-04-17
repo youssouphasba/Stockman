@@ -1,11 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /dashboard
-Disallow: /products
-Disallow: /pos
-Disallow: /suppliers
-Disallow: /orders
-Disallow: /accounting
-Disallow: /clients
-Disallow: /settings
+Disallow: /admin-leads
+Disallow: /invite/
 Sitemap: https://stockman.pro/sitemap.xml

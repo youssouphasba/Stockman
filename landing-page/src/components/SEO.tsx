@@ -8,20 +8,33 @@ interface SEOProps {
     image?: string;
     keywords?: string[];
     robots?: string;
+    type?: 'website' | 'article';
     structuredData?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
+
+const SITE_URL = 'https://stockman.pro';
+const DEFAULT_IMAGE = `${SITE_URL}/stockman_landing_hero.png`;
+const SUPPORTED_LANGUAGES = ['en', 'fr', 'es', 'de', 'it', 'ar', 'tr', 'wo', 'ff', 'pt', 'ru', 'zh', 'hi', 'pl', 'ro'];
+
+const getLocalizedUrl = (url: string, language: string) => {
+    const parsedUrl = new URL(url, SITE_URL);
+    parsedUrl.searchParams.set('lang', language);
+    return parsedUrl.toString();
+};
 
 const SEO = ({
     title,
     description,
-    url = 'https://stockman.pro',
-    image = 'https://stockman.pro/og-image.jpg',
+    url = SITE_URL,
+    image = DEFAULT_IMAGE,
     keywords,
     robots = 'index, follow',
+    type = 'website',
     structuredData,
 }: SEOProps) => {
     const { i18n } = useTranslation();
-    const languages = ['en', 'fr', 'es', 'de', 'it', 'ar', 'tr', 'wo', 'ff', 'pt', 'ru', 'zh', 'hi', 'pl', 'ro'];
+    const normalizedUrl = new URL(url, SITE_URL).toString();
+    const resolvedTitle = title.includes('Stockman') ? title : `${title} | Stockman`;
     const resolvedKeywords = (keywords ?? [
         'Stockman',
         'logiciel de gestion de stock',
@@ -44,26 +57,30 @@ const SEO = ({
     return (
         <Helmet>
             <html lang={i18n.language} />
-            <title>{title} | Stockman</title>
+            <title>{resolvedTitle}</title>
             <meta name='description' content={description} />
             <meta name='keywords' content={resolvedKeywords} />
             <meta name='robots' content={robots} />
-            <link rel="canonical" href={url} />
+            <link rel="canonical" href={normalizedUrl} />
 
-            <link rel="alternate" href="https://stockman.pro" hrefLang="x-default" />
-            {languages.map(lang => (
-                <link key={lang} rel="alternate" href={`https://stockman.pro/?lang=${lang}`} hrefLang={lang} />
+            <link rel="alternate" href={normalizedUrl} hrefLang="x-default" />
+            {SUPPORTED_LANGUAGES.map(lang => (
+                <link key={lang} rel="alternate" href={getLocalizedUrl(normalizedUrl, lang)} hrefLang={lang} />
             ))}
 
-            <meta property="og:type" content="website" />
+            <meta property="og:type" content={type} />
             <meta property="og:site_name" content="Stockman" />
-            <meta property="og:title" content={title} />
+            <meta property="og:locale" content={i18n.language === 'fr' ? 'fr_FR' : i18n.language} />
+            <meta property="og:title" content={resolvedTitle} />
             <meta property="og:description" content={description} />
             <meta property="og:image" content={image} />
-            <meta property="og:url" content={url} />
+            <meta property="og:image:alt" content="Stockman, logiciel de gestion de stock et caisse POS" />
+            <meta property="og:url" content={normalizedUrl} />
 
             <meta name="twitter:card" content="summary_large_image" />
-            <meta name="twitter:title" content={title} />
+            <meta name="twitter:domain" content="stockman.pro" />
+            <meta name="twitter:url" content={normalizedUrl} />
+            <meta name="twitter:title" content={resolvedTitle} />
             <meta name="twitter:description" content={description} />
             <meta name="twitter:image" content={image} />
 
