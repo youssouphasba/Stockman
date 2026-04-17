@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import FeaturePage from './FeaturePage';
 import TermsOfService from './TermsOfService';
 import PrivacyPolicy from './PrivacyPolicy';
@@ -365,6 +366,7 @@ function App() {
         <Router>
           <Analytics />
           <VercelAnalytics />
+          <SpeedInsights />
           <CookieBanner />
           <WhatsAppButton />
 
