@@ -4,47 +4,56 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next";
 import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles, HelpCircle, Chrome } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import Sidebar from "../components/Sidebar";
 import Dashboard from "../components/Dashboard";
 import ExecutiveDashboard from "../components/ExecutiveDashboard";
-import Inventory from "../components/Inventory";
-import Locations from "../components/Locations";
-import POS from "../components/POS";
-import Accounting from "../components/Accounting";
-import CRM from "../components/CRM";
-import Orders from "../components/Orders";
-import Suppliers from "../components/Suppliers";
-import Activity from "../components/Activity";
-import Alerts from "../components/Alerts";
-import Settings from "../components/Settings";
-import Staff from "../components/Staff";
-import AdminDashboard from "../components/AdminDashboard";
-import Subscription from "../components/Subscription";
-import SupplierPortal from "../components/SupplierPortal";
-import StockHistory from "../components/StockHistory";
-import AbcAnalysis from "../components/AbcAnalysis";
-import InventoryCounting from "../components/InventoryCounting";
-import ExpiryAlerts from "../components/ExpiryAlerts";
-import MultiStoreDashboard from "../components/MultiStoreDashboard";
-import ProductionView from "../components/ProductionView";
-import TableManagement from "../components/TableManagement";
-import Reservations from "../components/Reservations";
-import KitchenDisplay from "../components/KitchenDisplay";
-import ReportsLibrary from "../components/ReportsLibrary";
-import ChatModal from "../components/ChatModal";
-import AiChatPanel from "../components/AiChatPanel";
-import SupportPanel from "../components/SupportPanel";
-import NotificationCenter from "../components/NotificationCenter";
-import VerifyEmailPanel from "../components/VerifyEmailPanel";
-import CompleteSocialProfilePanel from "../components/CompleteSocialProfilePanel";
-import Planner from "../components/Planner";
+import TrialBanner from "../components/TrialBanner";
+
+// Lazy-loaded tabs: only fetched when the user opens that section.
+// Keeps the initial JS bundle small — first paint no longer ships
+// POS, Accounting, Inventory, CRM, Recharts, AdminDashboard, etc.
+const lazyTab = <T extends React.ComponentType<any>>(loader: () => Promise<{ default: T }>) =>
+    dynamic(loader, { ssr: false });
+
+const Inventory = lazyTab(() => import("../components/Inventory"));
+const Locations = lazyTab(() => import("../components/Locations"));
+const POS = lazyTab(() => import("../components/POS"));
+const Accounting = lazyTab(() => import("../components/Accounting"));
+const CRM = lazyTab(() => import("../components/CRM"));
+const Orders = lazyTab(() => import("../components/Orders"));
+const Suppliers = lazyTab(() => import("../components/Suppliers"));
+const Activity = lazyTab(() => import("../components/Activity"));
+const Alerts = lazyTab(() => import("../components/Alerts"));
+const Settings = lazyTab(() => import("../components/Settings"));
+const Staff = lazyTab(() => import("../components/Staff"));
+const AdminDashboard = lazyTab(() => import("../components/AdminDashboard"));
+const Subscription = lazyTab(() => import("../components/Subscription"));
+const SupplierPortal = lazyTab(() => import("../components/SupplierPortal"));
+const StockHistory = lazyTab(() => import("../components/StockHistory"));
+const AbcAnalysis = lazyTab(() => import("../components/AbcAnalysis"));
+const InventoryCounting = lazyTab(() => import("../components/InventoryCounting"));
+const ExpiryAlerts = lazyTab(() => import("../components/ExpiryAlerts"));
+const MultiStoreDashboard = lazyTab(() => import("../components/MultiStoreDashboard"));
+const ProductionView = lazyTab(() => import("../components/ProductionView"));
+const TableManagement = lazyTab(() => import("../components/TableManagement"));
+const Reservations = lazyTab(() => import("../components/Reservations"));
+const KitchenDisplay = lazyTab(() => import("../components/KitchenDisplay"));
+const ReportsLibrary = lazyTab(() => import("../components/ReportsLibrary"));
+const Planner = lazyTab(() => import("../components/Planner"));
+const ChatModal = lazyTab(() => import("../components/ChatModal"));
+const AiChatPanel = lazyTab(() => import("../components/AiChatPanel"));
+const SupportPanel = lazyTab(() => import("../components/SupportPanel"));
+const NotificationCenter = lazyTab(() => import("../components/NotificationCenter"));
+const VerifyEmailPanel = lazyTab(() => import("../components/VerifyEmailPanel"));
+const CompleteSocialProfilePanel = lazyTab(() => import("../components/CompleteSocialProfilePanel"));
+const EnterpriseSignupModal = lazyTab(() => import("../components/EnterpriseSignupModal"));
+const GlobalFiltersBar = lazyTab(() => import("../components/analytics/GlobalFiltersBar"));
+
 import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, removeToken, setWebAccessMode, clearWebAccessMode, type AuthResponse, type DemoSessionInfo } from "../services/api";
 import { completeRedirectSignIn, signInWithProvider } from "../services/firebaseAuth";
 import { getAccessContext } from "../utils/access";
-import TrialBanner from "../components/TrialBanner";
-import EnterpriseSignupModal from "../components/EnterpriseSignupModal";
 import { AnalyticsFiltersProvider } from "../contexts/AnalyticsFiltersContext";
-import GlobalFiltersBar from "../components/analytics/GlobalFiltersBar";
 import { BUSINESS_TYPE_GROUP_IDS, MOBILE_APP_URL, PLAN_COMPARISON_ROWS } from "../data/marketing";
 import { DEMO_COUNTRIES } from "../data/demoCurrencies";
 

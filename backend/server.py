@@ -904,7 +904,11 @@ async def create_indexes_and_init():
                 await db.reservations.create_index("demo_session_id")
                 await db.user_settings.create_index("demo_session_id")
                 await db.activity_logs.create_index([("owner_id", 1), ("created_at", -1)])
-                
+
+                # Inventory tasks (cyclic counting)
+                await db.inventory_tasks.create_index([("user_id", 1), ("store_id", 1), ("status", 1), ("created_at", -1)])
+                await db.inventory_tasks.create_index([("user_id", 1), ("status", 1), ("product_id", 1)])
+
                 # I12 - Session and Security indexes
                 await db.user_sessions.create_index("session_token")
                 await db.user_sessions.create_index("user_id")
@@ -16579,29 +16583,41 @@ async def generate_inventory_tasks(user: User = Depends(require_permission("stoc
     remaining_slots = max(10, len(selected)) - len(selected)  # at least 10 tasks total
     if remaining_slots > 0 and others:
         selected += random.sample(others, min(len(others), remaining_slots))
-    
-    new_tasks = []
+
+    # Bulk existence check: one query instead of N find_one
+    selected_product_ids = [p["product_id"] for p in selected]
+    existing_product_ids: set[str] = set()
+    if selected_product_ids:
+        cursor = db.inventory_tasks.find(
+            {
+                "user_id": user_id,
+                "status": "pending",
+                "product_id": {"$in": selected_product_ids},
+            },
+            {"_id": 0, "product_id": 1},
+        )
+        async for doc in cursor:
+            existing_product_ids.add(doc["product_id"])
+
+    new_tasks: list[InventoryTask] = []
+    docs_to_insert: list[dict] = []
     for p in selected:
-        # Check if already has a pending task
-        existing = await db.inventory_tasks.find_one({
-            "product_id": p["product_id"],
-            "status": "pending",
-            "user_id": user_id
-        })
-        if existing:
+        if p["product_id"] in existing_product_ids:
             continue
-            
         task = InventoryTask(
             user_id=user_id,
             store_id=store_id,
             product_id=p["product_id"],
             product_name=p["name"],
             expected_quantity=p["quantity"],
-            priority="medium" # Could be dynamic
+            priority="medium",
         )
-        await db.inventory_tasks.insert_one(task.model_dump())
+        docs_to_insert.append(task.model_dump())
         new_tasks.append(task)
-        
+
+    if docs_to_insert:
+        await db.inventory_tasks.insert_many(docs_to_insert)
+
     return {"message": f"{len(new_tasks)} tâches d'inventaire générées", "tasks": new_tasks}
 
 @api_router.put("/inventory/tasks/{task_id}", response_model=InventoryTask)
