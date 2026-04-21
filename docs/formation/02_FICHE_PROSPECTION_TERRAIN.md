@@ -29,6 +29,7 @@ L'objectif est simple :
 - Zone :
 - Nom du commerce :
 - Type de commerce :
+- Adresse : Code (plus code ou adresse)
 - Nom du contact :
 - Fonction du contact :
 - Telephone :

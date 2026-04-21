@@ -518,7 +518,7 @@ export default function Home() {
     return (
       <CompleteSocialProfilePanel
         user={user}
-        onCompleted={(nextUser) => hydrateAuthenticatedUser(nextUser)}
+        onCompleted={(nextUser: any) => hydrateAuthenticatedUser(nextUser)}
         onLogout={handleLogout}
       />
     );
@@ -528,7 +528,7 @@ export default function Home() {
     return (
       <VerifyEmailPanel
         user={user}
-        onVerified={(verifiedUser) => {
+        onVerified={(verifiedUser: any) => {
           setUser(verifiedUser);
           userFeatures.get().then(setFeatures).catch(() => { });
           import('../services/api').then(({ settings: settingsApi }) => {

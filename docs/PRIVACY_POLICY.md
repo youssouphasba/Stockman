@@ -263,4 +263,4 @@ La version applicable est celle mise à disposition dans la Plateforme ou commun
 
 ## 20. Contact
 
-Pour toute question relative à la présente politique de confidentialité ou pour l'exercice de vos droits, l'Utilisateur peut contacter l'Éditeur via les canaux de support ou les coordonnées de contact communiquées dans la Plateforme, les documents contractuels ou les communications officielles de Stockman.
+Pour toute question relative à la présente politique de confidentialité ou pour l'exercice de vos droits, l'Utilisateur peut contacter l'Éditeur via les canaux de support intégrés ou les coordonnées de contact communiquées dans la Plateforme dont **contact@stockman.pro**, les documents contractuels ou les communications officielles de Stockman.

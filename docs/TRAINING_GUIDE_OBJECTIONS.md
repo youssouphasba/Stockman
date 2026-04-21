@@ -62,7 +62,7 @@ Le bon reflexe est :
 **Realite :** soit le commercant hesite vraiment, soit il veut mettre fin a l'echange sans confrontation.
 
 **Reponse utile :**
-`Bien sur. Avant de vous laisser, quel est le point qui vous parait le plus utile, ou celui qui vous fait encore hesiter ?`
+`Bien sur. Avant de vous laisser, quel est le point qui vous parait le plus utile, ou celui qui vous fait encore hesiter ?`Puis je avoir votre numéro WhatsApp pour vous envoyer les informations et vous recontacter plus tard?
 
 ---
 

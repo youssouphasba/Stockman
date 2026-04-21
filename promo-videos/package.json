@@ -1,0 +1,26 @@
+{
+  "name": "stockman-promo-videos",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "remotion studio src/index.ts",
+    "preview": "remotion studio src/index.ts",
+    "render:webapp": "remotion render src/index.ts stockman-webapp-promo out/stockman-webapp-promo.mp4",
+    "render:webapp:vertical": "remotion render src/index.ts stockman-webapp-promo-vertical out/stockman-webapp-promo-vertical.mp4",
+    "render:mobile": "remotion render src/index.ts stockman-mobile-promo out/stockman-mobile-promo.mp4",
+    "render:mobile:vertical": "remotion render src/index.ts stockman-mobile-promo-vertical out/stockman-mobile-promo-vertical.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.448",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "remotion": "4.0.448",
+    "typescript": "~5.9.3"
+  },
+  "devDependencies": {}
+}
