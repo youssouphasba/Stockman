@@ -15,6 +15,7 @@ Profils concernes : utilisateurs ayant la permission `pos`.
 
 - recherche et ajout de produits ;
 - gestion du panier ;
+- remise par ligne directement depuis le panier ;
 - selection ou creation rapide d'un client ;
 - choix du mode de paiement ;
 - recu et annulation de vente selon les droits.

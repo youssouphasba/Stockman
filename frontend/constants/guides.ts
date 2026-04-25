@@ -82,7 +82,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "create-outline",
                 title: "Créer ou modifier une fiche produit",
-                description: "Ouvrez la fiche pour renseigner le nom, le SKU, la quantité initiale, l'unité, les prix, les seuils, la catégorie, les fournisseurs liés et les informations utiles au suivi. Relisez toujours les prix et le seuil minimum avant d'enregistrer."
+                description: "Ouvrez la fiche pour renseigner le nom, le SKU, la quantité initiale, l'unité, les prix, les seuils, la catégorie, les fournisseurs liés et les informations utiles au suivi. Si vous retirez une photo, enregistrez la fiche pour supprimer aussi l'image du produit. Relisez toujours les prix et le seuil minimum avant d'enregistrer."
             },
             {
                 icon: "link-outline",
@@ -122,7 +122,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "checkbox-outline",
                 title: "Utiliser la sélection multiple",
-                description: "Utilisez la barre d'actions en bas pour modifier les prix ou les stocks des produits sélectionnés, exporter le catalogue ou envoyer des produits dans la corbeille. Pour le stock, saisissez le stock réel : Stockman enregistre seulement les écarts sous forme de mouvements."
+                description: "Utilisez la barre d'actions en bas pour modifier les prix ou les stocks des produits sélectionnés, exporter le catalogue ou envoyer des produits dans la corbeille. Le bouton Tout sélectionner prend en compte toute la liste visible, même si les produits se chargent en plusieurs pages. Pour le stock, saisissez le stock réel : Stockman enregistre seulement les écarts sous forme de mouvements."
             }
         ]
     },
@@ -187,7 +187,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "pricetag-outline",
                 title: "Remise par Ligne",
-                description: "Appuyez sur l'icône étiquette d'une ligne pour appliquer une remise en pourcentage ou en montant fixe sur cet article."
+                description: "Utilisez le bouton Remise visible sur chaque ligne du panier pour appliquer une remise en pourcentage ou en montant fixe sur cet article."
             },
             {
                 icon: "person-add-outline",

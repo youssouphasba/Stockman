@@ -1185,7 +1185,7 @@
         },
         "f12": {
           "t": "Multi-select & restore",
-          "d": "The bottom action bar lets you select all, quickly edit selling prices, share the catalog, or move products to the trash. The trash is shared with the web app and products can be restored when needed."
+          "d": "The bottom action bar lets you select all, quickly edit selling prices, share the catalog, or move products to the trash. Select all covers the whole visible list, even when products are loaded across multiple pages. The trash is shared with the web app and products can be restored when needed."
         }
       },
       "pos": {
@@ -1220,7 +1220,7 @@
         },
         "f8": {
           "t": "Line Discount",
-          "d": "Apply a percentage or fixed amount discount on a specific item via the tag icon on the line."
+          "d": "Apply a percentage or fixed amount discount on a specific item using the visible Discount button on the cart line."
         },
         "f9": {
           "t": "Change Calculator",

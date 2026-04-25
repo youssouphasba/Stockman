@@ -2044,7 +2044,7 @@ export type Product = {
   min_stock: number;
   max_stock: number;
   lead_time_days: number;
-  image?: string;
+  image?: string | null;
   rfid_tag?: string;
   expiry_date?: string;
   location_id?: string;

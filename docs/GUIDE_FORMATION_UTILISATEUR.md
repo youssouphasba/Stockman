@@ -228,6 +228,8 @@ Pour compter ou enregistrer plusieurs produits d'un coup :
 
 Quand vous devez nettoyer un grand catalogue :
 
+> Bon à savoir : le bouton **Tout sélectionner** prend en compte toute la liste visible, même si les produits se chargent sur plusieurs pages.
+
 1. Dans **📦 Produits**, activez la sélection multiple.
 2. Sélectionnez les produits concernés.
 3. Appuyez sur l'action de suppression et confirmez.

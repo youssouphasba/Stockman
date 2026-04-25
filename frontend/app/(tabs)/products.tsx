@@ -446,6 +446,7 @@ export default function ProductsScreen() {
   const [userSector, setUserSector] = useState('');
   const [productsTotal, setProductsTotal] = useState(0);
   const [productsLoadingMore, setProductsLoadingMore] = useState(false);
+  const [selectAllLoading, setSelectAllLoading] = useState(false);
   const [currentStore, setCurrentStore] = useState<any>(null);
 
   const productFormBaselineRef = useRef('');
@@ -1180,30 +1181,107 @@ export default function ProductsScreen() {
     };
   }
 
+  const matchesActiveProductFilters = useCallback((product: Product) => {
+    let matchesFilter = true;
+    if (filterType === 'out_of_stock') matchesFilter = product.quantity === 0;
+    else if (filterType === 'low_stock') matchesFilter = product.min_stock > 0 && product.quantity <= product.min_stock;
+    else if (filterType === 'overstock') matchesFilter = product.max_stock > 0 && product.quantity >= product.max_stock;
+    else if (filterType === 'deadstock') matchesFilter = deadstockIds.has(product.product_id);
+
+    const productLinks = supplierLinksByProduct[product.product_id] || [];
+    const hasSupplier = productLinks.length > 0;
+    const hasPrimarySupplier = productLinks.some((link) => link.is_preferred);
+    let matchesSupplierCoverage = true;
+    if (supplierCoverageFilter === 'no_supplier') matchesSupplierCoverage = !hasSupplier;
+    else if (supplierCoverageFilter === 'multi_supplier') matchesSupplierCoverage = productLinks.length > 1;
+    else if (supplierCoverageFilter === 'missing_primary') matchesSupplierCoverage = hasSupplier && !hasPrimarySupplier;
+
+    return matchesFilter && matchesSupplierCoverage;
+  }, [deadstockIds, filterType, supplierCoverageFilter, supplierLinksByProduct]);
+
   const filtered = useMemo(() => {
-    // When searching: use server results (covers all products), else use local list
     const sourceList = debouncedSearch && serverSearchResults !== null
       ? serverSearchResults
       : (productList || []);
     if (!Array.isArray(sourceList)) return [];
-    return sourceList.filter((p) => {
-      let matchesFilter = true;
-      if (filterType === 'out_of_stock') matchesFilter = p.quantity === 0;
-      else if (filterType === 'low_stock') matchesFilter = p.min_stock > 0 && p.quantity <= p.min_stock;
-      else if (filterType === 'overstock') matchesFilter = p.max_stock > 0 && p.quantity >= p.max_stock;
-      else if (filterType === 'deadstock') matchesFilter = deadstockIds.has(p.product_id);
+    return sourceList.filter(matchesActiveProductFilters);
+  }, [productList, serverSearchResults, debouncedSearch, matchesActiveProductFilters]);
 
-      const productLinks = supplierLinksByProduct[p.product_id] || [];
-      const hasSupplier = productLinks.length > 0;
-      const hasPrimarySupplier = productLinks.some((link) => link.is_preferred);
-      let matchesSupplierCoverage = true;
-      if (supplierCoverageFilter === 'no_supplier') matchesSupplierCoverage = !hasSupplier;
-      else if (supplierCoverageFilter === 'multi_supplier') matchesSupplierCoverage = productLinks.length > 1;
-      else if (supplierCoverageFilter === 'missing_primary') matchesSupplierCoverage = hasSupplier && !hasPrimarySupplier;
+  const selectedProducts = useMemo(
+    () => filtered.filter((product) => selectedProductIds.has(product.product_id)),
+    [filtered, selectedProductIds],
+  );
 
-      return matchesFilter && matchesSupplierCoverage;
-    });
-  }, [productList, serverSearchResults, debouncedSearch, filterType, supplierCoverageFilter, supplierLinksByProduct, deadstockIds]);
+  const allVisibleProductsSelected = filtered.length > 0 && filtered.every((product) => selectedProductIds.has(product.product_id));
+
+  const loadAllVisibleProducts = useCallback(async () => {
+    const usingServerSearch = !!debouncedSearch;
+    const initialItems = usingServerSearch
+      ? (serverSearchResults ?? [])
+      : (productList ?? []);
+
+    let mergedItems = [...initialItems];
+    let total = usingServerSearch ? serverSearchTotal : productsTotal;
+
+    if (!isConnected || mergedItems.length >= total) {
+      return { items: mergedItems, total };
+    }
+
+    let skip = mergedItems.length;
+    while (skip < total) {
+      const response = await productsApi.list(
+        selectedCategory ?? undefined,
+        skip,
+        PRODUCTS_PAGE_SIZE,
+        isRestaurant ? true : undefined,
+        usingServerSearch ? debouncedSearch : undefined,
+      );
+      const incomingItems = (response.items ?? response) as Product[];
+      mergedItems = mergeUniqueProducts(mergedItems, incomingItems);
+      total = response.total ?? total;
+      if (incomingItems.length === 0) {
+        break;
+      }
+      skip += incomingItems.length;
+    }
+
+    if (usingServerSearch) {
+      setServerSearchResults(mergedItems);
+      setServerSearchTotal(total);
+    } else {
+      setProductList(mergedItems);
+      setProductsTotal(total);
+    }
+
+    return { items: mergedItems, total };
+  }, [
+    PRODUCTS_PAGE_SIZE,
+    debouncedSearch,
+    isConnected,
+    isRestaurant,
+    mergeUniqueProducts,
+    productList,
+    productsTotal,
+    selectedCategory,
+    serverSearchResults,
+    serverSearchTotal,
+  ]);
+
+  async function toggleSelectAll() {
+    if (allVisibleProductsSelected) {
+      setSelectedProductIds(new Set());
+      return;
+    }
+
+    setSelectAllLoading(true);
+    try {
+      const { items } = await loadAllVisibleProducts();
+      const visibleProducts = items.filter(matchesActiveProductFilters);
+      setSelectedProductIds(new Set(visibleProducts.map((product) => product.product_id)));
+    } finally {
+      setSelectAllLoading(false);
+    }
+  }
 
   const canLoadMoreVisibleProducts = debouncedSearch
     ? !!serverSearchResults && serverSearchResults.length < serverSearchTotal
@@ -1589,6 +1667,9 @@ export default function ProductsScreen() {
     }
     setFormLoading(true);
     try {
+      const normalizedImage = formImage === null
+        ? (editingProduct ? null : undefined)
+        : formImage;
       const measurement = normalizeProductMeasurement({
         unit: formUnit,
         display_unit: formUnit,
@@ -1615,7 +1696,7 @@ export default function ProductsScreen() {
         max_stock: parseFloat(formMaxStock) || 100,
         category_id: formCategory || undefined,
         subcategory: formSubcategory.trim() || undefined,
-        image: formImage || undefined,
+        image: normalizedImage,
         rfid_tag: formRfidTag || undefined,
         expiry_date: formExpiryDate ? new Date(formExpiryDate).toISOString() : undefined,
         variants: formHasVariants
@@ -2151,19 +2232,6 @@ export default function ProductsScreen() {
     });
   }
 
-  function toggleSelectAll() {
-    if (selectedProductIds.size === filtered.length) {
-      setSelectedProductIds(new Set());
-    } else {
-      setSelectedProductIds(new Set(filtered.map(p => p.product_id)));
-    }
-  }
-
-  const selectedProducts = useMemo(
-    () => filtered.filter((product) => selectedProductIds.has(product.product_id)),
-    [filtered, selectedProductIds],
-  );
-
   function openBulkPriceModal() {
     if (selectedProducts.length === 0) return;
     const initialValues: Record<string, string> = {};
@@ -2476,7 +2544,7 @@ export default function ProductsScreen() {
 
   async function exportCatalog() {
     const list = selectedProductIds.size > 0
-      ? productList.filter(p => selectedProductIds.has(p.product_id))
+      ? selectedProducts
       : filtered;
 
     if (list.length === 0) {
@@ -3374,12 +3442,16 @@ export default function ProductsScreen() {
         <View style={[styles.selectionToolbarDock, { paddingBottom: insets.bottom + Spacing.sm }]}>
           <View style={styles.selectionToolbar}>
             <View style={styles.selectionInfo}>
-              <TouchableOpacity onPress={toggleSelectAll} style={styles.selectAllBtn}>
-                <Ionicons
-                  name={filtered.length > 0 && selectedProductIds.size === filtered.length ? "checkbox" : "square-outline"}
-                  size={20}
-                  color={colors.primaryLight}
-                />
+              <TouchableOpacity onPress={toggleSelectAll} style={styles.selectAllBtn} disabled={selectAllLoading}>
+                {selectAllLoading ? (
+                  <ActivityIndicator size="small" color={colors.primaryLight} />
+                ) : (
+                  <Ionicons
+                    name={allVisibleProductsSelected ? "checkbox" : "square-outline"}
+                    size={20}
+                    color={colors.primaryLight}
+                  />
+                )}
                 <Text style={styles.selectAllText}>
                   {t('products.select_all', 'Tout selectionner')} ({selectedProductIds.size}/{filtered.length})
                 </Text>

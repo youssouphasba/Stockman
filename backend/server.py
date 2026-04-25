@@ -14953,7 +14953,7 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
     if prod_data.image:
         prod_data.image = compress_image_base64(prod_data.image)
         
-    update_dict = {k: v for k, v in prod_data.model_dump().items() if v is not None}
+    update_dict = prod_data.model_dump(exclude_unset=True)
     if "location_id" in update_dict:
         ensure_enterprise_locations_allowed(user)
     if update_dict.get("linked_recipe_id"):

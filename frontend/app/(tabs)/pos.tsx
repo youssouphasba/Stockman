@@ -702,6 +702,18 @@ export default function POSScreen() {
         }));
     };
 
+    const openLineDiscount = (item: CartItem) => {
+        if (item.persisted) {
+            Alert.alert(
+                t('pos.open_order_locked_title', 'Commande ouverte'),
+                t('pos.cart_locked_open_order', 'Cette ligne a déjà été envoyée. Ajoutez une nouvelle ligne pour compléter la commande.'),
+            );
+            return;
+        }
+        setSelectedCartItem(item);
+        setShowDiscountModal(true);
+    };
+
     const addSession = () => {
         if (sessions.length >= 5) {
             Alert.alert(t('pos.max_sessions_reached'));
@@ -1497,14 +1509,7 @@ export default function POSScreen() {
                                         <View key={item.cartKey} style={styles.cartItem}>
                                             <TouchableOpacity
                                                 style={{ flex: 1 }}
-                                                onPress={() => {
-                                                    if (item.persisted) {
-                                                        Alert.alert(t('pos.open_order_locked_title', 'Commande ouverte'), t('pos.cart_locked_open_order', 'Cette ligne a déjà été envoyée. Ajoutez une nouvelle ligne pour compléter la commande.'));
-                                                        return;
-                                                    }
-                                                    setSelectedCartItem(item);
-                                                    setShowDiscountModal(true);
-                                                }}
+                                                onPress={() => openLineDiscount(item)}
                                             >
                                                 <Text style={styles.cartItemName} numberOfLines={1}>{item.product.name}</Text>
                                                 {(isWeightedProduct(item.product) || item.sold_unit) && (
@@ -1544,6 +1549,35 @@ export default function POSScreen() {
                                                                 user
                                                             )}
                                                         </Text>
+                                                    )}
+                                                </View>
+                                                <View style={styles.cartLineActions}>
+                                                    <TouchableOpacity
+                                                        style={[
+                                                            styles.discountLineBtn,
+                                                            item.persisted && styles.discountLineBtnDisabled,
+                                                        ]}
+                                                        onPress={() => openLineDiscount(item)}
+                                                        disabled={item.persisted}
+                                                    >
+                                                        <Ionicons name="pricetag-outline" size={14} color={item.persisted ? colors.textMuted : colors.primary} />
+                                                        <Text
+                                                            style={[
+                                                                styles.discountLineBtnText,
+                                                                item.persisted && styles.discountLineBtnTextDisabled,
+                                                            ]}
+                                                        >
+                                                            {t('pos.discount')}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                    {(item.discountValue || 0) > 0 && (
+                                                        <View style={styles.discountAppliedBadge}>
+                                                            <Text style={styles.discountAppliedBadgeText}>
+                                                                {item.discountType === 'percentage'
+                                                                    ? `-${item.discountValue}%`
+                                                                    : `-${formatUserCurrency(item.discountValue || 0, user)}`}
+                                                            </Text>
+                                                        </View>
                                                     )}
                                                 </View>
                                             </TouchableOpacity>
@@ -2223,6 +2257,49 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     cartMetaText: {
         color: colors.textMuted,
         fontSize: 11,
+    },
+    cartLineActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        marginTop: 6,
+        flexWrap: 'wrap',
+    },
+    discountLineBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: BorderRadius.full,
+        borderWidth: 1,
+        borderColor: colors.primary + '35',
+        backgroundColor: colors.primary + '12',
+    },
+    discountLineBtnDisabled: {
+        borderColor: colors.divider,
+        backgroundColor: colors.bgLight,
+    },
+    discountLineBtnText: {
+        color: colors.primary,
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    discountLineBtnTextDisabled: {
+        color: colors.textMuted,
+    },
+    discountAppliedBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: BorderRadius.full,
+        backgroundColor: colors.success + '18',
+        borderWidth: 1,
+        borderColor: colors.success + '35',
+    },
+    discountAppliedBadgeText: {
+        color: colors.success,
+        fontSize: 11,
+        fontWeight: '700',
     },
     qtyContainer: {
         flexDirection: 'row',
