@@ -5369,11 +5369,11 @@ async def get_user_notifications(user: User = Depends(require_auth), skip: int =
 @api_router.post("/user/notifications/{message_id}/read")
 async def mark_notification_read(message_id: str, user: User = Depends(require_auth)):
     """Mark a notification as read for the current user."""
-    await db.admin_messages.update_one(
-        {"message_id": message_id},
+    result = await db.admin_messages.update_one(
+        {"message_id": message_id, "read_by": {"$ne": user.user_id}},
         {"$addToSet": {"read_by": user.user_id}, "$inc": {"read_count": 1}}
     )
-    return {"status": "ok"}
+    return {"status": "ok", "marked": result.modified_count > 0}
 
 @api_router.post("/user/notifications/read-all")
 async def mark_all_notifications_read(user: User = Depends(require_auth)):

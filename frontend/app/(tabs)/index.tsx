@@ -47,6 +47,7 @@ import {
   StockMovement,
   InventoryTask,
   UserSettings,
+  UserNotification,
   API_URL,
   getToken,
   userNotifications,
@@ -166,8 +167,9 @@ export default function DashboardScreen() {
   const [inventoryCountSubmitting, setInventoryCountSubmitting] = useState(false);
 
   // Notifications
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [notifCount, setNotifCount] = useState(0);
+  const [notifLoading, setNotifLoading] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showDashboardSettings, setShowDashboardSettings] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
@@ -278,12 +280,49 @@ export default function DashboardScreen() {
     }
 
     try {
+      setNotifLoading(true);
       const result = await userNotifications.list(0, 5);
-      setNotifications(result.items);
-      setNotifCount(result.total);
+      setNotifications(result.items || []);
+      setNotifCount(result.unread || 0);
       lastNotificationsLoadedAtRef.current = Date.now();
     } catch { /* ignore */ }
+    finally {
+      setNotifLoading(false);
+    }
   }, [MOBILE_NOTIFICATIONS_TTL_MS]);
+
+  useEffect(() => {
+    if (!showNotifModal) {
+      return;
+    }
+    void loadNotifications(true);
+  }, [showNotifModal, loadNotifications]);
+
+  const handleMarkNotificationRead = useCallback(async (messageId: string) => {
+    try {
+      const result = await userNotifications.markRead(messageId);
+      if (!result?.marked) {
+        return;
+      }
+      setNotifications((current) => current.map((item) => (
+        item.message_id === messageId
+          ? { ...item, is_read: true }
+          : item
+      )));
+      setNotifCount((current) => Math.max(0, current - 1));
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleMarkAllNotificationsRead = useCallback(async () => {
+    try {
+      const result = await userNotifications.markAllRead();
+      if (!result?.marked) {
+        return;
+      }
+      setNotifications((current) => current.map((item) => ({ ...item, is_read: true })));
+      setNotifCount(0);
+    } catch { /* ignore */ }
+  }, []);
 
   const cancelDeferredLoads = useCallback(() => {
     deferredLoadVersionRef.current += 1;
@@ -1977,20 +2016,85 @@ export default function DashboardScreen() {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { height: '60%', marginTop: 'auto' }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{t('dashboard.admin_messages')}</Text>
-                <TouchableOpacity onPress={() => setShowNotifModal(false)}>
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
+                <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+                  <Text style={styles.modalTitle}>{t('dashboard.admin_messages')}</Text>
+                  {notifCount > 0 && (
+                    <Text style={{ color: colors.primary, fontSize: FontSize.xs, marginTop: 4 }}>
+                      {notifCount} {t('notifications.unread', 'non lues')}
+                    </Text>
+                  )}
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                  {notifCount > 0 && (
+                    <TouchableOpacity onPress={() => void handleMarkAllNotificationsRead()}>
+                      <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '700' }}>
+                        {t('notifications.markAllRead', 'Tout marquer comme lu')}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={() => setShowNotifModal(false)}>
+                    <Ionicons name="close" size={24} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
               </View>
               <ScrollView style={{ padding: Spacing.md }}>
-                {notifications.filter((n) => Boolean(n && (n.title || n.content))).map((n: any, i: number) => (
-                  <View key={n.message_id || i} style={{ paddingVertical: 12, borderBottomWidth: i < notifications.length - 1 ? 1 : 0, borderBottomColor: colors.divider }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{n.title || ''}</Text>
-                      <Text style={{ color: colors.textMuted, fontSize: 11 }}>{new Date(n.sent_at).toLocaleDateString('fr-FR')}</Text>
-                    </View>
-                    <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 20 }}>{n.content || ''}</Text>
+                {notifLoading && notifications.length === 0 ? (
+                  <View style={{ paddingVertical: Spacing.xl * 2, alignItems: 'center' }}>
+                    <ActivityIndicator color={colors.primary} />
                   </View>
+                ) : notifications.filter((n) => Boolean(n && (n.title || n.content))).length === 0 ? (
+                  <View style={{ paddingVertical: Spacing.xl * 2, alignItems: 'center' }}>
+                    <Ionicons name="notifications-off-outline" size={28} color={colors.textMuted} />
+                    <Text style={{ color: colors.textMuted, fontSize: FontSize.sm, marginTop: Spacing.sm }}>
+                      {t('notifications.empty', 'Aucune notification pour le moment')}
+                    </Text>
+                  </View>
+                ) : notifications.filter((n) => Boolean(n && (n.title || n.content))).map((n, i) => (
+                  <TouchableOpacity
+                    key={n.message_id || i}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      if (!n.is_read && n.message_id) {
+                        void handleMarkNotificationRead(n.message_id);
+                      }
+                    }}
+                    style={{
+                      paddingVertical: 12,
+                      borderBottomWidth: i < notifications.length - 1 ? 1 : 0,
+                      borderBottomColor: colors.divider,
+                      opacity: n.is_read ? 0.7 : 1,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                      {!n.is_read && (
+                        <View style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 999,
+                          marginTop: 6,
+                          backgroundColor: colors.primary,
+                        }} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4, gap: Spacing.sm }}>
+                          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, flex: 1 }}>
+                            {n.title || ''}
+                          </Text>
+                          <Text style={{ color: colors.textMuted, fontSize: 11 }}>
+                            {n.sent_at ? new Date(n.sent_at).toLocaleDateString('fr-FR') : ''}
+                          </Text>
+                        </View>
+                        <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 20 }}>
+                          {n.content || ''}
+                        </Text>
+                        {!!n.sent_by && (
+                          <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 6 }}>
+                            {n.sent_by}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                 ))}
                 <View style={{ height: 40 }} />
               </ScrollView>

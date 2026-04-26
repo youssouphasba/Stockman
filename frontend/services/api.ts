@@ -1732,11 +1732,23 @@ export const disputes = {
 };
 
 // User Notifications
+export type UserNotification = {
+  message_id: string;
+  type?: string;
+  title: string;
+  content: string;
+  target?: string;
+  sent_by?: string;
+  sent_at?: string;
+  is_read?: boolean;
+  read_count?: number;
+};
+
 export const userNotifications = {
   list: (skip = 0, limit = 20) =>
-    request<{ items: any[]; total: number; unread: number }>(`/user/notifications?skip=${skip}&limit=${limit}`),
+    request<{ items: UserNotification[]; total: number; unread: number }>(`/user/notifications?skip=${skip}&limit=${limit}`),
   markRead: (messageId: string) =>
-    request<{ status: string }>(`/user/notifications/${messageId}/read`, { method: 'POST' }),
+    request<{ status: string; marked: boolean }>(`/user/notifications/${messageId}/read`, { method: 'POST' }),
   markAllRead: () =>
     request<{ marked: number }>('/user/notifications/read-all', { method: 'POST' }),
 };
@@ -2156,7 +2168,7 @@ export type ProductCreate = {
   min_stock?: number;
   max_stock?: number;
   lead_time_days?: number;
-  image?: string;
+  image?: string | null;
   rfid_tag?: string;
   location_id?: string;
   expiry_date?: string;

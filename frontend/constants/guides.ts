@@ -53,6 +53,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "share-outline",
                 title: "Partager le Rapport",
                 description: "L'icône de partage dans le header génère un rapport HTML de la journée que vous pouvez envoyer par WhatsApp, Email ou toute autre app."
+            },
+            {
+                icon: "megaphone-outline",
+                title: "Centre de notifications",
+                description: "Le bouton Notifications ouvre maintenant un vrai centre de messages. Le badge affiche les non lues, vous pouvez ouvrir un message pour le marquer comme lu ou tout marquer d'un coup."
             }
         ]
     },

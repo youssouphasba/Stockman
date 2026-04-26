@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Bell, CheckCheck, Circle } from 'lucide-react';
-import { userNotifications } from '../services/api';
+import { userNotifications, type UserNotification } from '../services/api';
 
 interface NotificationCenterProps {
     isOpen: boolean;
@@ -13,7 +13,7 @@ interface NotificationCenterProps {
 
 export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: NotificationCenterProps) {
     const { t } = useTranslation();
-    const [notifications, setNotifications] = useState<any[]>([]);
+    const [notifications, setNotifications] = useState<UserNotification[]>([]);
     const [loading, setLoading] = useState(false);
     const [unread, setUnread] = useState(0);
 
@@ -41,12 +41,18 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
 
     const handleMarkRead = async (messageId: string) => {
         try {
-            await userNotifications.markRead(messageId);
+            const result = await userNotifications.markRead(messageId);
+            if (!result?.marked) {
+                return;
+            }
             setNotifications(prev => prev.map(n =>
                 n.message_id === messageId ? { ...n, is_read: true } : n
             ));
-            setUnread(prev => Math.max(0, prev - 1));
-            onUnreadChange?.(Math.max(0, unread - 1));
+            setUnread(prev => {
+                const next = Math.max(0, prev - 1);
+                onUnreadChange?.(next);
+                return next;
+            });
         } catch { /* silent */ }
     };
 

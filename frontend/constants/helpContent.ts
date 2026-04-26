@@ -43,6 +43,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'options-outline', title: 'help.modules.dashboard.f7.t', description: "help.modules.dashboard.f7.d" },
       { icon: 'share-outline', title: 'help.modules.dashboard.f8.t', description: "help.modules.dashboard.f8.d" },
       { icon: 'information-circle-outline', title: 'help.modules.dashboard.f9.t', description: "help.modules.dashboard.f9.d" },
+      { icon: 'megaphone-outline', title: 'Centre de notifications', description: "Le dashboard affiche maintenant le nombre réel de messages non lus. Ouvrez le centre pour relire vos annonces internes, marquer une notification comme lue ou tout nettoyer d'un seul geste." },
     ],
   },
   {

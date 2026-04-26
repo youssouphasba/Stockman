@@ -2574,13 +2574,25 @@ export const disputes = {
 };
 
 // User notifications
+export type UserNotification = {
+    message_id: string;
+    type?: string;
+    title: string;
+    content: string;
+    target?: string;
+    sent_by?: string;
+    sent_at?: string;
+    is_read?: boolean;
+    read_count?: number;
+};
+
 export const userNotifications = {
     list: (skip = 0, limit = 20) =>
-        request<{ items: any[]; total: number; unread: number }>(`/user/notifications?skip=${skip}&limit=${limit}`),
+        request<{ items: UserNotification[]; total: number; unread: number }>(`/user/notifications?skip=${skip}&limit=${limit}`),
     markRead: (messageId: string) =>
-        request<any>(`/user/notifications/${messageId}/read`, { method: 'POST' }),
+        request<{ status: string; marked: boolean }>(`/user/notifications/${messageId}/read`, { method: 'POST' }),
     markAllRead: () =>
-        request<any>('/user/notifications/read-all', { method: 'POST' }),
+        request<{ marked: number }>('/user/notifications/read-all', { method: 'POST' }),
 };
 
 export type PlannerChannel = 'in_app' | 'push' | 'email';
