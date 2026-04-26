@@ -128,7 +128,7 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
                                             <p className="text-xs text-slate-400 mt-1 line-clamp-2">{notif.content}</p>
                                             <div className="flex items-center gap-2 mt-2">
                                                 <span className="text-[9px] text-slate-600">
-                                                    {new Date(notif.sent_at).toLocaleString()}
+                                                    {notif.sent_at ? new Date(notif.sent_at).toLocaleString() : ''}
                                                 </span>
                                                 <span className="text-[9px] text-slate-700">
                                                     {notif.sent_by}
