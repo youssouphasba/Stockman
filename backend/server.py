@@ -22537,6 +22537,7 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
 class PartialDeliveryItem(BaseModel):
     item_id: str
     received_quantity: int
+    actual_unit_price: Optional[float] = None  # Override of order line unit_price (e.g., negotiated invoice)
 
 class PartialDeliveryRequest(BaseModel):
     items: List[PartialDeliveryItem]
@@ -22654,10 +22655,37 @@ async def receive_partial_delivery(
         if product:
             old_qty = product["quantity"]
             new_qty = old_qty + qty_delta
+
+            # WAC: use line's unit_price (or actual_unit_price override) as incoming price
+            override_price = delivery_item.actual_unit_price
+            if override_price is not None and override_price > 0:
+                incoming_price = float(override_price)
+            else:
+                incoming_price = float(item.get("unit_price") or 0)
+            new_wac = None
+            if incoming_price > 0:
+                new_wac = compute_weighted_avg_cost(
+                    old_qty,
+                    float(product.get("purchase_price") or 0),
+                    qty_delta,
+                    incoming_price,
+                )
+
+            update_set = {"quantity": new_qty, "updated_at": datetime.now(timezone.utc)}
+            if new_wac is not None:
+                update_set["purchase_price"] = new_wac
             await db.products.update_one(
                 {"product_id": item["product_id"]},
-                {"$set": {"quantity": new_qty, "updated_at": datetime.now(timezone.utc)}}
+                {"$set": update_set}
             )
+
+            if new_wac is not None:
+                await db.price_history.insert_one(PriceHistory(
+                    product_id=item["product_id"],
+                    user_id=owner_id,
+                    purchase_price=new_wac,
+                    selling_price=float(product.get("selling_price") or 0),
+                ).model_dump())
 
             # Create stock movement
             movement = StockMovement(
@@ -22668,7 +22696,9 @@ async def receive_partial_delivery(
                 quantity=qty_delta,
                 reason=f"Réception partielle - Commande {order_id}" + (f" - {data.notes}" if data.notes else ""),
                 previous_quantity=old_qty,
-                new_quantity=new_qty
+                new_quantity=new_qty,
+                purchase_price=incoming_price if incoming_price > 0 else None,
+                new_purchase_price=new_wac,
             )
             await db.stock_movements.insert_one(movement.model_dump())
 
