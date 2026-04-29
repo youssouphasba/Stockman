@@ -17305,7 +17305,7 @@ async def create_customer(customer_data: CustomerCreate, user: User = Depends(re
     customer = Customer(
         user_id=owner_id,
         store_id=user.active_store_id,
-        **customer_data.model_dump()
+        **customer_data.model_dump(exclude_none=True)
     )
     await db.customers.insert_one(customer.model_dump())
     
@@ -17354,7 +17354,7 @@ async def update_customer(customer_id: str, customer_data: CustomerCreate, user:
         user,
     )
     ensure_scoped_document_access(user, existing, detail="Acces refuse pour ce client")
-    update_dict = customer_data.model_dump()
+    update_dict = customer_data.model_dump(exclude_none=True)
     customer_query = {"customer_id": customer_id, "user_id": owner_id}
     if existing and existing.get("store_id"):
         customer_query["store_id"] = existing["store_id"]

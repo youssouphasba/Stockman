@@ -63,6 +63,7 @@ import {
   SupplierProduct,
   ProductDeleteJob,
 } from '../../services/api';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import AccessDenied from '../../components/AccessDenied';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
 import * as Print from 'expo-print';
@@ -378,6 +379,7 @@ export default function ProductsScreen() {
   const [supplierLinksByProduct, setSupplierLinksByProduct] = useState<Record<string, SupplierProduct[]>>({});
   const [imageUploading, setImageUploading] = useState(false);
   const [formExpiryDate, setFormExpiryDate] = useState('');
+  const [showExpiryPicker, setShowExpiryPicker] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [isInventoryMode, setIsInventoryMode] = useState(false);
   const [inventoryValues, setInventoryValues] = useState<Record<string, string>>({});
@@ -429,6 +431,7 @@ export default function ProductsScreen() {
   const [movReason, setMovReason] = useState('');
   const [movBatchNumber, setMovBatchNumber] = useState('');
   const [movExpiryDate, setMovExpiryDate] = useState('');
+  const [showMovExpiryPicker, setShowMovExpiryPicker] = useState(false);
 
   // Scanner
   const [showScanner, setShowScanner] = useState(false);
@@ -4082,14 +4085,60 @@ export default function ProductsScreen() {
                 {!isRestaurant && (
                   <View style={styles.formRow}>
                     <View style={[styles.formHalf, { flex: 1 }]}>
-                      <FormField
-                        label={t('products.field_expiry')}
-                        value={formExpiryDate}
-                        onChangeText={setFormExpiryDate}
-                        placeholder={t('products.date_format_placeholder')}
-                        colors={colors}
-                        styles={styles}
-                      />
+                      <View style={styles.formGroup}>
+                        <Text style={styles.formLabel}>{t('products.field_expiry')}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                          <TextInput
+                            style={[styles.formInput, { backgroundColor: colors.bgMid, flex: 1 }]}
+                            value={formExpiryDate}
+                            onChangeText={setFormExpiryDate}
+                            placeholder={t('products.date_format_placeholder')}
+                            placeholderTextColor={colors.textMuted}
+                          />
+                          <TouchableOpacity
+                            onPress={() => setShowExpiryPicker(true)}
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: BorderRadius.md,
+                              borderWidth: 1,
+                              borderColor: colors.divider,
+                              backgroundColor: colors.bgMid,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            accessibilityLabel={t('products.field_expiry')}
+                          >
+                            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                          </TouchableOpacity>
+                        </View>
+                        {showExpiryPicker && (() => {
+                          const parsed = formExpiryDate ? new Date(formExpiryDate) : new Date();
+                          const initial = isNaN(parsed.getTime()) ? new Date() : parsed;
+                          return (
+                          <DateTimePicker
+                            value={initial}
+                            mode="date"
+                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                            minimumDate={new Date()}
+                            onChange={(event: DateTimePickerEvent, date?: Date) => {
+                              if (Platform.OS === 'android') {
+                                setShowExpiryPicker(false);
+                              }
+                              if (event.type === 'dismissed' || !date) {
+                                if (Platform.OS === 'ios') setShowExpiryPicker(false);
+                                return;
+                              }
+                              const yyyy = date.getFullYear();
+                              const mm = String(date.getMonth() + 1).padStart(2, '0');
+                              const dd = String(date.getDate()).padStart(2, '0');
+                              setFormExpiryDate(`${yyyy}-${mm}-${dd}`);
+                              if (Platform.OS === 'ios') setShowExpiryPicker(false);
+                            }}
+                          />
+                          );
+                        })()}
+                      </View>
                     </View>
                   </View>
                 )}
@@ -4743,14 +4792,60 @@ export default function ProductsScreen() {
                   colors={colors}
                   styles={styles}
                 />
-                <FormField
-                  label={t('products.expiry_date_label')}
-                  value={movExpiryDate}
-                  onChangeText={setMovExpiryDate}
-                  placeholder={t('products.expiry_date_placeholder_hint')}
-                  colors={colors}
-                  styles={styles}
-                />
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>{t('products.expiry_date_label')}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                    <TextInput
+                      style={[styles.formInput, { backgroundColor: colors.bgMid, flex: 1 }]}
+                      value={movExpiryDate}
+                      onChangeText={setMovExpiryDate}
+                      placeholder={t('products.expiry_date_placeholder_hint')}
+                      placeholderTextColor={colors.textMuted}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowMovExpiryPicker(true)}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: BorderRadius.md,
+                        borderWidth: 1,
+                        borderColor: colors.divider,
+                        backgroundColor: colors.bgMid,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      accessibilityLabel={t('products.expiry_date_label')}
+                    >
+                      <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                  {showMovExpiryPicker && (() => {
+                    const parsed = movExpiryDate ? new Date(movExpiryDate) : new Date();
+                    const initial = isNaN(parsed.getTime()) ? new Date() : parsed;
+                    return (
+                    <DateTimePicker
+                      value={initial}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      minimumDate={new Date()}
+                      onChange={(event: DateTimePickerEvent, date?: Date) => {
+                        if (Platform.OS === 'android') {
+                          setShowMovExpiryPicker(false);
+                        }
+                        if (event.type === 'dismissed' || !date) {
+                          if (Platform.OS === 'ios') setShowMovExpiryPicker(false);
+                          return;
+                        }
+                        const yyyy = date.getFullYear();
+                        const mm = String(date.getMonth() + 1).padStart(2, '0');
+                        const dd = String(date.getDate()).padStart(2, '0');
+                        setMovExpiryDate(`${yyyy}-${mm}-${dd}`);
+                        if (Platform.OS === 'ios') setShowMovExpiryPicker(false);
+                      }}
+                    />
+                    );
+                  })()}
+                </View>
               </>
             )}
             <FormField
