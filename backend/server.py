@@ -14596,16 +14596,33 @@ async def transfer_stock(data: StockTransfer, user: User = Depends(require_permi
     new_product["created_at"] = now
     new_product["updated_at"] = now
 
+    # WAC propagation: blend source's purchase_price into destination's existing stock
+    dest_existing = await db.products.find_one(dest_query, {"_id": 0, "quantity": 1, "purchase_price": 1, "selling_price": 1, "product_id": 1})
+    dest_qty = float((dest_existing or {}).get("quantity") or 0)
+    dest_avg = float((dest_existing or {}).get("purchase_price") or 0)
+    source_price = float(from_product.get("purchase_price") or 0)
+    new_wac = compute_weighted_avg_cost(dest_qty, dest_avg, data.quantity, source_price) if source_price > 0 else None
+    set_fields = {"updated_at": now}
+    if new_wac is not None and dest_existing is not None:
+        set_fields["purchase_price"] = new_wac
+
     try:
         await db.products.update_one(
             dest_query,
             {
                 "$inc": {"quantity": data.quantity},
-                "$set": {"updated_at": now},
+                "$set": set_fields,
                 "$setOnInsert": new_product,
             },
             upsert=True,
         )
+        if new_wac is not None and dest_existing is not None and abs(new_wac - dest_avg) > 1e-9:
+            await db.price_history.insert_one(PriceHistory(
+                product_id=dest_existing.get("product_id") or data.product_id,
+                user_id=owner_id,
+                purchase_price=new_wac,
+                selling_price=float(dest_existing.get("selling_price") or 0),
+            ).model_dump())
     except Exception as exc:
         logger.exception("Stock transfer destination write failed, rolling back source quantity", exc_info=exc)
         await db.products.update_one(
