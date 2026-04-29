@@ -2137,6 +2137,8 @@ class StockMovement(BaseModel):
     batch_id: Optional[str] = None
     previous_quantity: float
     new_quantity: float
+    purchase_price: Optional[float] = None  # Cost basis for this incoming batch (None for outflows or unspecified)
+    new_purchase_price: Optional[float] = None  # Product WAC after this movement (only on "in" with WAC update)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StockMovementCreate(BaseModel):
@@ -2145,6 +2147,7 @@ class StockMovementCreate(BaseModel):
     quantity: float
     reason: str = ""
     batch_id: Optional[str] = None
+    purchase_price: Optional[float] = None  # Unit cost of incoming batch; triggers WAC recalc when set
 
 class StockAdjustmentRequest(BaseModel):
     actual_quantity: float
@@ -15405,6 +15408,26 @@ async def permanently_delete_product(product_id: str, user: User = Depends(requi
 
 # ===================== STOCK MOVEMENT ROUTES =====================
 
+def compute_weighted_avg_cost(current_qty: float, current_avg: float, incoming_qty: float, incoming_price: float) -> float:
+    """Moving Weighted Average Cost.
+
+    If current stock is empty or has no recorded cost, the new WAC equals the incoming price.
+    Otherwise the WAC is weighted across existing stock and the new batch.
+    """
+    try:
+        current_qty = float(current_qty or 0)
+        current_avg = float(current_avg or 0)
+        incoming_qty = float(incoming_qty or 0)
+        incoming_price = float(incoming_price or 0)
+    except (TypeError, ValueError):
+        return round(float(incoming_price or 0), 4)
+    if current_qty <= 0 or current_avg <= 0:
+        return round(incoming_price, 4)
+    total_qty = current_qty + incoming_qty
+    if total_qty <= 0:
+        return round(incoming_price, 4)
+    return round((current_qty * current_avg + incoming_qty * incoming_price) / total_qty, 4)
+
 @api_router.post("/stock/movement", response_model=StockMovement)
 async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
@@ -15418,18 +15441,38 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
     previous_quantity = product["quantity"]
 
     # Handle Batch Sync
+    new_wac = None
     if mov_data.type == "in":
         new_quantity = round_quantity(previous_quantity + mov_data.quantity)
+        # WAC: recalculate purchase price if an incoming unit price is provided
+        if mov_data.purchase_price is not None and mov_data.purchase_price > 0:
+            current_avg = float(product.get("purchase_price") or 0)
+            new_wac = compute_weighted_avg_cost(
+                previous_quantity,
+                current_avg,
+                mov_data.quantity,
+                mov_data.purchase_price,
+            )
         if mov_data.batch_id:
             await db.batches.update_one(
                 {"batch_id": mov_data.batch_id, "user_id": owner_id},
                 {"$inc": {"quantity": mov_data.quantity}, "$set": {"updated_at": datetime.now(timezone.utc)}}
             )
-        # Atomic increment
+        # Atomic increment + optional WAC update
+        update_set = {"updated_at": datetime.now(timezone.utc)}
+        if new_wac is not None:
+            update_set["purchase_price"] = new_wac
         await db.products.update_one(
             {"product_id": mov_data.product_id, "user_id": owner_id, "store_id": product.get("store_id")},
-            {"$inc": {"quantity": mov_data.quantity}, "$set": {"updated_at": datetime.now(timezone.utc)}}
+            {"$inc": {"quantity": mov_data.quantity}, "$set": update_set}
         )
+        if new_wac is not None:
+            await db.price_history.insert_one(PriceHistory(
+                product_id=mov_data.product_id,
+                user_id=owner_id,
+                purchase_price=new_wac,
+                selling_price=float(product.get("selling_price") or 0),
+            ).model_dump())
     else: # OUT
         # Atomic decrement with floor at 0 — prevents negative stock
         updated_product = await db.products.find_one_and_update(
@@ -15483,7 +15526,9 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
         reason=mov_data.reason,
         batch_id=mov_data.batch_id,
         previous_quantity=previous_quantity,
-        new_quantity=new_quantity
+        new_quantity=new_quantity,
+        purchase_price=mov_data.purchase_price if mov_data.type == "in" else None,
+        new_purchase_price=new_wac,
     )
     await db.stock_movements.insert_one(movement.model_dump())
     _invalidate_dashboard_ai_caches(owner_id, product.get("store_id") or user.active_store_id)
