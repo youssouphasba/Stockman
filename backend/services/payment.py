@@ -67,14 +67,14 @@ async def create_flutterwave_session(user: dict, plan: str = "pro") -> dict:
         "payment_options": "mobilemoneyssenegal,mobilemoneyghana,mobilemoneyfranco,card",
         "meta": {"user_id": user["user_id"], "plan": normalized_plan},
         "customer": {
-            "email": user.get("email", "noreply@stockman.app"),
+            "email": user.get("email", "noreply@stockman.pro"),
             "phonenumber": user.get("phone", ""),
             "name": user.get("name", ""),
         },
         "customizations": {
             "title": "Stockman",
             "description": PLAN_LABELS.get(normalized_plan, "Stockman - 1 mois"),
-            "logo": "https://stockman.app/logo.png",
+            "logo": "https://app.stockman.pro/og-image.png",
         },
     }
 

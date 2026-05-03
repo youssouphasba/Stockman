@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -2307,7 +2307,7 @@
     "save_btn": "सहेजें",
     "search_placeholder": "उपयोगकर्ता खोजें...",
     "share_whatsapp_btn": "WhatsApp द्वारा साझा करें",
-    "share_whatsapp_msg": "नमस्ते {{name}}, यहाँ Stockman ऐप के लिए आपकी पहुँच है: \nईमेल: {{email}}\nपासवर्ड: {{password}}\nलिंक: https://stockman-app.com",
+    "share_whatsapp_msg": "नमस्ते {{name}}, यहाँ Stockman ऐप के लिए आपकी पहुँच है: \nईमेल: {{email}}\nपासवर्ड: {{password}}\nलिंक: https://app.stockman.pro",
     "status_label": "स्थिति",
     "stock_label": "स्टॉक और उत्पाद",
     "suppliers_label": "आपूर्तिकर्ता",

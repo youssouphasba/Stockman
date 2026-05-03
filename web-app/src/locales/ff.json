@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Walaa ngalu heɓaa e ndee sahaa.",
     "not_enough_data": "Kabaruuji njeeygu mbeebaa ngam taskagol ABC."
@@ -2251,7 +2251,7 @@
     "save_btn": "Resu",
     "search_placeholder": "Yiylo gollotooɗo...",
     "share_whatsapp_btn": "Neldu e WhatsApp",
-    "share_whatsapp_msg": "Naim sa jamm {{name}}, kii moy accès maa e Stockman : \nImeel: {{email}}\nFinnde: {{password}}\nLien: https://stockman-app.com",
+    "share_whatsapp_msg": "Naim sa jamm {{name}}, kii moy accès maa e Stockman : \nImeel: {{email}}\nFinnde: {{password}}\nLien: https://app.stockman.pro",
     "status_label": "Status",
     "stock_label": "Stock & Piiji",
     "suppliers_label": "Suppliers",

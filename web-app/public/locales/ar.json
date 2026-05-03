@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -2252,7 +2252,7 @@
     "save_btn": "حفظ",
     "search_placeholder": "ابحث عن مستخدم...",
     "share_whatsapp_btn": "مشاركة عبر واتساب",
-    "share_whatsapp_msg": "مرحباً {{name}}، إليك بيانات دخولك لتطبيق Stockman: \nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\nالرابط: https://stockman-app.com",
+    "share_whatsapp_msg": "مرحباً {{name}}، إليك بيانات دخولك لتطبيق Stockman: \nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\nالرابط: https://app.stockman.pro",
     "status_label": "الحالة",
     "stock_label": "المخزون والمنتجات",
     "suppliers_label": "الموردين",

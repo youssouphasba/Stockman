@@ -958,8 +958,8 @@ R : Allez dans **📦 Produits** → Sélectionnez le produit → **« -Stock »
 
 ---
 
-> 📞 **Besoin d'aide ?** Contactez-nous : support@stockman.app
+> 📞 **Besoin d'aide ?** Contactez-nous : support@stockman.pro
 > 
-> 🌐 **Site web** : www.stockman.app
+> 🌐 **Site web** : www.stockman.pro
 > 
 > **Merci de faire confiance à Stockman. Bonne gestion !** 🦸‍♂️

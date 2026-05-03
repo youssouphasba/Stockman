@@ -983,19 +983,20 @@ async def create_indexes_and_init():
             if not RESEND_API_KEY:
                 logger.warning("RESEND_API_KEY not set — skipping trial reminder email")
                 return
+            pricing_url = f"{get_web_app_base_url()}/pricing"
             if days_left == 1:
                 subject = "⚠️ Dernier jour de votre essai Stockman gratuit"
                 body = f"""Bonjour {name or 'cher utilisateur'},<br><br>
 C'est votre <strong>dernier jour d'essai gratuit</strong> sur Stockman.<br>
 Pour continuer à accéder à toutes vos données et fonctionnalités, activez votre plan dès maintenant.<br><br>
-<a href="https://stockman.app" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Activer mon plan</a><br><br>
+<a href="{pricing_url}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Activer mon plan</a><br><br>
 À bientôt,<br>L'équipe Stockman"""
             else:
                 subject = f"🕐 Plus que {days_left} jours d'essai gratuit Stockman"
                 body = f"""Bonjour {name or 'cher utilisateur'},<br><br>
 Il vous reste <strong>{days_left} jours</strong> sur votre essai gratuit Stockman.<br>
 Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br><br>
-<a href="https://stockman.app" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Voir les plans</a><br><br>
+<a href="{pricing_url}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Voir les plans</a><br><br>
 À bientôt,<br>L'équipe Stockman"""
 
             import httpx as _httpx
@@ -1055,8 +1056,10 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
 
             public_stripe = build_public_payment_link("stripe", links["stripe_url"])
             public_flt = build_public_payment_link("flutterwave", links["flutterwave_url"])
-            line_stripe = f"<a href=\"{public_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if public_stripe else ""
-            line_flt = f"<a href=\"{public_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if public_flt else ""
+            email_stripe = links["stripe_url"] or public_stripe
+            email_flt = links["flutterwave_url"] or public_flt
+            line_stripe = f"<a href=\"{email_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if email_stripe else ""
+            line_flt = f"<a href=\"{email_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if email_flt else ""
             body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
 Votre abonnement <strong>{plan.title()}</strong> arrive à expiration dans <strong>{days_left} jour(s)</strong>.<br>
 Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br><br>
@@ -1069,8 +1072,8 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
                 f"Bonjour {owner_doc.get('name') or 'cher utilisateur'},\n\n"
                 f"Votre abonnement {plan.title()} arrive à expiration dans {days_left} jour(s).\n"
                 "Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.\n\n"
-                + (f"Payer par carte (Stripe): {public_stripe}\n" if public_stripe else "")
-                + (f"Payer par Mobile Money (Flutterwave): {public_flt}\n" if public_flt else "")
+                + (f"Payer par carte (Stripe): {email_stripe}\n" if email_stripe else "")
+                + (f"Payer par Mobile Money (Flutterwave): {email_flt}\n" if email_flt else "")
                 + "\nÀ bientôt,\nL’équipe Stockman."
             )
             if recipients:
@@ -1081,7 +1084,7 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
                     text_body=text_body,
                 )
 
-            reminder_url = public_stripe or public_flt
+            reminder_url = public_stripe or public_flt or email_stripe or email_flt
             if reminder_url:
                 await notification_service.notify_user(
                     db,
@@ -2841,10 +2844,18 @@ def normalize_phone_e164(phone: Optional[str]) -> Optional[str]:
     return f"+{digits}"
 
 
+def get_web_app_base_url() -> str:
+    return (
+        os.environ.get("WEB_APP_BASE_URL")
+        or os.environ.get("PAYMENT_REDIRECT_BASE_URL")
+        or "https://app.stockman.pro"
+    ).rstrip("/")
+
+
 def build_public_payment_link(provider: str, target_url: Optional[str]) -> Optional[str]:
     if not target_url:
         return None
-    base = os.environ.get("PAYMENT_REDIRECT_BASE_URL", "https://app.stockman.pro").rstrip("/")
+    base = get_web_app_base_url()
     return f"{base}/pay?provider={provider}&url={quote(target_url, safe='')}"
 
 
@@ -4327,8 +4338,10 @@ async def admin_send_subscription_reminder(
     subject = "Votre abonnement Stockman expire demain" if days_left <= 1 else f"Votre abonnement Stockman expire dans {days_left} jours"
     public_stripe = build_public_payment_link("stripe", stripe_url)
     public_flt = build_public_payment_link("flutterwave", flutterwave_url)
-    line_stripe = f"<a href=\"{public_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if public_stripe else ""
-    line_flt = f"<a href=\"{public_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if public_flt else ""
+    email_stripe = stripe_url or public_stripe
+    email_flt = flutterwave_url or public_flt
+    line_stripe = f"<a href=\"{email_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if email_stripe else ""
+    line_flt = f"<a href=\"{email_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if email_flt else ""
     body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
 Votre abonnement <strong>{plan.title()}</strong> arrive à expiration dans <strong>{days_left} jour(s)</strong>.<br>
 Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br><br>
@@ -4341,15 +4354,15 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
         f"Bonjour {owner_doc.get('name') or 'cher utilisateur'},\n\n"
         f"Votre abonnement {plan.title()} arrive à expiration dans {days_left} jour(s).\n"
         "Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.\n\n"
-        + (f"Payer par carte (Stripe): {public_stripe}\n" if public_stripe else "")
-        + (f"Payer par Mobile Money (Flutterwave): {public_flt}\n" if public_flt else "")
+        + (f"Payer par carte (Stripe): {email_stripe}\n" if email_stripe else "")
+        + (f"Payer par Mobile Money (Flutterwave): {email_flt}\n" if email_flt else "")
         + "\nÀ bientôt,\nL’équipe Stockman."
     )
 
     if recipients:
         await notification_service.send_email_notification(recipients, subject, body, text_body=text_body)
 
-    reminder_url = public_stripe or public_flt
+    reminder_url = public_stripe or public_flt or email_stripe or email_flt
     if reminder_url:
         await notification_service.notify_user(
             db,

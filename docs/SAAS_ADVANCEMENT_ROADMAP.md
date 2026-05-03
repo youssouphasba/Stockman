@@ -57,7 +57,7 @@ Ce document détaille les propositions stratégiques et techniques pour transfor
 *Transformer les acheteurs ponctuels en partenaires.*
 
 - **Portail B2B (E-commerce intégré)** :
-    - *Concept* : Offrir à chaque marchand une vitrine stockman (ex: `shop.stockman.app/nom-boutique`) où ses propres clients (B2B ou B2C) peuvent passer commande directement, relié en temps réel au stock.
+    - *Concept* : Offrir à chaque marchand une vitrine stockman (ex: `shop.stockman.pro/nom-boutique`) où ses propres clients (B2B ou B2C) peuvent passer commande directement, relié en temps réel au stock.
 - **Programme de Fidélité Avancé** :
     - *Action* : Création de paliers VIP pour les clients avec remises automatiques, cashback, et incitations personnalisées basées sur la RFM (Récence, Fréquence, Montant).
 

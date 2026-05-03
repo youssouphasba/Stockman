@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -2288,7 +2288,7 @@
     "save_btn": "Kaydet",
     "search_placeholder": "Kullanıcı ara...",
     "share_whatsapp_btn": "WhatsApp ile Paylaş",
-    "share_whatsapp_msg": "Merhaba {{name}}, işte Stockman uygulaması için erişim bilgileriniz: \\nE-posta: {{email}}\\nŞifre: {{password}}\\nBağlantı: https://stockman-app.com",
+    "share_whatsapp_msg": "Merhaba {{name}}, işte Stockman uygulaması için erişim bilgileriniz: \\nE-posta: {{email}}\\nŞifre: {{password}}\\nBağlantı: https://app.stockman.pro",
     "status_label": "Durum",
     "stock_label": "Stok ve Ürünler",
     "suppliers_label": "Tedarikçiler",

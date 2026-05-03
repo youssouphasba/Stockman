@@ -1,4 +1,4 @@
-export const MOBILE_APP_URL = "https://stockman.app";
+export const MOBILE_APP_URL = "https://play.google.com/store/apps/details?id=com.youssouphasba.stockman";
 export const PUBLIC_SITE_URL = "https://stockman.pro";
 export const PUBLIC_ENTERPRISE_URL = `${PUBLIC_SITE_URL}/enterprise`;
 export const PUBLIC_BUSINESS_TYPES_URL = `${PUBLIC_SITE_URL}/business-types`;

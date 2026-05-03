@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "Nenhuma receita gerada neste período.",
     "not_enough_data": "Dados de vendas insuficientes para a análise ABC."
@@ -2244,7 +2244,7 @@
     "save_btn": "Guardar",
     "search_placeholder": "Procurar um utilizador...",
     "share_whatsapp_btn": "Partilhar por WhatsApp",
-    "share_whatsapp_msg": "Olá {{name}}, aqui estão os teus acessos para a aplicação Stockman: \nEmail: {{email}}\nPalavra-passe: {{password}}\nLink: https://stockman-app.com",
+    "share_whatsapp_msg": "Olá {{name}}, aqui estão os teus acessos para a aplicação Stockman: \nEmail: {{email}}\nPalavra-passe: {{password}}\nLink: https://app.stockman.pro",
     "status_label": "Estado",
     "suppliers_label": "Fornecedores",
     "title": "Gestão de Equipa",

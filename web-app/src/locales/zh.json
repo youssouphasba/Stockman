@@ -1,4 +1,4 @@
-﻿{
+{
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -2251,7 +2251,7 @@
     "save_btn": "保存",
     "search_placeholder": "搜索用户...",
     "share_whatsapp_btn": "通过 WhatsApp 分享",
-    "share_whatsapp_msg": "您好 {{name}}，这是您的 Stockman 应用访问权限：\n电子邮件：{{email}}\n密码：{{password}}\n链接：https://stockman-app.com",
+    "share_whatsapp_msg": "您好 {{name}}，这是您的 Stockman 应用访问权限：\n电子邮件：{{email}}\n密码：{{password}}\n链接：https://app.stockman.pro",
     "status_label": "状态",
     "stock_label": "库存与产品",
     "suppliers_label": "供应商",

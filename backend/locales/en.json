@@ -114,7 +114,7 @@
     "info_revenue": "Total sales collected over the selected period, all payment methods combined.",
     "info_gross_profit": "Difference between revenue and the purchase cost of products sold.",
     "info_expenses": "Sum of all recorded expenses (rent, salaries, transport, etc.) over the period.",
-    "info_net_profit": "Actual profit after deducting all costs: revenue − purchase cost − expenses.",
+    "info_net_profit": "Actual profit after deducting all costs: revenue âˆ’ purchase cost âˆ’ expenses.",
     "info_sales_count": "Total number of transactions completed at the register over the period.",
     "info_avg_basket": "Average amount per transaction: revenue divided by number of sales.",
     "info_stock_purchase": "Total value of your stock based on purchase prices.",
@@ -179,8 +179,8 @@
       "cancel": "Cancel",
       "success": "Success",
       "error": "Error",
-      "sendSuccess": "✅ Sent",
-      "statusUpdated": "✅ Status updated"
+      "sendSuccess": "âœ… Sent",
+      "statusUpdated": "âœ… Status updated"
     },
     "alerts": {
       "title": "Alerts",
@@ -194,15 +194,15 @@
       "send": "Send",
       "broadcast": "Broadcast",
       "history": "History",
-      "broadcastSuccess": "📢 Broadcast: Sent to {{count}} devices"
+      "broadcastSuccess": "ðŸ“¢ Broadcast: Sent to {{count}} devices"
     },
     "dashboard": "Admin Dashboard",
     "data_explorer": {
       "documents": "documents",
       "search_placeholder": "Rechercher (ID, nom, email...)...",
       "select_collection": "Choisissez une collection",
-      "select_hint": "Sélectionnez une collection",
-      "title": "Explorateur de Données"
+      "select_hint": "SÃ©lectionnez une collection",
+      "title": "Explorateur de DonnÃ©es"
     },
     "disputes": {
       "title": "Disputes",
@@ -279,13 +279,13 @@
       "appVersion": "App version",
       "serverStatus": "Server status",
       "actions": "Actions",
-      "dataExplorer": "📊 Data Explorer (MongoDB)"
+      "dataExplorer": "ðŸ“Š Data Explorer (MongoDB)"
     },
     "stock": {
       "title": "Products",
       "units": "{{count}} units",
       "seller": "Seller",
-      "deleteConfirmTitle": "⚠️ Permanent Deletion",
+      "deleteConfirmTitle": "âš ï¸ Permanent Deletion",
       "deleteConfirmDesc": "Are you sure you want to delete the product \"{{name}}\"? This action is irreversible.",
       "empty": "No products"
     },
@@ -329,11 +329,11 @@
     "daily_summary_prompt": "You are Stockman AI. Here are the activities of the day : {activity}. Write a very short (3-4 sentences) and motivating summary for the retailer.",
     "persona_name": "Stockman Assistant",
     "replenishment_advice_prompt": "You are a logistics expert. Here are the critical products: {products}. Provide replenishment advice based on recent sales.",
-    "summary_goal": "Analyze the merchant's real data. Don't just answer questions — proactively surface insights, detect anomalies, benchmark performance, and suggest concrete quantified actions. If you spot a problem, name it clearly. If you see an opportunity, quantify it.",
+    "summary_goal": "Analyze the merchant's real data. Don't just answer questions â€” proactively surface insights, detect anomalies, benchmark performance, and suggest concrete quantified actions. If you spot a problem, name it clearly. If you see an opportunity, quantify it.",
     "summary_instruction_admin": "IF THE USER IS AN ADMINISTRATOR, START YOUR FIRST RESPONSE WITH A BRIEF SUMMARY OF THE SYSTEM'S HEALTH IF ALERTS ARE PRESENT.",
     "summary_role_admin": "You are the personal assistant to Stockman's ADMINISTRATOR. You have access to global metrics.",
-    "summary_role_merchant": "You are Stockman's AI business assistant — combining the expertise of an accountant, inventory manager, and business analyst. You proactively analyze data, identify hidden trends, risks, and missed opportunities.",
-    "summary_tone": "Be direct and analytical. Use concrete numbers. Give numbered, actionable recommendations. Never say 'you might want to' — say 'Do X to achieve Y'. Write like an expert business advisor who deeply understands retail commerce.",
+    "summary_role_merchant": "You are Stockman's AI business assistant â€” combining the expertise of an accountant, inventory manager, and business analyst. You proactively analyze data, identify hidden trends, risks, and missed opportunities.",
+    "summary_tone": "Be direct and analytical. Use concrete numbers. Give numbered, actionable recommendations. Never say 'you might want to' â€” say 'Do X to achieve Y'. Write like an expert business advisor who deeply understands retail commerce.",
     "summary_role_restaurant": "You are Stockman's AI operations assistant for a restaurant. You combine the perspective of a floor manager, kitchen lead, ingredient stock manager, and margin analyst.",
     "summary_goal_restaurant": "Analyze the restaurant's real operating data. Do more than answer questions: detect dining room tension, kitchen delays, menu items without recipes, ingredient stock risks, and recommend immediate actions across menu, prep, and service.",
     "summary_tone_restaurant": "Be direct, operational, and service-focused. Use concrete numbers. Give short, actionable recommendations for dining room flow, kitchen execution, reservations, tables, and ingredients.",
@@ -368,8 +368,8 @@
     "analysis_error": "Could not analyze anomalies",
     "analyze_desc": "Analyze sales, stock, and margins",
     "analyzing": "Analyzing...",
-    "anomaly_analysis_summary": "AI Analysis — {{count}} anomaly detected",
-    "anomaly_analysis_summary_plural": "AI Analysis — {{count}} anomalies detected",
+    "anomaly_analysis_summary": "AI Analysis â€” {{count}} anomaly detected",
+    "anomaly_analysis_summary_plural": "AI Analysis â€” {{count}} anomalies detected",
     "channels": "Channels:",
     "config": {
       "low_stock": {
@@ -466,9 +466,9 @@
       "demoHint": "Explore the app with sample data, no sign-up needed",
       "errorDemo": "Unable to start the demo"
     },
-    "logout_btn": "Se déconnecter",
-    "logout_confirm": "Voulez-vous vraiment vous déconnecter ?",
-    "logout_title": "Déconnexion",
+    "logout_btn": "Se dÃ©connecter",
+    "logout_confirm": "Voulez-vous vraiment vous dÃ©connecter ?",
+    "logout_title": "DÃ©connexion",
     "register": {
       "title": "Create an account",
       "chooseProfile": "Choose your profile",
@@ -515,7 +515,7 @@
       "errorRegister": "Registration error",
       "continue": "Continue",
       "selectBusinessType": "Choose a sector",
-      "trialNote": "30 days free • No credit card required"
+      "trialNote": "30 days free â€¢ No credit card required"
     },
     "verifyPhone": {
       "title": "Verification",
@@ -533,29 +533,29 @@
   "batch_scan": {
     "action_required": "Action required",
     "aim_hint": "Visez un code-barres ou un tag RFID pour l'ajouter",
-    "allow_camera": "Autoriser la caméra",
+    "allow_camera": "Autoriser la camÃ©ra",
     "apply_action": "Apply action",
     "auto_replenish": "Auto Replenishment",
     "auto_replenish_desc": "Generate purchase orders for missing items",
-    "choose_action": "Choose action…",
+    "choose_action": "Choose actionâ€¦",
     "clear_all": "Tout effacer",
     "done_count": "Terminer ({{count}})",
     "items_identified": " identified Items",
-    "no_camera": "Pas d'accès à la caméra",
+    "no_camera": "Pas d'accÃ¨s Ã  la camÃ©ra",
     "orders_generated": "{{count}} Purchase order generated.",
     "partial_result": "Partial result",
     "processing_title": "Processing batch",
     "quick_inventory": "Quick Inventory",
     "quick_inventory_desc": "Mark this items as present in stock",
-    "requesting_permission": "Demande d'autorisation de caméra...",
+    "requesting_permission": "Demande d'autorisation de camÃ©ra...",
     "rfid_associate": " RFID Association",
     "rfid_associate_desc": "Associate this codes RFID tags",
     "rfid_bulk_info": "RFID association by batch allows you to quickly associate tags.",
-    "scanned_flash": "Scanné !",
-    "scanned_items": "Articles scannés ({{count}})",
+    "scanned_flash": "ScannÃ© !",
+    "scanned_items": "Articles scannÃ©s ({{count}})",
     "select_action": "Select action",
     "title": "Rapid scan (batch)",
-    "unknown_codes": "{{count}} codes are unknown…"
+    "unknown_codes": "{{count}} codes are unknownâ€¦"
   },
   "bulk_import": {
     "back": "Back",
@@ -626,7 +626,7 @@
     "barcode": "Barcode",
     "barcode_placeholder": "E.g.: 6001234567890",
     "brand": "Brand",
-    "brand_placeholder": "E.g.: Nestlé, Samsung...",
+    "brand_placeholder": "E.g.: NestlÃ©, Samsung...",
     "origin": "Origin / Source",
     "origin_placeholder": "E.g.: Senegal, France...",
     "weight": "Weight",
@@ -834,7 +834,7 @@
     "report_title": "CUSTOMER & CRM REPORT",
     "report_total_revenue": "Total Rev.",
     "reward_threshold": "Reward Threshold",
-    "reward_threshold_label": "Seuil de récompense (pts)",
+    "reward_threshold_label": "Seuil de rÃ©compense (pts)",
     "search_customers_placeholder": "Search customer...",
     "search_placeholder": "Search customer...",
     "see_other_operations": "See {{count}} other operations",
@@ -1212,7 +1212,7 @@
         },
         "f6": {
           "t": "Auto Loyalty",
-          "d": "Loyalty points are calculated and credited automatically at each purchase. The customer progresses through tiers (Bronze → Platinum)."
+          "d": "Loyalty points are calculated and credited automatically at each purchase. The customer progresses through tiers (Bronze â†’ Platinum)."
         },
         "f7": {
           "t": "Multi-Sessions",
@@ -1239,7 +1239,7 @@
         },
         "f2": {
           "t": "Status Tracking",
-          "d": "Follow each order: Pending → Confirmed → Shipped → Delivered. The visual progress bar shows the advancement."
+          "d": "Follow each order: Pending â†’ Confirmed â†’ Shipped â†’ Delivered. The visual progress bar shows the advancement."
         },
         "f3": {
           "t": "AI Intake",
@@ -1726,7 +1726,7 @@
     "min_catalog_products_placeholder": "e.g. 10",
     "see_more_products": "See {{count}} more products",
     "send_invitation": "Send invitation",
-    "star": "⭐",
+    "star": "â­",
     "suppliers": "Marketplace Suppliers",
     "title": "Marketplace",
     "verified_only": "Verified only"
@@ -1738,7 +1738,7 @@
     "ai_history_cleared": "History cleared. How can I help you?",
     "ai_loading": "AI is thinking...",
     "ai_placeholder": "Ask your question...",
-    "ai_recording": "🎙️ Recording...",
+    "ai_recording": "ðŸŽ™ï¸ Recording...",
     "ai_welcome": "Hello! I am your Stockman assistant. How can I help you today?",
     "ai_welcome_restaurant": "Hello! I am your Stockman restaurant assistant. I can help with your menu, recipes, kitchen flow, tables, reservations, and service.",
     "ai_welcome_sector": "Hello! I am your Stockman assistant for {{sector}}. I can help with products, sales, stock, and daily decisions.",
@@ -1790,7 +1790,7 @@
       "whatsappMessage": "Hello, I need help with my Stockman account. My user ID is {{id}}."
     },
     "deleteAccount": {
-      "dangerZone": "Danger Zone ⚠️",
+      "dangerZone": "Danger Zone âš ï¸",
       "warningTitle": "Warning",
       "warningText": "You are about to permanently delete your account and all associated data.",
       "confirmationTitle": "Ultimate confirmation",
@@ -1809,10 +1809,10 @@
     "order_creation": "Order Creation",
     "receipt": "Digital Receipt",
     "receipt_done": "Terminer",
-    "receipt_qr_subtitle": "Scannez pour récupérer votre reçu en ligne",
+    "receipt_qr_subtitle": "Scannez pour rÃ©cupÃ©rer votre reÃ§u en ligne",
     "receipt_share_pdf": "Partager la Facture PDF",
     "receipt_whatsapp_link": "Lien WhatsApp uniquement",
-    "receipt_whatsapp_text": "Voici votre reçu Stockman : {{url}}",
+    "receipt_whatsapp_text": "Voici votre reÃ§u Stockman : {{url}}",
     "save": "Save",
     "success": "Operation successful"
   },
@@ -2058,7 +2058,7 @@
     "cancel_action": "Cancel",
     "confirm_action": "Confirm",
     "terminal_active": "Terminal : {{name}}",
-    "terminal_modal_subtitle": "Sélectionnez le terminal pour cette session de caisse.",
+    "terminal_modal_subtitle": "SÃ©lectionnez le terminal pour cette session de caisse.",
     "terminal_modal_title": "Choisir un Terminal",
     "terminal_select": "Changer de terminal",
     "title": "Point of Sale",
@@ -2200,7 +2200,7 @@
     "categories_exist": "All categories already exist.",
     "categories_imported": "categories imported",
     "categories_offline": "Category management is unavailable offline.",
-    "category_label": "Catégorie",
+    "category_label": "CatÃ©gorie",
     "category_name_placeholder": "Category name",
     "category_save_error": "Could not save category",
     "category_duplicate_error": "This category already exists.",
@@ -2261,8 +2261,8 @@
     "unit_cl": "cL",
     "unit_ml": "mL",
     "unit_m": "m",
-    "unit_m²": "m²",
-    "unit_m³": "m³",
+    "unit_mÂ²": "mÂ²",
+    "unit_mÂ³": "mÂ³",
     "unit_paquet": "Pack",
     "unit_boite": "Box",
     "unit_bouteille": "Bottle",
@@ -2415,8 +2415,8 @@
   },
   "scanner": {
     "aim": "Placez le code-barres dans le cadre",
-    "allow_camera": "Autoriser la caméra",
-    "permission_text": "L'accès à la caméra est nécessaire pour scanner les codes-barres.",
+    "allow_camera": "Autoriser la camÃ©ra",
+    "permission_text": "L'accÃ¨s Ã  la camÃ©ra est nÃ©cessaire pour scanner les codes-barres.",
     "title": "Scanner un Produit"
   },
   "settings": {
@@ -2514,7 +2514,7 @@
     "users_permissions": "Users & Permissions",
     "users_permissions_desc": "Manage your employees' access",
     "version": "Version",
-    "store_settings": "Store · Settings",
+    "store_settings": "Store Â· Settings",
     "no_store_selected": "No store selected for point of sale settings.",
     "no_active_store_docs": "No active store selected to customize documents.",
     "test_push_title": "Test push sent",
@@ -2550,13 +2550,13 @@
     "section_modules_desc": "Enable or disable modules shown in the application.",
     "section_store": "Active store",
     "section_store_desc": "Name, documents and settings for the selected point of sale.",
-    "section_store_identity": "Store · Identity",
+    "section_store_identity": "Store Â· Identity",
     "section_store_identity_desc": "Name, address and identity of the currently selected store.",
     "store_identity_info": "Update the name and address of the currently selected store.",
     "store_name_placeholder": "Store name",
     "store_address_placeholder": "Address",
     "save_store": "Save my store",
-    "section_store_docs": "Store · Documents",
+    "section_store_docs": "Store Â· Documents",
     "section_store_docs_desc": "Receipts and invoices for the active store.",
     "store_docs_info": "Receipt and invoice for the active store. Advanced rules are better managed on the web.",
     "receipt_title": "Receipt",
@@ -2639,7 +2639,7 @@
     "email_channel_billing": "Billing",
     "email_step_1": "Enable the \"Email\" channel in Receiving channels.",
     "email_step_2": "Choose a minimum severity threshold.",
-    "email_step_3": "Add your address in Account recipients → Default.",
+    "email_step_3": "Add your address in Account recipients â†’ Default.",
     "example": "Example",
     "emails_placeholder": "email1@company.com, email2@company.com",
     "recipients": "Recipients",
@@ -2875,7 +2875,7 @@
     "commercial_profile": "Commercial Profile",
     "company_name_label": "Company name*",
     "company_name_ph": "Company name",
-    "create_profile": "Créate my profile",
+    "create_profile": "CrÃ©ate my profile",
     "days": "days",
     "description_label": "Description",
     "description_ph": "Describe your activity",
@@ -2918,7 +2918,7 @@
     "city_placeholder": "e.g., Dakar, Paris...",
     "critical_alert": "CRITICAL",
     "days_delivery": "{{days}}d delivery",
-    "days_remaining": "⌛ {{count}}d remaining",
+    "days_remaining": "âŒ› {{count}}d remaining",
     "delete_confirm": "Are you sure you want to delete \"{{name}}\"?",
     "delete_error": "Could not delete",
     "delete_title": "Delete Supplier",
@@ -3234,14 +3234,14 @@
     "save_btn": "Save",
     "search_placeholder": "Search a user...",
     "share_whatsapp_btn": "Share via WhatsApp",
-    "share_whatsapp_msg": "Hello {{name}}, here are your accesses for the Stockman app:\nEmail: {{email}}\nPassword: {{password}}\nLink: https://stockman-app.com",
+    "share_whatsapp_msg": "Hello {{name}}, here are your accesses for the Stockman app:\nEmail: {{email}}\nPassword: {{password}}\nLink: https://app.stockman.pro",
     "status_label": "Status",
     "suppliers_label": "Suppliers",
     "title": "Team Management",
     "user_details_title": "User Details",
     "whatsapp_invite_later": "Later",
-    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\n📧 Email: {{email}}\n🔑 Password: {{password}}\n\n📱 Mobile app: {{mobileUrl}}\n💻 Web app: {{webUrl}}\n\nGood work!",
-    "whatsapp_invite_msg_without_password": "Hello {{name}}!\n\nHere is your Stockman sign-in email:\n📧 Email: {{email}}\n\nThe initial password can no longer be displayed in this share. If you no longer have it, ask the administrator to reset it before signing in.\n\n📱 Mobile app: {{mobileUrl}}\n💻 Web app: {{webUrl}}",
+    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\nðŸ“§ Email: {{email}}\nðŸ”‘ Password: {{password}}\n\nðŸ“± Mobile app: {{mobileUrl}}\nðŸ’» Web app: {{webUrl}}\n\nGood work!",
+    "whatsapp_invite_msg_without_password": "Hello {{name}}!\n\nHere is your Stockman sign-in email:\nðŸ“§ Email: {{email}}\n\nThe initial password can no longer be displayed in this share. If you no longer have it, ask the administrator to reset it before signing in.\n\nðŸ“± Mobile app: {{mobileUrl}}\nðŸ’» Web app: {{webUrl}}",
     "whatsapp_invite_prompt": "Do you want to send access via WhatsApp?",
     "whatsapp_invite_send": "Send",
     "whatsapp_not_installed": "WhatsApp is not installed on this device.",
@@ -3303,7 +3303,7 @@
     "prep_time": "Preparation time (min)",
     "instructions": "Instructions (optional)",
     "instructions_hint": "Preparation steps...",
-    "ingredients_later": "💡 You can add ingredients after creating the recipe.",
+    "ingredients_later": "ðŸ’¡ You can add ingredients after creating the recipe.",
     "create_recipe": "Create recipe",
     "delete_recipe": "Delete recipe",
     "multiplier": "Multiplier",
@@ -3398,7 +3398,7 @@
   },
   "sync": {
     "pending_count": "{{count}} action(s) pending sync",
-    "failed_count": "{{count}} action(s) failed to sync — Tap to view",
+    "failed_count": "{{count}} action(s) failed to sync â€” Tap to view",
     "failed_title": "Unsynced actions",
     "failed_description": "These actions failed after multiple attempts. They are saved locally and will not be lost.",
     "retry_all": "Retry all",
