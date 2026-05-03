@@ -20,7 +20,8 @@ Barre laterale -> **Finance et comptabilite**.
 
 Nouveaute utile :
 
-- les depenses et les ventes peuvent maintenant etre relues par mois via des fiches mensuelles, en plus des historiques detailles deja visibles.
+- les depenses et les ventes se lisent maintenant via un filtre de periode : Voir tout, Mois ou Annee ;
+- en mode annee, vous pouvez choisir directement les mois rattaches a l'annee affichee.
 
 ## 4. Lecture des indicateurs
 
@@ -51,13 +52,14 @@ Le module conserve un comportement offline partiel sur les flux compatibles :
 - certaines actions sont synchronisees automatiquement au retour du reseau ;
 - les bandeaux ou badges **En attente** signalent ce qui n'est pas encore envoye.
 
-## 7. Lecture mensuelle
+## 7. Filtre de periode
 
-La lecture mensuelle sert a verifier rapidement une periode comptable sans relire chaque ligne une par une.
+Le filtre de periode sert a verifier rapidement la bonne tranche comptable sans dupliquer inutilement l'historique.
 
-- chaque fiche mensuelle regroupe les ecritures ou les ventes d'un meme mois ;
-- le total du mois reste visible en tete de fiche ;
-- vous pouvez ouvrir un mois pour revoir ses lignes principales, puis revenir a l'historique detaille si besoin.
+- **Voir tout** affiche l'historique detaille complet de la periode chargee ;
+- **Mois** permet de naviguer avec des fleches ou de choisir directement un mois ;
+- **Annee** affiche l'annee choisie et permet aussi de selectionner un mois de cette annee ;
+- les cartes mensuelles gardent le total, le nombre d'ecritures ou de ventes, puis le detail ouvrable si besoin.
 
 ## 8. Questions frequentes
 

@@ -183,7 +183,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'download-outline', title: 'help.modules.accounting.f6.t', description: "help.modules.accounting.f6.d" },
       { icon: 'trophy-outline', title: 'help.modules.accounting.f7.t', description: "help.modules.accounting.f7.d" },
       { icon: 'information-circle-outline', title: 'help.modules.accounting.f8.t', description: "help.modules.accounting.f8.d" },
-      { icon: 'albums-outline', title: 'Lecture mensuelle', description: "Les ventes et les dépenses disposent maintenant de fiches mensuelles, en plus des historiques déjà visibles. Cela aide à relire rapidement un mois complet avant de descendre dans le détail." },
+      { icon: 'albums-outline', title: 'Filtre de période', description: "Les ventes et les dépenses se pilotent désormais avec Voir tout, Mois et Année. En mode année, choisissez aussi directement un mois lié à l'année affichée." },
     ],
   },
   {

@@ -79,10 +79,15 @@ const DEFAULT_EXPENSE_CATEGORIES = [
 type MonthlyGroup<T> = {
     key: string;
     label: string;
+    shortLabel: string;
     total: number;
     itemCount: number;
+    year: number;
+    month: number;
     items: T[];
 };
+
+type ReviewMode = 'all' | 'month' | 'year';
 
 function normalizeExpenseCategory(category: string) {
     return category.trim().replace(/\s+/g, ' ');
@@ -111,6 +116,7 @@ function buildMonthlyGroups<T>(
     locale: string,
 ): MonthlyGroup<T>[] {
     const formatter = new Intl.DateTimeFormat(locale || 'fr-FR', { month: 'long', year: 'numeric' });
+    const shortFormatter = new Intl.DateTimeFormat(locale || 'fr-FR', { month: 'short' });
     const groups = new Map<string, MonthlyGroup<T>>();
 
     items.forEach((item) => {
@@ -120,9 +126,13 @@ function buildMonthlyGroups<T>(
         const parsedDate = new Date(rawDate);
         if (Number.isNaN(parsedDate.getTime())) return;
 
-        const key = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}`;
+        const year = parsedDate.getFullYear();
+        const month = parsedDate.getMonth() + 1;
+        const key = `${year}-${String(month).padStart(2, '0')}`;
         const baseLabel = formatter.format(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1));
         const label = baseLabel.charAt(0).toUpperCase() + baseLabel.slice(1);
+        const baseShortLabel = shortFormatter.format(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1)).replace('.', '');
+        const shortLabel = baseShortLabel.charAt(0).toUpperCase() + baseShortLabel.slice(1);
         const amount = getAmount(item) || 0;
         const current = groups.get(key);
 
@@ -136,13 +146,24 @@ function buildMonthlyGroups<T>(
         groups.set(key, {
             key,
             label,
+            shortLabel,
             total: amount,
             itemCount: 1,
+            year,
+            month,
             items: [item],
         });
     });
 
     return Array.from(groups.values()).sort((a, b) => b.key.localeCompare(a.key));
+}
+
+function getAvailableYears<T>(groups: MonthlyGroup<T>[]) {
+    return Array.from(new Set(groups.map((group) => group.year))).sort((a, b) => b - a);
+}
+
+function getMonthGroupsForYear<T>(groups: MonthlyGroup<T>[], year: number) {
+    return groups.filter((group) => group.year === year);
 }
 
 export default function AccountingScreen() {
@@ -202,8 +223,17 @@ export default function AccountingScreen() {
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [showAllPerf, setShowAllPerf] = useState(false);
     const [showAllExpenses, setShowAllExpenses] = useState(false);
+    const [showAllSales, setShowAllSales] = useState(false);
     const [expandedExpenseMonths, setExpandedExpenseMonths] = useState<Record<string, boolean>>({});
     const [expandedSalesMonths, setExpandedSalesMonths] = useState<Record<string, boolean>>({});
+    const [expenseReviewMode, setExpenseReviewMode] = useState<ReviewMode>('month');
+    const [salesReviewMode, setSalesReviewMode] = useState<ReviewMode>('month');
+    const [selectedExpenseMonthKey, setSelectedExpenseMonthKey] = useState<string | null>(null);
+    const [selectedSalesMonthKey, setSelectedSalesMonthKey] = useState<string | null>(null);
+    const [selectedExpenseYear, setSelectedExpenseYear] = useState<number | null>(null);
+    const [selectedSalesYear, setSelectedSalesYear] = useState<number | null>(null);
+    const [selectedExpenseYearMonthKey, setSelectedExpenseYearMonthKey] = useState<string>('all');
+    const [selectedSalesYearMonthKey, setSelectedSalesYearMonthKey] = useState<string>('all');
     const [activeKpiDetail, setActiveKpiDetail] = useState<
         'revenue' | 'gross_profit' | 'expenses' | 'net_profit' | 'stock' | 'losses' | 'items' | 'purchases' | 'tax' | null
     >(null);
@@ -1052,6 +1082,245 @@ export default function AccountingScreen() {
         (sale) => sale.total_amount,
         i18n.language,
     );
+    const expenseYears = React.useMemo(() => getAvailableYears(monthlyExpenseGroups), [monthlyExpenseGroups]);
+    const salesYears = React.useMemo(() => getAvailableYears(monthlySalesGroups), [monthlySalesGroups]);
+    const expenseYearGroups = React.useMemo(
+        () => (selectedExpenseYear == null ? [] : getMonthGroupsForYear(monthlyExpenseGroups, selectedExpenseYear)),
+        [monthlyExpenseGroups, selectedExpenseYear],
+    );
+    const salesYearGroups = React.useMemo(
+        () => (selectedSalesYear == null ? [] : getMonthGroupsForYear(monthlySalesGroups, selectedSalesYear)),
+        [monthlySalesGroups, selectedSalesYear],
+    );
+
+    React.useEffect(() => {
+        if (!selectedExpenseMonthKey && monthlyExpenseGroups.length > 0) {
+            setSelectedExpenseMonthKey(monthlyExpenseGroups[0].key);
+        }
+        if (selectedExpenseMonthKey && !monthlyExpenseGroups.some((group) => group.key === selectedExpenseMonthKey)) {
+            setSelectedExpenseMonthKey(monthlyExpenseGroups[0]?.key ?? null);
+        }
+        if (selectedExpenseYear == null && expenseYears.length > 0) {
+            setSelectedExpenseYear(expenseYears[0]);
+        }
+        if (selectedExpenseYear != null && !expenseYears.includes(selectedExpenseYear)) {
+            setSelectedExpenseYear(expenseYears[0] ?? null);
+        }
+    }, [monthlyExpenseGroups, selectedExpenseMonthKey, selectedExpenseYear, expenseYears]);
+
+    React.useEffect(() => {
+        if (!selectedSalesMonthKey && monthlySalesGroups.length > 0) {
+            setSelectedSalesMonthKey(monthlySalesGroups[0].key);
+        }
+        if (selectedSalesMonthKey && !monthlySalesGroups.some((group) => group.key === selectedSalesMonthKey)) {
+            setSelectedSalesMonthKey(monthlySalesGroups[0]?.key ?? null);
+        }
+        if (selectedSalesYear == null && salesYears.length > 0) {
+            setSelectedSalesYear(salesYears[0]);
+        }
+        if (selectedSalesYear != null && !salesYears.includes(selectedSalesYear)) {
+            setSelectedSalesYear(salesYears[0] ?? null);
+        }
+    }, [monthlySalesGroups, selectedSalesMonthKey, selectedSalesYear, salesYears]);
+
+    React.useEffect(() => {
+        if (
+            selectedExpenseYearMonthKey !== 'all'
+            && !expenseYearGroups.some((group) => group.key === selectedExpenseYearMonthKey)
+        ) {
+            setSelectedExpenseYearMonthKey('all');
+        }
+    }, [expenseYearGroups, selectedExpenseYearMonthKey]);
+
+    React.useEffect(() => {
+        if (
+            selectedSalesYearMonthKey !== 'all'
+            && !salesYearGroups.some((group) => group.key === selectedSalesYearMonthKey)
+        ) {
+            setSelectedSalesYearMonthKey('all');
+        }
+    }, [salesYearGroups, selectedSalesYearMonthKey]);
+
+    const visibleExpenseGroups = React.useMemo(() => {
+        if (expenseReviewMode === 'month') {
+            return monthlyExpenseGroups.filter((group) => group.key === selectedExpenseMonthKey);
+        }
+        if (expenseReviewMode === 'year') {
+            if (selectedExpenseYearMonthKey !== 'all') {
+                return expenseYearGroups.filter((group) => group.key === selectedExpenseYearMonthKey);
+            }
+            return expenseYearGroups;
+        }
+        return [];
+    }, [expenseReviewMode, monthlyExpenseGroups, selectedExpenseMonthKey, expenseYearGroups, selectedExpenseYearMonthKey]);
+
+    const visibleSalesGroups = React.useMemo(() => {
+        if (salesReviewMode === 'month') {
+            return monthlySalesGroups.filter((group) => group.key === selectedSalesMonthKey);
+        }
+        if (salesReviewMode === 'year') {
+            if (selectedSalesYearMonthKey !== 'all') {
+                return salesYearGroups.filter((group) => group.key === selectedSalesYearMonthKey);
+            }
+            return salesYearGroups;
+        }
+        return [];
+    }, [salesReviewMode, monthlySalesGroups, selectedSalesMonthKey, salesYearGroups, selectedSalesYearMonthKey]);
+
+    const renderReviewFilterCard = (
+        mode: ReviewMode,
+        setMode: (mode: ReviewMode) => void,
+        monthGroups: MonthlyGroup<any>[],
+        selectedMonthKey: string | null,
+        setSelectedMonthKey: (key: string | null) => void,
+        years: number[],
+        selectedYear: number | null,
+        setSelectedYear: (year: number | null) => void,
+        selectedYearMonthKey: string,
+        setSelectedYearMonthKey: (key: string) => void,
+        title: string,
+    ) => {
+        const currentMonthIndex = monthGroups.findIndex((group) => group.key === selectedMonthKey);
+        const monthCanGoOlder = currentMonthIndex >= 0 && currentMonthIndex < monthGroups.length - 1;
+        const monthCanGoNewer = currentMonthIndex > 0;
+        const currentYearGroups = selectedYear == null ? [] : getMonthGroupsForYear(monthGroups, selectedYear);
+        const currentYearIndex = selectedYear == null ? -1 : years.findIndex((year) => year === selectedYear);
+        const yearCanGoOlder = currentYearIndex >= 0 && currentYearIndex < years.length - 1;
+        const yearCanGoNewer = currentYearIndex > 0;
+
+        return (
+            <View style={styles.reviewFilterCard}>
+                <Text style={styles.reviewFilterTitle}>{title}</Text>
+                <View style={styles.reviewModeRow}>
+                    {(['all', 'month', 'year'] as ReviewMode[]).map((option) => {
+                        const isActive = mode === option;
+                        const label = option === 'all'
+                            ? t('accounting.review_mode_all', { defaultValue: 'Voir tout' })
+                            : option === 'month'
+                                ? t('accounting.review_mode_month', { defaultValue: 'Mois' })
+                                : t('accounting.review_mode_year', { defaultValue: 'Année' });
+                        return (
+                            <TouchableOpacity
+                                key={option}
+                                activeOpacity={0.9}
+                                style={[styles.reviewModeChip, isActive && styles.reviewModeChipActive]}
+                                onPress={() => setMode(option)}
+                            >
+                                <Text style={[styles.reviewModeChipText, isActive && styles.reviewModeChipTextActive]}>{label}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
+                {mode === 'month' && monthGroups.length > 0 && (
+                    <>
+                        <View style={styles.reviewNavigatorRow}>
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                style={[styles.reviewNavButton, !monthCanGoOlder && styles.reviewNavButtonDisabled]}
+                                disabled={!monthCanGoOlder}
+                                onPress={() => {
+                                    if (!monthCanGoOlder || currentMonthIndex < 0) return;
+                                    setSelectedMonthKey(monthGroups[currentMonthIndex + 1].key);
+                                }}
+                            >
+                                <Ionicons name="chevron-back-outline" size={18} color={monthCanGoOlder ? colors.text : colors.textMuted} />
+                            </TouchableOpacity>
+                            <View style={styles.reviewNavigatorLabelWrap}>
+                                <Text style={styles.reviewNavigatorLabel}>
+                                    {monthGroups.find((group) => group.key === selectedMonthKey)?.label || monthGroups[0]?.label}
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                style={[styles.reviewNavButton, !monthCanGoNewer && styles.reviewNavButtonDisabled]}
+                                disabled={!monthCanGoNewer}
+                                onPress={() => {
+                                    if (!monthCanGoNewer || currentMonthIndex <= 0) return;
+                                    setSelectedMonthKey(monthGroups[currentMonthIndex - 1].key);
+                                }}
+                            >
+                                <Ionicons name="chevron-forward-outline" size={18} color={monthCanGoNewer ? colors.text : colors.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reviewChipList}>
+                            {monthGroups.map((group) => {
+                                const isActive = group.key === selectedMonthKey;
+                                return (
+                                    <TouchableOpacity
+                                        key={group.key}
+                                        activeOpacity={0.9}
+                                        style={[styles.reviewValueChip, isActive && styles.reviewValueChipActive]}
+                                        onPress={() => setSelectedMonthKey(group.key)}
+                                    >
+                                        <Text style={[styles.reviewValueChipText, isActive && styles.reviewValueChipTextActive]}>{group.label}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </>
+                )}
+
+                {mode === 'year' && years.length > 0 && (
+                    <>
+                        <View style={styles.reviewNavigatorRow}>
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                style={[styles.reviewNavButton, !yearCanGoOlder && styles.reviewNavButtonDisabled]}
+                                disabled={!yearCanGoOlder}
+                                onPress={() => {
+                                    if (!yearCanGoOlder || currentYearIndex < 0) return;
+                                    setSelectedYear(years[currentYearIndex + 1]);
+                                    setSelectedYearMonthKey('all');
+                                }}
+                            >
+                                <Ionicons name="chevron-back-outline" size={18} color={yearCanGoOlder ? colors.text : colors.textMuted} />
+                            </TouchableOpacity>
+                            <View style={styles.reviewNavigatorLabelWrap}>
+                                <Text style={styles.reviewNavigatorLabel}>{selectedYear ?? years[0]}</Text>
+                            </View>
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                style={[styles.reviewNavButton, !yearCanGoNewer && styles.reviewNavButtonDisabled]}
+                                disabled={!yearCanGoNewer}
+                                onPress={() => {
+                                    if (!yearCanGoNewer || currentYearIndex <= 0) return;
+                                    setSelectedYear(years[currentYearIndex - 1]);
+                                    setSelectedYearMonthKey('all');
+                                }}
+                            >
+                                <Ionicons name="chevron-forward-outline" size={18} color={yearCanGoNewer ? colors.text : colors.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reviewChipList}>
+                            <TouchableOpacity
+                                activeOpacity={0.9}
+                                style={[styles.reviewValueChip, selectedYearMonthKey === 'all' && styles.reviewValueChipActive]}
+                                onPress={() => setSelectedYearMonthKey('all')}
+                            >
+                                <Text style={[styles.reviewValueChipText, selectedYearMonthKey === 'all' && styles.reviewValueChipTextActive]}>
+                                    {t('accounting.review_mode_all_months', { defaultValue: 'Tous les mois' })}
+                                </Text>
+                            </TouchableOpacity>
+                            {currentYearGroups.map((group) => {
+                                const isActive = selectedYearMonthKey === group.key;
+                                return (
+                                    <TouchableOpacity
+                                        key={group.key}
+                                        activeOpacity={0.9}
+                                        style={[styles.reviewValueChip, isActive && styles.reviewValueChipActive]}
+                                        onPress={() => setSelectedYearMonthKey(group.key)}
+                                    >
+                                        <Text style={[styles.reviewValueChipText, isActive && styles.reviewValueChipTextActive]}>{group.shortLabel}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </>
+                )}
+            </View>
+        );
+    };
 
     return (
         <PremiumGate
@@ -1195,105 +1464,117 @@ export default function AccountingScreen() {
                                 </View>
                             ) : (
                                 <View>
-                                    <View style={[styles.tableContainer, { marginBottom: Spacing.md }]}>
-                                        <Text style={styles.monthlySectionTitle}>
-                                            {t('accounting.monthly_expenses_review', { defaultValue: 'Lecture mensuelle des dépenses' })}
-                                        </Text>
-                                        <Text style={styles.sectionSubtitle}>
-                                            {t('accounting.monthly_expenses_review_hint', { defaultValue: 'Retrouvez chaque mois, son total et les écritures déjà saisies sur la période affichée.' })}
-                                        </Text>
-                                        <View style={styles.monthlyGroupList}>
-                                            {monthlyExpenseGroups.map((group) => {
-                                                const expanded = !!expandedExpenseMonths[group.key];
-                                                const visibleItems = expanded ? group.items : group.items.slice(0, 3);
+                                    {renderReviewFilterCard(
+                                        expenseReviewMode,
+                                        setExpenseReviewMode,
+                                        monthlyExpenseGroups,
+                                        selectedExpenseMonthKey,
+                                        setSelectedExpenseMonthKey,
+                                        expenseYears,
+                                        selectedExpenseYear,
+                                        setSelectedExpenseYear,
+                                        selectedExpenseYearMonthKey,
+                                        setSelectedExpenseYearMonthKey,
+                                        t('accounting.period_review_title', { defaultValue: 'Lecture par période' }),
+                                    )}
 
-                                                return (
-                                                    <View key={group.key} style={styles.monthlyGroupCard}>
-                                                        <TouchableOpacity
-                                                            activeOpacity={0.85}
-                                                            style={styles.monthlyGroupHeader}
-                                                            onPress={() => setExpandedExpenseMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
-                                                        >
-                                                            <View style={{ flex: 1, gap: 4 }}>
-                                                                <Text style={styles.monthlyGroupTitle}>{group.label}</Text>
-                                                                <Text style={styles.monthlyGroupMeta}>
-                                                                    {t('accounting.expense_lines', { count: group.itemCount })} • {formatCurrency(group.total)}
-                                                                </Text>
-                                                            </View>
-                                                            <Ionicons
-                                                                name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
-                                                                size={18}
-                                                                color={colors.textSecondary}
-                                                            />
-                                                        </TouchableOpacity>
-
-                                                        <View style={styles.monthlyGroupItems}>
-                                                            {visibleItems.map((expense) => (
-                                                                <View key={expense.expense_id} style={styles.monthlyGroupRow}>
-                                                                    <View style={{ flex: 1 }}>
-                                                                        <Text style={styles.monthlyGroupRowTitle}>
-                                                                            {t(`accounting.expenses_categories.${expense.category}`, { defaultValue: expense.category })}
-                                                                        </Text>
-                                                                        <Text style={styles.monthlyGroupRowMeta}>
-                                                                            {formatDate(expense.created_at)}
-                                                                            {expense.description ? ` • ${expense.description}` : ''}
-                                                                        </Text>
-                                                                    </View>
-                                                                    <Text style={[styles.monthlyGroupAmount, { color: colors.danger }]}>
-                                                                        -{formatCurrency(expense.amount)}
-                                                                    </Text>
-                                                                </View>
-                                                            ))}
+                                    {expenseReviewMode === 'all' ? (
+                                        <>
+                                            <View style={styles.expensesList}>
+                                                {(showAllExpenses ? expensesList : expensesList.slice(0, 5)).map((exp) => (
+                                                    <View key={exp.expense_id} style={styles.expenseItem}>
+                                                        <View style={styles.expenseInfo}>
+                                                            <Text style={styles.expenseCategory}>
+                                                                {t(`accounting.expenses_categories.${exp.category}`, { defaultValue: exp.category })}
+                                                                {(exp as any).offline_pending ? ` • ${t('common.pending', { defaultValue: 'En attente' })}` : ''}
+                                                            </Text>
+                                                            <Text style={styles.expenseDate}>{formatDate(exp.created_at)}</Text>
+                                                            {exp.description && <Text style={styles.expenseDesc}>{exp.description}</Text>}
                                                         </View>
+                                                        <View style={styles.expenseAction}>
+                                                            <Text style={styles.expenseAmount}>-{formatCurrency(exp.amount)}</Text>
+                                                            <TouchableOpacity onPress={() => deleteExpense(exp.expense_id)}>
+                                                                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                            {expensesList.length > 5 && (
+                                                <TouchableOpacity
+                                                    style={styles.seeMoreBtn}
+                                                    onPress={() => setShowAllExpenses(!showAllExpenses)}
+                                                >
+                                                    <Text style={styles.seeMoreText}>
+                                                        {showAllExpenses ? t('common.see_less') : t('accounting.see_other_expenses', { count: expensesList.length - 5 })}
+                                                    </Text>
+                                                    <Ionicons name={showAllExpenses ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
+                                                </TouchableOpacity>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <View style={[styles.tableContainer, { marginTop: Spacing.md }]}>
+                                            <View style={styles.monthlyGroupList}>
+                                                {visibleExpenseGroups.map((group) => {
+                                                    const expanded = !!expandedExpenseMonths[group.key];
+                                                    const visibleItems = expanded ? group.items : group.items.slice(0, 3);
 
-                                                        {group.itemCount > 3 && (
+                                                    return (
+                                                        <View key={group.key} style={styles.monthlyGroupCard}>
                                                             <TouchableOpacity
-                                                                style={styles.monthlyGroupToggle}
+                                                                activeOpacity={0.85}
+                                                                style={styles.monthlyGroupHeader}
                                                                 onPress={() => setExpandedExpenseMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
                                                             >
-                                                                <Text style={styles.monthlyGroupToggleText}>
-                                                                    {expanded
-                                                                        ? t('common.see_less')
-                                                                        : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
-                                                                </Text>
+                                                                <View style={{ flex: 1, gap: 4 }}>
+                                                                    <Text style={styles.monthlyGroupTitle}>{group.label}</Text>
+                                                                    <Text style={styles.monthlyGroupMeta}>
+                                                                        {t('accounting.expense_lines', { count: group.itemCount })} • {formatCurrency(group.total)}
+                                                                    </Text>
+                                                                </View>
+                                                                <Ionicons
+                                                                    name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+                                                                    size={18}
+                                                                    color={colors.textSecondary}
+                                                                />
                                                             </TouchableOpacity>
-                                                        )}
-                                                    </View>
-                                                );
-                                            })}
-                                        </View>
-                                    </View>
 
-                                    <View style={styles.expensesList}>
-                                        {(showAllExpenses ? expensesList : expensesList.slice(0, 5)).map((exp) => (
-                                            <View key={exp.expense_id} style={styles.expenseItem}>
-                                                <View style={styles.expenseInfo}>
-                                                    <Text style={styles.expenseCategory}>
-                                                        {t(`accounting.expenses_categories.${exp.category}`, { defaultValue: exp.category })}
-                                                        {(exp as any).offline_pending ? ` • ${t('common.pending', { defaultValue: 'En attente' })}` : ''}
-                                                    </Text>
-                                                    <Text style={styles.expenseDate}>{formatDate(exp.created_at)}</Text>
-                                                    {exp.description && <Text style={styles.expenseDesc}>{exp.description}</Text>}
-                                                </View>
-                                                <View style={styles.expenseAction}>
-                                                    <Text style={styles.expenseAmount}>-{formatCurrency(exp.amount)}</Text>
-                                                    <TouchableOpacity onPress={() => deleteExpense(exp.expense_id)}>
-                                                        <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                                                    </TouchableOpacity>
-                                                </View>
+                                                            <View style={styles.monthlyGroupItems}>
+                                                                {visibleItems.map((expense) => (
+                                                                    <View key={expense.expense_id} style={styles.monthlyGroupRow}>
+                                                                        <View style={{ flex: 1 }}>
+                                                                            <Text style={styles.monthlyGroupRowTitle}>
+                                                                                {t(`accounting.expenses_categories.${expense.category}`, { defaultValue: expense.category })}
+                                                                            </Text>
+                                                                            <Text style={styles.monthlyGroupRowMeta}>
+                                                                                {formatDate(expense.created_at)}
+                                                                                {expense.description ? ` • ${expense.description}` : ''}
+                                                                            </Text>
+                                                                        </View>
+                                                                        <Text style={[styles.monthlyGroupAmount, { color: colors.danger }]}>
+                                                                            -{formatCurrency(expense.amount)}
+                                                                        </Text>
+                                                                    </View>
+                                                                ))}
+                                                            </View>
+
+                                                            {group.itemCount > 3 && (
+                                                                <TouchableOpacity
+                                                                    style={styles.monthlyGroupToggle}
+                                                                    onPress={() => setExpandedExpenseMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                                                                >
+                                                                    <Text style={styles.monthlyGroupToggleText}>
+                                                                        {expanded
+                                                                            ? t('common.see_less')
+                                                                            : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
+                                                                    </Text>
+                                                                </TouchableOpacity>
+                                                            )}
+                                                        </View>
+                                                    );
+                                                })}
                                             </View>
-                                        ))}
-                                    </View>
-                                    {expensesList.length > 5 && (
-                                        <TouchableOpacity
-                                            style={styles.seeMoreBtn}
-                                            onPress={() => setShowAllExpenses(!showAllExpenses)}
-                                        >
-                                            <Text style={styles.seeMoreText}>
-                                                {showAllExpenses ? t('common.see_less') : t('accounting.see_other_expenses', { count: expensesList.length - 5 })}
-                                            </Text>
-                                            <Ionicons name={showAllExpenses ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
-                                        </TouchableOpacity>
+                                        </View>
                                     )}
                                 </View>
                             )}
@@ -1544,171 +1825,194 @@ export default function AccountingScreen() {
                                 </View>
                             ) : (
                                 <View style={{ gap: Spacing.md }}>
-                                    <View style={styles.tableContainer}>
-                                        <Text style={styles.monthlySectionTitle}>
-                                            {t('accounting.monthly_sales_review', { defaultValue: 'Lecture mensuelle des ventes' })}
-                                        </Text>
-                                        <Text style={styles.sectionSubtitle}>
-                                            {t('accounting.monthly_sales_review_hint', { defaultValue: 'Consultez vos ventes regroupées par mois avant de rentrer dans le détail transaction par transaction.' })}
-                                        </Text>
-                                        <View style={styles.monthlyGroupList}>
-                                            {monthlySalesGroups.map((group) => {
-                                                const expanded = !!expandedSalesMonths[group.key];
-                                                const visibleItems = expanded ? group.items : group.items.slice(0, 3);
+                                    {renderReviewFilterCard(
+                                        salesReviewMode,
+                                        setSalesReviewMode,
+                                        monthlySalesGroups,
+                                        selectedSalesMonthKey,
+                                        setSelectedSalesMonthKey,
+                                        salesYears,
+                                        selectedSalesYear,
+                                        setSelectedSalesYear,
+                                        selectedSalesYearMonthKey,
+                                        setSelectedSalesYearMonthKey,
+                                        t('accounting.period_review_title', { defaultValue: 'Lecture par période' }),
+                                    )}
 
-                                                return (
-                                                    <View key={group.key} style={styles.monthlyGroupCard}>
-                                                        <TouchableOpacity
-                                                            activeOpacity={0.85}
-                                                            style={styles.monthlyGroupHeader}
-                                                            onPress={() => setExpandedSalesMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
-                                                        >
-                                                            <View style={{ flex: 1, gap: 4 }}>
-                                                                <Text style={styles.monthlyGroupTitle}>{group.label}</Text>
-                                                                <Text style={styles.monthlyGroupMeta}>
-                                                                    {t('accounting.sales_count_value', { count: group.itemCount })} • {formatCurrency(group.total)}
+                                    {salesReviewMode === 'all' ? (
+                                        <>
+                                            <View style={styles.tableContainer}>
+                                                {(showAllSales ? recentSales : recentSales.slice(0, 10)).map((sale) => (
+                                                    <View key={sale.sale_id} style={styles.saleRow}>
+                                                        <View style={{ flex: 1 }}>
+                                                            <Text style={styles.saleDate}>
+                                                                {formatDate(sale.created_at)}
+                                                            </Text>
+                                                            <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '700' }]} numberOfLines={1}>
+                                                                {sale.customer_name || t('accounting.client_diverse')}
+                                                            </Text>
+                                                            <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
+                                                                {sale.items.map(i => i.product_name).join(', ') || t('accounting.articles_count', { count: sale.items.length })}
+                                                            </Text>
+                                                            <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} • {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}</Text>
+                                                            {(sale as any).offline_pending_invoice && (
+                                                                <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
+                                                                    {t('common.pending', { defaultValue: 'En attente' })} • {t('accounting.offline_invoice', 'facture hors ligne')}
                                                                 </Text>
-                                                            </View>
-                                                            <Ionicons
-                                                                name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
-                                                                size={18}
-                                                                color={colors.textSecondary}
-                                                            />
-                                                        </TouchableOpacity>
-
-                                                        <View style={styles.monthlyGroupItems}>
-                                                            {visibleItems.map((sale) => (
-                                                                <View key={sale.sale_id} style={styles.monthlyGroupRow}>
-                                                                    <View style={{ flex: 1 }}>
-                                                                        <Text style={styles.monthlyGroupRowTitle}>
-                                                                            {sale.customer_name || t('accounting.client_diverse')}
-                                                                        </Text>
-                                                                        <Text style={styles.monthlyGroupRowMeta}>
-                                                                            {formatDate(sale.created_at)} • {t('accounting.articles_short', { count: sale.item_count || sale.items.length })}
-                                                                        </Text>
-                                                                    </View>
-                                                                    <Text style={[styles.monthlyGroupAmount, { color: colors.success }]}>
-                                                                        {formatCurrency(sale.total_amount)}
-                                                                    </Text>
-                                                                </View>
-                                                            ))}
+                                                            )}
                                                         </View>
+                                                        <View style={{ alignItems: 'flex-end', gap: 8 }}>
+                                                            <Text style={styles.saleTotal}>{formatCurrency(sale.total_amount)}</Text>
+                                                            <Text
+                                                                style={[
+                                                                    styles.saleStatusBadge,
+                                                                    getSaleStatusTone(sale),
+                                                                ]}
+                                                            >
+                                                                {getSaleStatusLabel(sale)}
+                                                            </Text>
+                                                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                                                <TouchableOpacity style={styles.receiptBtn} onPress={() => generateReceiptPdf(sale)}>
+                                                                    <Ionicons name="receipt-outline" size={16} color={colors.primary} />
+                                                                </TouchableOpacity>
+                                                                {sale.invoice_id ? (
+                                                                    <TouchableOpacity
+                                                                        style={styles.receiptBtn}
+                                                                        onPress={() => handleOpenStoredInvoice(sale.invoice_id!, invoiceHistory.find((invoice) => invoice.invoice_id === sale.invoice_id))}
+                                                                    >
+                                                                        <Ionicons name="document-text-outline" size={16} color={colors.primary} />
+                                                                    </TouchableOpacity>
+                                                                ) : sale.status !== 'cancelled' ? (
+                                                                    <TouchableOpacity
+                                                                        style={[styles.receiptBtn, invoiceBusyId === sale.sale_id && { opacity: 0.5 }]}
+                                                                        disabled={invoiceBusyId === sale.sale_id}
+                                                                        onPress={() => handleCreateInvoiceFromSale(sale.sale_id)}
+                                                                    >
+                                                                        {invoiceBusyId === sale.sale_id ? (
+                                                                            <ActivityIndicator size="small" color={colors.primary} />
+                                                                        ) : (
+                                                                            <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+                                                                        )}
+                                                                    </TouchableOpacity>
+                                                                ) : null}
+                                                                {sale.status !== 'cancelled' && !sale.invoice_id ? (
+                                                                    <TouchableOpacity
+                                                                        style={[
+                                                                            styles.receiptBtn,
+                                                                            {
+                                                                                borderColor: colors.danger + '35',
+                                                                                backgroundColor: colors.danger + '14',
+                                                                                opacity: cancellingSaleId === sale.sale_id ? 0.6 : 1,
+                                                                            },
+                                                                        ]}
+                                                                        disabled={cancellingSaleId === sale.sale_id}
+                                                                        onPress={() => handleCancelSale(sale.sale_id)}
+                                                                    >
+                                                                        {cancellingSaleId === sale.sale_id ? (
+                                                                            <ActivityIndicator size="small" color={colors.danger} />
+                                                                        ) : (
+                                                                            <Ionicons name="close-circle-outline" size={16} color={colors.danger} />
+                                                                        )}
+                                                                    </TouchableOpacity>
+                                                                ) : null}
+                                                            </View>
+                                                            {sale.status === 'cancelled' && sale.cancelled_at ? (
+                                                                <Text
+                                                                    style={[
+                                                                        styles.saleMeta,
+                                                                        {
+                                                                            color: colors.danger,
+                                                                            fontWeight: '700',
+                                                                            textAlign: 'right',
+                                                                            maxWidth: 180,
+                                                                        },
+                                                                    ]}
+                                                                >
+                                                                    {t('accounting.cancelled_on', {
+                                                                        defaultValue: 'Annulée le {{date}}',
+                                                                        date: formatDate(sale.cancelled_at),
+                                                                    })}
+                                                                </Text>
+                                                            ) : null}
+                                                        </View>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                            {recentSales.length > 10 && (
+                                                <TouchableOpacity
+                                                    style={styles.seeMoreBtn}
+                                                    onPress={() => setShowAllSales(!showAllSales)}
+                                                >
+                                                    <Text style={styles.seeMoreText}>
+                                                        {showAllSales ? t('common.see_less') : t('accounting.see_other_sales', { count: recentSales.length - 10, defaultValue: 'Voir les {{count}} autres ventes' })}
+                                                    </Text>
+                                                    <Ionicons name={showAllSales ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
+                                                </TouchableOpacity>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <View style={styles.tableContainer}>
+                                            <View style={styles.monthlyGroupList}>
+                                                {visibleSalesGroups.map((group) => {
+                                                    const expanded = !!expandedSalesMonths[group.key];
+                                                    const visibleItems = expanded ? group.items : group.items.slice(0, 3);
 
-                                                        {group.itemCount > 3 && (
+                                                    return (
+                                                        <View key={group.key} style={styles.monthlyGroupCard}>
                                                             <TouchableOpacity
-                                                                style={styles.monthlyGroupToggle}
+                                                                activeOpacity={0.85}
+                                                                style={styles.monthlyGroupHeader}
                                                                 onPress={() => setExpandedSalesMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
                                                             >
-                                                                <Text style={styles.monthlyGroupToggleText}>
-                                                                    {expanded
-                                                                        ? t('common.see_less')
-                                                                        : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
-                                                                </Text>
+                                                                <View style={{ flex: 1, gap: 4 }}>
+                                                                    <Text style={styles.monthlyGroupTitle}>{group.label}</Text>
+                                                                    <Text style={styles.monthlyGroupMeta}>
+                                                                        {t('accounting.sales_count_value', { count: group.itemCount })} • {formatCurrency(group.total)}
+                                                                    </Text>
+                                                                </View>
+                                                                <Ionicons
+                                                                    name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+                                                                    size={18}
+                                                                    color={colors.textSecondary}
+                                                                />
                                                             </TouchableOpacity>
-                                                        )}
-                                                    </View>
-                                                );
-                                            })}
-                                        </View>
-                                    </View>
 
-                                    <View style={styles.tableContainer}>
-                                        {recentSales.slice(0, 10).map((sale) => (
-                                            <View key={sale.sale_id} style={styles.saleRow}>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.saleDate}>
-                                                        {formatDate(sale.created_at)}
-                                                    </Text>
-                                                    <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '700' }]} numberOfLines={1}>
-                                                        {sale.customer_name || t('accounting.client_diverse')}
-                                                    </Text>
-                                                    <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
-                                                        {sale.items.map(i => i.product_name).join(', ') || t('accounting.articles_count', { count: sale.items.length })}
-                                                    </Text>
-                                                    <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} • {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}</Text>
-                                                    {(sale as any).offline_pending_invoice && (
-                                                        <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
-                                                            {t('common.pending', { defaultValue: 'En attente' })} • {t('accounting.offline_invoice', 'facture hors ligne')}
-                                                        </Text>
-                                                    )}
-                                                </View>
-                                                <View style={{ alignItems: 'flex-end', gap: 8 }}>
-                                                    <Text style={styles.saleTotal}>{formatCurrency(sale.total_amount)}</Text>
-                                                    <Text
-                                                        style={[
-                                                            styles.saleStatusBadge,
-                                                            getSaleStatusTone(sale),
-                                                        ]}
-                                                    >
-                                                        {getSaleStatusLabel(sale)}
-                                                    </Text>
-                                                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                                                        <TouchableOpacity style={styles.receiptBtn} onPress={() => generateReceiptPdf(sale)}>
-                                                            <Ionicons name="receipt-outline" size={16} color={colors.primary} />
-                                                        </TouchableOpacity>
-                                                        {sale.invoice_id ? (
-                                                            <TouchableOpacity
-                                                                style={styles.receiptBtn}
-                                                                onPress={() => handleOpenStoredInvoice(sale.invoice_id!, invoiceHistory.find((invoice) => invoice.invoice_id === sale.invoice_id))}
-                                                            >
-                                                                <Ionicons name="document-text-outline" size={16} color={colors.primary} />
-                                                            </TouchableOpacity>
-                                                        ) : sale.status !== 'cancelled' ? (
-                                                            <TouchableOpacity
-                                                                style={[styles.receiptBtn, invoiceBusyId === sale.sale_id && { opacity: 0.5 }]}
-                                                                disabled={invoiceBusyId === sale.sale_id}
-                                                                onPress={() => handleCreateInvoiceFromSale(sale.sale_id)}
-                                                            >
-                                                                {invoiceBusyId === sale.sale_id ? (
-                                                                    <ActivityIndicator size="small" color={colors.primary} />
-                                                                ) : (
-                                                                    <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
-                                                                )}
-                                                            </TouchableOpacity>
-                                                        ) : null}
-                                                        {sale.status !== 'cancelled' && !sale.invoice_id ? (
-                                                            <TouchableOpacity
-                                                                style={[
-                                                                    styles.receiptBtn,
-                                                                    {
-                                                                        borderColor: colors.danger + '35',
-                                                                        backgroundColor: colors.danger + '14',
-                                                                        opacity: cancellingSaleId === sale.sale_id ? 0.6 : 1,
-                                                                    },
-                                                                ]}
-                                                                disabled={cancellingSaleId === sale.sale_id}
-                                                                onPress={() => handleCancelSale(sale.sale_id)}
-                                                            >
-                                                                {cancellingSaleId === sale.sale_id ? (
-                                                                    <ActivityIndicator size="small" color={colors.danger} />
-                                                                ) : (
-                                                                    <Ionicons name="close-circle-outline" size={16} color={colors.danger} />
-                                                                )}
-                                                            </TouchableOpacity>
-                                                        ) : null}
-                                                    </View>
-                                                    {sale.status === 'cancelled' && sale.cancelled_at ? (
-                                                        <Text
-                                                            style={[
-                                                                styles.saleMeta,
-                                                                {
-                                                                    color: colors.danger,
-                                                                    fontWeight: '700',
-                                                                    textAlign: 'right',
-                                                                    maxWidth: 180,
-                                                                },
-                                                            ]}
-                                                        >
-                                                            {t('accounting.cancelled_on', {
-                                                                defaultValue: 'Annulée le {{date}}',
-                                                                date: formatDate(sale.cancelled_at),
-                                                            })}
-                                                        </Text>
-                                                    ) : null}
-                                                </View>
+                                                            <View style={styles.monthlyGroupItems}>
+                                                                {visibleItems.map((sale) => (
+                                                                    <View key={sale.sale_id} style={styles.monthlyGroupRow}>
+                                                                        <View style={{ flex: 1 }}>
+                                                                            <Text style={styles.monthlyGroupRowTitle}>
+                                                                                {sale.customer_name || t('accounting.client_diverse')}
+                                                                            </Text>
+                                                                            <Text style={styles.monthlyGroupRowMeta}>
+                                                                                {formatDate(sale.created_at)} • {t('accounting.articles_short', { count: sale.item_count || sale.items.length })}
+                                                                            </Text>
+                                                                        </View>
+                                                                        <Text style={[styles.monthlyGroupAmount, { color: colors.success }]}>
+                                                                            {formatCurrency(sale.total_amount)}
+                                                                        </Text>
+                                                                    </View>
+                                                                ))}
+                                                            </View>
+
+                                                            {group.itemCount > 3 && (
+                                                                <TouchableOpacity
+                                                                    style={styles.monthlyGroupToggle}
+                                                                    onPress={() => setExpandedSalesMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                                                                >
+                                                                    <Text style={styles.monthlyGroupToggleText}>
+                                                                        {expanded
+                                                                            ? t('common.see_less')
+                                                                            : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
+                                                                    </Text>
+                                                                </TouchableOpacity>
+                                                            )}
+                                                        </View>
+                                                    );
+                                                })}
                                             </View>
-                                        ))}
-                                    </View>
+                                        </View>
+                                    )}
                                 </View>
                             )}
                         </View>
@@ -2332,6 +2636,103 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => S
         fontSize: FontSize.md,
         fontWeight: '700',
         marginBottom: 4,
+    },
+    reviewFilterCard: {
+        ...glassStyle,
+        borderWidth: 1,
+        borderColor: colors.divider,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.md,
+        gap: Spacing.sm,
+        marginBottom: Spacing.md,
+    },
+    reviewFilterTitle: {
+        color: colors.text,
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+    },
+    reviewModeRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.xs,
+    },
+    reviewModeChip: {
+        borderWidth: 1,
+        borderColor: colors.divider,
+        borderRadius: 999,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: 8,
+        backgroundColor: colors.card,
+    },
+    reviewModeChipActive: {
+        borderColor: colors.primary,
+        backgroundColor: colors.primary + '18',
+    },
+    reviewModeChipText: {
+        color: colors.textSecondary,
+        fontSize: FontSize.xs,
+        fontWeight: '700',
+    },
+    reviewModeChipTextActive: {
+        color: colors.primary,
+    },
+    reviewNavigatorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+    },
+    reviewNavButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: colors.divider,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.card,
+    },
+    reviewNavButtonDisabled: {
+        opacity: 0.45,
+    },
+    reviewNavigatorLabelWrap: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: colors.divider,
+        borderRadius: BorderRadius.md,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: 10,
+        backgroundColor: colors.card,
+    },
+    reviewNavigatorLabel: {
+        color: colors.text,
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    reviewChipList: {
+        gap: Spacing.xs,
+        paddingRight: Spacing.md,
+    },
+    reviewValueChip: {
+        borderWidth: 1,
+        borderColor: colors.divider,
+        borderRadius: 999,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: 8,
+        backgroundColor: colors.card,
+    },
+    reviewValueChipActive: {
+        borderColor: colors.primary,
+        backgroundColor: colors.primary + '12',
+    },
+    reviewValueChipText: {
+        color: colors.textSecondary,
+        fontSize: FontSize.xs,
+        fontWeight: '600',
+    },
+    reviewValueChipTextActive: {
+        color: colors.primary,
+        fontWeight: '700',
     },
     monthlyGroupList: {
         gap: Spacing.sm,

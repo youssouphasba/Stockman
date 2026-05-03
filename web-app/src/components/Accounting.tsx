@@ -23,6 +23,8 @@ import {
     Files,
     ShoppingCart,
     AlertTriangle,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import {
     AreaChart,
@@ -72,10 +74,15 @@ const EXPENSE_CATEGORY_KEYS = [
 type MonthlyGroup<T> = {
     key: string;
     label: string;
+    shortLabel: string;
     total: number;
     itemCount: number;
+    year: number;
+    month: number;
     items: T[];
 };
+
+type ReviewMode = 'all' | 'month' | 'year';
 
 function buildMonthlyGroups<T>(
     items: T[],
@@ -84,6 +91,7 @@ function buildMonthlyGroups<T>(
     locale: string,
 ): MonthlyGroup<T>[] {
     const formatter = new Intl.DateTimeFormat(locale || 'fr-FR', { month: 'long', year: 'numeric' });
+    const shortFormatter = new Intl.DateTimeFormat(locale || 'fr-FR', { month: 'short' });
     const groups = new Map<string, MonthlyGroup<T>>();
 
     items.forEach((item) => {
@@ -93,9 +101,13 @@ function buildMonthlyGroups<T>(
         const parsedDate = new Date(rawDate);
         if (Number.isNaN(parsedDate.getTime())) return;
 
-        const key = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}`;
+        const year = parsedDate.getFullYear();
+        const month = parsedDate.getMonth() + 1;
+        const key = `${year}-${String(month).padStart(2, '0')}`;
         const baseLabel = formatter.format(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1));
         const label = baseLabel.charAt(0).toUpperCase() + baseLabel.slice(1);
+        const baseShortLabel = shortFormatter.format(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1)).replace('.', '');
+        const shortLabel = baseShortLabel.charAt(0).toUpperCase() + baseShortLabel.slice(1);
         const amount = getAmount(item) || 0;
         const current = groups.get(key);
 
@@ -109,13 +121,24 @@ function buildMonthlyGroups<T>(
         groups.set(key, {
             key,
             label,
+            shortLabel,
             total: amount,
             itemCount: 1,
+            year,
+            month,
             items: [item],
         });
     });
 
     return Array.from(groups.values()).sort((a, b) => b.key.localeCompare(a.key));
+}
+
+function getAvailableYears<T>(groups: MonthlyGroup<T>[]) {
+    return Array.from(new Set(groups.map((group) => group.year))).sort((a, b) => b - a);
+}
+
+function getMonthGroupsForYear<T>(groups: MonthlyGroup<T>[], year: number) {
+    return groups.filter((group) => group.year === year);
 }
 
 export default function Accounting() {
@@ -158,6 +181,14 @@ export default function Accounting() {
     const [pendingSummary, setPendingSummary] = useState({ pendingInvoices: 0, pendingExpenses: 0, pendingSaleCancellations: 0, pendingTotal: 0 });
     const [expandedExpenseMonths, setExpandedExpenseMonths] = useState<Record<string, boolean>>({});
     const [expandedSalesMonths, setExpandedSalesMonths] = useState<Record<string, boolean>>({});
+    const [expenseReviewMode, setExpenseReviewMode] = useState<ReviewMode>('month');
+    const [salesReviewMode, setSalesReviewMode] = useState<ReviewMode>('month');
+    const [selectedExpenseMonthKey, setSelectedExpenseMonthKey] = useState<string | null>(null);
+    const [selectedSalesMonthKey, setSelectedSalesMonthKey] = useState<string | null>(null);
+    const [selectedExpenseYear, setSelectedExpenseYear] = useState<number | null>(null);
+    const [selectedSalesYear, setSelectedSalesYear] = useState<number | null>(null);
+    const [selectedExpenseYearMonthKey, setSelectedExpenseYearMonthKey] = useState<string>('all');
+    const [selectedSalesYearMonthKey, setSelectedSalesYearMonthKey] = useState<string>('all');
     const rightPanelRef = useRef<HTMLDivElement>(null);
 
     // Free invoice creation
@@ -594,6 +625,90 @@ export default function Accounting() {
         (sale) => sale.total_amount,
         i18n.language,
     );
+    const expenseYears = React.useMemo(() => getAvailableYears(monthlyExpenseGroups), [monthlyExpenseGroups]);
+    const salesYears = React.useMemo(() => getAvailableYears(monthlySalesGroups), [monthlySalesGroups]);
+    const expenseYearGroups = React.useMemo(
+        () => (selectedExpenseYear == null ? [] : getMonthGroupsForYear(monthlyExpenseGroups, selectedExpenseYear)),
+        [monthlyExpenseGroups, selectedExpenseYear],
+    );
+    const salesYearGroups = React.useMemo(
+        () => (selectedSalesYear == null ? [] : getMonthGroupsForYear(monthlySalesGroups, selectedSalesYear)),
+        [monthlySalesGroups, selectedSalesYear],
+    );
+
+    useEffect(() => {
+        if (!selectedExpenseMonthKey && monthlyExpenseGroups.length > 0) {
+            setSelectedExpenseMonthKey(monthlyExpenseGroups[0].key);
+        }
+        if (selectedExpenseMonthKey && !monthlyExpenseGroups.some((group) => group.key === selectedExpenseMonthKey)) {
+            setSelectedExpenseMonthKey(monthlyExpenseGroups[0]?.key ?? null);
+        }
+        if (selectedExpenseYear == null && expenseYears.length > 0) {
+            setSelectedExpenseYear(expenseYears[0]);
+        }
+        if (selectedExpenseYear != null && !expenseYears.includes(selectedExpenseYear)) {
+            setSelectedExpenseYear(expenseYears[0] ?? null);
+        }
+    }, [monthlyExpenseGroups, selectedExpenseMonthKey, selectedExpenseYear, expenseYears]);
+
+    useEffect(() => {
+        if (!selectedSalesMonthKey && monthlySalesGroups.length > 0) {
+            setSelectedSalesMonthKey(monthlySalesGroups[0].key);
+        }
+        if (selectedSalesMonthKey && !monthlySalesGroups.some((group) => group.key === selectedSalesMonthKey)) {
+            setSelectedSalesMonthKey(monthlySalesGroups[0]?.key ?? null);
+        }
+        if (selectedSalesYear == null && salesYears.length > 0) {
+            setSelectedSalesYear(salesYears[0]);
+        }
+        if (selectedSalesYear != null && !salesYears.includes(selectedSalesYear)) {
+            setSelectedSalesYear(salesYears[0] ?? null);
+        }
+    }, [monthlySalesGroups, selectedSalesMonthKey, selectedSalesYear, salesYears]);
+
+    useEffect(() => {
+        if (
+            selectedExpenseYearMonthKey !== 'all'
+            && !expenseYearGroups.some((group) => group.key === selectedExpenseYearMonthKey)
+        ) {
+            setSelectedExpenseYearMonthKey('all');
+        }
+    }, [expenseYearGroups, selectedExpenseYearMonthKey]);
+
+    useEffect(() => {
+        if (
+            selectedSalesYearMonthKey !== 'all'
+            && !salesYearGroups.some((group) => group.key === selectedSalesYearMonthKey)
+        ) {
+            setSelectedSalesYearMonthKey('all');
+        }
+    }, [salesYearGroups, selectedSalesYearMonthKey]);
+
+    const visibleExpenseGroups = React.useMemo(() => {
+        if (expenseReviewMode === 'month') {
+            return monthlyExpenseGroups.filter((group) => group.key === selectedExpenseMonthKey);
+        }
+        if (expenseReviewMode === 'year') {
+            if (selectedExpenseYearMonthKey !== 'all') {
+                return expenseYearGroups.filter((group) => group.key === selectedExpenseYearMonthKey);
+            }
+            return expenseYearGroups;
+        }
+        return [];
+    }, [expenseReviewMode, monthlyExpenseGroups, selectedExpenseMonthKey, expenseYearGroups, selectedExpenseYearMonthKey]);
+
+    const visibleSalesGroups = React.useMemo(() => {
+        if (salesReviewMode === 'month') {
+            return monthlySalesGroups.filter((group) => group.key === selectedSalesMonthKey);
+        }
+        if (salesReviewMode === 'year') {
+            if (selectedSalesYearMonthKey !== 'all') {
+                return salesYearGroups.filter((group) => group.key === selectedSalesYearMonthKey);
+            }
+            return salesYearGroups;
+        }
+        return [];
+    }, [salesReviewMode, monthlySalesGroups, selectedSalesMonthKey, salesYearGroups, selectedSalesYearMonthKey]);
 
     const accountingSteps: GuideStep[] = [
         {
@@ -633,7 +748,7 @@ export default function Accounting() {
             details: [
                 { label: t('guide.accounting.btn_add_expense', "Ajouter une dépense"), description: t('guide.accounting.btn_add_expense_desc', "Saisissez une dépense avec sa catégorie, son montant, sa date et son contexte pour améliorer la lecture comptable."), type: 'button' },
                 { label: t('guide.accounting.expense_tip', "Astuce"), description: t('guide.accounting.expense_tip_desc', "Enregistrez vos dépenses récurrentes chaque mois pour éviter de surestimer artificiellement votre résultat net."), type: 'tip' },
-                { label: t('guide.accounting.monthly_reading', "Lecture mensuelle"), description: t('guide.accounting.monthly_reading_desc', "Ouvrez chaque fiche mensuelle pour relire son total, ses écritures et repérer plus vite les écarts d'un mois à l'autre."), type: 'info' },
+                { label: t('guide.accounting.monthly_reading', "Filtre de période"), description: t('guide.accounting.monthly_reading_desc', "Passez de Voir tout à Mois ou Année pour lire la bonne période. En mode année, vous pouvez aussi choisir directement un mois lié à l'année affichée."), type: 'info' },
             ],
         },
         {
@@ -644,7 +759,7 @@ export default function Accounting() {
                 { label: t('guide.accounting.tab_payments', "Onglet Paiements"), description: t('guide.accounting.tab_payments_desc', "Détail des encaissements par mode de paiement et suivi des factures en attente."), type: 'info' },
                 { label: t('guide.accounting.tab_losses', "Onglet Pertes"), description: t('guide.accounting.tab_losses_desc', "Permet de relire les pertes, leurs motifs et leur poids relatif pour décider où agir en premier."), type: 'info' },
                 { label: t('guide.accounting.tab_products', "Onglet Produits"), description: t('guide.accounting.tab_products_desc', "Classement des produits par chiffre d'affaires, marge et quantité vendue sur la période."), type: 'info' },
-                { label: t('guide.accounting.tab_sales', "Onglet Ventes"), description: t('guide.accounting.tab_sales_desc', "Historique de toutes les ventes avec regroupement mensuel et possibilité d'annuler une vente si votre rôle l'autorise."), type: 'info' },
+                { label: t('guide.accounting.tab_sales', "Onglet Ventes"), description: t('guide.accounting.tab_sales_desc', "Historique des ventes avec filtre Voir tout, Mois ou Année et possibilité d'annuler une vente si votre rôle l'autorise."), type: 'info' },
                 { label: t('guide.accounting.tab_invoices', "Onglet Factures"), description: t('guide.accounting.tab_invoices_desc', "Créez et consultez des factures clients, puis téléchargez-les en PDF ou imprimez-les."), type: 'info' },
             ],
         },
@@ -658,6 +773,158 @@ export default function Accounting() {
             ],
         },
     ];
+
+    const renderReviewFilterCard = (
+        mode: ReviewMode,
+        setMode: (mode: ReviewMode) => void,
+        monthGroups: MonthlyGroup<any>[],
+        selectedMonthKey: string | null,
+        setSelectedMonthKey: (key: string | null) => void,
+        years: number[],
+        selectedYear: number | null,
+        setSelectedYear: (year: number | null) => void,
+        selectedYearMonthKey: string,
+        setSelectedYearMonthKey: (key: string) => void,
+    ) => {
+        const currentMonthIndex = monthGroups.findIndex((group) => group.key === selectedMonthKey);
+        const monthCanGoOlder = currentMonthIndex >= 0 && currentMonthIndex < monthGroups.length - 1;
+        const monthCanGoNewer = currentMonthIndex > 0;
+        const currentYearGroups = selectedYear == null ? [] : getMonthGroupsForYear(monthGroups, selectedYear);
+        const currentYearIndex = selectedYear == null ? -1 : years.findIndex((year) => year === selectedYear);
+        const yearCanGoOlder = currentYearIndex >= 0 && currentYearIndex < years.length - 1;
+        const yearCanGoNewer = currentYearIndex > 0;
+
+        return (
+            <div className="mb-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
+                    {t('accounting.period_review_title', { defaultValue: 'Lecture par période' })}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {(['all', 'month', 'year'] as ReviewMode[]).map((option) => {
+                        const isActive = mode === option;
+                        const label = option === 'all'
+                            ? t('accounting.review_mode_all', { defaultValue: 'Voir tout' })
+                            : option === 'month'
+                                ? t('accounting.review_mode_month', { defaultValue: 'Mois' })
+                                : t('accounting.review_mode_year', { defaultValue: 'Année' });
+                        return (
+                            <button
+                                key={option}
+                                type="button"
+                                onClick={() => setMode(option)}
+                                className={`rounded-full border px-4 py-2 text-xs font-black transition-all ${isActive ? 'border-primary bg-primary/15 text-primary' : 'border-white/10 bg-white/[0.03] text-slate-400 hover:text-white'}`}
+                            >
+                                {label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {mode === 'month' && monthGroups.length > 0 && (
+                    <>
+                        <div className="mt-4 flex items-center gap-3">
+                            <button
+                                type="button"
+                                disabled={!monthCanGoOlder}
+                                onClick={() => {
+                                    if (!monthCanGoOlder || currentMonthIndex < 0) return;
+                                    setSelectedMonthKey(monthGroups[currentMonthIndex + 1].key);
+                                }}
+                                className={`flex h-10 w-10 items-center justify-center rounded-full border ${monthCanGoOlder ? 'border-white/10 bg-white/[0.03] text-white' : 'border-white/5 bg-white/[0.02] text-slate-600'}`}
+                            >
+                                <ChevronLeft />
+                            </button>
+                            <div className="flex-1 rounded-2xl border border-white/10 bg-slate-950/30 px-4 py-3 text-center text-sm font-black text-white">
+                                {monthGroups.find((group) => group.key === selectedMonthKey)?.label || monthGroups[0]?.label}
+                            </div>
+                            <button
+                                type="button"
+                                disabled={!monthCanGoNewer}
+                                onClick={() => {
+                                    if (!monthCanGoNewer || currentMonthIndex <= 0) return;
+                                    setSelectedMonthKey(monthGroups[currentMonthIndex - 1].key);
+                                }}
+                                className={`flex h-10 w-10 items-center justify-center rounded-full border ${monthCanGoNewer ? 'border-white/10 bg-white/[0.03] text-white' : 'border-white/5 bg-white/[0.02] text-slate-600'}`}
+                            >
+                                <ChevronRight />
+                            </button>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {monthGroups.map((group) => {
+                                const isActive = group.key === selectedMonthKey;
+                                return (
+                                    <button
+                                        key={group.key}
+                                        type="button"
+                                        onClick={() => setSelectedMonthKey(group.key)}
+                                        className={`rounded-full border px-4 py-2 text-xs font-bold transition-all ${isActive ? 'border-primary bg-primary/12 text-primary' : 'border-white/10 bg-white/[0.03] text-slate-400 hover:text-white'}`}
+                                    >
+                                        {group.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+
+                {mode === 'year' && years.length > 0 && (
+                    <>
+                        <div className="mt-4 flex items-center gap-3">
+                            <button
+                                type="button"
+                                disabled={!yearCanGoOlder}
+                                onClick={() => {
+                                    if (!yearCanGoOlder || currentYearIndex < 0) return;
+                                    setSelectedYear(years[currentYearIndex + 1]);
+                                    setSelectedYearMonthKey('all');
+                                }}
+                                className={`flex h-10 w-10 items-center justify-center rounded-full border ${yearCanGoOlder ? 'border-white/10 bg-white/[0.03] text-white' : 'border-white/5 bg-white/[0.02] text-slate-600'}`}
+                            >
+                                <ChevronLeft />
+                            </button>
+                            <div className="flex-1 rounded-2xl border border-white/10 bg-slate-950/30 px-4 py-3 text-center text-sm font-black text-white">
+                                {selectedYear ?? years[0]}
+                            </div>
+                            <button
+                                type="button"
+                                disabled={!yearCanGoNewer}
+                                onClick={() => {
+                                    if (!yearCanGoNewer || currentYearIndex <= 0) return;
+                                    setSelectedYear(years[currentYearIndex - 1]);
+                                    setSelectedYearMonthKey('all');
+                                }}
+                                className={`flex h-10 w-10 items-center justify-center rounded-full border ${yearCanGoNewer ? 'border-white/10 bg-white/[0.03] text-white' : 'border-white/5 bg-white/[0.02] text-slate-600'}`}
+                            >
+                                <ChevronRight />
+                            </button>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedYearMonthKey('all')}
+                                className={`rounded-full border px-4 py-2 text-xs font-bold transition-all ${selectedYearMonthKey === 'all' ? 'border-primary bg-primary/12 text-primary' : 'border-white/10 bg-white/[0.03] text-slate-400 hover:text-white'}`}
+                            >
+                                {t('accounting.review_mode_all_months', { defaultValue: 'Tous les mois' })}
+                            </button>
+                            {currentYearGroups.map((group) => {
+                                const isActive = selectedYearMonthKey === group.key;
+                                return (
+                                    <button
+                                        key={group.key}
+                                        type="button"
+                                        onClick={() => setSelectedYearMonthKey(group.key)}
+                                        className={`rounded-full border px-4 py-2 text-xs font-bold transition-all ${isActive ? 'border-primary bg-primary/12 text-primary' : 'border-white/10 bg-white/[0.03] text-slate-400 hover:text-white'}`}
+                                    >
+                                        {group.shortLabel}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
@@ -1110,97 +1377,100 @@ export default function Accounting() {
                                         : `${pendingSummary.pendingTotal} écritures comptables sont en attente de synchronisation.`}
                                 </div>
                             )}
-                            {monthlyExpenseGroups.length > 0 && (
-                                <div className="mb-4 space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                                    <div>
-                                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
-                                            {t('accounting.monthly_expenses_review', { defaultValue: 'Lecture mensuelle des dépenses' })}
-                                        </p>
-                                        <p className="mt-2 text-sm text-slate-400">
-                                            {t('accounting.monthly_expenses_review_hint', { defaultValue: 'Retrouvez chaque mois, son total et les écritures déjà saisies sur la période affichée.' })}
-                                        </p>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {monthlyExpenseGroups.map((group) => {
-                                            const expanded = !!expandedExpenseMonths[group.key];
-                                            const visibleItems = expanded ? group.items : group.items.slice(0, 3);
-
-                                            return (
-                                                <div key={group.key} className="rounded-2xl border border-white/8 bg-slate-950/30 p-4">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setExpandedExpenseMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
-                                                        className="flex w-full items-start justify-between gap-3 text-left"
-                                                    >
-                                                        <div>
-                                                            <p className="text-sm font-black text-white">{group.label}</p>
-                                                            <p className="mt-1 text-[11px] font-bold text-slate-400">
-                                                                {t('accounting.expense_lines', { count: group.itemCount })} • {formatCurrency(group.total)}
-                                                            </p>
-                                                        </div>
-                                                        <span className="text-xs font-black uppercase tracking-[0.18em] text-primary">
-                                                            {expanded
-                                                                ? t('common.see_less', { defaultValue: 'Voir moins' })
-                                                                : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
-                                                        </span>
-                                                    </button>
-                                                    <div className="mt-4 space-y-2">
-                                                        {visibleItems.map((exp: any) => (
-                                                            <div key={exp.expense_id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
-                                                                <div className="min-w-0">
-                                                                    <p className="truncate text-sm font-bold text-white">
-                                                                        {(() => {
-                                                                            const category = EXPENSE_CATEGORY_KEYS.find((item) => item.value === exp.category);
-                                                                            return category ? t(category.labelKey) : exp.category;
-                                                                        })()}
-                                                                    </p>
-                                                                    <p className="mt-1 text-[11px] text-slate-500">
-                                                                        {formatDate(exp.created_at)}
-                                                                        {exp.description ? ` • ${exp.description}` : ''}
-                                                                    </p>
-                                                                </div>
-                                                                <span className="shrink-0 text-sm font-black text-rose-400">-{formatCurrency(exp.amount)}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
+                            {renderReviewFilterCard(
+                                expenseReviewMode,
+                                setExpenseReviewMode,
+                                monthlyExpenseGroups,
+                                selectedExpenseMonthKey,
+                                setSelectedExpenseMonthKey,
+                                expenseYears,
+                                selectedExpenseYear,
+                                setSelectedExpenseYear,
+                                selectedExpenseYearMonthKey,
+                                setSelectedExpenseYearMonthKey,
                             )}
-                            {filteredExpenses.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500 font-medium">Aucune dépense sur cette période.</div>
+                            {expenseReviewMode === 'all' ? (
+                                filteredExpenses.length === 0 ? (
+                                    <div className="text-center py-10 text-slate-500 font-medium">Aucune dépense sur cette période.</div>
+                                ) : (
+                                    filteredExpenses.map((exp: any) => (
+                                        <div key={exp.expense_id} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-white/10 transition-all">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 text-xs font-black">
+                                                    {exp.category.substring(0, 3).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-white font-bold text-sm">{exp.description || exp.category}</h4>
+                                                    <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                                        {formatDate(exp.created_at)} - {(() => { const c = EXPENSE_CATEGORY_KEYS.find(c => c.value === exp.category); return c ? t(c.labelKey) : exp.category; })()}
+                                                    </p>
+                                                    {exp.offline_pending && (
+                                                        <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-amber-400">En attente de synchronisation</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-rose-400 font-black text-lg">-{formatCurrency(exp.amount)}</span>
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                    <button onClick={() => handleOpenEditExpense(exp)} className="p-2 text-slate-500 hover:text-primary transition-colors">
+                                                        <Edit2 size={14} />
+                                                    </button>
+                                                    <button onClick={() => handleDeleteExpense(exp.expense_id)} className="p-2 text-slate-500 hover:text-rose-500 transition-colors">
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )
                             ) : (
-                                filteredExpenses.map((exp: any) => (
-                                    <div key={exp.expense_id} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-white/10 transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 text-xs font-black">
-                                                {exp.category.substring(0, 3).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <h4 className="text-white font-bold text-sm">{exp.description || exp.category}</h4>
-                                                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">
-                                                    {formatDate(exp.created_at)} - {(() => { const c = EXPENSE_CATEGORY_KEYS.find(c => c.value === exp.category); return c ? t(c.labelKey) : exp.category; })()}
-                                                </p>
-                                                {exp.offline_pending && (
-                                                    <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-amber-400">En attente de synchronisation</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-rose-400 font-black text-lg">-{formatCurrency(exp.amount)}</span>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                                <button onClick={() => handleOpenEditExpense(exp)} className="p-2 text-slate-500 hover:text-primary transition-colors">
-                                                    <Edit2 size={14} />
+                                <div className="space-y-3">
+                                    {visibleExpenseGroups.map((group) => {
+                                        const expanded = !!expandedExpenseMonths[group.key];
+                                        const visibleItems = expanded ? group.items : group.items.slice(0, 3);
+
+                                        return (
+                                            <div key={group.key} className="rounded-2xl border border-white/8 bg-slate-950/30 p-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setExpandedExpenseMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                                                    className="flex w-full items-start justify-between gap-3 text-left"
+                                                >
+                                                    <div>
+                                                        <p className="text-sm font-black text-white">{group.label}</p>
+                                                        <p className="mt-1 text-[11px] font-bold text-slate-400">
+                                                            {t('accounting.expense_lines', { count: group.itemCount })} • {formatCurrency(group.total)}
+                                                        </p>
+                                                    </div>
+                                                    <span className="text-xs font-black uppercase tracking-[0.18em] text-primary">
+                                                        {expanded
+                                                            ? t('common.see_less', { defaultValue: 'Voir moins' })
+                                                            : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
+                                                    </span>
                                                 </button>
-                                                <button onClick={() => handleDeleteExpense(exp.expense_id)} className="p-2 text-slate-500 hover:text-rose-500 transition-colors">
-                                                    <Trash2 size={14} />
-                                                </button>
+                                                <div className="mt-4 space-y-2">
+                                                    {visibleItems.map((exp: any) => (
+                                                        <div key={exp.expense_id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                                                            <div className="min-w-0">
+                                                                <p className="truncate text-sm font-bold text-white">
+                                                                    {(() => {
+                                                                        const category = EXPENSE_CATEGORY_KEYS.find((item) => item.value === exp.category);
+                                                                        return category ? t(category.labelKey) : exp.category;
+                                                                    })()}
+                                                                </p>
+                                                                <p className="mt-1 text-[11px] text-slate-500">
+                                                                    {formatDate(exp.created_at)}
+                                                                    {exp.description ? ` • ${exp.description}` : ''}
+                                                                </p>
+                                                            </div>
+                                                            <span className="shrink-0 text-sm font-black text-rose-400">-{formatCurrency(exp.amount)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                ))
+                                        );
+                                    })}
+                                </div>
                             )}
                         </div>
                     </div>
@@ -1370,130 +1640,133 @@ export default function Accounting() {
                                 </div>
                             )}
                             <div className="space-y-3">
-                                {monthlySalesGroups.length > 0 && (
-                                    <div className="mb-4 space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                                        <div>
-                                            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
-                                                {t('accounting.monthly_sales_review', { defaultValue: 'Lecture mensuelle des ventes' })}
-                                            </p>
-                                            <p className="mt-2 text-sm text-slate-400">
-                                                {t('accounting.monthly_sales_review_hint', { defaultValue: 'Consultez vos ventes regroupées par mois avant de rentrer dans le détail transaction par transaction.' })}
-                                            </p>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {monthlySalesGroups.map((group) => {
-                                                const expanded = !!expandedSalesMonths[group.key];
-                                                const visibleItems = expanded ? group.items : group.items.slice(0, 3);
-
-                                                return (
-                                                    <div key={group.key} className="rounded-2xl border border-white/8 bg-slate-950/30 p-4">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setExpandedSalesMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
-                                                            className="flex w-full items-start justify-between gap-3 text-left"
-                                                        >
-                                                            <div>
-                                                                <p className="text-sm font-black text-white">{group.label}</p>
-                                                                <p className="mt-1 text-[11px] font-bold text-slate-400">
-                                                                    {t('accounting.sales_count_value', { count: group.itemCount })} • {formatCurrency(group.total)}
-                                                                </p>
-                                                            </div>
-                                                            <span className="text-xs font-black uppercase tracking-[0.18em] text-primary">
-                                                                {expanded
-                                                                    ? t('common.see_less', { defaultValue: 'Voir moins' })
-                                                                    : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
+                                {renderReviewFilterCard(
+                                    salesReviewMode,
+                                    setSalesReviewMode,
+                                    monthlySalesGroups,
+                                    selectedSalesMonthKey,
+                                    setSelectedSalesMonthKey,
+                                    salesYears,
+                                    selectedSalesYear,
+                                    setSelectedSalesYear,
+                                    selectedSalesYearMonthKey,
+                                    setSelectedSalesYearMonthKey,
+                                )}
+                                {salesReviewMode === 'all' ? (
+                                    salesHistory.length === 0 ? (
+                                        <p className="text-xs text-slate-500 italic text-center py-6">Aucune vente sur cette periode.</p>
+                                    ) : (
+                                        salesHistory.map((sale) => (
+                                            <div key={sale.sale_id} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-white font-bold truncate">{sale.customer_name || 'Client divers'}</p>
+                                                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
+                                                            {formatDate(sale.created_at)} ? {sale.item_count} article(s)
+                                                        </p>
+                                                        <p className="text-xs text-slate-400 mt-2 truncate">
+                                                            {sale.items.map((item) => item.product_name).filter(Boolean).join(', ') || 'Vente'}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-white font-black">{formatCurrency(sale.total_amount)}</p>
+                                                        <div className="mt-1 flex flex-col items-end gap-2">
+                                                            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black">
+                                                                {sale.payment_method.replace('_', ' ')}
+                                                            </p>
+                                                            <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${getSaleStatusClassName(sale)}`}>
+                                                                {getSaleStatusLabel(sale)}
                                                             </span>
-                                                        </button>
-                                                        <div className="mt-4 space-y-2">
-                                                            {visibleItems.map((sale) => (
-                                                                <div key={sale.sale_id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
-                                                                    <div className="min-w-0">
-                                                                        <p className="truncate text-sm font-bold text-white">{sale.customer_name || t('accounting.client_diverse')}</p>
-                                                                        <p className="mt-1 text-[11px] text-slate-500">
-                                                                            {formatDate(sale.created_at)} • {t('accounting.articles_short', { count: sale.item_count || sale.items.length })}
-                                                                        </p>
-                                                                    </div>
-                                                                    <span className="shrink-0 text-sm font-black text-emerald-400">{formatCurrency(sale.total_amount)}</span>
-                                                                </div>
-                                                            ))}
+                                                            {(sale as any).offline_pending_invoice || (sale as any).offline_pending_cancellation ? (
+                                                                <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">
+                                                                    En attente
+                                                                </span>
+                                                            ) : null}
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                                {salesHistory.length === 0 ? (
-                                    <p className="text-xs text-slate-500 italic text-center py-6">Aucune vente sur cette periode.</p>
-                                ) : (
-                                    salesHistory.map((sale) => (
-                                        <div key={sale.sale_id} className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="min-w-0">
-                                                    <p className="text-white font-bold truncate">{sale.customer_name || 'Client divers'}</p>
-                                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
-                                                        {formatDate(sale.created_at)} ? {sale.item_count} article(s)
-                                                    </p>
-                                                    <p className="text-xs text-slate-400 mt-2 truncate">
-                                                        {sale.items.map((item) => item.product_name).filter(Boolean).join(', ') || 'Vente'}
-                                                    </p>
                                                 </div>
-                                                <div className="text-right shrink-0">
-                                                    <p className="text-white font-black">{formatCurrency(sale.total_amount)}</p>
-                                                    <div className="mt-1 flex flex-col items-end gap-2">
-                                                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black">
-                                                            {sale.payment_method.replace('_', ' ')}
-                                                        </p>
-                                                        <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${getSaleStatusClassName(sale)}`}>
-                                                            {getSaleStatusLabel(sale)}
+                                                <div className="flex gap-2 mt-4">
+                                                    {sale.invoice_id ? (
+                                                        <button
+                                                            onClick={() => handleOpenInvoice(sale.invoice_id!, invoiceHistory.find((invoice) => invoice.invoice_id === sale.invoice_id))}
+                                                            className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all"
+                                                        >
+                                                            Voir {sale.invoice_label || 'facture'}
+                                                        </button>
+                                                    ) : sale.status !== 'cancelled' ? (
+                                                        <button
+                                                            onClick={() => handleCreateInvoiceFromSale(sale.sale_id)}
+                                                            disabled={invoiceBusyId === sale.sale_id}
+                                                            className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                                                        >
+                                                            {invoiceBusyId === sale.sale_id ? 'Creation...' : 'Creer facture'}
+                                                        </button>
+                                                    ) : null}
+                                                    {sale.status !== 'cancelled' && !sale.invoice_id ? (
+                                                        <button
+                                                            onClick={() => void handleCancelSale(sale.sale_id)}
+                                                            disabled={cancellingSaleId === sale.sale_id}
+                                                            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                                                        >
+                                                            {cancellingSaleId === sale.sale_id
+                                                                ? t('accounting.cancelling_sale', { defaultValue: 'Annulation...' })
+                                                                : t('accounting.cancel_sale', { defaultValue: 'Annuler la vente' })}
+                                                        </button>
+                                                    ) : null}
+                                                </div>
+                                                {sale.status === 'cancelled' && sale.cancelled_at ? (
+                                                    <p className="mt-3 text-[11px] text-rose-300">
+                                                        {t('accounting.cancelled_on', {
+                                                            defaultValue: 'Annulee le {{date}}',
+                                                            date: formatDate(sale.cancelled_at),
+                                                        })}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        ))
+                                    )
+                                ) : (
+                                    <div className="space-y-3">
+                                        {visibleSalesGroups.map((group) => {
+                                            const expanded = !!expandedSalesMonths[group.key];
+                                            const visibleItems = expanded ? group.items : group.items.slice(0, 3);
+
+                                            return (
+                                                <div key={group.key} className="rounded-2xl border border-white/8 bg-slate-950/30 p-4">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setExpandedSalesMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                                                        className="flex w-full items-start justify-between gap-3 text-left"
+                                                    >
+                                                        <div>
+                                                            <p className="text-sm font-black text-white">{group.label}</p>
+                                                            <p className="mt-1 text-[11px] font-bold text-slate-400">
+                                                                {t('accounting.sales_count_value', { count: group.itemCount })} • {formatCurrency(group.total)}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-xs font-black uppercase tracking-[0.18em] text-primary">
+                                                            {expanded
+                                                                ? t('common.see_less', { defaultValue: 'Voir moins' })
+                                                                : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
                                                         </span>
-                                                        {(sale as any).offline_pending_invoice || (sale as any).offline_pending_cancellation ? (
-                                                            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">
-                                                                En attente
-                                                            </span>
-                                                        ) : null}
+                                                    </button>
+                                                    <div className="mt-4 space-y-2">
+                                                        {visibleItems.map((sale) => (
+                                                            <div key={sale.sale_id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                                                                <div className="min-w-0">
+                                                                    <p className="truncate text-sm font-bold text-white">{sale.customer_name || t('accounting.client_diverse')}</p>
+                                                                    <p className="mt-1 text-[11px] text-slate-500">
+                                                                        {formatDate(sale.created_at)} • {t('accounting.articles_short', { count: sale.item_count || sale.items.length })}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="shrink-0 text-sm font-black text-emerald-400">{formatCurrency(sale.total_amount)}</span>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div className="flex gap-2 mt-4">
-                                                {sale.invoice_id ? (
-                                                    <button
-                                                        onClick={() => handleOpenInvoice(sale.invoice_id!, invoiceHistory.find((invoice) => invoice.invoice_id === sale.invoice_id))}
-                                                        className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all"
-                                                    >
-                                                        Voir {sale.invoice_label || 'facture'}
-                                                    </button>
-                                                ) : sale.status !== 'cancelled' ? (
-                                                    <button
-                                                        onClick={() => handleCreateInvoiceFromSale(sale.sale_id)}
-                                                        disabled={invoiceBusyId === sale.sale_id}
-                                                        className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
-                                                    >
-                                                        {invoiceBusyId === sale.sale_id ? 'Creation...' : 'Creer facture'}
-                                                    </button>
-                                                ) : null}
-                                                {sale.status !== 'cancelled' && !sale.invoice_id ? (
-                                                    <button
-                                                        onClick={() => void handleCancelSale(sale.sale_id)}
-                                                        disabled={cancellingSaleId === sale.sale_id}
-                                                        className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
-                                                    >
-                                                        {cancellingSaleId === sale.sale_id
-                                                            ? t('accounting.cancelling_sale', { defaultValue: 'Annulation...' })
-                                                            : t('accounting.cancel_sale', { defaultValue: 'Annuler la vente' })}
-                                                    </button>
-                                                ) : null}
-                                            </div>
-                                            {sale.status === 'cancelled' && sale.cancelled_at ? (
-                                                <p className="mt-3 text-[11px] text-rose-300">
-                                                    {t('accounting.cancelled_on', {
-                                                        defaultValue: 'Annulee le {{date}}',
-                                                        date: formatDate(sale.cancelled_at),
-                                                    })}
-                                                </p>
-                                            ) : null}
-                                        </div>
-                                    ))
+                                            );
+                                        })}
+                                    </div>
                                 )}
                             </div>
                         </div>

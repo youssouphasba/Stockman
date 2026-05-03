@@ -232,7 +232,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "wallet-outline",
                 title: "Dépenses",
-                description: "Ajoutez vos dépenses par catégorie (Loyer, Salaire, Transport, etc.). Vous pouvez maintenant les relire aussi par mois, en plus de la liste détaillée déjà présente. Hors ligne, la dépense reste visible comme écriture en attente, puis se synchronise automatiquement."
+                description: "Ajoutez vos dépenses par catégorie (Loyer, Salaire, Transport, etc.). Utilisez ensuite le filtre Voir tout, Mois ou Année pour lire la bonne période sans dupliquer l'historique. Hors ligne, la dépense reste visible comme écriture en attente, puis se synchronise automatiquement."
             },
             {
                 icon: "document-text-outline",
@@ -246,8 +246,8 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             },
             {
                 icon: "albums-outline",
-                title: "Lecture mensuelle",
-                description: "Les ventes et les dépenses sont regroupées par mois dans des fiches dédiées. Ouvrez un mois pour vérifier son total, ses écritures et ses transactions avant d'entrer dans le détail ligne par ligne."
+                title: "Filtre de période",
+                description: "Chaque bloc ventes ou dépenses propose maintenant Voir tout, Mois et Année. En mode année, vous pouvez aussi choisir directement un mois rattaché à l'année affichée."
             },
             {
                 icon: "trophy-outline",
