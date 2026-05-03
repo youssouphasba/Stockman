@@ -71,9 +71,22 @@ La corbeille masque les produits de la liste active et de la caisse. Elle est pa
 
 Le web propose une edition rapide des prix en mode tableur :
 
-- edition directe des prix d'achat et de vente ;
+- edition directe du prix de vente ;
+- consultation du CMP en lecture seule ;
+- redirection vers une entree de stock pour mettre a jour le CMP avec un nouveau prix d'achat ;
 - travail sur les produits filtres ;
 - sauvegarde en lot des lignes modifiees.
+
+### CMP et entree de stock sur le web
+
+Sur le web, le **prix d'achat** de la fiche produit est maintenant traite comme un **CMP**.
+
+- le champ CMP reste visible dans la fiche produit ;
+- il ne se modifie plus directement en edition ;
+- le bouton `Faire une entree de stock` ouvre le modal adapte ;
+- le prix unitaire d'entree peut etre ajuste si le tarif reel a change ;
+- apres validation, le nouveau CMP est recalculé automatiquement ;
+- le bouton `Voir l'historique des prix` permet de relire les evolutions.
 
 ### Corbeille sur le web
 
@@ -97,7 +110,7 @@ L'edition des prix et la selection multiple restent deux usages distincts :
 - grille pour modifier ;
 - selection pour partager ou supprimer.
 
-Le tableau web garde maintenant un contraste plus fort sur les informations secondaires importantes, notamment le SKU, le prix d'achat, les statuts d'approvisionnement et les actions de ligne.
+Le tableau web garde maintenant un contraste plus fort sur les informations secondaires importantes, notamment le SKU, le CMP, les statuts d'approvisionnement et les actions de ligne.
 
 L'ecran Emplacements et les actions destructives du stock utilisent aussi un contraste plus fort en mode clair pour garder une lecture correcte des boutons `Supprimer`, `Restaurer` et des textes secondaires.
 
@@ -142,6 +155,6 @@ Si l'acces camera est refuse ou bloque, le module affiche maintenant un message 
 | Question | Reponse |
 |---|---|
 | Pourquoi la liste s'ouvre plus vite qu'avant ? | Le chargement est progressif et la liste mobile est virtualisee. |
-| Puis-je modifier les prix de plusieurs produits a la fois ? | Oui. Sur mobile via la selection, sur web via la grille d'edition rapide. |
+| Puis-je modifier les prix de plusieurs produits a la fois ? | Oui pour le prix de vente. Le CMP, lui, se met a jour via une entree de stock avec prix d'achat unitaire. |
 | La corbeille est-elle separee entre mobile et web ? | Non. La corbeille est commune et synchronisee. |
 | Pourquoi je ne vois pas Emplacements ? | Cette entree depend du plan et des droits disponibles. |

@@ -1184,7 +1184,7 @@ export const orders = {
     request<{ message: string }>(`/orders/${id}/status`, { method: 'PUT', body: { status } }),
   delete: (id: string) =>
     request<{ message: string }>(`/orders/${id}`, { method: 'DELETE' }),
-  receivePartial: (orderId: string, items: { item_id: string; received_quantity: number }[], notes?: string) =>
+  receivePartial: (orderId: string, items: PartialDeliveryItemInput[], notes?: string) =>
     request<{ message: string; status: string; received_items: Record<string, number> }>(
       `/orders/${orderId}/receive-partial`,
       {
@@ -2180,6 +2180,7 @@ export type ProductCreate = {
   kitchen_station?: string;
   production_mode?: 'prepped' | 'on_demand' | 'hybrid';
   linked_recipe_id?: string;
+  force_override?: boolean;
 };
 
 export type PriceHistory = {
@@ -2208,6 +2209,8 @@ export type StockMovement = {
   reason: string;
   previous_quantity: number;
   new_quantity: number;
+  purchase_price?: number;
+  new_purchase_price?: number;
   created_at: string;
 };
 
@@ -2217,6 +2220,13 @@ export type StockMovementCreate = {
   quantity: number;
   reason?: string;
   batch_id?: string;
+  purchase_price?: number;
+};
+
+export type PartialDeliveryItemInput = {
+  item_id: string;
+  received_quantity: number;
+  actual_unit_price?: number;
 };
 
 export type Alert = {
@@ -2962,6 +2972,7 @@ export type DeliveryMappingItem = {
   catalog_id: string;
   product_id?: string;
   create_new?: boolean;
+  stock_already_recorded?: boolean;
 };
 
 // =================== Returns & Credit Notes Types ===================

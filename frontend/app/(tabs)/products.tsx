@@ -106,10 +106,30 @@ export default function ProductsScreen() {
     filter: filterParam,
     product_id: productIdParam,
     reminder_type: reminderTypeParam,
+    prefill_source: prefillSourceParam,
+    prefill_token: prefillTokenParam,
+    prefill_name: prefillNameParam,
+    prefill_category: prefillCategoryParam,
+    prefill_subcategory: prefillSubcategoryParam,
+    prefill_purchase_price: prefillPurchasePriceParam,
+    prefill_quantity: prefillQuantityParam,
+    prefill_supplier_id: prefillSupplierIdParam,
+    delivery_order_id: deliveryOrderIdParam,
+    delivery_catalog_id: deliveryCatalogIdParam,
   } = useLocalSearchParams<{
     filter?: string;
     product_id?: string;
     reminder_type?: string;
+    prefill_source?: string;
+    prefill_token?: string;
+    prefill_name?: string;
+    prefill_category?: string;
+    prefill_subcategory?: string;
+    prefill_purchase_price?: string;
+    prefill_quantity?: string;
+    prefill_supplier_id?: string;
+    delivery_order_id?: string;
+    delivery_catalog_id?: string;
   }>();
   const { user, hasPermission, hasProduction, isRestaurant } = useAuth();
   const effectivePlan = user?.effective_plan || user?.plan;
@@ -145,6 +165,8 @@ export default function ProductsScreen() {
   const [trackedImportJob, setTrackedImportJob] = useState<ProductImportJob | null>(null);
   const [trackedDeleteJob, setTrackedDeleteJob] = useState<ProductDeleteJob | null>(null);
   const handledReminderProductRef = useRef<string | null>(null);
+  const handledProductPrefillRef = useRef<string | null>(null);
+  const deliveryReturnContextRef = useRef<{ orderId: string; catalogId: string; token: string } | null>(null);
   const lastLoadedAtRef = useRef(0);
   const lastImportNotificationRef = useRef<string | null>(null);
   const lastDeleteNotificationRef = useRef<string | null>(null);
@@ -154,7 +176,7 @@ export default function ProductsScreen() {
   useFocusEffect(
     useCallback(() => {
       setDrawerContent(t('tabs.products'), [
-        { label: t('products.add_product', 'Ajouter un produit'), icon: 'add-circle-outline', onPress: () => { setEditingProduct(null); setShowAddModal(true); } },
+        { label: t('products.add_product', 'Ajouter un produit'), icon: 'add-circle-outline', onPress: () => openNewProductModal() },
         { label: t('products.batch_scan', 'Scanner en lot'), icon: 'barcode-outline', onPress: () => router.push('/inventory/batch-scan' as any) },
         { label: t('products.import_csv', 'Import CSV'), icon: 'cloud-upload-outline', onPress: () => setShowBulkImportModal(true) },
         { label: t('products.import_text', 'Import texte IA'), icon: 'document-text-outline', onPress: () => setShowTextImportModal(true) },
@@ -188,6 +210,60 @@ export default function ProductsScreen() {
     handledReminderProductRef.current = reminderKey;
     openHistoryModal(targetProduct);
   }, [productIdParam, reminderTypeParam, productList]);
+
+  useEffect(() => {
+    const source = typeof prefillSourceParam === 'string' ? prefillSourceParam : undefined;
+    const token = typeof prefillTokenParam === 'string' ? prefillTokenParam : undefined;
+    const name = typeof prefillNameParam === 'string' ? prefillNameParam : '';
+    const categoryName = typeof prefillCategoryParam === 'string' ? prefillCategoryParam : '';
+    const subcategory = typeof prefillSubcategoryParam === 'string' ? prefillSubcategoryParam : '';
+    const purchasePrice = typeof prefillPurchasePriceParam === 'string' ? prefillPurchasePriceParam : '';
+    const quantity = typeof prefillQuantityParam === 'string' ? prefillQuantityParam : '';
+    const supplierId = typeof prefillSupplierIdParam === 'string' ? prefillSupplierIdParam : '';
+    const deliveryOrderId = typeof deliveryOrderIdParam === 'string' ? deliveryOrderIdParam : '';
+    const deliveryCatalogId = typeof deliveryCatalogIdParam === 'string' ? deliveryCatalogIdParam : '';
+
+    if (source !== 'delivery_reception' || !token || !deliveryOrderId || !deliveryCatalogId) return;
+    if (handledProductPrefillRef.current === token) return;
+
+    handledProductPrefillRef.current = token;
+    deliveryReturnContextRef.current = {
+      orderId: deliveryOrderId,
+      catalogId: deliveryCatalogId,
+      token,
+    };
+
+    const normalizedCategory = categoryName.trim();
+    const matchedCategory = normalizedCategory
+      ? categoryList.find((category) => normalizeText(category.name) === normalizeText(normalizedCategory))
+      : undefined;
+
+    setEditingProduct(null);
+    resetForm();
+    setFormName(name.trim());
+    setFormPurchasePrice(purchasePrice.trim() || '0');
+    setFormQuantity(quantity.trim() || '0');
+    setFormCategory(matchedCategory?.category_id);
+    setFormCategoryName(normalizedCategory);
+    setFormSubcategory(subcategory.trim());
+    if (supplierId.trim()) {
+      setFormSupplierIds([supplierId.trim()]);
+      setFormPrimarySupplierId(supplierId.trim());
+    }
+    setShowAddModal(true);
+  }, [
+    categoryList,
+    deliveryCatalogIdParam,
+    deliveryOrderIdParam,
+    prefillCategoryParam,
+    prefillNameParam,
+    prefillPurchasePriceParam,
+    prefillQuantityParam,
+    prefillSourceParam,
+    prefillSubcategoryParam,
+    prefillSupplierIdParam,
+    prefillTokenParam,
+  ]);
 
   useEffect(() => {
     if (!trackedImportJob?.job_id) return;
@@ -431,6 +507,7 @@ export default function ProductsScreen() {
   const [movReason, setMovReason] = useState('');
   const [movBatchNumber, setMovBatchNumber] = useState('');
   const [movExpiryDate, setMovExpiryDate] = useState('');
+  const [movPurchasePrice, setMovPurchasePrice] = useState('');
   const [showMovExpiryPicker, setShowMovExpiryPicker] = useState(false);
 
   // Scanner
@@ -504,6 +581,7 @@ export default function ProductsScreen() {
     reason: movReason,
     batch: movBatchNumber,
     expiry: movExpiryDate,
+    purchasePrice: movPurchasePrice,
   });
 
   const getCategoryFormSnapshot = () => JSON.stringify({
@@ -529,11 +607,13 @@ export default function ProductsScreen() {
 
   const requestCloseAddModal = () => {
     if (!hasProductFormChanges()) {
+      deliveryReturnContextRef.current = null;
       setShowAddModal(false);
       setEditingProduct(null);
       return;
     }
     confirmDiscardChanges(() => {
+      deliveryReturnContextRef.current = null;
       setShowAddModal(false);
       setEditingProduct(null);
     });
@@ -1519,6 +1599,33 @@ export default function ProductsScreen() {
     setFormLocationId('');
   }
 
+  function openNewProductModal(preset?: { sku?: string }) {
+    deliveryReturnContextRef.current = null;
+    setEditingProduct(null);
+    resetForm();
+    if (preset?.sku) {
+      setFormSku(preset.sku);
+    }
+    setShowAddModal(true);
+  }
+
+  function openStockMovementModal(product: Product, type: 'in' | 'out') {
+    setSelectedProduct(product);
+    setMovType(type);
+    setMovQuantity('');
+    setMovReason('');
+    setMovBatchNumber('');
+    setMovExpiryDate('');
+    setMovPurchasePrice(type === 'in' ? String(product.purchase_price || 0) : '');
+    setShowStockModal(true);
+  }
+
+  function openPriceHistoryFromEdit(product: Product) {
+    setShowAddModal(false);
+    setEditingProduct(null);
+    openHistoryModal(product);
+  }
+
   function resetVariantForm() {
     setVarName('');
     setVarSku('');
@@ -1576,6 +1683,7 @@ export default function ProductsScreen() {
   }
 
   function openEditModal(product: Product) {
+    deliveryReturnContextRef.current = null;
     setEditingProduct(product);
     setFormName(product.name);
     setFormSku(product.sku || '');
@@ -1722,6 +1830,7 @@ export default function ProductsScreen() {
 
       if (isConnected) {
         let savedProductId: string | undefined;
+        const shouldReturnToDelivery = !editingProduct && !!deliveryReturnContextRef.current;
         if (editingProduct) {
           const { location_id: nextLocationId, ...updatePayload } = data;
           await productsApi.update(editingProduct.product_id, updatePayload);
@@ -1793,6 +1902,21 @@ export default function ProductsScreen() {
         }
         // Reload data from server
         await loadData();
+        if (savedProductId && shouldReturnToDelivery) {
+          const context = deliveryReturnContextRef.current;
+          deliveryReturnContextRef.current = null;
+          if (context) {
+            router.push({
+              pathname: '/(tabs)/orders',
+              params: {
+                delivery_order_id: context.orderId,
+                delivery_catalog_id: context.catalogId,
+                delivery_product_id: savedProductId,
+                delivery_link_token: context.token,
+              },
+            } as any);
+          }
+        }
       } else {
         // Offline: Queue & Optimistic Update
         const offlineId = editingProduct ? editingProduct.product_id : `offline_${Date.now()}`;
@@ -1833,11 +1957,34 @@ export default function ProductsScreen() {
         Alert.alert(t('common.offline_mode'), t('products.offline_saved'));
       }
 
+      deliveryReturnContextRef.current = null;
       setShowAddModal(false);
       setEditingProduct(null);
       resetForm();
     } catch (err: any) {
-      Alert.alert(t('common.error'), err?.message || t('products.create_error'));
+      if (
+        editingProduct &&
+        err instanceof ApiError &&
+        err.message === 'purchase_price_locked_use_stock_in'
+      ) {
+        Alert.alert(
+          t('products.wac_locked_alert'),
+          t('products.wac_locked_hint'),
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('products.wac_go_to_stock_in'),
+              onPress: () => {
+                setShowAddModal(false);
+                setEditingProduct(null);
+                openStockMovementModal(editingProduct, 'in');
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(t('common.error'), err?.message || t('products.create_error'));
+      }
     } finally {
       setFormLoading(false);
     }
@@ -1848,6 +1995,8 @@ export default function ProductsScreen() {
     setFormLoading(true);
     try {
       if (isConnected) {
+        const previousWac = selectedProduct.purchase_price || 0;
+        const parsedPurchasePrice = parseFloat(movPurchasePrice.replace(',', '.'));
         let batch_id = undefined;
 
         // If adding stock and batch info provided, create batch first
@@ -1861,14 +2010,30 @@ export default function ProductsScreen() {
           batch_id = batch.batch_id;
         }
 
-        await stockApi.createMovement({
+        const movement = await stockApi.createMovement({
           product_id: selectedProduct.product_id,
           type: movType,
           quantity: parseInt(movQuantity),
           reason: movReason,
-          batch_id: batch_id
+          batch_id: batch_id,
+          purchase_price: movType === 'in' && Number.isFinite(parsedPurchasePrice)
+            ? parsedPurchasePrice
+            : undefined,
         });
         await loadData();
+        if (
+          movType === 'in' &&
+          movement.new_purchase_price !== undefined &&
+          movement.new_purchase_price !== null
+        ) {
+          Alert.alert(
+            t('common.success'),
+            t('products.wac_updated_toast', {
+              old: formatUserCurrency(previousWac, user),
+              new: formatUserCurrency(movement.new_purchase_price, user),
+            })
+          );
+        }
       } else {
         Alert.alert(t('common.offline'), t('products.movements_offline'));
       }
@@ -1877,6 +2042,7 @@ export default function ProductsScreen() {
       setMovReason('');
       setMovBatchNumber('');
       setMovExpiryDate('');
+      setMovPurchasePrice('');
       setSelectedProduct(null);
     } catch (error) {
       console.error(error);
@@ -2150,10 +2316,7 @@ export default function ProductsScreen() {
         openEditModal(found);
       } else {
         // Not found: Start add flow with SKU pre-filled
-        setEditingProduct(null);
-        resetForm();
-        setFormSku(data);
-        setShowAddModal(true);
+        openNewProductModal({ sku: data });
       }
     } else {
       setFormSku(data);
@@ -2824,7 +2987,7 @@ export default function ProductsScreen() {
           <View style={{ backgroundColor: colors.glass, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.glassBorder, padding: Spacing.sm, marginTop: Spacing.xs, gap: 6 }}>
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
-              onPress={() => { setShowAddMenu(false); setEditingProduct(null); resetForm(); setShowAddModal(true); }}
+              onPress={() => { setShowAddMenu(false); openNewProductModal(); }}
             >
               <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
               <Text style={{ color: colors.text, fontSize: FontSize.md }}>{isRestaurant ? t('restaurant.add_dish', 'Ajouter un plat') : t('products.add_product')}</Text>
@@ -3045,9 +3208,7 @@ export default function ProductsScreen() {
           if (debouncedSearch) {
             setSearch('');
           } else if (canWrite) {
-            setEditingProduct(null);
-            resetForm();
-            setShowAddModal(true);
+            openNewProductModal();
           }
         }}
       />
@@ -3334,11 +3495,7 @@ export default function ProductsScreen() {
                   <>
                     <TouchableOpacity
                       style={[styles.actionBtn, { backgroundColor: colors.success + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                      onPress={() => {
-                        setSelectedProduct(product);
-                        setMovType('in');
-                        setShowStockModal(true);
-                      }}
+                      onPress={() => openStockMovementModal(product, 'in')}
                     >
                       <Ionicons name="add-circle-outline" size={16} color={colors.success} />
                       <Text style={[styles.actionText, { color: colors.success }]}>{t('products.add_stock')}</Text>
@@ -3346,11 +3503,7 @@ export default function ProductsScreen() {
 
                     <TouchableOpacity
                       style={[styles.actionBtn, { backgroundColor: colors.warning + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
-                      onPress={() => {
-                        setSelectedProduct(product);
-                        setMovType('out');
-                        setShowStockModal(true);
-                      }}
+                      onPress={() => openStockMovementModal(product, 'out')}
                     >
                       <Ionicons name="remove-circle-outline" size={16} color={colors.warning} />
                       <Text style={[styles.actionText, { color: colors.warning }]}>{t('products.remove_stock')}</Text>
@@ -4221,7 +4374,69 @@ export default function ProductsScreen() {
                 )}
                 <View style={styles.formRow}>
                   <View style={styles.formHalf}>
-                    <FormField label={t('products.field_purchase_price')} value={formPurchasePrice} onChangeText={setFormPurchasePrice} keyboardType="numeric" colors={colors} styles={styles} />
+                    <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>
+                        {editingProduct ? t('products.wac_label') : t('products.field_purchase_price')}
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.formInput,
+                          {
+                            backgroundColor: colors.bgMid,
+                            color: editingProduct ? colors.textMuted : colors.text,
+                            borderColor: editingProduct ? colors.divider : colors.glassBorder,
+                          },
+                        ]}
+                        value={formPurchasePrice}
+                        onChangeText={setFormPurchasePrice}
+                        keyboardType="numeric"
+                        editable={!editingProduct}
+                        placeholderTextColor={colors.textMuted}
+                      />
+                      {editingProduct && (
+                        <>
+                          <Text style={{ color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 6 }}>
+                            {t('products.wac_help')}
+                          </Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                            <TouchableOpacity
+                              onPress={() => {
+                                setShowAddModal(false);
+                                setEditingProduct(null);
+                                openStockMovementModal(editingProduct, 'in');
+                              }}
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 8,
+                                borderRadius: BorderRadius.sm,
+                                backgroundColor: colors.success + '18',
+                                borderWidth: 1,
+                                borderColor: colors.success + '35',
+                              }}
+                            >
+                              <Text style={{ color: colors.success, fontSize: 12, fontWeight: '700' }}>
+                                {t('products.wac_go_to_stock_in')}
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => openPriceHistoryFromEdit(editingProduct)}
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 8,
+                                borderRadius: BorderRadius.sm,
+                                backgroundColor: colors.info + '18',
+                                borderWidth: 1,
+                                borderColor: colors.info + '35',
+                              }}
+                            >
+                              <Text style={{ color: colors.info, fontSize: 12, fontWeight: '700' }}>
+                                {t('products.wac_view_history')}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </>
+                      )}
+                    </View>
                   </View>
                   <View style={styles.formHalf}>
                     <FormField label={t('products.field_selling_price')} value={formSellingPrice} onChangeText={setFormSellingPrice} keyboardType="numeric" colors={colors} styles={styles} />
@@ -4785,6 +5000,16 @@ export default function ProductsScreen() {
             {movType === 'in' && (
               <>
                 <FormField
+                  label={t('products.purchase_price_unit_label')}
+                  value={movPurchasePrice}
+                  onChangeText={setMovPurchasePrice}
+                  keyboardType="numeric"
+                  placeholder={String(selectedProduct?.purchase_price || 0)}
+                  helperText={t('products.purchase_price_unit_hint')}
+                  colors={colors}
+                  styles={styles}
+                />
+                <FormField
                   label={t('products.batch_number_label')}
                   value={movBatchNumber}
                   onChangeText={setMovBatchNumber}
@@ -4913,6 +5138,8 @@ interface FormFieldProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   keyboardType?: 'numeric' | 'default';
+  editable?: boolean;
+  helperText?: string;
   colors: any;
   styles: any;
 }
@@ -4923,6 +5150,8 @@ function FormField({
   onChangeText,
   placeholder,
   keyboardType,
+  editable = true,
+  helperText,
   colors,
   styles
 }: FormFieldProps) {
@@ -4930,13 +5159,22 @@ function FormField({
     <View style={styles.formGroup}>
       <Text style={styles.formLabel}>{label}</Text>
       <TextInput
-        style={[styles.formInput, { backgroundColor: colors.bgMid }]}
+        style={[
+          styles.formInput,
+          {
+            backgroundColor: colors.bgMid,
+            color: editable ? colors.text : colors.textMuted,
+            borderColor: editable ? colors.glassBorder : colors.divider,
+          },
+        ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
         keyboardType={keyboardType}
+        editable={editable}
       />
+      {helperText ? <Text style={{ color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 6 }}>{helperText}</Text> : null}
     </View>
   );
 }

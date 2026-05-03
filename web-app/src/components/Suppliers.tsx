@@ -209,7 +209,7 @@ export default function Suppliers() {
     const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
     const [showSupplierDetails, setShowSupplierDetails] = useState(false);
     const [supplierTab, setSupplierTab] = useState<'perf' | 'logs' | 'invoices'>('perf');
-    const [partialItems, setPartialItems] = useState<any[]>([]);
+    const [partialItems, setPartialItems] = useState<Array<{ item_id: string; received_quantity: number; actual_unit_price?: number }>>([]);
     const [showLinkModal, setShowLinkModal] = useState(false);
     const [linkPrice, setLinkPrice] = useState('');
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -1156,12 +1156,16 @@ export default function Suppliers() {
     };
 
     const handleReceivePartial = async (orderId: string) => {
-        if (partialItems.length === 0) return;
+        const validItems = partialItems.filter((item) => Number(item.received_quantity) > 0);
+        if (validItems.length === 0) return;
         setSubmitting(true);
         try {
-            await ordersApi.receivePartial(orderId, partialItems.map((item) => ({
+            await ordersApi.receivePartial(orderId, validItems.map((item) => ({
                 item_id: item.item_id,
                 received_quantity: item.received_quantity,
+                actual_unit_price: typeof item.actual_unit_price === 'number' && Number.isFinite(item.actual_unit_price)
+                    ? item.actual_unit_price
+                    : undefined,
             })));
             setSuccess("Réception partielle enregistrée. Le stock a été mis à jour.");
             void loadData(true);
@@ -3468,7 +3472,7 @@ export default function Suppliers() {
                                             <Truck size={18} className="text-indigo-400" />
                                             Réception Partielle
                                         </h3>
-                                        <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded font-bold uppercase">Mise ? jour stock</span>
+                                        <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded font-bold uppercase">Mise à jour stock</span>
                                     </div>
                                     <p className="text-xs text-slate-500">Saisissez les quantités réellement reçues pour mettre à jour votre stock immédiatement.</p>
 
@@ -3476,26 +3480,77 @@ export default function Suppliers() {
                                         {selectedOrder.items.map((item: any, idx: number) => {
                                             const receivedQuantity = selectedOrder.received_items?.[item.item_id] ?? item.received_quantity ?? 0;
                                             const remaining = item.quantity - receivedQuantity;
+                                            const currentPartialItem = partialItems.find((partialItem) => partialItem.item_id === item.item_id);
                                             if (remaining <= 0) return null;
                                             return (
-                                                <div key={idx} className="flex items-center justify-between gap-4 bg-white/5 p-3 rounded-lg">
-                                                    <div className="text-sm text-slate-300 font-medium">{item.product_name}</div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-[10px] text-slate-500 font-bold uppercase">Reste: {remaining}</span>
+                                                <div key={idx} className="bg-white/5 p-3 rounded-lg">
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <div className="text-sm text-slate-300 font-medium">{item.product_name}</div>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-[10px] text-slate-500 font-bold uppercase">Reste: {remaining}</span>
+                                                            <input
+                                                                type="number"
+                                                                max={remaining}
+                                                                value={currentPartialItem?.received_quantity || ''}
+                                                                placeholder="0"
+                                                                className="w-20 bg-[#0F172A] border border-white/10 rounded-lg px-3 py-1 text-white text-sm text-center outline-none focus:border-indigo-500"
+                                                                onChange={(e) => {
+                                                                    const val = parseInt(e.target.value) || 0;
+                                                                    setPartialItems(prev => {
+                                                                        const current = prev.find(p => p.item_id === item.item_id);
+                                                                        const filter = prev.filter(p => p.item_id !== item.item_id);
+                                                                        if (val > 0) {
+                                                                            return [...filter, {
+                                                                                item_id: item.item_id,
+                                                                                received_quantity: val,
+                                                                                actual_unit_price: current?.actual_unit_price,
+                                                                            }];
+                                                                        }
+                                                                        if (current?.actual_unit_price !== undefined) {
+                                                                            return [...filter, {
+                                                                                item_id: item.item_id,
+                                                                                received_quantity: 0,
+                                                                                actual_unit_price: current.actual_unit_price,
+                                                                            }];
+                                                                        }
+                                                                        return filter;
+                                                                    });
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3">
+                                                        <label className="mb-1 block text-[11px] font-medium text-slate-400">
+                                                            {t('orders.actual_unit_price_label', { defaultValue: 'Prix réel facturé' })}
+                                                        </label>
                                                         <input
                                                             type="number"
-                                                            max={remaining}
-                                                            placeholder="0"
-                                                            className="w-20 bg-[#0F172A] border border-white/10 rounded-lg px-3 py-1 text-white text-sm text-center outline-none focus:border-indigo-500"
+                                                            min="0"
+                                                            step="0.0001"
+                                                            value={currentPartialItem?.actual_unit_price ?? ''}
+                                                            placeholder={String(item.unit_price || 0)}
+                                                            className="w-full bg-[#0F172A] border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-indigo-500"
                                                             onChange={(e) => {
-                                                                const val = parseInt(e.target.value) || 0;
+                                                                const raw = e.target.value.trim().replace(',', '.');
+                                                                const parsed = raw === '' ? undefined : Number.parseFloat(raw);
                                                                 setPartialItems(prev => {
+                                                                    const current = prev.find(p => p.item_id === item.item_id);
                                                                     const filter = prev.filter(p => p.item_id !== item.item_id);
-                                                                    if (val > 0) return [...filter, { item_id: item.item_id, received_quantity: val }];
-                                                                    return filter;
+                                                                    const receivedQuantity = current?.received_quantity || 0;
+                                                                    if (receivedQuantity <= 0 && parsed === undefined) {
+                                                                        return filter;
+                                                                    }
+                                                                    return [...filter, {
+                                                                        item_id: item.item_id,
+                                                                        received_quantity: receivedQuantity,
+                                                                        actual_unit_price: parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined,
+                                                                    }];
                                                                 });
                                                             }}
                                                         />
+                                                        <p className="mt-1 text-[11px] text-slate-500">
+                                                            {t('orders.actual_unit_price_hint', { defaultValue: 'Renseigner si différent du prix commandé' })}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             );
@@ -3503,7 +3558,7 @@ export default function Suppliers() {
                                     </div>
                                     <button
                                         onClick={() => handleReceivePartial(selectedOrder.order_id)}
-                                        disabled={submitting || partialItems.length === 0}
+                                        disabled={submitting || !partialItems.some((item) => Number(item.received_quantity) > 0)}
                                         className="w-full py-3 bg-indigo-500 text-white font-bold rounded-xl hover:bg-indigo-600 transition-all disabled:opacity-50"
                                     >
                                         Valider la réception partielle

@@ -1243,7 +1243,7 @@
         },
         "f3": {
           "t": "AI Intake",
-          "d": "Upon delivery, AI analyzes received products and intelligently maps them to your inventory. Validate or correct suggestions."
+          "d": "Upon delivery, AI analyzes received products and maps them to your inventory. If an item does not exist yet, the create action now opens a prefilled form with the name, purchase price, and quantity, then the receipt can continue without counting the same stock twice."
         },
         "f4": {
           "t": "Manual Mapping",
@@ -1992,6 +1992,8 @@
     "partially_delivered": "Partially Delivered",
     "pdf_error": "Error generating PDF",
     "pending": "Pending",
+    "actual_unit_price_label": "Actual billed price",
+    "actual_unit_price_hint": "Fill this in if it differs from the ordered price",
     "product": "Product",
     "rate_supplier": "Rate supplier",
     "rating_error": "Unable to submit review",
@@ -2344,6 +2346,15 @@
     "field_name_placeholder": "Product name...",
     "field_purchase_price": "Purchase price",
     "field_purchase_price_optional": "Purchase price (optional)",
+    "wac_label": "Weighted Average Cost (WAC)",
+    "wac_help": "The purchase cost is recalculated automatically on each stock entry.",
+    "wac_locked_alert": "The purchase cost cannot be edited directly.",
+    "wac_locked_hint": "Use a stock entry with the new cost to recalculate the WAC.",
+    "wac_go_to_stock_in": "Create a stock entry",
+    "wac_view_history": "View price history",
+    "wac_updated_toast": "WAC updated: {{old}} → {{new}}",
+    "purchase_price_unit_label": "Unit purchase price",
+    "purchase_price_unit_hint": "Editable when renegotiated off-platform",
     "field_quantity": "Quantity",
     "field_rfid": "RFID Tag",
     "field_rfid_placeholder": "Scan or enter RFID tag",
@@ -2434,7 +2445,7 @@
     "product_count": "{{count}} product(s)",
     "products_total": "products in total",
     "purchase": "Purchase",
-    "purchase_price_short": "Purch.",
+    "purchase_price_short": "WAC",
     "qty": "Qty",
     "reason_label": "Reason",
     "reason_placeholder": "Reason for movement",

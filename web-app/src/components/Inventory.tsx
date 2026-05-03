@@ -207,6 +207,7 @@ export default function Inventory() {
     const [stockMovType, setStockMovType] = useState<'in' | 'out'>('in');
     const [stockMovQty, setStockMovQty] = useState('');
     const [stockMovReason, setStockMovReason] = useState('');
+    const [stockMovPurchasePrice, setStockMovPurchasePrice] = useState('');
     const [stockMovLoading, setStockMovLoading] = useState(false);
 
     const sanitizeRows = <T extends Record<string, any>>(rows: unknown): T[] =>
@@ -258,22 +259,39 @@ export default function Inventory() {
         if (isNaN(qty) || qty <= 0) return;
         setStockMovLoading(true);
         try {
-            await stockApi.addMovement({
+            const previousPurchasePrice = Number(stockModalProduct?.purchase_price || 0);
+            const parsedPurchasePrice = stockMovType === 'in' ? Number.parseFloat(stockMovPurchasePrice) : Number.NaN;
+            const movement = await stockApi.addMovement({
                 product_id: stockModalProduct.product_id,
                 type: stockMovType,
                 quantity: qty,
                 reason: stockMovReason || (stockMovType === 'in' ? 'Entree stock' : 'Sortie stock'),
+                purchase_price: stockMovType === 'in' && Number.isFinite(parsedPurchasePrice) ? parsedPurchasePrice : undefined,
             });
             setProducts(prev => prev.map(p =>
                 p.product_id === stockModalProduct.product_id
-                    ? { ...p, quantity: stockMovType === 'in' ? p.quantity + qty : Math.max(0, p.quantity - qty) }
+                    ? {
+                        ...p,
+                        quantity: stockMovType === 'in' ? p.quantity + qty : Math.max(0, p.quantity - qty),
+                        purchase_price: typeof movement?.new_purchase_price === 'number' ? movement.new_purchase_price : p.purchase_price,
+                    }
                     : p
             ));
             setPendingInventorySummary(getPendingInventorySummary());
+            await fetchProducts();
             loadStockHealth();
             setStockModalOpen(false);
             setStockMovQty('');
             setStockMovReason('');
+            setStockMovPurchasePrice('');
+            if (stockMovType === 'in' && typeof movement?.new_purchase_price === 'number') {
+                const formatCurrency = (value: number) => `${new Intl.NumberFormat(i18n.language || 'fr-FR').format(Number(value || 0))} F`;
+                window.alert(t('inventory.wac_updated_toast', {
+                    defaultValue: 'CMP mis à jour : {{old}} → {{new}}',
+                    old: formatCurrency(previousPurchasePrice),
+                    new: formatCurrency(movement.new_purchase_price),
+                }));
+            }
         } catch (err: any) {
             alert(err.message || 'Erreur lors du mouvement de stock');
         } finally {
@@ -768,6 +786,15 @@ export default function Inventory() {
         setIsProductModalOpen(true);
     };
 
+    const openStockMovementModal = (product: any, type: 'in' | 'out') => {
+        setStockModalProduct(product);
+        setStockMovType(type);
+        setStockMovQty('');
+        setStockMovReason('');
+        setStockMovPurchasePrice(type === 'in' ? String(product.purchase_price ?? 0) : '');
+        setStockModalOpen(true);
+    };
+
     const handleOpenSupplierMarketplace = (product: any) => {
         if (typeof window !== 'undefined') {
             window.sessionStorage.setItem('stockman_supplier_marketplace_context', JSON.stringify({
@@ -869,6 +896,12 @@ export default function Inventory() {
     const handleOpenHistory = (product: any) => {
         setSelectedProductForHistory(product);
         setIsHistoryModalOpen(true);
+    };
+
+    const openPriceHistoryFromEdit = (product: any) => {
+        setIsProductModalOpen(false);
+        setEditingProduct(null);
+        handleOpenHistory(product);
     };
 
     const handleOpenTransfer = (product: any) => {
@@ -1015,7 +1048,7 @@ export default function Inventory() {
                         }))
                     : [],
             };
-            let savedProductId = editingProduct.product_id;
+            let savedProductId = editingProduct?.product_id;
             if (editingProduct) {
                 const updated = await productsApi.update(editingProduct.product_id, payload);
                 savedProductId = updated.product_id || editingProduct.product_id;
@@ -1073,7 +1106,7 @@ export default function Inventory() {
 
                 if (supplierSyncErrors.length > 0) {
                     alert(
-                        `Le produit a bien ?t? enregistr?, mais certaines liaisons fournisseurs ont ?chou?.\n\n${supplierSyncErrors[0]}`,
+                        `Le produit a bien été enregistré, mais certaines liaisons fournisseurs ont échoué.\n\n${supplierSyncErrors[0]}`,
                     );
                 }
             }
@@ -1082,6 +1115,20 @@ export default function Inventory() {
             await loadStockHealth();
         } catch (err: any) {
             console.error('Error saving product', err);
+            if (editingProduct && err instanceof ApiError && err.message === 'purchase_price_locked_use_stock_in') {
+                const product = editingProduct;
+                const shouldRedirect = window.confirm(
+                    t('inventory.wac_locked_hint', {
+                        defaultValue: "Le coût d'achat ne peut pas être modifié directement. Effectuez une entrée de stock avec le nouveau prix.",
+                    }),
+                );
+                if (shouldRedirect) {
+                    setIsProductModalOpen(false);
+                    setEditingProduct(null);
+                    openStockMovementModal(product, 'in');
+                }
+                return;
+            }
             alert(err.message || "Impossible d'enregistrer ce produit pour le moment.");
         } finally {
             setFormLoading(false);
@@ -2428,21 +2475,21 @@ export default function Inventory() {
                                     <td className="py-4 px-6">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-white">{p.selling_price} F</span>
-                                            <span className="text-xs theme-text-muted">Achat: {p.purchase_price} F</span>
+                                            <span className="text-xs theme-text-muted">{t('inventory.purchase_price_short', { defaultValue: 'CMP' })}: {p.purchase_price} F</span>
                                         </div>
                                     </td>
                                     <td className="py-4 px-6 text-right">
                                         <div className="flex justify-end items-center gap-2">
                                             {/* Stock +/- toujours visibles */}
                                             <button
-                                                onClick={() => { setStockModalProduct(p); setStockMovType('in'); setStockMovQty(''); setStockMovReason(''); setStockModalOpen(true); }}
+                                                onClick={() => openStockMovementModal(p, 'in')}
                                                 className="p-1.5 bg-emerald-500/15 hover:bg-emerald-500/30 rounded-lg text-emerald-400 transition-colors"
                                                 title="Entrée stock"
                                             >
                                                 <Plus size={16} />
                                             </button>
                                             <button
-                                                onClick={() => { setStockModalProduct(p); setStockMovType('out'); setStockMovQty(''); setStockMovReason(''); setStockModalOpen(true); }}
+                                                onClick={() => openStockMovementModal(p, 'out')}
                                                 className="p-1.5 bg-orange-500/15 hover:bg-orange-500/30 rounded-lg text-orange-400 transition-colors"
                                                 title="Sortie stock"
                                             >
@@ -2743,7 +2790,12 @@ export default function Inventory() {
             {/* Stock Movement Modal */}
             <Modal
                 isOpen={stockModalOpen}
-                onClose={() => setStockModalOpen(false)}
+                onClose={() => {
+                    setStockModalOpen(false);
+                    setStockMovQty('');
+                    setStockMovReason('');
+                    setStockMovPurchasePrice('');
+                }}
                 title={stockMovType === 'in' ? ' Entrée de stock' : ' Sortie de stock'}
                 maxWidth="sm"
             >
@@ -2799,6 +2851,26 @@ export default function Inventory() {
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
                             />
                         </div>
+
+                        {stockMovType === 'in' && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">
+                                    {t('inventory.purchase_price_unit_label', { defaultValue: "Prix d'achat unitaire" })}
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.0001"
+                                    value={stockMovPurchasePrice}
+                                    onChange={e => setStockMovPurchasePrice(e.target.value)}
+                                    placeholder={String(stockModalProduct.purchase_price ?? 0)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                                />
+                                <p className="mt-1.5 text-xs text-slate-400">
+                                    {t('inventory.purchase_price_unit_hint', { defaultValue: 'Modifiable si négocié hors plateforme' })}
+                                </p>
+                            </div>
+                        )}
 
                         {/* Submit */}
                         <button
@@ -3155,13 +3227,46 @@ export default function Inventory() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300">{t('common.purchase_price', { defaultValue: "Prix d'achat" })}</label>
+                                    <label className="block text-sm font-medium text-slate-300">
+                                        {editingProduct
+                                            ? t('inventory.wac_label', { defaultValue: 'Coût Moyen Pondéré (CMP)' })
+                                            : t('common.purchase_price', { defaultValue: "Prix d'achat" })}
+                                    </label>
                                     <input
                                         type="number"
                                         value={form.purchase_price}
                                         onChange={(e) => setForm({ ...form, purchase_price: Number(e.target.value) })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary/50"
+                                        readOnly={Boolean(editingProduct)}
+                                        className={`w-full border border-white/10 rounded-lg px-4 py-2 outline-none ${editingProduct ? 'bg-white/10 text-slate-300 cursor-not-allowed' : 'bg-white/5 text-white focus:border-primary/50'}`}
                                     />
+                                    {editingProduct && (
+                                        <div className="mt-2 space-y-2">
+                                            <p className="text-xs text-slate-400">
+                                                {t('inventory.wac_help', { defaultValue: "Le coût d'achat est calculé automatiquement à chaque entrée de stock." })}
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const product = editingProduct;
+                                                        setIsProductModalOpen(false);
+                                                        setEditingProduct(null);
+                                                        openStockMovementModal(product, 'in');
+                                                    }}
+                                                    className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
+                                                >
+                                                    {t('inventory.wac_go_to_stock_in', { defaultValue: 'Faire une entrée de stock' })}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openPriceHistoryFromEdit(editingProduct)}
+                                                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
+                                                >
+                                                    {t('inventory.wac_view_history', { defaultValue: "Voir l'historique des prix" })}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-300 flex justify-between">

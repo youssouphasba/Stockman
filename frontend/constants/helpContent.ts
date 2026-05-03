@@ -68,6 +68,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'arrow-undo-outline', title: 'help.modules.products.f11.t', description: "help.modules.products.f11.d" },
       { icon: 'checkbox-outline', title: 'help.modules.products.f12.t', description: "help.modules.products.f12.d" },
       { icon: 'cube-outline', title: 'help.modules.products.f13.t', description: "help.modules.products.f13.d" },
+      { icon: 'cash-outline', title: "CMP automatique", description: "Le coût d'achat d'un produit existant correspond désormais au CMP. Pour le modifier, ouvrez une entrée de stock et renseignez le prix d'achat unitaire réellement payé." },
     ],
   },
   {
@@ -124,6 +125,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'arrow-undo-outline', title: 'help.modules.orders.f7.t', description: "help.modules.orders.f7.d" },
       { icon: 'star-outline', title: 'help.modules.orders.f8.t', description: "help.modules.orders.f8.d" },
       { icon: 'camera-outline', title: 'help.modules.orders.f9.t', description: "help.modules.orders.f9.d" },
+      { icon: 'cash-outline', title: "Prix réel facturé", description: "Lors d'une réception partielle, vous pouvez saisir un prix réel facturé si la livraison ou la facture finale ne reprend pas exactement le prix commandé." },
     ],
   },
   {
@@ -181,6 +183,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'download-outline', title: 'help.modules.accounting.f6.t', description: "help.modules.accounting.f6.d" },
       { icon: 'trophy-outline', title: 'help.modules.accounting.f7.t', description: "help.modules.accounting.f7.d" },
       { icon: 'information-circle-outline', title: 'help.modules.accounting.f8.t', description: "help.modules.accounting.f8.d" },
+      { icon: 'albums-outline', title: 'Lecture mensuelle', description: "Les ventes et les dépenses disposent maintenant de fiches mensuelles, en plus des historiques déjà visibles. Cela aide à relire rapidement un mois complet avant de descendre dans le détail." },
     ],
   },
   {

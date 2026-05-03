@@ -1948,7 +1948,7 @@ export const stock = {
         qs.set('limit', limit.toString());
         return request<any>(`/stock/movements?${qs.toString()}`);
     },
-    addMovement: (data: { product_id: string; type: 'in' | 'out'; quantity: number; reason?: string }) =>
+    addMovement: (data: { product_id: string; type: 'in' | 'out'; quantity: number; reason?: string; purchase_price?: number }) =>
         request<any>('/stock/movement', { method: 'POST', body: data }),
     reverseMovement: (movementId: string) =>
         request<any>(`/stock/movement/${movementId}/reverse`, { method: 'POST' }),
@@ -2203,7 +2203,7 @@ export const supplier_orders = {
             method: 'PUT',
             body: { status },
         }),
-    receivePartial: (id: string, items: any[], notes?: string) =>
+    receivePartial: (id: string, items: Array<{ item_id: string; received_quantity: number; actual_unit_price?: number }>, notes?: string) =>
         request<any>(`/orders/${id}/receive-partial`, {
             method: 'PUT',
             body: { items, notes },

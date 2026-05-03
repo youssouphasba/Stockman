@@ -1448,7 +1448,7 @@
         },
         "f3": {
           "t": "Réception IA",
-          "d": "À la livraison, l'IA analyse les produits reçus et les associe intelligemment à votre inventaire. Validez ou corrigez les suggestions."
+          "d": "À la livraison, l'IA analyse les produits reçus et les associe intelligemment à votre inventaire. Si un article n'existe pas encore, le bouton de création ouvre maintenant une fiche préremplie avec le nom, le prix d'achat et la quantité, puis la réception peut reprendre sans double comptage."
         },
         "f4": {
           "t": "Association Manuelle",
@@ -2214,6 +2214,8 @@
     "partially_delivered": "Livraison partielle",
     "pdf_error": "Erreur lors de la génération du PDF",
     "pending": "En attente",
+    "actual_unit_price_label": "Prix réel facturé",
+    "actual_unit_price_hint": "Renseigner si différent du prix commandé",
     "product": "Produit",
     "rate_supplier": "Noter le fournisseur",
     "rating_error": "Impossible de soumettre l'avis",
@@ -2643,6 +2645,15 @@
     "field_name_placeholder": "Nom du produit...",
     "field_purchase_price": "Prix d'achat",
     "field_purchase_price_optional": "Prix d'achat (optionnel)",
+    "wac_label": "Coût Moyen Pondéré (CMP)",
+    "wac_help": "Le coût d'achat est calculé automatiquement à chaque entrée de stock.",
+    "wac_locked_alert": "Le coût d'achat ne peut pas être modifié directement.",
+    "wac_locked_hint": "Effectuez une entrée de stock avec le nouveau prix pour recalculer le CMP.",
+    "wac_go_to_stock_in": "Faire une entrée de stock",
+    "wac_view_history": "Voir l'historique des prix",
+    "wac_updated_toast": "CMP mis à jour : {{old}} → {{new}}",
+    "purchase_price_unit_label": "Prix d'achat unitaire",
+    "purchase_price_unit_hint": "Modifiable si négocié hors plateforme",
     "field_quantity": "Quantité",
     "field_rfid": "Tag RFID",
     "field_rfid_placeholder": "Scanner ou saisir le tag RFID",
@@ -2733,7 +2744,7 @@
     "product_count": "{{count}} produit(s)",
     "products_total": "produits au total",
     "purchase": "Achat",
-    "purchase_price_short": "Achat",
+    "purchase_price_short": "CMP",
     "qty": "Qté",
     "reason_label": "Raison",
     "reason_placeholder": "Raison du mouvement",

@@ -1946,6 +1946,7 @@ class ProductCreate(BaseModel):
     kitchen_station: str = "plat"
     production_mode: str = "prepped"
     linked_recipe_id: Optional[str] = None
+    force_override: bool = False
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -1979,6 +1980,7 @@ class ProductUpdate(BaseModel):
     kitchen_station: Optional[str] = None
     production_mode: Optional[str] = None
     linked_recipe_id: Optional[str] = None
+    force_override: bool = False
 
 class PriceHistory(BaseModel):
     history_id: str = Field(default_factory=lambda: f"prc_{uuid.uuid4().hex[:12]}")
@@ -14933,7 +14935,7 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
     if prod_data.production_mode in ("on_demand", "hybrid"):
         prod_data.is_menu_item = True
 
-    product_payload = normalize_product_measurement_fields(prod_data.model_dump())
+    product_payload = normalize_product_measurement_fields(prod_data.model_dump(exclude={"force_override"}))
     product = Product(
         **product_payload,
         user_id=owner_id,
@@ -14974,6 +14976,7 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
         prod_data.image = compress_image_base64(prod_data.image)
         
     update_dict = prod_data.model_dump(exclude_unset=True)
+    force_override = bool(update_dict.pop("force_override", False))
     if "location_id" in update_dict:
         ensure_enterprise_locations_allowed(user)
     if update_dict.get("linked_recipe_id"):
@@ -14987,6 +14990,12 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
     ensure_scoped_document_access(user, current_product, detail="Acces refuse pour ce produit")
     if not current_product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
+
+    if "purchase_price" in update_dict and not force_override:
+        incoming_purchase_price = float(update_dict.get("purchase_price") or 0)
+        current_purchase_price = float(current_product.get("purchase_price") or 0)
+        if incoming_purchase_price != current_purchase_price:
+            raise HTTPException(status_code=400, detail="purchase_price_locked_use_stock_in")
 
     normalized_update = normalize_product_measurement_fields({**current_product, **update_dict})
     update_payload = {
@@ -15196,7 +15205,8 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
     
     if diff == 0:
         return _product_response(product) # No change needed
-    
+
+    # Physical inventory adjustments do not modify the weighted average cost.
     # Update product quantity
     await db.products.update_one(
         {"product_id": product_id, "user_id": owner_id},
@@ -16483,6 +16493,7 @@ async def cancel_sale(
             normalized_product = normalize_product_measurement_fields(product_doc)
             product_mode = (normalized_product.get("production_mode") or "prepped").lower()
             if product_mode in ("prepped", "hybrid"):
+                # Sale cancellations restore units without recalculating the weighted average cost.
                 await create_stock_movement(
                     StockMovementCreate(
                         product_id=product_id,
@@ -27009,6 +27020,7 @@ class DeliveryMappingItem(BaseModel):
     catalog_id: str
     product_id: Optional[str] = None     # existing product to link to
     create_new: bool = False              # create a new inventory product
+    stock_already_recorded: bool = False
 
 class ConfirmDeliveryRequest(BaseModel):
     mappings: List[DeliveryMappingItem]
@@ -27301,29 +27313,36 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
             # Link to existing product and update stock
             product = await db.products.find_one({"product_id": target_product_id, "user_id": owner_id}, {"_id": 0})
             if product:
-                new_qty = product["quantity"] + item["quantity"]
-                await db.products.update_one(
-                    {"product_id": target_product_id},
-                    {"$set": {"quantity": new_qty, "updated_at": datetime.now(timezone.utc)}}
-                )
+                if mapping.stock_already_recorded:
+                    await db.products.update_one(
+                        {"product_id": target_product_id},
+                        {"$set": {"updated_at": datetime.now(timezone.utc)}}
+                    )
+                    await check_and_create_alerts(Product(**product), owner_id, store_id=order.get("store_id") or user.active_store_id)
+                    results.append({"catalog_id": mapping.catalog_id, "action": "linked_existing_stock", "product_id": target_product_id})
+                else:
+                    new_qty = product["quantity"] + item["quantity"]
+                    await db.products.update_one(
+                        {"product_id": target_product_id},
+                        {"$set": {"quantity": new_qty, "updated_at": datetime.now(timezone.utc)}}
+                    )
 
-                movement = StockMovement(
-                    product_id=target_product_id,
-                    user_id=owner_id,
-                    store_id=order.get("store_id") or user.active_store_id,
-                    type="in",
-                    quantity=item["quantity"],
-                    reason=f"Commande {order_id} livrée",
-                    previous_quantity=product["quantity"],
-                    new_quantity=new_qty
-                )
-                await db.stock_movements.insert_one(movement.model_dump())
+                    movement = StockMovement(
+                        product_id=target_product_id,
+                        user_id=owner_id,
+                        store_id=order.get("store_id") or user.active_store_id,
+                        type="in",
+                        quantity=item["quantity"],
+                        reason=f"Commande {order_id} livrée",
+                        previous_quantity=product["quantity"],
+                        new_quantity=new_qty
+                    )
+                    await db.stock_movements.insert_one(movement.model_dump())
 
-                # Check alerts
-                product["quantity"] = new_qty
-                await check_and_create_alerts(Product(**product), owner_id, store_id=order.get("store_id") or user.active_store_id)
+                    product["quantity"] = new_qty
+                    await check_and_create_alerts(Product(**product), owner_id, store_id=order.get("store_id") or user.active_store_id)
 
-                results.append({"catalog_id": mapping.catalog_id, "action": "linked", "product_id": target_product_id})
+                    results.append({"catalog_id": mapping.catalog_id, "action": "linked", "product_id": target_product_id})
 
         # Save mapping for future orders
         if target_product_id:

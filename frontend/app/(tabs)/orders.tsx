@@ -122,6 +122,12 @@ export default function OrdersScreen() {
 
   // Delivery confirmation modal (marketplace)
   const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
+  const [deliveryAutoLinkRequest, setDeliveryAutoLinkRequest] = useState<{
+    token: string;
+    catalogId: string;
+    productId: string;
+    stockAlreadyRecorded?: boolean;
+  } | null>(null);
 
   // Rating modal
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -136,6 +142,7 @@ export default function OrdersScreen() {
   const [showPartialModal, setShowPartialModal] = useState(false);
   const [partialOrder, setPartialOrder] = useState<OrderFull | null>(null);
   const [partialQuantities, setPartialQuantities] = useState<Record<string, string>>({});
+  const [partialActualUnitPrices, setPartialActualUnitPrices] = useState<Record<string, string>>({});
   const [partialNotes, setPartialNotes] = useState('');
   const [partialSaving, setPartialSaving] = useState(false);
 
@@ -165,14 +172,23 @@ export default function OrdersScreen() {
   const [sharingPdf, setSharingPdf] = useState(false);
   const [preSelectedProductId, setPreSelectedProductId] = useState<string | null>(null);
   const handledReminderRef = useRef<string | null>(null);
+  const handledDeliveryProductRef = useRef<string | null>(null);
   const {
     order_id: orderIdParam,
     product_id: productIdParam,
     reminder_type: reminderTypeParam,
+    delivery_order_id: deliveryOrderIdParam,
+    delivery_catalog_id: deliveryCatalogIdParam,
+    delivery_product_id: deliveryProductIdParam,
+    delivery_link_token: deliveryLinkTokenParam,
   } = useLocalSearchParams<{
     order_id?: string;
     product_id?: string;
     reminder_type?: string;
+    delivery_order_id?: string;
+    delivery_catalog_id?: string;
+    delivery_product_id?: string;
+    delivery_link_token?: string;
   }>();
 
   const confirmDiscardChanges = (onConfirm: () => void) => {
@@ -188,6 +204,7 @@ export default function OrdersScreen() {
 
   const hasPartialChanges = () => {
     if (partialNotes.trim()) return true;
+    if (Object.values(partialActualUnitPrices).some((value) => String(value || '').trim())) return true;
     return Object.values(partialQuantities).some((value) => String(value || '').trim());
   };
 
@@ -340,6 +357,29 @@ export default function OrdersScreen() {
     }
   }, [orderIdParam, productIdParam, reminderTypeParam]);
 
+  useEffect(() => {
+    const orderId = typeof deliveryOrderIdParam === 'string' ? deliveryOrderIdParam : undefined;
+    const catalogId = typeof deliveryCatalogIdParam === 'string' ? deliveryCatalogIdParam : undefined;
+    const productId = typeof deliveryProductIdParam === 'string' ? deliveryProductIdParam : undefined;
+    const token = typeof deliveryLinkTokenParam === 'string' ? deliveryLinkTokenParam : undefined;
+
+    if (!orderId || !catalogId || !productId || !token) return;
+
+    const linkKey = `${token}:${orderId}:${catalogId}:${productId}`;
+    if (handledDeliveryProductRef.current === linkKey) return;
+    handledDeliveryProductRef.current = linkKey;
+
+    setActiveTab('orders');
+    setShowDetailModal(false);
+    setDeliveryOrderId(orderId);
+    setDeliveryAutoLinkRequest({
+      token: linkKey,
+      catalogId,
+      productId,
+      stockAlreadyRecorded: true,
+    });
+  }, [deliveryCatalogIdParam, deliveryLinkTokenParam, deliveryOrderIdParam, deliveryProductIdParam]);
+
   function onRefresh() {
     setRefreshing(true);
     loadData();
@@ -388,6 +428,37 @@ export default function OrdersScreen() {
     }
   }
 
+  function handleCreateProductFromDelivery(suggestion: {
+    catalog_id: string;
+    catalog_name: string;
+    catalog_category: string;
+    catalog_subcategory: string;
+    quantity: number;
+    unit_price: number;
+  }) {
+    if (!deliveryOrderId) return;
+
+    const sourceOrder = detailOrder?.order_id === deliveryOrderId
+      ? detailOrder
+      : orderList.find((order) => order.order_id === deliveryOrderId);
+
+    router.push({
+      pathname: '/(tabs)/products',
+      params: {
+        prefill_source: 'delivery_reception',
+        prefill_token: String(Date.now()),
+        prefill_name: suggestion.catalog_name,
+        prefill_category: suggestion.catalog_category || '',
+        prefill_subcategory: suggestion.catalog_subcategory || '',
+        prefill_purchase_price: String(suggestion.unit_price || 0),
+        prefill_quantity: String(suggestion.quantity || 0),
+        prefill_supplier_id: sourceOrder?.supplier_id || '',
+        delivery_order_id: deliveryOrderId,
+        delivery_catalog_id: suggestion.catalog_id,
+      },
+    } as any);
+  }
+
   async function openPartialDelivery(orderId: string) {
     try {
       const order = await ordersApi.get(orderId);
@@ -398,6 +469,7 @@ export default function OrdersScreen() {
         initQtys[item.item_id] = received.toString();
       }
       setPartialQuantities(initQtys);
+      setPartialActualUnitPrices({});
       setPartialNotes('');
       setShowPartialModal(true);
     } catch {
@@ -411,10 +483,15 @@ export default function OrdersScreen() {
     const performSubmit = async () => {
       setPartialSaving(true);
       try {
-        const items = Object.entries(partialQuantities).map(([item_id, qty]) => ({
-          item_id,
-          received_quantity: parseInt(qty) || 0,
-        }));
+        const items = Object.entries(partialQuantities).map(([item_id, qty]) => {
+          const rawActualUnitPrice = String(partialActualUnitPrices[item_id] || '').trim();
+          const parsedActualUnitPrice = parseFloat(rawActualUnitPrice.replace(',', '.'));
+          return {
+            item_id,
+            received_quantity: parseInt(qty) || 0,
+            actual_unit_price: Number.isFinite(parsedActualUnitPrice) ? parsedActualUnitPrice : undefined,
+          };
+        });
         await ordersApi.receivePartial(partialOrder.order_id, items, partialNotes || undefined);
         setShowPartialModal(false);
         setShowDetailModal(false);
@@ -1365,9 +1442,12 @@ export default function OrdersScreen() {
           onClose={() => setDeliveryOrderId(null)}
           onConfirmed={() => {
             setDeliveryOrderId(null);
+            setDeliveryAutoLinkRequest(null);
             setShowDetailModal(false);
             loadData();
           }}
+          onCreateProduct={handleCreateProductFromDelivery}
+          autoLinkRequest={deliveryAutoLinkRequest}
         />
 
         {/* Order Detail Modal */}
@@ -1753,6 +1833,26 @@ export default function OrdersScreen() {
                           {t('orders.exceeds_ordered_qty', { count: item.quantity })}
                         </Text>
                       )}
+
+                      <View style={{ marginTop: Spacing.sm }}>
+                        <Text style={[styles.formLabel, { marginBottom: 6 }]}>
+                          {t('orders.actual_unit_price_label')}
+                        </Text>
+                        <TextInput
+                          style={[styles.formInput, { backgroundColor: colors.bgMid }]}
+                          value={partialActualUnitPrices[item.item_id] || ''}
+                          onChangeText={(text) => {
+                            const normalized = text.replace(',', '.').replace(/[^0-9.]/g, '');
+                            setPartialActualUnitPrices((prev) => ({ ...prev, [item.item_id]: normalized }));
+                          }}
+                          placeholder={String(item.unit_price || 0)}
+                          placeholderTextColor={colors.textMuted}
+                          keyboardType="decimal-pad"
+                        />
+                        <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 6 }}>
+                          {t('orders.actual_unit_price_hint')}
+                        </Text>
+                      </View>
                     </View>
                   );
                 })}

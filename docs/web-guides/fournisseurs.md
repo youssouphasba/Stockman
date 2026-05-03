@@ -38,6 +38,7 @@ Trois sous-onglets principaux :
 - Formulaire de creation avec selection fournisseur, articles, quantites et prix
 - PDF de commande telechargeable
 - Detail commande avec actions de statut
+- Reception partielle avec quantites recues et prix reel facture si necessaire
 
 ### Onglet Reapprovisionnement
 - Suggestions basees sur l'historique de ventes et le stock
@@ -97,7 +98,7 @@ Le comportement offline a ete fiabilise sur cet ecran.
 |--------|------|--------|
 | Fournisseurs | Commandes | Les bons de commande structurent l'approvisionnement |
 | Fournisseurs | Comptabilite | Les factures et achats influencent les charges |
-| Fournisseurs | Stock | Les receptions mettent a jour les quantites |
+| Fournisseurs | Stock | Les receptions mettent a jour les quantites et peuvent recalculer le CMP si le prix reel facture est renseigne |
 
 ## 10. Questions frequentes
 
@@ -108,6 +109,7 @@ Le comportement offline a ete fiabilise sur cet ecran.
 | Pourquoi un fournisseur ne se duplique plus apres la reconnexion ? | La synchronisation offline a ete verrouillee pour eviter de rejouer plusieurs fois la meme creation locale. |
 | Le score fiabilite est-il automatique ? | Oui, il depend des donnees disponibles sur les delais, livraisons et completude. |
 | Pourquoi la detection de doublons peut etre suspendue ? | Quand le quota IA mensuel est atteint, la detection de doublons se met en pause et un message d'information apparait dans l'ecran. |
+| A quoi sert le prix reel facture dans une reception partielle ? | Il permet d'enregistrer un prix final different de celui de la commande pour que le stock et le CMP restent justes. |
 
 ## 11. Guide rapide integre
 

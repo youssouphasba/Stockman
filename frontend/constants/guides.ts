@@ -87,7 +87,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "create-outline",
                 title: "Créer ou modifier une fiche produit",
-                description: "Ouvrez la fiche pour renseigner le nom, le SKU, la quantité initiale, l'unité, les prix, les seuils, la catégorie, les fournisseurs liés et les informations utiles au suivi. Si vous retirez une photo, enregistrez la fiche pour supprimer aussi l'image du produit. Relisez toujours les prix et le seuil minimum avant d'enregistrer."
+                description: "Ouvrez la fiche pour renseigner le nom, le SKU, la quantité initiale, l'unité, les prix, les seuils, la catégorie, les fournisseurs liés et les informations utiles au suivi. Depuis une réception fournisseur, le nom, le prix d'achat et la quantité peuvent déjà être préremplis : vérifiez-les puis concentrez l'édition manuelle sur le prix de vente. Le coût d'achat affiché sur une fiche existante correspond au CMP et ne se modifie plus directement : utilisez une entrée de stock pour le recalculer. Si vous retirez une photo, enregistrez la fiche pour supprimer aussi l'image du produit."
             },
             {
                 icon: "link-outline",
@@ -97,7 +97,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "swap-vertical-outline",
                 title: "Ajuster le stock sans quitter l'écran",
-                description: "Les actions rapides servent à enregistrer une entrée, une sortie, une correction ou un autre mouvement simple. Utilisez-les pour les livraisons, les pertes, la casse ou une correction d'inventaire."
+                description: "Les actions rapides servent à enregistrer une entrée, une sortie, une correction ou un autre mouvement simple. Lors d'une entrée, vous pouvez renseigner le prix d'achat unitaire réellement payé pour mettre à jour automatiquement le CMP. Utilisez-les pour les livraisons, les pertes, la casse ou une correction d'inventaire."
             },
             {
                 icon: "cloud-upload-outline",
@@ -232,7 +232,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "wallet-outline",
                 title: "Dépenses",
-                description: "Ajoutez vos dépenses par catégorie (Loyer, Salaire, Transport, etc.). Hors ligne, la dépense reste visible comme écriture en attente, puis se synchronise automatiquement."
+                description: "Ajoutez vos dépenses par catégorie (Loyer, Salaire, Transport, etc.). Vous pouvez maintenant les relire aussi par mois, en plus de la liste détaillée déjà présente. Hors ligne, la dépense reste visible comme écriture en attente, puis se synchronise automatiquement."
             },
             {
                 icon: "document-text-outline",
@@ -243,6 +243,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "pie-chart-outline",
                 title: "Graphiques",
                 description: "Visualisez l'évolution du CA par jour et la répartition par mode de paiement (Espèces, Mobile Money, Carte, etc.)."
+            },
+            {
+                icon: "albums-outline",
+                title: "Lecture mensuelle",
+                description: "Les ventes et les dépenses sont regroupées par mois dans des fiches dédiées. Ouvrez un mois pour vérifier son total, ses écritures et ses transactions avant d'entrer dans le détail ligne par ligne."
             },
             {
                 icon: "trophy-outline",
@@ -322,7 +327,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "cart-outline",
                 title: "Commandes et réception",
-                description: "Créez des bons de commande, relisez les lignes, puis confirmez la réception complète ou partielle quand la livraison arrive. Le stock est mis à jour selon l'action effectuée."
+                description: "Créez des bons de commande, relisez les lignes, puis confirmez la réception complète ou partielle quand la livraison arrive. Si un article reçu n'existe pas encore dans votre stock, le bouton de création ouvre maintenant une fiche préremplie avant de revenir l'associer à la réception."
             },
             {
                 icon: "sparkles-outline",
@@ -357,7 +362,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "checkbox",
                 title: "Réception et stock",
-                description: "Validez la réception complète ou partielle selon ce qui a réellement été livré. Le stock est mis à jour à partir des quantités reçues."
+                description: "Validez la réception complète ou partielle selon ce qui a réellement été livré. Si vous créez un nouveau produit depuis la réception, Stockman préremplit les informations connues puis évite de compter deux fois la même quantité au moment de la validation. En réception partielle, vous pouvez aussi renseigner un prix réel facturé si la facture finale diffère du prix commandé."
             },
             {
                 icon: "arrow-undo-outline",
