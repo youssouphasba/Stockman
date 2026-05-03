@@ -743,7 +743,11 @@ export default function SuppliersScreen() {
       )
         .split(' ')
         .filter((token) => token.length >= 3);
-      const hasMatch = productTokens.some((token) => suppliedText.includes(token));
+      const suppliedTokens = suppliedText.split(' ').filter((token) => token.length >= 3);
+      const hasMatch = productTokens.some((pt) =>
+        suppliedTokens.some((st) => pt === st || pt.startsWith(st) || st.startsWith(pt)) ||
+        suppliedText.includes(pt)
+      );
       if (!hasMatch) {
         Alert.alert(
           t('common.error'),

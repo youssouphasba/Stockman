@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -22,15 +22,30 @@ type Props = {
   orderId: string;
   onClose: () => void;
   onConfirmed: () => void;
+  onCreateProduct: (suggestion: MatchSuggestion) => void;
+  autoLinkRequest?: {
+    token: string;
+    catalogId: string;
+    productId: string;
+    stockAlreadyRecorded?: boolean;
+  } | null;
 };
 
 type Decision = {
   product_id?: string;
   product_name?: string;
   create_new: boolean;
+  stock_already_recorded?: boolean;
 };
 
-export default function DeliveryConfirmationModal({ visible, orderId, onClose, onConfirmed }: Props) {
+export default function DeliveryConfirmationModal({
+  visible,
+  orderId,
+  onClose,
+  onConfirmed,
+  onCreateProduct,
+  autoLinkRequest,
+}: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
@@ -40,6 +55,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
   const [inventory, setInventory] = useState<Product[]>([]);
   const [searchingFor, setSearchingFor] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
+  const handledAutoLinkRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (visible && orderId) {
@@ -48,6 +64,26 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
       loadSuggestions();
     }
   }, [visible, orderId]);
+
+  useEffect(() => {
+    if (!autoLinkRequest?.token) return;
+    if (handledAutoLinkRef.current === autoLinkRequest.token) return;
+
+    const syncDecision = async () => {
+      let product = inventory.find((item) => item.product_id === autoLinkRequest.productId);
+      if (!product) {
+        const inventoryResponse = await productsApi.list();
+        const nextInventory = inventoryResponse.items ?? inventoryResponse as any;
+        setInventory(nextInventory);
+        product = nextInventory.find((item: Product) => item.product_id === autoLinkRequest.productId);
+      }
+      if (!product) return;
+      handledAutoLinkRef.current = autoLinkRequest.token;
+      selectProduct(autoLinkRequest.catalogId, product, autoLinkRequest.stockAlreadyRecorded === true);
+    };
+
+    syncDecision().catch(() => undefined);
+  }, [autoLinkRequest, inventory]);
 
   async function loadSuggestions() {
     setLoading(true);
@@ -79,10 +115,15 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
     }
   }
 
-  function selectProduct(catalogId: string, product: Product) {
+  function selectProduct(catalogId: string, product: Product, stockAlreadyRecorded = false) {
     setDecisions((prev) => ({
       ...prev,
-      [catalogId]: { product_id: product.product_id, product_name: product.name, create_new: false },
+      [catalogId]: {
+        product_id: product.product_id,
+        product_name: product.name,
+        create_new: false,
+        stock_already_recorded: stockAlreadyRecorded,
+      },
     }));
     setSearchingFor(null);
     setSearchText('');
@@ -91,7 +132,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
   function toggleCreateNew(catalogId: string) {
     setDecisions((prev) => ({
       ...prev,
-      [catalogId]: { create_new: true, product_id: undefined, product_name: undefined },
+      [catalogId]: { create_new: true, product_id: undefined, product_name: undefined, stock_already_recorded: false },
     }));
   }
 
@@ -104,6 +145,7 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
           catalog_id: s.catalog_id,
           product_id: d?.product_id,
           create_new: d?.create_new ?? false,
+          stock_already_recorded: d?.stock_already_recorded ?? false,
         };
       });
 
@@ -251,10 +293,13 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
                                 <Text style={[styles.smallBtnText, { color: colors.primary }]}>{t('common.change')}</Text>
                               </TouchableOpacity>
                               <TouchableOpacity
-                                onPress={() => toggleCreateNew(s.catalog_id)}
+                                onPress={() => {
+                                  toggleCreateNew(s.catalog_id);
+                                  onCreateProduct(s);
+                                }}
                                 style={[styles.smallBtn, { borderColor: colors.divider }]}
                               >
-                                <Text style={[styles.smallBtnText, { color: colors.warning }]}>{t('common.new')}</Text>
+                                <Text style={[styles.smallBtnText, { color: colors.warning }]}>{t('common.create')}</Text>
                               </TouchableOpacity>
                             </View>
                           ) : (
@@ -263,6 +308,12 @@ export default function DeliveryConfirmationModal({ visible, orderId, onClose, o
                               <Text style={[styles.decisionText, { color: colors.warning }]}>
                                 {t('delivery.create_new_product')}
                               </Text>
+                              <TouchableOpacity
+                                onPress={() => onCreateProduct(s)}
+                                style={[styles.smallBtn, { borderColor: colors.divider }]}
+                              >
+                                <Text style={[styles.smallBtnText, { color: colors.warning }]}>{t('common.create')}</Text>
+                              </TouchableOpacity>
                               <TouchableOpacity
                                 onPress={() => setSearchingFor(s.catalog_id)}
                                 style={[styles.smallBtn, { borderColor: colors.divider }]}

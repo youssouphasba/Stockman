@@ -695,6 +695,28 @@ export default function POSScreen() {
         }));
     };
 
+    const setQuantity = (cartKey: string, qty: number) => {
+        const item = cart.find(i => i.cartKey === cartKey);
+        if (!item) return;
+        if (item.persisted) {
+            Alert.alert(t('pos.open_order_locked_title', 'Commande ouverte'), t('pos.cart_locked_open_order', 'Cette ligne a deja ete envoyee. Ajoutez une nouvelle ligne pour completer la commande.'));
+            return;
+        }
+        if (isWeightedProduct(item.product) || item.sold_unit) {
+            openWeightedModal(item.product, item);
+            return;
+        }
+        const newQty = Math.max(1, Math.floor(qty));
+        if (requiresFinishedStock(item.product) && newQty > item.product.quantity) {
+            Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: item.product.quantity, unit: item.product.unit, name: item.product.name }));
+            return;
+        }
+        updateActiveSession(s => ({
+            ...s,
+            cart: s.cart.map(i => i.cartKey === cartKey ? { ...i, quantity: newQty } : i)
+        }));
+    };
+
     const applyDiscount = (cartKey: string, type: 'percentage' | 'fixed', value: number) => {
         updateActiveSession(s => ({
             ...s,
@@ -1605,7 +1627,17 @@ export default function POSScreen() {
                                                         <TouchableOpacity onPress={() => updateQuantity(item.cartKey, -1)}>
                                                             <Ionicons name="remove-circle-outline" size={24} color={colors.textMuted} />
                                                         </TouchableOpacity>
-                                                        <Text style={styles.qtyText}>{item.quantity}</Text>
+                                                        <TextInput
+                                                            style={styles.qtyInput}
+                                                            value={String(item.quantity)}
+                                                            onChangeText={(txt) => {
+                                                                const n = parseInt(txt.replace(/[^0-9]/g, ''), 10);
+                                                                if (!isNaN(n) && n > 0) setQuantity(item.cartKey, n);
+                                                            }}
+                                                            keyboardType="numeric"
+                                                            selectTextOnFocus
+                                                            editable={!item.persisted}
+                                                        />
                                                         <TouchableOpacity onPress={() => updateQuantity(item.cartKey, 1)}>
                                                             <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
                                                         </TouchableOpacity>
@@ -2312,6 +2344,19 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         fontWeight: '700',
         minWidth: 20,
         textAlign: 'center',
+    },
+    qtyInput: {
+        color: colors.text,
+        fontSize: FontSize.md,
+        fontWeight: '700',
+        minWidth: 36,
+        paddingVertical: 4,
+        paddingHorizontal: 6,
+        textAlign: 'center',
+        borderWidth: 1,
+        borderColor: colors.divider,
+        borderRadius: BorderRadius.sm,
+        backgroundColor: colors.bgMid,
     },
 
     checkoutSection: {
