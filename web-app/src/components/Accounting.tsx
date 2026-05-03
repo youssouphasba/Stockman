@@ -69,6 +69,55 @@ const EXPENSE_CATEGORY_KEYS = [
     { value: 'other', labelKey: 'accounting.cat_other' },
 ];
 
+type MonthlyGroup<T> = {
+    key: string;
+    label: string;
+    total: number;
+    itemCount: number;
+    items: T[];
+};
+
+function buildMonthlyGroups<T>(
+    items: T[],
+    getDate: (item: T) => string | undefined,
+    getAmount: (item: T) => number,
+    locale: string,
+): MonthlyGroup<T>[] {
+    const formatter = new Intl.DateTimeFormat(locale || 'fr-FR', { month: 'long', year: 'numeric' });
+    const groups = new Map<string, MonthlyGroup<T>>();
+
+    items.forEach((item) => {
+        const rawDate = getDate(item);
+        if (!rawDate) return;
+
+        const parsedDate = new Date(rawDate);
+        if (Number.isNaN(parsedDate.getTime())) return;
+
+        const key = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}`;
+        const baseLabel = formatter.format(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1));
+        const label = baseLabel.charAt(0).toUpperCase() + baseLabel.slice(1);
+        const amount = getAmount(item) || 0;
+        const current = groups.get(key);
+
+        if (current) {
+            current.total += amount;
+            current.itemCount += 1;
+            current.items.push(item);
+            return;
+        }
+
+        groups.set(key, {
+            key,
+            label,
+            total: amount,
+            itemCount: 1,
+            items: [item],
+        });
+    });
+
+    return Array.from(groups.values()).sort((a, b) => b.key.localeCompare(a.key));
+}
+
 export default function Accounting() {
     const { t } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
@@ -107,6 +156,8 @@ export default function Accounting() {
     const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
     const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
     const [pendingSummary, setPendingSummary] = useState({ pendingInvoices: 0, pendingExpenses: 0, pendingSaleCancellations: 0, pendingTotal: 0 });
+    const [expandedExpenseMonths, setExpandedExpenseMonths] = useState<Record<string, boolean>>({});
+    const [expandedSalesMonths, setExpandedSalesMonths] = useState<Record<string, boolean>>({});
     const rightPanelRef = useRef<HTMLDivElement>(null);
 
     // Free invoice creation
@@ -531,6 +582,18 @@ export default function Accounting() {
     const netMarginPct = stats.revenue > 0 ? ((stats.net_profit / stats.revenue) * 100) : 0;
 
     const filteredExpenses = expenses.filter(e => filterExpenseCategory === 'all' || e.category === filterExpenseCategory);
+    const monthlyExpenseGroups = buildMonthlyGroups(
+        filteredExpenses,
+        (expense) => expense.created_at,
+        (expense) => Number(expense.amount || 0),
+        i18n.language,
+    );
+    const monthlySalesGroups = buildMonthlyGroups(
+        salesHistory,
+        (sale) => sale.created_at,
+        (sale) => sale.total_amount,
+        i18n.language,
+    );
 
     const accountingSteps: GuideStep[] = [
         {
@@ -566,10 +629,11 @@ export default function Accounting() {
         },
         {
             title: t('guide.accounting.expenses_title', "Gestion des dépenses"),
-            content: t('guide.accounting.expenses_content', "La colonne gauche liste les dépenses enregistrées par catégorie. Elles sont essentielles pour calculer un résultat net fiable."),
+            content: t('guide.accounting.expenses_content', "La colonne gauche liste les dépenses enregistrées par catégorie et les regroupe désormais par mois pour relire rapidement chaque période comptable."),
             details: [
                 { label: t('guide.accounting.btn_add_expense', "Ajouter une dépense"), description: t('guide.accounting.btn_add_expense_desc', "Saisissez une dépense avec sa catégorie, son montant, sa date et son contexte pour améliorer la lecture comptable."), type: 'button' },
                 { label: t('guide.accounting.expense_tip', "Astuce"), description: t('guide.accounting.expense_tip_desc', "Enregistrez vos dépenses récurrentes chaque mois pour éviter de surestimer artificiellement votre résultat net."), type: 'tip' },
+                { label: t('guide.accounting.monthly_reading', "Lecture mensuelle"), description: t('guide.accounting.monthly_reading_desc', "Ouvrez chaque fiche mensuelle pour relire son total, ses écritures et repérer plus vite les écarts d'un mois à l'autre."), type: 'info' },
             ],
         },
         {
@@ -580,7 +644,7 @@ export default function Accounting() {
                 { label: t('guide.accounting.tab_payments', "Onglet Paiements"), description: t('guide.accounting.tab_payments_desc', "Détail des encaissements par mode de paiement et suivi des factures en attente."), type: 'info' },
                 { label: t('guide.accounting.tab_losses', "Onglet Pertes"), description: t('guide.accounting.tab_losses_desc', "Permet de relire les pertes, leurs motifs et leur poids relatif pour décider où agir en premier."), type: 'info' },
                 { label: t('guide.accounting.tab_products', "Onglet Produits"), description: t('guide.accounting.tab_products_desc', "Classement des produits par chiffre d'affaires, marge et quantité vendue sur la période."), type: 'info' },
-                { label: t('guide.accounting.tab_sales', "Onglet Ventes"), description: t('guide.accounting.tab_sales_desc', "Historique de toutes les ventes avec possibilité d'annuler une vente si votre rôle l'autorise."), type: 'info' },
+                { label: t('guide.accounting.tab_sales', "Onglet Ventes"), description: t('guide.accounting.tab_sales_desc', "Historique de toutes les ventes avec regroupement mensuel et possibilité d'annuler une vente si votre rôle l'autorise."), type: 'info' },
                 { label: t('guide.accounting.tab_invoices', "Onglet Factures"), description: t('guide.accounting.tab_invoices_desc', "Créez et consultez des factures clients, puis téléchargez-les en PDF ou imprimez-les."), type: 'info' },
             ],
         },
@@ -747,8 +811,8 @@ export default function Accounting() {
                 <section className="mb-8 rounded-3xl border border-primary/20 bg-primary/5 p-6">
                     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
                         <div>
-                            <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Finance avancee</p>
-                            <h2 className="mt-2 text-2xl font-black text-white">Vue rentabilite et pilotage</h2>
+                            <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Finance avancée</p>
+                            <h2 className="mt-2 text-2xl font-black text-white">Vue rentabilité et pilotage</h2>
                             {stats.scope_label ? (
                                 <p className="mt-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
                                     {stats.scope_label}
@@ -1046,6 +1110,65 @@ export default function Accounting() {
                                         : `${pendingSummary.pendingTotal} écritures comptables sont en attente de synchronisation.`}
                                 </div>
                             )}
+                            {monthlyExpenseGroups.length > 0 && (
+                                <div className="mb-4 space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                                    <div>
+                                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
+                                            {t('accounting.monthly_expenses_review', { defaultValue: 'Lecture mensuelle des dépenses' })}
+                                        </p>
+                                        <p className="mt-2 text-sm text-slate-400">
+                                            {t('accounting.monthly_expenses_review_hint', { defaultValue: 'Retrouvez chaque mois, son total et les écritures déjà saisies sur la période affichée.' })}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {monthlyExpenseGroups.map((group) => {
+                                            const expanded = !!expandedExpenseMonths[group.key];
+                                            const visibleItems = expanded ? group.items : group.items.slice(0, 3);
+
+                                            return (
+                                                <div key={group.key} className="rounded-2xl border border-white/8 bg-slate-950/30 p-4">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setExpandedExpenseMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                                                        className="flex w-full items-start justify-between gap-3 text-left"
+                                                    >
+                                                        <div>
+                                                            <p className="text-sm font-black text-white">{group.label}</p>
+                                                            <p className="mt-1 text-[11px] font-bold text-slate-400">
+                                                                {t('accounting.expense_lines', { count: group.itemCount })} • {formatCurrency(group.total)}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-xs font-black uppercase tracking-[0.18em] text-primary">
+                                                            {expanded
+                                                                ? t('common.see_less', { defaultValue: 'Voir moins' })
+                                                                : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
+                                                        </span>
+                                                    </button>
+                                                    <div className="mt-4 space-y-2">
+                                                        {visibleItems.map((exp: any) => (
+                                                            <div key={exp.expense_id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                                                                <div className="min-w-0">
+                                                                    <p className="truncate text-sm font-bold text-white">
+                                                                        {(() => {
+                                                                            const category = EXPENSE_CATEGORY_KEYS.find((item) => item.value === exp.category);
+                                                                            return category ? t(category.labelKey) : exp.category;
+                                                                        })()}
+                                                                    </p>
+                                                                    <p className="mt-1 text-[11px] text-slate-500">
+                                                                        {formatDate(exp.created_at)}
+                                                                        {exp.description ? ` • ${exp.description}` : ''}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="shrink-0 text-sm font-black text-rose-400">-{formatCurrency(exp.amount)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                             {filteredExpenses.length === 0 ? (
                                 <div className="text-center py-10 text-slate-500 font-medium">Aucune dépense sur cette période.</div>
                             ) : (
@@ -1247,6 +1370,59 @@ export default function Accounting() {
                                 </div>
                             )}
                             <div className="space-y-3">
+                                {monthlySalesGroups.length > 0 && (
+                                    <div className="mb-4 space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                                        <div>
+                                            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
+                                                {t('accounting.monthly_sales_review', { defaultValue: 'Lecture mensuelle des ventes' })}
+                                            </p>
+                                            <p className="mt-2 text-sm text-slate-400">
+                                                {t('accounting.monthly_sales_review_hint', { defaultValue: 'Consultez vos ventes regroupées par mois avant de rentrer dans le détail transaction par transaction.' })}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {monthlySalesGroups.map((group) => {
+                                                const expanded = !!expandedSalesMonths[group.key];
+                                                const visibleItems = expanded ? group.items : group.items.slice(0, 3);
+
+                                                return (
+                                                    <div key={group.key} className="rounded-2xl border border-white/8 bg-slate-950/30 p-4">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setExpandedSalesMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                                                            className="flex w-full items-start justify-between gap-3 text-left"
+                                                        >
+                                                            <div>
+                                                                <p className="text-sm font-black text-white">{group.label}</p>
+                                                                <p className="mt-1 text-[11px] font-bold text-slate-400">
+                                                                    {t('accounting.sales_count_value', { count: group.itemCount })} • {formatCurrency(group.total)}
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-xs font-black uppercase tracking-[0.18em] text-primary">
+                                                                {expanded
+                                                                    ? t('common.see_less', { defaultValue: 'Voir moins' })
+                                                                    : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
+                                                            </span>
+                                                        </button>
+                                                        <div className="mt-4 space-y-2">
+                                                            {visibleItems.map((sale) => (
+                                                                <div key={sale.sale_id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                                                                    <div className="min-w-0">
+                                                                        <p className="truncate text-sm font-bold text-white">{sale.customer_name || t('accounting.client_diverse')}</p>
+                                                                        <p className="mt-1 text-[11px] text-slate-500">
+                                                                            {formatDate(sale.created_at)} • {t('accounting.articles_short', { count: sale.item_count || sale.items.length })}
+                                                                        </p>
+                                                                    </div>
+                                                                    <span className="shrink-0 text-sm font-black text-emerald-400">{formatCurrency(sale.total_amount)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                                 {salesHistory.length === 0 ? (
                                     <p className="text-xs text-slate-500 italic text-center py-6">Aucune vente sur cette periode.</p>
                                 ) : (

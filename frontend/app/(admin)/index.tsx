@@ -230,6 +230,7 @@ export default function AdminDashboard() {
 
     useEffect(() => { setLoading(true); loadData(); }, [loadData]);
     const onRefresh = () => { setRefreshing(true); loadData(); };
+    const globalKpiItemStyle = width < 340 ? st.globalKpiItemFull : st.globalKpiItemHalf;
 
     const fmtMoney = (n: any, currency?: string) => formatCurrency(n, currency);
     const openExternal = async (url: string) => {
@@ -444,12 +445,12 @@ export default function AdminDashboard() {
 
             {/* Retention */}
             <SectionHeader title={t('admin.retention.title')} colors={colors} />
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={{ flex: 1, minWidth: 140 }}>
-                    <StatCard label={t('admin.retention.deletedTotal')} value={stats?.deleted_users || 0} icon="trash" color="#EF4444" colors={colors} />
+            <View style={st.globalKpiGrid}>
+                <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={[st.globalKpiItem, globalKpiItemStyle]}>
+                    <StatCard label={t('admin.retention.deletedTotal')} value={stats?.deleted_users || 0} icon="trash" color="#EF4444" colors={colors} style={st.globalKpiCard} />
                 </TouchableOpacity>
-                <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={{ flex: 1, minWidth: 140 }}>
-                    <StatCard label={t('admin.retention.inactive30')} value={stats?.inactive_users || 0} icon="moon" color="#6B7280" colors={colors} />
+                <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={[st.globalKpiItem, globalKpiItemStyle]}>
+                    <StatCard label={t('admin.retention.inactive30')} value={stats?.inactive_users || 0} icon="moon" color="#6B7280" colors={colors} style={st.globalKpiCard} />
                 </TouchableOpacity>
             </View>
 
@@ -457,30 +458,33 @@ export default function AdminDashboard() {
             {detailed && (
                 <>
                     <SectionHeader title={t('admin.revenue.title')} colors={colors} />
-                    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                        <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(stats?.total_revenue, user?.currency)}</Text>
-                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('finance')} style={{ flex: 1, minWidth: 140 }}>
-                            <StatCard label={t('admin.revenue.week')} value={fmtMoney(detailed.revenue_week)} icon="calendar" color="#3B82F6" colors={colors} />
+                    <Card colors={colors} style={st.revenueSummaryCard}>
+                        <Text style={[st.revenueSummaryValue, { color: '#10B981' }]}>{fmtMoney(stats?.total_revenue, user?.currency)}</Text>
+                        <Text style={[st.revenueSummaryLabel, { color: colors.textSecondary }]}>{t('admin.revenue.title')}</Text>
+                    </Card>
+                    <View style={st.globalKpiGrid}>
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('finance')} style={[st.globalKpiItem, globalKpiItemStyle]}>
+                            <StatCard label={t('admin.revenue.week')} value={fmtMoney(detailed.revenue_week)} icon="calendar" color="#3B82F6" colors={colors} style={st.globalKpiCard} />
                         </TouchableOpacity>
-                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('finance')} style={{ flex: 1, minWidth: 140 }}>
-                            <StatCard label={t('admin.revenue.month')} value={fmtMoney(detailed.revenue_month)} icon="trending-up" color="#8B5CF6" colors={colors} />
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('finance')} style={[st.globalKpiItem, globalKpiItemStyle]}>
+                            <StatCard label={t('admin.revenue.month')} value={fmtMoney(detailed.revenue_month)} icon="trending-up" color="#8B5CF6" colors={colors} style={st.globalKpiCard} />
                         </TouchableOpacity>
                     </View>
 
                     <SectionHeader title={t('admin.alerts.title')} colors={colors} />
-                    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('support')} style={{ flex: 1, minWidth: 140 }}>
-                            <StatCard label={t('admin.alerts.openTickets')} value={detailed.open_tickets} icon="chatbubbles" color="#F59E0B" colors={colors} />
+                    <View style={st.globalKpiGrid}>
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('support')} style={[st.globalKpiItem, globalKpiItemStyle]}>
+                            <StatCard label={t('admin.alerts.openTickets')} value={detailed.open_tickets} icon="chatbubbles" color="#F59E0B" colors={colors} style={st.globalKpiCard} />
                         </TouchableOpacity>
-                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('stock')} style={{ flex: 1, minWidth: 140 }}>
-                            <StatCard label={t('admin.alerts.lowStock')} value={detailed.low_stock_count} icon="alert-circle" color="#EF4444" colors={colors} />
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('stock')} style={[st.globalKpiItem, globalKpiItemStyle]}>
+                            <StatCard label={t('admin.alerts.lowStock')} value={detailed.low_stock_count} icon="alert-circle" color="#EF4444" colors={colors} style={st.globalKpiCard} />
                         </TouchableOpacity>
-                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={{ flex: 1, minWidth: 140 }}>
-                            <StatCard label={t('admin.alerts.recentSignups')} value={detailed.recent_signups} icon="person-add" color="#06B6D4" colors={colors} />
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={[st.globalKpiItem, globalKpiItemStyle]}>
+                            <StatCard label={t('admin.alerts.recentSignups')} value={detailed.recent_signups} icon="person-add" color="#06B6D4" colors={colors} style={st.globalKpiCard} />
                         </TouchableOpacity>
                         {detailed.signups_today !== undefined && (
-                            <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={{ flex: 1, minWidth: 140 }}>
-                                <StatCard label={t('admin.distribution.signups_today')} value={detailed.signups_today} icon="today" color="#10B981" colors={colors} />
+                            <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={[st.globalKpiItem, globalKpiItemStyle]}>
+                                <StatCard label={t('admin.distribution.signups_today')} value={detailed.signups_today} icon="today" color="#10B981" colors={colors} style={st.globalKpiCard} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -511,17 +515,26 @@ export default function AdminDashboard() {
                     {detailed.users_by_plan && (
                         <>
                             <SectionHeader title={t('admin.distribution.plan')} colors={colors} />
-                            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                                <StatCard label={t('admin.distribution.plan_enterprise')} value={detailed.users_by_plan?.enterprise || 0} icon="trophy" color="#8B5CF6" colors={colors} />
-                                <StatCard label={t('admin.distribution.plan_pro')} value={detailed.users_by_plan?.pro || 0} icon="flash" color="#3B82F6" colors={colors} />
-                                <StatCard label={t('admin.distribution.plan_starter')} value={detailed.users_by_plan?.starter || 0} icon="leaf" color="#10B981" colors={colors} />
-                                <StatCard
-                                    label={t('admin.distribution.trials_expiring')}
-                                    value={detailed.trials_expiring_soon || 0}
-                                    icon="timer"
-                                    color={(detailed.trials_expiring_soon || 0) > 0 ? '#EF4444' : '#6B7280'}
-                                    colors={colors}
-                                />
+                            <View style={st.globalKpiGrid}>
+                                <View style={[st.globalKpiItem, globalKpiItemStyle]}>
+                                    <StatCard label={t('admin.distribution.plan_enterprise')} value={detailed.users_by_plan?.enterprise || 0} icon="trophy" color="#8B5CF6" colors={colors} style={st.globalKpiCard} />
+                                </View>
+                                <View style={[st.globalKpiItem, globalKpiItemStyle]}>
+                                    <StatCard label={t('admin.distribution.plan_pro')} value={detailed.users_by_plan?.pro || 0} icon="flash" color="#3B82F6" colors={colors} style={st.globalKpiCard} />
+                                </View>
+                                <View style={[st.globalKpiItem, globalKpiItemStyle]}>
+                                    <StatCard label={t('admin.distribution.plan_starter')} value={detailed.users_by_plan?.starter || 0} icon="leaf" color="#10B981" colors={colors} style={st.globalKpiCard} />
+                                </View>
+                                <View style={[st.globalKpiItem, globalKpiItemStyle]}>
+                                    <StatCard
+                                        label={t('admin.distribution.trials_expiring')}
+                                        value={detailed.trials_expiring_soon || 0}
+                                        icon="timer"
+                                        color={(detailed.trials_expiring_soon || 0) > 0 ? '#EF4444' : '#6B7280'}
+                                        colors={colors}
+                                        style={st.globalKpiCard}
+                                    />
+                                </View>
                             </View>
                         </>
                     )}
@@ -529,7 +542,7 @@ export default function AdminDashboard() {
                     {detailed.users_by_country && (
                         <>
                             <SectionHeader title={t('admin.distribution.country')} colors={colors} />
-                            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                            <View style={st.globalKpiGrid}>
                                 {Object.entries(detailed.users_by_country).map(([country, count]) => (
                                     <TouchableOpacity
                                         key={country}
@@ -538,6 +551,7 @@ export default function AdminDashboard() {
                                             setSeg('users');
                                         }}
                                         activeOpacity={0.7}
+                                        style={[st.globalKpiItem, globalKpiItemStyle]}
                                     >
                                         <StatCard
                                             label={COUNTRY_NAMES[country] || country}
@@ -545,6 +559,7 @@ export default function AdminDashboard() {
                                             icon="globe"
                                             color="#3B82F6"
                                             colors={colors}
+                                            style={st.globalKpiCard}
                                         />
                                     </TouchableOpacity>
                                 ))}
@@ -555,9 +570,11 @@ export default function AdminDashboard() {
                     {detailed.users_by_role && (
                         <>
                             <SectionHeader title={t('admin.distribution.role')} colors={colors} />
-                            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                            <View style={st.globalKpiGrid}>
                                 {Object.entries(detailed.users_by_role).map(([role, count]) => (
-                                    <StatCard key={role} label={role} value={count} icon="person" color={roleColors[role] || '#6B7280'} colors={colors} />
+                                    <View key={role} style={[st.globalKpiItem, globalKpiItemStyle]}>
+                                        <StatCard label={role} value={count} icon="person" color={roleColors[role] || '#6B7280'} colors={colors} style={st.globalKpiCard} />
+                                    </View>
                                 ))}
                             </View>
                         </>
@@ -1645,4 +1662,12 @@ const st = StyleSheet.create({
     segContainer: { paddingHorizontal: 8, gap: 2 },
     segBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 12 },
     segLabel: { fontSize: 12, fontWeight: '600' },
+    globalKpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    globalKpiItem: { minWidth: 0 },
+    globalKpiItemHalf: { width: '48.6%' },
+    globalKpiItemFull: { width: '100%' },
+    globalKpiCard: { width: '100%', minWidth: 0 },
+    revenueSummaryCard: { alignItems: 'flex-start', marginBottom: 8 },
+    revenueSummaryValue: { fontSize: 24, fontWeight: '800' },
+    revenueSummaryLabel: { fontSize: 12, marginTop: 4 },
 });

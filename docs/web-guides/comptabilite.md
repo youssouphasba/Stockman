@@ -18,6 +18,10 @@ Barre laterale -> **Finance et comptabilite**.
 - certaines analyses et rapports ;
 - diagnostic ou resume IA selon le contexte.
 
+Nouveaute utile :
+
+- les depenses et les ventes peuvent maintenant etre relues par mois via des fiches mensuelles, en plus des historiques detailles deja visibles.
+
 ## 4. Lecture des indicateurs
 
 - le chiffre d'affaires correspond au total des ventes sur la periode ;
@@ -47,7 +51,15 @@ Le module conserve un comportement offline partiel sur les flux compatibles :
 - certaines actions sont synchronisees automatiquement au retour du reseau ;
 - les bandeaux ou badges **En attente** signalent ce qui n'est pas encore envoye.
 
-## 7. Questions frequentes
+## 7. Lecture mensuelle
+
+La lecture mensuelle sert a verifier rapidement une periode comptable sans relire chaque ligne une par une.
+
+- chaque fiche mensuelle regroupe les ecritures ou les ventes d'un meme mois ;
+- le total du mois reste visible en tete de fiche ;
+- vous pouvez ouvrir un mois pour revoir ses lignes principales, puis revenir a l'historique detaille si besoin.
+
+## 8. Questions frequentes
 
 | Question | Reponse |
 |---|---|

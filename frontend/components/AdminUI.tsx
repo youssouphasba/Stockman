@@ -33,11 +33,11 @@ export function SearchBar({ value, onChangeText, placeholder, colors }: {
 }
 
 // ============ STAT CARD ============
-export function StatCard({ label, value, icon, color, colors, info }: {
-    label: string; value: string | number; icon: string; color: string; colors: any; info?: string;
+export function StatCard({ label, value, icon, color, colors, info, style }: {
+    label: string; value: string | number; icon: string; color: string; colors: any; info?: string; style?: any;
 }) {
     return (
-        <View style={[s.statCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
+        <View style={[s.statCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }, style]}>
             {info ? <KpiInfoButton info={info} /> : null}
             <View style={[s.statIcon, { backgroundColor: color + '22' }]}>
                 <Ionicons name={icon as any} size={20} color={color} />
@@ -104,7 +104,7 @@ const s = StyleSheet.create({
     filterText: { fontSize: 12, fontWeight: '600' },
     searchBar: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12, gap: 8 },
     searchInput: { flex: 1, fontSize: 14 },
-    statCard: { flex: 1, minWidth: 140, padding: 14, borderRadius: 14, borderWidth: 1, alignItems: 'center', gap: 6 },
+    statCard: { flex: 1, minWidth: 140, minHeight: 132, padding: 14, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 6 },
     statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     statValue: { fontSize: 22, fontWeight: '800' },
     statLabel: { fontSize: 11, textAlign: 'center' },
