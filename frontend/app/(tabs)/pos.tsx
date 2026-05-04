@@ -499,7 +499,8 @@ export default function POSScreen() {
 
     const waitForVoiceRecordingUri = async () => {
         for (let attempt = 0; attempt < 8; attempt++) {
-            const uri = voiceRecorder.uri;
+            const recorderStatus = typeof voiceRecorder.getStatus === 'function' ? voiceRecorder.getStatus() : null;
+            const uri = recorderStatus?.url || voiceRecorder.uri;
             if (uri) return uri;
             await new Promise((resolve) => setTimeout(resolve, 120));
         }
@@ -516,6 +517,9 @@ export default function POSScreen() {
             for (const uri of candidateUris) {
                 const fileInfo = await FileSystem.getInfoAsync(uri);
                 if (!fileInfo.exists) {
+                    continue;
+                }
+                if (typeof (fileInfo as any).size === 'number' && (fileInfo as any).size <= 0) {
                     continue;
                 }
 
@@ -580,6 +584,7 @@ export default function POSScreen() {
                 return;
             }
             await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+            await voiceRecorder.prepareToRecordAsync();
             await voiceRecorder.record();
             setIsVoiceRecording(true);
             setShowVoiceModal(true);
@@ -597,7 +602,7 @@ export default function POSScreen() {
         try {
             await voiceRecorder.stop();
             const uri = await waitForVoiceRecordingUri();
-            if (!uri && !voiceRecorder.getStatus().url) throw new Error('No recording URI');
+            if (!uri) throw new Error('No recording URI');
             const base64 = await readVoiceRecordingBase64();
             const result = await aiApi.voiceToCart(base64, i18n.language, user?.active_store_id || undefined);
             setVoiceTranscription(result?.transcription || '');
