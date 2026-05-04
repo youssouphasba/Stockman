@@ -1037,50 +1037,23 @@ export default function AccountingScreen() {
 
     const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(user?.plan || '') || user?.subscription_status === 'expired');
 
-    if (accessDenied) {
-        return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(selectedPeriod, appliedStart, appliedEnd); }} />;
-    }
-
-    if (loading && !isLocked) {
-        return (
-            <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                </View>
-            </LinearGradient>
-        );
-    }
-
-    const grossMarginPercentage = stats && stats.revenue > 0
-        ? (stats.gross_profit / stats.revenue) * 100
-        : 0;
-    const netMarginPercentage = stats && stats.revenue > 0
-        ? (stats.net_profit / stats.revenue) * 100
-        : 0;
-    const expenseRatioPercentage = stats && stats.revenue > 0
-        ? (stats.expenses / stats.revenue) * 100
-        : 0;
-
-    const paymentColors = [
-        '#10B981', // Green
-        '#6366F1', // Indigo
-        '#F59E0B', // Amber
-        '#06B6D4', // Cyan
-        '#EF4444', // Red
-        '#8B5CF6', // Violet
-        '#EC4899', // Pink
-    ];
-    const monthlyExpenseGroups = buildMonthlyGroups(
-        expensesList,
-        (expense) => expense.created_at,
-        (expense) => expense.amount,
-        i18n.language,
+    const monthlyExpenseGroups = React.useMemo(
+        () => buildMonthlyGroups(
+            expensesList,
+            (expense) => expense.created_at,
+            (expense) => expense.amount,
+            i18n.language,
+        ),
+        [expensesList, i18n.language],
     );
-    const monthlySalesGroups = buildMonthlyGroups(
-        recentSales,
-        (sale) => sale.created_at,
-        (sale) => sale.total_amount,
-        i18n.language,
+    const monthlySalesGroups = React.useMemo(
+        () => buildMonthlyGroups(
+            recentSales,
+            (sale) => sale.created_at,
+            (sale) => sale.total_amount,
+            i18n.language,
+        ),
+        [recentSales, i18n.language],
     );
     const expenseYears = React.useMemo(() => getAvailableYears(monthlyExpenseGroups), [monthlyExpenseGroups]);
     const salesYears = React.useMemo(() => getAvailableYears(monthlySalesGroups), [monthlySalesGroups]);
@@ -1167,6 +1140,37 @@ export default function AccountingScreen() {
         return [];
     }, [salesReviewMode, monthlySalesGroups, selectedSalesMonthKey, salesYearGroups, selectedSalesYearMonthKey]);
 
+    if (accessDenied) {
+        return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(selectedPeriod, appliedStart, appliedEnd); }} />;
+    }
+    if (loading && !isLocked) {
+        return (
+            <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            </LinearGradient>
+        );
+    }
+
+    const grossMarginPercentage = stats && stats.revenue > 0
+        ? (stats.gross_profit / stats.revenue) * 100
+        : 0;
+    const netMarginPercentage = stats && stats.revenue > 0
+        ? (stats.net_profit / stats.revenue) * 100
+        : 0;
+    const expenseRatioPercentage = stats && stats.revenue > 0
+        ? (stats.expenses / stats.revenue) * 100
+        : 0;
+    const paymentColors = [
+        '#10B981', // Green
+        '#6366F1', // Indigo
+        '#F59E0B', // Amber
+        '#06B6D4', // Cyan
+        '#EF4444', // Red
+        '#8B5CF6', // Violet
+        '#EC4899', // Pink
+    ];
     const renderReviewFilterCard = (
         mode: ReviewMode,
         setMode: (mode: ReviewMode) => void,

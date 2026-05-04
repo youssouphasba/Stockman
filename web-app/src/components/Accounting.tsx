@@ -590,40 +590,27 @@ export default function Accounting() {
         }
     };
 
-    if (loading && !stats) {
-        return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
-                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-            </div>
-        );
-    }
-
-    if (!stats) return null;
-
-    // Chart data: backend returns daily_revenue array; filter out items with missing date
-    const chartData = stats.daily_revenue.filter((d: any) => d.date != null);
-
-    // Product performance: top 8 by revenue
-    const topProducts = stats.product_performance
-        .filter((p: any) => p.revenue > 0)
-        .sort((a: any, b: any) => b.revenue - a.revenue)
-        .slice(0, 8);
-
-    const marginPct = stats.revenue > 0 ? ((stats.gross_profit / stats.revenue) * 100) : 0;
-    const netMarginPct = stats.revenue > 0 ? ((stats.net_profit / stats.revenue) * 100) : 0;
-
-    const filteredExpenses = expenses.filter(e => filterExpenseCategory === 'all' || e.category === filterExpenseCategory);
-    const monthlyExpenseGroups = buildMonthlyGroups(
-        filteredExpenses,
-        (expense) => expense.created_at,
-        (expense) => Number(expense.amount || 0),
-        i18n.language,
+    const filteredExpenses = React.useMemo(
+        () => expenses.filter(e => filterExpenseCategory === 'all' || e.category === filterExpenseCategory),
+        [expenses, filterExpenseCategory],
     );
-    const monthlySalesGroups = buildMonthlyGroups(
-        salesHistory,
-        (sale) => sale.created_at,
-        (sale) => sale.total_amount,
-        i18n.language,
+    const monthlyExpenseGroups = React.useMemo(
+        () => buildMonthlyGroups(
+            filteredExpenses,
+            (expense) => expense.created_at,
+            (expense) => Number(expense.amount || 0),
+            i18n.language,
+        ),
+        [filteredExpenses, i18n.language],
+    );
+    const monthlySalesGroups = React.useMemo(
+        () => buildMonthlyGroups(
+            salesHistory,
+            (sale) => sale.created_at,
+            (sale) => sale.total_amount,
+            i18n.language,
+        ),
+        [salesHistory, i18n.language],
     );
     const expenseYears = React.useMemo(() => getAvailableYears(monthlyExpenseGroups), [monthlyExpenseGroups]);
     const salesYears = React.useMemo(() => getAvailableYears(monthlySalesGroups), [monthlySalesGroups]);
@@ -709,6 +696,25 @@ export default function Accounting() {
         }
         return [];
     }, [salesReviewMode, monthlySalesGroups, selectedSalesMonthKey, salesYearGroups, selectedSalesYearMonthKey]);
+
+    if (loading && !stats) {
+        return (
+            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+    if (!stats) return null;
+    // Chart data: backend returns daily_revenue array; filter out items with missing date
+    const chartData = stats.daily_revenue.filter((d: any) => d.date != null);
+    // Product performance: top 8 by revenue
+    const topProducts = stats.product_performance
+        .filter((p: any) => p.revenue > 0)
+        .sort((a: any, b: any) => b.revenue - a.revenue)
+        .slice(0, 8);
+
+    const marginPct = stats.revenue > 0 ? ((stats.gross_profit / stats.revenue) * 100) : 0;
+    const netMarginPct = stats.revenue > 0 ? ((stats.net_profit / stats.revenue) * 100) : 0;
 
     const accountingSteps: GuideStep[] = [
         {
