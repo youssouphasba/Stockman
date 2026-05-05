@@ -810,7 +810,7 @@ export default function Accounting() {
         [currentUser],
     );
     const userPlan = currentUser?.effective_plan || currentUser?.subscription_plan || currentUser?.plan;
-    const isEnterpriseAccounting = userPlan === 'enterprise' || accessContext.isSuperAdmin;
+    const isEnterpriseAccounting = userPlan === 'enterprise' || accessContext.isOrgAdmin || accessContext.isSuperAdmin;
     const comparison = React.useMemo(() => {
         const currentRevenue = stats?.revenue || 0;
         const previousRevenue = comparisonStats?.revenue || 0;
@@ -1231,9 +1231,9 @@ export default function Accounting() {
                     <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                         <div>
                             <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">Pilotage</p>
-                            <h2 className="mt-2 text-2xl font-black text-white">Vue de pilotage</h2>
+                            <h2 className="mt-2 text-2xl font-black text-white">Pilotage financier Enterprise</h2>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-                                Vue consolidée multi-magasins, comparaison avec la période précédente, objectifs facultatifs et accès staff liés aux permissions comptables.
+                                Compare la période affichée avec la période précédente équivalente, suit les objectifs facultatifs et consolide les magasins disponibles.
                             </p>
                         </div>
                         <button
@@ -1250,7 +1250,7 @@ export default function Accounting() {
                         <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
                             <div className="flex items-center gap-3">
                                 <Building2 size={18} className="text-cyan-300" />
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Multi-magasins</p>
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Vue consolidée multi-magasins</p>
                             </div>
                             <p className="mt-4 text-2xl font-black text-white">{consolidatedStats?.stores?.length ?? storeList.length}</p>
                             <p className="mt-1 text-xs text-slate-400">magasins suivis</p>
@@ -1261,19 +1261,27 @@ export default function Accounting() {
                         <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
                             <div className="flex items-center gap-3">
                                 <ArrowUpRight size={18} className="text-emerald-300" />
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Période à période</p>
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Comparaison avec la période précédente</p>
                             </div>
+                            <p className="mt-3 text-xs leading-5 text-slate-500">
+                                Comparaison automatique entre la période affichée et la période juste avant, de même durée.
+                            </p>
                             <div className="mt-4 space-y-3">
                                 {[
-                                    { label: "Chiffre d'affaires", value: comparison.revenueDelta },
-                                    { label: 'Résultat net', value: comparison.netDelta },
-                                    { label: 'Charges', value: comparison.expensesDelta },
+                                    { label: "Chiffre d'affaires", value: comparison.revenueDelta, current: stats?.revenue || 0, previous: comparisonStats?.revenue || 0 },
+                                    { label: 'Résultat net', value: comparison.netDelta, current: stats?.net_profit || 0, previous: comparisonStats?.net_profit || 0 },
+                                    { label: 'Charges', value: comparison.expensesDelta, current: stats?.expenses || 0, previous: comparisonStats?.expenses || 0 },
                                 ].map((item) => (
-                                    <div key={item.label} className="flex items-center justify-between gap-3">
-                                        <span className="text-xs text-slate-400">{item.label}</span>
-                                        <span className={`text-sm font-black ${item.value == null ? 'text-slate-500' : item.value >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                                            {item.value == null ? 'N/A' : `${item.value >= 0 ? '+' : ''}${item.value.toFixed(1)}%`}
-                                        </span>
+                                    <div key={item.label} className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="text-xs font-bold text-slate-300">{item.label}</span>
+                                            <span className={`text-sm font-black ${item.value == null ? 'text-slate-500' : item.value >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                                {item.value == null ? 'N/A' : `${item.value >= 0 ? '+' : ''}${item.value.toFixed(1)}%`}
+                                            </span>
+                                        </div>
+                                        <p className="mt-1 text-[10px] text-slate-500">
+                                            Actuel : {formatCurrency(item.current)} · précédent : {formatCurrency(item.previous)}
+                                        </p>
                                     </div>
                                 ))}
                             </div>
@@ -1282,15 +1290,18 @@ export default function Accounting() {
                         <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
                             <div className="flex items-center gap-3">
                                 <Target size={18} className="text-amber-300" />
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Objectifs facultatifs</p>
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Objectifs de pilotage</p>
                             </div>
+                            <p className="mt-3 text-xs leading-5 text-slate-500">
+                                Ces objectifs ne bloquent aucun flux. Ils servent uniquement à suivre le CA, la marge nette et le poids des charges.
+                            </p>
                             <div className="mt-4 grid grid-cols-1 gap-2">
                                 <input
                                     value={goalDraft.revenue}
                                     onChange={(event) => setGoalDraft((prev) => ({ ...prev, revenue: event.target.value }))}
                                     type="number"
                                     min="0"
-                                    placeholder="CA cible"
+                                    placeholder="Objectif de CA"
                                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
                                 />
                                 <div className="grid grid-cols-2 gap-2">
@@ -1299,7 +1310,7 @@ export default function Accounting() {
                                         onChange={(event) => setGoalDraft((prev) => ({ ...prev, netMargin: event.target.value }))}
                                         type="number"
                                         min="0"
-                                        placeholder="Marge nette %"
+                                        placeholder="Marge nette cible %"
                                         className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
                                     />
                                     <input
@@ -1307,7 +1318,7 @@ export default function Accounting() {
                                         onChange={(event) => setGoalDraft((prev) => ({ ...prev, maxExpenseRatio: event.target.value }))}
                                         type="number"
                                         min="0"
-                                        placeholder="Charges max %"
+                                        placeholder="Charges max % CA"
                                         className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
                                     />
                                 </div>
@@ -1359,7 +1370,7 @@ export default function Accounting() {
                         </div>
 
                         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Suivi des objectifs</p>
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Progression des objectifs</p>
                             <div className="mt-4 space-y-3">
                                 {[
                                     { label: 'CA cible', value: goalProgress.revenue, suffix: '%' },
