@@ -1713,6 +1713,21 @@ L'écran admin est organisé en segments navigables horizontalement.
 
 ---
 
+### Mise à jour admin mobile - fiches et actions
+
+L'administration mobile doit permettre de voir, comprendre et agir rapidement depuis le téléphone.
+
+| Zone | Détails ajoutés |
+|------|-----------------|
+| Vue globale | Actions rapides vers utilisateurs, abonnements, tickets, stock bas, message global et Data Explorer |
+| Utilisateurs | Plan, abonnement, phase d'accès, compte, boutique active, date de création, vérifications e-mail/téléphone, paiement à vérifier et statut démo |
+| Utilisateurs - actions | Appeler, envoyer un e-mail, ouvrir WhatsApp, suspendre/réactiver et supprimer |
+| Boutiques | Chiffre d'affaires, ventes, produits, propriétaire, e-mail propriétaire, ID boutique, ID propriétaire et date de création |
+| Boutiques - actions | Contacter le propriétaire, ouvrir les utilisateurs liés ou filtrer le stock lié |
+| Stock | Stock actuel, prix d'achat, prix de vente, seuil minimum, seuil maximum, catégorie, boutique, SKU, date de création et statut actif/masqué |
+| Stock - actions | Masquer/rendre visible et supprimer |
+| Support | ID ticket, utilisateur, dates, nombre de messages, dernier message, réponse, fermeture et contact e-mail |
+
 ## 17. Espace fournisseur mobile (`frontend/app/(supplier-tabs)/`)
 
 ### A. Dashboard fournisseur (`frontend/app/(supplier-tabs)/index.tsx`)

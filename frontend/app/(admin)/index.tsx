@@ -421,6 +421,18 @@ export default function AdminDashboard() {
     const roleColors: Record<string, string> = { superadmin: '#EF4444', shopkeeper: '#3B82F6', staff: '#10B981', supplier: '#F59E0B' };
     const statusColors: Record<string, string> = { open: '#F59E0B', investigating: '#3B82F6', resolved: '#10B981', rejected: '#EF4444', closed: '#6B7280', pending: '#8B5CF6' };
     const moduleColors: Record<string, string> = { stock: '#3B82F6', auth: '#EF4444', crm: '#10B981', pos: '#F59E0B', broadcast: '#8B5CF6', communication: '#06B6D4' };
+    const renderInfoLine = (label: string, value?: string | number | null) => (
+        <View style={st.infoLine}>
+            <Text style={[st.infoLabel, { color: colors.textMuted }]}>{label}</Text>
+            <Text style={[st.infoValue, { color: colors.text }]} numberOfLines={1}>{value || '—'}</Text>
+        </View>
+    );
+    const renderMetricPill = (label: string, value: string | number, color: string) => (
+        <View style={[st.metricPill, { backgroundColor: color + '18', borderColor: color + '33' }]}>
+            <Text style={[st.metricPillValue, { color }]}>{value}</Text>
+            <Text style={[st.metricPillLabel, { color: colors.textMuted }]}>{label}</Text>
+        </View>
+    );
 
     // ============ RENDER SEGMENTS ============
     const renderGlobal = () => (
@@ -442,6 +454,16 @@ export default function AdminDashboard() {
                     {t('admin.health.version', { version: health?.version || '?' })}
                 </Text>
             </Card>
+
+            <SectionHeader title="Actions rapides" colors={colors} />
+            <View style={st.actionGrid}>
+                <ActionButton label="Utilisateurs" icon="people-outline" color="#3B82F6" onPress={() => setSeg('users')} />
+                <ActionButton label="Abonnements" icon="card-outline" color="#8B5CF6" onPress={() => setSeg('subscriptions')} />
+                <ActionButton label="Tickets" icon="help-buoy-outline" color="#F59E0B" onPress={() => setSeg('support')} />
+                <ActionButton label="Stock bas" icon="alert-circle-outline" color="#EF4444" onPress={() => setSeg('stock')} />
+                <ActionButton label="Message global" icon="megaphone-outline" color="#06B6D4" onPress={() => setSeg('comms')} />
+                <ActionButton label="Data explorer" icon="server-outline" color="#10B981" onPress={() => router.push('/(admin)/data-explorer')} />
+            </View>
 
             {/* Retention */}
             <SectionHeader title={t('admin.retention.title')} colors={colors} />
@@ -665,9 +687,24 @@ export default function AdminDashboard() {
                             </View>
                         </View>
                     </View>
+                    <View style={st.detailGrid}>
+                        {renderInfoLine('Plan', formatPlanLabel(u.effective_plan || u.subscription_plan || u.plan))}
+                        {renderInfoLine('Abonnement', u.effective_subscription_status || u.subscription_status || '—')}
+                        {renderInfoLine('Accès', formatAccessPhase(u.subscription_access_phase))}
+                        {renderInfoLine('Compte', u.account_id || u.parent_user_id || u.user_id)}
+                        {renderInfoLine('Boutique active', u.active_store_id)}
+                        {renderInfoLine('Créé le', formatDateTime(u.created_at))}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                        <Badge label={u.is_email_verified ? 'E-mail vérifié' : 'E-mail non vérifié'} color={u.is_email_verified ? '#10B981' : '#F59E0B'} />
+                        <Badge label={u.is_phone_verified ? 'Téléphone vérifié' : 'Téléphone non vérifié'} color={u.is_phone_verified ? '#10B981' : '#F59E0B'} />
+                        {u.requires_payment_attention ? <Badge label="Paiement à vérifier" color="#EF4444" /> : null}
+                        {u.is_demo ? <Badge label="Démo" color="#8B5CF6" /> : null}
+                    </View>
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                         {u.phone ? <ActionButton label="Appeler" icon="call-outline" color={colors.primary} onPress={() => handleCall(u.phone)} /> : null}
                         {u.email ? <ActionButton label="E-mail" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(u.email)} /> : null}
+                        {u.phone ? <ActionButton label="WhatsApp" icon="logo-whatsapp" color="#10B981" onPress={() => openExternal(`https://wa.me/${String(u.phone).replace(/[^0-9]/g, '')}`)} /> : null}
                         <ActionButton label={u.is_active === false ? 'Réactiver' : 'Suspendre'} icon={u.is_active === false ? 'checkmark-circle-outline' : 'pause-circle-outline'} color={u.is_active === false ? '#10B981' : '#F59E0B'} onPress={() => handleToggleUser(u)} />
                         <ActionButton label="Supprimer" icon="trash-outline" color="#DC2626" onPress={() => handleDeleteUser(u)} />
                     </View>
@@ -695,26 +732,28 @@ export default function AdminDashboard() {
                     <SectionHeader title={t('admin.segments.stores')} count={filteredStores.length} colors={colors} />
                     {filteredStores.map(s => (
                         <Card key={s.store_id} colors={colors}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{s.name}</Text>
                                     <Text style={{ color: colors.textMuted, fontSize: 13 }}>{t('admin.stores.owner')}: {s.owner_name}</Text>
-                                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                            <Ionicons name="cube-outline" size={14} color={colors.textMuted} />
-                                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                                {t('admin.stores.products', { count: s.product_count })}
-                                            </Text>
-                                        </View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                            <Ionicons name="cart-outline" size={14} color={colors.textMuted} />
-                                            <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                                {t('admin.stores.sales', { count: s.sales_count })}
-                                            </Text>
-                                        </View>
-                                    </View>
+                                    <Text style={{ color: colors.textMuted, fontSize: 11 }}>{s.owner_email}</Text>
                                 </View>
                                 <Text style={{ color: '#10B981', fontWeight: '800' }}>{fmtMoney(s.total_revenue)}</Text>
+                            </View>
+                            <View style={st.metricRow}>
+                                {renderMetricPill('Produits', formatNumber(s.product_count || 0), '#3B82F6')}
+                                {renderMetricPill('Ventes', formatNumber(s.sales_count || 0), '#F59E0B')}
+                                {renderMetricPill('CA', fmtMoney(s.total_revenue), '#10B981')}
+                            </View>
+                            <View style={st.detailGrid}>
+                                {renderInfoLine('ID boutique', s.store_id)}
+                                {renderInfoLine('ID propriétaire', s.user_id)}
+                                {renderInfoLine('Créée le', formatDateTime(s.created_at))}
+                            </View>
+                            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                                <ActionButton label="Contacter" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(s.owner_email)} />
+                                <ActionButton label="Voir utilisateurs" icon="people-outline" color="#3B82F6" onPress={() => { setSeg('users'); setSearch(s.owner_email || s.owner_name || ''); }} />
+                                <ActionButton label="Voir stock" icon="cube-outline" color="#10B981" onPress={() => { setSeg('stock'); setSearch(s.store_id); }} />
                             </View>
                         </Card>
                     ))}
@@ -975,7 +1014,7 @@ export default function AdminDashboard() {
             <SectionHeader title={t('admin.segments.stock')} count={products.length} colors={colors} />
             {products.map(p => (
                 <Card key={p.product_id} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                         <View style={{ flex: 1 }}>
                             <Text style={{ color: colors.text, fontWeight: '700' }}>{p.name}</Text>
                             <Text style={{ color: colors.textMuted, fontSize: 12 }}>
@@ -983,20 +1022,34 @@ export default function AdminDashboard() {
                             </Text>
                             <Text style={{ color: colors.textMuted, fontSize: 10 }}>ID: {p.product_id}</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                            <ActionButton
-                                label={p.is_active ? t('admin.actions.disable') : t('admin.actions.enable')}
-                                icon={p.is_active ? 'eye' : 'eye-off'}
-                                color={p.is_active ? '#3B82F6' : '#6B7280'}
-                                onPress={() => handleToggleProduct(p)}
-                            />
-                            <ActionButton
-                                label={t('admin.stock.deleteBtn')}
-                                icon="trash"
-                                color="#EF4444"
-                                onPress={() => handleDeleteProduct(p)}
-                            />
-                        </View>
+                        <Badge label={p.is_active ? 'Actif' : 'Masqué'} color={p.is_active ? '#10B981' : '#6B7280'} />
+                    </View>
+                    <View style={st.metricRow}>
+                        {renderMetricPill('Stock', formatNumber((p as any).quantity || (p as any).current_stock || 0), ((p as any).quantity || 0) <= (p.min_stock || 0) ? '#EF4444' : '#10B981')}
+                        {renderMetricPill('Achat', fmtMoney(p.purchase_price || 0), '#F59E0B')}
+                        {renderMetricPill('Vente', fmtMoney(p.selling_price || 0), '#3B82F6')}
+                    </View>
+                    <View style={st.detailGrid}>
+                        {renderInfoLine('Stock minimum', p.min_stock)}
+                        {renderInfoLine('Stock maximum', p.max_stock)}
+                        {renderInfoLine('Catégorie', (p as any).category_name || p.category_id)}
+                        {renderInfoLine('Boutique', (p as any).store_name || (p as any).store_id || p.location_id)}
+                        {renderInfoLine('SKU', p.sku)}
+                        {renderInfoLine('Créé le', formatDateTime(p.created_at))}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                        <ActionButton
+                            label={p.is_active ? t('admin.actions.disable') : t('admin.actions.enable')}
+                            icon={p.is_active ? 'eye' : 'eye-off'}
+                            color={p.is_active ? '#3B82F6' : '#6B7280'}
+                            onPress={() => handleToggleProduct(p)}
+                        />
+                        <ActionButton
+                            label={t('admin.stock.deleteBtn')}
+                            icon="trash"
+                            color="#EF4444"
+                            onPress={() => handleDeleteProduct(p)}
+                        />
                     </View>
                 </Card>
             ))}
@@ -1077,31 +1130,33 @@ export default function AdminDashboard() {
             <SectionHeader title={t('admin.segments.support')} count={tickets.length} colors={colors} />
             {tickets.map((t_info: any) => (
                 <Card key={t_info.ticket_id} colors={colors}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6, gap: 8 }}>
                         <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }} numberOfLines={1}>{t_info.subject}</Text>
                         <Badge label={t_info.status} color={statusColors[t_info.status] || '#6B7280'} />
                     </View>
-                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                        {t_info.user_name} · {new Date(t_info.created_at).toLocaleDateString()}
-                    </Text>
+                    <View style={st.detailGrid}>
+                        {renderInfoLine('Utilisateur', t_info.user_name)}
+                        {renderInfoLine('ID ticket', t_info.ticket_id)}
+                        {renderInfoLine('Créé le', formatDateTime(t_info.created_at))}
+                        {renderInfoLine('Mis à jour', formatDateTime(t_info.updated_at))}
+                        {renderInfoLine('Messages', t_info.messages?.length || 0)}
+                    </View>
                     {t_info.messages?.length > 0 && (
-                        <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }} numberOfLines={2}>
-                            {t_info.messages[t_info.messages.length - 1]?.content}
-                        </Text>
+                        <View style={{ backgroundColor: colors.inputBg, borderRadius: 10, padding: 10, marginTop: 10, borderWidth: 1, borderColor: colors.glassBorder }}>
+                            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Dernier message</Text>
+                            <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={4}>
+                                {t_info.messages[t_info.messages.length - 1]?.content}
+                            </Text>
+                        </View>
                     )}
-                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                         {t_info.status !== 'closed' && (
                             <>
-                                <TouchableOpacity onPress={() => setReplyingTo(replyingTo === t_info.ticket_id ? null : t_info.ticket_id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="chatbubble-outline" size={16} color={colors.primary} />
-                                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>{t('admin.actions.reply')}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleCloseTicket(t_info.ticket_id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
-                                    <Text style={{ color: '#10B981', fontSize: 13, fontWeight: '600' }}>{t('admin.actions.close')}</Text>
-                                </TouchableOpacity>
+                                <ActionButton label={t('admin.actions.reply')} icon="chatbubble-outline" color={colors.primary} onPress={() => setReplyingTo(replyingTo === t_info.ticket_id ? null : t_info.ticket_id)} />
+                                <ActionButton label={t('admin.actions.close')} icon="checkmark-circle-outline" color="#10B981" onPress={() => handleCloseTicket(t_info.ticket_id)} />
                             </>
                         )}
+                        {t_info.user_email ? <ActionButton label="E-mail" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(t_info.user_email)} /> : null}
                     </View>
                     {replyingTo === t_info.ticket_id && (
                         <View style={{ marginTop: 12, gap: 8 }}>
@@ -1670,4 +1725,13 @@ const st = StyleSheet.create({
     revenueSummaryCard: { alignItems: 'flex-start', marginBottom: 8 },
     revenueSummaryValue: { fontSize: 24, fontWeight: '800' },
     revenueSummaryLabel: { fontSize: 12, marginTop: 4 },
+    actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+    detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+    infoLine: { width: '48%', minWidth: 130, borderRadius: 10, padding: 10, backgroundColor: 'rgba(148,163,184,0.10)' },
+    infoLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
+    infoValue: { fontSize: 12, fontWeight: '700', marginTop: 3 },
+    metricRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+    metricPill: { minWidth: 92, flexGrow: 1, borderRadius: 12, padding: 10, borderWidth: 1 },
+    metricPillValue: { fontSize: 14, fontWeight: '800' },
+    metricPillLabel: { fontSize: 10, fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
 });
