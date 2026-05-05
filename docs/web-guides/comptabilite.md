@@ -1,70 +1,83 @@
-# Guide - Finance et comptabilite
+# Guide - Finance et comptabilité
 
-## 1. Role du module
+## 1. Rôle du module
 
-Le module Finance et comptabilite regroupe les indicateurs financiers, les depenses, les ventes, certaines factures et les vues de synthese.
+Le module Finance et comptabilité regroupe les indicateurs financiers, les dépenses, les ventes, certaines factures et les vues de synthèse.
 
-Profils concernes : utilisateurs ayant la permission `accounting`.
+Profils concernés : utilisateurs ayant la permission `accounting`.
 
-## 2. Acces
+## 2. Accès
 
-Barre laterale -> **Finance et comptabilite**.
+Barre latérale -> **Finance et comptabilité**.
 
-## 3. Ce que l'ecran couvre
+## 3. Ce que l'écran couvre
 
 - indicateurs financiers ;
-- charges et depenses ;
+- charges et dépenses ;
 - ventes et factures ;
-- certaines analyses et rapports ;
-- diagnostic ou resume IA selon le contexte.
+- analyses, rapports et exports ;
+- diagnostic ou résumé IA selon le contexte.
 
-Nouveaute utile :
+Nouveautés utiles :
 
-- les depenses et les ventes se lisent maintenant via un filtre de periode : Voir tout, Mois ou Annee ;
-- en mode annee, vous pouvez choisir directement les mois rattaches a l'annee affichee.
+- les dépenses et les ventes se lisent via un filtre de période : Voir tout, Mois ou Année ;
+- en mode Année, vous pouvez choisir directement les mois rattachés à l'année affichée ;
+- sur le plan Enterprise, la vue de pilotage affiche une synthèse multi-magasins, la comparaison avec la période précédente, les objectifs facultatifs et le niveau d'accès staff.
 
 ## 4. Lecture des indicateurs
 
-- le chiffre d'affaires correspond au total des ventes sur la periode ;
-- la marge brute correspond au chiffre d'affaires moins le cout d'achat des produits vendus ;
-- les charges correspondent aux depenses enregistrees manuellement ;
-- les pertes de stock correspondent aux sorties declarees comme perte, casse ou ajustement ;
-- le resultat net correspond au chiffre d'affaires moins le cout d'achat des produits vendus, moins les charges, moins les pertes de stock enregistrees.
+- le chiffre d'affaires correspond au total des ventes sur la période ;
+- la marge brute correspond au chiffre d'affaires moins le coût d'achat des produits vendus ;
+- les charges correspondent aux dépenses enregistrées manuellement ;
+- les pertes de stock correspondent aux sorties déclarées comme perte, casse ou ajustement ;
+- le résultat net correspond au chiffre d'affaires moins le coût d'achat des produits vendus, moins les charges, moins les pertes de stock enregistrées.
 
 Points importants :
 
-- la valeur du stock restant n'est pas retiree du resultat net ;
-- les cartes KPI sont cliquables pour ouvrir leur detail.
+- la valeur du stock restant n'est pas retirée du résultat net ;
+- les cartes KPI sont cliquables pour ouvrir leur détail ;
+- les comparaisons période à période utilisent les données réelles de la période précédente équivalente.
 
-## 5. Menus et visibilite
+## 5. Pilotage Enterprise
 
-Les sous-modules visibles doivent suivre le vrai code metier :
+La vue de pilotage Enterprise sert au suivi de gestion sans saisie obligatoire :
 
-- les elements accessibles dans l'ecran ne doivent pas etre caches a tort ;
-- les elements reserves a `Enterprise` doivent etre masques pour `Starter` et `Pro` ;
-- les entrees ouvertes depuis le menu mobile doivent renvoyer vers le bon module.
+- **Multi-magasins** : affiche le nombre de magasins suivis, le chiffre d'affaires consolidé et le magasin le plus performant sur la période ;
+- **Période à période** : compare le chiffre d'affaires, le résultat net et les charges avec la période précédente ;
+- **Objectifs facultatifs** : permet de renseigner un objectif de chiffre d'affaires, une marge nette cible et un plafond de charges ;
+- **Accès staff** : rappelle le niveau de permission comptable du membre connecté et limite les actions sensibles quand l'accès est en lecture seule.
 
-## 6. Hors ligne et synchronisation
+## 6. Menus et visibilité
 
-Le module conserve un comportement offline partiel sur les flux compatibles :
+Les sous-modules visibles doivent suivre le vrai code métier :
 
-- certaines depenses peuvent rester visibles en attente ;
-- certaines actions sont synchronisees automatiquement au retour du reseau ;
-- les bandeaux ou badges **En attente** signalent ce qui n'est pas encore envoye.
+- les éléments accessibles dans l'écran ne doivent pas être cachés à tort ;
+- les éléments réservés à `Enterprise` doivent être masqués pour `Starter` et `Pro` ;
+- les entrées ouvertes depuis le menu mobile doivent renvoyer vers le bon module ;
+- les exports et écritures comptables doivent respecter les permissions staff.
 
-## 7. Filtre de periode
+## 7. Hors ligne et synchronisation
 
-Le filtre de periode sert a verifier rapidement la bonne tranche comptable sans dupliquer inutilement l'historique.
+Le module conserve un comportement hors ligne partiel sur les flux compatibles :
 
-- **Voir tout** affiche l'historique detaille complet de la periode chargee ;
-- **Mois** permet de naviguer avec des fleches ou de choisir directement un mois ;
-- **Annee** affiche l'annee choisie et permet aussi de selectionner un mois de cette annee ;
-- les cartes mensuelles gardent le total, le nombre d'ecritures ou de ventes, puis le detail ouvrable si besoin.
+- certaines dépenses peuvent rester visibles en attente ;
+- certaines actions sont synchronisées automatiquement au retour du réseau ;
+- les bandeaux ou badges **En attente** signalent ce qui n'est pas encore envoyé.
 
-## 8. Questions frequentes
+## 8. Filtre de période
 
-| Question | Reponse |
+Le filtre de période sert à vérifier rapidement la bonne tranche comptable sans dupliquer inutilement l'historique.
+
+- **Voir tout** affiche l'historique détaillé complet de la période chargée ;
+- **Mois** permet de naviguer avec des flèches ou de choisir directement un mois ;
+- **Année** affiche l'année choisie et permet aussi de sélectionner un mois de cette année ;
+- les cartes mensuelles gardent le total, le nombre d'écritures ou de ventes, puis le détail ouvrable si besoin.
+
+## 9. Questions fréquentes
+
+| Question | Réponse |
 |---|---|
-| Pourquoi certains graphiques ou sous-modules n'apparaissent pas ? | Ils peuvent dependre du plan, des permissions ou des donnees disponibles. |
-| Que signifie **En attente** ? | L'action a ete gardee localement et sera synchronisee des le retour du reseau. |
-| Les analyses IA se lancent-elles seules ? | Non, elles dependent du flux et des actions disponibles dans l'ecran. |
+| Pourquoi certains graphiques ou sous-modules n'apparaissent pas ? | Ils peuvent dépendre du plan, des permissions ou des données disponibles. |
+| Que signifie **En attente** ? | L'action a été gardée localement et sera synchronisée dès le retour du réseau. |
+| Les analyses IA se lancent-elles seules ? | Non, elles dépendent du flux et des actions disponibles dans l'écran. |
+| Les objectifs Enterprise sont-ils obligatoires ? | Non. Ils servent uniquement au pilotage interne et peuvent rester vides. |

@@ -25,6 +25,10 @@ import {
     AlertTriangle,
     ChevronLeft,
     ChevronRight,
+    Building2,
+    Target,
+    ShieldCheck,
+    ArrowUpRight,
 } from 'lucide-react';
 import {
     AreaChart,
@@ -43,10 +47,14 @@ import {
     ai as aiApi,
     sales as salesApi,
     settings as settingsApi,
+    stores as storesApi,
+    auth as authApi,
     type AccountingSaleHistoryItem,
     type AccountingStats,
     type AnalyticsKpiDetail,
     type CustomerInvoice,
+    type Store,
+    type User,
 } from '../services/api';
 import AccountingReportModal from './AccountingReportModal';
 import InvoiceModal from './InvoiceModal';
@@ -54,6 +62,7 @@ import KpiCard from './analytics/KpiCard';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 import { mergeAccountingOfflineState } from '../services/offlineState';
+import { hasModulePermission, getAccessContext } from '../utils/access';
 
 const PERIODS = [
     { label: '7j', value: 7 },
@@ -83,6 +92,54 @@ type MonthlyGroup<T> = {
 };
 
 type ReviewMode = 'all' | 'month' | 'year';
+
+type ConsolidatedStoreStat = {
+    store_id: string;
+    store_name: string;
+    address?: string;
+    revenue: number;
+    orders: number;
+    products_count: number;
+    low_stock_count: number;
+};
+
+type ConsolidatedStats = {
+    stores: ConsolidatedStoreStat[];
+    total_revenue: number;
+    total_orders: number;
+    days: number;
+};
+
+type AccountingGoals = {
+    revenue?: number;
+    netMargin?: number;
+    maxExpenseRatio?: number;
+};
+
+function getPreviousAccountingRange(period: number, startDate?: string, endDate?: string) {
+    if (startDate && endDate) {
+        const start = new Date(`${startDate}T00:00:00`);
+        const end = new Date(`${endDate}T00:00:00`);
+        const durationDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1);
+        const previousEnd = new Date(start);
+        previousEnd.setDate(previousEnd.getDate() - 1);
+        const previousStart = new Date(previousEnd);
+        previousStart.setDate(previousStart.getDate() - durationDays + 1);
+        return {
+            startDate: previousStart.toISOString().slice(0, 10),
+            endDate: previousEnd.toISOString().slice(0, 10),
+        };
+    }
+
+    const previousEnd = new Date();
+    previousEnd.setDate(previousEnd.getDate() - period);
+    const previousStart = new Date(previousEnd);
+    previousStart.setDate(previousStart.getDate() - period + 1);
+    return {
+        startDate: previousStart.toISOString().slice(0, 10),
+        endDate: previousEnd.toISOString().slice(0, 10),
+    };
+}
 
 function buildMonthlyGroups<T>(
     items: T[],
@@ -145,9 +202,16 @@ export default function Accounting() {
     const { t } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
     const [stats, setStats] = useState<AccountingStats | null>(null);
+    const [comparisonStats, setComparisonStats] = useState<AccountingStats | null>(null);
+    const [consolidatedStats, setConsolidatedStats] = useState<ConsolidatedStats | null>(null);
+    const [storeList, setStoreList] = useState<Store[]>([]);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState(30);
+    const [accountingGoals, setAccountingGoals] = useState<AccountingGoals>({});
+    const [goalDraft, setGoalDraft] = useState({ revenue: '', netMargin: '', maxExpenseRatio: '' });
+    const [savingGoals, setSavingGoals] = useState(false);
 
     // Custom date range
     const [useCustomRange, setUseCustomRange] = useState(false);
@@ -216,8 +280,8 @@ export default function Accounting() {
     const { i18n } = useTranslation();
 
     const confirmDiscardChanges = (onConfirm: () => void) => {
-        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistr?es' });
-        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistr?es. Voulez-vous quitter sans enregistrer ' });
+        const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
+        const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
         if (window.confirm(`${title}\n\n${message}`)) {
             onConfirm();
         }
@@ -260,15 +324,28 @@ export default function Accounting() {
     }, [period, useCustomRange]);
 
     useEffect(() => {
-        settingsApi.get().then(s => {
-            if (Array.isArray(s.expense_categories)) setCustomCategories(s.expense_categories);
+        Promise.allSettled([settingsApi.get(), authApi.me(), storesApi.list()]).then(([settingsRes, userRes, storesRes]) => {
+            if (settingsRes.status === 'fulfilled') {
+                const settings = settingsRes.value as any;
+                if (Array.isArray(settings.expense_categories)) setCustomCategories(settings.expense_categories);
+                const goals = (settings.accounting_goals || {}) as AccountingGoals;
+                setAccountingGoals(goals);
+                setGoalDraft({
+                    revenue: typeof goals.revenue === 'number' ? String(goals.revenue) : '',
+                    netMargin: typeof goals.netMargin === 'number' ? String(goals.netMargin) : '',
+                    maxExpenseRatio: typeof goals.maxExpenseRatio === 'number' ? String(goals.maxExpenseRatio) : '',
+                });
+            }
+            if (userRes.status === 'fulfilled') setCurrentUser(userRes.value);
+            if (storesRes.status === 'fulfilled' && Array.isArray(storesRes.value)) setStoreList(storesRes.value);
         }).catch(() => {});
     }, []);
 
     const loadData = async (sd: string = '', ed: string = '') => {
         setLoading(true);
         try {
-            const [statsRes, expensesRes, salesHistoryRes, invoicesRes] = await Promise.allSettled([
+            const previousRange = getPreviousAccountingRange(period, sd, ed);
+            const [statsRes, expensesRes, salesHistoryRes, invoicesRes, comparisonRes, consolidatedRes] = await Promise.allSettled([
                 sd || ed
                     ? accountingApi.getStats(undefined, sd, ed)
                     : accountingApi.getStats(period),
@@ -281,6 +358,10 @@ export default function Accounting() {
                 sd || ed
                     ? accountingApi.getInvoices(undefined, sd, ed, 0, 30)
                     : accountingApi.getInvoices(period, undefined, undefined, 0, 30),
+                accountingApi.getStats(undefined, previousRange.startDate, previousRange.endDate),
+                storesApi.getConsolidatedStats(sd || ed
+                    ? Math.max(1, Math.round((new Date(ed).getTime() - new Date(sd).getTime()) / 86400000) + 1)
+                    : period),
             ]);
             const merged = mergeAccountingOfflineState({
                 recentSales: salesHistoryRes.status === 'fulfilled' && Array.isArray(salesHistoryRes.value.items) ? salesHistoryRes.value.items : [],
@@ -292,6 +373,8 @@ export default function Accounting() {
             if (statsRes.status === 'fulfilled') {
                 setStats(statsRes.value);
             }
+            setComparisonStats(comparisonRes.status === 'fulfilled' ? comparisonRes.value : null);
+            setConsolidatedStats(consolidatedRes.status === 'fulfilled' ? consolidatedRes.value as ConsolidatedStats : null);
             setExpenses(merged.expensesList);
             setSalesHistory(merged.recentSales);
             setInvoiceHistory(merged.invoiceHistory);
@@ -312,7 +395,7 @@ export default function Accounting() {
             setAiAnalysis(res.analysis);
         } catch (err) {
             console.error('AI analysis error', err);
-            setAiAnalysis("Impossible de generer l'analyse IA pour le moment.");
+            setAiAnalysis("Impossible de générer l'analyse IA pour le moment.");
         } finally {
             setAiLoading(false);
         }
@@ -339,6 +422,26 @@ export default function Accounting() {
         a.download = `rapport_mensuel_${new Date().toISOString().split('T')[0]}.md`;
         a.click();
         URL.revokeObjectURL(url);
+    };
+
+    const handleSaveGoals = async () => {
+        const goals: AccountingGoals = {};
+        const revenue = parseFloat(goalDraft.revenue);
+        const netMargin = parseFloat(goalDraft.netMargin);
+        const maxExpenseRatio = parseFloat(goalDraft.maxExpenseRatio);
+        if (!Number.isNaN(revenue) && revenue > 0) goals.revenue = revenue;
+        if (!Number.isNaN(netMargin) && netMargin > 0) goals.netMargin = netMargin;
+        if (!Number.isNaN(maxExpenseRatio) && maxExpenseRatio > 0) goals.maxExpenseRatio = maxExpenseRatio;
+
+        setSavingGoals(true);
+        try {
+            const updated = await settingsApi.update({ accounting_goals: goals } as any);
+            setAccountingGoals(((updated as any).accounting_goals || goals) as AccountingGoals);
+        } catch (err) {
+            console.error('Accounting goals save error', err);
+        } finally {
+            setSavingGoals(false);
+        }
     };
 
     const handleApplyCustomRange = () => {
@@ -542,7 +645,7 @@ export default function Accounting() {
             await salesApi.cancel(saleId);
             await loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err: any) {
-            alert(err.message || t('accounting.cancel_sale_error', { defaultValue: 'Impossible d?annuler cette vente pour le moment.' }));
+            alert(err.message || t('accounting.cancel_sale_error', { defaultValue: "Impossible d'annuler cette vente pour le moment." }));
         } finally {
             setCancellingSaleId(null);
         }
@@ -552,9 +655,9 @@ export default function Accounting() {
 
     const getSaleStatusLabel = (sale: AccountingSaleHistoryItem) => {
         if (sale.status === 'cancelled') {
-            return t('accounting.sale_status_cancelled', { defaultValue: 'Annulee' });
+            return t('accounting.sale_status_cancelled', { defaultValue: 'Annulée' });
         }
-        return t('accounting.sale_status_completed', { defaultValue: 'Completee' });
+        return t('accounting.sale_status_completed', { defaultValue: 'Terminée' });
     };
 
     const getSaleStatusClassName = (sale: AccountingSaleHistoryItem) => {
@@ -578,8 +681,8 @@ export default function Accounting() {
         } catch (err) {
             console.error('Accounting KPI detail error', err);
             setDetail({
-                title: 'Detail indisponible',
-                description: "Impossible de charger le detail de ce KPI.",
+                title: 'Détail indisponible',
+                description: "Impossible de charger le détail de ce KPI.",
                 export_name: 'finance_detail_indisponible',
                 columns: [],
                 rows: [],
@@ -697,6 +800,46 @@ export default function Accounting() {
         return [];
     }, [salesReviewMode, monthlySalesGroups, selectedSalesMonthKey, salesYearGroups, selectedSalesYearMonthKey]);
 
+    const accessContext = React.useMemo(() => getAccessContext(currentUser), [currentUser]);
+    const canReadAccounting = React.useMemo(
+        () => !currentUser || hasModulePermission(currentUser, 'accounting', 'read'),
+        [currentUser],
+    );
+    const canWriteAccounting = React.useMemo(
+        () => !currentUser || hasModulePermission(currentUser, 'accounting', 'write'),
+        [currentUser],
+    );
+    const userPlan = currentUser?.effective_plan || currentUser?.subscription_plan || currentUser?.plan;
+    const isEnterpriseAccounting = userPlan === 'enterprise' || accessContext.isSuperAdmin;
+    const comparison = React.useMemo(() => {
+        const currentRevenue = stats?.revenue || 0;
+        const previousRevenue = comparisonStats?.revenue || 0;
+        const currentNet = stats?.net_profit || 0;
+        const previousNet = comparisonStats?.net_profit || 0;
+        const currentExpenses = stats?.expenses || 0;
+        const previousExpenses = comparisonStats?.expenses || 0;
+        const ratio = (current: number, previous: number) => previous > 0 ? ((current - previous) / previous) * 100 : null;
+        return {
+            revenueDelta: ratio(currentRevenue, previousRevenue),
+            netDelta: ratio(currentNet, previousNet),
+            expensesDelta: ratio(currentExpenses, previousExpenses),
+        };
+    }, [stats, comparisonStats]);
+    const leadingStore = React.useMemo(() => {
+        const stores = consolidatedStats?.stores || [];
+        return stores.length > 0 ? [...stores].sort((a, b) => (b.revenue || 0) - (a.revenue || 0))[0] : null;
+    }, [consolidatedStats]);
+    const goalProgress = React.useMemo(() => {
+        const revenueGoal = accountingGoals.revenue || 0;
+        const netMarginGoal = accountingGoals.netMargin || 0;
+        const maxExpenseRatio = accountingGoals.maxExpenseRatio || 0;
+        return {
+            revenue: revenueGoal > 0 ? Math.min(999, ((stats?.revenue || 0) / revenueGoal) * 100) : null,
+            netMargin: netMarginGoal > 0 ? ((stats?.net_margin_pct || 0) / netMarginGoal) * 100 : null,
+            expenseRatio: maxExpenseRatio > 0 ? ((stats?.expense_ratio || 0) / maxExpenseRatio) * 100 : null,
+        };
+    }, [accountingGoals, stats]);
+
     if (loading && !stats) {
         return (
             <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
@@ -730,8 +873,8 @@ export default function Accounting() {
             ],
         },
         {
-            title: t('guide.accounting.kpi_title', "Cartes KPI financieres"),
-            content: t('guide.accounting.kpi_content', "Les 4 cartes en haut resumant la performance financiere de la periode."),
+            title: t('guide.accounting.kpi_title', "Cartes KPI financières"),
+            content: t('guide.accounting.kpi_content', "Les 4 cartes en haut résument la performance financière de la période."),
             details: [
                 { label: t('guide.accounting.kpi_revenue', "Chiffre d'affaires"), description: t('guide.accounting.kpi_revenue_desc', "Total des ventes encaissées. Ouvrez la carte pour relire l'évolution, les jours clés et les détails utiles."), type: 'card' },
                 { label: t('guide.accounting.kpi_gross', "Marge brute"), description: t('guide.accounting.kpi_gross_desc', "Différence entre le chiffre d'affaires et le coût d'achat des produits vendus, exprimée en montant et en pourcentage."), type: 'card' },
@@ -743,8 +886,8 @@ export default function Accounting() {
             title: t('guide.accounting.actions_title', "Boutons d'action globaux"),
             content: t('guide.accounting.actions_content', "Les boutons en haut à droite permettent de générer des rapports et d'exporter."),
             details: [
-                { label: t('guide.accounting.btn_report', "Rapport mensuel IA"), description: t('guide.accounting.btn_report_desc', "Genere, sur clic, un rapport mensuel complet et redige a partir des donnees de la periode. Il sert a relire la performance, les risques et les actions prioritaires."), type: 'button' },
-                { label: t('guide.accounting.btn_analysis', "Diagnostic IA"), description: t('guide.accounting.btn_analysis_desc', "Lance, sur clic, une lecture rapide du P&L de la periode. Il s'agit d'un diagnostic court et actionnable, distinct du rapport mensuel complet."), type: 'button' },
+                { label: t('guide.accounting.btn_report', "Rapport mensuel IA"), description: t('guide.accounting.btn_report_desc', "Génère, sur clic, un rapport mensuel complet et rédigé à partir des données de la période. Il sert à relire la performance, les risques et les actions prioritaires."), type: 'button' },
+                { label: t('guide.accounting.btn_analysis', "Diagnostic IA"), description: t('guide.accounting.btn_analysis_desc', "Lance, sur clic, une lecture rapide du P&L de la période. Il s'agit d'un diagnostic court et actionnable, distinct du rapport mensuel complet."), type: 'button' },
                 { label: t('guide.accounting.btn_export', "Exporter XLS / PDF"), description: t('guide.accounting.btn_export_desc', "Exporte les données comptables de la période en tableur ou en rapport PDF pour archivage et contrôle."), type: 'button' },
             ],
         },
@@ -765,7 +908,7 @@ export default function Accounting() {
                 { label: t('guide.accounting.tab_payments', "Onglet Paiements"), description: t('guide.accounting.tab_payments_desc', "Détail des encaissements par mode de paiement et suivi des factures en attente."), type: 'info' },
                 { label: t('guide.accounting.tab_losses', "Onglet Pertes"), description: t('guide.accounting.tab_losses_desc', "Permet de relire les pertes, leurs motifs et leur poids relatif pour décider où agir en premier."), type: 'info' },
                 { label: t('guide.accounting.tab_products', "Onglet Produits"), description: t('guide.accounting.tab_products_desc', "Classement des produits par chiffre d'affaires, marge et quantité vendue sur la période."), type: 'info' },
-                { label: t('guide.accounting.tab_sales', "Onglet Ventes"), description: t('guide.accounting.tab_sales_desc', "Historique des ventes avec filtre Voir tout, Mois ou Année et possibilité d'annuler une vente si votre rôle l'autorise."), type: 'info' },
+                { label: t('guide.accounting.tab_sales', "Carte Historique des ventes"), description: t('guide.accounting.tab_sales_desc', "Historique des ventes visible dans la colonne principale, avec filtre Voir tout, Mois ou Année et possibilité d'annuler une vente si votre rôle l'autorise."), type: 'info' },
                 { label: t('guide.accounting.tab_invoices', "Onglet Factures"), description: t('guide.accounting.tab_invoices_desc', "Créez et consultez des factures clients, puis téléchargez-les en PDF ou imprimez-les."), type: 'info' },
             ],
         },
@@ -961,7 +1104,7 @@ export default function Accounting() {
                     <button
                         onClick={() => { setUseCustomRange(v => !v); }}
                         className={`p-2 rounded-xl border transition-all ${useCustomRange ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}
-                        title="Plage de dates personnalis?e"
+                        title="Plage de dates personnalisée"
                     >
                         <Calendar size={18} />
                     </button>
@@ -974,7 +1117,7 @@ export default function Accounting() {
                                 onChange={e => setStartDate(e.target.value)}
                                 className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-primary/50"
                             />
-                            <span className="text-slate-500 text-sm">?</span>
+                            <span className="text-slate-500 text-sm">à</span>
                             <input
                                 type="date"
                                 value={endDate}
@@ -999,6 +1142,7 @@ export default function Accounting() {
                     </button>
                     <button
                         onClick={() => setShowReportModal(true)}
+                        disabled={!canWriteAccounting}
                         className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all font-bold"
                     >
                         <FileText size={18} className="text-primary" /> Rapports PDF
@@ -1011,12 +1155,14 @@ export default function Accounting() {
                     </button>
                     <button
                         onClick={handleOpenFreeInvoice}
+                        disabled={!canWriteAccounting}
                         className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all font-bold"
                     >
                         <FileText size={18} className="text-emerald-400" /> Nouvelle facture
                     </button>
                     <button
                         onClick={handleOpenAddExpense}
+                        disabled={!canWriteAccounting}
                         className="btn-primary rounded-xl px-4 py-2 flex items-center gap-2 text-sm shadow-lg shadow-primary/20"
                     >
                         <Plus size={18} /> Nouvelle dépense
@@ -1034,7 +1180,7 @@ export default function Accounting() {
                         <div>
                             <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Diagnostic IA</p>
                             <p className="text-slate-400 text-sm leading-relaxed">
-                                Lecture rapide du P&L sur la periode affichee. Rien ne se lance automatiquement et le contenu est plus court qu'un rapport mensuel IA.
+                                Lecture rapide du P&L sur la période affichée. Rien ne se lance automatiquement et le contenu est plus court qu'un rapport mensuel IA.
                             </p>
                         </div>
                         <button
@@ -1049,7 +1195,7 @@ export default function Accounting() {
                         <p className="mt-4 text-slate-300 text-sm leading-relaxed">{aiAnalysis}</p>
                     ) : (
                         <p className="mt-4 text-xs font-medium text-slate-500">
-                            Cliquez sur le bouton pour generer un diagnostic IA court a partir des donnees de la periode.
+                            Cliquez sur le bouton pour générer un diagnostic IA court à partir des données de la période.
                         </p>
                     )}
                 </div>
@@ -1062,7 +1208,7 @@ export default function Accounting() {
                         <div className="flex items-center justify-between p-6 border-b border-white/10">
                             <h2 className="text-white font-bold text-lg flex items-center gap-2"><BarChart2 size={20} className="text-purple-400" /> Rapport Mensuel IA</h2>
                             <div className="flex gap-2">
-                                {monthlyReport && <button onClick={handleDownloadReport} className="text-xs text-primary hover:underline flex items-center gap-1"><Download size={14} /> T?l?charger</button>}
+                                {monthlyReport && <button onClick={handleDownloadReport} className="text-xs text-primary hover:underline flex items-center gap-1"><Download size={14} /> Télécharger</button>}
                                 <button onClick={() => setShowMonthlyReport(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
                             </div>
                         </div>
@@ -1080,6 +1226,165 @@ export default function Accounting() {
                 </div>
             )}
 
+            {isEnterpriseAccounting && (
+                <section className="mb-8 rounded-3xl border border-cyan-500/20 bg-cyan-500/[0.04] p-6">
+                    <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">Pilotage</p>
+                            <h2 className="mt-2 text-2xl font-black text-white">Vue de pilotage</h2>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+                                Vue consolidée multi-magasins, comparaison avec la période précédente, objectifs facultatifs et accès staff liés aux permissions comptables.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowReportModal(true)}
+                            disabled={!canWriteAccounting}
+                            className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-200 transition-all hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Export de synthèse
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+                            <div className="flex items-center gap-3">
+                                <Building2 size={18} className="text-cyan-300" />
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Multi-magasins</p>
+                            </div>
+                            <p className="mt-4 text-2xl font-black text-white">{consolidatedStats?.stores?.length ?? storeList.length}</p>
+                            <p className="mt-1 text-xs text-slate-400">magasins suivis</p>
+                            <p className="mt-4 text-sm font-bold text-cyan-200">{formatCurrency(consolidatedStats?.total_revenue || 0)}</p>
+                            <p className="text-xs text-slate-500">CA consolidé sur {consolidatedStats?.days || period} jours</p>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+                            <div className="flex items-center gap-3">
+                                <ArrowUpRight size={18} className="text-emerald-300" />
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Période à période</p>
+                            </div>
+                            <div className="mt-4 space-y-3">
+                                {[
+                                    { label: "Chiffre d'affaires", value: comparison.revenueDelta },
+                                    { label: 'Résultat net', value: comparison.netDelta },
+                                    { label: 'Charges', value: comparison.expensesDelta },
+                                ].map((item) => (
+                                    <div key={item.label} className="flex items-center justify-between gap-3">
+                                        <span className="text-xs text-slate-400">{item.label}</span>
+                                        <span className={`text-sm font-black ${item.value == null ? 'text-slate-500' : item.value >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                            {item.value == null ? 'N/A' : `${item.value >= 0 ? '+' : ''}${item.value.toFixed(1)}%`}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+                            <div className="flex items-center gap-3">
+                                <Target size={18} className="text-amber-300" />
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Objectifs facultatifs</p>
+                            </div>
+                            <div className="mt-4 grid grid-cols-1 gap-2">
+                                <input
+                                    value={goalDraft.revenue}
+                                    onChange={(event) => setGoalDraft((prev) => ({ ...prev, revenue: event.target.value }))}
+                                    type="number"
+                                    min="0"
+                                    placeholder="CA cible"
+                                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
+                                />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input
+                                        value={goalDraft.netMargin}
+                                        onChange={(event) => setGoalDraft((prev) => ({ ...prev, netMargin: event.target.value }))}
+                                        type="number"
+                                        min="0"
+                                        placeholder="Marge nette %"
+                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
+                                    />
+                                    <input
+                                        value={goalDraft.maxExpenseRatio}
+                                        onChange={(event) => setGoalDraft((prev) => ({ ...prev, maxExpenseRatio: event.target.value }))}
+                                        type="number"
+                                        min="0"
+                                        placeholder="Charges max %"
+                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleSaveGoals}
+                                    disabled={savingGoals || !canWriteAccounting}
+                                    className="mt-1 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-black text-amber-200 transition-all hover:bg-amber-300/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {savingGoals ? 'Enregistrement...' : 'Enregistrer les objectifs'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+                            <div className="flex items-center gap-3">
+                                <ShieldCheck size={18} className="text-violet-300" />
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Accès staff</p>
+                            </div>
+                            <p className="mt-4 text-sm font-bold text-white">
+                                {accessContext.isOrgAdmin ? 'Accès administrateur' : canWriteAccounting ? 'Comptabilité en écriture' : canReadAccounting ? 'Comptabilité en lecture' : 'Accès comptable limité'}
+                            </p>
+                            <p className="mt-2 text-xs leading-5 text-slate-400">
+                                Les actions sensibles, comme les exports et les écritures, respectent le niveau de permission comptable du membre connecté.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                            <div className="flex items-center justify-between gap-3">
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Meilleur magasin</p>
+                                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black text-slate-400">{consolidatedStats?.total_orders || 0} ventes</span>
+                            </div>
+                            {leadingStore ? (
+                                <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <p className="text-lg font-black text-white">{leadingStore.store_name}</p>
+                                        <p className="text-xs text-slate-500">{leadingStore.address || 'Adresse non renseignée'}</p>
+                                    </div>
+                                    <div className="text-left md:text-right">
+                                        <p className="text-xl font-black text-cyan-200">{formatCurrency(leadingStore.revenue || 0)}</p>
+                                        <p className="text-xs text-slate-500">{leadingStore.orders || 0} ventes, {leadingStore.low_stock_count || 0} stocks bas</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="mt-4 text-sm text-slate-500">Aucune donnée multi-magasins disponible sur cette période.</p>
+                            )}
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Suivi des objectifs</p>
+                            <div className="mt-4 space-y-3">
+                                {[
+                                    { label: 'CA cible', value: goalProgress.revenue, suffix: '%' },
+                                    { label: 'Marge nette cible', value: goalProgress.netMargin, suffix: '%' },
+                                    { label: 'Plafond de charges', value: goalProgress.expenseRatio, suffix: '%' },
+                                ].map((goal) => (
+                                    <div key={goal.label}>
+                                        <div className="mb-1 flex items-center justify-between gap-3 text-xs">
+                                            <span className="text-slate-400">{goal.label}</span>
+                                            <span className="font-black text-white">{goal.value == null ? 'Non défini' : `${goal.value.toFixed(0)}${goal.suffix}`}</span>
+                                        </div>
+                                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                            <div
+                                                className="h-full rounded-full bg-cyan-300"
+                                                style={{ width: `${Math.min(100, Math.max(0, goal.value || 0))}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {stats && (
                 <section className="mb-8 rounded-3xl border border-primary/20 bg-primary/5 p-6">
                     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
@@ -1092,7 +1397,7 @@ export default function Accounting() {
                                 </p>
                             ) : null}
                             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-                                {stats.summary || 'Lecture consolidee du chiffre, des marges, des charges et de la TVA sur la selection active.'}
+                                {stats.summary || 'Lecture consolidée du chiffre, des marges, des charges et de la TVA sur la sélection active.'}
                             </p>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -1148,7 +1453,7 @@ export default function Accounting() {
                     icon={DollarSign}
                     label="Chiffre d'affaires"
                     value={formatCurrency(stats.revenue || 0)}
-                    hint={`${stats.sales_count || 0} ventes consolidees`}
+                    hint={`${stats.sales_count || 0} ventes consolidées`}
                     onClick={() => handleOpenFinanceDetail('revenue')}
                 />
                 <KpiCard
@@ -1176,7 +1481,7 @@ export default function Accounting() {
                     label="Panier moyen"
                     icon={ShoppingCart}
                     value={formatCurrency(stats.avg_sale || 0)}
-                    hint="Base des tickets de la periode"
+                    hint="Base des tickets de la période"
                     onClick={() => handleOpenFinanceDetail('avg_sale')}
                 />
                 <KpiCard
@@ -1189,7 +1494,7 @@ export default function Accounting() {
                 {(stats.tax_collected || 0) > 0 && (
                     <KpiCard
                         icon={Receipt}
-                        label="TVA collectee"
+                        label="TVA collectée"
                         value={formatCurrency(stats.tax_collected || 0)}
                     hint={`${formatPercent(stats.tax_ratio ?? 0)} du chiffre`}
                         onClick={() => handleOpenFinanceDetail('tax_collected')}
@@ -1306,7 +1611,7 @@ export default function Accounting() {
                         <div className="glass-card p-6">
                             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                                 <BarChart2 size={18} className="text-primary" />
-                                Top Produits ? Performance
+                                Top produits - performance
                             </h3>
                             <div className="space-y-3">
                                 {topProducts.map((p: any, i: number) => {
@@ -1476,6 +1781,153 @@ export default function Accounting() {
                                             </div>
                                         );
                                     })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <FileClock size={18} className="text-primary" />
+                                Historique des ventes
+                            </h3>
+                            <span className="text-xs font-black uppercase tracking-[0.18em] text-emerald-400">
+                                {salesHistory.length} vente(s)
+                            </span>
+                        </div>
+                        {pendingSummary.pendingSaleCancellations > 0 && (
+                            <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                                {pendingSummary.pendingSaleCancellations === 1
+                                    ? '1 annulation de vente est en attente de synchronisation.'
+                                    : `${pendingSummary.pendingSaleCancellations} annulations de vente sont en attente de synchronisation.`}
+                            </div>
+                        )}
+                        <div className="flex flex-col gap-2">
+                            {renderReviewFilterCard(
+                                salesReviewMode,
+                                setSalesReviewMode,
+                                monthlySalesGroups,
+                                selectedSalesMonthKey,
+                                setSelectedSalesMonthKey,
+                                salesYears,
+                                selectedSalesYear,
+                                setSelectedSalesYear,
+                                selectedSalesYearMonthKey,
+                                setSelectedSalesYearMonthKey,
+                            )}
+                            {salesReviewMode === 'all' ? (
+                                salesHistory.length === 0 ? (
+                                    <div className="text-center py-10 text-slate-500 font-medium">Aucune vente sur cette période.</div>
+                                ) : (
+                                    salesHistory.map((sale) => (
+                                        <div key={sale.sale_id} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="min-w-0">
+                                                    <p className="text-white font-bold truncate">{sale.customer_name || 'Client divers'}</p>
+                                                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
+                                                        {formatDate(sale.created_at)} • {sale.item_count} article(s)
+                                                    </p>
+                                                    <p className="text-xs text-slate-400 mt-2 truncate">
+                                                        {sale.items.map((item) => item.product_name).filter(Boolean).join(', ') || 'Vente'}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-white font-black text-lg">{formatCurrency(sale.total_amount)}</p>
+                                                    <div className="mt-2 flex flex-col items-end gap-2">
+                                                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black">
+                                                            {sale.payment_method.replace('_', ' ')}
+                                                        </p>
+                                                        <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${getSaleStatusClassName(sale)}`}>
+                                                            {getSaleStatusLabel(sale)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 mt-4">
+                                                {sale.invoice_id ? (
+                                                    <button
+                                                        onClick={() => handleOpenInvoice(sale.invoice_id!, invoiceHistory.find((invoice) => invoice.invoice_id === sale.invoice_id))}
+                                                        className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all"
+                                                    >
+                                                        Voir {sale.invoice_label || 'facture'}
+                                                    </button>
+                                                ) : sale.status !== 'cancelled' ? (
+                                                    <button
+                                                        onClick={() => handleCreateInvoiceFromSale(sale.sale_id)}
+                                                        disabled={invoiceBusyId === sale.sale_id}
+                                                        className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                                                    >
+                                                        {invoiceBusyId === sale.sale_id ? 'Création...' : 'Créer une facture'}
+                                                    </button>
+                                                ) : null}
+                                                {sale.status !== 'cancelled' && !sale.invoice_id ? (
+                                                    <button
+                                                        onClick={() => void handleCancelSale(sale.sale_id)}
+                                                        disabled={cancellingSaleId === sale.sale_id}
+                                                        className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                                                    >
+                                                        {cancellingSaleId === sale.sale_id
+                                                            ? t('accounting.cancelling_sale', { defaultValue: 'Annulation...' })
+                                                            : t('accounting.cancel_sale', { defaultValue: 'Annuler la vente' })}
+                                                    </button>
+                                                ) : null}
+                                            </div>
+                                            {sale.status === 'cancelled' && sale.cancelled_at ? (
+                                                <p className="mt-3 text-[11px] text-rose-300">
+                                                    {t('accounting.cancelled_on', {
+                                                        defaultValue: 'Annulée le {{date}}',
+                                                        date: formatDate(sale.cancelled_at),
+                                                    })}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    ))
+                                )
+                            ) : (
+                                <div className="space-y-3">
+                                    {visibleSalesGroups.map((group) => {
+                                        const expanded = !!expandedSalesMonths[group.key];
+                                        const visibleItems = expanded ? group.items : group.items.slice(0, 3);
+
+                                        return (
+                                            <div key={group.key} className="rounded-2xl border border-white/8 bg-slate-950/30 p-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setExpandedSalesMonths((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                                                    className="flex w-full items-start justify-between gap-3 text-left"
+                                                >
+                                                    <div>
+                                                        <p className="text-sm font-black text-white">{group.label}</p>
+                                                        <p className="mt-1 text-[11px] font-bold text-slate-400">
+                                                            {t('accounting.sales_count_value', { count: group.itemCount })} • {formatCurrency(group.total)}
+                                                        </p>
+                                                    </div>
+                                                    <span className="text-xs font-black uppercase tracking-[0.18em] text-primary">
+                                                        {expanded
+                                                            ? t('common.see_less', { defaultValue: 'Voir moins' })
+                                                            : t('accounting.monthly_show_all_entries', { defaultValue: 'Voir tout le mois' })}
+                                                    </span>
+                                                </button>
+                                                <div className="mt-4 space-y-2">
+                                                    {visibleItems.map((sale) => (
+                                                        <div key={sale.sale_id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                                                            <div className="min-w-0">
+                                                                <p className="truncate text-sm font-bold text-white">{sale.customer_name || t('accounting.client_diverse')}</p>
+                                                                <p className="mt-1 text-[11px] text-slate-500">
+                                                                    {formatDate(sale.created_at)} • {t('accounting.articles_short', { count: sale.item_count || sale.items.length })}
+                                                                </p>
+                                                            </div>
+                                                            <span className="shrink-0 text-sm font-black text-emerald-400">{formatCurrency(sale.total_amount)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {visibleSalesGroups.length === 0 && (
+                                        <div className="text-center py-10 text-slate-500 font-medium">Aucune vente sur cette période.</div>
+                                    )}
                                 </div>
                             )}
                         </div>
