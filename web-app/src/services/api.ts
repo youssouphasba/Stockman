@@ -2681,6 +2681,10 @@ export const admin = {
     },
     listUsers: (skip = 0, limit = 100) => request<any[]>(`/admin/users?skip=${skip}&limit=${limit}`),
     listStores: (skip = 0, limit = 50) => request<any>(`/admin/stores?skip=${skip}&limit=${limit}`),
+    listAllCustomers: (params?: { search?: string; skip?: number; limit?: number }) => {
+        const qs = toQueryString(params as Record<string, unknown> | undefined);
+        return request<{ items: any[]; total: number }>(`/admin/customers${qs ? `?${qs}` : ''}`);
+    },
     listAllProducts: (params?: { category_id?: string; min_stock?: number; store_id?: string; owner_user_id?: string; business_sector?: string; is_active?: boolean; search?: string; skip?: number; limit?: number }) => {
         const qs = toQueryString(params as Record<string, unknown> | undefined);
         return request<any>(`/admin/products${qs ? `?${qs}` : ''}`);

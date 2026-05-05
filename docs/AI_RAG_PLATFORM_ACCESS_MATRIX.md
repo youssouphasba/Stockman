@@ -74,7 +74,9 @@ Les reponses de l'IA doivent utiliser en priorite :
 ### superadmin
 
 - Vision globale plateforme.
-- Peut acceder aux vues transverses, securite, abonnements et administration globale.
+- Peut accéder aux vues transverses, sécurité, abonnements et administration globale.
+- Sur le web admin, peut consulter les files d'actions, les comptes à risque, les détails utilisateurs, les détails boutiques, le CRM des clients créés par les commerçants, les leads marketing, les tickets support, les événements sécurité, les liens de paiement et les actions d'abonnement disponibles.
+- Ne pas confondre CRM et Leads : le CRM correspond aux clients des commerçants, les Leads correspondent aux contacts marketing entrants du site public et aux abonnés newsletter.
 
 ### org_admin
 

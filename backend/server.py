@@ -5879,11 +5879,34 @@ async def admin_list_all_customers(search: Optional[str] = None, skip: int = 0, 
     query = {}
     if search:
         _s = safe_regex(search)
-        query["$or"] = [{"name": {"$regex": _s, "$options": "i"}}, {"phone": {"$regex": _s, "$options": "i"}}]
+        query["$or"] = [
+            {"name": {"$regex": _s, "$options": "i"}},
+            {"phone": {"$regex": _s, "$options": "i"}},
+            {"email": {"$regex": _s, "$options": "i"}},
+        ]
 
-    
     customers = await db.customers.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.customers.count_documents(query)
+    user_ids = list({c.get("user_id") for c in customers if c.get("user_id")})
+    store_ids = list({c.get("store_id") for c in customers if c.get("store_id")})
+    users_map = {}
+    stores_map = {}
+    if user_ids:
+        users_docs = await db.users.find({"user_id": {"$in": user_ids}}, {"_id": 0, "user_id": 1, "name": 1, "email": 1, "country_code": 1, "plan": 1}).to_list(len(user_ids))
+        users_map = {u.get("user_id"): u for u in users_docs}
+    if store_ids:
+        stores_docs = await db.stores.find({"store_id": {"$in": store_ids}}, {"_id": 0, "store_id": 1, "name": 1, "currency": 1, "country_code": 1}).to_list(len(store_ids))
+        stores_map = {s.get("store_id"): s for s in stores_docs}
+    for customer in customers:
+        owner = users_map.get(customer.get("user_id")) or {}
+        store = stores_map.get(customer.get("store_id")) or {}
+        customer["owner_name"] = owner.get("name")
+        customer["owner_email"] = owner.get("email")
+        customer["owner_country_code"] = owner.get("country_code")
+        customer["owner_plan"] = owner.get("plan")
+        customer["store_name"] = store.get("name")
+        customer["currency"] = customer.get("currency") or store.get("currency")
+        customer["country_code"] = customer.get("country_code") or store.get("country_code")
     return {"items": customers, "total": total}
 
 @admin_router.get("/logs")
