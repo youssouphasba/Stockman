@@ -22,7 +22,7 @@ Nouveautés utiles :
 
 - les dépenses et les ventes se lisent via un filtre de période : Voir tout, Mois ou Année ;
 - en mode Année, vous pouvez choisir directement les mois rattachés à l'année affichée ;
-- sur le plan Enterprise, la vue de pilotage affiche une synthèse multi-magasins, une comparaison explicite avec la période précédente, les objectifs facultatifs et le niveau d'accès staff.
+- sur le plan Enterprise, la vue de pilotage affiche une synthèse multi-magasins, les dates exactes comparées avec la période précédente et des objectifs facultatifs.
 
 ## 4. Lecture des indicateurs
 
@@ -43,9 +43,8 @@ Points importants :
 La vue de pilotage Enterprise sert au suivi de gestion sans saisie obligatoire :
 
 - **Multi-magasins** : affiche le nombre de magasins suivis, le chiffre d'affaires consolidé et le magasin le plus performant sur la période ;
-- **Comparaison avec la période précédente** : compare le chiffre d'affaires, le résultat net et les charges avec la période précédente équivalente, en affichant les montants actuels et précédents ;
-- **Objectifs de pilotage** : permet de renseigner un objectif de chiffre d'affaires, une marge nette cible et un plafond de charges sans rendre ces champs obligatoires ;
-- **Accès staff** : rappelle le niveau de permission comptable du membre connecté et limite les actions sensibles quand l'accès est en lecture seule.
+- **Comparaison des périodes** : compare le chiffre d'affaires, le résultat net et les charges entre la période affichée et la période précédente équivalente, avec les dates exactes et les montants actuels/précédents ;
+- **Objectifs de pilotage** : permet de renseigner un objectif de chiffre d'affaires, une marge nette cible et un plafond de charges sans rendre ces champs obligatoires.
 
 ## 6. Menus et visibilité
 

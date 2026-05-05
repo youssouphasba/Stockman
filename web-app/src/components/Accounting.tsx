@@ -27,7 +27,6 @@ import {
     ChevronRight,
     Building2,
     Target,
-    ShieldCheck,
     ArrowUpRight,
 } from 'lucide-react';
 import {
@@ -116,6 +115,11 @@ type AccountingGoals = {
     maxExpenseRatio?: number;
 };
 
+type AccountingRange = {
+    startDate: string;
+    endDate: string;
+};
+
 function getPreviousAccountingRange(period: number, startDate?: string, endDate?: string) {
     if (startDate && endDate) {
         const start = new Date(`${startDate}T00:00:00`);
@@ -138,6 +142,20 @@ function getPreviousAccountingRange(period: number, startDate?: string, endDate?
     return {
         startDate: previousStart.toISOString().slice(0, 10),
         endDate: previousEnd.toISOString().slice(0, 10),
+    };
+}
+
+function getCurrentAccountingRange(period: number, startDate?: string, endDate?: string): AccountingRange {
+    if (startDate && endDate) {
+        return { startDate, endDate };
+    }
+
+    const end = new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - period + 1);
+    return {
+        startDate: start.toISOString().slice(0, 10),
+        endDate: end.toISOString().slice(0, 10),
     };
 }
 
@@ -203,6 +221,8 @@ export default function Accounting() {
     const { formatDate, formatCurrency } = useDateFormatter();
     const [stats, setStats] = useState<AccountingStats | null>(null);
     const [comparisonStats, setComparisonStats] = useState<AccountingStats | null>(null);
+    const [currentComparisonRange, setCurrentComparisonRange] = useState<AccountingRange | null>(null);
+    const [previousComparisonRange, setPreviousComparisonRange] = useState<AccountingRange | null>(null);
     const [consolidatedStats, setConsolidatedStats] = useState<ConsolidatedStats | null>(null);
     const [storeList, setStoreList] = useState<Store[]>([]);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -344,6 +364,7 @@ export default function Accounting() {
     const loadData = async (sd: string = '', ed: string = '') => {
         setLoading(true);
         try {
+            const currentRange = getCurrentAccountingRange(period, sd, ed);
             const previousRange = getPreviousAccountingRange(period, sd, ed);
             const [statsRes, expensesRes, salesHistoryRes, invoicesRes, comparisonRes, consolidatedRes] = await Promise.allSettled([
                 sd || ed
@@ -373,6 +394,8 @@ export default function Accounting() {
             if (statsRes.status === 'fulfilled') {
                 setStats(statsRes.value);
             }
+            setCurrentComparisonRange(currentRange);
+            setPreviousComparisonRange(previousRange);
             setComparisonStats(comparisonRes.status === 'fulfilled' ? comparisonRes.value : null);
             setConsolidatedStats(consolidatedRes.status === 'fulfilled' ? consolidatedRes.value as ConsolidatedStats : null);
             setExpenses(merged.expensesList);
@@ -839,6 +862,10 @@ export default function Accounting() {
             expenseRatio: maxExpenseRatio > 0 ? ((stats?.expense_ratio || 0) / maxExpenseRatio) * 100 : null,
         };
     }, [accountingGoals, stats]);
+    const formatRangeLabel = (range: AccountingRange | null) => {
+        if (!range) return '';
+        return `${formatDate(range.startDate)} - ${formatDate(range.endDate)}`;
+    };
 
     if (loading && !stats) {
         return (
@@ -1227,10 +1254,10 @@ export default function Accounting() {
             )}
 
             {isEnterpriseAccounting && (
-                <section className="mb-8 rounded-3xl border border-cyan-500/20 bg-cyan-500/[0.04] p-6">
+                <section className="mb-8 rounded-3xl border border-primary/25 bg-primary/[0.06] p-6">
                     <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">Pilotage</p>
+                            <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Pilotage</p>
                             <h2 className="mt-2 text-2xl font-black text-white">Pilotage financier Enterprise</h2>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
                                 Compare la période affichée avec la période précédente équivalente, suit les objectifs facultatifs et consolide les magasins disponibles.
@@ -1240,32 +1267,35 @@ export default function Accounting() {
                             type="button"
                             onClick={() => setShowReportModal(true)}
                             disabled={!canWriteAccounting}
-                            className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-200 transition-all hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-2xl border border-primary/25 bg-primary/15 px-4 py-3 text-sm font-black text-white transition-all hover:bg-primary/25 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Export de synthèse
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                         <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
                             <div className="flex items-center gap-3">
-                                <Building2 size={18} className="text-cyan-300" />
+                                <Building2 size={18} className="text-primary" />
                                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Vue consolidée multi-magasins</p>
                             </div>
                             <p className="mt-4 text-2xl font-black text-white">{consolidatedStats?.stores?.length ?? storeList.length}</p>
                             <p className="mt-1 text-xs text-slate-400">magasins suivis</p>
-                            <p className="mt-4 text-sm font-bold text-cyan-200">{formatCurrency(consolidatedStats?.total_revenue || 0)}</p>
+                            <p className="mt-4 text-sm font-bold text-primary">{formatCurrency(consolidatedStats?.total_revenue || 0)}</p>
                             <p className="text-xs text-slate-500">CA consolidé sur {consolidatedStats?.days || period} jours</p>
                         </div>
 
                         <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
                             <div className="flex items-center gap-3">
                                 <ArrowUpRight size={18} className="text-emerald-300" />
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Comparaison avec la période précédente</p>
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Comparaison des périodes</p>
                             </div>
-                            <p className="mt-3 text-xs leading-5 text-slate-500">
-                                Comparaison automatique entre la période affichée et la période juste avant, de même durée.
-                            </p>
+                            <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
+                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Période affichée</p>
+                                <p className="mt-1 text-xs font-bold text-white">{formatRangeLabel(currentComparisonRange)}</p>
+                                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Comparée à</p>
+                                <p className="mt-1 text-xs font-bold text-white">{formatRangeLabel(previousComparisonRange)}</p>
+                            </div>
                             <div className="mt-4 space-y-3">
                                 {[
                                     { label: "Chiffre d'affaires", value: comparison.revenueDelta, current: stats?.revenue || 0, previous: comparisonStats?.revenue || 0 },
@@ -1333,18 +1363,6 @@ export default function Accounting() {
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
-                            <div className="flex items-center gap-3">
-                                <ShieldCheck size={18} className="text-violet-300" />
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Accès staff</p>
-                            </div>
-                            <p className="mt-4 text-sm font-bold text-white">
-                                {accessContext.isOrgAdmin ? 'Accès administrateur' : canWriteAccounting ? 'Comptabilité en écriture' : canReadAccounting ? 'Comptabilité en lecture' : 'Accès comptable limité'}
-                            </p>
-                            <p className="mt-2 text-xs leading-5 text-slate-400">
-                                Les actions sensibles, comme les exports et les écritures, respectent le niveau de permission comptable du membre connecté.
-                            </p>
-                        </div>
                     </div>
 
                     <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
@@ -1360,7 +1378,7 @@ export default function Accounting() {
                                         <p className="text-xs text-slate-500">{leadingStore.address || 'Adresse non renseignée'}</p>
                                     </div>
                                     <div className="text-left md:text-right">
-                                        <p className="text-xl font-black text-cyan-200">{formatCurrency(leadingStore.revenue || 0)}</p>
+                                        <p className="text-xl font-black text-primary">{formatCurrency(leadingStore.revenue || 0)}</p>
                                         <p className="text-xs text-slate-500">{leadingStore.orders || 0} ventes, {leadingStore.low_stock_count || 0} stocks bas</p>
                                     </div>
                                 </div>
@@ -1384,7 +1402,7 @@ export default function Accounting() {
                                         </div>
                                         <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                                             <div
-                                                className="h-full rounded-full bg-cyan-300"
+                                                className="h-full rounded-full bg-primary"
                                                 style={{ width: `${Math.min(100, Math.max(0, goal.value || 0))}%` }}
                                             />
                                         </div>
