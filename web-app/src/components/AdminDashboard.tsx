@@ -67,6 +67,7 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 type AdminChannel = 'in_app' | 'push' | 'email';
+type AdminMessageTarget = 'all' | 'shopkeeper' | 'supplier' | 'staff' | 'specific';
 
 function formatAdminMoney(amount: any, currency: string) {
     if (amount === null || amount === undefined || amount === '') return '—';
@@ -193,7 +194,7 @@ export default function AdminDashboard() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [messageHistory, setMessageHistory] = useState<any[]>([]);
     const [messageHistoryTotal, setMessageHistoryTotal] = useState(0);
-    const [broadcastForm, setBroadcastForm] = useState<{ title: string; message: string; target: string; channels: AdminChannel[] }>({ title: '', message: '', target: 'all', channels: ['in_app', 'push'] });
+    const [broadcastForm, setBroadcastForm] = useState<{ title: string; message: string; target: AdminMessageTarget; targetUserId: string; channels: AdminChannel[] }>({ title: '', message: '', target: 'all', targetUserId: '', channels: ['in_app', 'push'] });
     const [leadContacts, setLeadContacts] = useState<any[]>([]);
     const [leadSubscribers, setLeadSubscribers] = useState<any[]>([]);
     const [leadsLoading, setLeadsLoading] = useState(false);
@@ -302,7 +303,8 @@ export default function AdminDashboard() {
         setBroadcastForm({
             title: '',
             message: '',
-            target: user.user_id,
+            target: 'specific',
+            targetUserId: user.user_id,
             channels: ['in_app', 'push'],
         });
         setActiveSection('broadcast');
@@ -3403,15 +3405,38 @@ export default function AdminDashboard() {
                                     placeholder="Contenu du message"
                                 />
                             </div>
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-3">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cible</label>
-                                <input
-                                    type="text"
-                                    value={broadcastForm.target}
-                                    onChange={e => setBroadcastForm({ ...broadcastForm, target: e.target.value || 'all' })}
-                                    className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all"
-                                    placeholder="all, shopkeeper, supplier, staff ou user_id"
-                                />
+                                <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+                                    {[
+                                        { id: 'all' as AdminMessageTarget, label: 'Tous' },
+                                        { id: 'shopkeeper' as AdminMessageTarget, label: 'Commerçants' },
+                                        { id: 'supplier' as AdminMessageTarget, label: 'Fournisseurs' },
+                                        { id: 'staff' as AdminMessageTarget, label: 'Staff' },
+                                        { id: 'specific' as AdminMessageTarget, label: 'Utilisateur' },
+                                    ].map(target => {
+                                        const active = broadcastForm.target === target.id;
+                                        return (
+                                            <button
+                                                key={target.id}
+                                                type="button"
+                                                onClick={() => setBroadcastForm(current => ({ ...current, target: target.id, targetUserId: target.id === 'specific' ? current.targetUserId : '' }))}
+                                                className={`rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-widest transition-all ${active ? 'border-primary/40 bg-primary/15 text-primary' : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                            >
+                                                {target.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {broadcastForm.target === 'specific' ? (
+                                    <input
+                                        type="text"
+                                        value={broadcastForm.targetUserId}
+                                        onChange={e => setBroadcastForm({ ...broadcastForm, targetUserId: e.target.value })}
+                                        className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all"
+                                        placeholder="ID utilisateur"
+                                    />
+                                ) : null}
                             </div>
                             <div className="flex flex-col gap-3">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Canaux</label>
@@ -3440,18 +3465,22 @@ export default function AdminDashboard() {
                             <button
                                 onClick={async () => {
                                     if (!broadcastForm.message.trim()) return;
+                                    if (broadcastForm.target === 'specific' && !broadcastForm.targetUserId.trim()) {
+                                        showToast("Veuillez renseigner l'ID utilisateur.", 'error');
+                                        return;
+                                    }
                                     setSaving(true);
                                     try {
-                                        const target = broadcastForm.target.trim() || 'all';
+                                        const target = broadcastForm.target === 'specific' ? broadcastForm.targetUserId.trim() : broadcastForm.target;
                                         await adminApi.sendMessage({
                                             title: broadcastForm.title || 'Stockman',
                                             content: broadcastForm.message,
                                             target,
-                                            type: target === 'all' ? 'broadcast' : target.includes('_') ? 'individual' : 'announcement',
+                                            type: broadcastForm.target === 'all' ? 'broadcast' : broadcastForm.target === 'specific' ? 'individual' : 'announcement',
                                             channels: broadcastForm.channels,
                                         });
                                         showToast('Message envoyé.');
-                                        setBroadcastForm({ title: '', message: '', target: 'all', channels: ['in_app', 'push'] });
+                                        setBroadcastForm({ title: '', message: '', target: 'all', targetUserId: '', channels: ['in_app', 'push'] });
                                         await loadBroadcastHistory();
                                     } catch {
                                         showToast("Erreur lors de l'envoi.", 'error');
