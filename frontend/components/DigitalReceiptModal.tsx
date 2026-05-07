@@ -27,7 +27,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
 
     const isOfflineReceipt = Boolean((sale as any).is_offline || (sale as any).offline_pending || !sale.public_receipt_token);
     const receiptUrl = sale.public_receipt_token
-        ? `${Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8000'}/public/receipts/t/${sale.public_receipt_token}`
+        ? `${Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8000'}/public/receipts/t/${sale.public_receipt_token}?download=1`
         : '';
 
     const handleSharePdf = async () => {

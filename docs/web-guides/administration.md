@@ -97,6 +97,16 @@ La vue CRM admin correspond aux clients ajoutés par les commerçants. Elle perm
 
 Cette section est séparée de la vue Leads, qui concerne les contacts marketing entrants du site public et les abonnés newsletter.
 
+### Communications admin
+
+La section Communication admin centralise les messages envoyés depuis le backoffice.
+
+- Le super-administrateur peut cibler tous les utilisateurs, un rôle ou un utilisateur précis.
+- Chaque communication crée toujours une notification in-app.
+- Les canaux push et e-mail peuvent être activés selon le besoin.
+- Depuis une fiche utilisateur, l'action Notifier préremplit la cible avec l'utilisateur concerné.
+- L'historique conserve le titre, le contenu, le type, la cible, l'expéditeur, la date et les informations de livraison disponibles.
+
 ### Sécurité
 
 On y retrouve les événements de sécurité, les vérifications et certaines sessions actives.

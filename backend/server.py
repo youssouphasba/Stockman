@@ -1350,7 +1350,7 @@ async def get_public_receipt(public_token: str):
 
 
 @app.get("/public/receipts/t/{public_token}", response_class=HTMLResponse)
-async def view_public_receipt_page(public_token: str):
+async def view_public_receipt_page(public_token: str, download: bool = Query(False)):
     """Public HTML receipt page for QR scans."""
     receipt = await get_public_receipt(public_token)
 
@@ -1372,6 +1372,59 @@ async def view_public_receipt_page(public_token: str):
         """
         for item in receipt.items
     )
+
+    if download:
+        receipt_html = f"""<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reçu {escape(receipt.sale_id)}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; color: #1f2937; margin: 0; padding: 24px; }}
+        .card {{ max-width: 760px; margin: 0 auto; border: 1px solid #eadfcb; border-radius: 20px; padding: 24px; }}
+        .eyebrow {{ color: #2563eb; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }}
+        h1 {{ margin: 8px 0 4px; }}
+        .meta, .footer {{ color: #6b7280; font-size: 14px; }}
+        .total {{ display: flex; justify-content: space-between; margin: 20px 0; padding: 16px; background: #eff6ff; border-radius: 14px; font-weight: 700; }}
+        table {{ width: 100%; border-collapse: collapse; }}
+        th, td {{ padding: 12px 8px; border-bottom: 1px solid #eadfcb; font-size: 14px; }}
+        th {{ color: #6b7280; font-size: 12px; text-align: left; text-transform: uppercase; }}
+        .footer {{ margin-top: 20px; text-align: center; }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="eyebrow">Reçu numérique</div>
+        <h1>{escape(receipt.store_name)}</h1>
+        <div class="meta">
+            {escape(receipt.store_address or "")}<br />
+            Référence vente : {escape(receipt.sale_id)}<br />
+            Date : {escape(created_label)}<br />
+            Paiement : {escape(receipt.payment_method)}
+        </div>
+        <div class="total"><span>Total</span><span>{fmt_amount(receipt.total_amount)}</span></div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th style="text-align:center;">Quantité</th>
+                    <th style="text-align:right;">Prix</th>
+                    <th style="text-align:right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>{items_html}</tbody>
+        </table>
+        <div class="footer">{escape(receipt.receipt_footer or "Merci de votre visite.")}</div>
+    </div>
+</body>
+</html>"""
+        filename = f"recu-{receipt.sale_id}.html"
+        return Response(
+            content=receipt_html,
+            media_type="text/html; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
 
     return HTMLResponse(content=f"""
         <!DOCTYPE html>
@@ -1532,6 +1585,7 @@ async def view_public_receipt_page(public_token: str):
 
                     <div class="actions">
                         <a class="btn btn-primary" href="javascript:window.print()">Imprimer / PDF</a>
+                        <a class="btn" href="/public/receipts/t/{quote(public_token)}?download=1">Télécharger le reçu</a>
                     </div>
 
                     <div class="footer">{escape(receipt.receipt_footer or "Merci de votre visite.")}</div>
@@ -2680,16 +2734,19 @@ class AdminMessage(BaseModel):
     title: str
     content: str
     target: str = "all"  # all, shopkeeper, supplier, staff, or specific user_id
+    channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
     sent_by: str = "Admin"
     sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     read_count: int = 0
     read_by: List[str] = []
+    delivery: Dict[str, Any] = Field(default_factory=dict)
 
 class AdminMessageCreate(BaseModel):
     title: str
     content: str
     type: str = "broadcast"
     target: str = "all"
+    channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
 
 
 class PlannerItem(BaseModel):
@@ -7154,30 +7211,71 @@ class BroadcastMessage(BaseModel):
     title: str = "Stockman"
     message: str
 
+
+async def _resolve_admin_message_recipients(target: str) -> List[dict]:
+    target_value = (target or "all").strip()
+    base_query: Dict[str, Any] = {"is_active": {"$ne": False}}
+    if target_value == "all":
+        query = base_query
+    elif target_value in {"shopkeeper", "supplier", "staff", "admin", "superadmin"}:
+        query = {**base_query, "role": target_value}
+    else:
+        query = {**base_query, "user_id": target_value}
+    return await db.users.find(
+        query,
+        {"_id": 0, "user_id": 1, "email": 1, "push_tokens": 1}
+    ).to_list(length=5000)
+
+
+async def _deliver_admin_message(message: AdminMessage, recipients: List[dict]) -> Dict[str, Any]:
+    channels = set(message.channels or ["in_app"])
+    delivery: Dict[str, Any] = {
+        "target_users": len(recipients),
+        "channels": sorted(channels),
+        "push": None,
+        "email": None,
+    }
+    if "push" in channels:
+        tokens: List[str] = []
+        for recipient in recipients:
+            tokens.extend(recipient.get("push_tokens") or [])
+        unique_tokens = list(dict.fromkeys(tokens))
+        delivery["push"] = await notification_service.send_push_notification(
+            unique_tokens,
+            message.title,
+            message.content,
+            {"type": "admin_message", "message_id": message.message_id, "target": message.target},
+        )
+    if "email" in channels:
+        emails = [recipient.get("email") for recipient in recipients if recipient.get("email")]
+        html_body = f"""
+        <p>{escape(message.content).replace(chr(10), '<br>')}</p>
+        <p style="color:#64748b;font-size:12px;">Message envoyé par Stockman.</p>
+        """
+        delivery["email"] = await notification_service.send_email_notification(
+            emails,
+            message.title,
+            html_body,
+            text_body=message.content,
+        )
+        delivery["email_recipients"] = len(list(dict.fromkeys([str(email).strip().lower() for email in emails if email])))
+    return delivery
+
+
 @admin_router.post("/broadcast")
 async def admin_broadcast(data: BroadcastMessage):
     """Send broadcast message to all users"""
-    # Get all unique tokens from all users
-    users_with_tokens = await db.users.find({"push_tokens": {"$exists": True, "$ne": []}}, {"push_tokens": 1}).to_list(None)
-    all_tokens = []
-    for u in users_with_tokens:
-        all_tokens.extend(u.get("push_tokens", []))
-    
-    unique_tokens = list(set(all_tokens))
-    logger.info(f"BROADCAST: {data.title} - {data.message} to {len(unique_tokens)} devices")
-    
-    if unique_tokens:
-        await notification_service.send_push_notification(unique_tokens, data.title, data.message)
-    logger.info(f"BROADCAST: {data.title} - {data.message} to {len(unique_tokens)} devices")
-    
-    # Save to communication history
+    recipients = await _resolve_admin_message_recipients("all")
     msg = AdminMessage(
         type="broadcast",
         title=data.title,
         content=data.message,
         target="all",
+        channels=["in_app", "push"],
         sent_by="Admin"
     )
+    delivery = await _deliver_admin_message(msg, recipients)
+    msg.delivery = delivery
     await db.admin_messages.insert_one(msg.model_dump())
     
     
@@ -7192,7 +7290,8 @@ async def admin_broadcast(data: BroadcastMessage):
         "created_at": datetime.now(timezone.utc)
     })
     
-    return {"status": "sent", "count": len(unique_tokens)}
+    sent_to = (delivery.get("push") or {}).get("valid_tokens", 0)
+    return {"status": "sent", "count": sent_to, "sent_to": sent_to, "delivery": delivery}
 
 # ===================== INVENTORY MANAGEMENT =====================
 
@@ -11713,13 +11812,20 @@ async def admin_dispute_stats():
 @admin_router.post("/messages/send")
 async def admin_send_message(data: AdminMessageCreate, user: User = Depends(require_superadmin)):
     """Send a targeted message"""
+    channels = list(dict.fromkeys(data.channels or ["in_app"]))
+    if "in_app" not in channels:
+        channels.insert(0, "in_app")
     msg = AdminMessage(
         type=data.type,
         title=data.title,
         content=data.content,
         target=data.target,
+        channels=channels,
         sent_by=user.name
     )
+    recipients = await _resolve_admin_message_recipients(data.target)
+    delivery = await _deliver_admin_message(msg, recipients)
+    msg.delivery = delivery
     await db.admin_messages.insert_one(msg.model_dump())
     
     # Log
@@ -11733,7 +11839,7 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
         "created_at": datetime.now(timezone.utc)
     })
     
-    return {"message_id": msg.message_id, "sent": True}
+    return {"message_id": msg.message_id, "sent": True, "delivery": delivery}
 
 @admin_router.get("/messages")
 async def admin_list_messages(type: Optional[str] = None, skip: int = 0, limit: int = 50):

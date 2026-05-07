@@ -1558,8 +1558,8 @@ export const admin = {
   getDisputeStats: () => request<{ total: number; open: number; investigating: number; resolved: number; rejected: number; by_type: Record<string, number> }>('/admin/disputes/stats'),
 
   // Communication
-  sendMessage: (data: { title: string; content: string; type?: string; target?: string }) =>
-    request<{ message_id: string; sent: boolean }>('/admin/messages/send', { method: 'POST', body: data }),
+  sendMessage: (data: { title: string; content: string; type?: string; target?: string; channels?: ('in_app' | 'push' | 'email')[] }) =>
+    request<{ message_id: string; sent: boolean; delivery?: any }>('/admin/messages/send', { method: 'POST', body: data }),
   listMessages: (type?: string, skip = 0, limit = 50) => {
     const params = type ? `type=${type}&skip=${skip}&limit=${limit}` : `skip=${skip}&limit=${limit}`;
     return request<{ items: any[]; total: number }>(`/admin/messages?${params}`);
@@ -1575,7 +1575,7 @@ export const admin = {
 
   // Comm
   broadcast: (message: string, title?: string) =>
-    request<{ sent_to: number; message: string; title: string }>('/admin/broadcast', { method: 'POST', body: { message, title } }),
+    request<{ sent_to: number; message?: string; title?: string; delivery?: any }>('/admin/broadcast', { method: 'POST', body: { message, title } }),
 
   // Data Explorer
   getCollections: () => request<CollectionInfo[]>('/admin/collections'),

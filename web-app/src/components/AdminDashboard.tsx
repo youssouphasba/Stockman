@@ -66,6 +66,8 @@ const PLAN_COLORS: Record<string, string> = {
     trial: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
 };
 
+type AdminChannel = 'in_app' | 'push' | 'email';
+
 function formatAdminMoney(amount: any, currency: string) {
     if (amount === null || amount === undefined || amount === '') return '—';
     const numeric = Number(amount);
@@ -191,7 +193,7 @@ export default function AdminDashboard() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [messageHistory, setMessageHistory] = useState<any[]>([]);
     const [messageHistoryTotal, setMessageHistoryTotal] = useState(0);
-    const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '' });
+    const [broadcastForm, setBroadcastForm] = useState<{ title: string; message: string; target: string; channels: AdminChannel[] }>({ title: '', message: '', target: 'all', channels: ['in_app', 'push'] });
     const [leadContacts, setLeadContacts] = useState<any[]>([]);
     const [leadSubscribers, setLeadSubscribers] = useState<any[]>([]);
     const [leadsLoading, setLeadsLoading] = useState(false);
@@ -284,6 +286,28 @@ export default function AdminDashboard() {
 
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ message, type });
+    };
+
+    const toggleBroadcastChannel = (channel: AdminChannel) => {
+        if (channel === 'in_app') return;
+        setBroadcastForm(current => ({
+            ...current,
+            channels: current.channels.includes(channel)
+                ? current.channels.filter(item => item !== channel)
+                : [...current.channels, channel],
+        }));
+    };
+
+    const openUserCommunication = (user: any) => {
+        setBroadcastForm({
+            title: '',
+            message: '',
+            target: user.user_id,
+            channels: ['in_app', 'push'],
+        });
+        setActiveSection('broadcast');
+        setDetailUser(null);
+        setDetailData(null);
     };
 
     useEffect(() => { loadInitialData(); }, []);
@@ -1276,6 +1300,9 @@ export default function AdminDashboard() {
                                     </div>
                                 )}
                                 <div className="flex gap-2 pt-2">
+                                    <button onClick={() => openUserCommunication(detailUser)} className="flex-1 px-3 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-300 text-xs font-bold">
+                                        Notifier
+                                    </button>
                                     <button onClick={() => { setNoteModalUser(detailUser); setNoteText(detailUser.admin_note || ''); }} className="flex-1 px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-xs font-bold">
                                         Note interne
                                     </button>
@@ -3353,7 +3380,7 @@ export default function AdminDashboard() {
                     <div className="glass-card p-8 bg-gradient-to-br from-primary/5 to-transparent">
                         <div className="flex items-center gap-3 mb-8">
                             <Bell size={28} className="text-primary" />
-                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Diffusion Globale</h3>
+                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Communication admin</h3>
                         </div>
                         <div className="space-y-5">
                             <div className="flex flex-col gap-2">
@@ -3363,7 +3390,7 @@ export default function AdminDashboard() {
                                     value={broadcastForm.title}
                                     onChange={e => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
                                     className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all"
-                                    placeholder="Ex: Nouvelle mise à jour disponible !"
+                                    placeholder="Ex: Nouvelle mise à jour disponible"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
@@ -3373,20 +3400,61 @@ export default function AdminDashboard() {
                                     onChange={e => setBroadcastForm({ ...broadcastForm, message: e.target.value })}
                                     rows={5}
                                     className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all resize-none"
-                                    placeholder="Contenu du messagé"
+                                    placeholder="Contenu du message"
                                 />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cible</label>
+                                <input
+                                    type="text"
+                                    value={broadcastForm.target}
+                                    onChange={e => setBroadcastForm({ ...broadcastForm, target: e.target.value || 'all' })}
+                                    className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all"
+                                    placeholder="all, shopkeeper, supplier, staff ou user_id"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Canaux</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        { id: 'in_app' as AdminChannel, label: 'In-app' },
+                                        { id: 'push' as AdminChannel, label: 'Push' },
+                                        { id: 'email' as AdminChannel, label: 'Email' },
+                                    ].map(channel => {
+                                        const active = broadcastForm.channels.includes(channel.id);
+                                        const locked = channel.id === 'in_app';
+                                        return (
+                                            <button
+                                                key={channel.id}
+                                                type="button"
+                                                onClick={() => toggleBroadcastChannel(channel.id)}
+                                                disabled={locked}
+                                                className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-widest transition-all ${active ? 'border-primary/40 bg-primary/15 text-primary' : 'border-white/10 bg-white/5 text-slate-400'} ${locked ? 'opacity-80' : 'hover:bg-white/10'}`}
+                                            >
+                                                {channel.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                             <button
                                 onClick={async () => {
                                     if (!broadcastForm.message.trim()) return;
                                     setSaving(true);
                                     try {
-                                        await adminApi.broadcast(broadcastForm.message, broadcastForm.title);
-                                        showToast('Message diffusé à tous les utilisateurs.');
-                                        setBroadcastForm({ title: '', message: '' });
+                                        const target = broadcastForm.target.trim() || 'all';
+                                        await adminApi.sendMessage({
+                                            title: broadcastForm.title || 'Stockman',
+                                            content: broadcastForm.message,
+                                            target,
+                                            type: target === 'all' ? 'broadcast' : target.includes('_') ? 'individual' : 'announcement',
+                                            channels: broadcastForm.channels,
+                                        });
+                                        showToast('Message envoyé.');
+                                        setBroadcastForm({ title: '', message: '', target: 'all', channels: ['in_app', 'push'] });
                                         await loadBroadcastHistory();
                                     } catch {
-                                        showToast('Erreur lors de la diffusion.', 'error');
+                                        showToast("Erreur lors de l'envoi.", 'error');
                                     } finally {
                                         setSaving(false);
                                     }
@@ -3394,16 +3462,16 @@ export default function AdminDashboard() {
                                 disabled={saving || !broadcastForm.message.trim()}
                                 className="w-full py-4 rounded-xl bg-primary text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
                             >
-                                {saving ? 'Envoi en cours…' : 'Diffuser à tous les utilisateurs'}
+                                {saving ? 'Envoi en cours...' : 'Envoyer la communication'}
                             </button>
                         </div>
                     </div>
 
                     <div className="space-y-6">
                         <div className="glass-card p-6 border-amber-500/20 bg-amber-500/5">
-                            <h4 className="text-amber-400 font-black uppercase tracking-widest text-xs mb-3">aAttention</h4>
+                            <h4 className="text-amber-400 font-black uppercase tracking-widest text-xs mb-3">Attention</h4>
                             <p className="text-slate-400 text-sm leading-relaxed">
-                                Les messages seront envoyés instantanément à <strong className="text-white">tous les utilisateurs</strong> (Shopkeepers et Suppliers) via push notification. Vérifiez le contenu avant d'envoyer.
+                                La cible peut être globale, par rôle ou limitée à un utilisateur. Vérifiez le contenu et les canaux avant l'envoi.
                             </p>
                         </div>
                         <div className="glass-card p-6">
@@ -3418,7 +3486,7 @@ export default function AdminDashboard() {
                             <div className="p-5 border-b border-white/5 bg-white/5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                                 <div>
                                     <h4 className="text-base font-black text-white uppercase tracking-tighter">Historique des messages</h4>
-                                    <p className="mt-1 text-xs text-slate-500">{messageHistoryTotal} message(s) archiv(s) pour suivi admin.</p>
+                                    <p className="mt-1 text-xs text-slate-500">{messageHistoryTotal} message(s) archivé(s) pour suivi admin.</p>
                                 </div>
                                 <select
                                     value={messageTypeFilter}
@@ -4381,8 +4449,3 @@ export default function AdminDashboard() {
         </div>
     );
 }
-
-
-
-
-

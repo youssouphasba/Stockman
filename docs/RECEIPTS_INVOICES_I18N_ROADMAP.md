@@ -138,6 +138,7 @@ Target:
   - tax summary
   - customer name if allowed
   - optional QR-friendly metadata
+  - downloadable receipt file when the QR code is scanned
 
 ### A3. Mobile receipt customization
 
@@ -629,4 +630,3 @@ If implemented in separate tickets, split into:
 3. `accounting sales history customer + actions`
 4. `document localization cleanup`
 5. `business/store/document identity settings`
-

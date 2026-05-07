@@ -1674,10 +1674,12 @@ L'écran admin est organisé en segments navigables horizontalement.
 
 | Élément | Description |
 |---------|-------------|
-| Liste des messages | Messages broadcast envoyés |
+| Liste des messages | Historique des communications admin envoyées |
 | Bouton nouveau message | Ouvre le formulaire de création |
-| Formulaire | Titre, contenu, cible (tous les utilisateurs ou sélection) |
-| Bouton envoyer | Envoie le message (push + notification) |
+| Formulaire | Titre, contenu, cible globale, cible par rôle ou utilisateur précis |
+| Canaux | Notification in-app obligatoire, push et e-mail activables |
+| Bouton envoyer | Envoie la communication selon la cible et les canaux choisis |
+| Action Notifier sur une fiche utilisateur | Ouvre le formulaire avec l'utilisateur déjà ciblé |
 
 ### L. Sécurité
 

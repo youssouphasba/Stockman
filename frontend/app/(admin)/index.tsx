@@ -12,6 +12,7 @@ import { formatCurrency, formatNumber } from '../../utils/format';
 
 const { width } = Dimensions.get('window');
 type Segment = 'global' | 'users' | 'stores' | 'subscriptions' | 'demos' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'leads' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
+type AdminChannel = 'in_app' | 'push' | 'email';
 
 import { useTranslation } from 'react-i18next';
 
@@ -108,6 +109,7 @@ export default function AdminDashboard() {
     const [msgTitle, setMsgTitle] = useState('');
     const [msgContent, setMsgContent] = useState('');
     const [msgTarget, setMsgTarget] = useState('all');
+    const [msgChannels, setMsgChannels] = useState<AdminChannel[]>(['in_app', 'push']);
     const [replyText, setReplyText] = useState('');
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     const [disputeResolution, setDisputeResolution] = useState('');
@@ -402,20 +404,27 @@ export default function AdminDashboard() {
     };
     const handleSendMessage = async () => {
         if (!msgTitle.trim() || !msgContent.trim()) return Alert.alert(t('auth.register.errorFillRequired'));
-        const finalTarget = msgTarget === 'specific' ? targetUserId : msgTarget;
+        const finalTarget = msgTarget === 'specific' ? targetUserId.trim() : msgTarget;
         if (msgTarget === 'specific' && !targetUserId.trim()) return Alert.alert(t('admin.placeholders.targetUserId'));
         try {
-            await admin.sendMessage({ title: msgTitle, content: msgContent, target: finalTarget });
-            Alert.alert(t('admin.actions.sendSuccess')); setMsgTitle(''); setMsgContent(''); setTargetUserId(''); loadData();
+            const messageType = finalTarget === 'all' ? 'broadcast' : msgTarget === 'specific' ? 'individual' : 'announcement';
+            await admin.sendMessage({ title: msgTitle, content: msgContent, target: finalTarget, type: messageType, channels: msgChannels });
+            Alert.alert(t('admin.actions.sendSuccess')); setMsgTitle(''); setMsgContent(''); setTargetUserId(''); setMsgChannels(['in_app', 'push']); loadData();
         } catch { Alert.alert(t('admin.actions.error')); }
     };
-    const handleBroadcast = async () => {
-        if (!msgTitle.trim() || !msgContent.trim()) return Alert.alert(t('auth.register.errorFillRequired'));
-        try {
-            const r = await admin.broadcast(msgContent, msgTitle);
-            Alert.alert(t('admin.actions.success'), t('admin.comms.broadcastSuccess', { count: r.sent_to }));
-            setMsgTitle(''); setMsgContent(''); loadData();
-        } catch { Alert.alert(t('admin.actions.error')); }
+
+    const toggleMsgChannel = (channel: AdminChannel) => {
+        if (channel === 'in_app') return;
+        setMsgChannels(current => current.includes(channel) ? current.filter(item => item !== channel) : [...current, channel]);
+    };
+
+    const openUserCommunication = (target: User) => {
+        setMsgTitle('');
+        setMsgContent('');
+        setMsgTarget('specific');
+        setTargetUserId(target.user_id);
+        setMsgChannels(['in_app', 'push']);
+        setSeg('comms');
     };
 
     const roleColors: Record<string, string> = { superadmin: '#EF4444', shopkeeper: '#3B82F6', staff: '#10B981', supplier: '#F59E0B' };
@@ -705,6 +714,7 @@ export default function AdminDashboard() {
                         {u.phone ? <ActionButton label="Appeler" icon="call-outline" color={colors.primary} onPress={() => handleCall(u.phone)} /> : null}
                         {u.email ? <ActionButton label="E-mail" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(u.email)} /> : null}
                         {u.phone ? <ActionButton label="WhatsApp" icon="logo-whatsapp" color="#10B981" onPress={() => openExternal(`https://wa.me/${String(u.phone).replace(/[^0-9]/g, '')}`)} /> : null}
+                        <ActionButton label="Notifier" icon="notifications-outline" color="#06B6D4" onPress={() => openUserCommunication(u)} />
                         <ActionButton label={u.is_active === false ? 'Réactiver' : 'Suspendre'} icon={u.is_active === false ? 'checkmark-circle-outline' : 'pause-circle-outline'} color={u.is_active === false ? '#10B981' : '#F59E0B'} onPress={() => handleToggleUser(u)} />
                         <ActionButton label="Supprimer" icon="trash-outline" color="#DC2626" onPress={() => handleDeleteUser(u)} />
                     </View>
@@ -1279,6 +1289,7 @@ export default function AdminDashboard() {
                         { id: 'all', label: t('admin.comms.targetAll') },
                         { id: 'shopkeeper', label: t('admin.comms.targetShopkeepers') },
                         { id: 'supplier', label: t('admin.comms.targetSuppliers') },
+                        { id: 'staff', label: 'Staff' },
                         { id: 'specific', label: t('admin.comms.targetSpecific') }
                     ]}
                     active={msgTarget}
@@ -1296,12 +1307,39 @@ export default function AdminDashboard() {
                     />
                 )}
 
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                    <TouchableOpacity onPress={handleSendMessage} style={{ flex: 1, backgroundColor: '#3B82F6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, marginBottom: 6 }}>Canaux :</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {[
+                        { id: 'in_app' as AdminChannel, label: 'In-app' },
+                        { id: 'push' as AdminChannel, label: 'Push' },
+                        { id: 'email' as AdminChannel, label: 'Email' },
+                    ].map((channel) => {
+                        const active = msgChannels.includes(channel.id);
+                        const disabled = channel.id === 'in_app';
+                        return (
+                            <TouchableOpacity
+                                key={channel.id}
+                                onPress={() => toggleMsgChannel(channel.id)}
+                                disabled={disabled}
+                                style={{
+                                    borderRadius: 999,
+                                    paddingVertical: 8,
+                                    paddingHorizontal: 12,
+                                    borderWidth: 1,
+                                    borderColor: active ? colors.primary : colors.glassBorder,
+                                    backgroundColor: active ? colors.primary + '22' : colors.inputBg,
+                                    opacity: disabled ? 0.8 : 1,
+                                }}
+                            >
+                                <Text style={{ color: active ? colors.primary : colors.textSecondary, fontWeight: '700', fontSize: 12 }}>{channel.label}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
+                <View style={{ marginTop: 8 }}>
+                    <TouchableOpacity onPress={handleSendMessage} style={{ backgroundColor: '#3B82F6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
                         <Text style={{ color: '#fff', fontWeight: '700' }}>{t('admin.actions.send')}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleBroadcast} style={{ flex: 1, backgroundColor: '#8B5CF6', borderRadius: 10, padding: 12, alignItems: 'center' }}>
-                        <Text style={{ color: '#fff', fontWeight: '700' }}>{t('admin.actions.broadcast')}</Text>
                     </TouchableOpacity>
                 </View>
             </Card>
@@ -1314,7 +1352,7 @@ export default function AdminDashboard() {
                     </View>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={2}>{m.content}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>
-                        ? {m.target} · {m.sent_by} · {new Date(m.sent_at).toLocaleDateString()}
+                        Cible : {m.target} · {m.sent_by} · {new Date(m.sent_at).toLocaleDateString()}
                     </Text>
                 </Card>
             ))}

@@ -76,6 +76,7 @@ Les reponses de l'IA doivent utiliser en priorite :
 - Vision globale plateforme.
 - Peut accéder aux vues transverses, sécurité, abonnements et administration globale.
 - Sur le web admin, peut consulter les files d'actions, les comptes à risque, les détails utilisateurs, les détails boutiques, le CRM des clients créés par les commerçants, les leads marketing, les tickets support, les événements sécurité, les liens de paiement et les actions d'abonnement disponibles.
+- Peut envoyer des communications admin globales, par rôle ou ciblées sur un utilisateur, avec notification in-app obligatoire et canaux push ou e-mail activables.
 - Ne pas confondre CRM et Leads : le CRM correspond aux clients des commerçants, les Leads correspondent aux contacts marketing entrants du site public et aux abonnés newsletter.
 
 ### org_admin
@@ -166,6 +167,7 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 ## Web admin
 
 - Administration, securite, support, litiges, abonnements, catalogues et reglages globaux.
+- Communication admin unifiée : ciblage global, par rôle ou utilisateur précis, historique, notification in-app, push et e-mail selon les canaux choisis.
 - Certaines actions n'existent pas sur le mobile commercant standard.
 
 ## iOS
