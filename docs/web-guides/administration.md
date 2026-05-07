@@ -102,7 +102,8 @@ Cette section est séparée de la vue Leads, qui concerne les contacts marketing
 La section Communication admin centralise les messages envoyés depuis le backoffice.
 
 - Le super-administrateur peut cibler tous les utilisateurs, un rôle ou un utilisateur précis.
-- Le choix de cible se fait par boutons : tous, commerçants, fournisseurs, staff ou utilisateur précis.
+- Le choix de cible se fait par boutons : tous, commerçants, fournisseurs, staff ou utilisateurs précis.
+- Pour une cible utilisateur, le backoffice permet une multi-sélection avec recherche, filtre par plan et filtre par pays.
 - Chaque communication crée toujours une notification in-app.
 - Les canaux push et e-mail peuvent être activés selon le besoin.
 - Depuis une fiche utilisateur, l'action Notifier préremplit la cible avec l'utilisateur concerné.

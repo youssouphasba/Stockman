@@ -194,7 +194,10 @@ export default function AdminDashboard() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [messageHistory, setMessageHistory] = useState<any[]>([]);
     const [messageHistoryTotal, setMessageHistoryTotal] = useState(0);
-    const [broadcastForm, setBroadcastForm] = useState<{ title: string; message: string; target: AdminMessageTarget; targetUserId: string; channels: AdminChannel[] }>({ title: '', message: '', target: 'all', targetUserId: '', channels: ['in_app', 'push'] });
+    const [broadcastForm, setBroadcastForm] = useState<{ title: string; message: string; target: AdminMessageTarget; targetUserIds: string[]; channels: AdminChannel[] }>({ title: '', message: '', target: 'all', targetUserIds: [], channels: ['in_app', 'push'] });
+    const [messageUserSearch, setMessageUserSearch] = useState('');
+    const [messageUserPlanFilter, setMessageUserPlanFilter] = useState('');
+    const [messageUserCountryFilter, setMessageUserCountryFilter] = useState('');
     const [leadContacts, setLeadContacts] = useState<any[]>([]);
     const [leadSubscribers, setLeadSubscribers] = useState<any[]>([]);
     const [leadsLoading, setLeadsLoading] = useState(false);
@@ -304,12 +307,21 @@ export default function AdminDashboard() {
             title: '',
             message: '',
             target: 'specific',
-            targetUserId: user.user_id,
+            targetUserIds: [user.user_id],
             channels: ['in_app', 'push'],
         });
         setActiveSection('broadcast');
         setDetailUser(null);
         setDetailData(null);
+    };
+
+    const toggleMessageRecipient = (userId: string) => {
+        setBroadcastForm(current => {
+            const nextIds = current.targetUserIds.includes(userId)
+                ? current.targetUserIds.filter(id => id !== userId)
+                : [...current.targetUserIds, userId];
+            return { ...current, targetUserIds: nextIds };
+        });
     };
 
     useEffect(() => { loadInitialData(); }, []);
@@ -345,7 +357,7 @@ export default function AdminDashboard() {
 
     const loadUsers = async () => {
         setRefreshing(true);
-        try { setUsers(await adminApi.listUsers()); }
+        try { setUsers(await adminApi.listUsers(0, 500)); }
         finally { setRefreshing(false); }
     };
 
@@ -541,7 +553,10 @@ export default function AdminDashboard() {
         if (activeSection === 'disputes') loadDisputes();
         if (activeSection === 'security') loadSecurity();
         if (activeSection === 'support') loadTickets();
-        if (activeSection === 'broadcast') loadBroadcastHistory();
+        if (activeSection === 'broadcast') {
+            loadBroadcastHistory();
+            if (!users.length) loadUsers();
+        }
         if (activeSection === 'legal') loadLegalDocuments();
         if (activeSection === 'logs') loadLogs();
         if (activeSection === 'mrr' && !mrrStats) loadMrr();
@@ -636,6 +651,26 @@ export default function AdminDashboard() {
         }
         return result;
     }, [users, userSearch, userPlanFilter, userStatusFilter, userActivityFilter]);
+
+    const messageRecipientCountries = useMemo(() => {
+        return Array.from(new Set(users.map(user => user.country_code).filter(Boolean))).sort();
+    }, [users]);
+
+    const filteredMessageRecipients = useMemo(() => {
+        const query = messageUserSearch.trim().toLowerCase();
+        return users.filter(user => {
+            if (user.is_active === false) return false;
+            if (messageUserPlanFilter && (user.plan || 'starter') !== messageUserPlanFilter) return false;
+            if (messageUserCountryFilter && user.country_code !== messageUserCountryFilter) return false;
+            if (!query) return true;
+            return (
+                (user.name || '').toLowerCase().includes(query) ||
+                (user.email || '').toLowerCase().includes(query) ||
+                (user.user_id || '').toLowerCase().includes(query) ||
+                (user.country_code || '').toLowerCase().includes(query)
+            );
+        }).slice(0, 80);
+    }, [users, messageUserSearch, messageUserPlanFilter, messageUserCountryFilter]);
 
     const exportUsersCsv = () => {
         if (!filteredUsers.length) return;
@@ -3420,7 +3455,7 @@ export default function AdminDashboard() {
                                             <button
                                                 key={target.id}
                                                 type="button"
-                                                onClick={() => setBroadcastForm(current => ({ ...current, target: target.id, targetUserId: target.id === 'specific' ? current.targetUserId : '' }))}
+                                                onClick={() => setBroadcastForm(current => ({ ...current, target: target.id, targetUserIds: target.id === 'specific' ? current.targetUserIds : [] }))}
                                                 className={`rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-widest transition-all ${active ? 'border-primary/40 bg-primary/15 text-primary' : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'}`}
                                             >
                                                 {target.label}
@@ -3429,13 +3464,84 @@ export default function AdminDashboard() {
                                     })}
                                 </div>
                                 {broadcastForm.target === 'specific' ? (
-                                    <input
-                                        type="text"
-                                        value={broadcastForm.targetUserId}
-                                        onChange={e => setBroadcastForm({ ...broadcastForm, targetUserId: e.target.value })}
-                                        className="bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-primary/50 transition-all"
-                                        placeholder="ID utilisateur"
-                                    />
+                                    <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 space-y-4">
+                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr,160px,160px]">
+                                            <div className="relative">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                                                <input
+                                                    type="text"
+                                                    value={messageUserSearch}
+                                                    onChange={e => setMessageUserSearch(e.target.value)}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-9 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all"
+                                                    placeholder="Nom, e-mail ou ID utilisateur"
+                                                />
+                                            </div>
+                                            <select
+                                                value={messageUserPlanFilter}
+                                                onChange={e => setMessageUserPlanFilter(e.target.value)}
+                                                className="bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary/50"
+                                            >
+                                                <option value="">Tous les plans</option>
+                                                <option value="starter">Starter</option>
+                                                <option value="pro">Pro</option>
+                                                <option value="enterprise">Enterprise</option>
+                                            </select>
+                                            <select
+                                                value={messageUserCountryFilter}
+                                                onChange={e => setMessageUserCountryFilter(e.target.value)}
+                                                className="bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary/50"
+                                            >
+                                                <option value="">Tous les pays</option>
+                                                {messageRecipientCountries.map(country => (
+                                                    <option key={country} value={country}>{country}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setBroadcastForm(current => ({ ...current, targetUserIds: Array.from(new Set([...current.targetUserIds, ...filteredMessageRecipients.map(user => user.user_id)])) }))}
+                                                disabled={!filteredMessageRecipients.length}
+                                                className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-primary disabled:opacity-40"
+                                            >
+                                                Sélectionner les résultats
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setBroadcastForm(current => ({ ...current, targetUserIds: [] }))}
+                                                disabled={!broadcastForm.targetUserIds.length}
+                                                className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-rose-300 disabled:opacity-40"
+                                            >
+                                                Vider
+                                            </button>
+                                            <span className="text-xs font-bold text-slate-400">{broadcastForm.targetUserIds.length} destinataire(s) sélectionné(s)</span>
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto rounded-xl border border-white/10 divide-y divide-white/5">
+                                            {filteredMessageRecipients.length > 0 ? filteredMessageRecipients.map(user => {
+                                                const selected = broadcastForm.targetUserIds.includes(user.user_id);
+                                                return (
+                                                    <button
+                                                        key={user.user_id}
+                                                        type="button"
+                                                        onClick={() => toggleMessageRecipient(user.user_id)}
+                                                        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-all ${selected ? 'bg-primary/10' : 'hover:bg-white/5'}`}
+                                                    >
+                                                        <div>
+                                                            <p className="text-sm font-bold text-white">{user.name || user.email || user.user_id}</p>
+                                                            <p className="text-xs text-slate-500">{user.email || user.user_id}</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{user.plan || 'starter'}</span>
+                                                            <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{user.country_code || '—'}</span>
+                                                            <span className={`h-4 w-4 rounded border ${selected ? 'border-primary bg-primary' : 'border-white/20 bg-white/5'}`} />
+                                                        </div>
+                                                    </button>
+                                                );
+                                            }) : (
+                                                <div className="px-4 py-6 text-center text-sm text-slate-500">Aucun utilisateur actif ne correspond aux filtres.</div>
+                                            )}
+                                        </div>
+                                    </div>
                                 ) : null}
                             </div>
                             <div className="flex flex-col gap-3">
@@ -3465,22 +3571,25 @@ export default function AdminDashboard() {
                             <button
                                 onClick={async () => {
                                     if (!broadcastForm.message.trim()) return;
-                                    if (broadcastForm.target === 'specific' && !broadcastForm.targetUserId.trim()) {
-                                        showToast("Veuillez renseigner l'ID utilisateur.", 'error');
+                                    if (broadcastForm.target === 'specific' && !broadcastForm.targetUserIds.length) {
+                                        showToast('Veuillez sélectionner au moins un utilisateur.', 'error');
                                         return;
                                     }
                                     setSaving(true);
                                     try {
-                                        const target = broadcastForm.target === 'specific' ? broadcastForm.targetUserId.trim() : broadcastForm.target;
+                                        const target = broadcastForm.target === 'specific'
+                                            ? `selected_users:${broadcastForm.targetUserIds.length}`
+                                            : broadcastForm.target;
                                         await adminApi.sendMessage({
                                             title: broadcastForm.title || 'Stockman',
                                             content: broadcastForm.message,
                                             target,
+                                            recipient_user_ids: broadcastForm.target === 'specific' ? broadcastForm.targetUserIds : undefined,
                                             type: broadcastForm.target === 'all' ? 'broadcast' : broadcastForm.target === 'specific' ? 'individual' : 'announcement',
                                             channels: broadcastForm.channels,
                                         });
                                         showToast('Message envoyé.');
-                                        setBroadcastForm({ title: '', message: '', target: 'all', targetUserId: '', channels: ['in_app', 'push'] });
+                                        setBroadcastForm({ title: '', message: '', target: 'all', targetUserIds: [], channels: ['in_app', 'push'] });
                                         await loadBroadcastHistory();
                                     } catch {
                                         showToast("Erreur lors de l'envoi.", 'error');

@@ -2787,7 +2787,7 @@ export const admin = {
     // Communication
     broadcast: (message: string, title?: string) =>
         request<any>('/admin/broadcast', { method: 'POST', body: { message, title } }),
-    sendMessage: (data: { title: string; content: string; type?: string; target?: string; channels?: ('in_app' | 'push' | 'email')[] }) =>
+    sendMessage: (data: { title: string; content: string; type?: string; target?: string; recipient_user_ids?: string[]; channels?: ('in_app' | 'push' | 'email')[] }) =>
         request<any>('/admin/messages/send', { method: 'POST', body: data }),
     listMessages: (type?: string, skip = 0, limit = 50) => {
         const params = type ? `type=${type}&skip=${skip}&limit=${limit}` : `skip=${skip}&limit=${limit}`;

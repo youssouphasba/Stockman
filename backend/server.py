@@ -2734,6 +2734,7 @@ class AdminMessage(BaseModel):
     title: str
     content: str
     target: str = "all"  # all, shopkeeper, supplier, staff, or specific user_id
+    target_user_ids: List[str] = Field(default_factory=list)
     channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
     sent_by: str = "Admin"
     sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -2746,6 +2747,7 @@ class AdminMessageCreate(BaseModel):
     content: str
     type: str = "broadcast"
     target: str = "all"
+    recipient_user_ids: List[str] = Field(default_factory=list)
     channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
 
 
@@ -5432,6 +5434,7 @@ async def get_user_notifications(user: User = Depends(require_auth), skip: int =
         {"target": "all"},
         {"target": user.role},
         {"target": user.user_id},
+        {"target_user_ids": user.user_id},
     ]}
     messages = await db.admin_messages.find(query, {"_id": 0}).sort("sent_at", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.admin_messages.count_documents(query)
@@ -5457,6 +5460,7 @@ async def mark_all_notifications_read(user: User = Depends(require_auth)):
         {"target": "all"},
         {"target": user.role},
         {"target": user.user_id},
+        {"target_user_ids": user.user_id},
     ], "read_by": {"$ne": user.user_id}}
     result = await db.admin_messages.update_many(query, {"$addToSet": {"read_by": user.user_id}})
     return {"marked": result.modified_count}
@@ -7212,10 +7216,13 @@ class BroadcastMessage(BaseModel):
     message: str
 
 
-async def _resolve_admin_message_recipients(target: str) -> List[dict]:
+async def _resolve_admin_message_recipients(target: str, recipient_user_ids: Optional[List[str]] = None) -> List[dict]:
+    selected_user_ids = [str(user_id).strip() for user_id in (recipient_user_ids or []) if str(user_id).strip()]
     target_value = (target or "all").strip()
     base_query: Dict[str, Any] = {"is_active": {"$ne": False}}
-    if target_value == "all":
+    if selected_user_ids:
+        query = {**base_query, "user_id": {"$in": list(dict.fromkeys(selected_user_ids))}}
+    elif target_value == "all":
         query = base_query
     elif target_value in {"shopkeeper", "supplier", "staff", "admin", "superadmin"}:
         query = {**base_query, "role": target_value}
@@ -11820,10 +11827,11 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
         title=data.title,
         content=data.content,
         target=data.target,
+        target_user_ids=list(dict.fromkeys([user_id.strip() for user_id in data.recipient_user_ids if user_id.strip()])),
         channels=channels,
         sent_by=user.name
     )
-    recipients = await _resolve_admin_message_recipients(data.target)
+    recipients = await _resolve_admin_message_recipients(data.target, msg.target_user_ids)
     delivery = await _deliver_admin_message(msg, recipients)
     msg.delivery = delivery
     await db.admin_messages.insert_one(msg.model_dump())

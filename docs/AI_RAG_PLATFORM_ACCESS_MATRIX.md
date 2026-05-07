@@ -167,7 +167,7 @@ L'IA doit verifier les modules suivants avant d'affirmer qu'une action est dispo
 ## Web admin
 
 - Administration, securite, support, litiges, abonnements, catalogues et reglages globaux.
-- Communication admin unifiée : ciblage global, par rôle ou utilisateur précis, historique, notification in-app, push et e-mail selon les canaux choisis.
+- Communication admin unifiée : ciblage global, par rôle ou multi-sélection d'utilisateurs avec filtres, historique, notification in-app, push et e-mail selon les canaux choisis.
 - Certaines actions n'existent pas sur le mobile commercant standard.
 
 ## iOS
