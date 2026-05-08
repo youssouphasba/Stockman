@@ -59,13 +59,17 @@ async def create_flutterwave_session(user: dict, plan: str = "pro") -> dict:
     user_currency = resolved["currency"]
     amount = str(resolved["amount"])
 
+    meta = {"user_id": user["user_id"], "plan": normalized_plan}
+    if user.get("account_id"):
+        meta["account_id"] = user["account_id"]
+
     payload = {
         "tx_ref": transaction_id,
         "amount": amount,
         "currency": user_currency,
         "redirect_url": f"{BASE_URL}/api/payment/success",
         "payment_options": "mobilemoneyssenegal,mobilemoneyghana,mobilemoneyfranco,card",
-        "meta": {"user_id": user["user_id"], "plan": normalized_plan},
+        "meta": meta,
         "customer": {
             "email": user.get("email", "noreply@stockman.pro"),
             "phonenumber": user.get("phone", ""),
@@ -130,6 +134,9 @@ async def create_stripe_session(user: dict, plan: str = "enterprise") -> dict:
         price_id = plan_map.get(currency) or plan_map.get(currency.lower())
     if not price_id:
         price_id = STRIPE_PRICES.get(normalized_plan, STRIPE_PRICES["enterprise"])
+    metadata = {"user_id": user["user_id"], "plan": normalized_plan, "currency": currency}
+    if user.get("account_id"):
+        metadata["account_id"] = user["account_id"]
 
     def _create():
         return stripe_lib.checkout.Session.create(
@@ -139,8 +146,8 @@ async def create_stripe_session(user: dict, plan: str = "enterprise") -> dict:
             success_url=f"{BASE_URL}/api/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{BASE_URL}/api/payment/cancel",
             customer_email=user.get("email") or None,
-            metadata={"user_id": user["user_id"], "plan": normalized_plan, "currency": currency},
-            subscription_data={"metadata": {"user_id": user["user_id"], "plan": normalized_plan, "currency": currency}},
+            metadata=metadata,
+            subscription_data={"metadata": metadata},
         )
 
     session = await asyncio.to_thread(_create)

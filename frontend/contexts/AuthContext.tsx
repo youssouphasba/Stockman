@@ -109,6 +109,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
       const userData = await authApi.me();
+      if (userData.is_demo) {
+        const rememberedAccounts = await listStoredAccountSessions();
+        if (rememberedAccounts.some((entry) => !entry.user.is_demo)) {
+          await removeToken();
+          await removeRefreshToken();
+          return null;
+        }
+      }
       await hydrateAndPersistUser(userData);
       return userData;
     };

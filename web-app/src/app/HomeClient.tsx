@@ -50,7 +50,7 @@ const CompleteSocialProfilePanel = lazyTab(() => import("../components/CompleteS
 const EnterpriseSignupModal = lazyTab(() => import("../components/EnterpriseSignupModal"));
 const GlobalFiltersBar = lazyTab(() => import("../components/analytics/GlobalFiltersBar"));
 
-import { auth, userFeatures, chat as chatApi, demo as demoApi, ApiError, UserFeatures, removeToken, setWebAccessMode, clearWebAccessMode, type AuthResponse, type DemoSessionInfo } from "../services/api";
+import { auth, userFeatures, chat as chatApi, demo as demoApi, subscription, ApiError, UserFeatures, removeToken, setWebAccessMode, clearWebAccessMode, type AuthResponse, type DemoSessionInfo } from "../services/api";
 import { completeRedirectSignIn, signInWithProvider } from "../services/firebaseAuth";
 import { getAccessContext } from "../utils/access";
 import { AnalyticsFiltersProvider } from "../contexts/AnalyticsFiltersContext";
@@ -125,11 +125,13 @@ export default function Home() {
   const [modules, setModules] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState<string | null>(null);
   const [socialLoading, setSocialLoading] = useState<null | 'google'>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [demoBootLoading, setDemoBootLoading] = useState(false);
   const searchParams = useSearchParams();
   const parsedDemoIntent = useRef(false);
+  const pendingPaymentPlanRef = useRef<string | null>(null);
 
   const [showSignup, setShowSignup] = useState(false);
   const [showDemoCurrencyPicker, setShowDemoCurrencyPicker] = useState(false);
@@ -143,6 +145,8 @@ export default function Home() {
   const effectivePlan = user?.effective_plan || user?.plan;
   const subscriptionPlan = user?.subscription_plan || user?.plan || effectivePlan;
   const subscriptionAccessPhase = user?.subscription_access_phase || 'active';
+  const requestedPaymentPlan = searchParams.get('pay');
+  const validRequestedPaymentPlan = requestedPaymentPlan && ['starter', 'pro', 'enterprise'].includes(requestedPaymentPlan) ? requestedPaymentPlan : null;
   const requiresPaymentAttention = Boolean(user?.requires_payment_attention);
   const access = getAccessContext(user);
   const isOrgAdmin = access.isOrgAdmin;
@@ -229,6 +233,19 @@ export default function Home() {
     window.history.replaceState({}, '', url.toString());
   }, []);
 
+  const startPendingStripeCheckout = useCallback(async (plan: string) => {
+    if (!['starter', 'pro', 'enterprise'].includes(plan)) return;
+    setCheckoutLoadingPlan(plan);
+    setError(null);
+    try {
+      const session = await subscription.stripeCheckout(plan);
+      window.location.href = session.checkout_url;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible d'ouvrir le paiement Stripe. Vérifiez votre compte de facturation.");
+      setCheckoutLoadingPlan(null);
+    }
+  }, []);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
@@ -308,6 +325,16 @@ export default function Home() {
   }, [searchParams, clearQueryParam]);
 
   useEffect(() => {
+    const requestedPlan = searchParams.get('pay');
+    if (!requestedPlan || !['starter', 'pro', 'enterprise'].includes(requestedPlan)) return;
+    pendingPaymentPlanRef.current = requestedPlan;
+    if (isLogged) {
+      clearQueryParam('pay');
+      void startPendingStripeCheckout(requestedPlan);
+    }
+  }, [searchParams, isLogged, clearQueryParam, startPendingStripeCheckout]);
+
+  useEffect(() => {
     let cancelled = false;
     if (!isLogged || !user?.is_demo || !user?.demo_session_id) {
       setDemoSessionInfo(null);
@@ -356,6 +383,12 @@ export default function Home() {
     try {
       const response = await auth.login(email, password);
       hydrateAuthenticatedUser(response.user);
+      const pendingPlan = pendingPaymentPlanRef.current;
+      if (pendingPlan) {
+        pendingPaymentPlanRef.current = null;
+        clearQueryParam('pay');
+        await startPendingStripeCheckout(pendingPlan);
+      }
     } catch (err: any) {
       setError(err instanceof ApiError ? err.message : t('common.auth_error', { defaultValue: "Erreur d'authentification" }));
     } finally {
@@ -368,12 +401,18 @@ export default function Home() {
     try {
       const response = await auth.socialLogin(firebaseIdToken, 'web');
       hydrateAuthenticatedUser(response.user);
+      const pendingPlan = pendingPaymentPlanRef.current;
+      if (pendingPlan) {
+        pendingPaymentPlanRef.current = null;
+        clearQueryParam('pay');
+        await startPendingStripeCheckout(pendingPlan);
+      }
     } catch (err: any) {
       setError(err instanceof ApiError ? err.message : t('home.login.social_error', { defaultValue: "Connexion sociale impossible." }));
     } finally {
       setSocialLoading(null);
     }
-  }, [hydrateAuthenticatedUser, t]);
+  }, [clearQueryParam, hydrateAuthenticatedUser, startPendingStripeCheckout, t]);
 
   const handleSocialLogin = async (provider: 'google') => {
     if (socialLoading) return;
@@ -1177,6 +1216,12 @@ export default function Home() {
               <p className="text-slate-400">{t('home.login.subtitle')}</p>
             </div>
 
+            {validRequestedPaymentPlan && (
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-primary text-sm font-semibold relative z-10">
+                Connectez-vous pour payer le plan {validRequestedPaymentPlan === 'enterprise' ? 'Enterprise' : validRequestedPaymentPlan === 'pro' ? 'Pro' : 'Starter'} avec le compte à facturer.
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3 text-red-400 text-sm relative z-10">
                 <AlertIcon size={18} />
@@ -1215,10 +1260,15 @@ export default function Home() {
             <div className="flex flex-col gap-4 relative z-10">
               <button
                 onClick={handleLogin}
-                disabled={loading}
-                className={`btn-primary w-full py-4 rounded-xl flex items-center justify-center gap-3 text-lg shadow-xl shadow-primary/20 ${loading ? 'opacity-70 cursor-wait' : ''}`}
+                disabled={loading || !!checkoutLoadingPlan}
+                className={`btn-primary w-full py-4 rounded-xl flex items-center justify-center gap-3 text-lg shadow-xl shadow-primary/20 ${loading || checkoutLoadingPlan ? 'opacity-70 cursor-wait' : ''}`}
               >
-                {loading ? (
+                {checkoutLoadingPlan ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Ouverture du paiement...
+                  </>
+                ) : loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     {t('home.login.btn_loading')}
@@ -1259,6 +1309,14 @@ export default function Home() {
                   <a href="/pricing" className="text-slate-400 hover:text-white transition-colors">{t('home.login.compare_plans')}</a>
                   <span className="text-white/10">|</span>
                   <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">{t('home.login.open_mobile')}</a>
+                  {validRequestedPaymentPlan && (
+                    <>
+                      <span className="text-white/10">|</span>
+                      <button onClick={() => setShowSignup(true)} className="text-slate-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0">
+                        Créer un compte
+                      </button>
+                    </>
+                  )}
                 </div>
                 <div className="mt-2 flex items-center justify-center gap-3 text-xs">
                   <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-300 transition-colors">CGU</a>
@@ -1279,6 +1337,12 @@ export default function Home() {
             setEmail(response.user.email);
             setPassword('');
             hydrateAuthenticatedUser(response.user);
+            const pendingPlan = pendingPaymentPlanRef.current;
+            if (pendingPlan) {
+              pendingPaymentPlanRef.current = null;
+              clearQueryParam('pay');
+              void startPendingStripeCheckout(pendingPlan);
+            }
           }}
         />
       )}

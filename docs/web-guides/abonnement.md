@@ -6,6 +6,9 @@ Le module Abonnement permet de consulter son plan, verifier la devise de factura
 
 **Profils concernes** : `billing_admin`, `org_admin`, `shopkeeper` autorise.
 
+Les comptes `supplier` ne sont pas factures par Stockman. Ils ne doivent pas recevoir de relance billing, de lien Stripe
+ou de demande de renouvellement d'abonnement.
+
 ## 2. Acces
 
 Barre laterale -> **Compte** -> **Abonnement**.
@@ -67,6 +70,16 @@ Deux canaux peuvent etre proposes selon la devise :
 
 - `Stripe` pour la carte bancaire
 - `Flutterwave` pour Mobile Money
+
+Les liens envoyes par email ou generes depuis l'administration ne doivent pas pointer vers la page publique des tarifs.
+Ils utilisent un lien Stockman signe qui identifie le compte, le plan et le canal de paiement, puis cree une session
+Stripe ou Flutterwave au moment du clic. Ainsi, le paiement est rattache au bon compte, meme si le client ouvre le lien
+plus tard.
+
+Sur la page publique des tarifs :
+
+- un visiteur non connecte est redirige vers la connexion avec le plan demande, puis le paiement Stripe s'ouvre apres authentification ;
+- un utilisateur connecte lance le paiement Stripe pour son compte actuel.
 
 ### Historique de facturation
 

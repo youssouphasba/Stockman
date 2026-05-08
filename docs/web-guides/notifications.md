@@ -35,6 +35,18 @@ Selon le type d'information et la configuration :
 
 Le test push affiche maintenant la vraie erreur technique si le branchement n'est pas correct.
 
+Les relances automatiques d'activation utilisent les push et les emails selon le contexte du compte :
+
+- fin de démo avec email de suivi : email de conversion vers l'inscription Stockman ;
+- compte commerçant sans produit : email et push vers la création de produit ;
+- compte commerçant avec produits mais sans vente : email et push vers la caisse ;
+- compte commerçant inactif : email et push vers le tableau de bord ;
+- compte nécessitant une action d'abonnement : email et push vers l'abonnement.
+
+Ces liens sont des deep links applicatifs. Ils ne redirigent pas vers une page web générique.
+
+Les fournisseurs ne reçoivent pas ces relances d'activation. Ils continuent à recevoir les notifications liées aux commandes qu'ils reçoivent.
+
 ## 6. Questions frequentes
 
 | Question | Reponse |

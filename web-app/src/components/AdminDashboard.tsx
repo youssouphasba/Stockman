@@ -1308,8 +1308,33 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                 )}
-                                {/* Timeline */}
-                                <div>
+	                                {detailData.system_messages?.length > 0 && (
+	                                    <div>
+	                                        <div className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Messages système envoyés</div>
+	                                        <div className="max-h-56 overflow-y-auto custom-scrollbar space-y-1 pr-1">
+	                                            {detailData.system_messages.map((message: any) => (
+	                                                <div key={message.delivery_id || `${message.scenario}-${message.created_at}`} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs">
+	                                                    <div className="flex items-start justify-between gap-3">
+	                                                        <div className="min-w-0">
+	                                                            <div className="font-bold text-white truncate">{message.title || 'Message système'}</div>
+	                                                            <div className="mt-0.5 text-slate-400 truncate">{message.body || 'Aucun contenu enregistré'}</div>
+	                                                        </div>
+	                                                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase border ${message.status === 'sent' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-rose-500/30 bg-rose-500/10 text-rose-300'}`}>
+	                                                            {message.status === 'sent' ? 'Envoyé' : 'Échec'}
+	                                                        </span>
+	                                                    </div>
+	                                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+	                                                        <span>{message.channel === 'push' ? 'Push' : 'Email'}</span>
+	                                                        <span>{message.scenario || 'activation'}</span>
+	                                                        <span>{message.milestone || '—'}</span>
+	                                                        <span>{formatAdminDate(message.created_at)}</span>
+	                                                    </div>
+	                                                </div>
+	                                            ))}
+	                                        </div>
+	                                    </div>
+	                                )}
+	                                <div>
                                     <div className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
                                         Timeline ({userTimelineLoading ? '...' : userTimeline.length} entrées)
                                     </div>

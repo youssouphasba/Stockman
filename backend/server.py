@@ -28,7 +28,7 @@ import re
 from urllib.parse import quote
 from decimal import Decimal, InvalidOperation
 from PIL import Image
-from starlette.responses import StreamingResponse
+from starlette.responses import RedirectResponse, StreamingResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from bson import ObjectId
@@ -921,6 +921,9 @@ async def create_indexes_and_init():
                 await db.demo_sessions.create_index("demo_session_id", unique=True)
                 await db.demo_sessions.create_index([("status", 1), ("expires_at", 1)])
                 await db.demo_sessions.create_index([("contact_email", 1), ("demo_type", 1), ("status", 1)])
+                await db.system_message_deliveries.create_index([("target_user_id", 1), ("created_at", -1)])
+                await db.system_message_deliveries.create_index([("target_user_id", 1), ("scenario", 1), ("milestone", 1), ("channel", 1), ("status", 1)])
+                await db.system_message_deliveries.create_index([("demo_session_id", 1), ("scenario", 1), ("milestone", 1), ("channel", 1), ("status", 1)])
                 await db.idempotency_keys.create_index("key", unique=True)
                 await db.idempotency_keys.create_index("created_at", expireAfterSeconds=86400*7) # 7 days TTL
                 await db.idempotency_cache.create_index("created_at", expireAfterSeconds=IDEMPOTENCY_TTL_SECONDS)
@@ -978,25 +981,35 @@ async def create_indexes_and_init():
         RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
         RESEND_FROM_EMAIL = os.environ.get("RESEND_BILLING_FROM_EMAIL", os.environ.get("RESEND_FROM_EMAIL", "Stockman <billing@stockman.pro>"))
 
-        async def send_trial_reminder_email(to_email: str, name: str, days_left: int):
+        async def send_trial_reminder_email(user_doc: dict, days_left: int):
             """Send a trial expiry reminder via Resend (no extra package needed)."""
             if not RESEND_API_KEY:
                 logger.warning("RESEND_API_KEY not set — skipping trial reminder email")
                 return
-            pricing_url = f"{get_web_app_base_url()}/pricing"
+            if not is_billable_owner_doc(user_doc):
+                return
+            to_email = (user_doc.get("email") or "").strip()
+            if not to_email:
+                return
+            name = user_doc.get("name") or ""
+            account_doc = await db.business_accounts.find_one({"owner_user_id": user_doc.get("user_id")}, {"_id": 0})
+            if not account_doc:
+                account_doc = await ensure_business_account_for_user_doc(user_doc)
+            plan = normalize_plan((account_doc or {}).get("plan") or user_doc.get("plan") or "starter")
+            payment_url = build_signed_billing_payment_link(account_doc or {}, user_doc, plan, provider="stripe", days_left=days_left)
             if days_left == 1:
-                subject = "⚠️ Dernier jour de votre essai Stockman gratuit"
+                subject = "Dernier jour de votre essai Stockman gratuit"
                 body = f"""Bonjour {name or 'cher utilisateur'},<br><br>
 C'est votre <strong>dernier jour d'essai gratuit</strong> sur Stockman.<br>
 Pour continuer à accéder à toutes vos données et fonctionnalités, activez votre plan dès maintenant.<br><br>
-<a href="{pricing_url}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Activer mon plan</a><br><br>
+<a href="{payment_url}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Activer mon plan</a><br><br>
 À bientôt,<br>L'équipe Stockman"""
             else:
-                subject = f"🕐 Plus que {days_left} jours d'essai gratuit Stockman"
+                subject = f"Plus que {days_left} jours d'essai gratuit Stockman"
                 body = f"""Bonjour {name or 'cher utilisateur'},<br><br>
 Il vous reste <strong>{days_left} jours</strong> sur votre essai gratuit Stockman.<br>
 Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br><br>
-<a href="{pricing_url}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Voir les plans</a><br><br>
+<a href="{payment_url}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Activer mon plan</a><br><br>
 À bientôt,<br>L'équipe Stockman"""
 
             import httpx as _httpx
@@ -1018,19 +1031,19 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
                 logger.error(f"Failed to send trial reminder to {to_email}: {e}")
 
         async def build_payment_links_for_account(account_doc: dict, owner_doc: dict, plan: str) -> dict:
-            merged = {**owner_doc, **account_doc}
             links = {"stripe_url": None, "flutterwave_url": None}
+            if not is_billable_owner_doc(owner_doc):
+                return links
             try:
-                stripe_session = await create_stripe_session(merged, plan)
-                links["stripe_url"] = stripe_session.get("checkout_url")
+                links["stripe_url"] = build_signed_billing_payment_link(account_doc, owner_doc, plan, provider="stripe")
             except Exception as exc:
                 logger.warning("Stripe link generation failed for %s: %s", owner_doc.get("user_id"), exc)
 
+            merged = merge_billing_user_payload(owner_doc, account_doc)
             currency = (merged.get("currency") or DEFAULT_CURRENCY).upper()
             if currency in FLUTTERWAVE_CURRENCIES:
                 try:
-                    flw_session = await create_flutterwave_session(merged, plan)
-                    links["flutterwave_url"] = flw_session.get("payment_url")
+                    links["flutterwave_url"] = build_signed_billing_payment_link(account_doc, owner_doc, plan, provider="flutterwave")
                 except Exception as exc:
                     logger.warning("Flutterwave link generation failed for %s: %s", owner_doc.get("user_id"), exc)
             return links
@@ -1042,6 +1055,8 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
             return f"{base}/pay?provider={provider}&url={quote(target_url, safe='')}"
 
         async def send_subscription_payment_reminder(account_doc: dict, owner_doc: dict, days_left: int) -> None:
+            if not is_billable_owner_doc(owner_doc):
+                return
             plan = normalize_plan(account_doc.get("plan") or "starter")
             links = await build_payment_links_for_account(account_doc, owner_doc, plan)
             billing_email = (account_doc.get("billing_contact_email") or "").strip()
@@ -1054,10 +1069,8 @@ Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br>
             else:
                 subject = f"Votre abonnement Stockman expire dans {days_left} jours"
 
-            public_stripe = build_public_payment_link("stripe", links["stripe_url"])
-            public_flt = build_public_payment_link("flutterwave", links["flutterwave_url"])
-            email_stripe = links["stripe_url"] or public_stripe
-            email_flt = links["flutterwave_url"] or public_flt
+            email_stripe = links["stripe_url"]
+            email_flt = links["flutterwave_url"]
             line_stripe = f"<a href=\"{email_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if email_stripe else ""
             line_flt = f"<a href=\"{email_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if email_flt else ""
             body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
@@ -1084,7 +1097,7 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
                     text_body=text_body,
                 )
 
-            reminder_url = public_stripe or public_flt or email_stripe or email_flt
+            reminder_url = email_stripe or email_flt
             if reminder_url:
                 await notification_service.notify_user(
                     db,
@@ -1139,6 +1152,12 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
                 {"_id": 0, "owner_user_id": 1}
             ).to_list(length=None)
             for account in expired_paid_accounts:
+                owner_doc = await db.users.find_one(
+                    {"user_id": account["owner_user_id"]},
+                    {"_id": 0, "user_id": 1, "role": 1},
+                )
+                if not is_billable_owner_doc(owner_doc):
+                    continue
                 await update_business_account_for_owner(account["owner_user_id"], {"subscription_status": "expired"})
             if expired_paid_accounts:
                 logger.info(f"Expired {len(expired_paid_accounts)} paid subscriptions")
@@ -1154,6 +1173,12 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
                 {"_id": 0, "owner_user_id": 1}
             ).to_list(length=None)
             for account in expired_trials:
+                owner_doc = await db.users.find_one(
+                    {"user_id": account["owner_user_id"]},
+                    {"_id": 0, "user_id": 1, "role": 1},
+                )
+                if not is_billable_owner_doc(owner_doc):
+                    continue
                 await update_business_account_for_owner(account["owner_user_id"], {"subscription_status": "expired"})
             if expired_trials:
                 logger.info(f"Expired {len(expired_trials)} free trials")
@@ -1166,11 +1191,13 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
                     "trial_ends_at": {"$gte": target_date_start, "$lt": target_date_end},
                     "subscription_status": "active",
                     "email": {"$exists": True, "$ne": ""},
+                    "role": {"$nin": ["supplier", "staff", "admin", "superadmin"]},
+                    "$or": [{"parent_user_id": {"$exists": False}}, {"parent_user_id": None}],
                     f"trial_reminder_{days_left}d_sent": {"$ne": True},
-                }, {"user_id": 1, "email": 1, "name": 1}).to_list(length=500)
+                }, {"_id": 0, "user_id": 1, "email": 1, "name": 1, "role": 1, "parent_user_id": 1, "account_id": 1, "plan": 1, "currency": 1, "country_code": 1}).to_list(length=500)
 
                 for u in users_to_remind:
-                    await send_trial_reminder_email(u["email"], u.get("name", ""), days_left)
+                    await send_trial_reminder_email(u, days_left)
                     await db.users.update_one(
                         {"user_id": u["user_id"]},
                         {"$set": {f"trial_reminder_{days_left}d_sent": True}}
@@ -1191,9 +1218,9 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
                 for account in accounts_to_remind:
                     owner_doc = await db.users.find_one(
                         {"user_id": account["owner_user_id"]},
-                        {"_id": 0, "user_id": 1, "email": 1, "name": 1, "currency": 1, "country_code": 1},
+                        {"_id": 0, "user_id": 1, "email": 1, "name": 1, "role": 1, "currency": 1, "country_code": 1},
                     )
-                    if not owner_doc:
+                    if not is_billable_owner_doc(owner_doc):
                         continue
                     await send_subscription_payment_reminder(account, owner_doc, days_left)
                     await db.business_accounts.update_one(
@@ -1209,6 +1236,7 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
 
         asyncio.create_task(supervised_loop("subscriptions", check_expired_subscriptions, 86400))
         asyncio.create_task(supervised_loop("demo_cleanup", cleanup_demo_sessions_loop, 1800))
+        asyncio.create_task(supervised_loop("activation_campaigns", check_activation_campaigns_loop, 21600))
 
     except Exception as e:
         logger.error(f"Error in startup: {e}")
@@ -2918,6 +2946,82 @@ def build_public_payment_link(provider: str, target_url: Optional[str]) -> Optio
     return f"{base}/pay?provider={provider}&url={quote(target_url, safe='')}"
 
 
+def get_api_public_base_url() -> str:
+    return (
+        os.environ.get("API_PUBLIC_BASE_URL")
+        or os.environ.get("API_URL")
+        or "https://stockman-production-149d.up.railway.app"
+    ).rstrip("/")
+
+
+def is_billable_owner_doc(user_doc: Optional[dict]) -> bool:
+    if not user_doc:
+        return False
+    return user_doc.get("role") not in ("supplier", "staff", "admin", "superadmin")
+
+
+def create_billing_payment_token(
+    account_doc: dict,
+    owner_doc: dict,
+    plan: str,
+    provider: str = "stripe",
+    days_left: Optional[int] = None,
+) -> str:
+    account_id = account_doc.get("account_id")
+    owner_id = owner_doc.get("user_id") or account_doc.get("owner_user_id")
+    if not owner_id:
+        raise ValueError("owner_user_id_missing")
+    if not is_billable_owner_doc(owner_doc):
+        raise ValueError("owner_not_billable")
+    expires_at = datetime.now(timezone.utc) + timedelta(days=int(os.environ.get("BILLING_PAYMENT_LINK_TTL_DAYS", "14")))
+    payload = {
+        "type": "billing_payment",
+        "sub": owner_id,
+        "account_id": account_id,
+        "plan": normalize_plan(plan),
+        "provider": provider,
+        "email": (account_doc.get("billing_contact_email") or owner_doc.get("email") or "").strip().lower(),
+        "days_left": days_left,
+        "exp": int(expires_at.timestamp()),
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def build_signed_billing_payment_link(
+    account_doc: dict,
+    owner_doc: dict,
+    plan: str,
+    provider: str = "stripe",
+    days_left: Optional[int] = None,
+) -> str:
+    token = create_billing_payment_token(account_doc, owner_doc, plan, provider=provider, days_left=days_left)
+    return f"{get_api_public_base_url()}/api/billing/pay?t={quote(token, safe='')}"
+
+
+def merge_billing_user_payload(owner_doc: dict, account_doc: Optional[dict]) -> dict:
+    payload = dict(owner_doc or {})
+    if account_doc:
+        payload["account_id"] = account_doc.get("account_id")
+        payload["plan"] = account_doc.get("plan", payload.get("plan"))
+        payload["subscription_status"] = account_doc.get("subscription_status", payload.get("subscription_status"))
+        payload["subscription_provider"] = account_doc.get("subscription_provider", payload.get("subscription_provider"))
+        payload["subscription_end"] = account_doc.get("subscription_end", payload.get("subscription_end"))
+        payload["currency"] = account_doc.get("currency", payload.get("currency"))
+        payload["country_code"] = account_doc.get("country_code", payload.get("country_code"))
+        if account_doc.get("billing_contact_email"):
+            payload["email"] = account_doc.get("billing_contact_email")
+        if account_doc.get("billing_contact_name"):
+            payload["name"] = account_doc.get("billing_contact_name")
+    pricing_payload = build_pricing_payload(
+        country_code=payload.get("country_code") or DEFAULT_COUNTRY_CODE,
+        currency=payload.get("currency") or DEFAULT_CURRENCY,
+        locked=has_locked_billing_country(account_doc or payload),
+    )
+    payload["currency"] = pricing_payload["currency"]
+    payload["country_code"] = pricing_payload["country_code"]
+    return payload
+
+
 def new_session_id() -> str:
     return f"sess_{uuid.uuid4().hex[:16]}"
 
@@ -2944,6 +3048,366 @@ def parse_datetime_value(value: Any) -> Optional[datetime]:
             return None
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
     return None
+
+
+def build_app_deeplink(path: str, params: Optional[Dict[str, Any]] = None) -> str:
+    scheme = os.environ.get("APP_DEEPLINK_SCHEME", "stockman").strip().rstrip(":/") or "stockman"
+    normalized_path = str(path or "").strip().lstrip("/")
+    query_parts = []
+    for key, value in (params or {}).items():
+        if value is None or value == "":
+            continue
+        query_parts.append(f"{quote(str(key), safe='')}={quote(str(value), safe='')}")
+    query = f"?{'&'.join(query_parts)}" if query_parts else ""
+    return f"{scheme}://{normalized_path}{query}"
+
+
+def permission_allows_write(permissions: Dict[str, str], module: str) -> bool:
+    return permissions.get(module) == "write"
+
+
+def choose_system_activation_target(
+    user_doc: dict,
+    account_doc: Optional[dict],
+    access_context: Dict[str, Any],
+    product_count: int,
+    sale_count: int,
+    first_product_at: Optional[datetime],
+    last_activity_at: Optional[datetime],
+    now: datetime,
+) -> Optional[Dict[str, Any]]:
+    if not is_billable_owner_doc(user_doc) or user_doc.get("is_demo"):
+        return None
+    if user_doc.get("parent_user_id"):
+        return None
+    if not (user_doc.get("email") or user_doc.get("push_tokens")):
+        return None
+
+    plan = normalize_plan((account_doc or {}).get("plan") or user_doc.get("plan") or "starter")
+    permissions = access_context.get("effective_permissions") or {}
+    can_write_data = bool(access_context.get("can_write_data"))
+    created_at = parse_datetime_value(user_doc.get("created_at")) or now
+    account_phase = access_context.get("subscription_access_phase") or "active"
+
+    if not can_write_data or access_context.get("requires_payment_attention"):
+        days_since_creation = max(0, (now - created_at).days)
+        if days_since_creation >= 1:
+            return {
+                "scenario": "subscription_attention",
+                "milestone": "j1" if days_since_creation < 3 else "j3" if days_since_creation < 7 else "j7",
+                "deeplink": build_app_deeplink("subscription", {"source": "activation"}),
+                "email_subject": "Votre espace Stockman attend votre abonnement",
+                "push_title": "Votre espace est prêt",
+                "push_body": "Activez votre abonnement pour commencer à travailler dans Stockman.",
+                "email_body": "Votre espace Stockman est prêt. Activez votre abonnement pour débloquer les actions de gestion adaptées à votre plan.",
+                "plan": plan,
+                "phase": account_phase,
+            }
+        return None
+
+    if product_count <= 0 and permission_allows_write(permissions, "stock"):
+        days_since_creation = max(0, (now - created_at).days)
+        if days_since_creation >= 1:
+            return {
+                "scenario": "add_first_products",
+                "milestone": "j1" if days_since_creation < 3 else "j3" if days_since_creation < 7 else "j7",
+                "deeplink": build_app_deeplink("products", {"action": "create", "source": "activation"}),
+                "email_subject": "Ajoutez vos premiers produits dans Stockman",
+                "push_title": "Votre stock peut démarrer",
+                "push_body": "Ajoutez vos premiers produits pour suivre vos ventes et vos marges.",
+                "email_body": "Ajoutez vos premiers produits pour commencer à suivre votre stock, vos ventes et vos marges avec des données fiables.",
+                "plan": plan,
+                "phase": account_phase,
+            }
+        return None
+
+    if product_count > 0 and sale_count <= 0 and permission_allows_write(permissions, "pos"):
+        anchor = first_product_at or created_at
+        days_since_product = max(0, (now - anchor).days)
+        if days_since_product >= 1:
+            return {
+                "scenario": "first_sale",
+                "milestone": "j1" if days_since_product < 3 else "j3" if days_since_product < 7 else "j7",
+                "deeplink": build_app_deeplink("pos", {"source": "activation"}),
+                "email_subject": "Enregistrez votre première vente dans Stockman",
+                "push_title": "Prêt pour la première vente",
+                "push_body": "Vos produits sont là. Passez en caisse pour enregistrer votre première vente.",
+                "email_body": "Vos produits sont prêts. Enregistrez votre première vente pour alimenter vos tableaux de bord et vos indicateurs.",
+                "plan": plan,
+                "phase": account_phase,
+            }
+        return None
+
+    if sale_count > 0:
+        anchor = last_activity_at or created_at
+        days_since_activity = max(0, (now - anchor).days)
+        if days_since_activity >= 7:
+            return {
+                "scenario": "reactivation",
+                "milestone": "j7" if days_since_activity < 21 else "j21" if days_since_activity < 35 else "j35",
+                "deeplink": build_app_deeplink("dashboard", {"source": "reactivation"}),
+                "email_subject": "Vos chiffres Stockman méritent une vérification",
+                "push_title": "Un point rapide sur vos chiffres",
+                "push_body": "Ouvrez Stockman pour vérifier vos ventes, vos dépenses et votre stock.",
+                "email_body": "Revenez quelques minutes dans Stockman pour vérifier vos ventes, vos dépenses et l'état de votre stock.",
+                "plan": plan,
+                "phase": account_phase,
+            }
+    return None
+
+
+async def has_recent_system_delivery(filter_doc: dict, now: datetime) -> bool:
+    sent = await db.system_message_deliveries.find_one({**filter_doc, "status": "sent"}, {"_id": 1})
+    if sent:
+        return True
+    recent_attempt = await db.system_message_deliveries.find_one(
+        {**filter_doc, "created_at": {"$gte": now - timedelta(hours=24)}},
+        {"_id": 1},
+    )
+    return bool(recent_attempt)
+
+
+async def record_system_delivery(
+    *,
+    channel: str,
+    scenario: str,
+    milestone: str,
+    status: str,
+    title: str,
+    body: str,
+    deeplink: str,
+    target_user_id: Optional[str] = None,
+    recipient_email: Optional[str] = None,
+    demo_session_id: Optional[str] = None,
+    account_id: Optional[str] = None,
+    plan: Optional[str] = None,
+    role: Optional[str] = None,
+    reason: Optional[str] = None,
+    provider_result: Optional[Any] = None,
+    permissions: Optional[Dict[str, Any]] = None,
+) -> None:
+    now = datetime.now(timezone.utc)
+    await db.system_message_deliveries.insert_one({
+        "delivery_id": f"sysmsg_{uuid.uuid4().hex[:12]}",
+        "channel": channel,
+        "scenario": scenario,
+        "milestone": milestone,
+        "status": status,
+        "title": title,
+        "body": body,
+        "deeplink": deeplink,
+        "target_user_id": target_user_id,
+        "recipient_email": recipient_email,
+        "demo_session_id": demo_session_id,
+        "account_id": account_id,
+        "plan": normalize_plan(plan) if plan else None,
+        "role": role,
+        "reason": reason,
+        "provider_result": provider_result,
+        "permissions": permissions or {},
+        "created_at": now,
+        "updated_at": now,
+    })
+
+
+def build_activation_email_html(name: str, body: str, deeplink: str) -> str:
+    safe_name = (name or "Bonjour").strip()
+    return f"""Bonjour {safe_name},<br><br>
+{body}<br><br>
+<a href="{deeplink}" style="background:#0f172a;color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block;">Ouvrir dans Stockman</a><br><br>
+Si le bouton ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone.<br><br>
+À bientôt,<br>L'équipe Stockman."""
+
+
+async def send_system_activation_email(user_doc: dict, account_doc: Optional[dict], target: Dict[str, Any], milestone_filter: dict, now: datetime) -> None:
+    email = (user_doc.get("email") or "").strip()
+    if not email:
+        return
+    if await has_recent_system_delivery({**milestone_filter, "channel": "email"}, now):
+        return
+    name = user_doc.get("name") or "cher utilisateur"
+    html_body = build_activation_email_html(name, target["email_body"], target["deeplink"])
+    text_body = (
+        f"Bonjour {name},\n\n"
+        f"{target['email_body']}\n\n"
+        f"Ouvrir dans Stockman : {target['deeplink']}\n\n"
+        "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone.\n\n"
+        "À bientôt,\nL'équipe Stockman."
+    )
+    result = await notification_service.send_email_notification([email], target["email_subject"], html_body, text_body=text_body)
+    status = "sent" if result else "failed"
+    access_context = build_effective_access_context(user_doc, account_doc)
+    await record_system_delivery(
+        channel="email",
+        scenario=target["scenario"],
+        milestone=target["milestone"],
+        status=status,
+        title=target["email_subject"],
+        body=target["email_body"],
+        deeplink=target["deeplink"],
+        target_user_id=user_doc.get("user_id"),
+        recipient_email=email,
+        account_id=(account_doc or {}).get("account_id"),
+        plan=target.get("plan"),
+        role=user_doc.get("role"),
+        provider_result=result,
+        permissions={
+            "can_write_data": access_context.get("can_write_data"),
+            "effective_permissions": access_context.get("effective_permissions"),
+        },
+    )
+
+
+async def send_system_activation_push(user_doc: dict, account_doc: Optional[dict], target: Dict[str, Any], milestone_filter: dict, now: datetime) -> None:
+    user_id = user_doc.get("user_id")
+    if not user_id:
+        return
+    if await has_recent_system_delivery({**milestone_filter, "channel": "push"}, now):
+        return
+    result = await notification_service.notify_user(
+        db,
+        user_id,
+        target["push_title"],
+        target["push_body"],
+        data={
+            "type": "system_activation",
+            "scenario": target["scenario"],
+            "milestone": target["milestone"],
+            "url": target["deeplink"],
+        },
+        caller_owner_id=user_id,
+    )
+    sent_count = int((result or {}).get("sent", 0) or 0)
+    status = "sent" if sent_count > 0 else "failed"
+    access_context = build_effective_access_context(user_doc, account_doc)
+    await record_system_delivery(
+        channel="push",
+        scenario=target["scenario"],
+        milestone=target["milestone"],
+        status=status,
+        title=target["push_title"],
+        body=target["push_body"],
+        deeplink=target["deeplink"],
+        target_user_id=user_id,
+        recipient_email=user_doc.get("email"),
+        account_id=(account_doc or {}).get("account_id"),
+        plan=target.get("plan"),
+        role=user_doc.get("role"),
+        provider_result=result,
+        permissions={
+            "can_write_data": access_context.get("can_write_data"),
+            "effective_permissions": access_context.get("effective_permissions"),
+        },
+    )
+
+
+async def send_demo_conversion_email(session_doc: dict, now: datetime) -> None:
+    email = (session_doc.get("contact_email") or "").strip().lower()
+    if not email:
+        return
+    existing_user = await find_existing_non_demo_user_by_email(email)
+    if existing_user:
+        return
+    scenario = "demo_conversion"
+    milestone = "demo_end"
+    filter_doc = {"demo_session_id": session_doc.get("demo_session_id"), "scenario": scenario, "milestone": milestone}
+    if await has_recent_system_delivery({**filter_doc, "channel": "email"}, now):
+        return
+    deeplink = build_app_deeplink("register", {
+        "source": "demo",
+        "demo_session_id": session_doc.get("demo_session_id"),
+        "email": email,
+    })
+    subject = "Créez votre compte Stockman à partir de votre démo"
+    body = "Votre démo est terminée. Créez votre compte pour repartir sur un espace propre et continuer avec vos propres produits, clients et ventes."
+    html_body = build_activation_email_html("cher utilisateur", body, deeplink)
+    text_body = (
+        f"{body}\n\n"
+        f"Ouvrir dans Stockman : {deeplink}\n\n"
+        "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone."
+    )
+    result = await notification_service.send_email_notification([email], subject, html_body, text_body=text_body)
+    status = "sent" if result else "failed"
+    await record_system_delivery(
+        channel="email",
+        scenario=scenario,
+        milestone=milestone,
+        status=status,
+        title=subject,
+        body=body,
+        deeplink=deeplink,
+        recipient_email=email,
+        demo_session_id=session_doc.get("demo_session_id"),
+        plan="starter",
+        role="demo",
+        provider_result=result,
+    )
+    if result:
+        await db.demo_sessions.update_one(
+            {"demo_session_id": session_doc.get("demo_session_id")},
+            {"$set": {"conversion_email_sent_at": now}},
+        )
+
+
+async def check_activation_campaigns_loop():
+    now = datetime.now(timezone.utc)
+    demo_sessions = await db.demo_sessions.find(
+        {
+            "status": {"$in": ["expired", "cleaned"]},
+            "contact_email": {"$exists": True, "$ne": ""},
+            "conversion_email_sent_at": {"$exists": False},
+        },
+        {"_id": 0, "demo_session_id": 1, "contact_email": 1, "status": 1},
+    ).limit(100).to_list(100)
+    for session_doc in demo_sessions:
+        await send_demo_conversion_email(session_doc, now)
+
+    owner_users = await db.users.find(
+        {
+            "is_demo": {"$ne": True},
+            "is_active": {"$ne": False},
+            "role": {"$nin": ["supplier", "staff", "admin", "superadmin"]},
+            "$or": [{"parent_user_id": {"$exists": False}}, {"parent_user_id": None}],
+        },
+        {"_id": 0, "hashed_password": 0},
+    ).sort("created_at", -1).limit(500).to_list(500)
+
+    for user_doc in owner_users:
+        account_doc = await ensure_business_account_for_user_doc(user_doc)
+        if not account_doc:
+            continue
+        access_context = build_effective_access_context(user_doc, account_doc)
+        owner_id = user_doc.get("user_id")
+        product_count = await db.products.count_documents({"user_id": owner_id, "is_demo": {"$ne": True}})
+        sale_count = await db.sales.count_documents({"user_id": owner_id, "is_demo": {"$ne": True}})
+        first_product = await db.products.find_one({"user_id": owner_id, "is_demo": {"$ne": True}}, {"_id": 0, "created_at": 1}, sort=[("created_at", 1)])
+        last_sale = await db.sales.find_one({"user_id": owner_id, "is_demo": {"$ne": True}}, {"_id": 0, "created_at": 1}, sort=[("created_at", -1)])
+        last_product = await db.products.find_one({"user_id": owner_id, "is_demo": {"$ne": True}}, {"_id": 0, "updated_at": 1, "created_at": 1}, sort=[("updated_at", -1), ("created_at", -1)])
+        last_candidates = [
+            parse_datetime_value(user_doc.get("last_login_at") or user_doc.get("last_login")),
+            parse_datetime_value((last_sale or {}).get("created_at")),
+            parse_datetime_value((last_product or {}).get("updated_at") or (last_product or {}).get("created_at")),
+        ]
+        last_activity = max([date for date in last_candidates if date], default=parse_datetime_value(user_doc.get("created_at")) or now)
+        target = choose_system_activation_target(
+            user_doc,
+            account_doc,
+            access_context,
+            product_count,
+            sale_count,
+            parse_datetime_value((first_product or {}).get("created_at")),
+            last_activity,
+            now,
+        )
+        if not target:
+            continue
+        milestone_filter = {
+            "target_user_id": owner_id,
+            "scenario": target["scenario"],
+            "milestone": target["milestone"],
+        }
+        await send_system_activation_email(user_doc, account_doc, target, milestone_filter, now)
+        await send_system_activation_push(user_doc, account_doc, target, milestone_filter, now)
 
 
 def is_login_locked(user_doc: dict) -> bool:
@@ -3439,6 +3903,19 @@ def is_demo_session_expired(user_doc: dict) -> bool:
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
     return expires_at <= datetime.now(timezone.utc)
+
+
+async def find_existing_non_demo_user_by_email(email: Optional[str]) -> Optional[dict]:
+    normalized_email = (email or "").strip().lower()
+    if not normalized_email:
+        return None
+    return await db.users.find_one(
+        {
+            "email": normalized_email,
+            "$or": [{"is_demo": {"$exists": False}}, {"is_demo": {"$ne": True}}],
+        },
+        {"_id": 0, "user_id": 1, "email": 1, "role": 1},
+    )
 
 
 async def get_current_user(request: Request) -> Optional[User]:
@@ -4113,6 +4590,89 @@ async def get_leads(admin: User = Depends(require_superadmin)):
         "subscribers": subscribers
     }
 
+@api_router.get("/billing/pay")
+async def redirect_signed_billing_payment(t: str):
+    try:
+        payload = jwt.decode(t, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Lien de paiement invalide ou expiré")
+
+    if payload.get("type") != "billing_payment":
+        raise HTTPException(status_code=400, detail="Lien de paiement invalide")
+
+    owner_id = payload.get("sub")
+    account_id = payload.get("account_id")
+    plan = normalize_plan(payload.get("plan") or "starter")
+    provider = (payload.get("provider") or "stripe").lower()
+    if not owner_id or plan not in ("starter", "pro", "enterprise"):
+        raise HTTPException(status_code=400, detail="Lien de paiement incomplet")
+
+    account_query = {"owner_user_id": owner_id}
+    if account_id:
+        account_query["account_id"] = account_id
+    account_doc = await db.business_accounts.find_one(account_query, {"_id": 0})
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc or not account_doc:
+        raise HTTPException(status_code=404, detail="Compte de facturation introuvable")
+    if not is_billable_owner_doc(owner_doc):
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
+    if account_doc.get("is_demo"):
+        raise HTTPException(status_code=403, detail="Le paiement réel est désactivé dans les comptes démo.")
+
+    billing_payload = merge_billing_user_payload(owner_doc, account_doc)
+    if provider == "flutterwave":
+        currency = (billing_payload.get("currency") or DEFAULT_CURRENCY).upper()
+        if currency not in FLUTTERWAVE_CURRENCIES:
+            raise HTTPException(status_code=400, detail=f"Flutterwave Mobile Money ne supporte pas la devise {currency}. Utilisez le paiement par carte.")
+        try:
+            session = await create_flutterwave_session(billing_payload, plan)
+        except Exception as exc:
+            logger.error("Signed Flutterwave session error for %s: %s", owner_id, exc)
+            raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement")
+        await db.pending_transactions.insert_one({
+            "transaction_id": session["transaction_id"],
+            "user_id": owner_id,
+            "account_id": account_doc.get("account_id"),
+            "plan": plan,
+            "source": "signed_billing_link",
+            "created_at": datetime.now(timezone.utc),
+        })
+        await log_subscription_event(
+            event_type="checkout_initiated",
+            provider="flutterwave",
+            source="signed_link",
+            owner_user_id=owner_id,
+            account_id=account_doc.get("account_id"),
+            plan=plan,
+            status="pending",
+            currency=billing_payload.get("currency"),
+            country_code=billing_payload.get("country_code"),
+            provider_reference=session["transaction_id"],
+            message="Checkout Flutterwave initié depuis un lien de facturation",
+        )
+        return RedirectResponse(url=session["payment_url"], status_code=302)
+
+    try:
+        session = await create_stripe_session(billing_payload, plan)
+    except Exception as exc:
+        logger.error("Signed Stripe session error for %s: %s", owner_id, exc)
+        raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement Stripe")
+    await log_subscription_event(
+        event_type="checkout_initiated",
+        provider="stripe",
+        source="signed_link",
+        owner_user_id=owner_id,
+        account_id=account_doc.get("account_id"),
+        plan=plan,
+        status="pending",
+        currency=billing_payload.get("currency"),
+        country_code=billing_payload.get("country_code"),
+        provider_reference=session["session_id"],
+        message="Checkout Stripe initié depuis un lien de facturation",
+    )
+    return RedirectResponse(url=session["checkout_url"], status_code=302)
+
+
 @api_router.post("/billing/checkout")
 async def create_billing_checkout(plan: str, user: User = Depends(require_auth)):
     """Crée une session de paiement Flutterwave (Mobile Money, Afrique)."""
@@ -4120,28 +4680,18 @@ async def create_billing_checkout(plan: str, user: User = Depends(require_auth))
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
     if user.is_demo:
         raise HTTPException(status_code=403, detail="Le paiement reel est desactive dans les comptes demo.")
-    if user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
+    if user.role == "supplier":
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
+    if get_owner_id(user) != user.user_id and user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
         raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gérer l'abonnement")
     owner_id = get_owner_id(user)
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if not is_billable_owner_doc(owner_doc):
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
     account_doc = await ensure_business_account_for_user_doc(owner_doc)
-    user_doc = dict(owner_doc)
-    if account_doc:
-        user_doc["plan"] = account_doc.get("plan", user_doc.get("plan"))
-        user_doc["subscription_status"] = account_doc.get("subscription_status", user_doc.get("subscription_status"))
-        user_doc["subscription_provider"] = account_doc.get("subscription_provider", user_doc.get("subscription_provider"))
-        user_doc["subscription_end"] = account_doc.get("subscription_end", user_doc.get("subscription_end"))
-        user_doc["currency"] = account_doc.get("currency", user_doc.get("currency"))
-        user_doc["country_code"] = account_doc.get("country_code", user_doc.get("country_code"))
-    pricing_payload = build_pricing_payload(
-        country_code=user_doc.get("country_code") or DEFAULT_COUNTRY_CODE,
-        currency=user_doc.get("currency") or DEFAULT_CURRENCY,
-        locked=has_locked_billing_country(account_doc or user_doc),
-    )
-    user_doc["currency"] = pricing_payload["currency"]
-    user_doc["country_code"] = pricing_payload["country_code"]
+    user_doc = merge_billing_user_payload(owner_doc, account_doc)
     user_currency = user_doc.get("currency", DEFAULT_CURRENCY)
     if user_currency not in FLUTTERWAVE_CURRENCIES:
         raise HTTPException(status_code=400, detail=f"Flutterwave Mobile Money ne supporte pas la devise {user_currency}. Utilisez le paiement par carte.")
@@ -4192,28 +4742,18 @@ async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
     if user.is_demo:
         raise HTTPException(status_code=403, detail="Le paiement reel est desactive dans les comptes demo.")
-    if user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
+    if user.role == "supplier":
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
+    if get_owner_id(user) != user.user_id and user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
         raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gérer l'abonnement")
     owner_id = get_owner_id(user)
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if not is_billable_owner_doc(owner_doc):
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
     account_doc = await ensure_business_account_for_user_doc(owner_doc)
-    user_doc = dict(owner_doc)
-    if account_doc:
-        user_doc["plan"] = account_doc.get("plan", user_doc.get("plan"))
-        user_doc["subscription_status"] = account_doc.get("subscription_status", user_doc.get("subscription_status"))
-        user_doc["subscription_provider"] = account_doc.get("subscription_provider", user_doc.get("subscription_provider"))
-        user_doc["subscription_end"] = account_doc.get("subscription_end", user_doc.get("subscription_end"))
-        user_doc["currency"] = account_doc.get("currency", user_doc.get("currency"))
-        user_doc["country_code"] = account_doc.get("country_code", user_doc.get("country_code"))
-    pricing_payload = build_pricing_payload(
-        country_code=user_doc.get("country_code") or DEFAULT_COUNTRY_CODE,
-        currency=user_doc.get("currency") or DEFAULT_CURRENCY,
-        locked=has_locked_billing_country(account_doc or user_doc),
-    )
-    user_doc["currency"] = pricing_payload["currency"]
-    user_doc["country_code"] = pricing_payload["country_code"]
+    user_doc = merge_billing_user_payload(owner_doc, account_doc)
     try:
         session = await create_stripe_session(user_doc, plan)
     except Exception as e:
@@ -4260,8 +4800,13 @@ async def generate_payment_link(
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if not is_billable_owner_doc(user_doc):
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
+    account_doc = await db.business_accounts.find_one({"owner_user_id": user_id}, {"_id": 0})
+    if not account_doc:
+        account_doc = await ensure_business_account_for_user_doc(user_doc)
     try:
-        session = await create_stripe_session(user_doc, plan)
+        checkout_url = build_signed_billing_payment_link(account_doc or {}, user_doc, plan, provider="stripe")
     except Exception as e:
         logger.error(f"Stripe payment link error for {user_id}: {e}")
         raise HTTPException(status_code=502, detail=f"Erreur Stripe: {e}")
@@ -4270,14 +4815,13 @@ async def generate_payment_link(
         provider="stripe",
         source="admin",
         owner_user_id=user_id,
+        account_id=(account_doc or {}).get("account_id"),
         plan=plan,
         status="pending",
-        provider_reference=session["session_id"],
         message=f"Lien de paiement généré par {admin.user_id}",
     )
     return {
-        "checkout_url": session["checkout_url"],
-        "session_id": session["session_id"],
+        "checkout_url": checkout_url,
         "user_id": user_id,
         "plan": plan,
     }
@@ -4298,23 +4842,23 @@ async def regenerate_subscription_payment_links(
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if not is_billable_owner_doc(owner_doc):
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
 
     plan = normalize_plan(account_doc.get("plan") or "starter")
-    merged_doc = {**owner_doc, **account_doc}
+    merged_doc = merge_billing_user_payload(owner_doc, account_doc)
     stripe_url = None
     flutterwave_url = None
 
     try:
-        stripe_session = await create_stripe_session(merged_doc, plan)
-        stripe_url = stripe_session.get("checkout_url")
+        stripe_url = build_signed_billing_payment_link(account_doc, owner_doc, plan, provider="stripe")
     except Exception as exc:
         logger.warning("Stripe link generation failed for account %s: %s", account_id, exc)
 
     currency = (merged_doc.get("currency") or DEFAULT_CURRENCY).upper()
     if currency in FLUTTERWAVE_CURRENCIES:
         try:
-            flw_session = await create_flutterwave_session(merged_doc, plan)
-            flutterwave_url = flw_session.get("payment_url")
+            flutterwave_url = build_signed_billing_payment_link(account_doc, owner_doc, plan, provider="flutterwave")
         except Exception as exc:
             logger.warning("Flutterwave link generation failed for account %s: %s", account_id, exc)
 
@@ -4370,23 +4914,23 @@ async def admin_send_subscription_reminder(
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if not is_billable_owner_doc(owner_doc):
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
 
     plan = normalize_plan(account_doc.get("plan") or "starter")
-    merged_doc = {**owner_doc, **account_doc}
+    merged_doc = merge_billing_user_payload(owner_doc, account_doc)
 
     stripe_url = None
     flutterwave_url = None
     try:
-        stripe_session = await create_stripe_session(merged_doc, plan)
-        stripe_url = stripe_session.get("checkout_url")
+        stripe_url = build_signed_billing_payment_link(account_doc, owner_doc, plan, provider="stripe")
     except Exception as exc:
         logger.warning("Stripe link generation failed for account %s: %s", account_id, exc)
 
     currency = (merged_doc.get("currency") or DEFAULT_CURRENCY).upper()
     if currency in FLUTTERWAVE_CURRENCIES:
         try:
-            flw_session = await create_flutterwave_session(merged_doc, plan)
-            flutterwave_url = flw_session.get("payment_url")
+            flutterwave_url = build_signed_billing_payment_link(account_doc, owner_doc, plan, provider="flutterwave")
         except Exception as exc:
             logger.warning("Flutterwave link generation failed for account %s: %s", account_id, exc)
 
@@ -4395,10 +4939,8 @@ async def admin_send_subscription_reminder(
     recipients = [email for email in [billing_email, owner_email] if email]
 
     subject = "Votre abonnement Stockman expire demain" if days_left <= 1 else f"Votre abonnement Stockman expire dans {days_left} jours"
-    public_stripe = build_public_payment_link("stripe", stripe_url)
-    public_flt = build_public_payment_link("flutterwave", flutterwave_url)
-    email_stripe = stripe_url or public_stripe
-    email_flt = flutterwave_url or public_flt
+    email_stripe = stripe_url
+    email_flt = flutterwave_url
     line_stripe = f"<a href=\"{email_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if email_stripe else ""
     line_flt = f"<a href=\"{email_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if email_flt else ""
     body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
@@ -4421,7 +4963,7 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
     if recipients:
         await notification_service.send_email_notification(recipients, subject, body, text_body=text_body)
 
-    reminder_url = public_stripe or public_flt or email_stripe or email_flt
+    reminder_url = email_stripe or email_flt
     if reminder_url:
         await notification_service.notify_user(
             db,
@@ -4507,6 +5049,19 @@ async def stripe_webhook(request: Request):
                     logger.info(f"Stripe checkout: matched user by email {customer_email} -> {user_id}")
 
         if user_id:
+            target_user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "user_id": 1, "role": 1})
+            if not is_billable_owner_doc(target_user_doc):
+                await log_subscription_event(
+                    event_type="checkout_ignored",
+                    provider="stripe",
+                    source="web",
+                    owner_user_id=user_id,
+                    account_id=metadata.get("account_id"),
+                    status="ignored",
+                    provider_reference=obj.get("id"),
+                    message="Checkout Stripe ignoré pour un compte fournisseur ou non facturable",
+                )
+                return {"received": True}
             # Detect plan from metadata, or from line items, or default to starter
             plan_from_meta = metadata.get("plan")
             if not plan_from_meta:
@@ -4538,6 +5093,7 @@ async def stripe_webhook(request: Request):
                 provider="stripe",
                 source="web",
                 owner_user_id=user_id,
+                account_id=metadata.get("account_id"),
                 plan=normalize_plan(plan_from_meta or metadata.get("plan")),
                 status="pending_activation",
                 currency=metadata.get("currency"),
@@ -4552,9 +5108,20 @@ async def stripe_webhook(request: Request):
         # Find user by stripe_subscription_id or stripe_customer_id
         user_doc = await db.users.find_one(
             {"$or": [{"stripe_subscription_id": sub_id}, {"stripe_customer_id": customer_id}]},
-            {"user_id": 1, "plan": 1}
+            {"user_id": 1, "plan": 1, "role": 1}
         )
         if user_doc:
+            if not is_billable_owner_doc(user_doc):
+                await log_subscription_event(
+                    event_type="payment_ignored",
+                    provider="stripe",
+                    source="web",
+                    owner_user_id=user_doc["user_id"],
+                    status="ignored",
+                    provider_reference=sub_id or obj.get("id"),
+                    message="Paiement Stripe ignoré pour un compte fournisseur ou non facturable",
+                )
+                return {"received": True}
             # Get plan from subscription metadata
             metadata = obj.get("subscription_details", {}).get("metadata", {})
             plan = normalize_plan(metadata.get("plan") or user_doc.get("plan", "starter"))
@@ -4715,6 +5282,21 @@ async def flutterwave_webhook(request: Request):
             message="Transaction confirmée sans pending_transaction",
         )
         return {"status": "not_found"}
+
+    owner_doc = await db.users.find_one({"user_id": pending["user_id"]}, {"_id": 0, "user_id": 1, "role": 1})
+    if not is_billable_owner_doc(owner_doc):
+        await log_subscription_event(
+            event_type="payment_ignored",
+            provider="flutterwave",
+            source="web",
+            owner_user_id=pending["user_id"],
+            account_id=pending.get("account_id"),
+            status="ignored",
+            provider_reference=transaction_id,
+            message="Paiement Flutterwave ignoré pour un compte fournisseur ou non facturable",
+        )
+        await db.pending_transactions.delete_one({"transaction_id": transaction_id})
+        return {"status": "ignored"}
 
     plan = pending["plan"]
     subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
@@ -5704,6 +6286,11 @@ async def admin_user_detail(user_id: str, admin: User = Depends(require_superadm
         {"_id": 0, "action": 1, "module": 1, "created_at": 1, "details": 1},
     ).sort("created_at", -1).limit(8).to_list(8)
 
+    system_messages = await db.system_message_deliveries.find(
+        {"target_user_id": user_id},
+        {"_id": 0},
+    ).sort("created_at", -1).limit(20).to_list(20)
+
     account = await db.business_accounts.find_one(
         {"account_id": user_id},
         {"_id": 0, "plan": 1, "subscription_status": 1, "subscription_provider": 1, "subscription_end": 1, "trial_ends_at": 1},
@@ -5718,8 +6305,34 @@ async def admin_user_detail(user_id: str, admin: User = Depends(require_superadm
         "product_count": product_count,
         "ai_calls": ai_count,
         "recent_activity": recent_activity,
+        "system_messages": system_messages,
         "account": account or {},
     }
+
+
+@admin_router.get("/users/{user_id}/system-messages")
+async def admin_user_system_messages(
+    user_id: str,
+    channel: Optional[str] = None,
+    scenario: Optional[str] = None,
+    skip: int = 0,
+    limit: int = Query(50, ge=1, le=200),
+    admin: User = Depends(require_superadmin),
+):
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "user_id": 1})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    query: Dict[str, Any] = {"target_user_id": user_id}
+    if channel:
+        query["channel"] = channel
+    if scenario:
+        query["scenario"] = scenario
+    total = await db.system_message_deliveries.count_documents(query)
+    items = await db.system_message_deliveries.find(
+        query,
+        {"_id": 0},
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    return {"items": items, "total": total, "skip": skip, "limit": limit}
 
 
 class AdminUserNoteRequest(BaseModel):
@@ -14303,7 +14916,7 @@ class RefreshRequest(BaseModel):
     refresh_token: Optional[str] = None
 
 @api_router.post("/auth/refresh", response_model=TokenResponse)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute")
 async def refresh_token(request: Request, response: Response, body: RefreshRequest = Body(RefreshRequest())):
     """Renews the access token using the refresh token (cookie ou body pour mobile)."""
     refresh = body.refresh_token or request.cookies.get("refresh_token")
@@ -14341,7 +14954,21 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
     )
     if not is_active_session_doc(session_doc):
         raise HTTPException(status_code=401, detail="Session expiree")
+    now = datetime.now(timezone.utc)
     if session_doc.get("refresh_jti") != refresh_jti:
+        previous_jti = session_doc.get("previous_refresh_jti")
+        previous_rotated_at = parse_datetime_value(session_doc.get("previous_refresh_rotated_at"))
+        previous_still_valid = bool(
+            previous_jti == refresh_jti
+            and previous_rotated_at
+            and previous_rotated_at >= now - timedelta(seconds=90)
+        )
+        if not previous_still_valid:
+            await revoke_session(session_id, "refresh_token_reuse_detected")
+            raise HTTPException(status_code=401, detail="Refresh token invalide")
+
+    previous_refresh_jti = session_doc.get("refresh_jti")
+    if not previous_refresh_jti:
         await revoke_session(session_id, "refresh_token_reuse_detected")
         raise HTTPException(status_code=401, detail="Refresh token invalide")
 
@@ -14354,8 +14981,10 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
             "$set": {
                 "session_token": new_access,
                 "refresh_jti": rotated_refresh_jti,
-                "last_active": datetime.now(timezone.utc),
-                "last_refresh_at": datetime.now(timezone.utc),
+                "previous_refresh_jti": previous_refresh_jti,
+                "previous_refresh_rotated_at": now,
+                "last_active": now,
+                "last_refresh_at": now,
             }
         },
     )
@@ -27678,6 +28307,8 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
     """Analyze sales trends and predict future sales using velocity data + Gemini AI"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
+    user_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "currency": 1})
+    currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
     
     # Get products
     query = {"user_id": owner_id}
@@ -27685,7 +28316,7 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
         query["store_id"] = store_id
     products = await db.products.find(query, {"_id": 0}).to_list(1000)
     if not products:
-        return SalesForecastResponse(generated_at=datetime.now(timezone.utc).isoformat()).model_dump()
+        return SalesForecastResponse(generated_at=datetime.now(timezone.utc).isoformat(), currency=currency).model_dump()
     
     now = datetime.now(timezone.utc)
     
@@ -27833,9 +28464,6 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
             critical_count = len([fp for fp in forecast_products if fp.risk_level == "critical"])
             warning_count = len([fp for fp in forecast_products if fp.risk_level == "warning"])
             
-            owner_id = get_owner_id(user)
-            user_doc = await db.users.find_one({"user_id": owner_id})
-            currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
             
             prompt_text = f"""Analyse ces prévisions de ventes et donne un résumé en 3-4 phrases concises en français.
 Mentionne les produits critiques, les tendances importantes et une recommandation.
@@ -28926,6 +29554,11 @@ async def create_demo_session_endpoint(
     payload: DemoSessionCreate,
 ):
     normalized_type = normalize_demo_type(payload.demo_type)
+    if await find_existing_non_demo_user_by_email(str(payload.email) if payload.email else None):
+        raise HTTPException(
+            status_code=409,
+            detail="Cet email est déjà associé à un compte Stockman. Connectez-vous à votre compte pour continuer.",
+        )
     password_hash = get_password_hash(uuid.uuid4().hex)
     demo_payload = await create_demo_session_data(
         db,
@@ -28993,6 +29626,11 @@ async def capture_current_demo_session_contact(
 ):
     if not user.is_demo or not user.demo_session_id:
         raise HTTPException(status_code=404, detail="Aucune session demo active")
+    if await find_existing_non_demo_user_by_email(str(payload.email)):
+        raise HTTPException(
+            status_code=409,
+            detail="Cet email est déjà associé à un compte Stockman. Connectez-vous à votre compte pour continuer.",
+        )
     try:
         session_doc = await capture_demo_session_contact(
             db,
@@ -29123,6 +29761,7 @@ from services.payment import (
     verify_revenuecat_webhook,
     FLUTTERWAVE_CURRENCIES,  # alias rétrocompat
     FLW_HASH,
+    STRIPE_PRICES,
 )
 
 @api_router.post("/webhooks/revenuecat")

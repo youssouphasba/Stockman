@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Monitor, Smartphone, XCircle, Zap } from 'lucide-react';
-import { pricing, type PricingPublicResponse } from '@/services/api';
+import { auth, pricing, subscription, type PricingPublicResponse } from '@/services/api';
 import {
     BUSINESS_TYPE_GROUPS,
     ENTERPRISE_SIGNUP_URL,
@@ -22,14 +22,42 @@ function Cell({ val }: { val: boolean | string }) {
     return <span className="text-xs font-bold text-slate-300">{val}</span>;
 }
 
-function PlanCta({ href, kind, label }: { href: string; kind: 'mobile' | 'enterprise'; label: string }) {
+function PlanCta({
+    href,
+    kind,
+    label,
+    loading,
+    onCheckout,
+}: {
+    href: string;
+    kind: 'mobile' | 'enterprise';
+    label: string;
+    loading?: boolean;
+    onCheckout?: () => void;
+}) {
     const className = `w-full py-3 rounded-xl text-sm font-bold text-center transition-all flex items-center justify-center gap-2 ${
         kind === 'enterprise'
             ? 'bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25'
             : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white'
     }`;
 
+    if (onCheckout) {
+        return (
+            <button type="button" onClick={onCheckout} disabled={loading} className={`${className} disabled:opacity-60 disabled:cursor-not-allowed`}>
+                {loading ? 'Ouverture du paiement...' : label} <ArrowRight size={14} />
+            </button>
+        );
+    }
+
     if (kind === 'enterprise') {
+        return (
+            <Link href={href} className={className}>
+                {label} <ArrowRight size={14} />
+            </Link>
+        );
+    }
+
+    if (href.startsWith('/')) {
         return (
             <Link href={href} className={className}>
                 {label} <ArrowRight size={14} />
@@ -48,9 +76,32 @@ export default function PricingPageClient() {
     const [selectedCountryCode, setSelectedCountryCode] = useState('SN');
     const [pricingData, setPricingData] = useState<PricingPublicResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
+    const [checkoutError, setCheckoutError] = useState('');
 
     useEffect(() => {
         setSelectedCountryCode(detectBrowserCountryCode());
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        const run = async () => {
+            try {
+                await auth.me();
+                if (!cancelled) {
+                    setIsAuthenticated(true);
+                }
+            } catch {
+                if (!cancelled) {
+                    setIsAuthenticated(false);
+                }
+            }
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
@@ -80,6 +131,18 @@ export default function PricingPageClient() {
         () => COUNTRIES.find((country) => country.code === selectedCountryCode) || COUNTRIES[0],
         [selectedCountryCode],
     );
+
+    const startStripeCheckout = async (planId: string) => {
+        setCheckoutError('');
+        setCheckoutPlan(planId);
+        try {
+            const session = await subscription.stripeCheckout(planId);
+            window.location.href = session.checkout_url;
+        } catch {
+            setCheckoutError("Impossible d'ouvrir le paiement Stripe. Verifiez votre compte de facturation.");
+            setCheckoutPlan(null);
+        }
+    };
 
     return (
         <main className="min-h-screen bg-[#0F172A] overflow-y-auto">
@@ -147,6 +210,11 @@ export default function PricingPageClient() {
                 </section>
 
                 <section className="grid grid-cols-1 md:grid-cols-3 gap-6" aria-label="Plans tarifaires">
+                    {checkoutError && (
+                        <div className="md:col-span-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200">
+                            {checkoutError}
+                        </div>
+                    )}
                     {PLAN_MARKETING.map((plan) => {
                         const quote = pricingData?.plans?.[plan.id];
                         return (
@@ -193,7 +261,13 @@ export default function PricingPageClient() {
                                         </li>
                                     ))}
                                 </ul>
-                                <PlanCta href={plan.href} kind={plan.ctaKind} label={plan.ctaLabel} />
+                                <PlanCta
+                                    href={isAuthenticated ? plan.href : `/?pay=${plan.id}`}
+                                    kind={plan.ctaKind}
+                                    label={isAuthenticated ? 'Payer avec Stripe' : 'Se connecter pour payer'}
+                                    loading={checkoutPlan === plan.id}
+                                    onCheckout={isAuthenticated ? () => startStripeCheckout(plan.id) : undefined}
+                                />
                             </article>
                         );
                     })}

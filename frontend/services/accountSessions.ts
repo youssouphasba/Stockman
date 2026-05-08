@@ -56,6 +56,7 @@ function sanitizeStoredAccounts(value: unknown): StoredAccountSession[] {
     return !!entry
       && typeof entry === 'object'
       && !!(entry as StoredAccountSession).user?.user_id
+      && !(entry as StoredAccountSession).user?.is_demo
       && typeof (entry as StoredAccountSession).access_token === 'string';
   });
 }
@@ -82,6 +83,9 @@ export async function saveStoredAccountSession(
   accessToken: string,
   refreshToken?: string | null,
 ): Promise<StoredAccountSession[]> {
+  if (user.is_demo) {
+    return listStoredAccountSessions();
+  }
   const existing = await listStoredAccountSessions();
   const now = new Date().toISOString();
   const nextSession: StoredAccountSession = {

@@ -30,6 +30,10 @@ Ce qui est deja en place :
   - tables/reservations pour restaurant
 - expiration + nettoyage automatique cote backend
 - blocage des paiements reels sur les comptes demo
+- l'email de suivi demo ne peut pas etre l'email d'un compte reel existant
+- les sessions demo ne sont pas memorisees comme comptes restaurables sur mobile
+- un email de conversion est envoye automatiquement apres la fin d'une demo si l'email de suivi ne correspond a aucun compte reel existant
+- le lien de conversion utilise un deep link applicatif Stockman, sans redirection vers une page web generique
 
 Ce qui reste a faire :
 

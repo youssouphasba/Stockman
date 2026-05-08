@@ -69,7 +69,10 @@ Les vues d'administration permettent de surveiller :
 - dernière connexion ;
 - utilisateurs sans boutique ;
 - boutiques sans produits, sans chiffre d'affaires ou avec stock bas ;
-- certains événements de blocage ou de modération.
+- certains événements de blocage ou de modération ;
+- l'historique des emails et notifications push envoyés automatiquement par le système à chaque utilisateur.
+
+Depuis une fiche utilisateur, le bloc **Messages système envoyés** indique le canal, le scénario, le jalon, le statut d'envoi et le lien applicatif utilisé. Cela permet de vérifier les relances de conversion, d'activation et de reprise sans confondre ces messages avec les communications manuelles du backoffice.
 
 ### Support
 
@@ -108,6 +111,7 @@ La section Communication admin centralise les messages envoyés depuis le backof
 - Les canaux push et e-mail peuvent être activés selon le besoin.
 - Depuis une fiche utilisateur, l'action Notifier préremplit la cible avec l'utilisateur concerné.
 - L'historique conserve le titre, le contenu, le type, la cible, l'expéditeur, la date et les informations de livraison disponibles.
+- Les relances automatiques d'activation ne sont pas envoyées aux fournisseurs ; les fournisseurs conservent uniquement les notifications utiles aux commandes qu'ils reçoivent.
 
 ### Sécurité
 
