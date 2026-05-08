@@ -90,6 +90,9 @@ import {
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+type ProductStockFilter = 'all' | 'in_stock' | 'out_of_stock' | 'low_stock' | 'overstock' | 'deadstock';
+type ProductSortMode = 'stock_priority' | 'quantity_desc' | 'name_asc' | 'recently_added';
+
 export default function ProductsScreen() {
   const MOBILE_PRODUCTS_FOCUS_TTL_MS = 60_000;
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
@@ -154,7 +157,8 @@ export default function ProductsScreen() {
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [filterType, setFilterType] = useState<'all' | 'out_of_stock' | 'low_stock' | 'overstock' | 'deadstock'>('all');
+  const [filterType, setFilterType] = useState<ProductStockFilter>('all');
+  const [productSortMode, setProductSortMode] = useState<ProductSortMode>('stock_priority');
   const [deadstockIds, setDeadstockIds] = useState<Set<string>>(new Set());
   const [deadstockCount, setDeadstockCount] = useState(0);
   const [seasonalityMap, setSeasonalityMap] = useState<Record<string, any>>({});
@@ -198,6 +202,8 @@ export default function ProductsScreen() {
       setFilterType(filterParam);
     }
   }, [filterParam]);
+
+  const serverProductStatus = filterType === 'deadstock' || filterType === 'all' ? undefined : filterType;
 
   useEffect(() => {
     if (!productIdParam || productList.length === 0) return;
@@ -706,7 +712,10 @@ export default function ProductsScreen() {
     // If local list already covers all products (total === productList.length), no need for server search
     // Otherwise, search server to find products beyond the loaded page
     setServerSearchLoading(true);
-    productsApi.list(selectedCategory ?? undefined, 0, PRODUCTS_PAGE_SIZE, isRestaurant ? true : undefined, debouncedSearch)
+    productsApi.list(selectedCategory ?? undefined, 0, PRODUCTS_PAGE_SIZE, isRestaurant ? true : undefined, debouncedSearch, {
+      sort_by: productSortMode,
+      product_status: serverProductStatus,
+    })
       .then((res) => {
         const items = (res.items ?? res) as Product[];
         setServerSearchResults(items);
@@ -717,14 +726,14 @@ export default function ProductsScreen() {
         setServerSearchTotal(0);
       })
       .finally(() => setServerSearchLoading(false));
-  }, [PRODUCTS_PAGE_SIZE, debouncedSearch, isConnected, isRestaurant, selectedCategory]);
+  }, [PRODUCTS_PAGE_SIZE, debouncedSearch, isConnected, isRestaurant, productSortMode, selectedCategory, serverProductStatus]);
 
   // LayoutAnimation triggered on search / filter changes
   useEffect(() => {
     if (!loading) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     }
-  }, [debouncedSearch, filterType, selectedCategory]);
+  }, [debouncedSearch, filterType, productSortMode, selectedCategory]);
 
   // History state
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -764,7 +773,10 @@ export default function ProductsScreen() {
         // Phase 2: Fetch essential data (products + categories)
         const isEnterprise = hasEnterpriseLocations;
         const [prodsRes, cats] = await Promise.all([
-          productsApi.list(selectedCategory ?? undefined, 0, PRODUCTS_PAGE_SIZE, isRestaurant ? true : undefined),
+          productsApi.list(selectedCategory ?? undefined, 0, PRODUCTS_PAGE_SIZE, isRestaurant ? true : undefined, undefined, {
+            sort_by: productSortMode,
+            product_status: serverProductStatus,
+          }),
           categoriesApi.list(),
         ]);
 
@@ -772,7 +784,7 @@ export default function ProductsScreen() {
         setProductList(prods as Product[]);
         setProductsTotal(prodsRes.total ?? prods.length);
         setCategoryList(cats);
-        if (!selectedCategory) {
+        if (!selectedCategory && filterType === 'all') {
           cache.set(KEYS.PRODUCTS, prods);
         }
         cache.set(KEYS.CATEGORIES, cats);
@@ -923,7 +935,7 @@ export default function ProductsScreen() {
       setRefreshing(false);
       lastLoadedAtRef.current = Date.now();
     }
-  }, [MOBILE_PERF_ENABLED, PRODUCTS_PAGE_SIZE, hasEnterpriseLocations, isConnected, isRestaurant, selectedCategory, user?.active_store_id]);
+  }, [MOBILE_PERF_ENABLED, PRODUCTS_PAGE_SIZE, filterType, hasEnterpriseLocations, isConnected, isRestaurant, productSortMode, selectedCategory, serverProductStatus, user?.active_store_id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1142,6 +1154,10 @@ export default function ProductsScreen() {
           PRODUCTS_PAGE_SIZE,
           isRestaurant ? true : undefined,
           debouncedSearch,
+          {
+            sort_by: productSortMode,
+            product_status: serverProductStatus,
+          },
         );
         const items = (response.items ?? response) as Product[];
         setServerSearchResults((current) => mergeUniqueProducts(current ?? [], items));
@@ -1163,6 +1179,11 @@ export default function ProductsScreen() {
         productList.length,
         PRODUCTS_PAGE_SIZE,
         isRestaurant ? true : undefined,
+        undefined,
+        {
+          sort_by: productSortMode,
+          product_status: serverProductStatus,
+        },
       );
       const items = (response.items ?? response) as Product[];
       setProductList((current) => mergeUniqueProducts(current, items));
@@ -1266,7 +1287,8 @@ export default function ProductsScreen() {
 
   const matchesActiveProductFilters = useCallback((product: Product) => {
     let matchesFilter = true;
-    if (filterType === 'out_of_stock') matchesFilter = product.quantity === 0;
+    if (filterType === 'in_stock') matchesFilter = product.quantity > 0;
+    else if (filterType === 'out_of_stock') matchesFilter = product.quantity === 0;
     else if (filterType === 'low_stock') matchesFilter = product.min_stock > 0 && product.quantity <= product.min_stock;
     else if (filterType === 'overstock') matchesFilter = product.max_stock > 0 && product.quantity >= product.max_stock;
     else if (filterType === 'deadstock') matchesFilter = deadstockIds.has(product.product_id);
@@ -1318,6 +1340,10 @@ export default function ProductsScreen() {
         PRODUCTS_PAGE_SIZE,
         isRestaurant ? true : undefined,
         usingServerSearch ? debouncedSearch : undefined,
+        {
+          sort_by: productSortMode,
+          product_status: serverProductStatus,
+        },
       );
       const incomingItems = (response.items ?? response) as Product[];
       mergedItems = mergeUniqueProducts(mergedItems, incomingItems);
@@ -1345,7 +1371,9 @@ export default function ProductsScreen() {
     mergeUniqueProducts,
     productList,
     productsTotal,
+    productSortMode,
     selectedCategory,
+    serverProductStatus,
     serverSearchResults,
     serverSearchTotal,
   ]);
@@ -1379,10 +1407,11 @@ export default function ProductsScreen() {
   const activeProductControlCount = useMemo(() => {
     let count = 0;
     if (filterType !== 'all') count += 1;
+    if (productSortMode !== 'stock_priority') count += 1;
     if (supplierCoverageFilter !== 'all') count += 1;
     if (selectedCategory) count += 1;
     return count;
-  }, [filterType, selectedCategory, supplierCoverageFilter]);
+  }, [filterType, productSortMode, selectedCategory, supplierCoverageFilter]);
 
   function getMenuProductionModeLabel(product: Product) {
     switch (product.production_mode) {
@@ -3064,6 +3093,48 @@ export default function ProductsScreen() {
           )}
         </View>
         {!isRestaurant && (
+          <View style={styles.stockFocusCard}>
+            <View style={styles.stockFocusHeader}>
+              <View>
+                <Text style={styles.stockFocusTitle}>{t('products.stock_view_title', 'Vue stock')}</Text>
+                <Text style={styles.stockFocusSubtitle}>{t('products.stock_view_subtitle', 'Les produits utiles remontent en premier.')}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.stockFocusSortPill}
+                onPress={() => setShowControlsPanel((current) => !current)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="swap-vertical-outline" size={15} color={colors.primaryLight} />
+                <Text style={styles.stockFocusSortText}>
+                  {productSortMode === 'stock_priority'
+                    ? t('products.sort_stock_priority', 'Priorité stock')
+                    : productSortMode === 'quantity_desc'
+                      ? t('products.sort_quantity_desc', 'Stock élevé')
+                      : productSortMode === 'name_asc'
+                        ? t('products.sort_name_asc', 'Nom A-Z')
+                        : t('products.sort_recently_added', 'Récents')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]} onPress={() => setFilterType('all')}>
+                <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>{t('common.all')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'in_stock' && styles.filterChipActive, { borderColor: colors.success }]} onPress={() => setFilterType('in_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'in_stock' && styles.filterChipTextActive, { color: filterType === 'in_stock' ? '#fff' : colors.success }]}>
+                  {t('products.in_stock', 'En stock')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'low_stock' && styles.filterChipActive, { borderColor: colors.warning }]} onPress={() => setFilterType('low_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'low_stock' && styles.filterChipTextActive, { color: filterType === 'low_stock' ? '#fff' : colors.warning }]}>{t('products.low_stock')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'out_of_stock' && styles.filterChipActive, { borderColor: colors.danger }]} onPress={() => setFilterType('out_of_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'out_of_stock' && styles.filterChipTextActive, { color: filterType === 'out_of_stock' ? '#fff' : colors.danger }]}>{t('products.out_of_stock')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+        {!isRestaurant && (
           <View style={styles.sectionToggleCard}>
             <TouchableOpacity
               style={styles.sectionToggleMain}
@@ -3071,9 +3142,9 @@ export default function ProductsScreen() {
               activeOpacity={0.85}
             >
               <View style={styles.sectionToggleCopy}>
-                <Text style={styles.sectionToggleTitle}>Filtres avancés</Text>
+                <Text style={styles.sectionToggleTitle}>{t('products.sort_and_filters', 'Trier et filtrer')}</Text>
                 <Text style={styles.sectionToggleDescription}>
-                  {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visibles • ${activeProductControlCount > 0 ? `${activeProductControlCount} filtre${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun filtre avancé'}`}
+                  {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visibles - ${activeProductControlCount > 0 ? `${activeProductControlCount} réglage${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun réglage avancé'}`}
                 </Text>
               </View>
               <Ionicons
@@ -3097,9 +3168,28 @@ export default function ProductsScreen() {
 
         {!isRestaurant && showControlsPanel && (
           <View style={styles.filterWrapper}>
+            <Text style={styles.controlGroupLabel}>{t('products.sort_label', 'Trier par')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <TouchableOpacity style={[styles.filterChip, productSortMode === 'stock_priority' && styles.filterChipActive]} onPress={() => setProductSortMode('stock_priority')}>
+                <Text style={[styles.filterChipText, productSortMode === 'stock_priority' && styles.filterChipTextActive]}>{t('products.sort_stock_priority', 'Priorité stock')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, productSortMode === 'quantity_desc' && styles.filterChipActive]} onPress={() => setProductSortMode('quantity_desc')}>
+                <Text style={[styles.filterChipText, productSortMode === 'quantity_desc' && styles.filterChipTextActive]}>{t('products.sort_quantity_desc', 'Stock élevé')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, productSortMode === 'name_asc' && styles.filterChipActive]} onPress={() => setProductSortMode('name_asc')}>
+                <Text style={[styles.filterChipText, productSortMode === 'name_asc' && styles.filterChipTextActive]}>{t('products.sort_name_asc', 'Nom A-Z')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, productSortMode === 'recently_added' && styles.filterChipActive]} onPress={() => setProductSortMode('recently_added')}>
+                <Text style={[styles.filterChipText, productSortMode === 'recently_added' && styles.filterChipTextActive]}>{t('products.sort_recently_added', 'Récents')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+            <Text style={styles.controlGroupLabel}>{t('products.stock_filter_label', 'Afficher')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
               <TouchableOpacity style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]} onPress={() => setFilterType('all')}>
                 <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>{t('common.all')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'in_stock' && styles.filterChipActive, { borderColor: colors.success }]} onPress={() => setFilterType('in_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'in_stock' && styles.filterChipTextActive, { color: filterType === 'in_stock' ? '#fff' : colors.success }]}>{t('products.in_stock', 'En stock')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.filterChip, filterType === 'out_of_stock' && styles.filterChipActive, { borderColor: colors.danger }]} onPress={() => setFilterType('out_of_stock')}>
                 <Text style={[styles.filterChipText, filterType === 'out_of_stock' && styles.filterChipTextActive, { color: filterType === 'out_of_stock' ? '#fff' : colors.danger }]}>{t('products.out_of_stock')}</Text>
@@ -3118,6 +3208,7 @@ export default function ProductsScreen() {
                 </TouchableOpacity>
               )}
             </ScrollView>
+            <Text style={styles.controlGroupLabel}>{t('products.supplier_filter_label', 'Fournisseur')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
               <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'all' && styles.filterChipActive]} onPress={() => setSupplierCoverageFilter('all')}>
                 <Text style={[styles.filterChipText, supplierCoverageFilter === 'all' && styles.filterChipTextActive]}>{t('products.supplier_filter_all', 'Tous fournisseurs')}</Text>
@@ -5998,6 +6089,56 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   filterWrapper: {
     paddingVertical: Spacing.sm,
     marginBottom: Spacing.xs,
+  },
+  stockFocusCard: {
+    backgroundColor: colors.glass,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  stockFocusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  stockFocusTitle: {
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '800',
+  },
+  stockFocusSubtitle: {
+    color: colors.textMuted,
+    fontSize: FontSize.xs,
+    marginTop: 2,
+  },
+  stockFocusSortPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+    backgroundColor: colors.primary + '18',
+    borderWidth: 1,
+    borderColor: colors.primary + '35',
+  },
+  stockFocusSortText: {
+    color: colors.primaryLight,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+  },
+  controlGroupLabel: {
+    color: colors.textSecondary,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+    marginTop: Spacing.sm,
   },
   filterScroll: {
     paddingHorizontal: 0,

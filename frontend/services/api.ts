@@ -637,12 +637,19 @@ export type ProductDeleteJob = {
   progress_pct: number;
 };
 
+export type ProductListOptions = {
+  sort_by?: string;
+  product_status?: string;
+};
+
 export const products = {
-  list: (categoryId?: string, skip = 0, limit = 50, isMenuItem?: boolean, search?: string) => {
+  list: (categoryId?: string, skip = 0, limit = 50, isMenuItem?: boolean, search?: string, options?: ProductListOptions) => {
     const qs = new URLSearchParams();
     if (categoryId) qs.set('category_id', categoryId);
     if (typeof isMenuItem === 'boolean') qs.set('is_menu_item', String(isMenuItem));
     if (search) qs.set('search', search);
+    if (options?.sort_by) qs.set('sort_by', options.sort_by);
+    if (options?.product_status) qs.set('product_status', options.product_status);
     qs.set('skip', skip.toString());
     qs.set('limit', limit.toString());
     return request<PaginatedResponse<Product>>(`/products?${qs.toString()}`);

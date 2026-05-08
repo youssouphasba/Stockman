@@ -237,6 +237,15 @@ Quand vous devez nettoyer un grand catalogue :
 
 > 💡 **Bon à savoir** : La suppression groupée n'efface pas définitivement les produits. Ils restent restaurables depuis la corbeille tant qu'ils n'ont pas été supprimés définitivement.
 
+### 2.13 Retrouver les produits importants
+
+Dans l'onglet **📦 Produits**, la vue stock met en avant les articles les plus utiles à traiter en premier.
+
+- **Priorité stock** affiche d'abord les produits en stock qui demandent une attention rapide.
+- **En stock**, **Stock bas** et **Rupture** filtrent directement le catalogue complet, pas seulement les premiers produits chargés.
+- **Trier et filtrer** permet aussi de classer par stock élevé, nom ou date d'ajout.
+- La recherche reste disponible pour retrouver rapidement un produit précis par son nom ou ses informations.
+
 ---
 
 ## Chapitre 3 — Le Tableau de Bord

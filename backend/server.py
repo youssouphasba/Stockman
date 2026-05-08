@@ -15619,6 +15619,8 @@ async def get_products(
     active_only: bool = True,
     store_id: Optional[str] = None,
     search: Optional[str] = None,
+    product_status: Optional[str] = None,
+    sort_by: str = "stock_priority",
     skip: int = 0,
     limit: int = 50
 ):
@@ -15647,12 +15649,59 @@ async def get_products(
             {"sku": {"$regex": safe, "$options": "i"}},
         ]
 
+    if product_status == "in_stock":
+        query["quantity"] = {"$gt": 0}
+    elif product_status == "out_of_stock":
+        query["quantity"] = {"$lte": 0}
+    elif product_status == "low_stock":
+        query["min_stock"] = {"$gt": 0}
+        query["$expr"] = {"$lte": ["$quantity", "$min_stock"]}
+    elif product_status == "overstock":
+        query["max_stock"] = {"$gt": 0}
+        query["$expr"] = {"$gte": ["$quantity", "$max_stock"]}
+
     total = await db.products.count_documents(query)
-    products = await db.products.find(query, {"_id": 0}).sort([
-        ("created_at", -1),
-        ("updated_at", -1),
-        ("product_id", -1),
-    ]).skip(skip).limit(limit).to_list(limit)
+    projection = {"_id": 0}
+
+    if sort_by == "quantity_desc":
+        cursor = db.products.find(query, projection).sort([("quantity", -1), ("name", 1), ("created_at", -1)])
+    elif sort_by == "name_asc":
+        cursor = db.products.find(query, projection).sort([("name", 1), ("created_at", -1)])
+    elif sort_by == "recently_added":
+        cursor = db.products.find(query, projection).sort([("created_at", -1), ("updated_at", -1), ("product_id", -1)])
+    else:
+        pipeline = [
+            {"$match": query},
+            {"$addFields": {
+                "_stock_priority": {
+                    "$switch": {
+                        "branches": [
+                            {
+                                "case": {
+                                    "$and": [
+                                        {"$gt": ["$quantity", 0]},
+                                        {"$gt": ["$min_stock", 0]},
+                                        {"$lte": ["$quantity", "$min_stock"]},
+                                    ]
+                                },
+                                "then": 0,
+                            },
+                            {"case": {"$gt": ["$quantity", 0]}, "then": 1},
+                            {"case": {"$lte": ["$quantity", 0]}, "then": 3},
+                        ],
+                        "default": 2,
+                    }
+                }
+            }},
+            {"$sort": {"_stock_priority": 1, "quantity": -1, "name": 1, "created_at": -1}},
+            {"$skip": max(skip, 0)},
+            {"$limit": max(min(limit, 500), 1)},
+            {"$project": {"_stock_priority": 0, "_id": 0}},
+        ]
+        products = await db.products.aggregate(pipeline).to_list(max(min(limit, 500), 1))
+        return {"items": [_product_response_for_user(user, prod) for prod in products], "total": total}
+
+    products = await cursor.skip(skip).limit(limit).to_list(limit)
 
     return {"items": [_product_response_for_user(user, prod) for prod in products], "total": total}
 
