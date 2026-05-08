@@ -26,6 +26,7 @@ class NotificationService:
             self.headers["Authorization"] = f"Bearer {access_token}"
         self.resend_api_key = os.environ.get("RESEND_API_KEY", "")
         self.email_from = os.environ.get("RESEND_ALERTS_FROM_EMAIL", os.environ.get("RESEND_FROM_EMAIL", "Stockman <alertes@stockman.pro>"))
+        self.communication_email_from = os.environ.get("RESEND_COMMUNICATION_FROM_EMAIL", os.environ.get("RESEND_FROM_EMAIL", "Stockman <contact@stockman.pro>"))
 
     async def send_push_notification(
         self,
@@ -194,6 +195,7 @@ class NotificationService:
         subject: str,
         html_body: str,
         text_body: Optional[str] = None,
+        from_email: Optional[str] = None,
     ):
         """
         Send an email notification via Resend.
@@ -211,7 +213,7 @@ class NotificationService:
             return None
 
         payload: Dict[str, Any] = {
-            "from": self.email_from,
+            "from": from_email or self.email_from,
             "to": recipients,
             "subject": subject,
             "html": html_body,

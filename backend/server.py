@@ -7892,6 +7892,7 @@ async def _deliver_admin_message(message: AdminMessage, recipients: List[dict]) 
             message.title,
             html_body,
             text_body=message.content,
+            from_email=notification_service.communication_email_from,
         )
         delivery["email_recipients"] = len(list(dict.fromkeys([str(email).strip().lower() for email in emails if email])))
     return delivery
