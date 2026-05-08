@@ -503,9 +503,6 @@ export default function SubscriptionScreen() {
                                 )}
                             </TouchableOpacity>
                         ) : null}
-                        {Platform.OS === 'android' ? (
-                            <Text style={styles.helperText}>{t('subscription.google_play_test_hint')}</Text>
-                        ) : null}
                         <Text style={styles.legalHint}>{t('subscription.legal_links_hint')}</Text>
                         <View style={styles.legalLinksRow}>
                             <TouchableOpacity
@@ -530,9 +527,6 @@ export default function SubscriptionScreen() {
                                 <Text style={styles.legalLink}>{t('common.privacy')}</Text>
                             </TouchableOpacity>
                         </View>
-                        {!isIOS ? (
-                            <Text style={styles.helperText}>{t('subscription.external_payment_notice')}</Text>
-                        ) : null}
                     </View>
                 ) : null}
 
@@ -699,9 +693,9 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         marginTop: 4,
     },
     payButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-    legalHint: { fontSize: 12, color: colors.textMuted, marginTop: 12, textAlign: 'center' },
-    legalLinksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 10 },
-    legalLink: { color: colors.primary, fontSize: 13, fontWeight: '600' },
+    legalHint: { fontSize: 12, color: colors.textMuted, marginTop: 12, textAlign: 'center', lineHeight: 17 },
+    legalLinksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+    legalLink: { color: colors.primary, fontSize: 13, fontWeight: '600', textAlign: 'center' },
     legalSeparator: { color: colors.textMuted, fontSize: 13 },
     enterpriseHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
     enterpriseTitle: { marginBottom: 0, color: '#7C3AED' },

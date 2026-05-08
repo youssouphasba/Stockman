@@ -3573,7 +3573,7 @@ export default function ProductsScreen() {
         maxToRenderPerBatch={8}
         windowSize={7}
         updateCellsBatchingPeriod={50}
-        removeClippedSubviews={Platform.OS === 'android'}
+        removeClippedSubviews={false}
         keyboardShouldPersistTaps="handled"
         extraData={{
           isSelectionMode,

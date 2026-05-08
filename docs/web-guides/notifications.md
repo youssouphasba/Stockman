@@ -43,7 +43,7 @@ Les relances automatiques d'activation utilisent les push et les emails selon le
 - compte commerçant inactif : email et push vers le tableau de bord ;
 - compte nécessitant une action d'abonnement : email et push vers l'abonnement.
 
-Ces liens sont des deep links applicatifs. Ils ne redirigent pas vers une page web générique.
+Les emails utilisent un lien HTTPS signé qui ouvre ensuite le deep link applicatif Stockman. Cela évite les blocages fréquents des liens `stockman://` directement placés dans les clients mail.
 
 Les fournisseurs ne reçoivent pas ces relances d'activation. Ils continuent à recevoir les notifications liées aux commandes qu'ils reçoivent.
 

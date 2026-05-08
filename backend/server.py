@@ -852,6 +852,7 @@ async def create_indexes_and_init():
                 await db.duplicate_resolutions.create_index([("user_id", 1), ("target", 1), ("updated_at", -1)])
                 await db.products.create_index([("user_id", 1), ("store_id", 1)])
                 await db.products.create_index([("user_id", 1), ("store_id", 1), ("is_active", 1)])
+                await db.products.create_index([("user_id", 1), ("store_id", 1), ("is_active", 1), ("created_at", -1)])
                 await db.products.create_index([("user_id", 1), ("store_id", 1), ("is_active", 1), ("quantity", -1)])
                 await db.products.create_index([("user_id", 1), ("store_id", 1), ("category_id", 1), ("is_active", 1)])
                 await db.products.create_index([("import_job_id", 1), ("import_row_index", 1)], unique=True, sparse=True)
@@ -3062,6 +3063,18 @@ def build_app_deeplink(path: str, params: Optional[Dict[str, Any]] = None) -> st
     return f"{scheme}://{normalized_path}{query}"
 
 
+def build_signed_app_open_link(deeplink: str, purpose: str = "activation") -> str:
+    expires_at = datetime.now(timezone.utc) + timedelta(days=int(os.environ.get("APP_OPEN_LINK_TTL_DAYS", "30")))
+    payload = {
+        "type": "app_deeplink",
+        "purpose": purpose,
+        "url": deeplink,
+        "exp": int(expires_at.timestamp()),
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return f"{get_api_public_base_url()}/api/open-app?t={quote(token, safe='')}"
+
+
 def permission_allows_write(permissions: Dict[str, str], module: str) -> bool:
     return permissions.get(module) == "write"
 
@@ -3113,7 +3126,7 @@ def choose_system_activation_target(
                 "milestone": "j1" if days_since_creation < 3 else "j3" if days_since_creation < 7 else "j7",
                 "deeplink": build_app_deeplink("products", {"action": "create", "source": "activation"}),
                 "email_subject": "Ajoutez vos premiers produits dans Stockman",
-                "push_title": "Votre stock peut démarrer",
+                "push_title": "Commencez votre suivi de stock",
                 "push_body": "Ajoutez vos premiers produits pour suivre vos ventes et vos marges.",
                 "email_body": "Ajoutez vos premiers produits pour commencer à suivre votre stock, vos ventes et vos marges avec des données fiables.",
                 "plan": plan,
@@ -3210,11 +3223,11 @@ async def record_system_delivery(
     })
 
 
-def build_activation_email_html(name: str, body: str, deeplink: str) -> str:
+def build_activation_email_html(name: str, body: str, action_url: str) -> str:
     safe_name = (name or "Bonjour").strip()
     return f"""Bonjour {safe_name},<br><br>
 {body}<br><br>
-<a href="{deeplink}" style="background:#0f172a;color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block;">Ouvrir dans Stockman</a><br><br>
+<a href="{action_url}" style="background:#0f172a;color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block;">Ouvrir dans Stockman</a><br><br>
 Si le bouton ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone.<br><br>
 À bientôt,<br>L'équipe Stockman."""
 
@@ -3226,11 +3239,12 @@ async def send_system_activation_email(user_doc: dict, account_doc: Optional[dic
     if await has_recent_system_delivery({**milestone_filter, "channel": "email"}, now):
         return
     name = user_doc.get("name") or "cher utilisateur"
-    html_body = build_activation_email_html(name, target["email_body"], target["deeplink"])
+    action_url = build_signed_app_open_link(target["deeplink"], purpose=target["scenario"])
+    html_body = build_activation_email_html(name, target["email_body"], action_url)
     text_body = (
         f"Bonjour {name},\n\n"
         f"{target['email_body']}\n\n"
-        f"Ouvrir dans Stockman : {target['deeplink']}\n\n"
+        f"Ouvrir dans Stockman : {action_url}\n\n"
         "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone.\n\n"
         "À bientôt,\nL'équipe Stockman."
     )
@@ -3318,12 +3332,13 @@ async def send_demo_conversion_email(session_doc: dict, now: datetime) -> None:
         "demo_session_id": session_doc.get("demo_session_id"),
         "email": email,
     })
+    action_url = build_signed_app_open_link(deeplink, purpose="demo_conversion")
     subject = "Créez votre compte Stockman à partir de votre démo"
     body = "Votre démo est terminée. Créez votre compte pour repartir sur un espace propre et continuer avec vos propres produits, clients et ventes."
-    html_body = build_activation_email_html("cher utilisateur", body, deeplink)
+    html_body = build_activation_email_html("cher utilisateur", body, action_url)
     text_body = (
         f"{body}\n\n"
-        f"Ouvrir dans Stockman : {deeplink}\n\n"
+        f"Ouvrir dans Stockman : {action_url}\n\n"
         "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone."
     )
     result = await notification_service.send_email_notification([email], subject, html_body, text_body=text_body)
@@ -14907,6 +14922,22 @@ async def login(request: Request, user_data: UserLogin, response: Response):
         user=user,
     )
 
+
+@api_router.get("/open-app")
+async def open_app_from_signed_link(t: str):
+    try:
+        payload = jwt.decode(t, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Lien invalide ou expiré")
+    if payload.get("type") != "app_deeplink":
+        raise HTTPException(status_code=400, detail="Lien invalide")
+    deeplink = str(payload.get("url") or "")
+    scheme = os.environ.get("APP_DEEPLINK_SCHEME", "stockman").strip().rstrip(":/") or "stockman"
+    if not deeplink.startswith(f"{scheme}://"):
+        raise HTTPException(status_code=400, detail="Lien invalide")
+    return RedirectResponse(url=deeplink, status_code=307)
+
+
 @api_router.get("/auth/me")
 async def get_me(user: User = Depends(require_auth)):
     """Get current user info"""
@@ -15617,7 +15648,11 @@ async def get_products(
         ]
 
     total = await db.products.count_documents(query)
-    products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    products = await db.products.find(query, {"_id": 0}).sort([
+        ("created_at", -1),
+        ("updated_at", -1),
+        ("product_id", -1),
+    ]).skip(skip).limit(limit).to_list(limit)
 
     return {"items": [_product_response_for_user(user, prod) for prod in products], "total": total}
 
