@@ -636,11 +636,23 @@ export default function POSScreen() {
             openWeightedModal(product);
             return;
         }
+
+        updateActiveSession(s => {
+            const existingInSession = s.cart.find(item => item.product.product_id === product.product_id && !item.persisted);
+            if (existingInSession) {
                 return {
                     ...s,
-                    cart: [...s.cart, { cartKey: `draft_${product.product_id}_${Date.now()}`, product, quantity: 1, persisted: false }]
+                    cart: s.cart.map(item =>
+                        item.cartKey === existingInSession.cartKey
+                            ? { ...item, quantity: item.quantity + 1 }
+                            : item
+                    )
                 };
-            });
+            }
+            return {
+                ...s,
+                cart: [...s.cart, { cartKey: `draft_${product.product_id}_${Date.now()}`, product, quantity: 1, persisted: false }]
+            };
         });
     };
 
@@ -1288,12 +1300,14 @@ export default function POSScreen() {
     );
 
     return (
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-            style={{ flex: 1 }}
-        >
-            <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
-                <View style={[styles.content, { paddingTop: insets.top, paddingBottom: isMobile ? 0 : insets.bottom }]}>
+        <>
+            <KeyboardAvoidingView 
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+                style={{ flex: 1 }}
+            >
+                <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
+                    <View style={[styles.content, { paddingTop: insets.top, paddingBottom: isMobile ? 0 : insets.bottom }]}>
+
                 {/* 1. Session Tabs */}
                 <View style={styles.tabsContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sessionScroll}>
@@ -1556,15 +1570,19 @@ export default function POSScreen() {
                 )}
             </View>
 
-                {isMobile && !showProductList && (
-                    <View style={[styles.checkoutBar, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
-                        {checkoutBar}
-                    </View>
-                )}
-            </LinearGradient>
-        </KeyboardAvoidingView>
+                    {isMobile && !showProductList && (
+                        <View style={[styles.checkoutBar, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+                            {checkoutBar}
+                        </View>
+                    )}
+                </LinearGradient>
+            </KeyboardAvoidingView>
 
-            {/* Modals */}
+
+        {/* Modals */}
+
+
+
             <ChangeCalculatorModal
                 visible={showCalculator}
                 onClose={() => setShowCalculator(false)}
@@ -1866,7 +1884,7 @@ export default function POSScreen() {
                     </View>
                 </View>
             </Modal>}
-        </LinearGradient>
+        </>
     );
 }
 
