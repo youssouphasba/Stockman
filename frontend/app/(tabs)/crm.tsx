@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -1258,8 +1258,14 @@ export default function CRMScreen() {
                                                                     {formatNumber(Math.abs(detailCustomer.current_debt || 0))} {t('common.currency_default')}
                                                                 </Text>
                                                             </View>
-                                                            <TouchableOpacity style={[styles.payBtn, detailCustomer.current_debt < 0 && { backgroundColor: colors.success }]} onPress={openPaymentModal}>
-                                                                <Text style={styles.payBtnText}>{detailCustomer.current_debt > 0 ? t('crm.repay') : t('common.edit')}</Text>
+                                                            <TouchableOpacity
+                                                                style={[styles.payBtn, detailCustomer.current_debt < 0 && { backgroundColor: colors.success }]}
+                                                                onPress={openPaymentModal}
+                                                                activeOpacity={0.7}
+                                                            >
+                                                                <Text style={styles.payBtnText}>
+                                                                    {detailCustomer.current_debt > 0 ? t('crm.repay') : t('common.edit')}
+                                                                </Text>
                                                             </TouchableOpacity>
                                                         </View>
                                                     ) : (
@@ -2663,19 +2669,25 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     debtValue: { fontSize: FontSize.xl, color: colors.danger, fontWeight: 'bold' },
     payBtn: {
         backgroundColor: colors.danger,
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: 12,
         borderRadius: BorderRadius.md,
+        minHeight: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     payBtnOutline: {
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: colors.success,
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: 12,
         borderRadius: BorderRadius.md,
+        minHeight: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    payBtnText: { color: '#FFF', fontWeight: 'bold' },
-    payBtnTextOutline: { color: colors.success, fontWeight: 'bold' },
+    payBtnText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+    payBtnTextOutline: { color: colors.success, fontWeight: '800', fontSize: 14 },
 
     // Quick amounts (payment modal)
     quickAmountsRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },

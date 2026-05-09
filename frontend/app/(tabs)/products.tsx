@@ -392,6 +392,8 @@ export default function ProductsScreen() {
   const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
   const [showBulkStockModal, setShowBulkStockModal] = useState(false);
   const [bulkStockValues, setBulkStockValues] = useState<Record<string, string>>({});
+  const [bulkPurchaseValues, setBulkPurchaseValues] = useState<Record<string, string>>({});
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [bulkStockSaving, setBulkStockSaving] = useState(false);
   const [bulkDeleteSaving, setBulkDeleteSaving] = useState(false);
   const [bulkDeleteProcessedCount, setBulkDeleteProcessedCount] = useState(0);
@@ -2427,37 +2429,33 @@ export default function ProductsScreen() {
     });
   }
 
-  function openBulkPriceModal() {
+  function openBulkEditModal() {
     if (selectedProducts.length === 0) return;
-    const initialValues: Record<string, string> = {};
+    const initialPrices: Record<string, string> = {};
+    const initialPurchases: Record<string, string> = {};
+    const initialStocks: Record<string, string> = {};
     selectedProducts.forEach((product) => {
-      initialValues[product.product_id] = String(product.selling_price ?? '');
+      initialPrices[product.product_id] = String(product.selling_price ?? '');
+      initialPurchases[product.product_id] = String(product.purchase_price ?? '');
+      initialStocks[product.product_id] = String(product.quantity ?? '');
     });
-    setBulkPriceValues(initialValues);
-    setShowBulkPriceModal(true);
+    setBulkPriceValues(initialPrices);
+    setBulkPurchaseValues(initialPurchases);
+    setBulkStockValues(initialStocks);
+    setShowBulkEditModal(true);
   }
 
-  function closeBulkPriceModal() {
-    setShowBulkPriceModal(false);
+  function closeBulkEditModal() {
+    setShowBulkEditModal(false);
     setBulkPriceValues({});
+    setBulkPurchaseValues({});
+    setBulkStockValues({});
     setBulkPriceSaving(false);
   }
 
-  function openBulkStockModal() {
-    if (selectedProducts.length === 0) return;
-    const initialValues: Record<string, string> = {};
-    selectedProducts.forEach((product) => {
-      initialValues[product.product_id] = String(product.quantity ?? 0);
-    });
-    setBulkStockValues(initialValues);
-    setShowBulkStockModal(true);
-  }
+  
 
-  function closeBulkStockModal() {
-    setShowBulkStockModal(false);
-    setBulkStockValues({});
-    setBulkStockSaving(false);
-  }
+  
 
   function updateLocalProductSellingPrices(updates: Array<{ product_id: string; selling_price: number }>) {
     if (updates.length === 0) return;
@@ -2515,164 +2513,146 @@ export default function ProductsScreen() {
       .catch(() => { /* ignore cache write errors */ });
   }
 
-  async function handleBulkSellingPriceUpdate() {
+  async function handleBulkEditUpdate() {
     if (selectedProducts.length === 0) return;
 
-    const updates: Array<{ product_id: string; selling_price: number }> = [];
+    const priceUpdates: Array<{ product_id: string; selling_price?: number; purchase_price?: number }> = [];
+    const stockMovements: Array<{ product_id: string; name: string; type: 'in' | 'out'; quantity: number }> = [];
+    const targetQuantities: Array<{ product_id: string; quantity: number }> = [];
+
     for (const product of selectedProducts) {
-      const rawValue = bulkPriceValues[product.product_id];
-      if (rawValue == null) continue;
-      const normalizedValue = rawValue.replace(',', '.').trim();
-      if (!normalizedValue) continue;
-      const parsedValue = Number(normalizedValue);
-      if (!Number.isFinite(parsedValue) || parsedValue < 0) {
-        Alert.alert(
-          t('common.error'),
-          t('products.bulk_price_invalid_value', { name: product.name }),
-        );
-        return;
+      let hasPriceUpdate = false;
+      const updatePayload: { product_id: string; selling_price?: number; purchase_price?: number } = { product_id: product.product_id };
+
+      // Selling price
+      const rawSelling = bulkPriceValues[product.product_id];
+      if (rawSelling != null) {
+        const normSelling = rawSelling.replace(',', '.').trim();
+        if (normSelling) {
+          const parsedSelling = Number(normSelling);
+          if (!Number.isFinite(parsedSelling) || parsedSelling < 0) {
+            Alert.alert(t('common.error'), t('products.bulk_price_invalid_value', { name: product.name }));
+            return;
+          }
+          if (parsedSelling !== Number(product.selling_price ?? 0)) {
+            updatePayload.selling_price = parsedSelling;
+            hasPriceUpdate = true;
+          }
+        }
       }
-      if (parsedValue !== Number(product.selling_price ?? 0)) {
-        updates.push({
-          product_id: product.product_id,
-          selling_price: parsedValue,
-        });
+
+      // Purchase price
+      const rawPurchase = bulkPurchaseValues[product.product_id];
+      if (rawPurchase != null) {
+        const normPurchase = rawPurchase.replace(',', '.').trim();
+        if (normPurchase) {
+          const parsedPurchase = Number(normPurchase);
+          if (!Number.isFinite(parsedPurchase) || parsedPurchase < 0) {
+            Alert.alert(t('common.error'), t('products.bulk_price_invalid_value', { name: product.name }));
+            return;
+          }
+          if (parsedPurchase !== Number(product.purchase_price ?? 0)) {
+            updatePayload.purchase_price = parsedPurchase;
+            hasPriceUpdate = true;
+          }
+        }
+      }
+
+      if (hasPriceUpdate) {
+        priceUpdates.push(updatePayload);
+      }
+
+      // Stock
+      const rawStock = bulkStockValues[product.product_id];
+      if (rawStock != null) {
+        const normStock = rawStock.replace(',', '.').trim();
+        if (normStock) {
+          const targetQuantity = Number(normStock);
+          if (!Number.isFinite(targetQuantity) || targetQuantity < 0) {
+            Alert.alert(t('common.error'), t('products.bulk_stock_invalid_value', { name: product.name }));
+            return;
+          }
+          const currentQuantity = Number(product.quantity ?? 0);
+          const delta = targetQuantity - currentQuantity;
+          if (Math.abs(delta) > 0.000001) {
+            stockMovements.push({
+              product_id: product.product_id,
+              name: product.name,
+              type: delta > 0 ? 'in' : 'out',
+              quantity: Math.abs(delta),
+            });
+            targetQuantities.push({ product_id: product.product_id, quantity: targetQuantity });
+          }
+        }
       }
     }
 
-    if (updates.length === 0) {
-      Alert.alert(t('common.info'), t('products.bulk_price_no_changes'));
+    if (priceUpdates.length === 0 && stockMovements.length === 0) {
+      Alert.alert(t('common.info'), t('products.bulk_no_changes', "Aucune modification détectée."));
       return;
     }
 
     setBulkPriceSaving(true);
     try {
-      if (isConnected) {
-        const result = await productsApi.bulkUpdatePrices(updates);
-        updateLocalProductSellingPrices(updates);
-        closeBulkPriceModal();
-        setSelectedProductIds(new Set());
-        setIsSelectionMode(false);
-        await loadData();
-        if (result.failed > 0) {
-          const firstError = result.errors[0]?.message || t('products.bulk_price_partial_error');
-          Alert.alert(
-            t('common.warning'),
-            t('products.bulk_price_partial_success', { updated: result.updated, failed: result.failed, error: firstError }),
-          );
+      if (priceUpdates.length > 0) {
+        if (isConnected) {
+          await productsApi.bulkUpdatePrices(priceUpdates as any);
         } else {
-          Alert.alert(t('common.success'), t('products.bulk_price_success', { count: result.updated }));
+          await syncService.addToQueue({
+            entity: 'product',
+            type: 'update',
+            endpoint: '/products/bulk-update-prices',
+            method: 'POST',
+            payload: { updates: priceUpdates },
+          });
         }
-      } else {
-        await syncService.addToQueue({
-          entity: 'product',
-          type: 'update',
-          endpoint: '/products/bulk-update-prices',
-          method: 'POST',
-          payload: { updates },
-        });
-        updateLocalProductSellingPrices(updates);
-        closeBulkPriceModal();
-        setSelectedProductIds(new Set());
-        setIsSelectionMode(false);
-        Alert.alert(t('common.offline_mode'), t('products.bulk_price_offline_queued', { count: updates.length }));
+        
+        // Update local price values
+        setProductList((prev) => prev.map(p => {
+          const update = priceUpdates.find(u => u.product_id === p.product_id);
+          if (update) {
+            return {
+              ...p,
+              ...(update.selling_price !== undefined && { selling_price: update.selling_price }),
+              ...(update.purchase_price !== undefined && { purchase_price: update.purchase_price })
+            };
+          }
+          return p;
+        }));
       }
+
+      if (stockMovements.length > 0) {
+        const successfulTargetQuantities: Array<{ product_id: string; quantity: number }> = [];
+        for (const movement of stockMovements) {
+          try {
+            await stockApi.createMovement({
+              product_id: movement.product_id,
+              type: movement.type,
+              quantity: movement.quantity,
+              reason: t('products.bulk_stock_reason'),
+            });
+            const target = targetQuantities.find((item) => item.product_id === movement.product_id);
+            if (target) successfulTargetQuantities.push(target);
+          } catch (error) {
+            console.error("Stock update error:", error);
+          }
+        }
+        updateLocalProductQuantities(successfulTargetQuantities);
+      }
+
+      closeBulkEditModal();
+      setSelectedProductIds(new Set());
+      setIsSelectionMode(false);
+      await loadData();
+      Alert.alert(t('common.success'), t('products.bulk_success', "Mise à jour réussie"));
     } catch (error: any) {
-      Alert.alert(t('common.error'), error?.message || t('products.bulk_price_error'));
+      Alert.alert(t('common.error'), error?.message || t('products.bulk_error', "Erreur lors de la mise à jour"));
     } finally {
       setBulkPriceSaving(false);
     }
   }
 
-  async function handleBulkStockUpdate() {
-    if (selectedProducts.length === 0) return;
 
-    const movements: Array<{ product_id: string; name: string; type: 'in' | 'out'; quantity: number }> = [];
-    const targetQuantities: Array<{ product_id: string; quantity: number }> = [];
-
-    for (const product of selectedProducts) {
-      const rawValue = bulkStockValues[product.product_id];
-      if (rawValue == null) continue;
-      const normalizedValue = rawValue.replace(',', '.').trim();
-      if (!normalizedValue) continue;
-      const targetQuantity = Number(normalizedValue);
-      if (!Number.isFinite(targetQuantity) || targetQuantity < 0) {
-        Alert.alert(
-          t('common.error'),
-          t('products.bulk_stock_invalid_value', { name: product.name }),
-        );
-        return;
-      }
-
-      const currentQuantity = Number(product.quantity ?? 0);
-      const delta = targetQuantity - currentQuantity;
-      if (Math.abs(delta) < 0.000001) continue;
-      movements.push({
-        product_id: product.product_id,
-        name: product.name,
-        type: delta > 0 ? 'in' : 'out',
-        quantity: Math.abs(delta),
-      });
-      targetQuantities.push({ product_id: product.product_id, quantity: targetQuantity });
-    }
-
-    if (movements.length === 0) {
-      Alert.alert(t('common.info'), t('products.bulk_stock_no_changes'));
-      return;
-    }
-
-    setBulkStockSaving(true);
-    const successfulTargetQuantities: Array<{ product_id: string; quantity: number }> = [];
-    const failed: Array<{ name: string; message: string }> = [];
-
-    try {
-      for (const movement of movements) {
-        try {
-          await stockApi.createMovement({
-            product_id: movement.product_id,
-            type: movement.type,
-            quantity: movement.quantity,
-            reason: t('products.bulk_stock_reason'),
-          });
-          const target = targetQuantities.find((item) => item.product_id === movement.product_id);
-          if (target) successfulTargetQuantities.push(target);
-        } catch (error: any) {
-          failed.push({
-            name: movement.name,
-            message: error?.message || t('products.bulk_stock_error'),
-          });
-        }
-      }
-
-      updateLocalProductQuantities(successfulTargetQuantities);
-      closeBulkStockModal();
-      setSelectedProductIds(new Set());
-      setIsSelectionMode(false);
-      if (isConnected) await loadData();
-
-      const updatedCount = successfulTargetQuantities.length;
-      if (failed.length > 0) {
-        const firstError = failed[0];
-        Alert.alert(
-          t('common.warning'),
-          t('products.bulk_stock_partial_success', {
-            updated: updatedCount,
-            failed: failed.length,
-            name: firstError.name,
-            error: firstError.message,
-          }),
-        );
-      } else if (isConnected) {
-        Alert.alert(t('common.success'), t('products.bulk_stock_success', { count: updatedCount }));
-      } else {
-        Alert.alert(t('common.offline_mode'), t('products.bulk_stock_offline_queued', { count: updatedCount }));
-      }
-    } catch (error: any) {
-      Alert.alert(t('common.error'), error?.message || t('products.bulk_stock_error'));
-    } finally {
-      setBulkStockSaving(false);
-    }
-  }
 
   async function handleBulkDelete() {
     if (selectedProductIds.size === 0) return;
@@ -3712,25 +3692,11 @@ export default function ProductsScreen() {
                     styles.selectionActionBtnPrimary,
                     (selectedProductIds.size === 0 || bulkDeleteSaving) && styles.selectionActionBtnDisabled,
                   ]}
-                  onPress={openBulkPriceModal}
+                  onPress={openBulkEditModal}
                   disabled={selectedProductIds.size === 0 || bulkDeleteSaving}
                 >
-                  <Ionicons name="cash-outline" size={20} color={colors.primaryLight} />
-                  <Text style={styles.selectionActionText}>{t('products.bulk_price_edit_cta')}</Text>
-                </TouchableOpacity>
-              )}
-              {canWrite && !isRestaurant && (
-                <TouchableOpacity
-                  style={[
-                    styles.selectionActionBtn,
-                    styles.selectionActionBtnPrimary,
-                    (selectedProductIds.size === 0 || bulkStockSaving || bulkDeleteSaving) && styles.selectionActionBtnDisabled,
-                  ]}
-                  onPress={openBulkStockModal}
-                  disabled={selectedProductIds.size === 0 || bulkStockSaving || bulkDeleteSaving}
-                >
-                  <Ionicons name="cube-outline" size={20} color={colors.primaryLight} />
-                  <Text style={styles.selectionActionText}>{t('products.bulk_stock_edit_cta')}</Text>
+                  <Ionicons name="create-outline" size={20} color={colors.primaryLight} />
+                  <Text style={styles.selectionActionText}>{t('products.bulk_edit_cta', 'Prix et stock')}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -3765,22 +3731,21 @@ export default function ProductsScreen() {
                     : t('products.delete')}
                 </Text>
               </TouchableOpacity>
-            </View>
-          </View>
+            </View></View>
         </View>
       )}
 
-      <Modal visible={showBulkPriceModal} animationType="slide" transparent onRequestClose={closeBulkPriceModal}>
+      <Modal visible={showBulkEditModal} animationType="slide" transparent onRequestClose={closeBulkEditModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, paddingRight: Spacing.md }}>
-                <Text style={styles.modalTitle}>{t('products.bulk_price_modal_title')}</Text>
+                <Text style={styles.modalTitle}>{t('products.bulk_edit_modal_title', 'Édition en masse')}</Text>
                 <Text style={styles.modalSubtitle}>
-                  {t('products.bulk_price_modal_subtitle', { count: selectedProducts.length })}
+                  {t('products.bulk_edit_modal_subtitle', { count: selectedProducts.length })}
                 </Text>
               </View>
-              <TouchableOpacity onPress={closeBulkPriceModal} disabled={bulkPriceSaving}>
+              <TouchableOpacity onPress={closeBulkEditModal} disabled={bulkPriceSaving}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -3795,27 +3760,54 @@ export default function ProductsScreen() {
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: Spacing.lg }}
                 renderItem={({ item }) => (
-                  <View style={styles.bulkPriceRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.bulkPriceName}>{item.name}</Text>
-                      <Text style={styles.bulkPriceCurrent}>
-                        {t('products.bulk_price_current_value', { value: formatUserCurrency(item.selling_price, user) })}
-                      </Text>
+                  <View style={[styles.bulkPriceRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
+                    <Text style={styles.bulkPriceName}>{item.name}</Text>
+                    
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>Vente ({formatUserCurrency(item.selling_price, user)})</Text>
+                        <TextInput
+                          style={styles.bulkPriceInput}
+                          value={bulkPriceValues[item.product_id] ?? ''}
+                          onChangeText={(value) => setBulkPriceValues((prev) => ({ ...prev, [item.product_id]: value }))}
+                          keyboardType="decimal-pad"
+                          placeholder={String(item.selling_price ?? 0)}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </View>
+                      
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>Achat ({formatUserCurrency(item.purchase_price, user)})</Text>
+                        <TextInput
+                          style={styles.bulkPriceInput}
+                          value={bulkPurchaseValues[item.product_id] ?? ''}
+                          onChangeText={(value) => setBulkPurchaseValues((prev) => ({ ...prev, [item.product_id]: value }))}
+                          keyboardType="decimal-pad"
+                          placeholder={String(item.purchase_price ?? 0)}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </View>
+
+                      {!isRestaurant && (
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>Stock ({formatMeasurementQuantity(item.quantity, item.display_unit || item.unit)})</Text>
+                        <TextInput
+                          style={styles.bulkPriceInput}
+                          value={bulkStockValues[item.product_id] ?? ''}
+                          onChangeText={(value) => setBulkStockValues((prev) => ({ ...prev, [item.product_id]: value }))}
+                          keyboardType="decimal-pad"
+                          placeholder={String(item.quantity ?? 0)}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </View>
+                      )}
                     </View>
-                    <TextInput
-                      style={styles.bulkPriceInput}
-                      value={bulkPriceValues[item.product_id] ?? ''}
-                      onChangeText={(value) => setBulkPriceValues((prev) => ({ ...prev, [item.product_id]: value }))}
-                      keyboardType="decimal-pad"
-                      placeholder={String(item.selling_price ?? 0)}
-                      placeholderTextColor={colors.textMuted}
-                    />
                   </View>
                 )}
                 ListFooterComponent={
                   <TouchableOpacity
                     style={[styles.submitBtn, bulkPriceSaving && styles.submitBtnDisabled]}
-                    onPress={handleBulkSellingPriceUpdate}
+                    onPress={handleBulkEditUpdate}
                     disabled={bulkPriceSaving}
                   >
                     {bulkPriceSaving ? (
@@ -3831,82 +3823,6 @@ export default function ProductsScreen() {
         </View>
       </Modal>
 
-      <Modal visible={showBulkStockModal} animationType="slide" transparent onRequestClose={closeBulkStockModal}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1, paddingRight: Spacing.md }}>
-                <Text style={styles.modalTitle}>{t('products.bulk_stock_modal_title')}</Text>
-                <Text style={styles.modalSubtitle}>
-                  {t('products.bulk_stock_modal_subtitle', { count: selectedProducts.length })}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={closeBulkStockModal} disabled={bulkStockSaving}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-            >
-              <FlatList
-                data={selectedProducts}
-                keyExtractor={(item) => item.product_id}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: Spacing.lg }}
-                renderItem={({ item }) => {
-                  const draftValue = bulkStockValues[item.product_id] ?? '';
-                  const parsedValue = Number(draftValue.replace(',', '.').trim());
-                  const delta = Number.isFinite(parsedValue) ? parsedValue - Number(item.quantity ?? 0) : 0;
-                  const deltaLabel = delta === 0 ? '0' : `${delta > 0 ? '+' : ''}${formatNumber(delta)}`;
-
-                  return (
-                    <View style={styles.bulkPriceRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.bulkPriceName}>{item.name}</Text>
-                        <Text style={styles.bulkPriceCurrent}>
-                          {t('products.bulk_stock_current_value', {
-                            quantity: formatMeasurementQuantity(item.quantity, item.display_unit || item.unit),
-                          })}
-                        </Text>
-                        <Text style={[
-                          styles.bulkPriceCurrent,
-                          delta > 0 && { color: colors.success },
-                          delta < 0 && { color: colors.danger },
-                        ]}>
-                          {t('products.bulk_stock_delta_value', { delta: deltaLabel })}
-                        </Text>
-                      </View>
-                      <TextInput
-                        style={styles.bulkPriceInput}
-                        value={draftValue}
-                        onChangeText={(value) => setBulkStockValues((prev) => ({ ...prev, [item.product_id]: value }))}
-                        keyboardType="decimal-pad"
-                        placeholder={String(item.quantity ?? 0)}
-                        placeholderTextColor={colors.textMuted}
-                      />
-                    </View>
-                  );
-                }}
-                ListFooterComponent={
-                  <TouchableOpacity
-                    style={[styles.submitBtn, bulkStockSaving && styles.submitBtnDisabled]}
-                    onPress={handleBulkStockUpdate}
-                    disabled={bulkStockSaving}
-                  >
-                    {bulkStockSaving ? (
-                      <ActivityIndicator color={colors.text} />
-                    ) : (
-                      <Text style={styles.submitBtnText}>{t('products.bulk_stock_save')}</Text>
-                    )}
-                  </TouchableOpacity>
-                }
-              />
-            </KeyboardAvoidingView>
-          </View>
-        </View>
-      </Modal>
 
       {/* Add Product Modal */}
       < Modal visible={showAddModal} animationType="slide" transparent onRequestClose={requestCloseAddModal} >
@@ -4467,66 +4383,23 @@ export default function ProductsScreen() {
                   <View style={styles.formHalf}>
                     <View style={styles.formGroup}>
                       <Text style={styles.formLabel}>
-                        {editingProduct ? t('products.wac_label') : t('products.field_purchase_price')}
+                        {t('products.field_purchase_price', "Coût d'achat")}
                       </Text>
                       <TextInput
                         style={[
                           styles.formInput,
                           {
                             backgroundColor: colors.bgMid,
-                            color: editingProduct ? colors.textMuted : colors.text,
-                            borderColor: editingProduct ? colors.divider : colors.glassBorder,
+                            color: colors.text,
+                            borderColor: colors.glassBorder,
                           },
                         ]}
                         value={formPurchasePrice}
                         onChangeText={setFormPurchasePrice}
                         keyboardType="numeric"
-                        editable={!editingProduct}
+                        editable={true}
                         placeholderTextColor={colors.textMuted}
                       />
-                      {editingProduct && (
-                        <>
-                          <Text style={{ color: colors.textMuted, fontSize: 11, lineHeight: 17, marginTop: 6 }}>
-                            {t('products.wac_help')}
-                          </Text>
-                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-                            <TouchableOpacity
-                              onPress={() => {
-                                setShowAddModal(false);
-                                setEditingProduct(null);
-                                openStockMovementModal(editingProduct, 'in');
-                              }}
-                              style={{
-                                paddingHorizontal: 10,
-                                paddingVertical: 8,
-                                borderRadius: BorderRadius.sm,
-                                backgroundColor: colors.success + '18',
-                                borderWidth: 1,
-                                borderColor: colors.success + '35',
-                              }}
-                            >
-                              <Text style={{ color: colors.success, fontSize: 12, fontWeight: '700' }}>
-                                {t('products.wac_go_to_stock_in')}
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => openPriceHistoryFromEdit(editingProduct)}
-                              style={{
-                                paddingHorizontal: 10,
-                                paddingVertical: 8,
-                                borderRadius: BorderRadius.sm,
-                                backgroundColor: colors.info + '18',
-                                borderWidth: 1,
-                                borderColor: colors.info + '35',
-                              }}
-                            >
-                              <Text style={{ color: colors.info, fontSize: 12, fontWeight: '700' }}>
-                                {t('products.wac_view_history')}
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        </>
-                      )}
                     </View>
                   </View>
                   <View style={styles.formHalf}>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -13,6 +13,7 @@ import {
     useWindowDimensions,
     Modal,
     Platform,
+    KeyboardAvoidingView,
 } from 'react-native';
 import Constants from 'expo-constants';
 import DigitalReceiptModal from '../../components/DigitalReceiptModal';
@@ -54,8 +55,6 @@ import {
     isWeightedProduct,
     normalizeProductMeasurement,
 } from '../../utils/measurement';
-
-// screenWidth/screenHeight are now read via useWindowDimensions() inside the component
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ChangeCalculatorModal from '../../components/ChangeCalculatorModal';
@@ -465,7 +464,7 @@ export default function POSScreen() {
                                     measurement_type: measurementPayload.measurement_type,
                                     pricing_unit: measurementPayload.pricing_unit,
                                 }
-                                : item,
+                                : item
                         ),
                     };
                 }
@@ -637,31 +636,16 @@ export default function POSScreen() {
             openWeightedModal(product);
             return;
         }
-        const existing = cart.find(item => item.product.product_id === product.product_id && !item.persisted);
-        const currentQtyInCart = existing ? existing.quantity : 0;
-
-        if (requiresFinishedStock(product) && currentQtyInCart + 1 > product.quantity) {
-            Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: product.quantity, unit: product.unit, name: product.name }));
-            return;
-        }
-
-        updateActiveSession(s => {
-            const existingInSession = s.cart.find(item => item.product.product_id === product.product_id && !item.persisted);
-            if (existingInSession) {
                 return {
                     ...s,
-                    cart: s.cart.map(item =>
-                        item.cartKey === existingInSession.cartKey
-                            ? { ...item, quantity: item.quantity + 1 }
-                            : item
-                    )
+                    cart: [...s.cart, { cartKey: `draft_${product.product_id}_${Date.now()}`, product, quantity: 1, persisted: false }]
                 };
-            }
-            return {
-                ...s,
-                cart: [...s.cart, { cartKey: `draft_${product.product_id}_${Date.now()}`, product, quantity: 1, persisted: false }]
-            };
+            });
         });
+    };
+
+    const parseLocalizedFloat = (val: string) => {
+        return parseFloat(val.replace(',', '.')) || 0;
     };
 
     const removeFromCart = (cartKey: string) => {
@@ -711,14 +695,9 @@ export default function POSScreen() {
             openWeightedModal(item.product, item);
             return;
         }
-        const newQty = Math.max(1, Math.floor(qty));
-        if (requiresFinishedStock(item.product) && newQty > item.product.quantity) {
-            Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: item.product.quantity, unit: item.product.unit, name: item.product.name }));
-            return;
-        }
         updateActiveSession(s => ({
             ...s,
-            cart: s.cart.map(i => i.cartKey === cartKey ? { ...i, quantity: newQty } : i)
+            cart: s.cart.map(i => i.cartKey === cartKey ? { ...i, quantity: Math.max(1, Math.floor(qty)) } : i)
         }));
     };
 
@@ -1309,8 +1288,12 @@ export default function POSScreen() {
     );
 
     return (
-        <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
-            <View style={[styles.content, { paddingTop: insets.top }]}>
+        <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+            style={{ flex: 1 }}
+        >
+            <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
+                <View style={[styles.content, { paddingTop: insets.top, paddingBottom: isMobile ? 0 : insets.bottom }]}>
                 {/* 1. Session Tabs */}
                 <View style={styles.tabsContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sessionScroll}>
@@ -1342,7 +1325,7 @@ export default function POSScreen() {
                 <View style={{ flex: 1, flexDirection: isMobile ? 'column' : 'row' }}>
                     {/* Left Side: Product Selection (Modal or Panel) */}
                     {(showProductList || !isMobile) && (
-                        <View style={[styles.leftPanel, isMobile && styles.mobileProductPanel]}>
+                        <View style={[styles.leftPanel, isMobile && [styles.mobileProductPanel, { paddingTop: insets.top, paddingBottom: insets.bottom }]]}>
                             <View style={styles.searchContainer}>
                                 <View style={styles.searchBar}>
                                     <Ionicons name="search" size={20} color={colors.textMuted} />
@@ -1411,75 +1394,30 @@ export default function POSScreen() {
                             <View style={styles.cartHeader}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, flexWrap: 'wrap' }}>
                                     <Text style={styles.cartTitle}>{t('pos.cart_title')}</Text>
-                                    {isMobile && (
-                                        <View style={styles.mobileQuickActions}>
-                                            <TouchableOpacity
-                                                style={styles.mobileScanBtn}
-                                                onPress={() => setIsScannerVisible(true)}
-                                            >
-                                                <Ionicons name="barcode-outline" size={18} color={colors.info} />
-                                                <Text style={{ color: colors.info, fontWeight: '700', fontSize: 11 }} numberOfLines={1}>{t('pos.scan_cta', 'Scanner')}</Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                style={styles.mobileAddBtn}
-                                                onPress={() => setShowProductList(true)}
-                                            >
-                                                <Ionicons name="add-circle" size={20} color={colors.primary} />
-                                                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 11 }} numberOfLines={1}>{t('pos.add_product')}</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
                                 </View>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                    {canWrite && (
-                                        <TouchableOpacity
-                                            onPress={isVoiceRecording ? stopVoiceRecording : startVoiceRecording}
-                                            style={{
-                                                width: 32, height: 32, borderRadius: 16,
-                                                backgroundColor: isVoiceRecording ? '#ef444420' : colors.primary + '20',
-                                                alignItems: 'center', justifyContent: 'center',
-                                                borderWidth: 1.5,
-                                                borderColor: isVoiceRecording ? '#ef4444' : colors.primary,
-                                            }}
-                                        >
-                                            <Ionicons
-                                                name={isVoiceRecording ? 'stop' : 'mic-outline'}
-                                                size={16}
-                                                color={isVoiceRecording ? '#ef4444' : colors.primary}
-                                            />
-                                        </TouchableOpacity>
-                                    )}
                                     <TouchableOpacity onPress={() => updateActiveSession(s => ({ ...s, cart: openOrderId ? s.cart.filter(item => item.persisted) : [] }))}>
                                         <Text style={styles.clearCart}>{t('pos.clear_cart')}</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
 
+                            {/* Customer Selector */}
                             <View style={styles.customerSelector}>
                                 <View style={styles.customerHeader}>
-                                    <Ionicons name="person-outline" size={18} color={colors.textMuted} />
-                                    {canWrite && (
-                                        <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
-                                            <Ionicons name="add" size={16} color={colors.primary} />
-                                        </TouchableOpacity>
-                                    )}
-                                    {customerList.length > 8 && (
-                                        <TextInput
-                                            style={styles.customerSearchInput}
-                                            placeholder={t('pos.search_customer', 'Rechercher...')}
-                                            placeholderTextColor={colors.textMuted}
-                                            value={customerSearch}
-                                            onChangeText={setCustomerSearch}
-                                            autoCorrect={false}
-                                        />
-                                    )}
+                                    <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
+                                        <Ionicons name="person-add" size={14} color={colors.primary} />
+                                    </TouchableOpacity>
+                                    <Ionicons name="people-outline" size={16} color={colors.textMuted} />
+                                    <TextInput
+                                        style={styles.customerSearchInput}
+                                        placeholder={t('pos.search_customer')}
+                                        placeholderTextColor={colors.textMuted}
+                                        value={customerSearch}
+                                        onChangeText={setCustomerSearch}
+                                    />
                                 </View>
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    style={styles.customerScroll}
-                                    contentContainerStyle={styles.customerScrollContent}
-                                >
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.customerScroll} contentContainerStyle={styles.customerScrollContent}>
                                     <TouchableOpacity
                                         style={[styles.customerBadge, !selectedCustomer && styles.customerBadgeActive]}
                                         onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: null }))}
@@ -1487,20 +1425,16 @@ export default function POSScreen() {
                                         <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>{t('pos.anonymous_customer')}</Text>
                                     </TouchableOpacity>
                                     {customerList
-                                        .filter(c => !customerSearch || c.name?.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone?.includes(customerSearch))
-                                        .map(c => (
-                                        <TouchableOpacity
-                                            key={c.customer_id}
-                                            style={[
-                                                styles.customerBadge,
-                                                selectedCustomer?.customer_id === c.customer_id && styles.customerBadgeActive,
-                                                c.current_debt > 0 && { borderColor: colors.danger, borderWidth: 1 }
-                                            ]}
-                                            onPress={() => { updateActiveSession(s => ({ ...s, selectedCustomer: c })); setCustomerSearch(''); }}
-                                        >
-                                            <Text style={[styles.customerBadgeText, selectedCustomer?.customer_id === c.customer_id && styles.customerBadgeTextActive]} numberOfLines={1}>{c.name}</Text>
-                                        </TouchableOpacity>
-                                    ))}
+                                        .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+                                        .map(customer => (
+                                            <TouchableOpacity
+                                                key={customer.customer_id}
+                                                style={[styles.customerBadge, selectedCustomer?.customer_id === customer.customer_id && styles.customerBadgeActive]}
+                                                onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: customer }))}
+                                            >
+                                                <Text style={[styles.customerBadgeText, selectedCustomer?.customer_id === customer.customer_id && styles.customerBadgeTextActive]}>{customer.name}</Text>
+                                            </TouchableOpacity>
+                                        ))}
                                 </ScrollView>
                             </View>
 
@@ -1509,26 +1443,18 @@ export default function POSScreen() {
                                     <View style={styles.emptyCart}>
                                         <Ionicons name="cart-outline" size={48} color={colors.textMuted} />
                                         <Text style={styles.emptyText}>{t('pos.empty_cart')}</Text>
-                                        <Text style={styles.emptyCartHint}>
-                                            Ajoutez un produit, scannez un article ou choisissez un client pour préparer rapidement la vente.
-                                        </Text>
+                                        <Text style={styles.emptyCartHint}>{t('pos.empty_cart_hint', "Commencez par ajouter des produits au panier pour réaliser une vente.")}</Text>
                                         <View style={styles.emptyCartActions}>
                                             {isMobile && (
                                                 <TouchableOpacity style={styles.emptyCartAction} onPress={() => setShowProductList(true)}>
-                                                    <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-                                                    <Text style={styles.emptyCartActionText}>{t('pos.add_product')}</Text>
+                                                    <Ionicons name="grid-outline" size={18} color={colors.primary} />
+                                                    <Text style={styles.emptyCartActionText}>{t('pos.browse_products', 'Parcourir les produits')}</Text>
                                                 </TouchableOpacity>
                                             )}
-                                            <TouchableOpacity style={styles.emptyCartAction} onPress={() => setIsScannerVisible(true)}>
-                                                <Ionicons name="barcode-outline" size={18} color={colors.info} />
-                                                <Text style={[styles.emptyCartActionText, { color: colors.info }]}>Scanner</Text>
+                                            <TouchableOpacity style={styles.emptyCartAction} onPress={startVoiceRecording}>
+                                                <Ionicons name="mic-outline" size={18} color={colors.primary} />
+                                                <Text style={styles.emptyCartActionText}>{t('pos.voice_checkout', 'Caisse vocale')}</Text>
                                             </TouchableOpacity>
-                                            {canWrite && (
-                                                <TouchableOpacity style={styles.emptyCartAction} onPress={() => setShowCustomerModal(true)}>
-                                                    <Ionicons name="person-add-outline" size={18} color={colors.success} />
-                                                    <Text style={[styles.emptyCartActionText, { color: colors.success }]}>Associer un client</Text>
-                                                </TouchableOpacity>
-                                            )}
                                         </View>
                                     </View>
                                 ) : (
@@ -1539,151 +1465,122 @@ export default function POSScreen() {
                                                 onPress={() => openLineDiscount(item)}
                                             >
                                                 <Text style={styles.cartItemName} numberOfLines={1}>{item.product.name}</Text>
-                                                {(isWeightedProduct(item.product) || item.sold_unit) && (
-                                                    <Text style={styles.cartMetaText}>
-                                                        {formatSaleQuantity({
-                                                            quantity: item.quantity,
-                                                            sold_quantity_input: item.sold_quantity_input,
-                                                            sold_unit: item.sold_unit,
-                                                            pricing_unit: item.pricing_unit,
-                                                            unit: item.product.unit,
-                                                        })} x {formatUserCurrency(item.product.selling_price, user)}/{formatMeasurementQuantity(1, item.pricing_unit || item.product.unit).split(' ')[1]}
-                                                    </Text>
-                                                )}
-                                                {restaurantMode && (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                                                        <View style={[styles.modeBadge, { backgroundColor: getProductionModeColor(item.product) + '20' }]}>
-                                                            <Text style={[styles.modeBadgeText, { color: getProductionModeColor(item.product) }]}>
-                                                                {getProductionModeLabel(item.product)}
-                                                            </Text>
-                                                        </View>
-                                                        <Text style={styles.cartMetaText}>
-                                                            {item.product.kitchen_station || t('pos.station_default')}{item.product.linked_recipe_id ? ` · ${t('pos.recipe_linked')}` : ''}
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                                    <Text style={[styles.cartItemPrice, (item.discountValue || 0) > 0 && { textDecorationLine: 'line-through' }]}>
-                                                        {formatUserCurrency(item.product.selling_price * item.quantity, user)}
-                                                    </Text>
-                                                    {(item.discountValue || 0) > 0 && (
-                                                        <Text style={[styles.cartItemPrice, { color: colors.success, fontWeight: '700' }]}>
-                                                            {formatUserCurrency(
-                                                                (item.discountType === 'percentage'
-                                                                    ? item.product.selling_price * (1 - item.discountValue! / 100)
-                                                                    : Math.max(0, item.product.selling_price - item.discountValue!)
-                                                                ) * item.quantity,
-                                                                user
-                                                            )}
-                                                        </Text>
-                                                    )}
-                                                </View>
                                                 <View style={styles.cartLineActions}>
                                                     <TouchableOpacity
-                                                        style={[
-                                                            styles.discountLineBtn,
-                                                            item.persisted && styles.discountLineBtnDisabled,
-                                                        ]}
+                                                        style={[styles.discountLineBtn, item.persisted && styles.discountLineBtnDisabled]}
                                                         onPress={() => openLineDiscount(item)}
                                                         disabled={item.persisted}
                                                     >
                                                         <Ionicons name="pricetag-outline" size={14} color={item.persisted ? colors.textMuted : colors.primary} />
-                                                        <Text
-                                                            style={[
-                                                                styles.discountLineBtnText,
-                                                                item.persisted && styles.discountLineBtnTextDisabled,
-                                                            ]}
-                                                        >
-                                                            {t('pos.discount')}
-                                                        </Text>
+                                                        <Text style={[styles.discountLineBtnText, item.persisted && styles.discountLineBtnTextDisabled]}>{t('pos.discount')}</Text>
                                                     </TouchableOpacity>
                                                     {(item.discountValue || 0) > 0 && (
                                                         <View style={styles.discountAppliedBadge}>
                                                             <Text style={styles.discountAppliedBadgeText}>
-                                                                {item.discountType === 'percentage'
-                                                                    ? `-${item.discountValue}%`
-                                                                    : `-${formatUserCurrency(item.discountValue || 0, user)}`}
+                                                                -{item.discountType === 'percentage' ? `${item.discountValue}%` : formatUserCurrency(item.discountValue || 0, user)}
                                                             </Text>
                                                         </View>
                                                     )}
                                                 </View>
+                                                <Text style={styles.cartItemPrice}>
+                                                    {formatUserCurrency(item.product.selling_price, user)} × {formatSaleQuantity(item)}
+                                                </Text>
+                                                {item.item_notes && (
+                                                    <Text style={{ fontSize: 10, color: colors.warning, marginTop: 2 }}>Note: {item.item_notes}</Text>
+                                                )}
                                             </TouchableOpacity>
                                             <View style={styles.qtyContainer}>
+                                                <TouchableOpacity 
+                                                    onPress={() => updateQuantity(item.cartKey, -1)} 
+                                                    style={{ padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+                                                >
+                                                    <Ionicons name="remove-circle-outline" size={28} color={item.persisted ? colors.textMuted : colors.danger} />
+                                                </TouchableOpacity>
+
                                                 {(isWeightedProduct(item.product) || item.sold_unit) ? (
                                                     <TouchableOpacity
-                                                        onPress={() => updateQuantity(item.cartKey, 1)}
-                                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                                                        onPress={() => openWeightedModal(item.product, item)}
+                                                        style={{ minWidth: 40, alignItems: 'center' }}
                                                     >
-                                                        <Text style={styles.qtyText}>
-                                                            {formatSaleQuantity({
-                                                                quantity: item.quantity,
-                                                                sold_quantity_input: item.sold_quantity_input,
-                                                                sold_unit: item.sold_unit,
-                                                                pricing_unit: item.pricing_unit,
-                                                                unit: item.product.unit,
-                                                            })}
-                                                        </Text>
-                                                        {!item.persisted && (
-                                                            <Ionicons name="create-outline" size={18} color={colors.primary} />
-                                                        )}
+                                                        <Text style={styles.qtyText}>{formatSaleQuantity(item)}</Text>
                                                     </TouchableOpacity>
                                                 ) : (
-                                                    <>
-                                                        <TouchableOpacity onPress={() => updateQuantity(item.cartKey, -1)}>
-                                                            <Ionicons name="remove-circle-outline" size={24} color={colors.textMuted} />
-                                                        </TouchableOpacity>
-                                                        <TextInput
-                                                            style={styles.qtyInput}
-                                                            value={String(item.quantity)}
-                                                            onChangeText={(txt) => {
-                                                                const n = parseInt(txt.replace(/[^0-9]/g, ''), 10);
-                                                                if (!isNaN(n) && n > 0) setQuantity(item.cartKey, n);
-                                                            }}
-                                                            keyboardType="numeric"
-                                                            selectTextOnFocus
-                                                            editable={!item.persisted}
-                                                        />
-                                                        <TouchableOpacity onPress={() => updateQuantity(item.cartKey, 1)}>
-                                                            <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-                                                        </TouchableOpacity>
-                                                    </>
+                                                    <TextInput
+                                                        style={styles.qtyInput}
+                                                        value={String(item.quantity)}
+                                                        onChangeText={(val) => setQuantity(item.cartKey, parseLocalizedFloat(val))}
+                                                        keyboardType="numeric"
+                                                        editable={!item.persisted}
+                                                    />
                                                 )}
+
+                                                <TouchableOpacity 
+                                                    onPress={() => updateQuantity(item.cartKey, 1)} 
+                                                    style={{ padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+                                                >
+                                                    <Ionicons name="add-circle-outline" size={28} color={item.persisted ? colors.textMuted : colors.success} />
+                                                </TouchableOpacity>
                                             </View>
-                                            <TouchableOpacity onPress={() => removeFromCart(item.cartKey)} style={{ marginLeft: 8 }}>
-                                                <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                                            </TouchableOpacity>
                                         </View>
                                     ))
                                 )}
                             </ScrollView>
+
                             {!isMobile && checkoutBar}
                         </View>
                     )}
                 </View>
+
+                {/* Mobile Floating Actions */}
+                {isMobile && !showProductList && (
+                    <View style={{ position: 'absolute', bottom: 180, right: 20, gap: 12, alignItems: 'flex-end' }}>
+                        <TouchableOpacity
+                            style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 }}
+                            onPress={() => setShowProductList(true)}
+                        >
+                            <Ionicons name="grid" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.secondary, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 }}
+                            onPress={startVoiceRecording}
+                        >
+                            <Ionicons name="mic" size={22} color="#fff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.info, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 }}
+                            onPress={() => setIsScannerVisible(true)}
+                        >
+                            <Ionicons name="barcode" size={22} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
 
-            {isMobile && !showProductList && checkoutBar}
+                {isMobile && !showProductList && (
+                    <View style={[styles.checkoutBar, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+                        {checkoutBar}
+                    </View>
+                )}
+            </LinearGradient>
+        </KeyboardAvoidingView>
 
+            {/* Modals */}
             <ChangeCalculatorModal
                 visible={showCalculator}
                 onClose={() => setShowCalculator(false)}
-                totalAmount={restaurantMode ? calculateGrandTotal() : total}
-                onConfirm={() => {
+                totalAmount={restaurantMode ? calculateGrandTotal() : (taxMode === 'ht' && effectiveTaxEnabled ? total + calculateTaxAmount() : total)}
+                onConfirm={(received) => {
                     setShowCalculator(false);
-                    processCheckout('cash');
                 }}
             />
 
-            {selectedCartItem && (
+            {showDiscountModal && selectedCartItem && (
                 <LineDiscountModal
                     visible={showDiscountModal}
-                    onClose={() => {
-                        setShowDiscountModal(false);
-                        setSelectedCartItem(null);
-                    }}
+                    onClose={() => setShowDiscountModal(false)}
                     productName={selectedCartItem.product.name}
                     currentPrice={selectedCartItem.product.selling_price}
-                    onApply={(type, val) => applyDiscount(selectedCartItem.cartKey, type, val)}
+                    onApply={(type, value) => applyDiscount(selectedCartItem.cartKey, type, value)}
                 />
             )}
 
@@ -1709,7 +1606,7 @@ export default function POSScreen() {
                                         style={styles.formInput}
                                         value={weightedQuantityInput}
                                         onChangeText={setWeightedQuantityInput}
-                                        keyboardType="numeric"
+                                        keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
                                         placeholder="250"
                                     />
                                 </View>
@@ -1765,7 +1662,14 @@ export default function POSScreen() {
                                     Pas conseille: {formatMeasurementQuantity(getInputStep(weightedDraftProduct, weightedUnit), weightedUnit)}
                                 </Text>
 
-                                <TouchableOpacity style={styles.createBtn} onPress={confirmWeightedSelection}>
+                                <TouchableOpacity 
+                                    style={styles.createBtn} 
+                                    onPress={() => {
+                                        // Final safety check for decimal input
+                                        const cleanVal = weightedQuantityInput.replace(',', '.');
+                                        confirmWeightedSelection(); 
+                                    }}
+                                >
                                     <Text style={styles.createBtnText}>
                                         {weightedEditingCartKey ? t('pos.update_line') : t('pos.add_to_cart')}
                                     </Text>
@@ -1791,15 +1695,7 @@ export default function POSScreen() {
                 onClose={() => setIsScannerVisible(false)}
                 continuous={continuousScan}
                 onToggleContinuous={() => setContinuousScan(!continuousScan)}
-                onScanned={(sku: string) => {
-                    const product = productList.find(p => p.sku === sku);
-                    if (product) {
-                        addToCart(product);
-                    } else {
-                        Alert.alert(t('pos.unknown_product_title'), t('pos.product_not_found'));
-                    }
-                    if (!continuousScan) setIsScannerVisible(false);
-                }}
+                onScanned={handleBarcodeScanned}
             />
 
             {/* Voice to Cart Modal */}
@@ -1857,7 +1753,7 @@ export default function POSScreen() {
                                                 {voiceItems.length} produit(s) reconnu(s)
                                             </Text>
                                             {voiceItems.map((item, i) => (
-                                                <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                                                <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.divider }}>
                                                     <View style={{ flex: 1 }}>
                                                         <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }} numberOfLines={1}>{item.name}</Text>
                                                         <Text style={{ fontSize: 11, color: colors.textMuted }} numberOfLines={1}>{formatCurrency(item.unit_price)} · {t('common.stock', 'stock')} : {item.stock_available}</Text>
@@ -2081,7 +1977,6 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     checkoutBar: {
         paddingHorizontal: Spacing.md,
         paddingTop: Spacing.sm,
-        paddingBottom: Spacing.md,
         borderTopWidth: 1,
         borderTopColor: colors.divider,
         backgroundColor: colors.bgMid,
@@ -2135,6 +2030,45 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         color: '#fff',
     },
 
+    productGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.md,
+        paddingBottom: 140,
+    },
+    productCard: {
+        width: isMobile ? (screenWidth - Spacing.md * 3) / 2 : (screenWidth * 0.6 - Spacing.md * 4) / 3,
+        ...glassStyle,
+        padding: Spacing.md,
+        borderRadius: BorderRadius.md,
+        position: 'relative',
+    },
+    productName: {
+        color: colors.text,
+        fontSize: FontSize.sm,
+        fontWeight: '700',
+        marginBottom: 4,
+    },
+    productPrice: {
+        color: colors.primary,
+        fontSize: FontSize.md,
+        fontWeight: '800',
+    },
+    stockBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        zIndex: 1,
+    },
+    stockText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '700',
+    },
+
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -2163,42 +2097,6 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         marginLeft: Spacing.sm,
         color: colors.text,
         fontSize: FontSize.md,
-    },
-
-    productGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.sm,
-    },
-    productCard: {
-        ...glassStyle,
-        width: (screenWidth * 0.6 - Spacing.md * 4) / 3,
-        padding: Spacing.sm,
-        borderRadius: BorderRadius.md,
-        marginBottom: Spacing.xs,
-    },
-    stockBadge: {
-        position: 'absolute',
-        top: 4,
-        right: 4,
-        paddingHorizontal: 6,
-        borderRadius: 10,
-    },
-    stockText: {
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: '700',
-    },
-    productName: {
-        color: colors.text,
-        fontSize: FontSize.sm,
-        fontWeight: '600',
-        marginTop: 15,
-    },
-    productPrice: {
-        color: colors.primary,
-        fontSize: FontSize.xs,
-        fontWeight: '700',
         marginTop: 4,
     },
     modeBadge: {
@@ -2243,6 +2141,8 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     emptyText: {
         color: colors.textMuted,
         marginTop: Spacing.sm,
+        fontSize: FontSize.lg,
+        fontWeight: '700',
     },
     emptyCartHint: {
         color: colors.textSecondary,
@@ -2290,10 +2190,6 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     cartItemPrice: {
         color: colors.textSecondary,
         fontSize: FontSize.xs,
-    },
-    cartMetaText: {
-        color: colors.textMuted,
-        fontSize: 11,
     },
     cartLineActions: {
         flexDirection: 'row',
@@ -2358,10 +2254,9 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         paddingVertical: 4,
         paddingHorizontal: 6,
         textAlign: 'center',
-        borderWidth: 1,
-        borderColor: colors.divider,
         borderRadius: BorderRadius.sm,
         backgroundColor: colors.bgMid,
+        borderWidth: StyleSheet.hairlineWidth * 2,
     },
 
     checkoutSection: {
@@ -2404,7 +2299,6 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         fontSize: FontSize.sm,
         fontWeight: '700',
     },
-    // New styles for Customer Modal and Button
     addCustomerBtn: {
         width: 24,
         height: 24,
@@ -2447,7 +2341,7 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         marginBottom: Spacing.xs,
     },
     formInput: {
-        backgroundColor: colors.inputBg || '#2A2A2A',
+        backgroundColor: '#2A2A2A',
         borderRadius: BorderRadius.md,
         padding: Spacing.md,
         color: colors.text,
@@ -2464,42 +2358,6 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     createBtnText: {
         color: '#fff',
         fontWeight: '700',
-    },
-    terminalBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: BorderRadius.full,
-        backgroundColor: colors.primary + '15',
-        borderWidth: 1,
-        borderColor: colors.primary + '40',
-    },
-    terminalBadgeText: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: colors.primary,
-    },
-    terminalOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        padding: Spacing.md,
-        borderRadius: BorderRadius.md,
-        borderWidth: 1,
-        borderColor: colors.divider,
-        marginBottom: Spacing.sm,
-    },
-    terminalOptionActive: {
-        borderColor: colors.primary,
-        backgroundColor: colors.primary + '15',
-    },
-    terminalOptionText: {
-        flex: 1,
-        color: colors.text,
-        fontWeight: '600',
-        fontSize: FontSize.md,
     },
     suggestionsRow: {
         paddingHorizontal: Spacing.sm,
