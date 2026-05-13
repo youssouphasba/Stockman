@@ -1839,6 +1839,7 @@ export default function ProductsScreen() {
         category_id: formCategory || undefined,
         subcategory: formSubcategory.trim() || undefined,
         image: normalizedImage,
+
         expiry_date: formExpiryDate ? new Date(formExpiryDate).toISOString() : undefined,
         variants: formHasVariants
           ? formVariants
@@ -2926,9 +2927,1133 @@ export default function ProductsScreen() {
         )}
         <View style={styles.headerActionRow}>
           <View style={styles.headerActionRowGroup}>
-            
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={[styles.headerActionChip, isInventoryMode && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+                onPress={() => {
+                  setIsInventoryMode(!isInventoryMode);
+                  if (!isInventoryMode) {
+                    setInventoryValues({});
+                  }
+                  Alert.alert(
+                    isInventoryMode ? t('products.normal_mode') : t('products.inventory_mode'),
+                    isInventoryMode ? t('products.normal_mode_desc') : t('products.inventory_mode_desc')
+                  );
+                }}
+              >
+                <Ionicons name="clipboard-outline" size={20} color={isInventoryMode ? colors.primary : colors.text} />
+                <Text numberOfLines={1} style={[styles.headerActionText, isInventoryMode && { color: colors.primary }]}>
+                  {isInventoryMode ? 'Inventaire actif' : 'Inventaire'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.headerActionChip, { backgroundColor: colors.success + '18', borderColor: colors.success + '40' }]}
+              onPress={handleExportCSV}
+            >
+              <Ionicons name="download-outline" size={20} color={colors.primary} />
+              <Text numberOfLines={1} style={styles.headerActionText}>Exporter</Text>
+            </TouchableOpacity>
+            {canWrite && (
+              <TouchableOpacity
+                style={[styles.headerActionChip, { backgroundColor: colors.danger + '16', borderColor: colors.danger + '40' }]}
+                onPress={() => setShowTrashModal(true)}
+              >
+                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                {deletedProducts.length > 0 && (
+                  <Text numberOfLines={1} style={[styles.headerActionText, { color: colors.danger }]}>
+                    {deletedProducts.length}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+          {canWrite && (
+            <View style={styles.headerActionRowGroup}>
+              <TouchableOpacity
+                style={[styles.headerActionChip, isSelectionMode && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+                onPress={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  if (isSelectionMode) setSelectedProductIds(new Set());
+                }}
+              >
+                <Ionicons name={isSelectionMode ? "close" : "list-outline"} size={20} color={isSelectionMode ? colors.primaryLight : colors.text} />
+                <Text numberOfLines={1} style={[styles.headerActionText, isSelectionMode && { color: colors.primary }]}>
+                  {isSelectionMode ? 'Fermer la sélection' : 'Sélection'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.headerActionChip, styles.headerActionPrimaryChip]}
+                onPress={() => setShowAddMenu(!showAddMenu)}
+              >
+                <Ionicons name={showAddMenu ? "close" : "add"} size={20} color="#fff" />
+                <Text numberOfLines={1} style={styles.headerActionPrimaryText}>{showAddMenu ? 'Fermer' : 'Ajouter'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+        {showAddMenu && canWrite && (
+          <View style={{ backgroundColor: colors.glass, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.glassBorder, padding: Spacing.sm, marginTop: Spacing.xs, gap: 6 }}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+              onPress={() => { setShowAddMenu(false); openNewProductModal(); }}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+              <Text style={{ color: colors.text, fontSize: FontSize.md }}>{isRestaurant ? t('restaurant.add_dish', 'Ajouter un plat') : t('products.add_product')}</Text>
+            </TouchableOpacity>
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); router.push('/inventory/batch-scan'); }}
+              >
+                <Ionicons name="scan-outline" size={20} color={colors.info} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.batch_scan', 'Scan en lot')}</Text>
+              </TouchableOpacity>
+            )}
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); setShowBulkImportModal(true); }}
+              >
+                <Ionicons name="cloud-upload-outline" size={20} color={colors.warning} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.import_csv', 'Import CSV')}</Text>
+              </TouchableOpacity>
+            )}
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); setShowTextImportModal(true); }}
+              >
+                <Ionicons name="text-outline" size={20} color={colors.primary} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.text_import', 'Import texte')}</Text>
+              </TouchableOpacity>
+            )}
+            {!isRestaurant && userSector && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); handleImportCatalog(); }}
+                disabled={catalogLoading}
+              >
+                {catalogLoading ? (
+                  <ActivityIndicator size="small" color={colors.success} />
+                ) : (
+                  <Ionicons name="storefront-outline" size={20} color={colors.success} />
+                )}
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.import_catalog', 'Import catalogue')}</Text>
+              </TouchableOpacity>
+            )}
+            {!isRestaurant && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); exportInventoryPdf(); }}
+              >
+                <Ionicons name="document-text-outline" size={20} color={colors.danger} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.export_pdf', 'Export PDF inventaire')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
-                
+        <View style={styles.searchWrapper}>
+          {serverSearchLoading
+            ? <ActivityIndicator size="small" color={colors.primary} />
+            : <Ionicons name="search-outline" size={20} color={colors.textMuted} />
+          }
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('products.search_placeholder')}
+            placeholderTextColor={colors.textMuted}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {canWrite && (
+            <TouchableOpacity onPress={() => openScanner('search')}>
+              <Ionicons name="barcode-outline" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {!isRestaurant && (
+          <View style={styles.stockFocusCard}>
+            <View style={styles.stockFocusHeader}>
+              <View>
+                <Text style={styles.stockFocusTitle}>{t('products.stock_view_title', 'Vue stock')}</Text>
+                <Text style={styles.stockFocusSubtitle}>{t('products.stock_view_subtitle', 'Les produits utiles remontent en premier.')}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.stockFocusSortPill}
+                onPress={() => setShowControlsPanel((current) => !current)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="swap-vertical-outline" size={15} color={colors.primaryLight} />
+                <Text style={styles.stockFocusSortText}>
+                  {productSortMode === 'stock_priority'
+                    ? t('products.sort_stock_priority', 'Priorité stock')
+                    : productSortMode === 'quantity_desc'
+                      ? t('products.sort_quantity_desc', 'Stock élevé')
+                      : productSortMode === 'name_asc'
+                        ? t('products.sort_name_asc', 'Nom A-Z')
+                        : t('products.sort_recently_added', 'Récents')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]} onPress={() => setFilterType('all')}>
+                <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>{t('common.all')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'in_stock' && styles.filterChipActive, { borderColor: colors.success }]} onPress={() => setFilterType('in_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'in_stock' && styles.filterChipTextActive, { color: filterType === 'in_stock' ? '#fff' : colors.success }]}>
+                  {t('products.in_stock', 'En stock')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'low_stock' && styles.filterChipActive, { borderColor: colors.warning }]} onPress={() => setFilterType('low_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'low_stock' && styles.filterChipTextActive, { color: filterType === 'low_stock' ? '#fff' : colors.warning }]}>{t('products.low_stock')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'out_of_stock' && styles.filterChipActive, { borderColor: colors.danger }]} onPress={() => setFilterType('out_of_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'out_of_stock' && styles.filterChipTextActive, { color: filterType === 'out_of_stock' ? '#fff' : colors.danger }]}>{t('products.out_of_stock')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+        {!isRestaurant && (
+          <View style={styles.sectionToggleCard}>
+            <TouchableOpacity
+              style={styles.sectionToggleMain}
+              onPress={() => setShowControlsPanel((current) => !current)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.sectionToggleCopy}>
+                <Text style={styles.sectionToggleTitle}>{t('products.sort_and_filters', 'Trier et filtrer')}</Text>
+                <Text style={styles.sectionToggleDescription}>
+                  {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visibles - ${activeProductControlCount > 0 ? `${activeProductControlCount} réglage${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun réglage avancé'}`}
+                </Text>
+              </View>
+              <Ionicons
+                name={showControlsPanel ? 'chevron-up-outline' : 'chevron-down-outline'}
+                size={20}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
+            <View style={styles.sectionToggleActions}>
+              {canWrite && (
+                <TouchableOpacity
+                  style={styles.persistentManageCatBtn}
+                  onPress={() => { resetCatForm(); setShowCategoryModal(true); }}
+                >
+                  <Ionicons name="settings-outline" size={16} color={colors.primaryLight} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+
+        {!isRestaurant && showControlsPanel && (
+          <View style={styles.filterWrapper}>
+            <Text style={styles.controlGroupLabel}>{t('products.sort_label', 'Trier par')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <TouchableOpacity style={[styles.filterChip, productSortMode === 'stock_priority' && styles.filterChipActive]} onPress={() => setProductSortMode('stock_priority')}>
+                <Text style={[styles.filterChipText, productSortMode === 'stock_priority' && styles.filterChipTextActive]}>{t('products.sort_stock_priority', 'Priorité stock')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, productSortMode === 'quantity_desc' && styles.filterChipActive]} onPress={() => setProductSortMode('quantity_desc')}>
+                <Text style={[styles.filterChipText, productSortMode === 'quantity_desc' && styles.filterChipTextActive]}>{t('products.sort_quantity_desc', 'Stock élevé')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, productSortMode === 'name_asc' && styles.filterChipActive]} onPress={() => setProductSortMode('name_asc')}>
+                <Text style={[styles.filterChipText, productSortMode === 'name_asc' && styles.filterChipTextActive]}>{t('products.sort_name_asc', 'Nom A-Z')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, productSortMode === 'recently_added' && styles.filterChipActive]} onPress={() => setProductSortMode('recently_added')}>
+                <Text style={[styles.filterChipText, productSortMode === 'recently_added' && styles.filterChipTextActive]}>{t('products.sort_recently_added', 'Récents')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+            <Text style={styles.controlGroupLabel}>{t('products.stock_filter_label', 'Afficher')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]} onPress={() => setFilterType('all')}>
+                <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>{t('common.all')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'in_stock' && styles.filterChipActive, { borderColor: colors.success }]} onPress={() => setFilterType('in_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'in_stock' && styles.filterChipTextActive, { color: filterType === 'in_stock' ? '#fff' : colors.success }]}>{t('products.in_stock', 'En stock')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'out_of_stock' && styles.filterChipActive, { borderColor: colors.danger }]} onPress={() => setFilterType('out_of_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'out_of_stock' && styles.filterChipTextActive, { color: filterType === 'out_of_stock' ? '#fff' : colors.danger }]}>{t('products.out_of_stock')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'low_stock' && styles.filterChipActive, { borderColor: colors.warning }]} onPress={() => setFilterType('low_stock')}>
+                <Text style={[styles.filterChipText, filterType === 'low_stock' && styles.filterChipTextActive, { color: filterType === 'low_stock' ? '#fff' : colors.warning }]}>{t('products.low_stock')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, filterType === 'overstock' && styles.filterChipActive, { borderColor: colors.info }]} onPress={() => setFilterType('overstock')}>
+                <Text style={[styles.filterChipText, filterType === 'overstock' && styles.filterChipTextActive, { color: filterType === 'overstock' ? '#fff' : colors.info }]}>{t('products.overstock')}</Text>
+              </TouchableOpacity>
+              {deadstockCount > 0 && (
+                <TouchableOpacity style={[styles.filterChip, filterType === 'deadstock' && styles.filterChipActive, { borderColor: colors.warning }]} onPress={() => setFilterType('deadstock')}>
+                  <Text style={[styles.filterChipText, filterType === 'deadstock' && styles.filterChipTextActive, { color: filterType === 'deadstock' ? '#fff' : colors.warning }]}>
+                    {t('products.deadstock', 'Dormants')} ({deadstockCount})
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+            <Text style={styles.controlGroupLabel}>{t('products.supplier_filter_label', 'Fournisseur')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'all' && styles.filterChipActive]} onPress={() => setSupplierCoverageFilter('all')}>
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'all' && styles.filterChipTextActive]}>{t('products.supplier_filter_all', 'Tous fournisseurs')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'no_supplier' && styles.filterChipActive, { borderColor: colors.danger }]} onPress={() => setSupplierCoverageFilter('no_supplier')}>
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'no_supplier' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'no_supplier' ? '#fff' : colors.danger }]}>{t('products.supplier_filter_none', 'Sans fournisseur')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'multi_supplier' && styles.filterChipActive, { borderColor: colors.warning }]} onPress={() => setSupplierCoverageFilter('multi_supplier')}>
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'multi_supplier' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'multi_supplier' ? '#fff' : colors.warning }]}>{t('products.supplier_filter_multiple', 'Plusieurs fournisseurs')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'missing_primary' && styles.filterChipActive, { borderColor: colors.info }]} onPress={() => setSupplierCoverageFilter('missing_primary')}>
+                <Text style={[styles.filterChipText, supplierCoverageFilter === 'missing_primary' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'missing_primary' ? '#fff' : colors.info }]}>{t('products.supplier_filter_missing_primary', 'Principal manquant')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+
+        <View>
+          {showControlsPanel && (
+            <View style={styles.categoryRow}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.categoryScroll, { flex: 1 }]}>
+                <TouchableOpacity style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]} onPress={() => setSelectedCategory(null)}>
+                  <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextActive]}>{t('common.all')}</Text>
+                </TouchableOpacity>
+                {categoryList.map((cat) => (
+                  <TouchableOpacity key={cat.category_id} style={[styles.categoryChip, selectedCategory === cat.category_id && styles.categoryChipActive]} onPress={() => setSelectedCategory(cat.category_id)}>
+                    <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
+                    <Text style={[styles.categoryChipText, selectedCategory === cat.category_id && styles.categoryChipTextActive]}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {!isRestaurant && hasEnterpriseLocations && showControlsPanel && (
+            <TouchableOpacity style={styles.locationModuleCard} onPress={() => router.push('/(tabs)/locations' as never)} activeOpacity={0.9}>
+              <View style={styles.locationModuleIcon}>
+                <Ionicons name="location-outline" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.locationModuleContent}>
+                <Text style={styles.locationModuleTitle}>{t('products.location_module_title')}</Text>
+                <Text style={styles.locationModuleDescription}>{t('products.location_module_description')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+
+          {!isRestaurant && showControlsPanel && (
+            <View style={styles.valuationCard}>
+              <View style={styles.valuationInfo}>
+                <Text style={styles.valuationLabel}>{t('products.total_stock_value_label')}</Text>
+                <Text style={styles.valuationValue}>
+                  {formatUserCurrency(Array.isArray(productList) ? productList.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0) : 0, user)}
+                </Text>
+              </View>
+              <View style={styles.valuationBadge}>
+                <Ionicons name="trending-up" size={20} color={colors.success} />
+              </View>
+            </View>
+          )}
+
+          <Text style={styles.resultCount}>
+            {isRestaurant ? t(filtered.length > 1 ? 'pos.dish_count_plural' : 'pos.dish_count', { count: filtered.length }) : t('products.product_count', { count: filtered.length })}
+          </Text>
+        </View>
+      </>
+    );
+  }
+
+  function renderProductsEmptyState() {
+    return (
+      <EmptyState
+        title={debouncedSearch ? t('common.no_results') : isRestaurant ? t('restaurant.no_dish', 'Aucun plat') : t('products.no_products')}
+        message={debouncedSearch
+          ? t('products.no_results_for', { query: debouncedSearch })
+          : isRestaurant ? t('restaurant.first_dish_hint', 'Commencez par créer votre premier plat de menu.') : t('products.no_products_desc')}
+        icon={debouncedSearch ? "search-outline" : "cube-outline"}
+        actionLabel={
+          debouncedSearch
+            ? t('common.clear_search')
+            : canWrite
+              ? isRestaurant
+                ? t('restaurant.add_dish', 'Ajouter un plat')
+                : t('products.add_product')
+              : undefined
+        }
+        onAction={() => {
+          if (debouncedSearch) {
+            setSearch('');
+          } else if (canWrite) {
+            openNewProductModal();
+          }
+        }}
+      />
+    );
+  }
+
+  function renderProductsFooter() {
+    return (
+      <>
+        {filtered.length > 0 && (
+          <View style={styles.loadMoreSection}>
+            {isLoadingMoreVisibleProducts ? (
+              <View style={styles.loadMoreSpinner}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadMoreText}>{t('products.loading_more')}</Text>
+              </View>
+            ) : canLoadMoreVisibleProducts ? (
+              <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMoreProducts}>
+                <Ionicons name="chevron-down-outline" size={18} color={colors.primary} />
+                <Text style={styles.loadMoreText}>
+                  {t('products.load_more', {
+                    count: Math.min(
+                      PRODUCTS_PAGE_SIZE,
+                      Math.max(
+                        debouncedSearch
+                          ? serverSearchTotal - (serverSearchResults?.length ?? 0)
+                          : productsTotal - productList.length,
+                        0,
+                      ),
+                    ),
+                  })}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.loadMoreHint}>
+                {debouncedSearch
+                  ? t('products.all_search_results_loaded', { count: filtered.length })
+                  : t('products.all_products_loaded', { loaded: productList.length, total: productsTotal })}
+              </Text>
+            )}
+          </View>
+        )}
+        <View style={{ height: Spacing.xl }} />
+      </>
+    );
+  }
+
+  function renderProductItem({ item: product }: { item: Product }) {
+    const margin = product.selling_price - product.purchase_price;
+
+    return (
+      <TouchableOpacity
+        style={[styles.productCard, isSelectionMode && selectedProductIds.has(product.product_id) && { borderColor: colors.primary, borderWidth: 1 }]}
+        onPress={() => isSelectionMode ? toggleSelection(product.product_id) : null}
+        activeOpacity={isSelectionMode ? 0.7 : 1}
+      >
+        {isSelectionMode && (
+          <View style={styles.selectionIndicator}>
+            <Ionicons
+              name={selectedProductIds.has(product.product_id) ? "checkbox" : "square-outline"}
+              size={24}
+              color={selectedProductIds.has(product.product_id) ? colors.primary : colors.textMuted}
+            />
+          </View>
+        )}
+        <View style={styles.productHeader}>
+          <View>
+            {product.image ? (
+              <Image source={{ uri: uploads.getFullUrl(product.image) || product.image }} style={styles.productThumb} />
+            ) : (
+              <View style={[styles.productThumb, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Ionicons name="image-outline" size={24} color={colors.textMuted} />
+              </View>
+            )}
+          </View>
+          <View style={styles.productInfo}>
+            <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
+            {isRestaurant ? (
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <View style={[styles.marginBadge, { backgroundColor: getMenuProductionModeColor(product) + '15' }]}>
+                    <Text style={[styles.marginText, { color: getMenuProductionModeColor(product) }]}>
+                      {getMenuProductionModeLabel(product)}
+                    </Text>
+                  </View>
+                  {product.menu_category ? (
+                    <View style={[styles.locationBadge, { backgroundColor: colors.secondary + '18' }]}>
+                      <Text style={[styles.locationBadgeText, { color: colors.secondary }]} numberOfLines={1}>
+                        {product.menu_category}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={[styles.productSku, { marginTop: 6 }]}>
+                  {t('restaurant.station_label', 'Station')}: {product.kitchen_station || 'plat'}{product.linked_recipe_id ? ` · ${t('restaurant.recipe_linked', 'Recette liée')}` : ''}
+                </Text>
+              </>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {product.sku && <Text style={styles.productSku}>{product.sku}</Text>}
+                <View style={[styles.marginBadge, { backgroundColor: margin > 0 ? colors.success + '15' : colors.danger + '15' }]}>
+                  <Text style={[styles.marginText, { color: margin > 0 ? colors.success : colors.danger }]}>
+                    +{formatUserCurrency(margin, user)}
+                  </Text>
+                </View>
+                {hasEnterpriseLocations && product.location_id && (() => {
+                  const loc = locationMap.get(product.location_id);
+                  return loc ? (
+                    <View style={[styles.locationBadge, { backgroundColor: colors.info + '20' }]}>
+                      <Ionicons name="location-outline" size={10} color={colors.info} />
+                      <Text style={[styles.locationBadgeText, { color: colors.info }]} numberOfLines={1}>
+                        {getLocationPath(loc.location_id) || loc.name}
+                      </Text>
+                    </View>
+                  ) : null;
+                })()}
+              </View>
+            )}
+          </View>
+          {!isRestaurant && (
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(product) + '20' }]}>
+              <Text style={[styles.statusText, { color: getStatusColor(product) }]}>
+                {getStatusLabel(product)}
+              </Text>
+            </View>
+          )}
+          {!isRestaurant && product.expiry_date && (
+            <View style={[styles.expiryBadge, { backgroundColor: getExpiryWarningColor(product.expiry_date) }]}>
+              <Ionicons name="time-outline" size={12} color="#fff" />
+              <Text style={styles.expiryBadgeText}>{getExpiryLabel(product.expiry_date)}</Text>
+            </View>
+          )}
+        </View>
+
+        {isInventoryMode ? (
+          <View style={styles.inventoryReconciliation}>
+            <View style={styles.inventoryInfo}>
+              <Text style={styles.detailLabel}>{t('products.current_stock')}</Text>
+              <Text style={styles.detailValue}>{product.quantity}</Text>
+            </View>
+            <View style={styles.inventoryInputContainer}>
+              <Text style={styles.detailLabel}>{t('products.actual_stock')}</Text>
+              <TextInput
+                style={styles.inventoryInput}
+                keyboardType="numeric"
+                value={inventoryValues[product.product_id] !== undefined ? inventoryValues[product.product_id] : product.quantity.toString()}
+                onChangeText={(val) => setInventoryValues(prev => ({ ...prev, [product.product_id]: val }))}
+                placeholder="..."
+              />
+            </View>
+            <View style={styles.inventoryActions}>
+              {(inventoryValues[product.product_id] === undefined || parseInt(inventoryValues[product.product_id]) === product.quantity) ? (
+                <TouchableOpacity style={[styles.inventoryBtn, { backgroundColor: colors.success + '20' }]} onPress={() => handleAdjustStock(product, product.quantity.toString())}>
+                  <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={[styles.inventoryBtn, { backgroundColor: colors.primary + '20' }]} onPress={() => handleAdjustStock(product, inventoryValues[product.product_id])}>
+                  <Ionicons name="save-outline" size={24} color={colors.primary} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        ) : (
+          <>
+            {isRestaurant && (
+              <View style={styles.productDetails}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('restaurant.sale_price', 'Prix de vente')}</Text>
+                  <Text style={styles.detailValue}>{formatUserCurrency(product.selling_price, user)}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('common.recipe', 'Recette')}</Text>
+                  <Text style={styles.detailValue}>{product.linked_recipe_id ? t('restaurant.recipe_linked', 'Recette liée') : t('restaurant.recipe_to_define', 'À définir')}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('restaurant.production_label', 'Production')}</Text>
+                  <Text style={styles.detailValue}>{getMenuProductionModeLabel(product)}</Text>
+                </View>
+              </View>
+            )}
+            {!isRestaurant && (
+              <View style={styles.productDetails}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('products.stock_label')}</Text>
+                  <Text style={styles.detailValue}>
+                    {product.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: product.quantity })}
+                  </Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('products.trend_forecast')}</Text>
+                  {(() => {
+                    const forecast = forecastByProductId.get(product.product_id);
+                    if (!forecast) {
+                      return <Text style={styles.detailValue}>--</Text>;
+                    }
+                    const trendIcon = forecast.trend === 'up' ? 'trending-up' : forecast.trend === 'down' ? 'trending-down' : 'remove';
+                    const trendColor = forecast.trend === 'up' ? colors.success : forecast.trend === 'down' ? colors.danger : colors.textMuted;
+
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons name={trendIcon as any} size={16} color={trendColor} />
+                        <Text style={[styles.detailValue, { color: trendColor }]}>
+                          {t('products.forecast_7d_unit', { count: forecast.predicted_sales_7d })}
+                        </Text>
+                      </View>
+                    );
+                  })()}
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>{t('products.stock_value')}</Text>
+                  <Text style={styles.detailValue}>{formatUserCurrency(product.quantity * product.purchase_price, user)}</Text>
+                </View>
+              </View>
+            )}
+
+            {correlationsMap[product.product_id]?.length > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, marginBottom: 8, flexWrap: 'wrap' }}>
+                <Ionicons name="link-outline" size={13} color={colors.primary} />
+                <Text style={{ fontSize: 11, color: colors.textMuted }}>Acheté avec : </Text>
+                {correlationsMap[product.product_id].slice(0, 3).map((c, i) => (
+                  <View key={i} style={{ backgroundColor: colors.primary + '15', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{c.name}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {!isRestaurant && seasonalityMap[product.product_id]?.urgency === 'high' && (() => {
+              const season = seasonalityMap[product.product_id];
+              return (
+                <View style={{ backgroundColor: colors.warning + '15', borderWidth: 1, borderColor: colors.warning + '30', borderRadius: 12, padding: 10, marginHorizontal: 16, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="flame-outline" size={16} color={colors.warning} />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.warning, flex: 1 }}>
+                    {t('products.season_peak_alert', { month: season.upcoming_peak_name, demand: season.expected_demand, gap: season.stock_gap, defaultValue: 'Pic saisonnier {{month}} — prévoir {{demand}} unités (manque {{gap}})' })}
+                  </Text>
+                </View>
+              );
+            })()}
+
+            {!isRestaurant && (() => {
+              const supplyMeta = getProductSupplyMeta(product.product_id);
+              return (
+                <View style={[styles.supplyCard, { borderColor: supplyMeta.tone + '35', backgroundColor: supplyMeta.tone + '12' }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.supplyTitle, { color: supplyMeta.tone }]}>{supplyMeta.status}</Text>
+                    <Text style={styles.supplySubtitle}>{supplyMeta.subtitle}</Text>
+                  </View>
+                  <TouchableOpacity style={[styles.supplyManageBtn, { borderColor: supplyMeta.tone + '45' }]} onPress={() => openEditModal(product)}>
+                    <Text style={[styles.supplyManageBtnText, { color: supplyMeta.tone }]}>
+                      {t('products.manage_supply_cta', 'Gérer')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })()}
+
+            {!isRestaurant && product.has_variants && product.variants && product.variants.length > 0 && (
+              <View style={{ marginTop: Spacing.sm, padding: Spacing.sm, backgroundColor: colors.glass, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: colors.glassBorder }}>
+                <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 }}>{t('products.variants')}</Text>
+                {product.variants.map(v => (
+                  <View key={v.variant_id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>{v.name}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: v.quantity })}{v.selling_price != null ? ` · ${formatUserCurrency(v.selling_price, user)}` : ''}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {!isSelectionMode && (
+              <View style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {!isRestaurant && (
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.info + '18', borderWidth: 1, borderColor: colors.info + '38', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]} onPress={() => openHistoryModal(product)}>
+                    <Ionicons name="time-outline" size={16} color={colors.info} />
+                    <Text style={[styles.actionText, { color: colors.info }]}>{t('products.history')}</Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]} onPress={() => openEditModal(product)}>
+                  <Ionicons name="create-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.actionText, { color: colors.primary }]}>{t('products.edit')}</Text>
+                </TouchableOpacity>
+
+                {!isRestaurant && canWrite && (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: colors.success + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
+                      onPress={() => openStockMovementModal(product, 'in')}
+                    >
+                      <Ionicons name="add-circle-outline" size={16} color={colors.success} />
+                      <Text style={[styles.actionText, { color: colors.success }]}>{t('products.add_stock')}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: colors.warning + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]}
+                      onPress={() => openStockMovementModal(product, 'out')}
+                    >
+                      <Ionicons name="remove-circle-outline" size={16} color={colors.warning} />
+                      <Text style={[styles.actionText, { color: colors.warning }]}>{t('products.remove_stock')}</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {!isRestaurant && (
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.textMuted + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]} onPress={() => printLabel(product)}>
+                    <Ionicons name="print-outline" size={16} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+
+                {canWrite && (
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.danger + '15', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }]} onPress={() => handleDelete(product.product_id)}>
+                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </>
+        )}
+      </TouchableOpacity>
+    );
+  }
+
+  // If production mode → show the ProductionView instead
+  if (hasProduction && !isRestaurant) {
+    return <ProductionView currency={user?.currency || 'FCFA'} />;
+  }
+
+  if (accessDenied) {
+    return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(); }} />;
+  }
+
+  if (loading) {
+    return (
+      <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
+        <View style={styles.content}>
+          <View style={[styles.headerRow, { marginTop: insets.top }]}>
+            <Skeleton width={150} height={28} />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Skeleton circle width={40} height={40} />
+              <Skeleton circle width={40} height={40} />
+            </View>
+          </View>
+          <Skeleton width="100%" height={50} style={{ marginBottom: 20, borderRadius: BorderRadius.md }} />
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} width="100%" height={120} style={{ marginBottom: 12, borderRadius: BorderRadius.md }} />
+          ))}
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  return (
+    <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
+      <FlatList
+        style={styles.container}
+        data={filtered}
+        keyExtractor={(item) => item.product_id}
+        renderItem={renderProductItem}
+        ListHeaderComponent={renderProductsHeader()}
+        ListEmptyComponent={renderProductsEmptyState}
+        ListFooterComponent={renderProductsFooter}
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={false}
+        keyboardShouldPersistTaps="handled"
+        extraData={{
+          isSelectionMode,
+          selectedProductIds,
+          inventoryValues,
+          forecastData,
+          seasonalityMap,
+          correlationsMap,
+          supplierLinksByProduct,
+          locationList,
+          trackedDeleteJob,
+          bulkDeleteProcessedCount,
+        }}
+        contentContainerStyle={[
+          styles.content,
+          isSelectionMode && styles.contentWithSelectionToolbar,
+        ]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      />
+
+      {isSelectionMode && (
+        <View style={[styles.selectionToolbarDock, { paddingBottom: insets.bottom + Spacing.sm }]}>
+          <View style={styles.selectionToolbar}>
+            <View style={styles.selectionInfo}>
+              <TouchableOpacity onPress={toggleSelectAll} style={styles.selectAllBtn} disabled={selectAllLoading}>
+                {selectAllLoading ? (
+                  <ActivityIndicator size="small" color={colors.primaryLight} />
+                ) : (
+                  <Ionicons
+                    name={allVisibleProductsSelected ? "checkbox" : "square-outline"}
+                    size={20}
+                    color={colors.primaryLight}
+                  />
+                )}
+                <Text style={styles.selectAllText}>
+                  {t('products.select_all', 'Tout selectionner')} ({selectedProductIds.size}/{filtered.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.selectionActions}>
+              {canWrite && (
+                <TouchableOpacity
+                  style={[
+                    styles.selectionActionBtn,
+                    styles.selectionActionBtnPrimary,
+                    (selectedProductIds.size === 0 || bulkDeleteSaving) && styles.selectionActionBtnDisabled,
+                  ]}
+                  onPress={openBulkEditModal}
+                  disabled={selectedProductIds.size === 0 || bulkDeleteSaving}
+                >
+                  <Ionicons name="create-outline" size={20} color={colors.primaryLight} />
+                  <Text style={styles.selectionActionText}>{t('products.bulk_edit_cta', 'Prix et stock')}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[
+                  styles.selectionActionBtn,
+                  styles.selectionActionBtnPrimary,
+                  bulkDeleteSaving && styles.selectionActionBtnDisabled,
+                ]}
+                onPress={exportCatalog}
+                disabled={bulkDeleteSaving}
+              >
+                <Ionicons name="share-social-outline" size={20} color={colors.primaryLight} />
+                <Text style={styles.selectionActionText}>{t('products.bulk_share_catalog')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.selectionActionBtn,
+                  styles.selectionActionBtnDanger,
+                  (selectedProductIds.size === 0 || bulkDeleteSaving) && styles.selectionActionBtnDisabled,
+                ]}
+                onPress={handleBulkDelete}
+                disabled={selectedProductIds.size === 0 || bulkDeleteSaving}
+              >
+                {bulkDeleteSaving ? (
+                  <ActivityIndicator color={colors.danger} />
+                ) : (
+                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                )}
+                <Text style={[styles.selectionActionText, { color: colors.danger }]}>
+                  {bulkDeleteSaving
+                    ? `${t('products.delete')} (${bulkDeleteProcessedCount}/${bulkDeleteTotalCount})`
+                    : t('products.delete')}
+                </Text>
+              </TouchableOpacity>
+            </View></View>
+        </View>
+      )}
+
+      <Modal visible={showBulkEditModal} animationType="slide" transparent onRequestClose={closeBulkEditModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1, paddingRight: Spacing.md }}>
+                <Text style={styles.modalTitle}>{t('products.bulk_edit_modal_title', 'Édition en masse')}</Text>
+                <Text style={styles.modalSubtitle}>
+                  {t('products.bulk_edit_modal_subtitle', { count: selectedProducts.length })}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={closeBulkEditModal} disabled={bulkPriceSaving}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+            >
+              <FlatList
+                data={selectedProducts}
+                keyExtractor={(item) => item.product_id}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: Spacing.sm }}
+                renderItem={({ item }) => (
+                  <View style={[styles.bulkPriceRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
+                    <Text style={styles.bulkPriceName}>{item.name}</Text>
+                    
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>Vente ({formatUserCurrency(item.selling_price, user)})</Text>
+                        <TextInput
+                          style={styles.bulkPriceInput}
+                          value={bulkPriceValues[item.product_id] ?? ''}
+                          onChangeText={(value) => setBulkPriceValues((prev) => ({ ...prev, [item.product_id]: value }))}
+                          keyboardType="decimal-pad"
+                          placeholder={String(item.selling_price ?? 0)}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </View>
+                      
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>Achat ({formatUserCurrency(item.purchase_price, user)})</Text>
+                        <TextInput
+                          style={styles.bulkPriceInput}
+                          value={bulkPurchaseValues[item.product_id] ?? ''}
+                          onChangeText={(value) => setBulkPurchaseValues((prev) => ({ ...prev, [item.product_id]: value }))}
+                          keyboardType="decimal-pad"
+                          placeholder={String(item.purchase_price ?? 0)}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </View>
+
+                      {!isRestaurant && (
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>Stock ({formatMeasurementQuantity(item.quantity, item.display_unit || item.unit)})</Text>
+                        <TextInput
+                          style={styles.bulkPriceInput}
+                          value={bulkStockValues[item.product_id] ?? ''}
+                          onChangeText={(value) => setBulkStockValues((prev) => ({ ...prev, [item.product_id]: value }))}
+                          keyboardType="decimal-pad"
+                          placeholder={String(item.quantity ?? 0)}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </View>
+                      )}
+                    </View>
+                  </View>
+                )}
+              />
+              <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.md, borderTopWidth: 1, borderTopColor: colors.glassBorder }}>
+                <TouchableOpacity
+                  style={[styles.submitBtn, bulkPriceSaving && styles.submitBtnDisabled, { marginBottom: 0 }]}
+                  onPress={handleBulkEditUpdate}
+                  disabled={bulkPriceSaving}
+                >
+                  {bulkPriceSaving ? (
+                    <ActivityIndicator color={colors.text} />
+                  ) : (
+                    <Text style={styles.submitBtnText}>{t('products.bulk_price_save')}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </View>
+      </Modal>
+
+
+      {/* Add Product Modal */}
+      < Modal visible={showAddModal} animationType="slide" transparent onRequestClose={requestCloseAddModal} >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {isRestaurant
+                  ? editingProduct ? t('restaurant.edit_dish', 'Modifier le plat') : t('restaurant.add_dish', 'Ajouter un plat')
+                  : editingProduct ? t('products.edit_product', 'Modifier le produit') : t('products.add_product')}
+              </Text>
+              <TouchableOpacity onPress={requestCloseAddModal}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+            >
+              <ScrollView
+                style={styles.modalScroll}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+                keyboardShouldPersistTaps="handled"
+              >
+                <TouchableOpacity onPress={pickImage} style={styles.imagePickerBtn} disabled={imageUploading}>
+                  {imageUploading ? (
+                    <View style={styles.imagePlaceholder}>
+                      <ActivityIndicator size="large" color={colors.primary} />
+                      <Text style={[styles.imagePlaceholderText, { marginTop: 8 }]}>{t('products.uploading')}</Text>
+                    </View>
+                  ) : formImage ? (
+                    <Image source={{ uri: uploads.getFullUrl(formImage) || formImage }} style={styles.imagePreview} />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <Ionicons name="camera-outline" size={32} color={colors.textMuted} />
+                      <Text style={styles.imagePlaceholderText}>{t('products.add_photo')}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <View style={styles.inputRowWithAction}>
+                  <View style={{ flex: 1 }}>
+                    <FormField label={t('products.field_name')} value={formName} onChangeText={setFormName} placeholder={t('products.field_name_placeholder')} colors={colors} styles={styles} />
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.scanBtnMini, { backgroundColor: colors.primary + '15' }]}
+                    onPress={handleAiCategorize}
+                    disabled={aiCatLoading || !formName.trim()}
+                  >
+                    {aiCatLoading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Ionicons name="sparkles" size={20} color={!formName.trim() ? colors.textMuted : colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {/* AI hint for categorization */}
+                {!formCategoryName && formName.trim().length > 0 && !aiCatLoading && (
+                  <Text style={{ fontSize: 10, color: colors.textMuted, marginBottom: 4, marginTop: -2 }}>
+                    {t('products.ai_cat_hint')}
+                  </Text>
+                )}
+                <View>
+                  <View style={styles.inputRowWithAction}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.formLabel, { marginBottom: 5 }]}>{t('products.field_description')}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={handleAiDescription}
+                      disabled={aiDescLoading || !formName.trim()}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 3, paddingHorizontal: 8, borderRadius: BorderRadius.full, backgroundColor: colors.primary + '15' }}
+                    >
+                      {aiDescLoading ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <Ionicons name="sparkles" size={13} color={!formName.trim() ? colors.textMuted : colors.primary} />
+                      )}
+                      <Text style={{ fontSize: 11, color: !formName.trim() ? colors.textMuted : colors.primary, fontWeight: '600' }}>{t('common.generate')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.glass,
+                      color: colors.text,
+                      borderRadius: BorderRadius.md,
+                      padding: 12,
+                      fontSize: 13,
+                      borderWidth: 1,
+                      borderColor: colors.glassBorder,
+                      minHeight: 60,
+                      textAlignVertical: 'top',
+                      marginBottom: 15,
+                    }}
+                    placeholder={t('products.field_description_placeholder')}
+                    placeholderTextColor={colors.textMuted}
+                    value={formDescription}
+                    onChangeText={setFormDescription}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+                {isRestaurant && (
+                  <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.md, padding: Spacing.sm, marginBottom: Spacing.md, borderWidth: 1, borderColor: colors.primary + '25' }}>
+                    <Text style={{ color: colors.text, fontSize: 12, lineHeight: 18 }}>
+                      {t('restaurant.menu_form_hint', 'Ce formulaire crée un article de menu. Le stock sera piloté selon le mode choisi : préparation à l\'avance, à la commande ou hybride.')}
+                    </Text>
+                  </View>
+                )}
+                {isRestaurant && (
+                  <>
+                    <FormField
+                      label={t('restaurant.menu_category', 'Catégorie menu')}
+                      value={formMenuCategory}
+                      onChangeText={setFormMenuCategory}
+                      placeholder={t('restaurant.menu_category_placeholder', 'Ex: Grillades, Entrées, Desserts')}
+                      colors={colors}
+                      styles={styles}
+                    />
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('restaurant.production_label', 'Production')}</Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {[
+                          { value: 'prepped', label: t('pos.production_mode_prepped', 'A l’avance') },
+                          { value: 'on_demand', label: t('pos.production_mode_on_demand', 'A la commande') },
+                          { value: 'hybrid', label: t('pos.production_mode_hybrid', 'Hybride') },
+                        ].map((opt) => (
+                          <TouchableOpacity
+                            key={opt.value}
+                            onPress={() => setFormProductionMode(opt.value as 'prepped' | 'on_demand' | 'hybrid')}
+                            style={{
+                              flex: 1,
+                              paddingVertical: 10,
+                              borderRadius: 12,
+                              borderWidth: 1.5,
+                              alignItems: 'center',
+                              backgroundColor: formProductionMode === opt.value ? colors.primary + '20' : 'transparent',
+                              borderColor: formProductionMode === opt.value ? colors.primary : colors.glassBorder,
+                            }}
+                          >
+                            <Text style={{ color: formProductionMode === opt.value ? colors.primary : colors.textMuted, fontWeight: '600', fontSize: 12 }}>
+                              {opt.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('restaurant.station_label', 'Station cuisine')}</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+                        {[
+                          { value: 'plat', label: t('restaurant.station_plat', 'Plat') },
+                          { value: 'grill', label: t('restaurant.station_grill', 'Grill') },
+                          { value: 'froid', label: t('restaurant.station_froid', 'Froid') },
+                          { value: 'boisson', label: t('restaurant.station_boisson', 'Boisson') },
+                          { value: 'dessert', label: t('restaurant.station_dessert', 'Dessert') },
+                        ].map((station) => (
+                          <TouchableOpacity
+                            key={station.value}
+                            onPress={() => setFormKitchenStation(station.value as 'plat' | 'grill' | 'froid' | 'boisson' | 'dessert')}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              backgroundColor: formKitchenStation === station.value ? colors.primary : colors.glass,
+                              borderRadius: 20,
+                              marginRight: 8,
+                              borderWidth: 1,
+                              borderColor: formKitchenStation === station.value ? colors.primary : colors.glassBorder,
+                            }}
+                          >
+                            <Text style={{ color: formKitchenStation === station.value ? '#fff' : colors.text, fontSize: 13 }}>
+                              {station.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('restaurant.service_recipe', 'Recette de service')}</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        <TouchableOpacity
+                          onPress={() => setFormLinkedRecipeId('')}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 8,
+                            backgroundColor: formLinkedRecipeId === '' ? colors.primary : colors.glass,
+                            borderRadius: 20,
+                            marginRight: 8,
+                            borderWidth: 1,
+                            borderColor: formLinkedRecipeId === '' ? colors.primary : colors.glassBorder,
+                          }}
+                        >
+                          <Text style={{ color: formLinkedRecipeId === '' ? '#fff' : colors.text, fontSize: 13 }}>
+                            {t('restaurant.no_recipe', 'Aucune')}
+                          </Text>
+                        </TouchableOpacity>
+                        {serviceRecipes.map((recipe) => (
+                          <TouchableOpacity
+                            key={recipe.recipe_id}
+                            onPress={() => setFormLinkedRecipeId(recipe.recipe_id)}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              backgroundColor: formLinkedRecipeId === recipe.recipe_id ? colors.primary : colors.glass,
+                              borderRadius: 20,
+                              marginRight: 8,
+                              borderWidth: 1,
+                              borderColor: formLinkedRecipeId === recipe.recipe_id ? colors.primary : colors.glassBorder,
+                            }}
+                          >
+                            <Text style={{ color: formLinkedRecipeId === recipe.recipe_id ? '#fff' : colors.text, fontSize: 13 }}>
+                              {recipe.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                      {(formProductionMode === 'on_demand' || formProductionMode === 'hybrid') && !formLinkedRecipeId && (
+                        <Text style={{ color: colors.warning, fontSize: 11, marginTop: 6 }}>
+                          {t('restaurant.recipe_required', 'Veuillez lier une recette de service pour ce plat.')}
+                        </Text>
+                      )}
+                    </View>
+                  </>
+                )}
+                <View style={styles.inputRowWithAction}>
+                  <View style={{ flex: 1 }}>
+                    <FormField label={t('products.field_sku')} value={formSku} onChangeText={setFormSku} placeholder={t('products.field_sku_placeholder')} colors={colors} styles={styles} />
+                  </View>
+                  <TouchableOpacity style={styles.scanBtnMini} onPress={() => openScanner('form')}>
+                    <Ionicons name="barcode-outline" size={24} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
 
                 {!isRestaurant && allSuppliers.length > 0 && (
                   <View style={styles.supplySection}>
