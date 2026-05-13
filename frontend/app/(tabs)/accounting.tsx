@@ -1035,7 +1035,10 @@ export default function AccountingScreen() {
         }, [t, scrollToSection])
     );
 
-    const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(user?.plan || '') || user?.subscription_status === 'expired');
+    const effectivePlan = user?.effective_plan || user?.plan || '';
+    const accessPhase = user?.subscription_access_phase || 'active';
+    const canOpenDuringBillingFollowUp = ['active', 'grace', 'restricted', 'read_only'].includes(accessPhase);
+    const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(effectivePlan) || !canOpenDuringBillingFollowUp);
 
     const monthlyExpenseGroups = React.useMemo(
         () => buildMonthlyGroups(

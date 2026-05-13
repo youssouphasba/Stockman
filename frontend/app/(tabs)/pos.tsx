@@ -118,6 +118,7 @@ export default function POSScreen() {
     const [isScannerVisible, setIsScannerVisible] = useState(false);
     const [continuousScan, setContinuousScan] = useState(false);
     const [showProductList, setShowProductList] = useState(!isMobile); // Hidden by default on mobile
+    const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
     // Voice to cart
     const [isVoiceRecording, setIsVoiceRecording] = useState(false);
     const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
@@ -323,13 +324,37 @@ export default function POSScreen() {
         }, [loadData])
     );
 
+    const normalizeSearchText = (value: unknown) =>
+        String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim();
+
     const filteredProducts = useMemo(() => {
-        return productList.filter(p =>
-            p.product_type !== 'raw_material' &&
-            (!restaurantMode || p.is_menu_item) &&
-            (p.name.toLowerCase().includes(search.toLowerCase()) ||
-            (p.sku && p.sku.toLowerCase().includes(search.toLowerCase())))
-        );
+        const tokens = normalizeSearchText(search).split(' ').filter(Boolean);
+        return productList
+            .filter(p => {
+                if (p.product_type === 'raw_material') return false;
+                if (restaurantMode && !p.is_menu_item) return false;
+                if (tokens.length === 0) return true;
+                const haystack = normalizeSearchText([
+                    p.name,
+                    p.sku,
+                    (p as any).barcode,
+                    (p as any).category,
+                    (p as any).category_name,
+                    (p as any).description,
+                ].filter(Boolean).join(' '));
+                return tokens.every(token => haystack.includes(token));
+            })
+            .sort((a, b) => {
+                const aAvailable = requiresFinishedStock(a) ? Number(a.quantity || 0) > 0 : true;
+                const bAvailable = requiresFinishedStock(b) ? Number(b.quantity || 0) > 0 : true;
+                if (aAvailable !== bAvailable) return aAvailable ? -1 : 1;
+                return normalizeSearchText(a.name).localeCompare(normalizeSearchText(b.name));
+            });
     }, [productList, restaurantMode, search]);
 
     const updateActiveSession = (updater: (s: POSSession) => POSSession) => {
@@ -342,6 +367,11 @@ export default function POSScreen() {
             cart: items,
         }));
     };
+
+    const getProductQuantityInCart = (productId: string) =>
+        cart
+            .filter(item => item.product.product_id === productId && !item.persisted)
+            .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 
     const closeWeightedModal = () => {
         setShowWeightedModal(false);
@@ -488,6 +518,7 @@ export default function POSScreen() {
             });
 
             closeWeightedModal();
+            if (isMobile) setShowProductList(false);
         } catch (error: any) {
             Alert.alert(t('common.error'), error?.message || t('pos.add_quantity_error'));
         }
@@ -654,6 +685,7 @@ export default function POSScreen() {
                 cart: [...s.cart, { cartKey: `draft_${product.product_id}_${Date.now()}`, product, quantity: 1, persisted: false }]
             };
         });
+        if (isMobile) setShowProductList(false);
     };
 
     const parseLocalizedFloat = (val: string) => {
@@ -670,6 +702,11 @@ export default function POSScreen() {
             ...s,
             cart: s.cart.filter(item => item.cartKey !== cartKey)
         }));
+        setQuantityDrafts(prev => {
+            const next = { ...prev };
+            delete next[cartKey];
+            return next;
+        });
     };
 
     const updateQuantity = (cartKey: string, delta: number) => {
@@ -700,17 +737,36 @@ export default function POSScreen() {
         const item = cart.find(i => i.cartKey === cartKey);
         if (!item) return;
         if (item.persisted) {
-            Alert.alert(t('pos.open_order_locked_title', 'Commande ouverte'), t('pos.cart_locked_open_order', 'Cette ligne a deja ete envoyee. Ajoutez une nouvelle ligne pour completer la commande.'));
+            Alert.alert(t('pos.open_order_locked_title', 'Commande ouverte'), t('pos.cart_locked_open_order', 'Cette ligne a déjà été envoyée. Ajoutez une nouvelle ligne pour compléter la commande.'));
             return;
         }
         if (isWeightedProduct(item.product) || item.sold_unit) {
             openWeightedModal(item.product, item);
             return;
         }
+        const nextQuantity = Math.max(1, Math.floor(qty));
+        if (requiresFinishedStock(item.product) && nextQuantity > item.product.quantity) {
+            Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: item.product.quantity, unit: item.product.unit, name: item.product.name }));
+            return;
+        }
         updateActiveSession(s => ({
             ...s,
-            cart: s.cart.map(i => i.cartKey === cartKey ? { ...i, quantity: Math.max(1, Math.floor(qty)) } : i)
+            cart: s.cart.map(i => i.cartKey === cartKey ? { ...i, quantity: nextQuantity } : i)
         }));
+    };
+
+    const commitQuantityDraft = (cartKey: string) => {
+        const rawValue = quantityDrafts[cartKey];
+        if (rawValue === undefined) return;
+        const parsedValue = parseLocalizedFloat(rawValue);
+        if (parsedValue > 0) {
+            setQuantity(cartKey, parsedValue);
+        }
+        setQuantityDrafts(prev => {
+            const next = { ...prev };
+            delete next[cartKey];
+            return next;
+        });
     };
 
     const applyDiscount = (cartKey: string, type: 'percentage' | 'fixed', value: number) => {
@@ -1356,6 +1412,7 @@ export default function POSScreen() {
                                     onPress={() => setIsScannerVisible(true)}
                                 >
                                     <Ionicons name="barcode-outline" size={24} color="#fff" />
+                                    {isMobile && <Text style={styles.scanButtonText}>Scanner</Text>}
                                 </TouchableOpacity>
                                 {isMobile && (
                                     <TouchableOpacity style={styles.closePanelBtn} onPress={() => setShowProductList(false)}>
@@ -1379,7 +1436,12 @@ export default function POSScreen() {
                                                     : t('pos.cmd_prefix')}
                                             </Text>
                                         </View>
-                                        <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+                                        <Text style={styles.productName} numberOfLines={3}>{product.name}</Text>
+                                        {getProductQuantityInCart(product.product_id) > 0 && (
+                                            <View style={styles.productInCartBadge}>
+                                                <Text style={styles.productInCartBadgeText}>x{formatNumber(getProductQuantityInCart(product.product_id))} dans le panier</Text>
+                                            </View>
+                                        )}
                                         {restaurantMode && (
                                             <>
                                                 <View style={[styles.modeBadge, { backgroundColor: getProductionModeColor(product) + '20' }]}>
@@ -1521,8 +1583,10 @@ export default function POSScreen() {
                                                 ) : (
                                                     <TextInput
                                                         style={styles.qtyInput}
-                                                        value={String(item.quantity)}
-                                                        onChangeText={(val) => setQuantity(item.cartKey, parseLocalizedFloat(val))}
+                                                        value={quantityDrafts[item.cartKey] ?? String(item.quantity)}
+                                                        onChangeText={(val) => setQuantityDrafts(prev => ({ ...prev, [item.cartKey]: val }))}
+                                                        onBlur={() => commitQuantityDraft(item.cartKey)}
+                                                        onSubmitEditing={() => commitQuantityDraft(item.cartKey)}
                                                         keyboardType="numeric"
                                                         editable={!item.persisted}
                                                     />
@@ -1535,6 +1599,13 @@ export default function POSScreen() {
                                                     <Ionicons name="add-circle-outline" size={28} color={item.persisted ? colors.textMuted : colors.success} />
                                                 </TouchableOpacity>
                                             </View>
+                                            <TouchableOpacity
+                                                onPress={() => removeFromCart(item.cartKey)}
+                                                style={[styles.removeLineBtn, item.persisted && styles.removeLineBtnDisabled]}
+                                                disabled={item.persisted}
+                                            >
+                                                <Ionicons name="trash-outline" size={20} color={item.persisted ? colors.textMuted : colors.danger} />
+                                            </TouchableOpacity>
                                         </View>
                                     ))
                                 )}
@@ -1545,34 +1616,37 @@ export default function POSScreen() {
                     )}
                 </View>
 
-                {/* Mobile Floating Actions */}
-                {isMobile && !showProductList && (
-                    <View style={{ position: 'absolute', bottom: 180, right: 20, gap: 12, alignItems: 'flex-end' }}>
-                        <TouchableOpacity
-                            style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 }}
-                            onPress={() => setShowProductList(true)}
-                        >
-                            <Ionicons name="grid" size={24} color="#fff" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.secondary, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 }}
-                            onPress={startVoiceRecording}
-                        >
-                            <Ionicons name="mic" size={22} color="#fff" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.info, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 }}
-                            onPress={() => setIsScannerVisible(true)}
-                        >
-                            <Ionicons name="barcode" size={22} color="#fff" />
-                        </TouchableOpacity>
-                    </View>
-                )}
             </View>
 
                     {isMobile && !showProductList && (
-                        <View style={[styles.checkoutBar, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
-                            {checkoutBar}
+                        <View>
+                            {/* Mobile Quick Actions Bar */}
+                            <View style={styles.mobileFloatingActions}>
+                                <TouchableOpacity
+                                    style={[styles.mobileFloatingAction, { backgroundColor: colors.primary }]}
+                                    onPress={() => setShowProductList(true)}
+                                >
+                                    <Ionicons name="grid" size={20} color="#fff" />
+                                    <Text style={styles.mobileFloatingActionText}>{t('pos.products_btn', 'Produits')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.mobileFloatingAction, { backgroundColor: colors.info }]}
+                                    onPress={() => setIsScannerVisible(true)}
+                                >
+                                    <Ionicons name="barcode" size={18} color="#fff" />
+                                    <Text style={styles.mobileFloatingActionText}>{t('pos.scanner_btn', 'Scanner')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.mobileFloatingAction, { backgroundColor: colors.secondary }]}
+                                    onPress={startVoiceRecording}
+                                >
+                                    <Ionicons name="mic" size={18} color="#fff" />
+                                    <Text style={styles.mobileFloatingActionText}>{t('pos.voice_btn', 'Vocal')}</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={[styles.checkoutBar, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+                                {checkoutBar}
+                            </View>
                         </View>
                     )}
                 </LinearGradient>
@@ -1606,7 +1680,7 @@ export default function POSScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Quantite a vendre</Text>
+                            <Text style={styles.modalTitle}>Quantité à vendre</Text>
                             <TouchableOpacity onPress={closeWeightedModal}>
                                 <Ionicons name="close" size={24} color={colors.text} />
                             </TouchableOpacity>
@@ -1619,7 +1693,7 @@ export default function POSScreen() {
                                 </Text>
 
                                 <View style={styles.formGroup}>
-                                    <Text style={styles.formLabel}>Quantite</Text>
+                                    <Text style={styles.formLabel}>Quantité</Text>
                                     <TextInput
                                         style={styles.formInput}
                                         value={weightedQuantityInput}
@@ -1630,7 +1704,7 @@ export default function POSScreen() {
                                 </View>
 
                                 <View style={styles.formGroup}>
-                                    <Text style={styles.formLabel}>Unite</Text>
+                                    <Text style={styles.formLabel}>Unité</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                         {getAllowedSaleUnits(weightedDraftProduct).map(unit => (
                                             <TouchableOpacity
@@ -1677,7 +1751,7 @@ export default function POSScreen() {
                                 </View>
 
                                 <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 16 }}>
-                                    Pas conseille: {formatMeasurementQuantity(getInputStep(weightedDraftProduct, weightedUnit), weightedUnit)}
+                                    Pas conseillé : {formatMeasurementQuantity(getInputStep(weightedDraftProduct, weightedUnit), weightedUnit)}
                                 </Text>
 
                                 <TouchableOpacity 
@@ -1838,19 +1912,21 @@ export default function POSScreen() {
                         <View style={styles.formGroup}>
                             <Text style={styles.formLabel}>{t('pos.customer_name_label')}</Text>
                             <TextInput
-                                style={styles.formInput}
+                                style={[styles.formInput, styles.customerFormInput]}
                                 value={newCustomerName}
                                 onChangeText={setNewCustomerName}
                                 placeholder={t('pos.customer_name_placeholder')}
+                                placeholderTextColor="#6B7280"
                             />
                         </View>
                         <View style={styles.formGroup}>
                             <Text style={styles.formLabel}>{t('pos.customer_phone_label')}</Text>
                             <TextInput
-                                style={styles.formInput}
+                                style={[styles.formInput, styles.customerFormInput]}
                                 value={newCustomerPhone}
                                 onChangeText={setNewCustomerPhone}
                                 placeholder={t('pos.customer_phone_placeholder')}
+                                placeholderTextColor="#6B7280"
                                 keyboardType="phone-pad"
                             />
                         </View>
@@ -1982,6 +2058,36 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         alignItems: 'center',
         gap: 6,
     },
+    mobileFloatingActions: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: colors.glassBorder,
+        backgroundColor: colors.bgDark,
+    },
+    mobileFloatingAction: {
+        flex: 1,
+        minHeight: 42,
+        borderRadius: BorderRadius.full,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+    },
+    mobileFloatingActionText: {
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: '800',
+    },
     rightPanel: {
         flex: 1,
         ...glassStyle,
@@ -2049,23 +2155,23 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     },
 
     productGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.md,
+        gap: Spacing.sm,
         paddingBottom: 140,
     },
     productCard: {
-        width: isMobile ? (screenWidth - Spacing.md * 3) / 2 : (screenWidth * 0.6 - Spacing.md * 4) / 3,
+        width: isMobile ? '100%' : (screenWidth * 0.6 - Spacing.md * 4) / 3,
         ...glassStyle,
         padding: Spacing.md,
         borderRadius: BorderRadius.md,
         position: 'relative',
+        minHeight: isMobile ? 96 : undefined,
     },
     productName: {
         color: colors.text,
-        fontSize: FontSize.sm,
+        fontSize: isMobile ? FontSize.md : FontSize.sm,
         fontWeight: '700',
         marginBottom: 4,
+        paddingRight: isMobile ? 84 : 0,
     },
     productPrice: {
         color: colors.primary,
@@ -2086,6 +2192,22 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         fontSize: 10,
         fontWeight: '700',
     },
+    productInCartBadge: {
+        alignSelf: 'flex-start',
+        marginTop: 6,
+        marginBottom: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: BorderRadius.full,
+        backgroundColor: colors.success + '20',
+        borderWidth: 1,
+        borderColor: colors.success + '35',
+    },
+    productInCartBadgeText: {
+        color: colors.success,
+        fontSize: 11,
+        fontWeight: '800',
+    },
 
     searchContainer: {
         flexDirection: 'row',
@@ -2103,12 +2225,20 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         borderRadius: BorderRadius.md,
     },
     scanButton: {
-        width: 50,
+        minWidth: isMobile ? 92 : 50,
         height: 50,
         borderRadius: BorderRadius.md,
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
+        flexDirection: 'row',
+        gap: 6,
+        paddingHorizontal: isMobile ? 10 : 0,
+    },
+    scanButtonText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '800',
     },
     searchInput: {
         flex: 1,
@@ -2276,6 +2406,21 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         backgroundColor: colors.bgMid,
         borderWidth: StyleSheet.hairlineWidth * 2,
     },
+    removeLineBtn: {
+        marginLeft: 6,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.danger + '12',
+        borderWidth: 1,
+        borderColor: colors.danger + '30',
+    },
+    removeLineBtnDisabled: {
+        backgroundColor: colors.bgLight,
+        borderColor: colors.divider,
+    },
 
     checkoutSection: {
         marginTop: Spacing.md,
@@ -2359,12 +2504,17 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         marginBottom: Spacing.xs,
     },
     formInput: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.background,
         borderRadius: BorderRadius.md,
         padding: Spacing.md,
         color: colors.text,
         borderWidth: 1,
-        borderColor: colors.divider,
+        borderColor: colors.glassBorder,
+    },
+    customerFormInput: {
+        backgroundColor: '#FFFFFF',
+        color: '#111827',
+        borderColor: '#D1D5DB',
     },
     createBtn: {
         backgroundColor: colors.primary,

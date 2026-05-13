@@ -3758,7 +3758,7 @@ export default function ProductsScreen() {
                 data={selectedProducts}
                 keyExtractor={(item) => item.product_id}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: Spacing.lg }}
+                contentContainerStyle={{ paddingBottom: Spacing.sm }}
                 renderItem={({ item }) => (
                   <View style={[styles.bulkPriceRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
                     <Text style={styles.bulkPriceName}>{item.name}</Text>
@@ -3804,20 +3804,20 @@ export default function ProductsScreen() {
                     </View>
                   </View>
                 )}
-                ListFooterComponent={
-                  <TouchableOpacity
-                    style={[styles.submitBtn, bulkPriceSaving && styles.submitBtnDisabled]}
-                    onPress={handleBulkEditUpdate}
-                    disabled={bulkPriceSaving}
-                  >
-                    {bulkPriceSaving ? (
-                      <ActivityIndicator color={colors.text} />
-                    ) : (
-                      <Text style={styles.submitBtnText}>{t('products.bulk_price_save')}</Text>
-                    )}
-                  </TouchableOpacity>
-                }
               />
+              <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.md, borderTopWidth: 1, borderTopColor: colors.glassBorder }}>
+                <TouchableOpacity
+                  style={[styles.submitBtn, bulkPriceSaving && styles.submitBtnDisabled, { marginBottom: 0 }]}
+                  onPress={handleBulkEditUpdate}
+                  disabled={bulkPriceSaving}
+                >
+                  {bulkPriceSaving ? (
+                    <ActivityIndicator color={colors.text} />
+                  ) : (
+                    <Text style={styles.submitBtnText}>{t('products.bulk_price_save')}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </KeyboardAvoidingView>
           </View>
         </View>

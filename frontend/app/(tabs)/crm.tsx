@@ -796,7 +796,10 @@ export default function CRMScreen() {
     }).length;
     const customersWithDebt = customerList.filter((customer) => (customer.current_debt || 0) > 0).length;
 
-    const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(user?.plan || '') || user?.subscription_status === 'expired');
+    const effectivePlan = user?.effective_plan || user?.plan || '';
+    const accessPhase = user?.subscription_access_phase || 'active';
+    const canOpenDuringBillingFollowUp = ['active', 'grace', 'restricted', 'read_only'].includes(accessPhase);
+    const isLocked = !isSuperAdmin && user?.role !== 'supplier' && (!['starter', 'pro', 'enterprise'].includes(effectivePlan) || !canOpenDuringBillingFollowUp);
     const accountBalance = detailCustomer?.current_debt || 0;
     const accountHasDebt = accountBalance > 0;
     const accountHasCredit = accountBalance < 0;
