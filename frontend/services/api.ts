@@ -699,8 +699,7 @@ export const products = {
     request<{ message: string; total_quantity: number }>(`/products/${productId}/variants/${variantId}`, { method: 'DELETE' }),
   batchStockUpdate: (codes: string[], increment: number = 1) =>
     request<{ message: string; updated_count: number; not_found_count?: number; not_found?: string[] }>('/products/batch-stock-update', { method: 'POST', body: { codes, increment } }),
-  batchAssociateRFID: (associations: { sku: string; rfid: string }[]) =>
-    request<{ message: string; associated_count: number }>('/products/batch-associate-rfid', { method: 'POST', body: { associations } }),
+
   parseImport: (formData: FormData) =>
     request<any>('/products/import/parse', {
       method: 'POST',
@@ -2064,7 +2063,6 @@ export type Product = {
   max_stock: number;
   lead_time_days: number;
   image?: string | null;
-  rfid_tag?: string;
   expiry_date?: string;
   location_id?: string;
   product_type?: string;
@@ -2176,7 +2174,6 @@ export type ProductCreate = {
   max_stock?: number;
   lead_time_days?: number;
   image?: string | null;
-  rfid_tag?: string;
   location_id?: string;
   expiry_date?: string;
   variants?: ProductVariant[];

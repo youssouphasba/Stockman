@@ -730,12 +730,12 @@ export default function ProductsScreen() {
       .finally(() => setServerSearchLoading(false));
   }, [PRODUCTS_PAGE_SIZE, debouncedSearch, isConnected, isRestaurant, productSortMode, selectedCategory, serverProductStatus]);
 
-  // LayoutAnimation triggered on search / filter changes
+  // LayoutAnimation triggered on filter changes (NOT search, to preserve keyboard focus)
   useEffect(() => {
     if (!loading) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     }
-  }, [debouncedSearch, filterType, productSortMode, selectedCategory]);
+  }, [filterType, productSortMode, selectedCategory]);
 
   // History state
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -3637,7 +3637,7 @@ export default function ProductsScreen() {
         data={filtered}
         keyExtractor={(item) => item.product_id}
         renderItem={renderProductItem}
-        ListHeaderComponent={renderProductsHeader}
+        ListHeaderComponent={renderProductsHeader()}
         ListEmptyComponent={renderProductsEmptyState}
         ListFooterComponent={renderProductsFooter}
         initialNumToRender={10}
@@ -4327,7 +4327,7 @@ export default function ProductsScreen() {
                             borderColor: String(formUnit).toLowerCase() === String(u).toLowerCase() ? colors.primary : colors.glassBorder
                           }}
                         >
-                          <Text style={{ color: formUnit === u ? '#fff' : colors.text, fontSize: 13 }}>{t(`products.unit_${u.toLowerCase().replace('é', 'e')}`)}</Text>
+                          <Text style={{ color: formUnit === u ? '#fff' : colors.text, fontSize: 13 }}>{t(`products.unit_${u.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`)}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>

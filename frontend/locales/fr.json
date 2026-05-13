@@ -2661,8 +2661,7 @@
     "purchase_price_unit_label": "Prix d'achat unitaire",
     "purchase_price_unit_hint": "Modifiable si négocié hors plateforme",
     "field_quantity": "Quantité",
-    "field_rfid": "Tag RFID",
-    "field_rfid_placeholder": "Scanner ou saisir le tag RFID",
+
     "field_selling_price": "Prix de vente",
     "field_selling_price_optional": "Prix de vente (optionnel)",
     "field_sku": "SKU / Code",
@@ -2673,6 +2672,8 @@
     "product_type_standard": "Produit / Plat",
     "product_type_raw_material": "Ingrédient",
     "unit_piece": "Pièce",
+    "unit_pièce": "Pièce",
+    "unit_pièces": "Pièces",
     "unit_kg": "Kg",
     "unit_g": "g",
     "unit_l": "L",
@@ -2746,7 +2747,7 @@
       "value": "Valeur"
     },
     "price_update": "Mise à jour des prix",
-    "print_label_rfid": "Imprimer Étiquette RFID",
+
     "product_count": "{{count}} produit(s)",
     "products_total": "produits au total",
     "purchase": "Achat",
@@ -2757,10 +2758,7 @@
     "remove_photo": "Supprimer la photo",
     "remove_stock": "-Stock",
     "report_section_stock": "État du stock",
-    "rfid_hardware_info": "La lecture RFID nécessite un matériel compatible.",
-    "rfid_info_msg": "La lecture RFID nécessite un matériel compatible connecté. Vous pouvez saisir l'ID manuellement.",
-    "rfid_info_title": "RFID",
-    "rfid_reading_not_supported": "La lecture RFID nécessite un matériel compatible connecté. Vous pouvez saisir l'ID manuellement.",
+
     "search": "Rechercher un produit...",
     "search_placeholder": "Rechercher un produit...",
     "see_less": "Voir moins",
@@ -2780,6 +2778,8 @@
     "reverse_movement": "Annuler ce mouvement",
     "stock_value": "Valeur Stock",
     "suggest_price": "Suggérer un prix (IA)",
+    "bulk_edit_modal_title": "Édition en masse",
+    "bulk_edit_modal_subtitle": "Modification rapide de {{count}} produits sélectionnés",
     "title": "Produits",
     "total_quantity": "Quantité Totale",
     "total_revenue": "Revenu Total",

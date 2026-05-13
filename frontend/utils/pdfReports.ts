@@ -1,4 +1,4 @@
-﻿import * as Print from 'expo-print';
+import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { Sale, OrderFull, Store, Product } from '../services/api';
@@ -344,15 +344,7 @@ export async function generateProductLabelPdf(product: Product, storeName: strin
         .barcode-container { margin-bottom: 5px; }
         .barcode-svg { width: 150px; height: 40px; }
         .sku { font-size: 10px; font-family: monospace; }
-        .rfid { 
-          margin-top: 5px; 
-          font-size: 8px; 
-          color: #444; 
-          background: #f0f0f0; 
-          padding: 2px 4px; 
-          border-radius: 2px;
-          border: 1px dashed #ccc;
-        }
+
       </style>
     </head>
     <body>
@@ -365,9 +357,7 @@ export async function generateProductLabelPdf(product: Product, storeName: strin
         </div>
       ` : ''}
 
-      ${product.rfid_tag ? `
-        <div class="rfid">RFID: ${product.rfid_tag}</div>
-      ` : ''}
+
       
       <div style="font-size: 8px; margin-top: 4px; color: #999;">Stockman</div>
     </body>

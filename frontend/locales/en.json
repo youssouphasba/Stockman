@@ -2362,8 +2362,7 @@
     "purchase_price_unit_label": "Unit purchase price",
     "purchase_price_unit_hint": "Editable when renegotiated off-platform",
     "field_quantity": "Quantity",
-    "field_rfid": "RFID Tag",
-    "field_rfid_placeholder": "Scan or enter RFID tag",
+
     "field_selling_price": "Selling price",
     "field_selling_price_optional": "Selling price (optional)",
     "field_sku": "SKU / Code",
@@ -2447,7 +2446,7 @@
       "value": "Value"
     },
     "price_update": "Price update",
-    "print_label_rfid": "Print RFID Label",
+
     "product_count": "{{count}} product(s)",
     "products_total": "products in total",
     "purchase": "Purchase",
@@ -2458,10 +2457,7 @@
     "remove_photo": "Remove photo",
     "remove_stock": "-Stock",
     "report_section_stock": "Stock status",
-    "rfid_hardware_info": "RFID reading requires compatible hardware.",
-    "rfid_info_msg": "RFID reading requires connected compatible hardware. You can enter the ID manually.",
-    "rfid_info_title": "RFID",
-    "rfid_reading_not_supported": "RFID reading requires compatible connected hardware. you can enter the ID manually.",
+
     "search": "Search for a product...",
     "search_placeholder": "Search a product...",
     "see_less": "See less",
@@ -2481,6 +2477,8 @@
     "reverse_movement": "Reverse this movement",
     "stock_value": "Stock Value",
     "suggest_price": "Suggest price (AI)",
+    "bulk_edit_modal_title": "Bulk Edit",
+    "bulk_edit_modal_subtitle": "Quickly update {{count}} selected products",
     "title": "Products",
     "total_quantity": "Total Quantity",
     "total_revenue": "Total Revenue",
