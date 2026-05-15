@@ -157,7 +157,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setHasProduction(false);
     setIsRestaurant(false);
     setActiveAccountIdState(null);
-    await removeToken();
     return null;
   }, [hydrateAndPersistUser]);
 
@@ -191,7 +190,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await restoreSession();
     } catch {
-      await removeToken();
       setUser(null);
       setHasProduction(false);
       setIsRestaurant(false);

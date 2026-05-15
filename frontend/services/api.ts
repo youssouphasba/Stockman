@@ -74,7 +74,7 @@ const generateIdempotencyKey = () =>
 const IDEMPOTENT_MUTATION_PREFIXES = ['/sales', '/payments', '/stock/movement', '/stock/transfer', '/orders'];
 
 // Cached network state — updated by event listener, avoids async NetInfo.fetch() on every request
-let _cachedOnline = true;
+let _cachedOnline = false;
 NetInfo.addEventListener(state => {
   _cachedOnline = !!state.isConnected && !!state.isInternetReachable;
 });
@@ -216,7 +216,11 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       await cache.set(endpoint, data);
       return data;
     } catch (error) {
-      // Fallback to cache if server error
+      // Never fallback to cache for authentication errors
+      if (error instanceof ApiError && error.status === 401) {
+        throw error;
+      }
+      // Fallback to cache if server error or network error
       const cached = await cache.get<T>(endpoint);
       if (cached) return cached;
       throw error;
