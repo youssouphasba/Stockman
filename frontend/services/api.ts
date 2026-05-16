@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cache, KEYS } from './cache';
 import NetInfo from '@react-native-community/netinfo';
 import { SyncAction, syncService } from './sync';
@@ -66,9 +67,15 @@ function recordApiPerf(sample: ApiPerfSample) {
 
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const TOKEN_BACKUP_KEY = 'auth_token_backup_v1';
+const REFRESH_TOKEN_BACKUP_KEY = 'refresh_token_backup_v1';
 const TOKEN_STORE_OPTIONS = Platform.OS === 'ios'
   ? { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY }
   : undefined;
+
+function getTokenBackupKey(key: string): string {
+  return key === REFRESH_TOKEN_KEY ? REFRESH_TOKEN_BACKUP_KEY : TOKEN_BACKUP_KEY;
+}
 
 async function getSecureAuthItem(key: string): Promise<string | null> {
   const value = await SecureStore.getItemAsync(key, TOKEN_STORE_OPTIONS);
@@ -76,14 +83,28 @@ async function getSecureAuthItem(key: string): Promise<string | null> {
   const legacyValue = await SecureStore.getItemAsync(key);
   if (legacyValue) {
     await SecureStore.setItemAsync(key, legacyValue, TOKEN_STORE_OPTIONS);
+    await AsyncStorage.setItem(getTokenBackupKey(key), legacyValue);
+    return legacyValue;
   }
-  return legacyValue;
+  const backupValue = await AsyncStorage.getItem(getTokenBackupKey(key));
+  if (backupValue) {
+    await SecureStore.setItemAsync(key, backupValue, TOKEN_STORE_OPTIONS);
+  }
+  return backupValue;
+}
+
+async function setSecureAuthItem(key: string, value: string): Promise<void> {
+  await SecureStore.setItemAsync(key, value, TOKEN_STORE_OPTIONS);
+  if (TOKEN_STORE_OPTIONS) {
+    await AsyncStorage.setItem(getTokenBackupKey(key), value);
+  }
 }
 
 async function deleteSecureAuthItem(key: string): Promise<void> {
   await SecureStore.deleteItemAsync(key, TOKEN_STORE_OPTIONS).catch(() => { });
   if (TOKEN_STORE_OPTIONS) {
     await SecureStore.deleteItemAsync(key).catch(() => { });
+    await AsyncStorage.removeItem(getTokenBackupKey(key)).catch(() => { });
   }
 }
 
@@ -119,7 +140,7 @@ async function setToken(token: string): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.setItem(TOKEN_KEY, token);
   } else {
-    await SecureStore.setItemAsync(TOKEN_KEY, token, TOKEN_STORE_OPTIONS);
+    await setSecureAuthItem(TOKEN_KEY, token);
   }
 }
 
@@ -158,7 +179,7 @@ async function setRefreshToken(token: string): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.setItem(REFRESH_TOKEN_KEY, token);
   } else {
-    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token, TOKEN_STORE_OPTIONS);
+    await setSecureAuthItem(REFRESH_TOKEN_KEY, token);
   }
 }
 

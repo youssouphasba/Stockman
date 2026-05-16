@@ -157,6 +157,7 @@ export default function ProductsScreen() {
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<ProductStockFilter>('all');
   const [productSortMode, setProductSortMode] = useState<ProductSortMode>('stock_priority');
   const [deadstockIds, setDeadstockIds] = useState<Set<string>>(new Set());
@@ -1318,10 +1319,6 @@ export default function ProductsScreen() {
     () => filtered.filter((product) => selectedProductIds.has(product.product_id)),
     [filtered, selectedProductIds],
   );
-
-  const quickProducts = useMemo(() => {
-    return filtered.slice(0, 12);
-  }, [filtered]);
 
   const allVisibleProductsSelected = filtered.length > 0 && filtered.every((product) => selectedProductIds.has(product.product_id));
 
@@ -3118,24 +3115,6 @@ export default function ProductsScreen() {
             </ScrollView>
           </View>
         )}
-        {quickProducts.length > 0 && (
-          <View style={styles.quickProductsSection}>
-            <View style={styles.quickProductsHeader}>
-              <View>
-                <Text style={styles.quickProductsTitle}>{t('products.product_list_title', 'Liste des produits')}</Text>
-                <Text style={styles.quickProductsSubtitle}>
-                  {t('products.product_list_hint', 'État des stocks · Appuyer pour détails')}
-                </Text>
-              </View>
-              <View style={styles.quickProductsCount}>
-                <Text style={styles.quickProductsCountText}>{quickProducts.length}</Text>
-              </View>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickProductsScrollContent}>
-              {quickProducts.map(renderQuickProductCard)}
-            </ScrollView>
-          </View>
-        )}
         {!isRestaurant && (
           <View style={styles.sectionToggleCard}>
             <TouchableOpacity
@@ -3395,11 +3374,71 @@ export default function ProductsScreen() {
 
   function renderProductItem({ item: product }: { item: Product }) {
     const margin = product.selling_price - product.purchase_price;
+    const isExpanded = expandedProductId === product.product_id;
+    const stockColor = isRestaurant ? colors.primary : getStatusColor(product);
+
+    if (!isInventoryMode && !isExpanded) {
+      return (
+        <TouchableOpacity
+          style={[
+            styles.productSimpleCard,
+            isSelectionMode && selectedProductIds.has(product.product_id) && { borderColor: colors.primary, borderWidth: 1 },
+          ]}
+          onPress={() => {
+            if (isSelectionMode) {
+              toggleSelection(product.product_id);
+              return;
+            }
+            setSelectedProduct(product);
+            setExpandedProductId(product.product_id);
+          }}
+          activeOpacity={0.85}
+        >
+          {isSelectionMode && (
+            <View style={styles.selectionIndicator}>
+              <Ionicons
+                name={selectedProductIds.has(product.product_id) ? "checkbox" : "square-outline"}
+                size={24}
+                color={selectedProductIds.has(product.product_id) ? colors.primary : colors.textMuted}
+              />
+            </View>
+          )}
+          <View style={styles.productSimpleImageBox}>
+            {product.image ? (
+              <Image source={{ uri: uploads.getFullUrl(product.image) || product.image }} style={styles.productSimpleImage} />
+            ) : (
+              <Ionicons name={isRestaurant ? 'restaurant-outline' : 'cube-outline'} size={24} color={colors.textMuted} />
+            )}
+          </View>
+          <View style={styles.productSimpleInfo}>
+            <Text style={styles.productSimpleName} numberOfLines={2}>{product.name}</Text>
+            <Text style={styles.productSimpleHint} numberOfLines={1}>
+              {t('products.tap_for_details', 'Appuyer pour détails')}
+            </Text>
+            {!isRestaurant && (
+              <Text style={[styles.productSimpleState, { color: stockColor }]} numberOfLines={1}>
+                {getStatusLabel(product)}
+              </Text>
+            )}
+          </View>
+          <View style={styles.productSimpleMeta}>
+            <Text style={styles.productSimplePrice} numberOfLines={1}>{formatUserCurrency(product.selling_price, user)}</Text>
+            {!isRestaurant && (
+              <View style={[styles.productSimpleStockBadge, { backgroundColor: stockColor + '18' }]}>
+                <Text style={[styles.productSimpleStockText, { color: stockColor }]} numberOfLines={1}>
+                  {formatMeasurementQuantity(product.quantity, product.display_unit || product.unit)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      );
+    }
 
     return (
       <TouchableOpacity
         style={[styles.productCard, isSelectionMode && selectedProductIds.has(product.product_id) && { borderColor: colors.primary, borderWidth: 1 }]}
-        onPress={() => isSelectionMode ? toggleSelection(product.product_id) : null}
+        onPress={() => isSelectionMode ? toggleSelection(product.product_id) : setExpandedProductId(product.product_id)}
         activeOpacity={isSelectionMode ? 0.7 : 1}
       >
         {isSelectionMode && (
@@ -5549,6 +5588,70 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     ...glassStyle,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
+  },
+  productSimpleCard: {
+    ...glassStyle,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  productSimpleImageBox: {
+    width: 54,
+    height: 54,
+    borderRadius: BorderRadius.md,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  productSimpleImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  productSimpleInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  productSimpleName: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  productSimpleHint: {
+    color: colors.textMuted,
+    fontSize: 10,
+    marginTop: 3,
+  },
+  productSimpleState: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 5,
+  },
+  productSimpleMeta: {
+    alignItems: 'flex-end',
+    gap: 6,
+    maxWidth: 110,
+  },
+  productSimplePrice: {
+    color: colors.text,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+  },
+  productSimpleStockBadge: {
+    maxWidth: 82,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+  },
+  productSimpleStockText: {
+    fontSize: 10,
+    fontWeight: '800',
   },
   productHeader: {
     flexDirection: 'row',

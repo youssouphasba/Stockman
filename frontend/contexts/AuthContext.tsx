@@ -188,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      await restoreSession();
+      await restoreSession(true);
     } catch {
       setUser(null);
       setHasProduction(false);

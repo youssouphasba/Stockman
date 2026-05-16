@@ -202,7 +202,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "cash-outline",
                 title: "Encaissement",
-                description: "5 modes de paiement : Espèces (avec calculateur de monnaie), Mobile Money, Carte, Virement et Crédit (dette client)."
+                description: "Enregistrez la méthode utilisée par le client : espèces, mobile money, carte, virement ou crédit client. Cette information sert au suivi des ventes, de la caisse et de la comptabilité."
             },
             {
                 icon: "calculator-outline",
@@ -576,8 +576,8 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             },
             {
                 icon: "phone-portrait-outline",
-                title: "Choisir le bon mode de paiement",
-                description: "L'ecran affiche uniquement les moyens reellement disponibles pour votre appareil et votre formule. Sur mobile, passez par la boutique de paiement affichee a l'ecran pour Starter et Pro. Le passage a Enterprise se gere sur le web et garde le meme compte. En test Google Play, utilisez un compte testeur autorise et verifiez que le produit est actif."
+                title: "Enregistrer la méthode de paiement",
+                description: "Le mode de paiement sert uniquement à noter comment le client a réglé la vente. Il n'ouvre pas de lien de paiement et ne déclenche aucun encaissement externe."
             },
               {
                   icon: "refresh-outline",
