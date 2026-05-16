@@ -4629,7 +4629,13 @@ export default function ProductsScreen() {
                       {formVariants.length > 0 && (
                         <View style={{ marginTop: 8, padding: 8, backgroundColor: colors.primary + '10', borderRadius: 6 }}>
                           <Text style={{ color: colors.textMuted, fontSize: 11 }}>
-                            {t('products.total_stock_variants_label', { count: formVariants.reduce((s, v) => s + v.quantity, 0), unit: t(formUnit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: formVariants.reduce((s, v) => s + v.quantity, 0) }) })}
+                            {(() => {
+                              const totalVariantQuantity = formVariants.reduce((sum, variant) => sum + variant.quantity, 0);
+                              return t('products.total_stock_variants_label', {
+                                count: totalVariantQuantity,
+                                unit: t(isPieceUnitValue(formUnit) ? 'products.unit_piece' : 'products.unit_units', { count: totalVariantQuantity }),
+                              });
+                            })()}
                           </Text>
                         </View>
                       )}
