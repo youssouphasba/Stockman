@@ -3122,9 +3122,9 @@ export default function ProductsScreen() {
           <View style={styles.quickProductsSection}>
             <View style={styles.quickProductsHeader}>
               <View>
-                <Text style={styles.quickProductsTitle}>{t('products.quick_products_title', 'Accès rapide')}</Text>
+                <Text style={styles.quickProductsTitle}>{t('products.product_list_title', 'Liste des produits')}</Text>
                 <Text style={styles.quickProductsSubtitle}>
-                  {t('products.quick_products_subtitle', 'Touchez un produit pour ouvrir sa fiche.')}
+                  {t('products.product_list_hint', 'État des stocks · Appuyer pour détails')}
                 </Text>
               </View>
               <View style={styles.quickProductsCount}>
@@ -3371,6 +3371,14 @@ export default function ProductsScreen() {
           )}
         </View>
         <Text style={styles.quickProductName} numberOfLines={2}>{product.name}</Text>
+        {!isRestaurant && (
+          <Text style={[styles.quickProductStateText, { color: stockColor }]} numberOfLines={1}>
+            {getStatusLabel(product)}
+          </Text>
+        )}
+        <Text style={styles.quickProductHintText} numberOfLines={1}>
+          {t('products.tap_for_details', 'Appuyer pour détails')}
+        </Text>
         <View style={styles.quickProductMetaRow}>
           <Text style={styles.quickProductPrice} numberOfLines={1}>{formatUserCurrency(product.selling_price, user)}</Text>
           {!isRestaurant && (
@@ -5367,6 +5375,16 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontWeight: '800',
     lineHeight: 18,
     minHeight: 36,
+  },
+  quickProductStateText: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  quickProductHintText: {
+    color: colors.textMuted,
+    fontSize: 10,
+    marginTop: 2,
   },
   quickProductMetaRow: {
     flexDirection: 'row',
