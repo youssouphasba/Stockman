@@ -163,12 +163,12 @@ export default function CRMScreen() {
         selectedIds: [] as string[],
     });
 
-    // Payment modal
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentNotes, setPaymentNotes] = useState('');
     const [paymentLoading, setPaymentLoading] = useState(false);
-    const [paymentType, setPaymentType] = useState<'payment' | 'debt'>('payment'); // NEW
+    const [paymentType, setPaymentType] = useState<'payment' | 'debt'>('payment');
+    const [shouldReturnToDetailAfterPayment, setShouldReturnToDetailAfterPayment] = useState(false);
     const paymentBaselineRef = useRef({ amount: '', notes: '', type: 'payment' as 'payment' | 'debt' });
 
     const loadData = useCallback(async () => {
@@ -409,12 +409,20 @@ export default function CRMScreen() {
         confirmDiscardChanges(() => setShowCampaignModal(false));
     };
 
+    const closePaymentModal = (returnToDetail = true) => {
+        setShowPaymentModal(false);
+        if (returnToDetail && shouldReturnToDetailAfterPayment) {
+            setTimeout(() => setShowDetailModal(true), 280);
+        }
+        setShouldReturnToDetailAfterPayment(false);
+    };
+
     const requestClosePaymentModal = () => {
         if (!hasPaymentChanges()) {
-            setShowPaymentModal(false);
+            closePaymentModal(true);
             return;
         }
-        confirmDiscardChanges(() => setShowPaymentModal(false));
+        confirmDiscardChanges(() => closePaymentModal(true));
     };
 
     // --- Customer CRUD ---
@@ -674,13 +682,19 @@ export default function CRMScreen() {
         Alert.alert(t('crm.campaign_sent'), t('crm.campaign_sent_desc', { count: targets.length }));
     }
 
-    // --- Payment ---
     function openPaymentModal() {
         const baseline = { amount: '', notes: '', type: 'payment' as 'payment' | 'debt' };
         paymentBaselineRef.current = baseline;
         setPaymentAmount(baseline.amount);
         setPaymentNotes(baseline.notes);
         setPaymentType(baseline.type);
+        if (Platform.OS !== 'web' && showDetailModal) {
+            setShouldReturnToDetailAfterPayment(true);
+            setShowDetailModal(false);
+            setTimeout(() => setShowPaymentModal(true), 280);
+            return;
+        }
+        setShouldReturnToDetailAfterPayment(false);
         setShowPaymentModal(true);
     }
 
@@ -695,15 +709,12 @@ export default function CRMScreen() {
         const performSave = async () => {
             setPaymentLoading(true);
             try {
-                // If Type is DEBT, send negative amount to INCREASE debt
-                // Backend: $inc: { current_debt: -amount } -> -(-amount) = +amount
                 const finalAmount = paymentType === 'payment' ? amount : -amount;
 
                 const response = await customersApi.addPayment(detailCustomer.customer_id, finalAmount, paymentNotes || (paymentType === 'payment' ? t('crm.manual_payment') : t('crm.manual_debt')));
 
                 Alert.alert(t('common.success'), t('crm.success_operation_recorded'));
                 paymentBaselineRef.current = { amount: paymentAmount, notes: paymentNotes, type: paymentType };
-                setShowPaymentModal(false);
                 if ((response as any)?.offline_pending) {
                     const merged = await mergeCustomersOfflineState([detailCustomer]);
                     const updated = merged.customers.find((customer: any) => customer.customer_id === detailCustomer.customer_id) || detailCustomer;
@@ -712,6 +723,7 @@ export default function CRMScreen() {
                     if (detailTab === 'compte') {
                         await loadCustomerDebtHistory(detailCustomer.customer_id);
                     }
+                    closePaymentModal(true);
                     return;
                 }
                 const updated = await customersApi.get(detailCustomer.customer_id);
@@ -720,6 +732,7 @@ export default function CRMScreen() {
                 if (detailTab === 'compte') {
                     await loadCustomerDebtHistory(detailCustomer.customer_id);
                 }
+                closePaymentModal(true);
             } catch {
                 Alert.alert(t('common.error'), t('crm.error_record_failed'));
             } finally {

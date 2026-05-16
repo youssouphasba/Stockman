@@ -66,6 +66,26 @@ function recordApiPerf(sample: ApiPerfSample) {
 
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const TOKEN_STORE_OPTIONS = Platform.OS === 'ios'
+  ? { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY }
+  : undefined;
+
+async function getSecureAuthItem(key: string): Promise<string | null> {
+  const value = await SecureStore.getItemAsync(key, TOKEN_STORE_OPTIONS);
+  if (value || !TOKEN_STORE_OPTIONS) return value;
+  const legacyValue = await SecureStore.getItemAsync(key);
+  if (legacyValue) {
+    await SecureStore.setItemAsync(key, legacyValue, TOKEN_STORE_OPTIONS);
+  }
+  return legacyValue;
+}
+
+async function deleteSecureAuthItem(key: string): Promise<void> {
+  await SecureStore.deleteItemAsync(key, TOKEN_STORE_OPTIONS).catch(() => { });
+  if (TOKEN_STORE_OPTIONS) {
+    await SecureStore.deleteItemAsync(key).catch(() => { });
+  }
+}
 
 // Idempotency key generator for critical mutations (sales, payments)
 const generateIdempotencyKey = () =>
@@ -92,14 +112,14 @@ async function getToken(): Promise<string | null> {
   if (Platform.OS === 'web') {
     return localStorage.getItem(TOKEN_KEY);
   }
-  return await SecureStore.getItemAsync(TOKEN_KEY);
+  return await getSecureAuthItem(TOKEN_KEY);
 }
 
 async function setToken(token: string): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.setItem(TOKEN_KEY, token);
   } else {
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await SecureStore.setItemAsync(TOKEN_KEY, token, TOKEN_STORE_OPTIONS);
   }
 }
 
@@ -108,8 +128,8 @@ async function removeToken(): Promise<void> {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
   } else {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY).catch(() => { });
+    await deleteSecureAuthItem(TOKEN_KEY);
+    await deleteSecureAuthItem(REFRESH_TOKEN_KEY);
   }
 }
 
@@ -117,7 +137,7 @@ async function removeAccessToken(): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.removeItem(TOKEN_KEY);
   } else {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await deleteSecureAuthItem(TOKEN_KEY);
   }
 }
 
@@ -125,20 +145,20 @@ async function removeRefreshToken(): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
   } else {
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    await deleteSecureAuthItem(REFRESH_TOKEN_KEY);
   }
 }
 
 async function getRefreshToken(): Promise<string | null> {
   if (Platform.OS === 'web') return localStorage.getItem(REFRESH_TOKEN_KEY);
-  return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  return await getSecureAuthItem(REFRESH_TOKEN_KEY);
 }
 
 async function setRefreshToken(token: string): Promise<void> {
   if (Platform.OS === 'web') {
     localStorage.setItem(REFRESH_TOKEN_KEY, token);
   } else {
-    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token, TOKEN_STORE_OPTIONS);
   }
 }
 

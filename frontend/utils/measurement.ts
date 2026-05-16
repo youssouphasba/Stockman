@@ -16,6 +16,8 @@ const UNIT_ALIASES: Record<string, string> = {
   piecee: 'piece',
   'pièce': 'piece',
   'pièces': 'piece',
+  ['pi\u00c3\u00a8ce']: 'piece',
+  ['pi\u00c3\u00a8ces']: 'piece',
   unite: 'piece',
   unit: 'piece',
   units: 'piece',
@@ -29,7 +31,7 @@ const UNIT_ALIASES: Record<string, string> = {
 };
 
 const UNIT_DISPLAY: Record<string, string> = {
-  piece: 'Piece',
+  piece: 'Pièce',
   kg: 'kg',
   g: 'g',
   l: 'L',

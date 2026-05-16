@@ -1319,6 +1319,10 @@ export default function ProductsScreen() {
     [filtered, selectedProductIds],
   );
 
+  const quickProducts = useMemo(() => {
+    return filtered.slice(0, 12);
+  }, [filtered]);
+
   const allVisibleProductsSelected = filtered.length > 0 && filtered.every((product) => selectedProductIds.has(product.product_id));
 
   const loadAllVisibleProducts = useCallback(async () => {
@@ -1452,11 +1456,11 @@ export default function ProductsScreen() {
   }
 
   function toUnitChipValue(unit?: string) {
-    const normalized = String(unit || '').trim().toLowerCase();
+    const normalized = normalizeProductMeasurement({ unit }).unit;
     if (normalized === 'kg') return 'Kg';
     if (normalized === 'ml') return 'mL';
     if (normalized === 'cl') return 'cL';
-    if (normalized === 'piece' || normalized === 'pièce') return t('products.default_unit');
+    if (normalized === 'piece') return t('products.default_unit');
     if (normalized === 'l') return 'L';
     return unit || t('products.default_unit');
   }
@@ -3114,6 +3118,24 @@ export default function ProductsScreen() {
             </ScrollView>
           </View>
         )}
+        {quickProducts.length > 0 && (
+          <View style={styles.quickProductsSection}>
+            <View style={styles.quickProductsHeader}>
+              <View>
+                <Text style={styles.quickProductsTitle}>{t('products.quick_products_title', 'Accès rapide')}</Text>
+                <Text style={styles.quickProductsSubtitle}>
+                  {t('products.quick_products_subtitle', 'Touchez un produit pour ouvrir sa fiche.')}
+                </Text>
+              </View>
+              <View style={styles.quickProductsCount}>
+                <Text style={styles.quickProductsCountText}>{quickProducts.length}</Text>
+              </View>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickProductsScrollContent}>
+              {quickProducts.map(renderQuickProductCard)}
+            </ScrollView>
+          </View>
+        )}
         {!isRestaurant && (
           <View style={styles.sectionToggleCard}>
             <TouchableOpacity
@@ -3327,6 +3349,42 @@ export default function ProductsScreen() {
     );
   }
 
+  function renderQuickProductCard(product: Product) {
+    const stockColor = product.quantity <= 0
+      ? colors.danger
+      : product.min_stock > 0 && product.quantity <= product.min_stock
+        ? colors.warning
+        : colors.success;
+
+    return (
+      <TouchableOpacity
+        key={product.product_id}
+        style={styles.quickProductCard}
+        onPress={() => openEditModal(product)}
+        activeOpacity={0.85}
+      >
+        <View style={styles.quickProductImageBox}>
+          {product.image ? (
+            <Image source={{ uri: uploads.getFullUrl(product.image) || product.image }} style={styles.quickProductImage} />
+          ) : (
+            <Ionicons name={isRestaurant ? 'restaurant-outline' : 'cube-outline'} size={24} color={colors.textMuted} />
+          )}
+        </View>
+        <Text style={styles.quickProductName} numberOfLines={2}>{product.name}</Text>
+        <View style={styles.quickProductMetaRow}>
+          <Text style={styles.quickProductPrice} numberOfLines={1}>{formatUserCurrency(product.selling_price, user)}</Text>
+          {!isRestaurant && (
+            <View style={[styles.quickProductStockBadge, { backgroundColor: stockColor + '18' }]}>
+              <Text style={[styles.quickProductStockText, { color: stockColor }]} numberOfLines={1}>
+                {formatMeasurementQuantity(product.quantity, product.display_unit || product.unit)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   function renderProductItem({ item: product }: { item: Product }) {
     const margin = product.selling_price - product.purchase_price;
 
@@ -3465,7 +3523,7 @@ export default function ProductsScreen() {
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>{t('products.stock_label')}</Text>
                   <Text style={styles.detailValue}>
-                    {product.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: product.quantity })}
+                    {formatMeasurementQuantity(product.quantity, product.display_unit || product.unit)}
                   </Text>
                 </View>
                 <View style={styles.detailItem}>
@@ -3542,7 +3600,7 @@ export default function ProductsScreen() {
                 {product.variants.map(v => (
                   <View key={v.variant_id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
                     <Text style={{ color: colors.text, fontSize: 12 }}>{v.name}</Text>
-                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{v.quantity} {t(product.unit === 'Pièce' ? 'products.unit_piece' : 'products.unit_units', { count: v.quantity })}{v.selling_price != null ? ` · ${formatUserCurrency(v.selling_price, user)}` : ''}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{formatMeasurementQuantity(v.quantity, product.display_unit || product.unit)}{v.selling_price != null ? ` · ${formatUserCurrency(v.selling_price, user)}` : ''}</Text>
                   </View>
                 ))}
               </View>
@@ -5238,6 +5296,100 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.textSecondary,
     fontSize: FontSize.xs,
     lineHeight: 17,
+  },
+  quickProductsSection: {
+    ...glassStyle,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  quickProductsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  quickProductsTitle: {
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '800',
+  },
+  quickProductsSubtitle: {
+    color: colors.textMuted,
+    fontSize: FontSize.xs,
+    marginTop: 2,
+  },
+  quickProductsCount: {
+    minWidth: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    backgroundColor: colors.primary + '18',
+    borderWidth: 1,
+    borderColor: colors.primary + '35',
+  },
+  quickProductsCountText: {
+    color: colors.primaryLight,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+  },
+  quickProductsScrollContent: {
+    gap: Spacing.sm,
+    paddingRight: Spacing.md,
+  },
+  quickProductCard: {
+    width: 138,
+    minHeight: 170,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.sm,
+    backgroundColor: colors.card || colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  quickProductImageBox: {
+    height: 74,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgLight,
+    marginBottom: Spacing.sm,
+    overflow: 'hidden',
+  },
+  quickProductImage: {
+    width: '100%',
+    height: '100%',
+  },
+  quickProductName: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '800',
+    lineHeight: 18,
+    minHeight: 36,
+  },
+  quickProductMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginTop: Spacing.sm,
+  },
+  quickProductPrice: {
+    flex: 1,
+    color: colors.primaryLight,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+  },
+  quickProductStockBadge: {
+    maxWidth: 54,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sm,
+  },
+  quickProductStockText: {
+    fontSize: 10,
+    fontWeight: '800',
   },
   sectionToggleCard: {
     ...glassStyle,
