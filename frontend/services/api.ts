@@ -442,7 +442,7 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
           }
         }
 
-        await removeToken();
+        await removeAccessToken();
         throw new AuthError('Session expirée');
       }
     }
