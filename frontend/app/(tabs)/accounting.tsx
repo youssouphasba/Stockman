@@ -119,6 +119,26 @@ function buildMonthlyGroups<T>(
     const shortFormatter = new Intl.DateTimeFormat(locale || 'fr-FR', { month: 'short' });
     const groups = new Map<string, MonthlyGroup<T>>();
 
+    const makeGroup = (year: number, month: number): MonthlyGroup<T> => {
+        const key = `${year}-${String(month).padStart(2, '0')}`;
+        const monthDate = new Date(year, month - 1, 1);
+        const baseLabel = formatter.format(monthDate);
+        const label = baseLabel.charAt(0).toUpperCase() + baseLabel.slice(1);
+        const baseShortLabel = shortFormatter.format(monthDate).replace('.', '');
+        const shortLabel = baseShortLabel.charAt(0).toUpperCase() + baseShortLabel.slice(1);
+        return {
+            key,
+            label,
+            shortLabel,
+            total: 0,
+            itemCount: 0,
+            year,
+            month,
+            items: [],
+        };
+    };
+    const years = new Set<number>([new Date().getFullYear()]);
+
     items.forEach((item) => {
         const rawDate = getDate(item);
         if (!rawDate) return;
@@ -129,11 +149,8 @@ function buildMonthlyGroups<T>(
         const year = parsedDate.getFullYear();
         const month = parsedDate.getMonth() + 1;
         const key = `${year}-${String(month).padStart(2, '0')}`;
-        const baseLabel = formatter.format(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1));
-        const label = baseLabel.charAt(0).toUpperCase() + baseLabel.slice(1);
-        const baseShortLabel = shortFormatter.format(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1)).replace('.', '');
-        const shortLabel = baseShortLabel.charAt(0).toUpperCase() + baseShortLabel.slice(1);
         const amount = getAmount(item) || 0;
+        years.add(year);
         const current = groups.get(key);
 
         if (current) {
@@ -143,16 +160,20 @@ function buildMonthlyGroups<T>(
             return;
         }
 
-        groups.set(key, {
-            key,
-            label,
-            shortLabel,
-            total: amount,
-            itemCount: 1,
-            year,
-            month,
-            items: [item],
-        });
+        const nextGroup = makeGroup(year, month);
+        nextGroup.total = amount;
+        nextGroup.itemCount = 1;
+        nextGroup.items = [item];
+        groups.set(key, nextGroup);
+    });
+
+    const now = new Date();
+    Array.from(years).forEach((year) => {
+        const maxMonth = year === now.getFullYear() ? now.getMonth() + 1 : 12;
+        for (let month = 1; month <= maxMonth; month += 1) {
+            const key = `${year}-${String(month).padStart(2, '0')}`;
+            if (!groups.has(key)) groups.set(key, makeGroup(year, month));
+        }
     });
 
     return Array.from(groups.values()).sort((a, b) => b.key.localeCompare(a.key));
@@ -254,11 +275,14 @@ export default function AccountingScreen() {
     const loadData = useCallback(async (period: number | 'custom', start?: string, end?: string) => {
         try {
             const days = period === 'custom' ? undefined : period;
+            const currentYear = new Date().getFullYear();
+            const monthlyStartDate = `${currentYear}-01-01`;
+            const monthlyEndDate = new Date().toISOString().slice(0, 10);
             const [statsRes, salesRes, invoicesRes, expensesRes, storesRes, userSettingsRes] = await Promise.all([
                 accountingApi.getStats(days, start, end),
-                accountingApi.getSalesHistory(days, start, end, 0, 100),
+                accountingApi.getSalesHistory(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
                 accountingApi.getInvoices(days, start, end, 0, 100),
-                expensesApi.list(days, start, end, 0, 500),
+                expensesApi.list(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
                 storesApi.list(),
                 settingsApi.get().catch(() => null),
             ]);
@@ -1465,7 +1489,7 @@ export default function AccountingScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            {expensesList.length === 0 ? (
+                            {expensesList.length === 0 && expenseReviewMode === 'all' ? (
                                 <View style={styles.emptyState}>
                                     <Text style={styles.emptyStateText}>{t('accounting.no_expenses')}</Text>
                                 </View>
@@ -1563,6 +1587,9 @@ export default function AccountingScreen() {
                                                                         </Text>
                                                                     </View>
                                                                 ))}
+                                                                {visibleItems.length === 0 && (
+                                                                    <Text style={styles.emptyText}>{t('accounting.no_expenses_for_month', { defaultValue: 'Aucune dépense ce mois-ci.' })}</Text>
+                                                                )}
                                                             </View>
 
                                                             {group.itemCount > 3 && (
@@ -1825,7 +1852,7 @@ export default function AccountingScreen() {
                         {/* Recent Sales */}
                         <View style={styles.section} onLayout={e => { sectionOffsets.current.recentSales = e.nativeEvent.layout.y; }}>
                             <Text style={styles.sectionTitle}>{t('accounting.recent_sales')}</Text>
-                            {recentSales.length === 0 ? (
+                            {recentSales.length === 0 && salesReviewMode === 'all' ? (
                                 <View style={styles.emptyState}>
                                     <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
                                     <Text style={styles.emptyText}>{t('accounting.no_sales')}</Text>
@@ -2000,6 +2027,9 @@ export default function AccountingScreen() {
                                                                         </Text>
                                                                     </View>
                                                                 ))}
+                                                                {visibleItems.length === 0 && (
+                                                                    <Text style={styles.emptyText}>{t('accounting.no_sales_for_month', { defaultValue: 'Aucune vente ce mois-ci.' })}</Text>
+                                                                )}
                                                             </View>
 
                                                             {group.itemCount > 3 && (

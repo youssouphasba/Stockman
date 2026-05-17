@@ -61,6 +61,13 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
+function shouldInitPurchases(userData: User): boolean {
+  const plan = userData.effective_plan || userData.subscription_plan || userData.plan;
+  if (plan === 'enterprise') return false;
+  if (userData.role === 'supplier' || userData.role === 'super_admin') return false;
+  return true;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
@@ -82,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.warn('Failed to load user features:', e);
     }
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== 'web' && shouldInitPurchases(userData)) {
       initPurchases(userData.user_id).catch(console.warn);
     }
   }, []);

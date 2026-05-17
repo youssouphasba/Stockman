@@ -168,6 +168,25 @@ function buildMonthlyGroups<T>(
     const formatter = new Intl.DateTimeFormat(locale || 'fr-FR', { month: 'long', year: 'numeric' });
     const shortFormatter = new Intl.DateTimeFormat(locale || 'fr-FR', { month: 'short' });
     const groups = new Map<string, MonthlyGroup<T>>();
+    const makeGroup = (year: number, month: number): MonthlyGroup<T> => {
+        const key = `${year}-${String(month).padStart(2, '0')}`;
+        const monthDate = new Date(year, month - 1, 1);
+        const baseLabel = formatter.format(monthDate);
+        const label = baseLabel.charAt(0).toUpperCase() + baseLabel.slice(1);
+        const baseShortLabel = shortFormatter.format(monthDate).replace('.', '');
+        const shortLabel = baseShortLabel.charAt(0).toUpperCase() + baseShortLabel.slice(1);
+        return {
+            key,
+            label,
+            shortLabel,
+            total: 0,
+            itemCount: 0,
+            year,
+            month,
+            items: [],
+        };
+    };
+    const years = new Set<number>([new Date().getFullYear()]);
 
     items.forEach((item) => {
         const rawDate = getDate(item);
@@ -179,11 +198,8 @@ function buildMonthlyGroups<T>(
         const year = parsedDate.getFullYear();
         const month = parsedDate.getMonth() + 1;
         const key = `${year}-${String(month).padStart(2, '0')}`;
-        const baseLabel = formatter.format(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1));
-        const label = baseLabel.charAt(0).toUpperCase() + baseLabel.slice(1);
-        const baseShortLabel = shortFormatter.format(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1)).replace('.', '');
-        const shortLabel = baseShortLabel.charAt(0).toUpperCase() + baseShortLabel.slice(1);
         const amount = getAmount(item) || 0;
+        years.add(year);
         const current = groups.get(key);
 
         if (current) {
@@ -193,16 +209,20 @@ function buildMonthlyGroups<T>(
             return;
         }
 
-        groups.set(key, {
-            key,
-            label,
-            shortLabel,
-            total: amount,
-            itemCount: 1,
-            year,
-            month,
-            items: [item],
-        });
+        const nextGroup = makeGroup(year, month);
+        nextGroup.total = amount;
+        nextGroup.itemCount = 1;
+        nextGroup.items = [item];
+        groups.set(key, nextGroup);
+    });
+
+    const now = new Date();
+    Array.from(years).forEach((year) => {
+        const maxMonth = year === now.getFullYear() ? now.getMonth() + 1 : 12;
+        for (let month = 1; month <= maxMonth; month += 1) {
+            const key = `${year}-${String(month).padStart(2, '0')}`;
+            if (!groups.has(key)) groups.set(key, makeGroup(year, month));
+        }
     });
 
     return Array.from(groups.values()).sort((a, b) => b.key.localeCompare(a.key));
@@ -366,16 +386,15 @@ export default function Accounting() {
         try {
             const currentRange = getCurrentAccountingRange(period, sd, ed);
             const previousRange = getPreviousAccountingRange(period, sd, ed);
+            const currentYear = new Date().getFullYear();
+            const monthlyStartDate = `${currentYear}-01-01`;
+            const monthlyEndDate = new Date().toISOString().slice(0, 10);
             const [statsRes, expensesRes, salesHistoryRes, invoicesRes, comparisonRes, consolidatedRes] = await Promise.allSettled([
                 sd || ed
                     ? accountingApi.getStats(undefined, sd, ed)
                     : accountingApi.getStats(period),
-                sd || ed
-                    ? expensesApi.list(undefined, sd, ed)
-                    : expensesApi.list(period),
-                sd || ed
-                    ? accountingApi.getSalesHistory(undefined, sd, ed, 0, 30)
-                    : accountingApi.getSalesHistory(period, undefined, undefined, 0, 30),
+                expensesApi.list(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
+                accountingApi.getSalesHistory(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
                 sd || ed
                     ? accountingApi.getInvoices(undefined, sd, ed, 0, 30)
                     : accountingApi.getInvoices(period, undefined, undefined, 0, 30),
@@ -1806,6 +1825,9 @@ export default function Accounting() {
                                                             <span className="shrink-0 text-sm font-black text-rose-400">-{formatCurrency(exp.amount)}</span>
                                                         </div>
                                                     ))}
+                                                    {visibleItems.length === 0 && (
+                                                        <div className="rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3 text-sm font-medium text-slate-500">Aucune dépense ce mois-ci.</div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -1950,6 +1972,9 @@ export default function Accounting() {
                                                             <span className="shrink-0 text-sm font-black text-emerald-400">{formatCurrency(sale.total_amount)}</span>
                                                         </div>
                                                     ))}
+                                                    {visibleItems.length === 0 && (
+                                                        <div className="rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3 text-sm font-medium text-slate-500">Aucune vente ce mois-ci.</div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -2249,6 +2274,9 @@ export default function Accounting() {
                                                                 <span className="shrink-0 text-sm font-black text-emerald-400">{formatCurrency(sale.total_amount)}</span>
                                                             </div>
                                                         ))}
+                                                        {visibleItems.length === 0 && (
+                                                            <div className="rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3 text-sm font-medium text-slate-500">Aucune vente ce mois-ci.</div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );

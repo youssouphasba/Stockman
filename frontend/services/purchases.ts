@@ -83,7 +83,11 @@ export async function initPurchases(userId: string): Promise<void> {
     try {
         const purchasesModule = require('react-native-purchases');
         PurchasesSDK = purchasesModule.default ?? purchasesModule;
-        PurchasesSDK.configure({ apiKey, appUserID: userId });
+        PurchasesSDK.configure({
+            apiKey,
+            appUserID: userId,
+            shouldShowInAppMessagesAutomatically: false,
+        });
         isInitialized = true;
         console.log('RevenueCat initialized for user', userId);
     } catch (e) {
