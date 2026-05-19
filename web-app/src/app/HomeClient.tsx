@@ -1036,7 +1036,7 @@ export default function Home() {
                 {activeTab === 'admin' && <AdminDashboard />}
                 {activeTab === 'supplier_portal' && <SupplierPortal />}
                 {activeTab === 'planner' && <Planner user={user} />}
-                {activeTab === 'settings' && <Settings user={user} />}
+                {activeTab === 'settings' && <Settings user={user} onOpenSupport={() => setIsSupportOpen(true)} />}
               </div>
             </div>
 

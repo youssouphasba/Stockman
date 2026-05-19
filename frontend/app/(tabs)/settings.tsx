@@ -167,11 +167,11 @@ export default function SettingsScreen() {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<SettingsSectionKey, boolean>>({
-    accountAppGroup: true,
+    accountAppGroup: false,
     storeGroup: true,
     organizationGroup: false,
     alertsGroup: false,
-    supportGroup: false,
+    supportGroup: true,
     securityGroup: false,
     profile: true,
     notifications: false,
@@ -187,7 +187,7 @@ export default function SettingsScreen() {
     tax: false,
     reminders: false,
     sync: false,
-    support: false,
+    support: true,
     incident: false,
     security: false,
     legal: false,
@@ -516,6 +516,113 @@ export default function SettingsScreen() {
     kitchen: t('settings.module_kitchen', 'Cuisine (KDS)'),
   };
 
+  const supportSettingsSection = (
+    <SettingsAccordionSection
+      title={t('settings.section_support')}
+      description={t('settings.section_support_desc')}
+      icon="help-circle-outline"
+      accentColor={colors.info}
+      expanded={expandedSections.supportGroup}
+      onToggle={() => toggleSection('supportGroup')}
+      styles={styles}
+      colors={colors}
+    >
+      <SettingsAccordionSection
+        title={t('settings.section_assistance')}
+        description={t('settings.section_assistance_desc')}
+        icon="help-circle-outline"
+        accentColor={colors.info}
+        expanded={expandedSections.support}
+        onToggle={() => toggleSection('support')}
+        styles={styles}
+        colors={colors}
+        variant="nested"
+      >
+        <TouchableOpacity style={styles.supportRow} onPress={() => setShowAiModal(true)}>
+          <View style={styles.supportIconWrapper}>
+            <Ionicons name="sparkles" size={20} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.settingLabel}>{t('settings.ai_assistant')}</Text>
+            <Text style={styles.settingDesc}>{t('settings.ai_assistant_desc')}</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.supportRow} onPress={() => setShowHelpCenter(true)}>
+          <View style={[styles.supportIconWrapper, { backgroundColor: colors.info }]}>
+            <Ionicons name="book-outline" size={20} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.settingLabel}>{t('settings.help_center')}</Text>
+            <Text style={styles.settingDesc}>{t('settings.help_center_desc')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.supportRow} onPress={() => setShowSupportModal(true)}>
+          <View style={[styles.supportIconWrapper, { backgroundColor: colors.primary }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.settingLabel}>{t('settings.contact_admin')}</Text>
+            <Text style={styles.settingDesc}>{t('settings.contact_admin_desc')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+      </SettingsAccordionSection>
+
+      <SettingsAccordionSection
+        title={t('settings.section_incident')}
+        description={t('settings.section_incident_desc')}
+        icon="warning-outline"
+        accentColor={colors.danger}
+        expanded={expandedSections.incident}
+        onToggle={() => toggleSection('incident')}
+        styles={styles}
+        colors={colors}
+        variant="nested"
+      >
+        {!showDisputeForm ? (
+          <TouchableOpacity onPress={() => setShowDisputeForm(true)} style={styles.supportRow}>
+            <View style={[styles.supportIconWrapper, { backgroundColor: '#EF4444' }]}>
+              <Ionicons name="flag-outline" size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>{t('settings.report_problem')}</Text>
+              <Text style={styles.settingDesc}>{t('settings.report_problem_desc')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ gap: 10 }}>
+            <Text style={[styles.settingDesc, { marginBottom: 4 }]}>{t('settings.problem_type')} :</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {[{ id: 'payment', label: ' ' + t('settings.dispute_payment') }, { id: 'product', label: ' ' + t('settings.dispute_product') }, { id: 'service', label: ' ' + t('settings.dispute_service') }, { id: 'delivery', label: ' ' + t('settings.dispute_delivery') }, { id: 'other', label: ' ' + t('settings.dispute_other') }].map(dt => (
+                  <TouchableOpacity key={dt.id} onPress={() => setDisputeType(dt.id)}
+                    style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: disputeType === dt.id ? colors.primary + '33' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: disputeType === dt.id ? colors.primary : 'rgba(255,255,255,0.1)' }}>
+                    <Text style={{ color: disputeType === dt.id ? colors.primary : colors.textSecondary, fontSize: 12, fontWeight: '600' }}>{dt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+            <TextInput value={disputeSubject} onChangeText={setDisputeSubject} placeholder={t('settings.problem_subject')}
+              placeholderTextColor={colors.textMuted} style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 12, color: colors.text, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
+            <TextInput value={disputeDesc} onChangeText={setDisputeDesc} placeholder={t('settings.problem_desc_placeholder')}
+              placeholderTextColor={colors.textMuted} multiline numberOfLines={4}
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 12, color: colors.text, minHeight: 80, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', textAlignVertical: 'top' }} />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity onPress={() => setShowDisputeForm(false)} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center' }}>
+                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSubmitDispute} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.send')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </SettingsAccordionSection>
+    </SettingsAccordionSection>
+  );
+
   if (loading) {
     return (
       <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
@@ -575,6 +682,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {supportSettingsSection}
 
         <SettingsAccordionSection
           title={t('settings.section_account')}
@@ -1337,113 +1445,6 @@ export default function SettingsScreen() {
         )}
 
 
-        </SettingsAccordionSection>
-
-        <SettingsAccordionSection
-          title={t('settings.section_support')}
-          description={t('settings.section_support_desc')}
-          icon="help-circle-outline"
-          accentColor={colors.info}
-          expanded={expandedSections.supportGroup}
-          onToggle={() => toggleSection('supportGroup')}
-          styles={styles}
-          colors={colors}
-        >
-        {/* Support */}
-        <SettingsAccordionSection
-          title={t('settings.section_assistance')}
-          description={t('settings.section_assistance_desc')}
-          icon="help-circle-outline"
-          accentColor={colors.info}
-          expanded={expandedSections.support}
-          onToggle={() => toggleSection('support')}
-          styles={styles}
-          colors={colors}
-          variant="nested"
-        >
-          <TouchableOpacity style={styles.supportRow} onPress={() => setShowAiModal(true)}>
-            <View style={styles.supportIconWrapper}>
-              <Ionicons name="sparkles" size={20} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>{t('settings.ai_assistant')}</Text>
-              <Text style={styles.settingDesc}>{t('settings.ai_assistant_desc')}</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.supportRow} onPress={() => setShowHelpCenter(true)}>
-            <View style={[styles.supportIconWrapper, { backgroundColor: colors.info }]}>
-              <Ionicons name="book-outline" size={20} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>{t('settings.help_center')}</Text>
-              <Text style={styles.settingDesc}>{t('settings.help_center_desc')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.supportRow} onPress={() => setShowSupportModal(true)}>
-            <View style={[styles.supportIconWrapper, { backgroundColor: colors.primary }]}>
-              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>{t('settings.contact_admin')}</Text>
-              <Text style={styles.settingDesc}>{t('settings.contact_admin_desc')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-        </SettingsAccordionSection>
-
-        {/* Signaler un incident */}
-        <SettingsAccordionSection
-          title={t('settings.section_incident')}
-          description={t('settings.section_incident_desc')}
-          icon="warning-outline"
-          accentColor={colors.danger}
-          expanded={expandedSections.incident}
-          onToggle={() => toggleSection('incident')}
-          styles={styles}
-          colors={colors}
-          variant="nested"
-        >
-          {!showDisputeForm ? (
-            <TouchableOpacity onPress={() => setShowDisputeForm(true)} style={styles.supportRow}>
-              <View style={[styles.supportIconWrapper, { backgroundColor: '#EF4444' }]}>
-                <Ionicons name="flag-outline" size={20} color="#fff" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.settingLabel}>{t('settings.report_problem')}</Text>
-                <Text style={styles.settingDesc}>{t('settings.report_problem_desc')}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ gap: 10 }}>
-              <Text style={[styles.settingDesc, { marginBottom: 4 }]}>{t('settings.problem_type')} :</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  {[{ id: 'payment', label: ' ' + t('settings.dispute_payment') }, { id: 'product', label: ' ' + t('settings.dispute_product') }, { id: 'service', label: ' ' + t('settings.dispute_service') }, { id: 'delivery', label: ' ' + t('settings.dispute_delivery') }, { id: 'other', label: ' ' + t('settings.dispute_other') }].map(dt => (
-                    <TouchableOpacity key={dt.id} onPress={() => setDisputeType(dt.id)}
-                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: disputeType === dt.id ? colors.primary + '33' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: disputeType === dt.id ? colors.primary : 'rgba(255,255,255,0.1)' }}>
-                      <Text style={{ color: disputeType === dt.id ? colors.primary : colors.textSecondary, fontSize: 12, fontWeight: '600' }}>{dt.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-              <TextInput value={disputeSubject} onChangeText={setDisputeSubject} placeholder={t('settings.problem_subject')}
-                placeholderTextColor={colors.textMuted} style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 12, color: colors.text, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
-              <TextInput value={disputeDesc} onChangeText={setDisputeDesc} placeholder={t('settings.problem_desc_placeholder')}
-                placeholderTextColor={colors.textMuted} multiline numberOfLines={4}
-                style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 12, color: colors.text, minHeight: 80, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', textAlignVertical: 'top' }} />
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity onPress={() => setShowDisputeForm(false)} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center' }}>
-                  <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t('common.cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSubmitDispute} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center' }}>
-                  <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.send')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </SettingsAccordionSection>
         </SettingsAccordionSection>
 
         <SettingsAccordionSection

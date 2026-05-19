@@ -6,6 +6,7 @@ import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 type SettingsProps = {
     user?: AppUser | null;
+    onOpenSupport?: () => void;
 };
 
 const settingsSteps: GuideStep[] = [
@@ -17,6 +18,7 @@ const settingsSteps: GuideStep[] = [
         title: 'Lire les onglets correctement',
         content: "Les onglets en haut divisent les réglages par famille. Ouvrez d'abord l'onglet concerné avant de modifier un champ, puis relisez les explications de portée pour savoir si vous agissez au niveau du compte, de l'organisation ou de la boutique.",
         details: [
+            { label: 'Support et litiges', description: "Tickets, assistance et suivi des incidents.", type: 'filter' },
             { label: 'Compte', description: "Profil, langue, devise et informations de facturation.", type: 'filter' },
             { label: 'Organisation', description: "Modules actifs, droits étendus et rappels partagés pour votre structure.", type: 'filter' },
             { label: 'Notifications', description: "Préférences personnelles et destinataires de notifications.", type: 'filter' },
@@ -47,11 +49,11 @@ const settingsSteps: GuideStep[] = [
     },
 ];
 
-export default function Settings({ user }: SettingsProps) {
+export default function Settings({ user, onOpenSupport }: SettingsProps) {
     return (
         <>
             <ScreenGuide guideKey="settings_tour" steps={settingsSteps} />
-            <SettingsWorkspace user={user} />
+            <SettingsWorkspace user={user} onOpenSupport={onOpenSupport} />
         </>
     );
 }

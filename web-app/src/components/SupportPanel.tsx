@@ -21,6 +21,8 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
     const [loading, setLoading] = useState(false);
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [creationMode, setCreationMode] = useState<'ticket' | 'dispute'>('ticket');
+    const plan = user?.effective_plan || user?.subscription_plan || user?.plan;
+    const isEnterprisePlan = plan === 'enterprise';
 
     // New item form
     const [subject, setSubject] = useState('');
@@ -152,6 +154,17 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
                     {tab === 'list' && (
                         <div className="flex flex-col gap-4">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2 mb-1">{t('support.channelsTitle', { defaultValue: 'Canaux de Support Professionnel' })}</h3>
+                            <div className={`flex items-start gap-3 rounded-2xl border p-4 ${isEnterprisePlan ? 'border-primary/20 bg-primary/10 text-primary' : 'border-amber-500/20 bg-amber-500/10 text-amber-300'}`}>
+                                <BadgeInfo size={18} className="mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-sm font-black text-white">
+                                        {isEnterprisePlan ? t('support.enterpriseSurfaceTitle') : t('support.mobileSurfaceTitle')}
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5 text-slate-300">
+                                        {isEnterprisePlan ? t('support.enterpriseSurfaceDesc') : t('support.mobileSurfaceDesc')}
+                                    </p>
+                                </div>
+                            </div>
                             
                             <div className="grid grid-cols-1 gap-3 mb-6">
                                 {/* WhatsApp Button */}

@@ -2093,7 +2093,11 @@
     "statusClosed": "Fermé",
     "replied": "Réponse reçue",
     "you": "Vous",
-    "back": "Retour"
+    "back": "Retour",
+    "enterpriseSurfaceTitle": "Assistance Enterprise sur le web",
+    "enterpriseSurfaceDesc": "Les demandes Enterprise se traitent depuis le web pour gérer correctement les boutiques, l'équipe, la facturation et les réglages avancés.",
+    "mobileSurfaceTitle": "Assistance Starter et Pro sur mobile",
+    "mobileSurfaceDesc": "Pour Starter et Pro, l'assistance principale se fait depuis l'application mobile, au plus près des opérations quotidiennes."
   },
   "notifications": {
     "title": "Notifications",

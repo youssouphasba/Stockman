@@ -2065,7 +2065,11 @@
     "statusClosed": "Closed",
     "replied": "Reply received",
     "you": "You",
-    "back": "Back"
+    "back": "Back",
+    "enterpriseSurfaceTitle": "Enterprise support on web",
+    "enterpriseSurfaceDesc": "Enterprise requests are handled from the web app so stores, staff, billing and advanced settings can be managed correctly.",
+    "mobileSurfaceTitle": "Starter and Pro support on mobile",
+    "mobileSurfaceDesc": "For Starter and Pro, support is primarily handled from the mobile app, close to daily operations."
   },
   "notifications": {
     "title": "Notifications",

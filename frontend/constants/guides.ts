@@ -485,9 +485,14 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         title: "Paramètres",
         steps: [
             {
+                icon: "help-circle-outline",
+                title: "Support et incidents",
+                description: "Le centre d'aide, l'assistant, le contact support et le signalement d'un problème sont maintenant placés en premier pour demander de l'aide sans chercher dans toutes les rubriques."
+            },
+            {
                 icon: "person-outline",
                 title: "Commencer par la bonne rubrique",
-                description: "L'écran Paramètres est désormais organisé en grandes rubriques. Commencez toujours par celle qui correspond à votre besoin réel : compte, boutique active, organisation, alertes, aide ou sécurité."
+                description: "L'écran Paramètres est organisé en grandes rubriques. Commencez par celle qui correspond à votre besoin réel : support, compte, boutique active, organisation, alertes ou sécurité."
             },
             {
                 icon: "language-outline",
@@ -512,12 +517,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "notifications-outline",
                 title: "Alertes, rappels et facturation",
-                description: "Definissez ici comment vous recevez les alertes, a qui elles sont envoyees, quelles regles automatiques sont actives et testez l'envoi d'une notification push depuis votre appareil. Le test remonte maintenant aussi les erreurs reelles de configuration Expo ou FCM."
-            },
-            {
-                icon: "help-circle-outline",
-                title: "Aide et support",
-                description: "Le centre d'aide, l'assistant, le contact support et le signalement d'un problème sont regroupés au même endroit pour éviter de chercher plusieurs entrées différentes."
+                description: "Définissez ici comment vous recevez les alertes, à qui elles sont envoyées, quelles règles automatiques sont actives et testez l'envoi d'une notification push depuis votre appareil. Le test remonte maintenant aussi les erreurs réelles de configuration Expo ou FCM."
             },
             {
                 icon: "lock-closed-outline",

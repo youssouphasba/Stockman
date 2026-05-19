@@ -91,6 +91,30 @@ function formatAdminDate(value: string | Date | null) {
     });
 }
 
+function getUserLastLogin(user: any) {
+    return user?.last_login_at || user?.last_login || null;
+}
+
+function getAdminUserLabel(entity: any) {
+    return entity?.user_name || entity?.owner_name || entity?.name || entity?.user_email || entity?.owner_email || entity?.email || entity?.user_id || 'Utilisateur inconnu';
+}
+
+function getAdminUserSubLabel(entity: any) {
+    const email = entity?.user_email || entity?.owner_email || entity?.email;
+    const userId = entity?.user_id || entity?.owner_user_id;
+    if (email && userId) return `${email} · ${userId}`;
+    return email || userId || 'Identifiant indisponible';
+}
+
+function formatAdminMessageTarget(target: string | null | undefined) {
+    if (!target || target === 'all') return 'Tous les utilisateurs';
+    if (target === 'shopkeeper') return 'Commerçants';
+    if (target === 'supplier') return 'Fournisseurs';
+    if (target === 'staff') return 'Staff';
+    if (target.startsWith('selected_users:')) return `${target.split(':')[1] || 0} utilisateur(s) sélectionné(s)`;
+    return target;
+}
+
 function formatAccessPhaseLabel(phase: string | null) {
     switch (phase) {
         case 'active':
@@ -640,14 +664,20 @@ export default function AdminDashboard() {
         if (userStatusFilter === 'banned') result = result.filter(u => u.is_active === false);
         if (userActivityFilter === 'recent') {
             const threshold = Date.now() - 7 * 24 * 60 * 60 * 1000;
-            result = result.filter(u => u.last_login_at && new Date(u.last_login_at).getTime() >= threshold);
+            result = result.filter(u => {
+                const lastLogin = getUserLastLogin(u);
+                return lastLogin && new Date(lastLogin).getTime() >= threshold;
+            });
         }
         if (userActivityFilter === 'inactive') {
             const threshold = Date.now() - 30 * 24 * 60 * 60 * 1000;
-            result = result.filter(u => !u.last_login_at || new Date(u.last_login_at).getTime() < threshold);
+            result = result.filter(u => {
+                const lastLogin = getUserLastLogin(u);
+                return !lastLogin || new Date(lastLogin).getTime() < threshold;
+            });
         }
         if (userActivityFilter === 'never') {
-            result = result.filter(u => !u.last_login_at && !u.first_login_at);
+            result = result.filter(u => !getUserLastLogin(u) && !u.first_login_at);
         }
         return result;
     }, [users, userSearch, userPlanFilter, userStatusFilter, userActivityFilter]);
@@ -676,7 +706,7 @@ export default function AdminDashboard() {
         if (!filteredUsers.length) return;
         const headers = ['user_id', 'name', 'email', 'plan', 'role', 'country_code', 'is_active', 'created_at', 'last_login_at'];
         const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-        const rows = filteredUsers.map(u => headers.map(h => escape(u[h])).join(';'));
+        const rows = filteredUsers.map(u => headers.map(h => escape(h === 'last_login_at' ? getUserLastLogin(u) : u[h])).join(';'));
         const csv = '\uFEFF' + [headers.join(';'), ...rows].join('\n');
         const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
         const a = document.createElement('a');
@@ -689,8 +719,11 @@ export default function AdminDashboard() {
         const d30 = now - 30 * 86400000;
         return {
             noStore: users.filter(u => !u.store_ids || u.store_ids.length === 0),
-            neverConnected: users.filter(u => !u.last_login_at && !u.first_login_at),
-            inactive30: users.filter(u => u.last_login_at && new Date(u.last_login_at).getTime() < d30),
+            neverConnected: users.filter(u => !getUserLastLogin(u) && !u.first_login_at),
+            inactive30: users.filter(u => {
+                const lastLogin = getUserLastLogin(u);
+                return lastLogin && new Date(lastLogin).getTime() < d30;
+            }),
             starter: users.filter(u => (u.plan || 'starter') === 'starter' && u.is_active !== false),
         };
     }, [users]);
@@ -818,7 +851,8 @@ export default function AdminDashboard() {
         return users.map(u => {
             const issues: string[] = [];
             const createdAt = u.created_at ? new Date(u.created_at).getTime() : null;
-            const lastLogin = u.last_login_at ? new Date(u.last_login_at).getTime() : null;
+            const lastLoginValue = getUserLastLogin(u);
+            const lastLogin = lastLoginValue ? new Date(lastLoginValue).getTime() : null;
             const ageDays = createdAt ? Math.floor((now - createdAt) / DAY) : null;
 
             if (ageDays !== null && ageDays > 30 && !lastLogin) issues.push('Jamais connecté (>30j)');
@@ -860,6 +894,9 @@ export default function AdminDashboard() {
             const matchesSearch = !subscriptionSearch.trim() || [
                 event.account_id,
                 event.owner_user_id,
+                event.owner_name,
+                event.owner_email,
+                event.account_name,
                 event.provider_reference,
                 event.message,
                 event.event_type,
@@ -2020,7 +2057,10 @@ export default function AdminDashboard() {
                                                 </span>
                                             </div>
                                             <div className="space-y-1 text-xs text-slate-300">
-                                                <p><span className="text-slate-500">Compte :</span> {event.account_id || '—'}</p>
+                                                <p><span className="text-slate-500">Compte :</span> {event.account_name || event.owner_name || event.owner_email || event.account_id || '—'}</p>
+                                                {event.account_id && (
+                                                    <p className="font-mono text-[10px] text-slate-600">{event.account_id}</p>
+                                                )}
                                                 <p><span className="text-slate-500">Plan :</span> {event.plan || '—'}</p>
                                                 <p><span className="text-slate-500">Montant :</span> {formatAdminMoney(event.amount, event.currency)}</p>
                                                 <p><span className="text-slate-500">Reference :</span> {event.provider_reference || '—'}</p>
@@ -2422,9 +2462,9 @@ export default function AdminDashboard() {
                                         </td>
                                         <td className="px-6 py-4 text-slate-400 font-mono text-xs">{user.country_code || '—'}</td>
                                         <td className="px-6 py-4 text-xs text-slate-400">
-                                            {user.last_login_at
+                                            {getUserLastLogin(user)
                                                 ? (() => {
-                                                    const diff = Date.now() - new Date(user.last_login_at).getTime();
+                                                    const diff = Date.now() - new Date(getUserLastLogin(user)).getTime();
                                                     const days = Math.floor(diff / 86400000);
                                                     if (days === 0) return <span className="text-emerald-400">Aujourd'hui</span>;
                                                     if (days <= 7) return <span className="text-emerald-400">{days}j</span>;
@@ -2525,9 +2565,8 @@ export default function AdminDashboard() {
                                                 <p className="mt-1 text-[10px] text-slate-600">{store.store_id || '—'}</p>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <p className="text-slate-300 font-semibold">{store.owner_name || '—'}</p>
-                                                <p className="text-[11px] text-slate-500">{store.owner_email || store.email || '—'}</p>
-                                                <p className="text-[10px] text-slate-600 font-mono">{store.owner_user_id || store.user_id || '—'}</p>
+                                                <p className="text-slate-300 font-semibold">{store.owner_name || store.owner_email || '—'}</p>
+                                                <p className="text-[11px] text-slate-500">{store.owner_email || store.email || store.owner_user_id || store.user_id || '—'}</p>
                                             </td>
                                             <td className="px-6 py-4 text-slate-400">
                                                 <p className="font-mono text-xs">{store.country_code || '—'} / {store.currency || '—'}</p>
@@ -2996,8 +3035,8 @@ export default function AdminDashboard() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="space-y-1">
-                                                    <p className="text-sm font-semibold text-white">{event.user_name || event.user_email || 'Utilisateur inconnu'}</p>
-                                                    <p className="text-xs text-slate-500">{event.user_id || event.user_email || 'Identifiant indisponible'}</p>
+                                                    <p className="text-sm font-semibold text-white">{getAdminUserLabel(event)}</p>
+                                                    <p className="text-xs text-slate-500">{getAdminUserSubLabel(event)}</p>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -3063,8 +3102,8 @@ export default function AdminDashboard() {
                                             <td className="px-6 py-4 text-sm text-slate-300">{event.provider || '-'}</td>
                                             <td className="px-6 py-4">
                                                 <div className="space-y-1">
-                                                    <p className="text-sm font-semibold text-white">{event.user_name || event.user_email || 'Inconnu'}</p>
-                                                    <p className="text-xs text-slate-500">{event.user_id || '-'}</p>
+                                                    <p className="text-sm font-semibold text-white">{getAdminUserLabel(event)}</p>
+                                                    <p className="text-xs text-slate-500">{getAdminUserSubLabel(event)}</p>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-400">{event.target || event.identifier || event.email || event.phone_number || '-'}</td>
@@ -3108,8 +3147,8 @@ export default function AdminDashboard() {
                                         <tr key={session.session_id || `${session.user_id}-${session.created_at}`} className="hover:bg-white/5">
                                             <td className="px-6 py-4">
                                                 <div className="space-y-1">
-                                                    <p className="text-sm font-semibold text-white">{session.user_name || 'Inconnu'}</p>
-                                                    <p className="text-xs text-slate-500">{session.user_email || session.user_id || '-'}</p>
+                                                    <p className="text-sm font-semibold text-white">{getAdminUserLabel(session)}</p>
+                                                    <p className="text-xs text-slate-500">{getAdminUserSubLabel(session)}</p>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-xs font-mono text-slate-400">{session.session_id || '-'}</td>
@@ -3326,8 +3365,8 @@ export default function AdminDashboard() {
                                                 <p className="text-[10px] text-slate-600 font-mono">{customer.customer_id || '—'}</p>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <p className="text-slate-300 font-semibold">{customer.owner_name || customer.user_name || '—'}</p>
-                                                <p className="text-[10px] text-slate-600 font-mono">{customer.user_id || '—'}</p>
+                                                <p className="text-slate-300 font-semibold">{customer.owner_name || customer.user_name || customer.owner_email || '—'}</p>
+                                                <p className="text-[10px] text-slate-500">{customer.owner_email || customer.user_id || '—'}</p>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <p className="text-slate-300">{customer.store_name || '—'}</p>
@@ -3685,7 +3724,7 @@ export default function AdminDashboard() {
                                             </div>
                                             <div className="min-w-[180px] space-y-1 text-right">
                                                 <p className="text-xs text-slate-500">Cible</p>
-                                                <p className="text-sm font-semibold text-white">{message.target || 'all'}</p>
+                                                <p className="text-sm font-semibold text-white">{formatAdminMessageTarget(message.target)}</p>
                                                 <p className="text-xs text-slate-500">Envoyé par {message.sent_by || 'admin'}</p>
                                             </div>
                                         </div>
@@ -4591,8 +4630,11 @@ export default function AdminDashboard() {
                                             </span>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm text-white font-semibold truncate">{log.action || log.event || '—'}</p>
-                                                {log.user_id && (
-                                                    <p className="text-[10px] text-slate-500 font-mono truncate">{log.user_id}</p>
+                                                {(log.user_name || log.user_email) && (
+                                                    <p className="text-[11px] text-slate-300 truncate">{getAdminUserLabel(log)}</p>
+                                                )}
+                                                {(log.user_name || log.user_email || log.user_id) && (
+                                                    <p className="text-[10px] text-slate-500 truncate">{getAdminUserSubLabel(log)}</p>
                                                 )}
                                                 {log.details && (
                                                     <p className="text-[10px] text-slate-600 truncate mt-0.5">{typeof log.details === 'string' ? log.details : JSON.stringify(log.details)}</p>

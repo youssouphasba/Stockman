@@ -6277,6 +6277,11 @@ async def admin_global_stats(user: User = Depends(require_superadmin)):
 @admin_router.get("/users")
 async def admin_list_users(skip: int = 0, limit: int = 100, user: User = Depends(require_superadmin)):
     users = await db.users.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    for user_doc in users:
+        if not user_doc.get("last_login_at") and user_doc.get("last_login"):
+            user_doc["last_login_at"] = user_doc["last_login"]
+        if not user_doc.get("first_login_at") and user_doc.get("last_login_at"):
+            user_doc["first_login_at"] = user_doc["last_login_at"]
     return users
 
 @admin_router.get("/users/{user_id}/detail")
@@ -6598,12 +6603,58 @@ async def admin_list_all_customers(search: Optional[str] = None, skip: int = 0, 
         customer["country_code"] = customer.get("country_code") or store.get("country_code")
     return {"items": customers, "total": total}
 
+
+async def enrich_admin_user_references(items: List[dict], user_id_fields: Optional[List[str]] = None) -> List[dict]:
+    user_id_fields = user_id_fields or ["user_id", "owner_user_id"]
+    user_ids = set()
+    emails = set()
+    for item in items:
+        for field in user_id_fields:
+            if item.get(field):
+                user_ids.add(item[field])
+        if item.get("user_email"):
+            emails.add(str(item["user_email"]).lower())
+        if item.get("email"):
+            emails.add(str(item["email"]).lower())
+
+    query_parts = []
+    if user_ids:
+        query_parts.append({"user_id": {"$in": list(user_ids)}})
+    if emails:
+        query_parts.append({"email": {"$in": list(emails)}})
+    if not query_parts:
+        return items
+
+    users_docs = await db.users.find(
+        {"$or": query_parts},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1, "plan": 1, "country_code": 1},
+    ).to_list(None)
+    by_id = {doc.get("user_id"): doc for doc in users_docs if doc.get("user_id")}
+    by_email = {str(doc.get("email", "")).lower(): doc for doc in users_docs if doc.get("email")}
+
+    for item in items:
+        primary = None
+        for field in user_id_fields:
+            primary = by_id.get(item.get(field))
+            if primary:
+                break
+        if not primary:
+            primary = by_email.get(str(item.get("user_email") or item.get("email") or "").lower())
+        if primary:
+            item["user_name"] = item.get("user_name") or primary.get("name")
+            item["user_email"] = item.get("user_email") or primary.get("email")
+            item["user_plan"] = item.get("user_plan") or primary.get("plan")
+            item["user_country_code"] = item.get("user_country_code") or primary.get("country_code")
+    return items
+
+
 @admin_router.get("/logs")
 async def admin_global_logs(module: Optional[str] = None, user_id: Optional[str] = None, skip: int = 0, limit: int = 100, user: User = Depends(require_superadmin)):
     query = {}
     if module: query["module"] = module
     if user_id: query["user_id"] = user_id
     logs = await db.activity_logs.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    logs = await enrich_admin_user_references(logs)
     return logs
 
 @admin_router.get("/support/tickets", response_model=List[SupportTicket])
@@ -7369,6 +7420,32 @@ async def admin_subscription_events(
         query["status"] = status
 
     items = await db.subscription_events.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    account_ids = list({item.get("account_id") for item in items if item.get("account_id")})
+    owner_ids = list({item.get("owner_user_id") for item in items if item.get("owner_user_id")})
+    accounts_map = {}
+    users_map = {}
+    if account_ids:
+        account_docs = await db.business_accounts.find(
+            {"account_id": {"$in": account_ids}},
+            {"_id": 0, "account_id": 1, "display_name": 1, "owner_user_id": 1, "billing_contact_email": 1},
+        ).to_list(len(account_ids))
+        accounts_map = {doc.get("account_id"): doc for doc in account_docs}
+        owner_ids.extend([doc.get("owner_user_id") for doc in account_docs if doc.get("owner_user_id")])
+    owner_ids = list({owner_id for owner_id in owner_ids if owner_id})
+    if owner_ids:
+        user_docs = await db.users.find(
+            {"user_id": {"$in": owner_ids}},
+            {"_id": 0, "user_id": 1, "name": 1, "email": 1},
+        ).to_list(len(owner_ids))
+        users_map = {doc.get("user_id"): doc for doc in user_docs}
+    for item in items:
+        account_doc = accounts_map.get(item.get("account_id")) or {}
+        owner_id = item.get("owner_user_id") or account_doc.get("owner_user_id")
+        owner_doc = users_map.get(owner_id) or {}
+        item["account_name"] = account_doc.get("display_name")
+        item["owner_user_id"] = owner_id or item.get("owner_user_id")
+        item["owner_name"] = owner_doc.get("name")
+        item["owner_email"] = owner_doc.get("email") or account_doc.get("billing_contact_email")
     total = await db.subscription_events.count_documents(query)
     return {"items": items, "total": total}
 
@@ -7736,6 +7813,7 @@ async def admin_verification_events(
     if channel:
         query["channel"] = channel
     items = await db.verification_events.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    items = await enrich_admin_user_references(items)
     total = await db.verification_events.count_documents(query)
     return {"items": items, "total": total}
 
@@ -12495,6 +12573,7 @@ async def admin_list_security_events(type: Optional[str] = None, skip: int = 0, 
     query = {}
     if type: query["type"] = type
     events = await db.security_events.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    events = await enrich_admin_user_references(events)
     total = await db.security_events.count_documents(query)
     return {"items": events, "total": total}
 
@@ -14417,6 +14496,7 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
         user_doc = await db.users.find_one({"email": email}, {"_id": 0})
 
     if user_doc:
+        login_at = datetime.now(timezone.utc)
         existing_provider_uid = (user_doc.get("auth_providers") or {}).get(provider_key)
         if existing_provider_uid and existing_provider_uid != firebase_uid:
             raise HTTPException(status_code=400, detail="Ce compte est déjà lié à un autre identifiant.")
@@ -14424,12 +14504,16 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
         update_payload: Dict[str, Any] = {
             f"auth_providers.{provider_key}": firebase_uid,
             "picture": user_doc.get("picture") or picture,
+            "last_login": login_at,
+            "last_login_at": login_at,
         }
+        if not user_doc.get("first_login_at"):
+            update_payload["first_login_at"] = login_at
         if email_verified:
             update_payload["is_email_verified"] = True
             if user_doc.get("required_verification") == "email":
                 if not user_doc.get("verification_completed_at"):
-                    update_payload["verification_completed_at"] = datetime.now(timezone.utc)
+                    update_payload["verification_completed_at"] = login_at
                 update_payload["required_verification"] = None
                 update_payload["verification_channel"] = None
         signup_surface = user_doc.get("signup_surface")
@@ -14469,7 +14553,8 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
 
         signup_surface = resolve_signup_surface(data.signup_surface, None)
         initial_plan = "enterprise" if signup_surface == "web" else "starter"
-        trial_ends_at = datetime.now(timezone.utc) + timedelta(days=30)
+        login_at = datetime.now(timezone.utc)
+        trial_ends_at = login_at + timedelta(days=30)
 
         user_doc = {
             "user_id": user_id,
@@ -14496,7 +14581,7 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
             "required_verification": None if email_verified else "email",
             "verification_channel": None if email_verified else "email",
             "signup_surface": signup_surface,
-            "verification_completed_at": datetime.now(timezone.utc) if email_verified else None,
+            "verification_completed_at": login_at if email_verified else None,
             "phone_otp": None,
             "phone_otp_digest": None,
             "phone_otp_expiry": None,
@@ -14507,7 +14592,10 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
             "email_otp_attempts": 0,
             "auth_version": 1,
             "country_code": DEFAULT_COUNTRY_CODE,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": login_at,
+            "first_login_at": login_at,
+            "last_login": login_at,
+            "last_login_at": login_at,
         }
 
         await db.users.insert_one(user_doc)
@@ -14860,13 +14948,14 @@ async def login(request: Request, user_data: UserLogin, response: Response):
             raise HTTPException(status_code=423, detail="Compte temporairement verrouille. Reessayez plus tard.")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
     
-    # Update last_login / first_login_at
+    login_at = datetime.now(timezone.utc)
     login_updates = {
-        "last_login": datetime.now(timezone.utc),
+        "last_login": login_at,
+        "last_login_at": login_at,
         "auth_version": normalize_auth_version(user_doc.get("auth_version")),
     }
     if not user_doc.get("first_login_at"):
-        login_updates["first_login_at"] = login_updates["last_login"]
+        login_updates["first_login_at"] = login_at
     await db.users.update_one(
         {"user_id": user_doc["user_id"]},
         {"$set": login_updates}

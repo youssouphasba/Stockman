@@ -1877,7 +1877,11 @@
       "replyPlaceholder": "Your reply...",
       "replyError": "Error sending reply.",
       "whatsappBtn": "Chat on WhatsApp",
-      "whatsappMessage": "Hello, I need help with my Stockman account. My user ID is {{id}}."
+      "whatsappMessage": "Hello, I need help with my Stockman account. My user ID is {{id}}.",
+      "enterpriseSurfaceTitle": "Enterprise support on web",
+      "enterpriseSurfaceDesc": "Enterprise requests are handled from the web app so stores, staff, billing and advanced settings can be managed correctly.",
+      "mobileSurfaceTitle": "Starter and Pro support on mobile",
+      "mobileSurfaceDesc": "For Starter and Pro, support is primarily handled from this mobile app, close to daily operations."
     },
     "deleteAccount": {
       "dangerZone": "Danger Zone âš ï¸",

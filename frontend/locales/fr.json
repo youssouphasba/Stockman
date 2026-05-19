@@ -2090,7 +2090,11 @@
       "replyPlaceholder": "Votre réponse...",
       "replyError": "Erreur lors de l'envoi de la réponse.",
       "whatsappBtn": "Discuter sur WhatsApp",
-      "whatsappMessage": "Bonjour, j'ai besoin d'aide avec mon compte Stockman. Mon ID utilisateur est {{id}}."
+      "whatsappMessage": "Bonjour, j'ai besoin d'aide avec mon compte Stockman. Mon ID utilisateur est {{id}}.",
+      "enterpriseSurfaceTitle": "Assistance Enterprise sur le web",
+      "enterpriseSurfaceDesc": "Les demandes Enterprise se traitent depuis le web pour gérer correctement les boutiques, l'équipe, la facturation et les réglages avancés.",
+      "mobileSurfaceTitle": "Assistance Starter et Pro sur mobile",
+      "mobileSurfaceDesc": "Pour Starter et Pro, l'assistance principale se fait depuis cette application mobile, au plus près des opérations quotidiennes."
     },
     "deleteAccount": {
       "dangerZone": "Zone de Danger ⚠️",

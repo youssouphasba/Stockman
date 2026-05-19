@@ -466,6 +466,9 @@ export type User = {
     demo_type?: string | null;
     demo_surface?: string | null;
     demo_expires_at?: string | null;
+    first_login_at?: string | null;
+    last_login?: string | null;
+    last_login_at?: string | null;
 };
 
 export type PricingPlanQuote = {

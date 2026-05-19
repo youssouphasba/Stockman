@@ -16,6 +16,8 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
     const { t } = useTranslation();
     const { colors } = useTheme();
     const { user } = useAuth();
+    const plan = user?.effective_plan || user?.subscription_plan || user?.plan;
+    const isEnterprisePlan = plan === 'enterprise';
     const [tab, setTab] = useState<'new' | 'tickets'>('new');
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
@@ -238,6 +240,17 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                     {tab === 'new' ? (
                         <ScrollView style={styles.contentArea} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                             <View style={styles.form}>
+                                <View style={[styles.planNotice, { borderColor: colors.primary + '35', backgroundColor: colors.primary + '12' }]}>
+                                    <Ionicons name={isEnterprisePlan ? 'desktop-outline' : 'phone-portrait-outline'} size={18} color={colors.primary} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.planNoticeTitle, { color: colors.text }]}>
+                                            {isEnterprisePlan ? t('modals.contactSupport.enterpriseSurfaceTitle') : t('modals.contactSupport.mobileSurfaceTitle')}
+                                        </Text>
+                                        <Text style={[styles.planNoticeText, { color: colors.textMuted }]}>
+                                            {isEnterprisePlan ? t('modals.contactSupport.enterpriseSurfaceDesc') : t('modals.contactSupport.mobileSurfaceDesc')}
+                                        </Text>
+                                    </View>
+                                </View>
                                 {/* WhatsApp Integration */}
                                 <TouchableOpacity
                                     style={[styles.whatsappButton, { borderColor: '#25D366' }]}
@@ -408,6 +421,23 @@ const styles = StyleSheet.create({
     },
     form: {
         gap: 15,
+    },
+    planNotice: {
+        flexDirection: 'row',
+        gap: 10,
+        borderWidth: 1,
+        borderRadius: 14,
+        padding: 12,
+        alignItems: 'flex-start',
+    },
+    planNoticeTitle: {
+        fontSize: 13,
+        fontWeight: '800',
+        marginBottom: 3,
+    },
+    planNoticeText: {
+        fontSize: 12,
+        lineHeight: 17,
     },
     label: {
         fontSize: 14,

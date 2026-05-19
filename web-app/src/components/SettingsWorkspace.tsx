@@ -8,6 +8,7 @@ import {
     Eye,
     FileText,
     Globe,
+    HelpCircle,
     LogOut,
     Mail,
     Monitor,
@@ -27,9 +28,10 @@ import { getAccessContext } from '../utils/access';
 
 type SettingsWorkspaceProps = {
     user?: AppUser | null;
+    onOpenSupport?: () => void;
 };
 
-type TabId = 'account' | 'organization' | 'notifications' | 'documents' | 'stores' | 'security';
+type TabId = 'support' | 'account' | 'organization' | 'notifications' | 'documents' | 'stores' | 'security';
 
 const DEFAULT_NOTIFICATION_CONTACTS: NotificationContactMap = {
     default: [],
@@ -90,6 +92,7 @@ const MODULE_OPTIONS = [
 ];
 
 const TABS: { id: TabId }[] = [
+    { id: 'support' },
     { id: 'account' },
     { id: 'organization' },
     { id: 'notifications' },
@@ -159,13 +162,13 @@ function Notice({ title, text }: { title: string; text: string }) {
     );
 }
 
-export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
+export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorkspaceProps) {
     const { t } = useTranslation();
     const access = getAccessContext(user);
     const canManageOrgSettings = access.isOrgAdmin;
     const canManageBilling = access.isBillingAdmin;
 
-    const [activeTab, setActiveTab] = useState<TabId>('account');
+    const [activeTab, setActiveTab] = useState<TabId>('support');
     const [loading, setLoading] = useState(true);
     const [banner, setBanner] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
     const [savingKey, setSavingKey] = useState('');
@@ -217,11 +220,21 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
             return canManageOrgSettings;
         }
         return true;
-    }).map((tab) => ({
-        ...tab,
-        label: t(`settings_workspace.tabs.${tab.id}.label`),
-        description: t(`settings_workspace.tabs.${tab.id}.description`),
-    }));
+    }).map((tab) => {
+        if (tab.id === 'support') {
+            return {
+                ...tab,
+                label: `${t('support.title')} et ${t('admin.nav.disputes').toLowerCase()}`,
+                description: t('settings.help_support'),
+            };
+        }
+
+        return {
+            ...tab,
+            label: t(`settings_workspace.tabs.${tab.id}.label`),
+            description: t(`settings_workspace.tabs.${tab.id}.description`),
+        };
+    });
     const notificationChannelOptions = [
         {
             key: 'in_app',
@@ -248,7 +261,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
 
     useEffect(() => {
         if (!tabs.some((tab) => tab.id === activeTab)) {
-            setActiveTab('account');
+            setActiveTab('support');
         }
     }, [activeTab, tabs]);
 
@@ -376,7 +389,7 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
                 </div>
             </div>
 
-            <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
@@ -395,6 +408,26 @@ export default function SettingsWorkspace({ user }: SettingsWorkspaceProps) {
             </div>
 
             <div className="max-w-6xl space-y-8">
+                {activeTab === 'support' ? (
+                    <SectionCard
+                        icon={<HelpCircle size={24} className="text-primary" />}
+                        title={`${t('support.title')} et ${t('admin.nav.disputes').toLowerCase()}`}
+                        scope={t('settings_workspace.scopes.user')}
+                        description={t('settings.help_support')}
+                        actionHint={t('settings.contact_admin_desc')}
+                    >
+                        <button
+                            type="button"
+                            onClick={onOpenSupport}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={!onOpenSupport}
+                        >
+                            <HelpCircle size={18} />
+                            {t('support.newTicket')}
+                        </button>
+                    </SectionCard>
+                ) : null}
+
                 {activeTab === 'account' ? (
                     <>
                         <SectionCard
