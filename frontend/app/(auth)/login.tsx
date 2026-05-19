@@ -21,7 +21,7 @@ import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
-import { ApiError, demo as demoApi, setToken, setRefreshToken } from '../../services/api';
+import { ApiError, demo as demoApi, removeRefreshToken, removeToken, setToken, setRefreshToken } from '../../services/api';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useTheme } from '../../contexts/ThemeContext';
 import auth from '@react-native-firebase/auth';
@@ -423,12 +423,14 @@ export default function LoginScreen() {
     setDemoType(type);
     setDemoLoading(true);
     try {
+      await removeToken();
+      await removeRefreshToken();
       const res = await demoApi.createSession(type);
       await setToken(res.access_token);
       if (res.refresh_token) {
         await setRefreshToken(res.refresh_token);
       }
-      const demoUser = await restoreSession();
+      const demoUser = await restoreSession(false, { preserveDemoSession: true });
       if (!demoUser) {
         throw new Error(t('auth.login.errorDemo'));
       }

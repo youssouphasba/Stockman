@@ -263,6 +263,12 @@ export default function Home() {
     let cancelled = false;
     setDemoBootLoading(true);
     setError(null);
+    removeToken();
+    clearWebAccessMode();
+    setIsLogged(false);
+    setUser(null);
+    setFeatures(null);
+    setModules({});
 
     const timeout = window.setTimeout(() => {
       if (!cancelled) {
@@ -273,7 +279,9 @@ export default function Home() {
       }
     }, 15000);
 
-    demoApi.createSession(demoType, countryCode)
+    auth.logout()
+      .catch(() => undefined)
+      .then(() => demoApi.createSession(demoType, countryCode))
       .then((payload) => {
         if (cancelled) return;
         hydrateAuthenticatedUser(payload.user);
@@ -285,7 +293,7 @@ export default function Home() {
       .catch((err) => {
         if (cancelled) return;
         clearQueryParam('demo');
-        setError(err instanceof ApiError ? err.message : "Impossible de lancer la demo Enterprise.");
+        setError(err instanceof ApiError ? err.message : "Impossible de lancer la démo Enterprise.");
       })
       .finally(() => {
         if (cancelled) return;
@@ -309,13 +317,13 @@ export default function Home() {
       return;
     }
 
-    if (initialLoading || isLogged || demoBootLoading) return;
+    if (initialLoading || demoBootLoading) return;
 
     parsedDemoIntent.current = true;
     clearQueryParam('demo');
     setPendingDemoType('enterprise');
     setShowDemoCurrencyPicker(true);
-  }, [clearQueryParam, demoBootLoading, initialLoading, isLogged, searchParams]);
+  }, [clearQueryParam, demoBootLoading, initialLoading, searchParams]);
 
   useEffect(() => {
     if (searchParams.get('signup') === 'true') {
@@ -544,9 +552,9 @@ export default function Home() {
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6">
         <div className="glass-card p-8 text-center max-w-md w-full">
           <div className="w-10 h-10 mx-auto mb-4 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <h1 className="text-xl font-black text-white mb-2">Preparation de la demo Enterprise</h1>
+          <h1 className="text-xl font-black text-white mb-2">Préparation de la démo Enterprise</h1>
           <p className="text-slate-400 text-sm">
-            Nous ouvrons votre session de demonstration sur l&apos;app web.
+            Nous ouvrons votre session de démonstration sur l&apos;app web.
           </p>
         </div>
       </div>
@@ -1296,6 +1304,19 @@ export default function Home() {
                     <Chrome size={18} />
                   )}
                   {t('home.login.continue_google', { defaultValue: 'Google' })}
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-3 mt-1 mb-2">
+                <button
+                  onClick={() => {
+                    setPendingDemoType('enterprise');
+                    setShowDemoCurrencyPicker(true);
+                  }}
+                  disabled={demoBootLoading || loading}
+                  className={`w-full py-3 rounded-xl border border-primary/20 bg-primary/10 text-primary font-bold flex items-center justify-center gap-3 hover:bg-primary/20 transition-colors ${demoBootLoading ? 'opacity-70 cursor-wait' : ''}`}
+                >
+                  <Zap size={18} />
+                  {t('home.login.demoEnterprise', { defaultValue: 'Démo Web (Enterprise)' })}
                 </button>
               </div>
               <div className="text-center">

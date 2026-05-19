@@ -1,5 +1,6 @@
-const CACHE_NAME = 'stockman-cache-v3';
+const CACHE_NAME = 'stockman-cache-v4';
 const ASSETS_TO_CACHE = [
+    '/',
     '/manifest.json',
 ];
 
@@ -15,6 +16,23 @@ async function networkFirst(request) {
         const cached = await caches.match(request);
         if (cached) return cached;
         throw error;
+    }
+}
+
+async function navigationFallback(request) {
+    try {
+        return await fetch(request);
+    } catch (error) {
+        const cachedRoot = await caches.match('/');
+        if (cachedRoot) return cachedRoot;
+
+        return new Response(
+            '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stockman</title></head><body style="font-family:system-ui,sans-serif;background:#0f172a;color:white;padding:24px"><h1>Page temporairement indisponible</h1><p>Vérifiez votre connexion, puis réessayez.</p></body></html>',
+            {
+                status: 503,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            }
+        );
     }
 }
 
@@ -67,7 +85,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     if (event.request.mode === 'navigate') {
-        event.respondWith(networkFirst(event.request));
+        event.respondWith(navigationFallback(event.request));
         return;
     }
 

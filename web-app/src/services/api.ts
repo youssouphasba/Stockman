@@ -13,6 +13,7 @@ const AI_DUPLICATES_BLOCK_KEY = 'stockman_ai_detect_duplicates_blocked_until';
 const AI_DUPLICATES_BLOCK_MS = 12 * 60 * 60 * 1000;
 const NON_CACHEABLE_GET_PREFIXES = [
     '/auth/',
+    '/demo/session',
     '/demo/session/',
     '/subscription/me',
     '/user/features',

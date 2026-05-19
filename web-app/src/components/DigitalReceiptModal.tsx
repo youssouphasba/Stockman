@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import { Printer, Share2 } from 'lucide-react';
@@ -159,6 +159,7 @@ export default function DigitalReceiptModal({ isOpen, onClose, sale, businessInf
                                 <p>Date : ${escapeHtml(new Date(sale.created_at || Date.now()).toLocaleString('fr-FR'))}</p>
                                 <p>Ticket : #${escapeHtml((sale.sale_id || '').substring(0, 8).toUpperCase())}</p>
                                 ${sale.terminal_id ? `<p>Caisse : ${escapeHtml(sale.terminal_id)}</p>` : ''}
+                                ${sale.customer_name || sale.customer_id ? `<p>Client : ${escapeHtml(sale.customer_name || sale.customer_id)}</p>` : ''}
                             </div>
                         </div>
                         <div class="items">${itemsHtml}</div>
@@ -201,6 +202,7 @@ export default function DigitalReceiptModal({ isOpen, onClose, sale, businessInf
                             <p>Date: {saleDateText}</p>
                             <p>Ticket: #{sale.sale_id?.substring(0, 8).toUpperCase()}</p>
                             {sale.terminal_id && <p>Caisse: {sale.terminal_id}</p>}
+                            {(sale.customer_name || sale.customer_id) && <p>Client: {sale.customer_name || sale.customer_id}</p>}
                         </div>
                     </div>
 

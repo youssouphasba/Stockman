@@ -6,7 +6,7 @@ import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
-import { ApiError, demo as demoApi, setToken, setRefreshToken } from '../../services/api';
+import { ApiError, demo as demoApi, removeRefreshToken, removeToken, setToken, setRefreshToken } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
@@ -51,12 +51,14 @@ export default function AuthEntryScreen() {
     setDemoType(type);
     setDemoLoading(true);
     try {
+      await removeToken();
+      await removeRefreshToken();
       const res = await demoApi.createSession(type, country.code);
       await setToken(res.access_token);
       if (res.refresh_token) {
         await setRefreshToken(res.refresh_token);
       }
-      const demoUser = await restoreSession();
+      const demoUser = await restoreSession(false, { preserveDemoSession: true });
       if (!demoUser) {
         throw new Error(t('auth.login.errorDemo'));
       }

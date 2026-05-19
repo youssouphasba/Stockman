@@ -19,6 +19,11 @@ import {
   setActiveStoredAccountId,
   StoredAccountSession,
 } from '../services/accountSessions';
+
+type RestoreSessionOptions = {
+  preserveDemoSession?: boolean;
+};
+
 type AuthState = {
   user: User | null;
   storedAccounts: StoredAccountSession[];
@@ -43,7 +48,7 @@ type AuthState = {
   register: (email: string, password: string, name: string, role?: string, phone?: string, currency?: string, businessType?: string, referralSource?: string, countryCode?: string, plan?: string, signupSurface?: 'mobile' | 'web') => Promise<User>;
   verifyPhone: (firebaseIdToken: string) => Promise<User>;
   verifyEmail: (otp: string) => Promise<User>;
-  restoreSession: (allowRefreshFallback?: boolean) => Promise<User | null>;
+  restoreSession: (allowRefreshFallback?: boolean, options?: RestoreSessionOptions) => Promise<User | null>;
   addAccount: (email: string, password: string) => Promise<User>;
   switchAccount: (userId: string) => Promise<User | null>;
   removeStoredAccount: (userId: string) => Promise<void>;
@@ -108,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await persistCurrentSession(userData);
   }, [hydrateAuthenticatedUser, persistCurrentSession]);
 
-  const restoreSession = useCallback(async (allowRefreshFallback: boolean = false) => {
+  const restoreSession = useCallback(async (allowRefreshFallback: boolean = false, options?: RestoreSessionOptions) => {
     const token = await getToken();
     const refreshToken = !token ? await getRefreshToken() : null;
     const hydrateFromActiveToken = async () => {
@@ -116,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
       const userData = await authApi.me();
-      if (userData.is_demo) {
+      if (userData.is_demo && !options?.preserveDemoSession) {
         const rememberedAccounts = await listStoredAccountSessions();
         if (rememberedAccounts.some((entry) => !entry.user.is_demo)) {
           await removeToken();
@@ -183,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (refreshToken) {
       await setRefreshToken(refreshToken);
     }
-    await restoreSession();
+    await restoreSession(false, { preserveDemoSession: true });
     return true;
   }, [restoreSession]);
 
