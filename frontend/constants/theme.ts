@@ -1,3 +1,9 @@
+import { Dimensions, PixelRatio } from 'react-native';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SIZE_SCALE = SCREEN_WIDTH <= 360 ? 0.88 : SCREEN_WIDTH <= 390 ? 0.93 : 1;
+const scaleSize = (value: number) => Math.round(PixelRatio.roundToNearestPixel(value * SIZE_SCALE));
+
 export const DarkTheme = {
   // Background gradient
   bgDark: '#0F0C29',
@@ -76,12 +82,12 @@ export const LightTheme = {
 export const Colors = DarkTheme;
 
 export const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
+  xs: scaleSize(4),
+  sm: scaleSize(8),
+  md: scaleSize(16),
+  lg: scaleSize(24),
+  xl: scaleSize(32),
+  xxl: scaleSize(48),
 };
 
 export const BorderRadius = {
@@ -93,13 +99,13 @@ export const BorderRadius = {
 };
 
 export const FontSize = {
-  xs: 12,
-  sm: 14,
-  md: 16,
-  lg: 18,
-  xl: 24,
-  xxl: 32,
-  hero: 40,
+  xs: scaleSize(12),
+  sm: scaleSize(14),
+  md: scaleSize(16),
+  lg: scaleSize(18),
+  xl: scaleSize(24),
+  xxl: scaleSize(32),
+  hero: scaleSize(40),
 };
 
 export const GlassStyle = {

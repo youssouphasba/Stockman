@@ -3,7 +3,7 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform, Text, TextInput } from 'react-native';
 import PinScreen from './pin';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import OfflineBanner from '../components/OfflineBanner';
@@ -13,6 +13,16 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../services/i18n';
 import { getFirstAuthorizedShopkeeperRoute } from '../utils/accountRouting';
+
+const TEXT_SCALE_LIMIT = 1.12;
+(Text as any).defaultProps = {
+  ...((Text as any).defaultProps || {}),
+  maxFontSizeMultiplier: TEXT_SCALE_LIMIT,
+};
+(TextInput as any).defaultProps = {
+  ...((TextInput as any).defaultProps || {}),
+  maxFontSizeMultiplier: TEXT_SCALE_LIMIT,
+};
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, isSupplier, isSuperAdmin, isAppLocked, user } = useAuth();

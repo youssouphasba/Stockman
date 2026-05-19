@@ -6,6 +6,9 @@ import {
     TouchableOpacity,
     StyleSheet,
     TextInput,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +27,6 @@ export default function LineDiscountModal({
     visible,
     onClose,
     productName,
-    currentPrice,
     onApply,
 }: LineDiscountModalProps) {
     const { t } = useTranslation();
@@ -46,80 +48,88 @@ export default function LineDiscountModal({
 
     if (!visible) return null;
 
-
     return (
-        <Modal visible={visible} animationType="fade" transparent>
+        <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
             <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { backgroundColor: colors.bgMid }]}>
-                    <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.text }]}>{t('pos.apply_discount')}</Text>
-                        <TouchableOpacity onPress={onClose}>
-                            <Ionicons name="close" size={24} color={colors.text} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <Text style={[styles.productName, { color: colors.textMuted }]}>{productName}</Text>
-
-                    <View style={styles.typeSelector}>
-                        <TouchableOpacity
-                            style={[
-                                styles.typeBtn,
-                                { borderColor: colors.primary },
-                                discountType === 'percentage' && { backgroundColor: colors.primary }
-                            ]}
-                            onPress={() => setDiscountType('percentage')}
-                        >
-                            <Text style={[styles.typeText, discountType === 'percentage' && { color: '#fff' }]}>%</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[
-                                styles.typeBtn,
-                                { borderColor: colors.primary },
-                                discountType === 'fixed' && { backgroundColor: colors.primary }
-                            ]}
-                            onPress={() => setDiscountType('fixed')}
-                        >
-                            <Text style={[styles.typeText, discountType === 'fixed' && { color: '#fff' }]}>Σ</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <TextInput
-                        style={[styles.input, { color: colors.text, borderColor: colors.divider, backgroundColor: colors.bgDark }]}
-                        value={value}
-                        onChangeText={setValue}
-                        placeholder="0"
-                        placeholderTextColor={colors.textMuted}
-                        keyboardType="numeric"
-                        autoFocus
-                    />
-
-                    <View style={styles.quickValues}>
-                        {discountType === 'percentage' ? [5, 10, 15, 20].map(v => (
-                            <TouchableOpacity
-                                key={v}
-                                style={[styles.quickBtn, { backgroundColor: colors.bgLight }]}
-                                onPress={() => setValue(v.toString())}
-                            >
-                                <Text style={{ color: colors.text }}>{v}%</Text>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={styles.keyboardWrapper}
+                >
+                    <View style={[styles.modalContent, { backgroundColor: colors.bgMid }]}>
+                        <View style={styles.header}>
+                            <Text style={[styles.title, { color: colors.text }]}>{t('pos.apply_discount')}</Text>
+                            <TouchableOpacity onPress={onClose}>
+                                <Ionicons name="close" size={24} color={colors.text} />
                             </TouchableOpacity>
-                        )) : [500, 1000, 2000, 5000].map(v => (
-                            <TouchableOpacity
-                                key={v}
-                                style={[styles.quickBtn, { backgroundColor: colors.bgLight }]}
-                                onPress={() => setValue(v.toString())}
-                            >
-                                <Text style={{ color: colors.text }}>{v}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+                        </View>
 
-                    <TouchableOpacity
-                        style={[styles.applyBtn, { backgroundColor: colors.primary }]}
-                        onPress={handleApply}
-                    >
-                        <Text style={styles.applyBtnText}>{t('common.apply')}</Text>
-                    </TouchableOpacity>
-                </View>
+                        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                            <Text style={[styles.productName, { color: colors.textMuted }]} numberOfLines={2}>
+                                {productName}
+                            </Text>
+
+                            <View style={styles.typeSelector}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.typeBtn,
+                                        { borderColor: colors.primary },
+                                        discountType === 'percentage' && { backgroundColor: colors.primary },
+                                    ]}
+                                    onPress={() => setDiscountType('percentage')}
+                                >
+                                    <Text style={[styles.typeText, discountType === 'percentage' && { color: '#fff' }]}>%</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.typeBtn,
+                                        { borderColor: colors.primary },
+                                        discountType === 'fixed' && { backgroundColor: colors.primary },
+                                    ]}
+                                    onPress={() => setDiscountType('fixed')}
+                                >
+                                    <Text style={[styles.typeText, discountType === 'fixed' && { color: '#fff' }]}>FCFA</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <TextInput
+                                style={[styles.input, { color: colors.text, borderColor: colors.divider, backgroundColor: colors.bgDark }]}
+                                value={value}
+                                onChangeText={setValue}
+                                placeholder="0"
+                                placeholderTextColor={colors.textMuted}
+                                keyboardType="numeric"
+                                autoFocus
+                            />
+
+                            <View style={styles.quickValues}>
+                                {discountType === 'percentage' ? [5, 10, 15, 20].map((v) => (
+                                    <TouchableOpacity
+                                        key={v}
+                                        style={[styles.quickBtn, { backgroundColor: colors.bgLight }]}
+                                        onPress={() => setValue(v.toString())}
+                                    >
+                                        <Text style={{ color: colors.text }}>{v}%</Text>
+                                    </TouchableOpacity>
+                                )) : [500, 1000, 2000, 5000].map((v) => (
+                                    <TouchableOpacity
+                                        key={v}
+                                        style={[styles.quickBtn, { backgroundColor: colors.bgLight }]}
+                                        onPress={() => setValue(v.toString())}
+                                    >
+                                        <Text style={{ color: colors.text }}>{v}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <TouchableOpacity
+                                style={[styles.applyBtn, { backgroundColor: colors.primary }]}
+                                onPress={handleApply}
+                            >
+                                <Text style={styles.applyBtnText}>{t('common.apply')}</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </KeyboardAvoidingView>
             </View>
         </Modal>
     );
@@ -131,11 +141,16 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: Spacing.lg,
+        padding: Spacing.md,
+    },
+    keyboardWrapper: {
+        width: '100%',
+        alignItems: 'center',
     },
     modalContent: {
         width: '100%',
         maxWidth: 350,
+        maxHeight: '86%',
         borderRadius: BorderRadius.lg,
         padding: Spacing.lg,
     },

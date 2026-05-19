@@ -374,6 +374,7 @@ export default function OrderCreationModal({
       <View style={s.overlay}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
           style={s.modalWrapper}
         >
           <View style={s.modal}>
@@ -656,19 +657,19 @@ export default function OrderCreationModal({
 const getStyles = (colors: any, glassStyle: any) =>
   StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    modalWrapper: { maxHeight: '92%' },
+    modalWrapper: { width: '100%', maxHeight: '94%' },
     modal: {
       backgroundColor: colors.bgMid,
       borderTopLeftRadius: BorderRadius.xl,
       borderTopRightRadius: BorderRadius.xl,
-      paddingTop: Spacing.md,
+      paddingTop: Spacing.sm,
       paddingHorizontal: Spacing.md,
       height: '100%',
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: Spacing.sm,
+      marginBottom: Spacing.xs,
       gap: Spacing.sm,
     },
     headerTitle: { flex: 1, fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
@@ -695,7 +696,7 @@ const getStyles = (colors: any, glassStyle: any) =>
       alignItems: 'center',
       ...glassStyle,
       paddingHorizontal: Spacing.md,
-      paddingVertical: Spacing.sm,
+      paddingVertical: Spacing.xs,
       marginBottom: Spacing.sm,
     },
     searchInput: { flex: 1, color: colors.text, fontSize: FontSize.md, marginLeft: Spacing.sm },
@@ -707,7 +708,7 @@ const getStyles = (colors: any, glassStyle: any) =>
     supplierRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: Spacing.md,
+      paddingVertical: Spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: colors.divider,
       gap: Spacing.sm,
@@ -753,7 +754,7 @@ const getStyles = (colors: any, glassStyle: any) =>
     productRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: Spacing.sm,
+      paddingVertical: Spacing.xs,
       paddingHorizontal: Spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: colors.divider,
@@ -793,7 +794,7 @@ const getStyles = (colors: any, glassStyle: any) =>
       justifyContent: 'center',
       gap: Spacing.sm,
       backgroundColor: colors.primary,
-      paddingVertical: Spacing.md,
+      paddingVertical: Spacing.sm,
       borderRadius: BorderRadius.md,
     },
     footerBtnDisabled: { opacity: 0.4 },
