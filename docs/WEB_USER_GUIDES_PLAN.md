@@ -149,6 +149,7 @@ Le guide doit couvrir :
 - le panneau d'assistance ;
 - l'ouverture d'une conversation ;
 - le suivi d'un ticket ou échange ;
+- les confirmations par e-mail Stockman Support à la création du ticket, lors d'une réponse, au démarrage d'une assistance à distance et à la clôture ;
 - l'usage du chat IA et du chat humain si les deux sont visibles ;
 - les limites de chaque canal.
 
@@ -473,6 +474,7 @@ Le guide doit couvrir séparément chaque sous-section :
 - tickets ;
 - réponses ;
 - suivi ;
+- confirmations e-mail envoyées à l'utilisateur ;
 - priorisation.
 
 ### K. Diffusion

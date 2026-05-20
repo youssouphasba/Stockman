@@ -54,11 +54,22 @@ function recordApiPerf(sample: ApiPerfSample) {
     console.info(`[API PERF][WEB] ${sample.method} ${sample.endpoint} -> ${sample.status} in ${sample.duration_ms.toFixed(1)}ms`);
 }
 
-// Web auth is cookie-based; these helpers only clear legacy storage when needed.
-export const getToken = () => null;
-export const setToken = (_token: string) => {};
-export const getRefreshToken = () => null;
-export const setRefreshToken = (_token: string) => {};
+export const getToken = () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(TOKEN_KEY);
+};
+export const setToken = (token: string) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(TOKEN_KEY, token);
+};
+export const getRefreshToken = () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+};
+export const setRefreshToken = (token: string) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+};
 
 function shouldBypassOfflineCache(endpoint: string) {
     return NON_CACHEABLE_GET_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
@@ -215,14 +226,17 @@ let refreshPromise: Promise<boolean> | null = null;
 
 async function doRefresh(): Promise<boolean> {
     try {
+        const storedRefreshToken = getRefreshToken();
         const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}),
+            body: JSON.stringify(storedRefreshToken ? { refresh_token: storedRefreshToken } : {}),
         });
         if (refreshRes.ok) {
-            await refreshRes.json().catch(() => null);
+            const refreshed = await refreshRes.json().catch(() => null);
+            if (refreshed?.access_token) setToken(refreshed.access_token);
+            if (refreshed?.refresh_token) setRefreshToken(refreshed.refresh_token);
             return true;
         }
     } catch (refreshErr) {
@@ -260,6 +274,10 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
     const extraHeaders: Record<string, string> = {};
     if (method !== 'GET' && IDEMPOTENT_MUTATION_PREFIXES.some((p) => endpoint.startsWith(p))) {
         extraHeaders['X-Idempotency-Key'] = generateIdempotencyKey();
+    }
+    const bearerToken = getToken();
+    if (bearerToken && !endpoint.startsWith('/admin/')) {
+        extraHeaders.Authorization = `Bearer ${bearerToken}`;
     }
 
     const config: RequestInit = {
@@ -1608,11 +1626,16 @@ export type ProjectDashboard = {
 
 // Ported services (Subset for the MVP)
 export const auth = {
-    login: (email: string, password: string) =>
-        request<AuthResponse>('/auth/login', {
+    login: async (email: string, password: string) => {
+        removeToken();
+        const session = await request<AuthResponse>('/auth/login', {
             method: 'POST',
             body: { email, password },
-        }),
+        });
+        setToken(session.access_token);
+        if (session.refresh_token) setRefreshToken(session.refresh_token);
+        return session;
+    },
     me: () => request<User>('/auth/me'),
     updateProfile: (data: { name?: string; currency?: string; country_code?: string; business_type?: string }) =>
         request<any>('/auth/profile', { method: 'PUT', body: data }),
@@ -1627,9 +1650,22 @@ export const auth = {
         currency?: string;
         country_code?: string;
         signup_surface?: 'mobile' | 'web';
-    }) => request<AuthResponse>('/auth/register', { method: 'POST', body: data }),
-    socialLogin: (firebaseIdToken: string, signupSurface: 'mobile' | 'web' = 'web') =>
-        request<AuthResponse>('/auth/verify-social', { method: 'POST', body: { firebase_id_token: firebaseIdToken, signup_surface: signupSurface } }),
+    }) => {
+        removeToken();
+        return request<AuthResponse>('/auth/register', { method: 'POST', body: data }).then((session) => {
+            setToken(session.access_token);
+            if (session.refresh_token) setRefreshToken(session.refresh_token);
+            return session;
+        });
+    },
+    socialLogin: (firebaseIdToken: string, signupSurface: 'mobile' | 'web' = 'web') => {
+        removeToken();
+        return request<AuthResponse>('/auth/verify-social', { method: 'POST', body: { firebase_id_token: firebaseIdToken, signup_surface: signupSurface } }).then((session) => {
+            setToken(session.access_token);
+            if (session.refresh_token) setRefreshToken(session.refresh_token);
+            return session;
+        });
+    },
     completeSocialProfile: (data: {
         name?: string;
         country_code: string;
@@ -2765,7 +2801,7 @@ export const admin = {
     listTickets: (status?: string) => request<any[]>(`/admin/support/tickets${status ? `?status=${status}` : ''}`),
     replyTicket: (id: string, content: string) => request<any>(`/admin/support/tickets/${id}/reply`, { method: 'POST', body: { content } }),
     closeTicket: (id: string) => request<any>(`/admin/support/tickets/${id}/close`, { method: 'POST' }),
-    assistTicket: (id: string) => request<AuthResponse>(`/admin/support/tickets/${id}/assist`, { method: 'POST' }),
+    assistTicket: (id: string) => request<AuthResponse>(`/admin/support/tickets/${id}/assist`, { method: 'POST', headers: { 'X-Stockman-Assistance-Mode': 'bearer' } }),
     listLogs: (module?: string, skip = 0, limit = 100) => request<any[]>(`/admin/logs?${module ? `module=${module}&` : ''}skip=${skip}&limit=${limit}`),
     getUserLogs: (userId: string, limit = 50) => request<any[]>(`/admin/logs?user_id=${encodeURIComponent(userId)}&limit=${limit}`),
     getMrrStats: (months = 12) => request<any>(`/admin/stats/mrr?months=${months}`),

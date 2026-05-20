@@ -27,6 +27,7 @@ class NotificationService:
         self.resend_api_key = os.environ.get("RESEND_API_KEY", "")
         self.email_from = os.environ.get("RESEND_ALERTS_FROM_EMAIL", os.environ.get("RESEND_FROM_EMAIL", "Stockman <alertes@stockman.pro>"))
         self.communication_email_from = os.environ.get("RESEND_COMMUNICATION_FROM_EMAIL", os.environ.get("RESEND_FROM_EMAIL", "Stockman <contact@stockman.pro>"))
+        self.support_email_from = os.environ.get("RESEND_SUPPORT_FROM_EMAIL", os.environ.get("RESEND_FROM_EMAIL", "Stockman Support <support@stockman.pro>"))
 
     async def send_push_notification(
         self,

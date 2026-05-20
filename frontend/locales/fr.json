@@ -2077,7 +2077,7 @@
       "messageLabel": "Message",
       "messagePlaceholder": "Décrivez votre problème en détail...",
       "send": "Envoyer le message",
-      "success": "Ticket envoyé ! Notre équipe vous répondra bientôt.",
+      "success": "Ticket envoyé ! Vous recevrez aussi une confirmation par e-mail.",
       "error": "Erreur lors de l'envoi du ticket.",
       "newTicket": "Nouveau",
       "myTickets": "Mes tickets",
@@ -2095,7 +2095,7 @@
       "remoteDesc": "Créer une demande de prise en charge avec votre compte, votre plan et votre surface actuelle.",
       "remoteSubject": "Demande d'assistance à distance",
       "remoteMessage": "Demande d'assistance à distance.\nNom : {{name}}\nE-mail : {{email}}\nID utilisateur : {{id}}\nPlan : {{plan}}\nSurface : {{surface}}\nBesoin : accompagnement pour configuration ou diagnostic.",
-      "remoteSuccess": "Demande envoyée. Le support vous répondra avec les prochaines étapes."
+      "remoteSuccess": "Demande envoyée. Vous recevrez aussi une confirmation par e-mail."
     },
     "deleteAccount": {
       "dangerZone": "Zone de Danger ⚠️",

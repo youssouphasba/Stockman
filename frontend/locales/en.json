@@ -1864,7 +1864,7 @@
       "messageLabel": "Message",
       "messagePlaceholder": "Describe your problem in detail...",
       "send": "Send message",
-      "success": "Ticket sent! Our team will reply soon.",
+      "success": "Ticket sent! You will also receive an email confirmation.",
       "error": "Error sending ticket.",
       "newTicket": "New",
       "myTickets": "My tickets",
@@ -1882,7 +1882,7 @@
       "remoteDesc": "Create a support request with your account, plan and current surface.",
       "remoteSubject": "Remote assistance request",
       "remoteMessage": "Remote assistance request.\nName: {{name}}\nEmail: {{email}}\nUser ID: {{id}}\nPlan: {{plan}}\nSurface: {{surface}}\nNeed: configuration help or diagnosis.",
-      "remoteSuccess": "Request sent. Support will reply with the next steps."
+      "remoteSuccess": "Request sent. You will also receive an email confirmation."
     },
     "deleteAccount": {
       "dangerZone": "Danger Zone âš ï¸",

@@ -7,7 +7,7 @@ import {
     Lock, Unlock, Trash2, Crown, Clock, Package, Download, Filter,
     BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper, Brain
 } from 'lucide-react';
-import { admin as adminApi } from '../services/api';
+import { admin as adminApi, setRefreshToken, setToken } from '../services/api';
 import AdminProductsPanel from './admin/AdminProductsPanel';
 import AdminCatalogPanel from './admin/AdminCatalogPanel';
 
@@ -662,11 +662,13 @@ export default function AdminDashboard() {
         }
         setAssistingTicketId(ticket.ticket_id);
         try {
-            await adminApi.assistTicket(ticket.ticket_id);
+            const session = await adminApi.assistTicket(ticket.ticket_id);
+            setToken(session.access_token);
+            if (session.refresh_token) setRefreshToken(session.refresh_token);
             showToast(`Session ouverte pour ${ticket.user_name || ticket.user_email || 'cet utilisateur'}.`);
             window.location.href = '/';
-        } catch {
-            showToast("Impossible d'ouvrir la session d'assistance.", 'error');
+        } catch (error: any) {
+            showToast(error?.message || "Impossible d'ouvrir la session d'assistance.", 'error');
         } finally {
             setAssistingTicketId(null);
         }

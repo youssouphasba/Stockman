@@ -22,6 +22,7 @@ from jose import JWTError, jwt
 import json
 import csv
 import io
+import html
 import asyncio
 import base64
 import re
@@ -3946,13 +3947,12 @@ async def find_existing_non_demo_user_by_email(email: Optional[str]) -> Optional
 
 async def get_current_user(request: Request) -> Optional[User]:
 
-    # Try cookie first
-    token = request.cookies.get("session_token")
-    # Then try Authorization header
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
     if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
+        token = request.cookies.get("session_token")
 
     if not token:
         return None
@@ -5917,6 +5917,49 @@ async def test_push_notification(user: User = Depends(require_auth)):
 
 # ===================== USER SUPPORT ENDPOINT =====================
 
+def build_support_email_html(title: str, body: str, ticket_id: str, subject: Optional[str] = None) -> str:
+    safe_title = html.escape(title)
+    safe_body = html.escape(body).replace("\n", "<br>")
+    safe_ticket_id = html.escape(ticket_id)
+    safe_subject = html.escape(subject or "Support")
+    return f"""
+    <div style="font-family:Arial,sans-serif;background:#f6f8fb;padding:24px;color:#0f172a;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:18px;padding:28px;border:1px solid #e2e8f0;">
+        <p style="margin:0 0 8px;color:#059669;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Stockman Support</p>
+        <h2 style="margin:0 0 16px;font-size:24px;line-height:1.25;">{safe_title}</h2>
+        <p style="margin:0 0 18px;font-size:15px;line-height:1.65;color:#334155;">{safe_body}</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-top:18px;">
+          <p style="margin:0;color:#64748b;font-size:12px;">Référence du ticket</p>
+          <p style="margin:4px 0 0;font-weight:700;">{safe_ticket_id}</p>
+          <p style="margin:12px 0 0;color:#64748b;font-size:12px;">Sujet</p>
+          <p style="margin:4px 0 0;font-weight:700;">{safe_subject}</p>
+        </div>
+        <p style="margin:22px 0 0;color:#64748b;font-size:13px;line-height:1.5;">Vous pouvez suivre ce ticket dans Stockman, rubrique Réglages puis Support et incidents.</p>
+      </div>
+    </div>
+    """
+
+
+async def send_support_email(
+    recipient_email: Optional[str],
+    title: str,
+    body: str,
+    ticket_id: str,
+    subject: Optional[str] = None,
+):
+    if not recipient_email:
+        return
+    email_subject = f"Stockman Support - {title}"
+    text_body = f"{title}\n\n{body}\n\nRéférence du ticket : {ticket_id}\nSujet : {subject or 'Support'}"
+    await notification_service.send_email_notification(
+        [str(recipient_email)],
+        email_subject,
+        build_support_email_html(title, body, ticket_id, subject),
+        text_body=text_body,
+        from_email=getattr(notification_service, "support_email_from", None),
+    )
+
+
 @api_router.post("/support/tickets", response_model=SupportTicket)
 async def create_support_ticket(data: SupportTicketCreate, user: User = Depends(require_auth)):
     request_type = data.request_type or ("remote_assistance" if "assistance" in data.subject.lower() and "distance" in data.subject.lower() else "support")
@@ -5952,6 +5995,17 @@ async def create_support_ticket(data: SupportTicketCreate, user: User = Depends(
             )
     except Exception as e:
         logger.warning(f"Failed to notify admins of new ticket: {e}")
+
+    try:
+        await send_support_email(
+            user.email,
+            "Votre demande a bien été reçue",
+            "Notre équipe a reçu votre message. Un membre du support vous répondra depuis votre ticket.",
+            ticket.ticket_id,
+            ticket.subject,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send support confirmation email: {e}")
 
     return ticket
 
@@ -5992,6 +6046,16 @@ async def user_reply_ticket(ticket_id: str, reply: SupportReply, user: User = De
             )
     except Exception as e:
         logger.warning(f"Failed to notify admins of ticket reply: {e}")
+    try:
+        await send_support_email(
+            user.email,
+            "Votre réponse a été ajoutée",
+            "Votre message a bien été ajouté au ticket. L'équipe Stockman en sera informée.",
+            ticket_id,
+            ticket.get("subject"),
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send support reply confirmation email: {e}")
     result = await db.support_tickets.find_one({"ticket_id": ticket_id}, {"_id": 0})
     return SupportTicket(**result)
 
@@ -6692,7 +6756,6 @@ async def admin_reply_ticket(ticket_id: str, reply: SupportReply, user: User = D
     )
     result = await db.support_tickets.find_one({"ticket_id": ticket_id}, {"_id": 0})
 
-    # Notify the ticket owner via push + email
     try:
         ticket_owner_id = result.get("user_id")
         ticket_subject = result.get("subject", "Support")
@@ -6703,14 +6766,14 @@ async def admin_reply_ticket(ticket_id: str, reply: SupportReply, user: User = D
                 reply.content[:200],
                 {"type": "ticket_reply", "ticket_id": ticket_id}
             )
-            # Also send email
             owner_doc = await db.users.find_one({"user_id": ticket_owner_id}, {"email": 1})
-            if owner_doc and owner_doc.get("email"):
-                await notification_service.send_email_notification(
-                    [owner_doc["email"]],
-                    f"Stockman Support — {ticket_subject}",
-                    f"<h3>Réponse de l'équipe Stockman</h3><p>{reply.content}</p><p style='color:#666;font-size:12px;'>Connectez-vous à l'app pour répondre.</p>"
-                )
+            await send_support_email(
+                owner_doc.get("email") if owner_doc else result.get("user_email"),
+                "Réponse de l'équipe Stockman",
+                reply.content,
+                ticket_id,
+                ticket_subject,
+            )
     except Exception as e:
         logger.warning(f"Failed to notify user of admin reply: {e}")
 
@@ -6741,13 +6804,13 @@ async def admin_start_remote_assistance(
     target_doc = await db.users.find_one({"user_id": target_user_id}, {"_id": 0})
     if not target_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
-    if target_doc.get("role") == "superadmin":
-        raise HTTPException(status_code=403, detail="Accès refusé à ce compte")
+
+    bearer_assistance = request.headers.get("X-Stockman-Assistance-Mode") == "bearer"
 
     session_tokens = await create_authenticated_session(
         target_doc,
         request,
-        response,
+        None if bearer_assistance else response,
         session_label=f"remote_assistance:{ticket_id}:{admin.user_id}",
     )
     await db.user_sessions.update_one(
@@ -6795,6 +6858,23 @@ async def admin_start_remote_assistance(
             "support_surface": ticket.get("support_surface"),
         },
     )
+    try:
+        await notification_service.notify_user(
+            db,
+            target_user_id,
+            "Assistance Stockman démarrée",
+            "Une session d'assistance à distance a été ouverte sur votre demande.",
+            {"type": "support_assistance_started", "ticket_id": ticket_id},
+        )
+        await send_support_email(
+            target_doc.get("email") or ticket.get("user_email"),
+            "Assistance à distance démarrée",
+            "Une session d'assistance à distance a été ouverte par Stockman Support sur votre demande.",
+            ticket_id,
+            ticket.get("subject"),
+        )
+    except Exception as e:
+        logger.warning(f"Failed to notify user of remote assistance start: {e}")
     target_user = await build_user_from_doc(target_doc)
     return TokenResponse(
         access_token=session_tokens["access_token"],
@@ -6805,12 +6885,33 @@ async def admin_start_remote_assistance(
 @admin_router.post("/support/tickets/{ticket_id}/close")
 async def admin_close_ticket(ticket_id: str):
     """Close a support ticket"""
+    ticket = await db.support_tickets.find_one({"ticket_id": ticket_id}, {"_id": 0})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket non trouvé")
     result = await db.support_tickets.update_one(
         {"ticket_id": ticket_id},
         {"$set": {"status": "closed", "updated_at": datetime.now(timezone.utc)}}
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Ticket non trouvé")
+    try:
+        if ticket.get("user_id"):
+            await notification_service.notify_user(
+                db,
+                ticket.get("user_id"),
+                "Ticket clôturé",
+                "Votre ticket Stockman Support a été clôturé.",
+                {"type": "ticket_closed", "ticket_id": ticket_id},
+            )
+        await send_support_email(
+            ticket.get("user_email"),
+            "Votre ticket a été clôturé",
+            "Votre demande est maintenant clôturée. Si le problème revient, vous pouvez créer un nouveau ticket depuis Stockman.",
+            ticket_id,
+            ticket.get("subject"),
+        )
+    except Exception as e:
+        logger.warning(f"Failed to notify user of ticket close: {e}")
     return {"message": "Ticket fermé"}
 
 @admin_router.get("/stats/detailed")
