@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,6 +24,7 @@ import { ApiError } from '../../services/api';
 import { COUNTRIES, Country } from '../../constants/countries';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { getFlagFromCountryCode } from '../../utils/flags';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
 type SignupStep = 'role' | 'details' | 'business';
 type SignupRole = 'shopkeeper' | 'supplier';
@@ -61,7 +62,9 @@ export default function RegisterScreen() {
   const { register } = useAuth();
   const { colors, glassStyle, isDark, setTheme } = useTheme();
   const router = useRouter();
-  const styles = useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
+  const { width, height } = useWindowDimensions();
+  const compact = width < 390 || height < 760;
+  const styles = useMemo(() => createStyles(colors, glassStyle, compact), [colors, glassStyle, compact]);
   const authText = {
     title: t('auth.register.title', 'Créer un compte'),
     chooseProfile: t('auth.register.chooseProfile', 'Choisissez votre profil'),
@@ -221,7 +224,7 @@ export default function RegisterScreen() {
             <View style={styles.iconCircle}>
               <Ionicons name="person-add" size={36} color={colors.primary} />
             </View>
-            <Text style={styles.title}>{authText.title}</Text>
+            <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>{authText.title}</Text>
             <Text style={styles.subtitle}>
               {step === 'role'
                 ? authText.chooseProfile
@@ -244,8 +247,8 @@ export default function RegisterScreen() {
                   <Ionicons name="storefront-outline" size={30} color={colors.primary} />
                 </View>
                 <View style={styles.roleInfo}>
-                  <Text style={styles.roleTitle}>{authText.shopkeeper}</Text>
-                  <Text style={styles.roleDesc}>{authText.shopkeeperDesc}</Text>
+                  <Text style={styles.roleTitle} numberOfLines={1} adjustsFontSizeToFit>{authText.shopkeeper}</Text>
+                  <Text style={styles.roleDesc} numberOfLines={2} ellipsizeMode="tail">{authText.shopkeeperDesc}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color={colors.textMuted} />
               </TouchableOpacity>
@@ -261,8 +264,8 @@ export default function RegisterScreen() {
                   <Ionicons name="cube-outline" size={30} color={colors.secondary} />
                 </View>
                 <View style={styles.roleInfo}>
-                  <Text style={styles.roleTitle}>{authText.supplier}</Text>
-                  <Text style={styles.roleDesc}>{authText.supplierDesc}</Text>
+                  <Text style={styles.roleTitle} numberOfLines={1} adjustsFontSizeToFit>{authText.supplier}</Text>
+                  <Text style={styles.roleDesc} numberOfLines={2} ellipsizeMode="tail">{authText.supplierDesc}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color={colors.textMuted} />
               </TouchableOpacity>
@@ -313,7 +316,7 @@ export default function RegisterScreen() {
                   <Field label={authText.countryCurrency} styles={styles}>
                     <TouchableOpacity style={styles.selector} onPress={() => setShowCountryModal(true)}>
                       <Text style={styles.selectorFlag}>{getCountryFlag(selectedCountry)}</Text>
-                      <Text style={styles.selectorValue}>{selectedCountry.name}</Text>
+                      <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">{selectedCountry.name}</Text>
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{selectedCountry.currency}</Text>
                       </View>
@@ -425,7 +428,7 @@ export default function RegisterScreen() {
                           size={18}
                           color={colors.primary}
                         />
-                        <Text style={styles.selectorValue}>
+                        <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
                           {selectedSector?.label || authText.selectBusinessType}
                         </Text>
                       </View>
@@ -632,8 +635,14 @@ function SelectionModal<T>({
 }) {
   if (!visible) return null;
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+    <KeyboardAwareModal
+      visible={visible}
+      onClose={onClose}
+      backgroundColor={colors.card}
+      borderColor={colors.border}
+      maxHeightRatio={0.86}
+      scroll={false}
+    >
         <View style={styles.modalCard}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{title}</Text>
@@ -660,16 +669,15 @@ function SelectionModal<T>({
             keyboardShouldPersistTaps="handled"
           />
         </View>
-      </View>
-    </Modal>
+    </KeyboardAwareModal>
   );
 }
 
-const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
+const createStyles = (colors: any, glassStyle: any, compact: boolean) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
-  scroll: { padding: Spacing.lg, paddingTop: 72, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: Spacing.lg },
+  scroll: { padding: compact ? Spacing.md : Spacing.lg, paddingTop: compact ? 54 : 72, paddingBottom: 40 },
+  header: { alignItems: 'center', marginBottom: compact ? Spacing.md : Spacing.lg },
   themeBtn: {
     position: 'absolute',
     right: 0,
@@ -685,9 +693,9 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     zIndex: 2,
   },
   iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: compact ? 58 : 72,
+    height: compact ? 58 : 72,
+    borderRadius: compact ? 29 : 36,
     backgroundColor: colors.glass,
     borderWidth: 1,
     borderColor: colors.glassBorder,
@@ -695,17 +703,17 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  title: { fontSize: 28, fontWeight: '800', color: colors.text, textAlign: 'center', marginBottom: 8 },
+  title: { fontSize: compact ? 24 : 28, fontWeight: '800', color: colors.text, textAlign: 'center', marginBottom: 8 },
   subtitle: { fontSize: FontSize.md, color: colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   card: {
     ...glassStyle,
     borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
+    padding: compact ? Spacing.md : Spacing.lg,
   },
   roleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: compact ? 12 : 16,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.glassBorder,
@@ -713,9 +721,9 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     marginBottom: 14,
   },
   roleCardActive: { borderColor: colors.primary, backgroundColor: `${colors.primary}12` },
-  roleIcon: { width: 54, height: 54, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
-  roleInfo: { flex: 1 },
-  roleTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 4 },
+  roleIcon: { width: compact ? 46 : 54, height: compact ? 46 : 54, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: compact ? 10 : 14 },
+  roleInfo: { flex: 1, minWidth: 0 },
+  roleTitle: { fontSize: compact ? 16 : 18, fontWeight: '700', color: colors.text, marginBottom: 4 },
   roleDesc: { fontSize: FontSize.sm, color: colors.textMuted, lineHeight: 18 },
   backRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
   backText: { color: colors.primary, fontWeight: '700', marginLeft: 6 },
@@ -744,7 +752,7 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     paddingHorizontal: 14,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, color: colors.text, fontSize: FontSize.md, paddingVertical: 14 },
+  input: { flex: 1, minWidth: 0, color: colors.text, fontSize: FontSize.md, paddingVertical: 14 },
   inputPassword: { paddingRight: 36 },
   eyeButton: { paddingLeft: 8 },
   selector: {
@@ -759,7 +767,7 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   selectorLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
   selectorFlag: { fontSize: 22, marginRight: 10 },
-  selectorValue: { flex: 1, color: colors.text, fontSize: FontSize.md },
+  selectorValue: { flex: 1, minWidth: 0, color: colors.text, fontSize: FontSize.md },
   badge: {
     backgroundColor: `${colors.primary}20`,
     borderRadius: 999,
@@ -775,7 +783,7 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     borderRightColor: colors.border,
   },
   dialCodeText: { color: colors.text, fontWeight: '700' },
-  inputWithPrefix: { flex: 1, color: colors.text, fontSize: FontSize.md, paddingVertical: 14 },
+  inputWithPrefix: { flex: 1, minWidth: 0, color: colors.text, fontSize: FontSize.md, paddingVertical: 14 },
   checkRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   checkText: { color: colors.textSecondary, marginLeft: 10, flex: 1, lineHeight: 20 },
   legalLink: { color: colors.primary, fontWeight: '700' },
@@ -808,17 +816,8 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   footer: { marginTop: 20, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
   footerText: { color: colors.textMuted },
   footerLink: { color: colors.primary, fontWeight: '700' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(2,6,23,0.72)',
-    justifyContent: 'flex-end',
-  },
   modalCard: {
-    maxHeight: '80%',
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 16,
+    flex: 1,
   },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   modalTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },

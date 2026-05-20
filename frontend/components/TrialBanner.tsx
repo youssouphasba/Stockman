@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -34,6 +34,8 @@ export default function TrialBanner() {
     const { user } = useAuth();
     const { isDark } = useTheme();
     const insets = useSafeAreaInsets();
+    const { width } = useWindowDimensions();
+    const compact = width < 390;
     const [remainingDays, setRemainingDays] = useState<number | null>(null);
     const [isTrial, setIsTrial] = useState(false);
     const [isDemo, setIsDemo] = useState(false);
@@ -84,12 +86,12 @@ export default function TrialBanner() {
 
         return (
             <TouchableOpacity
-                style={[styles.banner, { backgroundColor: bg, paddingTop: insets.top + 4 }]}
+                style={[styles.banner, compact && styles.bannerCompact, { backgroundColor: bg, paddingTop: insets.top + 4 }]}
                 onPress={() => router.push('/subscription')}
                 activeOpacity={0.85}
             >
                 <Ionicons name={icon as any} size={16} color={text} />
-                <Text style={[styles.label, { color: text }]} numberOfLines={1}>
+                <Text style={[styles.label, compact && styles.labelCompact, { color: text }]} numberOfLines={1} ellipsizeMode="tail">
                     {t('trial.demo_active', { type: demoLabel, date: formatDate(demoExpiresAt) })}
                 </Text>
                 <Ionicons name="chevron-forward" size={14} color={text} style={{ opacity: 0.7 }} />
@@ -108,12 +110,12 @@ export default function TrialBanner() {
 
     return (
         <TouchableOpacity
-            style={[styles.banner, { backgroundColor: bg, paddingTop: insets.top + 4 }]}
+            style={[styles.banner, compact && styles.bannerCompact, { backgroundColor: bg, paddingTop: insets.top + 4 }]}
             onPress={() => router.push('/subscription')}
             activeOpacity={0.85}
         >
             <Ionicons name={icon as any} size={16} color={text} />
-            <Text style={[styles.label, { color: text }]} numberOfLines={1}>{label}</Text>
+            <Text style={[styles.label, compact && styles.labelCompact, { color: text }]} numberOfLines={1} ellipsizeMode="tail">{label}</Text>
             <Ionicons name="chevron-forward" size={14} color={text} style={{ opacity: 0.7 }} />
         </TouchableOpacity>
     );
@@ -128,10 +130,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         gap: 8,
     },
+    bannerCompact: {
+        paddingHorizontal: 10,
+        gap: 6,
+    },
     label: {
         fontSize: 12,
         fontWeight: '600',
         flex: 1,
         textAlign: 'center',
+    },
+    labelCompact: {
+        fontSize: 11,
     },
 });

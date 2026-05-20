@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import {
     products as productsApi,
     sales as salesApi,
@@ -1430,22 +1431,22 @@ export default function POSScreen() {
                                         disabled={requiresFinishedStock(product) && product.quantity === 0}
                                     >
                                         <View style={[styles.stockBadge, { backgroundColor: requiresFinishedStock(product) ? (product.quantity === 0 ? colors.danger : colors.success) : colors.info }]}>
-                                            <Text style={styles.stockText}>
+                                            <Text style={styles.stockText} numberOfLines={1} ellipsizeMode="tail">
                                                 {requiresFinishedStock(product)
                                                     ? formatMeasurementQuantity(product.quantity, product.display_unit || product.unit)
                                                     : t('pos.cmd_prefix')}
                                             </Text>
                                         </View>
-                                        <Text style={styles.productName} numberOfLines={3}>{product.name}</Text>
+                                        <Text style={styles.productName} numberOfLines={2} ellipsizeMode="tail">{product.name}</Text>
                                         {getProductQuantityInCart(product.product_id) > 0 && (
                                             <View style={styles.productInCartBadge}>
-                                                <Text style={styles.productInCartBadgeText}>x{formatNumber(getProductQuantityInCart(product.product_id))} dans le panier</Text>
+                                                <Text style={styles.productInCartBadgeText} numberOfLines={1} ellipsizeMode="tail">x{formatNumber(getProductQuantityInCart(product.product_id))} dans le panier</Text>
                                             </View>
                                         )}
                                         {restaurantMode && (
                                             <>
                                                 <View style={[styles.modeBadge, { backgroundColor: getProductionModeColor(product) + '20' }]}>
-                                                    <Text style={[styles.modeBadgeText, { color: getProductionModeColor(product) }]}>
+                                                    <Text style={[styles.modeBadgeText, { color: getProductionModeColor(product) }]} numberOfLines={1} ellipsizeMode="tail">
                                                         {getProductionModeLabel(product)}
                                                     </Text>
                                                 </View>
@@ -1454,7 +1455,7 @@ export default function POSScreen() {
                                                 </Text>
                                             </>
                                         )}
-                                        <Text style={styles.productPrice}>
+                                        <Text style={styles.productPrice} numberOfLines={1} ellipsizeMode="tail">
                                             {formatUserCurrency(product.selling_price, user)}
                                             {isWeightedProduct(product) ? ` / ${formatMeasurementQuantity(1, product.pricing_unit || product.unit).split(' ')[1]}` : ''}
                                         </Text>
@@ -1627,21 +1628,21 @@ export default function POSScreen() {
                                     onPress={() => setShowProductList(true)}
                                 >
                                     <Ionicons name="grid" size={20} color="#fff" />
-                                    <Text style={styles.mobileFloatingActionText}>{t('pos.products_btn', 'Produits')}</Text>
+                                    <Text style={styles.mobileFloatingActionText} numberOfLines={1} ellipsizeMode="tail">{t('pos.products_btn', 'Produits')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.mobileFloatingAction, { backgroundColor: colors.info }]}
                                     onPress={() => setIsScannerVisible(true)}
                                 >
                                     <Ionicons name="barcode" size={18} color="#fff" />
-                                    <Text style={styles.mobileFloatingActionText}>{t('pos.scanner_btn', 'Scanner')}</Text>
+                                    <Text style={styles.mobileFloatingActionText} numberOfLines={1} ellipsizeMode="tail">{t('pos.scanner_btn', 'Scanner')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.mobileFloatingAction, { backgroundColor: colors.secondary }]}
                                     onPress={startVoiceRecording}
                                 >
                                     <Ionicons name="mic" size={18} color="#fff" />
-                                    <Text style={styles.mobileFloatingActionText}>{t('pos.voice_btn', 'Vocal')}</Text>
+                                    <Text style={styles.mobileFloatingActionText} numberOfLines={1} ellipsizeMode="tail">{t('pos.voice_btn', 'Vocal')}</Text>
                                 </TouchableOpacity>
                             </View>
                             <View style={[styles.checkoutBar, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
@@ -1676,9 +1677,13 @@ export default function POSScreen() {
                 />
             )}
 
-            {showWeightedModal && <Modal visible={showWeightedModal} animationType="slide" transparent onRequestClose={closeWeightedModal}>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+            {showWeightedModal && <KeyboardAwareModal
+                visible={showWeightedModal}
+                onClose={closeWeightedModal}
+                backgroundColor={colors.bgMid}
+                borderColor={colors.glassBorder}
+                maxHeightRatio={0.82}
+            >
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Quantité à vendre</Text>
                             <TouchableOpacity onPress={closeWeightedModal}>
@@ -1768,9 +1773,7 @@ export default function POSScreen() {
                                 </TouchableOpacity>
                             </>
                         )}
-                    </View>
-                </View>
-            </Modal>}
+            </KeyboardAwareModal>}
 
             <DigitalReceiptModal
                 visible={showReceiptModal}
@@ -1900,9 +1903,13 @@ export default function POSScreen() {
                 </Modal>
             )}
 
-            {showCustomerModal && <Modal visible={showCustomerModal} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+            {showCustomerModal && <KeyboardAwareModal
+                visible={showCustomerModal}
+                onClose={() => setShowCustomerModal(false)}
+                backgroundColor={colors.bgMid}
+                borderColor={colors.glassBorder}
+                maxHeightRatio={0.72}
+            >
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{t('pos.new_customer_title')}</Text>
                             <TouchableOpacity onPress={() => setShowCustomerModal(false)}>
@@ -1933,9 +1940,7 @@ export default function POSScreen() {
                         <TouchableOpacity style={styles.createBtn} onPress={handleCreateCustomer} disabled={createCustomerLoading}>
                             {createCustomerLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.createBtnText}>{t('pos.create_customer_btn')}</Text>}
                         </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>}
+            </KeyboardAwareModal>}
 
             {showTableModal && <Modal visible={showTableModal} animationType="slide" transparent>
                 <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
@@ -2070,13 +2075,14 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     },
     mobileFloatingAction: {
         flex: 1,
+        minWidth: 0,
         minHeight: 42,
         borderRadius: BorderRadius.full,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 6,
-        paddingHorizontal: 10,
+        gap: 5,
+        paddingHorizontal: 8,
         elevation: 3,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -2085,8 +2091,10 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     },
     mobileFloatingActionText: {
         color: '#fff',
-        fontSize: 11,
+        flexShrink: 1,
+        fontSize: isMobile ? 10 : 11,
         fontWeight: '800',
+        textAlign: 'center',
     },
     rightPanel: {
         flex: 1,
@@ -2120,6 +2128,7 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     },
     customerSearchInput: {
         flex: 1,
+        minWidth: 0,
         marginLeft: Spacing.sm,
         paddingHorizontal: 10,
         paddingVertical: 4,
@@ -2127,7 +2136,6 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         color: colors.text,
         backgroundColor: colors.glass,
         borderRadius: 12,
-        maxWidth: 140,
     },
     customerScroll: {
         marginTop: 2,
@@ -2165,18 +2173,21 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         borderRadius: BorderRadius.md,
         position: 'relative',
         minHeight: isMobile ? 96 : undefined,
+        overflow: 'hidden',
     },
     productName: {
         color: colors.text,
         fontSize: isMobile ? FontSize.md : FontSize.sm,
         fontWeight: '700',
         marginBottom: 4,
-        paddingRight: isMobile ? 84 : 0,
+        paddingRight: isMobile ? 96 : 0,
+        flexShrink: 1,
     },
     productPrice: {
         color: colors.primary,
         fontSize: FontSize.md,
         fontWeight: '800',
+        maxWidth: '100%',
     },
     stockBadge: {
         position: 'absolute',
@@ -2186,11 +2197,13 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         paddingVertical: 2,
         borderRadius: 4,
         zIndex: 1,
+        maxWidth: 92,
     },
     stockText: {
         color: '#fff',
         fontSize: 10,
         fontWeight: '700',
+        textAlign: 'center',
     },
     productInCartBadge: {
         alignSelf: 'flex-start',
@@ -2207,6 +2220,7 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         color: colors.success,
         fontSize: 11,
         fontWeight: '800',
+        maxWidth: 180,
     },
 
     searchContainer: {
@@ -2253,10 +2267,12 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         paddingVertical: 4,
         borderRadius: 999,
         marginTop: 6,
+        maxWidth: '100%',
     },
     modeBadgeText: {
         fontSize: 10,
         fontWeight: '700',
+        maxWidth: '100%',
     },
     productMetaText: {
         color: colors.textMuted,

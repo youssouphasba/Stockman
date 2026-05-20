@@ -7,7 +7,11 @@ import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
-export default function StoreSelector() {
+type StoreSelectorProps = {
+    compact?: boolean;
+};
+
+export default function StoreSelector({ compact = false }: StoreSelectorProps) {
     const { t } = useTranslation();
     const { colors, glassStyle } = useTheme();
     const { user, switchStore, isLoading: authLoading } = useAuth();
@@ -68,7 +72,7 @@ export default function StoreSelector() {
     }
 
     const activeStore = stores.find(s => s.store_id === user?.active_store_id) || { name: t('store_selector.default_name') };
-    const styles = createStyles(colors, glassStyle);
+    const styles = createStyles(colors, glassStyle, compact);
 
     if (!user || user.role !== 'shopkeeper') return null;
 
@@ -78,9 +82,9 @@ export default function StoreSelector() {
                 style={styles.selectorBtn}
                 onPress={() => setShowModal(true)}
             >
-                <Ionicons name="storefront-outline" size={20} color={colors.text} />
-                <Text style={styles.selectorText} numberOfLines={1}>{activeStore.name}</Text>
-                <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+                <Ionicons name="storefront-outline" size={compact ? 19 : 20} color={colors.text} />
+                {!compact && <Text style={styles.selectorText} numberOfLines={1} ellipsizeMode="tail">{activeStore.name}</Text>}
+                <Ionicons name="chevron-down" size={compact ? 14 : 16} color={colors.textMuted} />
             </TouchableOpacity>
 
             {showModal && <Modal visible={showModal} transparent animationType="fade">
@@ -161,17 +165,18 @@ export default function StoreSelector() {
     );
 }
 
-const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
+const createStyles = (colors: any, glassStyle: any, compact: boolean) => StyleSheet.create({
     selectorBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.glass,
-        paddingHorizontal: Spacing.sm,
+        paddingHorizontal: compact ? 8 : Spacing.sm,
         paddingVertical: 6,
         borderRadius: BorderRadius.full,
         borderWidth: 1,
         borderColor: colors.glassBorder,
-        maxWidth: 200,
+        maxWidth: compact ? 58 : 200,
+        minWidth: compact ? 50 : 0,
     },
     selectorText: {
         color: colors.text,

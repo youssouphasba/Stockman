@@ -67,6 +67,7 @@ import KpiInfoButton from '../../components/KpiInfoButton';
 import { useDrawer } from '../../contexts/DrawerContext';
 import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 import type { DrawerItem } from '../../components/DrawerMenu';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
 // screenWidth is now read via useWindowDimensions() inside the component
 
@@ -98,11 +99,13 @@ function KpiCard({ icon, label, value, color, isCurrency = false, info, user, co
           value={numericValue}
           style={[styles.kpiValue, { color: colors.text }]}
           suffix={isCurrency ? ` ${getCurrencySymbol(user?.currency)}` : ''}
+          numberOfLines={1}
+          adjustsFontSizeToFit
         />
       ) : (
-        <Text style={[styles.kpiValue, { color: colors.text }]}>{value}</Text>
+        <Text style={[styles.kpiValue, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       )}
-      <Text style={[styles.kpiLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.kpiLabel, { color: colors.textSecondary }]} numberOfLines={2} ellipsizeMode="tail">{label}</Text>
     </View>
   );
 }
@@ -1669,19 +1672,19 @@ export default function DashboardScreen() {
         <View style={{ height: Spacing.xl }} />
       </ScrollView>
 
-      <Modal
+      <KeyboardAwareModal
         visible={showInventoryCountModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => {
+        onClose={() => {
           if (inventoryCountSubmitting) return;
           setShowInventoryCountModal(false);
           setInventoryTaskToCount(null);
           setInventoryActualQty('');
         }}
+        backgroundColor={colors.bgMid}
+        borderColor={colors.glassBorder}
+        maxHeightRatio={0.72}
+        align="center"
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '55%' }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('dashboard.count_stock')}</Text>
               <TouchableOpacity
@@ -1730,9 +1733,7 @@ export default function DashboardScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
+      </KeyboardAwareModal>
 
       {/* History Modal */}
       {showHistoryModal && <Modal visible={showHistoryModal} animationType="slide" transparent onRequestClose={() => setShowHistoryModal(false)}>
@@ -2182,8 +2183,8 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => S
     marginBottom: Spacing.xs,
   },
   kpiIcon: { width: 48, height: 48, borderRadius: BorderRadius.full, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.sm },
-  kpiValue: { fontSize: FontSize.xl, fontWeight: 'bold', color: colors.text, marginBottom: Spacing.xs },
-  kpiLabel: { fontSize: FontSize.xs, color: colors.textSecondary, textAlign: 'center' },
+  kpiValue: { fontSize: FontSize.xl, fontWeight: 'bold', color: colors.text, marginBottom: Spacing.xs, maxWidth: '100%', textAlign: 'center' },
+  kpiLabel: { fontSize: FontSize.xs, color: colors.textSecondary, textAlign: 'center', maxWidth: '100%' },
   sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text, marginBottom: Spacing.md },
   reportMetricCard: { padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: colors.glass },
   reportMetricValue: { fontSize: 22, fontWeight: '800' },

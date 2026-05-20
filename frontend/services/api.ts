@@ -115,16 +115,20 @@ const generateIdempotencyKey = () =>
 const IDEMPOTENT_MUTATION_PREFIXES = ['/sales', '/payments', '/stock/movement', '/stock/transfer', '/orders'];
 
 // Cached network state — updated by event listener, avoids async NetInfo.fetch() on every request
-let _cachedOnline = false;
+let _cachedOnline = true;
+let _onlineStateKnown = false;
 NetInfo.addEventListener(state => {
+  _onlineStateKnown = true;
   _cachedOnline = !!state.isConnected && !!state.isInternetReachable;
 });
 // Initialize once
 NetInfo.fetch().then(state => {
+  _onlineStateKnown = true;
   _cachedOnline = !!state.isConnected && !!state.isInternetReachable;
 });
 
 function isOnline(): boolean {
+  if (!_onlineStateKnown) return true;
   return _cachedOnline;
 }
 

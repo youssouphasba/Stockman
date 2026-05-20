@@ -43,6 +43,7 @@ import KpiInfoButton from '../../components/KpiInfoButton';
 import { formatCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
 import PremiumGate from '../../components/PremiumGate';
 import { getPendingDebtEntries, mergeCustomersOfflineState } from '../../services/offlineState';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import { useDrawer } from '../../contexts/DrawerContext';
 
 
@@ -1095,9 +1096,14 @@ export default function CRMScreen() {
                 </ScrollView>
 
                 {/* Customer Create/Edit Modal */}
-                {showCustomerModal && <Modal visible={showCustomerModal} animationType="slide" transparent onRequestClose={requestCloseCustomerModal}>
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
+                {showCustomerModal && <KeyboardAwareModal
+                    visible={showCustomerModal}
+                    onClose={requestCloseCustomerModal}
+                    backgroundColor={colors.bgMid}
+                    borderColor={colors.glassBorder}
+                    maxHeightRatio={0.9}
+                    scroll={false}
+                >
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{editingCustomer ? t('crm.edit_customer') : t('crm.new_customer')}</Text>
                                 <TouchableOpacity onPress={requestCloseCustomerModal}>
@@ -1105,7 +1111,7 @@ export default function CRMScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            <ScrollView>
+                            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                                 <Text style={styles.formLabel}>{t('common.name')} *</Text>
                                 <TextInput
                                     style={styles.formInput}
@@ -1176,9 +1182,7 @@ export default function CRMScreen() {
                                     )}
                                 </TouchableOpacity>
                             </ScrollView>
-                        </View>
-                    </View>
-                </Modal>}
+                </KeyboardAwareModal>}
 
                 {/* Customer Detail Modal (with tabs) */}
                 {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
@@ -1639,9 +1643,14 @@ export default function CRMScreen() {
                 </Modal>}
 
                 {/* Promotion Create/Edit Modal */}
-                {showPromoModal && <Modal visible={showPromoModal} animationType="slide" transparent onRequestClose={requestClosePromoModal}>
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
+                {showPromoModal && <KeyboardAwareModal
+                    visible={showPromoModal}
+                    onClose={requestClosePromoModal}
+                    backgroundColor={colors.bgMid}
+                    borderColor={colors.glassBorder}
+                    maxHeightRatio={0.86}
+                    scroll={false}
+                >
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{editingPromo ? t('crm.edit_promotion') : t('crm.new_promotion')}</Text>
                                 <TouchableOpacity onPress={requestClosePromoModal}>
@@ -1649,7 +1658,7 @@ export default function CRMScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            <ScrollView>
+                            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                                 <Text style={styles.formLabel}>{t('crm.promo_title')} *</Text>
                                 <TextInput
                                     style={styles.formInput}
@@ -1719,14 +1728,17 @@ export default function CRMScreen() {
                                     )}
                                 </TouchableOpacity>
                             </ScrollView>
-                        </View>
-                    </View>
-                </Modal>}
+                </KeyboardAwareModal>}
 
                 {/* Campaign Modal */}
-                {showCampaignModal && <Modal visible={showCampaignModal} animationType="slide" transparent onRequestClose={requestCloseCampaignModal}>
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
+                {showCampaignModal && <KeyboardAwareModal
+                    visible={showCampaignModal}
+                    onClose={requestCloseCampaignModal}
+                    backgroundColor={colors.bgMid}
+                    borderColor={colors.glassBorder}
+                    maxHeightRatio={0.9}
+                    scroll={false}
+                >
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{t('crm.whatsapp_campaign_title')}</Text>
                                 <TouchableOpacity onPress={requestCloseCampaignModal}>
@@ -1734,7 +1746,7 @@ export default function CRMScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            <ScrollView keyboardShouldPersistTaps="always">
+                            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                                 <Text style={styles.formLabel}>{t('crm.target_audience')}</Text>
                                 <View style={styles.categoryRow}>
                                     {(['tous', 'bronze', 'argent', 'or', 'platine'] as const).map(tier => (
@@ -1845,14 +1857,17 @@ export default function CRMScreen() {
                                     )}
                                 </TouchableOpacity>
                             </ScrollView>
-                        </View>
-                    </View>
-                </Modal>}
+                </KeyboardAwareModal>}
 
                 {/* Payment Modal */}
-                {showPaymentModal && <Modal visible={showPaymentModal} animationType="slide" transparent onRequestClose={requestClosePaymentModal}>
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
+                {showPaymentModal && <KeyboardAwareModal
+                    visible={showPaymentModal}
+                    onClose={requestClosePaymentModal}
+                    backgroundColor={colors.bgMid}
+                    borderColor={colors.glassBorder}
+                    maxHeightRatio={0.86}
+                    scroll={false}
+                >
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>
                                     {paymentType === 'payment' ? t('crm.record_payment') : t('crm.add_debt')}
@@ -1862,7 +1877,7 @@ export default function CRMScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            <ScrollView keyboardShouldPersistTaps="always">
+                            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                                 {/* Payment Type Selector */}
                                 <View style={{ flexDirection: 'row', marginBottom: Spacing.md, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: BorderRadius.md, padding: 4 }}>
                                     <TouchableOpacity
@@ -1941,9 +1956,7 @@ export default function CRMScreen() {
                                     )}
                                 </TouchableOpacity>
                             </ScrollView>
-                        </View>
-                    </View>
-                </Modal>}
+                </KeyboardAwareModal>}
             </LinearGradient>
         </PremiumGate>
     );

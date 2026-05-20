@@ -46,6 +46,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useDrawer } from '../../contexts/DrawerContext';
 import { Linking } from 'react-native';
 import OrderCreationModal from '../../components/OrderCreationModal';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import ChatModal from '../../components/ChatModal';
 import PremiumGate from '../../components/PremiumGate';
 import { useAuth } from '../../contexts/AuthContext';
@@ -1509,9 +1510,14 @@ export default function SuppliersScreen() {
         </ScrollView>
 
         {/* Add/Edit Supplier Modal */}
-        {showFormModal && <Modal visible={showFormModal} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+        {showFormModal && <KeyboardAwareModal
+          visible={showFormModal}
+          onClose={() => setShowFormModal(false)}
+          backgroundColor={colors.bgMid}
+          borderColor={colors.glassBorder}
+          maxHeightRatio={0.9}
+          scroll={false}
+        >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
                   {editingSupplier ? t('suppliers.edit_supplier') : t('suppliers.new_supplier')}
@@ -1520,7 +1526,7 @@ export default function SuppliersScreen() {
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
-              <ScrollView style={styles.modalScroll}>
+              <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 <FormField label={t('suppliers.form_name')} value={formName} onChangeText={setFormName} placeholder={t('suppliers.form_name_placeholder')} colors={colors} styles={styles} />
                 <FormField label={t('suppliers.form_contact')} value={formContactName} onChangeText={setFormContactName} placeholder={t('suppliers.form_contact_placeholder')} colors={colors} styles={styles} />
                 <FormField label={t('suppliers.form_phone')} value={formPhone} onChangeText={setFormPhone} placeholder={t('suppliers.form_phone_placeholder')} keyboardType="numeric" colors={colors} styles={styles} />
@@ -1544,9 +1550,7 @@ export default function SuppliersScreen() {
                   )}
                 </TouchableOpacity>
               </ScrollView>
-            </View>
-          </View>
-        </Modal>}
+        </KeyboardAwareModal>}
 
         {/* Detail Modal */}
         {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>

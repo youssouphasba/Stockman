@@ -41,6 +41,7 @@ import {
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import ScreenGuide from '../../components/ScreenGuide';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
 import OrderCreationModal from '../../components/OrderCreationModal';
@@ -1631,9 +1632,14 @@ export default function OrdersScreen() {
         </Modal>}
 
         {/* Rating Modal */}
-        {showRatingModal && <Modal visible={showRatingModal} animationType="fade" transparent>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { maxHeight: '60%' }]}>
+        {showRatingModal && <KeyboardAwareModal
+          visible={showRatingModal}
+          onClose={() => setShowRatingModal(false)}
+          backgroundColor={colors.bgMid}
+          borderColor={colors.glassBorder}
+          maxHeightRatio={0.72}
+          align="center"
+        >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('orders.rate_supplier')}</Text>
                 <TouchableOpacity onPress={() => setShowRatingModal(false)}>
@@ -1680,9 +1686,7 @@ export default function OrdersScreen() {
                   <Text style={styles.submitBtnText}>{t('orders.rate_supplier')}</Text>
                 )}
               </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>}
+        </KeyboardAwareModal>}
 
         {/* Supplier History Modal */}
         {showHistoryModal && <Modal visible={showHistoryModal} animationType="slide" transparent>
@@ -1737,9 +1741,14 @@ export default function OrdersScreen() {
         </Modal>}
 
         {/* Partial Delivery Modal */}
-        {showPartialModal && <Modal visible={showPartialModal} animationType="slide" transparent onRequestClose={requestClosePartialModal}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { maxHeight: '85%' }]}>
+        {showPartialModal && <KeyboardAwareModal
+          visible={showPartialModal}
+          onClose={requestClosePartialModal}
+          backgroundColor={colors.bgMid}
+          borderColor={colors.glassBorder}
+          maxHeightRatio={0.9}
+          scroll={false}
+        >
               <View style={styles.modalHeader}>
                 <View>
                   <Text style={styles.modalTitle}>{t('orders.partial_delivery')}</Text>
@@ -1752,7 +1761,12 @@ export default function OrdersScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={{ maxHeight: 400 }}>
+              <ScrollView
+                style={{ flex: 1 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: Spacing.md }}
+              >
                 {partialOrder?.items.map((item) => {
                   const prevReceived = partialOrder.received_items?.[item.item_id] ?? 0;
                   const currentVal = parseInt(partialQuantities[item.item_id] || '0') || 0;
@@ -1888,9 +1902,7 @@ export default function OrdersScreen() {
                   </>
                 )}
               </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>}
+        </KeyboardAwareModal>}
 
         {/* Return Detail Modal */}
         {showReturnDetailModal && <Modal visible={showReturnDetailModal} animationType="slide" transparent>
@@ -1990,9 +2002,14 @@ export default function OrdersScreen() {
         </Modal>}
 
         {/* Create Return Modal */}
-        {showReturnModal && <Modal visible={showReturnModal} animationType="slide" transparent onRequestClose={requestCloseReturnModal}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { maxHeight: '90%' }]}>
+        {showReturnModal && <KeyboardAwareModal
+          visible={showReturnModal}
+          onClose={requestCloseReturnModal}
+          backgroundColor={colors.bgMid}
+          borderColor={colors.glassBorder}
+          maxHeightRatio={0.92}
+          scroll={false}
+        >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('orders.new_return')}</Text>
                 <TouchableOpacity onPress={requestCloseReturnModal} disabled={returnSaving}>
@@ -2000,7 +2017,7 @@ export default function OrdersScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView>
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.md }}>
                 {/* Return type */}
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>{t('orders.return_type')}</Text>
@@ -2149,9 +2166,7 @@ export default function OrdersScreen() {
                   </>
                 )}
               </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>}
+        </KeyboardAwareModal>}
 
         <ScreenGuide
           visible={showGuide}

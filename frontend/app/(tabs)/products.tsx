@@ -26,6 +26,7 @@ import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNetwork } from '../../hooks/useNetwork';
 import { cache, KEYS } from '../../services/cache';
@@ -3076,26 +3077,10 @@ export default function ProductsScreen() {
         {!isRestaurant && (
           <View style={styles.stockFocusCard}>
             <View style={styles.stockFocusHeader}>
-              <View>
-                <Text style={styles.stockFocusTitle}>{t('products.stock_view_title', 'Vue stock')}</Text>
-                <Text style={styles.stockFocusSubtitle}>{t('products.stock_view_subtitle', 'Les produits utiles remontent en premier.')}</Text>
+              <View style={styles.stockFocusCopy}>
+                <Text style={styles.stockFocusTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>{t('products.stock_view_title', 'Vue stock')}</Text>
+                <Text style={styles.stockFocusSubtitle} numberOfLines={2} ellipsizeMode="tail">{t('products.stock_view_subtitle', 'Les produits utiles remontent en premier.')}</Text>
               </View>
-              <TouchableOpacity
-                style={styles.stockFocusSortPill}
-                onPress={() => setShowControlsPanel((current) => !current)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="swap-vertical-outline" size={15} color={colors.primaryLight} />
-                <Text style={styles.stockFocusSortText}>
-                  {productSortMode === 'stock_priority'
-                    ? t('products.sort_stock_priority', 'Priorité stock')
-                    : productSortMode === 'quantity_desc'
-                      ? t('products.sort_quantity_desc', 'Stock élevé')
-                      : productSortMode === 'name_asc'
-                        ? t('products.sort_name_asc', 'Nom A-Z')
-                        : t('products.sort_recently_added', 'Récents')}
-                </Text>
-              </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
               <TouchableOpacity style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]} onPress={() => setFilterType('all')}>
@@ -3123,9 +3108,9 @@ export default function ProductsScreen() {
               activeOpacity={0.85}
             >
               <View style={styles.sectionToggleCopy}>
-                <Text style={styles.sectionToggleTitle}>{t('products.sort_and_filters', 'Trier et filtrer')}</Text>
-                <Text style={styles.sectionToggleDescription}>
-                  {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visibles - ${activeProductControlCount > 0 ? `${activeProductControlCount} réglage${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun réglage avancé'}`}
+                <Text style={styles.sectionToggleTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>{t('products.sort_and_filters', 'Trier et filtrer')}</Text>
+                <Text style={styles.sectionToggleDescription} numberOfLines={2} ellipsizeMode="tail">
+                  {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visible${filtered.length > 1 ? 's' : ''} - ${activeProductControlCount > 0 ? `${activeProductControlCount} réglage${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun réglage avancé'}`}
                 </Text>
               </View>
               <Ionicons
@@ -3857,7 +3842,7 @@ export default function ProductsScreen() {
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(8, insets.top / 2) : 0}
             >
               <FlatList
                 data={selectedProducts}
@@ -3946,7 +3931,7 @@ export default function ProductsScreen() {
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(8, insets.top / 2) : 0}
             >
               <ScrollView
                 style={styles.modalScroll}
@@ -4431,30 +4416,6 @@ export default function ProductsScreen() {
                           Prix et stock geres au {formUnit}. Minimum conseille : {formatMeasurementQuantity(parseFloat(formQuantityPrecision) || defaultPrecisionForUnit(formUnit), formUnit)}.
                         </Text>
                       </View>
-                    </View>
-                  </View>
-                )}
-                {!isRestaurant && (
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={[styles.formLabel, { marginBottom: 8 }]}>{t('products.product_type_label')}</Text>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      {[{ value: 'standard', label: t('products.product_type_standard') }, { value: 'raw_material', label: t('products.product_type_raw_material') }].map(opt => (
-                        <TouchableOpacity
-                          key={opt.value}
-                          onPress={() => setFormProductType(opt.value)}
-                          style={{
-                            flex: 1,
-                            paddingVertical: 10,
-                            borderRadius: 12,
-                            borderWidth: 1.5,
-                            alignItems: 'center',
-                            backgroundColor: formProductType === opt.value ? colors.primary + '20' : 'transparent',
-                            borderColor: formProductType === opt.value ? colors.primary : colors.glassBorder,
-                          }}
-                        >
-                          <Text style={{ color: formProductType === opt.value ? colors.primary : colors.textMuted, fontWeight: '600', fontSize: 13 }}>{opt.label}</Text>
-                        </TouchableOpacity>
-                      ))}
                     </View>
                   </View>
                 )}
@@ -5021,9 +4982,13 @@ export default function ProductsScreen() {
       </Modal >
 
       {/* Stock Movement Modal */}
-      < Modal visible={showStockModal} animationType="slide" transparent onRequestClose={requestCloseStockModal} >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      <KeyboardAwareModal
+        visible={showStockModal}
+        onClose={requestCloseStockModal}
+        backgroundColor={colors.bgMid}
+        borderColor={colors.glassBorder}
+        maxHeightRatio={0.86}
+      >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {movType === 'in' ? t('products.stock_movement_in_title') : t('products.stock_movement_out_title')} {selectedProduct?.name}
@@ -5147,9 +5112,7 @@ export default function ProductsScreen() {
                 </Text>
               )}
             </TouchableOpacity>
-          </View>
-        </View>
-      </Modal >
+      </KeyboardAwareModal>
 
       {/* Scanner Modal */}
       < BarcodeScanner
@@ -5642,15 +5605,19 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   productSimpleMeta: {
     alignItems: 'flex-end',
     gap: 6,
-    maxWidth: 110,
+    maxWidth: 118,
+    minWidth: 82,
+    flexShrink: 0,
   },
   productSimplePrice: {
     color: colors.text,
     fontSize: FontSize.xs,
     fontWeight: '800',
+    maxWidth: '100%',
+    textAlign: 'right',
   },
   productSimpleStockBadge: {
-    maxWidth: 82,
+    maxWidth: 100,
     paddingHorizontal: 7,
     paddingVertical: 4,
     borderRadius: BorderRadius.sm,
@@ -5658,6 +5625,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   productSimpleStockText: {
     fontSize: 10,
     fontWeight: '800',
+    textAlign: 'center',
   },
   productHeader: {
     flexDirection: 'row',
@@ -6231,6 +6199,10 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
+  stockFocusCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
   stockFocusTitle: {
     color: colors.text,
     fontSize: FontSize.md,
@@ -6251,11 +6223,14 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     backgroundColor: colors.primary + '18',
     borderWidth: 1,
     borderColor: colors.primary + '35',
+    maxWidth: 130,
+    flexShrink: 0,
   },
   stockFocusSortText: {
     color: colors.primaryLight,
     fontSize: FontSize.xs,
     fontWeight: '800',
+    flexShrink: 1,
   },
   controlGroupLabel: {
     color: colors.textSecondary,
@@ -6278,6 +6253,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     borderColor: colors.divider,
     marginRight: Spacing.sm,
     alignItems: 'center',
+    maxWidth: 180,
   },
   filterChipActive: {
     backgroundColor: colors.primary,
@@ -6287,6 +6263,7 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontSize: FontSize.xs,
     color: colors.text,
     fontWeight: '600',
+    textAlign: 'center',
   },
   filterChipTextActive: {
     color: '#fff',

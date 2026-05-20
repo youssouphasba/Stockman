@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   TextInput,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -134,8 +135,8 @@ function SettingsAccordionSection({
           <Ionicons name={icon as any} size={20} color={accentColor} />
         </View>
         <View style={styles.accordionCopy}>
-          <Text style={styles.accordionTitle}>{title}</Text>
-          <Text style={styles.accordionDescription}>{description}</Text>
+          <Text style={styles.accordionTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78}>{title}</Text>
+          <Text style={styles.accordionDescription} numberOfLines={2} ellipsizeMode="tail">{description}</Text>
         </View>
         <Ionicons
           name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
@@ -154,7 +155,9 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { colors, glassStyle, isDark, setTheme } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = getStyles(colors, glassStyle);
+  const { width } = useWindowDimensions();
+  const compact = width < 390;
+  const styles = getStyles(colors, glassStyle, compact);
   const { user, logout, isPinSet, isBiometricsEnabled, togglePin, toggleBiometrics, isRestaurant, isOrgAdmin, isBillingAdmin, hasPermission } = useAuth();
   const { isOnline, syncStatus, pendingCount, lastSyncLabel, processQueue, prefetchData } = useSync();
   const [settingsData, setSettingsData] = useState<UserSettings | null>(null);
@@ -222,6 +225,42 @@ export default function SettingsScreen() {
 
   function showFeedback(message: string, tone: 'success' | 'error' = 'success') {
     setFeedback({ tone, message });
+  }
+
+  function handleTogglePin() {
+    if (!isPinSet) {
+      router.push('/pin');
+      return;
+    }
+
+    Alert.alert(
+      'Désactiver le code PIN',
+      "L'application ne demandera plus de code PIN à l'ouverture.",
+      [
+        { text: t('common.cancel', 'Annuler'), style: 'cancel' },
+        {
+          text: 'Désactiver',
+          style: 'destructive',
+          onPress: () => {
+            void togglePin(false)
+              .then(() => showFeedback('Le code PIN a été désactivé.'))
+              .catch(() => showFeedback('Impossible de désactiver le code PIN pour le moment.', 'error'));
+          },
+        },
+      ],
+    );
+  }
+
+  function handleToggleBiometrics() {
+    if (!isPinSet) {
+      Alert.alert('Code PIN requis', "Activez d'abord le code PIN pour utiliser la biométrie.");
+      return;
+    }
+
+    const nextValue = !isBiometricsEnabled;
+    void toggleBiometrics(nextValue)
+      .then(() => showFeedback(nextValue ? 'La biométrie est activée.' : 'La biométrie est désactivée.'))
+      .catch(() => showFeedback('Impossible de modifier la biométrie pour le moment.', 'error'));
   }
 
   const handleExportData = async () => {
@@ -1471,32 +1510,25 @@ export default function SettingsScreen() {
         >
           <Text style={styles.sectionTitle}>{t('settings.security')}</Text>
 
-          <View style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} activeOpacity={0.85} onPress={handleTogglePin}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>{t('settings.pin_login')}</Text>
               <Text style={styles.settingDesc}>{t('settings.pin_login_desc')}</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => isPinSet ? togglePin(false) : router.push('/pin')}
-              style={[styles.toggle, isPinSet && styles.toggleActive]}
-            >
+            <View style={[styles.toggle, isPinSet && styles.toggleActive]}>
               <View style={[styles.toggleCircle, isPinSet && styles.toggleCircleActive]} />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
 
-          <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
+          <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]} activeOpacity={0.85} onPress={handleToggleBiometrics}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>{t('settings.biometrics')}</Text>
               <Text style={styles.settingDesc}>{t('settings.biometrics_desc')}</Text>
             </View>
-            <TouchableOpacity
-              disabled={!isPinSet}
-              onPress={() => toggleBiometrics(!isBiometricsEnabled)}
-              style={[styles.toggle, isBiometricsEnabled && styles.toggleActive, !isPinSet && { opacity: 0.3 }]}
-            >
+            <View style={[styles.toggle, isBiometricsEnabled && styles.toggleActive, !isPinSet && { opacity: 0.3 }]}>
               <View style={[styles.toggleCircle, isBiometricsEnabled && styles.toggleCircleActive]} />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
           {!isPinSet && <Text style={[styles.settingDesc, { marginTop: 4, color: colors.warning }]}>{t('settings.pin_required')}</Text>}
         </SettingsAccordionSection>
 
@@ -1655,7 +1687,7 @@ export default function SettingsScreen() {
   );
 }
 
-const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
+const getStyles = (colors: any, glassStyle: any, compact: boolean) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   content: { padding: Spacing.md, paddingTop: Spacing.xxl },
@@ -1703,20 +1735,21 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   accordionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: compact ? Spacing.sm : Spacing.md,
   },
   accordionIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: compact ? 36 : 42,
+    height: compact ? 36 : 42,
+    borderRadius: compact ? 18 : 21,
     justifyContent: 'center',
     alignItems: 'center',
   },
   accordionCopy: {
     flex: 1,
+    minWidth: 0,
   },
   accordionTitle: {
-    fontSize: FontSize.lg,
+    fontSize: compact ? FontSize.md : FontSize.lg,
     fontWeight: '700',
     color: colors.text,
   },
@@ -1892,17 +1925,20 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     width: 44,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.bgMid,
+    borderWidth: 1,
+    borderColor: colors.divider,
     padding: 2,
     justifyContent: 'center',
   },
   toggleActive: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   toggleCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#fff',
   },
   toggleCircleActive: {

@@ -1,9 +1,9 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+﻿import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Linking from 'expo-linking';
-import { auth as authApi, stores as storesApi, userFeatures, notifications as notificationsApi, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeRefreshToken, User } from '../services/api';
+import { ApiError, auth as authApi, stores as storesApi, userFeatures, notifications as notificationsApi, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeRefreshToken, User } from '../services/api';
 import { initPurchases } from '../services/purchases';
 import { cache } from '../services/cache';
 import { isRestaurantBusiness } from '../utils/business';
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const restoredFromActive = await hydrateFromActiveToken();
       if (restoredFromActive) return restoredFromActive;
-    } catch {
+    } catch (error) {
       // Ignore and fall back to remembered accounts.
     }
 
@@ -148,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ...rememberedAccounts.filter((entry) => entry.user.user_id === preferredAccountId),
       ...rememberedAccounts.filter((entry) => entry.user.user_id !== preferredAccountId),
     ];
+    let canUseLocalAccountFallback = false;
 
     for (const session of orderedAccounts) {
       try {
@@ -160,9 +161,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userData = await authApi.me();
         await hydrateAndPersistUser(userData);
         return userData;
-      } catch {
-        // Try the next remembered account.
+      } catch (error) {
+        if (!(error instanceof ApiError && error.status === 401)) {
+          canUseLocalAccountFallback = true;
+        }
       }
+    }
+
+    const localFallback = canUseLocalAccountFallback ? orderedAccounts[0] : null;
+    if (localFallback) {
+      await setToken(localFallback.access_token);
+      if (localFallback.refresh_token) {
+        await setRefreshToken(localFallback.refresh_token);
+      } else {
+        await removeRefreshToken();
+      }
+      await hydrateAuthenticatedUser(localFallback.user);
+      setActiveAccountIdState(localFallback.user.user_id);
+      return localFallback.user;
     }
 
     setUser(null);
@@ -201,7 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       await restoreSession(true);
-    } catch {
+    } catch (error) {
       setUser(null);
       setHasProduction(false);
       setIsRestaurant(false);
@@ -349,7 +365,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const rememberedAccounts = await listStoredAccountSessions();
     try {
       await authApi.logout();
-    } catch {
+    } catch (error) {
       // ignore server-side failure
     }
 
@@ -368,6 +384,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const targetSession = await getStoredAccountSession(userId);
     if (!targetSession) return null;
 
+    const previousUser = user;
+    const previousActiveAccountId = activeAccountId;
+    const previousAccessToken = await getToken();
+    const previousRefreshToken = await getRefreshToken();
+
     await setToken(targetSession.access_token);
     if (targetSession.refresh_token) {
       await setRefreshToken(targetSession.refresh_token);
@@ -377,17 +398,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setActiveStoredAccountId(userId);
     setActiveAccountIdState(userId);
     await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
+    await hydrateAuthenticatedUser(targetSession.user);
+    setStoredAccounts(await saveStoredAccountSession(targetSession.user, targetSession.access_token, targetSession.refresh_token));
 
-    // Validate token by fetching fresh user data (handles expired tokens)
     let freshUser: User;
     try {
       freshUser = await authApi.me();
-    } catch {
-      // Token invalid — remove this account and fall back
-      const updatedAccounts = await removeStoredAccountSession(userId);
-      setStoredAccounts(updatedAccounts);
-      await removeToken();
-      await removeRefreshToken();
+    } catch (error) {
+      if (!(error instanceof ApiError && error.status === 401)) {
+        return targetSession.user;
+      }
+
+      setStoredAccounts(await removeStoredAccountSession(userId));
+      if (previousAccessToken) {
+        await setToken(previousAccessToken);
+      } else {
+        await removeToken();
+      }
+      if (previousRefreshToken) {
+        await setRefreshToken(previousRefreshToken);
+      } else {
+        await removeRefreshToken();
+      }
+      if (previousUser) {
+        await hydrateAuthenticatedUser(previousUser);
+      } else {
+        setUser(null);
+        setHasProduction(false);
+        setIsRestaurant(false);
+      }
+      if (previousActiveAccountId) {
+        await setActiveStoredAccountId(previousActiveAccountId);
+      } else {
+        await clearActiveStoredAccountId();
+      }
+      setActiveAccountIdState(previousActiveAccountId);
       return null;
     }
 
@@ -493,6 +538,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function toggleBiometrics(enabled: boolean) {
+    if (enabled) {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!hasHardware || !isEnrolled) {
+        throw new Error('biometrics_unavailable');
+      }
+    }
     await SecureStore.setItemAsync('biometrics_enabled', enabled ? 'true' : 'false');
     setIsBiometricsEnabled(enabled);
   }

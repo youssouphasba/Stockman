@@ -1,5 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Platform, Modal, TextInput, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Platform, TextInput, FlatList, ScrollView, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -12,6 +12,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { DEMO_COUNTRIES, DemoCountry } from '../../data/demoCurrencies';
 import { getFlagFromCountryCode } from '../../utils/flags';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
 const ENTERPRISE_DEMO_URL = 'https://stockman.pro/demo?type=enterprise';
 
@@ -20,6 +21,8 @@ export default function AuthEntryScreen() {
   const { colors, glassStyle, isDark, setTheme } = useTheme();
   const { restoreSession } = useAuth();
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  const compact = width < 390 || height < 760;
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoType, setDemoType] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -27,7 +30,7 @@ export default function AuthEntryScreen() {
   const [pendingDemoType, setPendingDemoType] = useState<'retail' | 'restaurant' | null>(null);
   const [countrySearch, setCountrySearch] = useState('');
   const primaryCtaContentColor = isDark ? '#fff' : colors.text;
-  const styles = React.useMemo(() => createStyles(colors, glassStyle, isDark), [colors, glassStyle, isDark]);
+  const styles = React.useMemo(() => createStyles(colors, glassStyle, isDark, compact), [colors, glassStyle, isDark, compact]);
 
   function toggleThemeQuick() {
     void setTheme(isDark ? 'light' : 'dark');
@@ -93,7 +96,7 @@ export default function AuthEntryScreen() {
 
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <TouchableOpacity style={styles.themeButton} onPress={toggleThemeQuick} activeOpacity={0.85}>
           <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={colors.text} />
         </TouchableOpacity>
@@ -101,8 +104,8 @@ export default function AuthEntryScreen() {
           <View style={styles.iconCircle}>
             <Ionicons name="shield-checkmark-outline" size={34} color={colors.primary} />
           </View>
-          <Text style={styles.title}>Pilotez votre commerce avec Stockman</Text>
-          <Text style={styles.subtitle}>Stocks, ventes, commandes et fournisseurs : tout au même endroit.</Text>
+          <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit>Pilotez votre commerce avec Stockman</Text>
+          <Text style={styles.subtitle} numberOfLines={2}>Stocks, ventes, commandes et fournisseurs : tout au même endroit.</Text>
         </View>
 
         <View style={styles.card}>
@@ -116,14 +119,14 @@ export default function AuthEntryScreen() {
           <Link href="/(auth)/login" asChild>
             <TouchableOpacity style={[styles.cta, styles.ctaPrimary]}>
               <Ionicons name="log-in-outline" size={20} color={primaryCtaContentColor} />
-              <Text style={[styles.ctaPrimaryText, { color: primaryCtaContentColor }]}>{t('auth.login.signIn')}</Text>
+              <Text style={[styles.ctaPrimaryText, { color: primaryCtaContentColor }]} numberOfLines={1} ellipsizeMode="tail">{t('auth.login.signIn')}</Text>
             </TouchableOpacity>
           </Link>
 
           <Link href="/(auth)/register" asChild>
             <TouchableOpacity style={[styles.cta, styles.ctaSecondary]}>
               <Ionicons name="person-add-outline" size={20} color={colors.primary} />
-              <Text style={styles.ctaSecondaryText}>Créer mon compte gratuit</Text>
+              <Text style={styles.ctaSecondaryText} numberOfLines={1} ellipsizeMode="tail">Créer mon compte gratuit</Text>
             </TouchableOpacity>
           </Link>
 
@@ -138,7 +141,7 @@ export default function AuthEntryScreen() {
                 {demoLoading && demoType === 'retail' ? (
                   <ActivityIndicator color={colors.primary} size="small" />
                 ) : (
-                  <Text style={styles.demoBtnText}>{t('auth.login.demoRetail')}</Text>
+                    <Text style={styles.demoBtnText} numberOfLines={1} ellipsizeMode="tail">{t('auth.login.demoRetail')}</Text>
                 )}
               </TouchableOpacity>
               <TouchableOpacity
@@ -149,7 +152,7 @@ export default function AuthEntryScreen() {
                 {demoLoading && demoType === 'restaurant' ? (
                   <ActivityIndicator color={colors.primary} size="small" />
                 ) : (
-                  <Text style={styles.demoBtnText}>{t('auth.login.demoRestaurant')}</Text>
+                    <Text style={styles.demoBtnText} numberOfLines={1} ellipsizeMode="tail">{t('auth.login.demoRestaurant')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -158,16 +161,22 @@ export default function AuthEntryScreen() {
               disabled={demoLoading}
               onPress={() => handleDemo('enterprise')}
             >
-              <Text style={styles.demoBtnText}>{t('auth.login.demoEnterprise')}</Text>
+              <Text style={styles.demoBtnText} numberOfLines={1} ellipsizeMode="tail">{t('auth.login.demoEnterprise')}</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </ScrollView>
 
       {showCountryPicker && pendingDemoType && (
-        <Modal transparent animationType="slide" visible onRequestClose={() => { setShowCountryPicker(false); setCountrySearch(''); }}>
-          <View style={pickerStyles.overlay}>
-            <View style={[pickerStyles.sheet, { backgroundColor: colors.background }]}>
+        <KeyboardAwareModal
+          visible
+          onClose={() => { setShowCountryPicker(false); setCountrySearch(''); }}
+          backgroundColor={colors.background}
+          borderColor={colors.glassBorder}
+          maxHeightRatio={0.86}
+          scroll={false}
+        >
+            <View style={pickerStyles.sheet}>
               <View style={[pickerStyles.header, { borderBottomColor: colors.glassBorder }]}>
                 <Text style={[pickerStyles.title, { color: colors.text }]}>Choisissez votre pays</Text>
                 <Text style={[pickerStyles.subtitle, { color: colors.textMuted }]}>La démo utilisera votre devise locale.</Text>
@@ -213,23 +222,15 @@ export default function AuthEntryScreen() {
                 <Text style={[pickerStyles.cancelText, { color: colors.textMuted }]}>Annuler</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </Modal>
+        </KeyboardAwareModal>
       )}
     </LinearGradient>
   );
 }
 
 const pickerStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
   sheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    height: '80%',
+    flex: 1,
     paddingBottom: 24,
   },
   header: {
@@ -303,14 +304,15 @@ const pickerStyles = StyleSheet.create({
   },
 });
 
-const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
+const createStyles = (colors: any, glassStyle: any, isDark: boolean, compact: boolean) =>
   StyleSheet.create({
     gradient: { flex: 1 },
     container: {
-      flex: 1,
-      paddingHorizontal: Spacing.lg,
+      flexGrow: 1,
+      paddingHorizontal: compact ? Spacing.md : Spacing.lg,
+      paddingVertical: compact ? 72 : Spacing.lg,
       justifyContent: 'center',
-      gap: Spacing.xl,
+      gap: compact ? Spacing.lg : Spacing.xl,
     },
     themeButton: {
       position: 'absolute',
@@ -331,9 +333,9 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
       gap: Spacing.sm,
     },
     iconCircle: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
+      width: compact ? 58 : 72,
+      height: compact ? 58 : 72,
+      borderRadius: compact ? 29 : 36,
       backgroundColor: colors.glass,
       alignItems: 'center',
       justifyContent: 'center',
@@ -342,7 +344,7 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
     },
     title: {
       color: colors.text,
-      fontSize: 34,
+      fontSize: compact ? 27 : 34,
       fontWeight: '800',
       letterSpacing: 0.4,
       textAlign: 'center',
@@ -351,10 +353,11 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
       color: colors.textSecondary,
       fontSize: FontSize.md,
       textAlign: 'center',
+      lineHeight: 21,
     },
     card: {
       ...glassStyle,
-      padding: Spacing.lg,
+      padding: compact ? Spacing.md : Spacing.lg,
       gap: Spacing.md,
       borderRadius: BorderRadius.xl,
     },
@@ -417,7 +420,7 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
       fontWeight: '700',
     },
     demoRow: {
-      flexDirection: 'row',
+      flexDirection: compact ? 'column' : 'row',
       gap: Spacing.sm,
     },
     demoBtn: {
@@ -439,6 +442,7 @@ const createStyles = (colors: any, glassStyle: any, isDark: boolean) =>
       fontSize: FontSize.sm,
       fontWeight: '700',
       textAlign: 'center',
+      flexShrink: 1,
     },
     demoBtnDisabled: {
       opacity: 0.7,

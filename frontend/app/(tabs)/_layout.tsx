@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { alerts as alertsApi, demo as demoApi, settings as settingsApi, DemoSessionInfo, UserSettings } from '../../services/api';
 
 import StoreSelector from '../../components/StoreSelector';
-import { DeviceEventEmitter, Modal, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { DeviceEventEmitter, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
@@ -22,6 +22,7 @@ import TrialBanner from '../../components/TrialBanner';
 import SyncWarningBanner from '../../components/SyncWarningBanner';
 import DrawerMenu from '../../components/DrawerMenu';
 import { DrawerProvider, useDrawer } from '../../contexts/DrawerContext';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
 function TabLayoutInner() {
   const { t, i18n } = useTranslation();
@@ -29,6 +30,7 @@ function TabLayoutInner() {
   const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant, hasOperationalAccess, isBillingAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const drawer = useDrawer();
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const settingsLoadedRef = useRef(false);
@@ -82,6 +84,8 @@ function TabLayoutInner() {
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
   const hideDashboard = !hasPermission('dashboard', 'read');
   const hasEnterprisePlan = (user?.effective_plan || user?.plan) === 'enterprise';
+  const compactHeader = width < 390;
+  const veryCompactHeader = width < 360;
 
   const productsTabTitle = isRestaurant
     ? t('tabs.menu', 'Menu')
@@ -239,15 +243,15 @@ function TabLayoutInner() {
             fontWeight: '700',
           },
           headerLeft: () => currentRoute !== 'settings' && drawer.items.length > 0 ? (
-            <TouchableOpacity onPress={drawer.open} style={{ marginLeft: 16, padding: 4 }}>
-              <Ionicons name="menu-outline" size={26} color={colors.text} />
+            <TouchableOpacity onPress={drawer.open} style={{ marginLeft: compactHeader ? 8 : 16, padding: compactHeader ? 3 : 4 }}>
+              <Ionicons name="menu-outline" size={compactHeader ? 24 : 26} color={colors.text} />
             </TouchableOpacity>
           ) : undefined,
           headerRight: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: compactHeader ? 8 : 16, gap: compactHeader ? 6 : 12, maxWidth: width - (compactHeader ? 62 : 88) }}>
               {hasOperationalAccess && (
-                <TouchableOpacity onPress={() => router.push('/(tabs)/alerts' as any)} style={{ padding: 4, position: 'relative' }}>
-                  <Ionicons name="notifications-outline" size={24} color={colors.text} />
+                <TouchableOpacity onPress={() => router.push('/(tabs)/alerts' as any)} style={{ padding: compactHeader ? 3 : 4, position: 'relative' }}>
+                  <Ionicons name="notifications-outline" size={compactHeader ? 22 : 24} color={colors.text} />
                   {unreadAlertCount > 0 && (
                     <View
                       style={{
@@ -286,18 +290,20 @@ function TabLayoutInner() {
                   <Ionicons name="alarm-outline" size={22} color={colors.primary} />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: 4 }}>
-                <Ionicons name="sparkles-outline" size={24} color={colors.primary} />
+              <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: compactHeader ? 3 : 4 }}>
+                <Ionicons name="sparkles-outline" size={compactHeader ? 22 : 24} color={colors.primary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowHelpCenter(true)} style={{ padding: 4 }}>
-                <Ionicons name="book-outline" size={24} color={colors.text} />
-              </TouchableOpacity>
-              {currentGuide && (
-                <TouchableOpacity onPress={() => setShowGuide(true)} style={{ padding: 4 }}>
-                  <Ionicons name="help-circle-outline" size={24} color={colors.text} />
+              {!veryCompactHeader && (
+                <TouchableOpacity onPress={() => setShowHelpCenter(true)} style={{ padding: compactHeader ? 3 : 4 }}>
+                  <Ionicons name="book-outline" size={compactHeader ? 22 : 24} color={colors.text} />
                 </TouchableOpacity>
               )}
-              {hasOperationalAccess && <StoreSelector />}
+              {currentGuide && (
+                <TouchableOpacity onPress={() => setShowGuide(true)} style={{ padding: compactHeader ? 3 : 4 }}>
+                  <Ionicons name="help-circle-outline" size={compactHeader ? 22 : 24} color={colors.text} />
+                </TouchableOpacity>
+              )}
+              {hasOperationalAccess && <StoreSelector compact={compactHeader} />}
             </View>
           ),
           tabBarStyle: {
@@ -310,8 +316,9 @@ function TabLayoutInner() {
           },
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textMuted,
+          tabBarShowLabel: !veryCompactHeader,
           tabBarLabelStyle: {
-            fontSize: 9,
+            fontSize: compactHeader ? 8 : 9,
             fontWeight: '600',
           },
         }}
@@ -519,24 +526,18 @@ function TabLayoutInner() {
           }
         }}
       />
-      {showDemoLeadPrompt && <Modal
+      {showDemoLeadPrompt && <KeyboardAwareModal
         visible={showDemoLeadPrompt}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDemoLeadPrompt(false)}
+        onClose={() => setShowDemoLeadPrompt(false)}
+        backgroundColor={colors.card}
+        borderColor={colors.glassBorder}
+        maxHeightRatio={0.82}
+        align="center"
       >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(2, 6, 23, 0.82)',
-          justifyContent: 'center',
-          padding: 20,
-        }}>
           <View style={{
-            borderRadius: 28,
-            borderWidth: 1,
-            borderColor: colors.glassBorder,
-            backgroundColor: colors.card,
             overflow: 'hidden',
+            marginHorizontal: -20,
+            marginVertical: -18,
           }}>
             <View style={{
               paddingHorizontal: 20,
@@ -632,8 +633,7 @@ function TabLayoutInner() {
               </View>
             </View>
           </View>
-        </View>
-      </Modal>}
+      </KeyboardAwareModal>}
 
       <DrawerMenu
         visible={drawer.isOpen}

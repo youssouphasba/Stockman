@@ -58,6 +58,7 @@ import {
 } from '../../utils/pdfReports';
 import { mergeAccountingOfflineState } from '../../services/offlineState';
 import KpiInfoButton from '../../components/KpiInfoButton';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
 
 // screenWidth is now read via useWindowDimensions() inside the component
@@ -2099,9 +2100,14 @@ export default function AccountingScreen() {
                 </LinearGradient>
 
                 {/* Invoice Modal */}
-                {showInvoiceModal && <Modal visible={showInvoiceModal} animationType="slide" transparent >
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContent}>
+                {showInvoiceModal && <KeyboardAwareModal
+                    visible={showInvoiceModal}
+                    onClose={() => setShowInvoiceModal(false)}
+                    backgroundColor={colors.bgMid}
+                    borderColor={colors.glassBorder}
+                    maxHeightRatio={0.92}
+                    scroll={false}
+                >
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{t('invoice.create_invoice')}</Text>
                                 <TouchableOpacity onPress={() => setShowInvoiceModal(false)}>
@@ -2109,7 +2115,7 @@ export default function AccountingScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                                 {/* Client */}
                                 <Text style={styles.fieldLabel}>{t('invoice.client')}</Text>
                                 <TextInput
@@ -2221,14 +2227,17 @@ export default function AccountingScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </ScrollView>
-                        </View>
-                    </View>
-                </Modal>}
+                </KeyboardAwareModal>}
 
                 {/* Expense Modal */}
-                {showExpenseModal && <Modal visible={showExpenseModal} animationType="slide" transparent onRequestClose={requestCloseExpenseModal}>
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContent}>
+                {showExpenseModal && <KeyboardAwareModal
+                    visible={showExpenseModal}
+                    onClose={requestCloseExpenseModal}
+                    backgroundColor={colors.bgMid}
+                    borderColor={colors.glassBorder}
+                    maxHeightRatio={0.9}
+                    scroll={false}
+                >
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{t('accounting.new_expense')}</Text>
                                 <TouchableOpacity onPress={requestCloseExpenseModal}>
@@ -2236,7 +2245,7 @@ export default function AccountingScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            <ScrollView>
+                            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                                 <Text style={styles.fieldLabel}>{t('accounting.category')}</Text>
                                 <View style={styles.categoryPicker}>
                                     {expenseCategories.map(cat => (
@@ -2315,9 +2324,7 @@ export default function AccountingScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </ScrollView>
-                        </View>
-                    </View>
-                </Modal>}
+                </KeyboardAwareModal>}
 
                 {activeKpiDetail && (
                     <Modal visible={!!activeKpiDetail} animationType="slide" transparent onRequestClose={() => setActiveKpiDetail(null)}>

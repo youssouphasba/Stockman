@@ -36,6 +36,7 @@ import { useTranslation } from 'react-i18next';
 import { getDateLocale } from '../../utils/date';
 import { useAuth } from '../../contexts/AuthContext';
 import ReminderRulesSettingsComponent from '../../components/ReminderRulesSettings';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
 type RuleScope = 'account' | 'store';
 type ContactGroupKey = 'default' | 'stock' | 'procurement' | 'finance' | 'crm' | 'operations' | 'billing';
@@ -503,9 +504,14 @@ export default function AlertsScreen() {
       </ScrollView>
 
       {/* Rules Configuration Modal */}
-      {showRulesModal && <Modal visible={showRulesModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      {showRulesModal && <KeyboardAwareModal
+        visible={showRulesModal}
+        onClose={() => setShowRulesModal(false)}
+        backgroundColor={colors.bgMid}
+        borderColor={colors.glassBorder}
+        maxHeightRatio={0.92}
+        scroll={false}
+      >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('alerts.rules_title')}</Text>
               <TouchableOpacity onPress={() => setShowRulesModal(false)}>
@@ -516,7 +522,7 @@ export default function AlertsScreen() {
             {rulesLoading ? (
               <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: Spacing.xl }} />
             ) : (
-              <ScrollView style={styles.modalScroll}>
+              <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md }}>
                   <TouchableOpacity
                     style={[styles.scopeChip, activeRuleScope === 'account' && styles.scopeChipActive]}
@@ -710,9 +716,7 @@ export default function AlertsScreen() {
                 )}
               </ScrollView>
             )}
-          </View>
-        </View>
-      </Modal>}
+      </KeyboardAwareModal>}
       <ScreenGuide
         visible={showGuide}
         onClose={() => { setShowGuide(false); markSeen(); }}

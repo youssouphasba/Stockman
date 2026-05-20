@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
@@ -61,7 +62,9 @@ export default function LoginScreen() {
   const { colors, glassStyle, isDark, setTheme } = useTheme();
   const { login, loginWithSocial, isBiometricsEnabled, restoreSession } = useAuth();
   const router = useRouter();
-  const styles = React.useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
+  const { width, height } = useWindowDimensions();
+  const compact = width < 390 || height < 760;
+  const styles = React.useMemo(() => createStyles(colors, glassStyle, compact), [colors, glassStyle, compact]);
   const authText = {
     title: 'Stockman',
     subtitle: t('auth.login.subtitle', 'Connectez-vous pour continuer.'),
@@ -454,8 +457,8 @@ export default function LoginScreen() {
             <View style={styles.iconCircle}>
               <Ionicons name="cube" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.title}>{authText.title}</Text>
-            <Text style={styles.subtitle}>{authText.subtitle}</Text>
+            <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>{authText.title}</Text>
+            <Text style={styles.subtitle} numberOfLines={2}>{authText.subtitle}</Text>
           </View>
 
           <View style={styles.card}>
@@ -537,7 +540,7 @@ export default function LoginScreen() {
               ) : (
                 <>
                   <Ionicons name="logo-google" size={18} color={colors.primary} />
-                  <Text style={styles.socialButtonText}>{authText.continueGoogle}</Text>
+                  <Text style={styles.socialButtonText} numberOfLines={1} ellipsizeMode="tail">{authText.continueGoogle}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -581,7 +584,7 @@ export default function LoginScreen() {
                 ) : (
                   <>
                     <Ionicons name="storefront-outline" size={18} color={colors.primary} />
-                    <Text style={styles.demoButtonText}>{t('auth.login.demoRetail')}</Text>
+                    <Text style={styles.demoButtonText} numberOfLines={1} ellipsizeMode="tail">{t('auth.login.demoRetail')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -595,7 +598,7 @@ export default function LoginScreen() {
                 ) : (
                   <>
                     <Ionicons name="restaurant-outline" size={18} color={colors.primary} />
-                    <Text style={styles.demoButtonText}>{t('auth.login.demoRestaurant')}</Text>
+                    <Text style={styles.demoButtonText} numberOfLines={1} ellipsizeMode="tail">{t('auth.login.demoRestaurant')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -603,7 +606,7 @@ export default function LoginScreen() {
 
             <TouchableOpacity style={styles.demoEnterpriseButton} onPress={() => handleDemo('enterprise')} disabled={demoLoading || loading}>
               <Ionicons name="globe-outline" size={18} color={colors.text} />
-              <Text style={styles.demoEnterpriseText}>{t('auth.login.demoEnterprise')}</Text>
+              <Text style={styles.demoEnterpriseText} numberOfLines={1} ellipsizeMode="tail">{t('auth.login.demoEnterprise')}</Text>
               <Ionicons name="open-outline" size={14} color={colors.textMuted} />
             </TouchableOpacity>
             <Text style={styles.demoHint}>{authText.demoHint}</Text>
@@ -614,18 +617,18 @@ export default function LoginScreen() {
   );
 }
 
-const createStyles = (colors: any, glassStyle: any) =>
+const createStyles = (colors: any, glassStyle: any, compact: boolean) =>
   StyleSheet.create({
     gradient: { flex: 1 },
     container: { flex: 1 },
     scroll: {
       flexGrow: 1,
       justifyContent: 'center',
-      padding: Spacing.lg,
+      padding: compact ? Spacing.md : Spacing.lg,
     },
     header: {
       alignItems: 'center',
-      marginBottom: Spacing.xl,
+      marginBottom: compact ? Spacing.lg : Spacing.xl,
     },
     themeBtn: {
       position: 'absolute',
@@ -641,9 +644,9 @@ const createStyles = (colors: any, glassStyle: any) =>
       alignItems: 'center',
     },
     iconCircle: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
+      width: compact ? 64 : 80,
+      height: compact ? 64 : 80,
+      borderRadius: compact ? 32 : 40,
       backgroundColor: colors.glass,
       justifyContent: 'center',
       alignItems: 'center',
@@ -652,7 +655,7 @@ const createStyles = (colors: any, glassStyle: any) =>
       borderColor: colors.glassBorder,
     },
     title: {
-      fontSize: FontSize.xxl,
+      fontSize: compact ? FontSize.xl : FontSize.xxl,
       fontWeight: '700',
       color: colors.text,
       marginBottom: Spacing.xs,
@@ -665,7 +668,7 @@ const createStyles = (colors: any, glassStyle: any) =>
     },
     card: {
       ...glassStyle,
-      padding: Spacing.lg,
+      padding: compact ? Spacing.md : Spacing.lg,
     },
     errorBox: {
       flexDirection: 'row',
@@ -703,6 +706,7 @@ const createStyles = (colors: any, glassStyle: any) =>
     },
     input: {
       flex: 1,
+      minWidth: 0,
       color: colors.text,
       fontSize: FontSize.md,
       paddingVertical: Spacing.md,
@@ -816,6 +820,7 @@ const createStyles = (colors: any, glassStyle: any) =>
       color: colors.text,
       fontSize: FontSize.sm,
       fontWeight: '600',
+      flexShrink: 1,
     },
     appleButtonWrapper: {
       marginBottom: Spacing.sm,
@@ -839,7 +844,7 @@ const createStyles = (colors: any, glassStyle: any) =>
       marginBottom: Spacing.sm,
     },
     demoRow: {
-      flexDirection: 'row',
+      flexDirection: compact ? 'column' : 'row',
       gap: Spacing.sm,
     },
     demoButton: {
@@ -852,11 +857,14 @@ const createStyles = (colors: any, glassStyle: any) =>
       borderRadius: BorderRadius.md,
       paddingVertical: Spacing.sm + 2,
       backgroundColor: `${colors.primary}12`,
+      minWidth: 0,
     },
     demoButtonText: {
       color: colors.primary,
       fontSize: FontSize.sm,
       fontWeight: '600',
+      flexShrink: 1,
+      textAlign: 'center',
     },
     demoEnterpriseButton: {
       flexDirection: 'row',
@@ -874,6 +882,7 @@ const createStyles = (colors: any, glassStyle: any) =>
       color: colors.text,
       fontSize: FontSize.sm,
       fontWeight: '600',
+      flexShrink: 1,
     },
     demoHint: {
       color: colors.textMuted,

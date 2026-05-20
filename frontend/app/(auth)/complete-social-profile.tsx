@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,6 +23,7 @@ import { ApiError } from '../../services/api';
 import { COUNTRIES, Country } from '../../constants/countries';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { getFlagFromCountryCode } from '../../utils/flags';
+import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
 const SECTORS = [
   { key: 'epicerie', label: 'Épicerie', icon: 'cart-outline' },
@@ -57,7 +58,9 @@ export default function CompleteSocialProfileScreen() {
   const { user, completeSocialProfile, logout } = useAuth();
   const { colors, glassStyle, isDark, setTheme } = useTheme();
   const router = useRouter();
-  const styles = useMemo(() => createStyles(colors, glassStyle), [colors, glassStyle]);
+  const { width, height } = useWindowDimensions();
+  const compact = width < 390 || height < 760;
+  const styles = useMemo(() => createStyles(colors, glassStyle, compact), [colors, glassStyle, compact]);
 
   const initialCountry = useMemo(
     () => COUNTRIES.find((country) => country.code === user?.country_code) || COUNTRIES[0],
@@ -160,8 +163,8 @@ export default function CompleteSocialProfileScreen() {
             <View style={styles.iconCircle}>
               <Ionicons name="business-outline" size={36} color={colors.primary} />
             </View>
-            <Text style={styles.title}>{t('auth.completeSocialProfile.title')}</Text>
-            <Text style={styles.subtitle}>{t('auth.completeSocialProfile.subtitle')}</Text>
+            <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit>{t('auth.completeSocialProfile.title')}</Text>
+            <Text style={styles.subtitle} numberOfLines={2}>{t('auth.completeSocialProfile.subtitle')}</Text>
           </View>
 
           <View style={styles.card}>
@@ -192,7 +195,7 @@ export default function CompleteSocialProfileScreen() {
                 <View style={styles.selectorInfo}>
                   <Text style={styles.selectorFlag}>{getCountryFlag(selectedCountry)}</Text>
                   <View>
-                    <Text style={styles.selectorValue}>{selectedCountry.name}</Text>
+                    <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">{selectedCountry.name}</Text>
                     <Text style={styles.selectorHint}>
                       {selectedCountry.code} • {selectedCountry.currency}
                     </Text>
@@ -227,7 +230,7 @@ export default function CompleteSocialProfileScreen() {
                     color={colors.primary}
                   />
                   <View>
-                    <Text style={styles.selectorValue}>
+                    <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
                       {selectedSector?.label || t('auth.register.selectBusinessType')}
                     </Text>
                     <Text style={styles.selectorHint}>{t('auth.completeSocialProfile.businessHint')}</Text>
@@ -276,8 +279,14 @@ export default function CompleteSocialProfileScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Modal visible={showCountryModal} animationType="slide" transparent onRequestClose={() => setShowCountryModal(false)}>
-        <View style={styles.modalOverlay}>
+      <KeyboardAwareModal
+        visible={showCountryModal}
+        onClose={() => setShowCountryModal(false)}
+        backgroundColor={colors.bgDark}
+        borderColor={colors.glassBorder}
+        maxHeightRatio={0.86}
+        scroll={false}
+      >
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('auth.completeSocialProfile.countryModalTitle')}</Text>
@@ -317,11 +326,16 @@ export default function CompleteSocialProfileScreen() {
               )}
             />
           </View>
-        </View>
-      </Modal>
+      </KeyboardAwareModal>
 
-      <Modal visible={showSectorModal} animationType="slide" transparent onRequestClose={() => setShowSectorModal(false)}>
-        <View style={styles.modalOverlay}>
+      <KeyboardAwareModal
+        visible={showSectorModal}
+        onClose={() => setShowSectorModal(false)}
+        backgroundColor={colors.bgDark}
+        borderColor={colors.glassBorder}
+        maxHeightRatio={0.86}
+        scroll={false}
+      >
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('auth.completeSocialProfile.sectorModalTitle')}</Text>
@@ -360,23 +374,22 @@ export default function CompleteSocialProfileScreen() {
               )}
             />
           </View>
-        </View>
-      </Modal>
+      </KeyboardAwareModal>
     </LinearGradient>
   );
 }
 
-const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
+const createStyles = (colors: any, glassStyle: any, compact: boolean) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: Spacing.lg,
+    padding: compact ? Spacing.md : Spacing.lg,
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: compact ? Spacing.lg : Spacing.xl,
   },
   backBtn: {
     position: 'absolute',
@@ -398,16 +411,16 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     alignItems: 'center',
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: compact ? 64 : 80,
+    height: compact ? 64 : 80,
+    borderRadius: compact ? 32 : 40,
     backgroundColor: colors.glass,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
   title: {
-    fontSize: FontSize.xxl,
+    fontSize: compact ? FontSize.xl : FontSize.xxl,
     fontWeight: '700',
     color: colors.text,
     marginBottom: Spacing.xs,
@@ -421,7 +434,7 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   card: {
     ...glassStyle,
-    padding: Spacing.lg,
+    padding: compact ? Spacing.md : Spacing.lg,
     borderRadius: BorderRadius.xl,
     gap: Spacing.md,
   },
@@ -447,6 +460,7 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
     color: colors.text,
     paddingVertical: 14,
     fontSize: FontSize.md,
@@ -472,6 +486,7 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     flex: 1,
+    minWidth: 0,
   },
   selectorFlag: {
     fontSize: 20,
@@ -480,6 +495,7 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     color: colors.text,
     fontSize: FontSize.md,
     fontWeight: '600',
+    flexShrink: 1,
   },
   selectorHint: {
     color: colors.textMuted,
@@ -524,17 +540,8 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     flex: 1,
     color: colors.danger,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-  },
   modalCard: {
-    backgroundColor: colors.bgDark,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '80%',
-    padding: Spacing.lg,
+    flex: 1,
     gap: Spacing.md,
   },
   modalHeader: {
@@ -558,6 +565,7 @@ const createStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   },
   modalSearchInput: {
     flex: 1,
+    minWidth: 0,
     color: colors.text,
     paddingVertical: 14,
   },
