@@ -22,8 +22,8 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [remoteLoading, setRemoteLoading] = useState(false);
 
-    // Tickets state
     const [tickets, setTickets] = useState<SupportTicket[]>([]);
     const [ticketsLoading, setTicketsLoading] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -36,7 +36,6 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
             const result = await support.getMyTickets();
             setTickets(Array.isArray(result) ? result : []);
         } catch {
-            // silent
         } finally {
             setTicketsLoading(false);
         }
@@ -101,6 +100,35 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
         }
     };
 
+    const handleRemoteAssistance = async () => {
+        setRemoteLoading(true);
+        try {
+            await support.createTicket(
+                t('modals.contactSupport.remoteSubject'),
+                t('modals.contactSupport.remoteMessage', {
+                    name: user?.name || '-',
+                    email: user?.email || '-',
+                    id: user?.user_id || '-',
+                    plan: plan || '-',
+                    surface: isEnterprisePlan ? 'web' : 'mobile',
+                }),
+                {
+                    priority: 'high',
+                    request_type: 'remote_assistance',
+                    support_surface: isEnterprisePlan ? 'web' : 'mobile',
+                    plan: plan || 'starter',
+                }
+            );
+            Alert.alert(t('modals.success'), t('modals.contactSupport.remoteSuccess'));
+            setTab('tickets');
+            loadTickets();
+        } catch {
+            Alert.alert(t('modals.error'), t('modals.contactSupport.error'));
+        } finally {
+            setRemoteLoading(false);
+        }
+    };
+
     const statusColor = (status: string) => {
         if (status === 'open') return '#f59e0b';
         if (status === 'pending') return colors.primary;
@@ -113,7 +141,6 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
         return t('modals.contactSupport.statusClosed');
     };
 
-    // Ticket detail view
     if (selectedTicket) {
         return (
             <Modal visible={visible} animationType="slide" transparent>
@@ -207,7 +234,6 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                         </TouchableOpacity>
                     </View>
 
-                    {/* Tabs */}
                     <View style={styles.tabs}>
                         <TouchableOpacity
                             style={[styles.tab, tab === 'new' && { backgroundColor: colors.primary }]}
@@ -240,18 +266,26 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                     {tab === 'new' ? (
                         <ScrollView style={styles.contentArea} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                             <View style={styles.form}>
-                                <View style={[styles.planNotice, { borderColor: colors.primary + '35', backgroundColor: colors.primary + '12' }]}>
-                                    <Ionicons name={isEnterprisePlan ? 'desktop-outline' : 'phone-portrait-outline'} size={18} color={colors.primary} />
+                                <TouchableOpacity
+                                    style={[styles.remoteButton, { borderColor: colors.primary + '35', backgroundColor: colors.primary + '12' }]}
+                                    onPress={handleRemoteAssistance}
+                                    disabled={remoteLoading}
+                                >
+                                    <Ionicons name={isEnterprisePlan ? 'desktop-outline' : 'phone-portrait-outline'} size={20} color={colors.primary} />
                                     <View style={{ flex: 1 }}>
-                                        <Text style={[styles.planNoticeTitle, { color: colors.text }]}>
-                                            {isEnterprisePlan ? t('modals.contactSupport.enterpriseSurfaceTitle') : t('modals.contactSupport.mobileSurfaceTitle')}
+                                        <Text style={[styles.remoteButtonTitle, { color: colors.text }]}>
+                                            {t('modals.contactSupport.remoteBtn')}
                                         </Text>
-                                        <Text style={[styles.planNoticeText, { color: colors.textMuted }]}>
-                                            {isEnterprisePlan ? t('modals.contactSupport.enterpriseSurfaceDesc') : t('modals.contactSupport.mobileSurfaceDesc')}
+                                        <Text style={[styles.remoteButtonText, { color: colors.textMuted }]}>
+                                            {t('modals.contactSupport.remoteDesc')}
                                         </Text>
                                     </View>
-                                </View>
-                                {/* WhatsApp Integration */}
+                                    {remoteLoading ? (
+                                        <ActivityIndicator color={colors.primary} size="small" />
+                                    ) : (
+                                        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                                    )}
+                                </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.whatsappButton, { borderColor: '#25D366' }]}
                                     onPress={handleWhatsAppSupport}
@@ -422,7 +456,7 @@ const styles = StyleSheet.create({
     form: {
         gap: 15,
     },
-    planNotice: {
+    remoteButton: {
         flexDirection: 'row',
         gap: 10,
         borderWidth: 1,
@@ -430,12 +464,12 @@ const styles = StyleSheet.create({
         padding: 12,
         alignItems: 'flex-start',
     },
-    planNoticeTitle: {
+    remoteButtonTitle: {
         fontSize: 13,
         fontWeight: '800',
         marginBottom: 3,
     },
-    planNoticeText: {
+    remoteButtonText: {
         fontSize: 12,
         lineHeight: 17,
     },

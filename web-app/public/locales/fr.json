@@ -2135,7 +2135,12 @@
     "statusClosed": "Fermé",
     "replied": "Réponse reçue",
     "you": "Vous",
-    "back": "Retour"
+    "back": "Retour",
+    "remoteBtn": "Demander une assistance à distance",
+    "remoteDesc": "Créer une demande de prise en charge avec votre compte, votre plan et votre surface actuelle.",
+    "remoteSubject": "Demande d'assistance à distance",
+    "remoteMessage": "Demande d'assistance à distance.\nNom : {{name}}\nE-mail : {{email}}\nID utilisateur : {{id}}\nPlan : {{plan}}\nSurface : {{surface}}\nBesoin : accompagnement pour configuration ou diagnostic.",
+    "remoteSuccess": "Demande envoyée. Le support vous répondra avec les prochaines étapes."
   },
   "notifications": {
     "title": "Notifications",

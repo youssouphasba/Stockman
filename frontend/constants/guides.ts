@@ -487,7 +487,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "help-circle-outline",
                 title: "Support et incidents",
-                description: "Le centre d'aide, l'assistant, le contact support et le signalement d'un problème sont maintenant placés en premier pour demander de l'aide sans chercher dans toutes les rubriques."
+                description: "Le centre d'aide, l'assistant, le contact support, l'assistance à distance et le signalement d'un problème sont placés en premier pour demander de l'aide sans chercher dans toutes les rubriques."
             },
             {
                 icon: "person-outline",
@@ -753,7 +753,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             { icon: "search-outline", title: "Chercher avant de demander", description: "Commencez par la recherche ou par le guide du module concerné. C'est souvent le moyen le plus rapide de comprendre un bouton, un écran ou une action sans quitter votre travail." },
             { icon: "book-outline", title: "Lancer le guide du bon module", description: "Chaque module a son propre parcours. Ouvrez le guide lié à l'écran où vous êtes pour obtenir une explication plus concrète et plus utile qu'une réponse générale." },
             { icon: "sparkles-outline", title: "Poser une question à l'assistant", description: "Utilisez l'assistant quand votre question porte sur un usage précis, une anomalie ou une marche à suivre. Formulez la situation clairement pour obtenir une réponse plus utile." },
-            { icon: "chatbubble-outline", title: "Contacter le support si nécessaire", description: "Créez un ticket quand vous avez déjà essayé de comprendre le problème mais qu'une aide humaine reste nécessaire. Décrivez le contexte, le module concerné et ce que vous attendiez." },
+            { icon: "chatbubble-outline", title: "Contacter le support si nécessaire", description: "Créez un ticket quand vous avez déjà essayé de comprendre le problème mais qu'une aide humaine reste nécessaire. Pour une prise en charge à distance, utilisez le bouton dédié : le support pourra ouvrir une session d'assistance tracée sur votre compte." },
             { icon: "warning-outline", title: "Signaler un problème important", description: "Utilisez le signalement quand il s'agit d'un sujet sensible comme la facturation, un blocage technique ou une incohérence sérieuse. Plus votre description est précise, plus la résolution sera rapide." }
         ]
     }

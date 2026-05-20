@@ -115,6 +115,14 @@ function formatAdminMessageTarget(target: string | null | undefined) {
     return target;
 }
 
+function formatSupportTicketStatus(status: string | null | undefined) {
+    if (status === 'open') return 'Ouvert';
+    if (status === 'in_progress') return 'En cours';
+    if (status === 'pending') return 'Répondu';
+    if (status === 'closed' || status === 'resolved') return 'Clôturé';
+    return status || 'Inconnu';
+}
+
 function formatAccessPhaseLabel(phase: string | null) {
     switch (phase) {
         case 'active':
@@ -241,6 +249,7 @@ export default function AdminDashboard() {
     const [replyTicketId, setReplyTicketId] = useState<string | null>(null);
     const [replyContent, setReplyContent] = useState('');
     const [replying, setReplying] = useState(false);
+    const [assistingTicketId, setAssistingTicketId] = useState<string | null>(null);
     const [userSearch, setUserSearch] = useState('');
     const [userPlanFilter, setUserPlanFilter] = useState('');
     const [userStatusFilter, setUserStatusFilter] = useState('');
@@ -642,6 +651,24 @@ export default function AdminDashboard() {
             showToast('Erreur lors de l\'envoi.', 'error');
         } finally {
             setReplying(false);
+        }
+    };
+
+    const handleAssistTicket = async (ticket: any) => {
+        if (!ticket?.ticket_id) return;
+        if (ticket.request_type !== 'remote_assistance') {
+            showToast("Ce ticket n'est pas une demande d'assistance à distance.", 'error');
+            return;
+        }
+        setAssistingTicketId(ticket.ticket_id);
+        try {
+            await adminApi.assistTicket(ticket.ticket_id);
+            showToast(`Session ouverte pour ${ticket.user_name || ticket.user_email || 'cet utilisateur'}.`);
+            window.location.href = '/';
+        } catch {
+            showToast("Impossible d'ouvrir la session d'assistance.", 'error');
+        } finally {
+            setAssistingTicketId(null);
         }
     };
 
@@ -3225,13 +3252,13 @@ export default function AdminDashboard() {
                                     <div className="p-5 hover:bg-white/5 transition-all flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between group">
                                         <div className="flex flex-col gap-3">
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <span className={`w-2 h-2 rounded-full shrink-0 ${ticket.status === 'open' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                                                <span className={`w-2 h-2 rounded-full shrink-0 ${ticket.status === 'open' ? 'bg-rose-500' : ticket.status === 'in_progress' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
                                                 <h4 className="text-white font-bold">{ticket.subject}</h4>
                                                 <span className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-300">
                                                     {ticket.type || 'Assistance'}
                                                 </span>
-                                                <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${ticket.status === 'open' ? 'border-amber-500/20 bg-amber-500/10 text-amber-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
-                                                    {ticket.status === 'open' ? 'Ouvert' : 'Résolu'}
+                                                <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${ticket.status === 'open' ? 'border-amber-500/20 bg-amber-500/10 text-amber-300' : ticket.status === 'in_progress' ? 'border-blue-500/20 bg-blue-500/10 text-blue-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
+                                                    {formatSupportTicketStatus(ticket.status)}
                                                 </span>
                                                 {ticket.ageDays !== null && ticket.ageDays >= 2 ? (
                                                     <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-rose-300">
@@ -3242,11 +3269,22 @@ export default function AdminDashboard() {
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                                 <MiniDetail label="Utilisateur" value={ticket.user_name || ticket.user_email || '—'} />
                                                 <MiniDetail label="Email" value={ticket.user_email || ticket.email || '—'} />
+                                                <MiniDetail label="Plan" value={ticket.plan || '—'} />
+                                                <MiniDetail label="Surface" value={ticket.support_surface || '—'} />
                                                 <MiniDetail label="Création" value={formatAdminDate(ticket.created_at)} />
                                                 <MiniDetail label="Priorité" value={ticket.priority || 'Standard'} />
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2 lg:justify-end">
+                                            {ticket.request_type === 'remote_assistance' && ticket.status !== 'closed' ? (
+                                                <button
+                                                    onClick={() => handleAssistTicket(ticket)}
+                                                    disabled={assistingTicketId === ticket.ticket_id}
+                                                    className="px-4 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-xs font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-500 hover:text-white disabled:opacity-50"
+                                                >
+                                                    {assistingTicketId === ticket.ticket_id ? 'Ouverture...' : 'Accéder au compte'}
+                                                </button>
+                                            ) : null}
                                             <button
                                                 onClick={() => {
                                                     setUserSearch(ticket.user_email || ticket.email || ticket.user_id || '');
@@ -3262,6 +3300,22 @@ export default function AdminDashboard() {
                                             >
                                                 Répondre
                                             </button>
+                                            {ticket.status !== 'closed' ? (
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            await adminApi.closeTicket(ticket.ticket_id);
+                                                            await loadTickets();
+                                                            showToast('Ticket clôturé.');
+                                                        } catch {
+                                                            showToast('Erreur lors de la clôture.', 'error');
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2 rounded-xl border border-emerald-500/20 bg-white/5 text-xs font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-500 hover:text-white"
+                                                >
+                                                    Clôturer
+                                                </button>
+                                            ) : null}
                                         </div>
                                     </div>
                                     {replyTicketId === ticket.ticket_id && (

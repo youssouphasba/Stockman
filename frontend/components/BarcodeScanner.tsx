@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
+    Modal,
     StyleSheet,
     Text,
-    View,
     TouchableOpacity,
-    Modal,
-    ActivityIndicator,
+    View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 
 type Props = {
@@ -26,18 +27,33 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
     const { colors } = useTheme();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
+    const [permissionRequested, setPermissionRequested] = useState(false);
     const styles = createStyles(colors);
 
     useEffect(() => {
-        if (visible && !permission?.granted) {
-            requestPermission();
+        if (!visible || permission?.granted || permissionRequested) {
+            return;
         }
-    }, [visible, permission]);
+
+        setPermissionRequested(true);
+        requestPermission().then((result) => {
+            if (!result.granted) {
+                Alert.alert(
+                    t('common.error', 'Erreur'),
+                    t('scanner.permission_text', "L'accès à la caméra est nécessaire pour scanner les codes-barres."),
+                    [{ text: t('common.ok', 'OK'), onPress: onClose }]
+                );
+            }
+        });
+    }, [visible, permission?.granted, permissionRequested, requestPermission, t, onClose]);
 
     useEffect(() => {
         if (visible) {
             setScanned(false);
+            return;
         }
+
+        setPermissionRequested(false);
     }, [visible]);
 
     const handleBarcodeScanned = ({ data }: { data: string }) => {
@@ -48,15 +64,50 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
         if (!continuous) {
             setScanned(true);
             onClose();
-        } else {
-            // Re-enable scanning after a short delay for continuous mode
-            setScanned(true);
-            setTimeout(() => setScanned(false), 1500);
+            return;
         }
+
+        setScanned(true);
+        setTimeout(() => setScanned(false), 1500);
     };
 
-    if (!permission) {
+    if (!visible) {
         return null;
+    }
+
+    if (!permission) {
+        return (
+            <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+                <View style={styles.permissionContainer}>
+                    <ActivityIndicator color={colors.primary} />
+                </View>
+            </Modal>
+        );
+    }
+
+    if (!permission.granted) {
+        return (
+            <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+                <View style={styles.permissionContainer}>
+                    <Ionicons name="camera-outline" size={64} color={colors.textMuted} />
+                    <Text style={styles.permissionText}>
+                        {t('scanner.permission_text', "L'accès à la caméra est nécessaire pour scanner les codes-barres.")}
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.permissionButton}
+                        onPress={() => {
+                            setPermissionRequested(false);
+                            void requestPermission();
+                        }}
+                    >
+                        <Text style={styles.permissionButtonText}>{t('scanner.allow_camera', 'Autoriser la caméra')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                        <Text style={styles.closeButtonText}>{t('common.cancel', 'Annuler')}</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+        );
     }
 
     return (
@@ -67,53 +118,40 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
             onRequestClose={onClose}
         >
             <View style={styles.container}>
-                {!permission.granted ? (
-                    <View style={styles.permissionContainer}>
-                        <Ionicons name="camera-outline" size={64} color={colors.textMuted} />
-                        <Text style={styles.permissionText}>{t('scanner.permission_text')}</Text>
-                        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-                            <Text style={styles.permissionButtonText}>{t('scanner.allow_camera')}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                            <Text style={styles.closeButtonText}>{t('common.cancel')}</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <CameraView
-                        style={StyleSheet.absoluteFillObject}
-                        onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-                        barcodeScannerSettings={{
-                            barcodeTypes: ["qr", "ean13", "ean8", "upc_a", "upc_e", "code128", "code39", "code93", "itf14", "codabar", "aztec", "datamatrix", "pdf417"],
-                        }}
-                    >
-                        <View style={styles.overlay}>
-                            <View style={styles.header}>
-                                <TouchableOpacity onPress={onClose} style={styles.backButton}>
-                                    <Ionicons name="close-circle" size={40} color="#fff" />
-                                </TouchableOpacity>
-                                <Text style={styles.headerText}>{t('scanner.title')}</Text>
-                            </View>
-
-                            <View style={styles.scanTarget}>
-                                <View style={[styles.corner, styles.topLeft]} />
-                                <View style={[styles.corner, styles.topRight]} />
-                                <View style={[styles.corner, styles.bottomLeft]} />
-                                <View style={[styles.corner, styles.bottomRight]} />
-                            </View>
-
-                            <View style={styles.footer}>
-                                <TouchableOpacity
-                                    style={[styles.continuousToggle, continuous && { backgroundColor: colors.primary }]}
-                                    onPress={onToggleContinuous}
-                                >
-                                    <Ionicons name={continuous ? "infinite" : "stop-circle-outline"} size={20} color="#fff" />
-                                    <Text style={styles.footerText}>{continuous ? t('scanner.continuous_on') : t('scanner.continuous_off')}</Text>
-                                </TouchableOpacity>
-                                <Text style={[styles.footerText, { marginTop: 8, opacity: 0.8 }]}>{t('scanner.aim')}</Text>
-                            </View>
+                <CameraView
+                    style={StyleSheet.absoluteFillObject}
+                    onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+                    barcodeScannerSettings={{
+                        barcodeTypes: ['qr', 'ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'code93', 'itf14', 'codabar', 'aztec', 'datamatrix', 'pdf417'],
+                    }}
+                >
+                    <View style={styles.overlay}>
+                        <View style={styles.header}>
+                            <TouchableOpacity onPress={onClose} style={styles.backButton}>
+                                <Ionicons name="close-circle" size={40} color="#fff" />
+                            </TouchableOpacity>
+                            <Text style={styles.headerText}>{t('scanner.title')}</Text>
                         </View>
-                    </CameraView>
-                )}
+
+                        <View style={styles.scanTarget}>
+                            <View style={[styles.corner, styles.topLeft]} />
+                            <View style={[styles.corner, styles.topRight]} />
+                            <View style={[styles.corner, styles.bottomLeft]} />
+                            <View style={[styles.corner, styles.bottomRight]} />
+                        </View>
+
+                        <View style={styles.footer}>
+                            <TouchableOpacity
+                                style={[styles.continuousToggle, continuous && { backgroundColor: colors.primary }]}
+                                onPress={onToggleContinuous}
+                            >
+                                <Ionicons name={continuous ? 'infinite' : 'stop-circle-outline'} size={20} color="#fff" />
+                                <Text style={styles.footerText}>{continuous ? t('scanner.continuous_on') : t('scanner.continuous_off')}</Text>
+                            </TouchableOpacity>
+                            <Text style={[styles.footerText, { marginTop: 8, opacity: 0.8 }]}>{t('scanner.aim')}</Text>
+                        </View>
+                    </View>
+                </CameraView>
             </View>
         </Modal>
     );

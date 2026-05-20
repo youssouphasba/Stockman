@@ -2704,7 +2704,13 @@ class SupportTicket(BaseModel):
     ticket_id: str = Field(default_factory=lambda: f"tick_{uuid.uuid4().hex[:12]}")
     user_id: str
     user_name: str
+    user_email: Optional[str] = None
     subject: str
+    type: Optional[str] = None
+    priority: str = "standard"
+    plan: Optional[str] = None
+    support_surface: Optional[str] = None
+    request_type: Optional[str] = None
     status: str = "open" # "open", "in_progress", "resolved"
     messages: List[SupportMessage] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -2713,6 +2719,11 @@ class SupportTicket(BaseModel):
 class SupportTicketCreate(BaseModel):
     subject: str
     message: str
+    type: Optional[str] = None
+    priority: Optional[str] = None
+    plan: Optional[str] = None
+    support_surface: Optional[str] = None
+    request_type: Optional[str] = None
 
 class SupportReply(BaseModel):
     content: str
@@ -5908,10 +5919,17 @@ async def test_push_notification(user: User = Depends(require_auth)):
 
 @api_router.post("/support/tickets", response_model=SupportTicket)
 async def create_support_ticket(data: SupportTicketCreate, user: User = Depends(require_auth)):
+    request_type = data.request_type or ("remote_assistance" if "assistance" in data.subject.lower() and "distance" in data.subject.lower() else "support")
     ticket = SupportTicket(
         user_id=user.user_id,
         user_name=user.name,
+        user_email=user.email,
         subject=data.subject,
+        type=data.type or ("Assistance à distance" if request_type == "remote_assistance" else "Support"),
+        priority=data.priority or ("high" if request_type == "remote_assistance" else "standard"),
+        plan=data.plan or user.effective_plan or user.subscription_plan or user.plan,
+        support_surface=data.support_surface,
+        request_type=request_type,
         messages=[SupportMessage(sender_id=user.user_id, sender_name=user.name, content=data.message)]
     )
     await db.support_tickets.insert_one(ticket.model_dump())
@@ -6658,9 +6676,10 @@ async def admin_global_logs(module: Optional[str] = None, user_id: Optional[str]
     return logs
 
 @admin_router.get("/support/tickets", response_model=List[SupportTicket])
-async def admin_list_tickets(status: Optional[str] = "open"):
+async def admin_list_tickets(status: Optional[str] = None):
     query = {}
-    if status: query["status"] = status
+    if status and status != "all":
+        query["status"] = status
     tickets = await db.support_tickets.find(query, {"_id": 0}).sort("updated_at", -1).to_list(100)
     return [SupportTicket(**t) for t in tickets]
 
@@ -6696,6 +6715,92 @@ async def admin_reply_ticket(ticket_id: str, reply: SupportReply, user: User = D
         logger.warning(f"Failed to notify user of admin reply: {e}")
 
     return SupportTicket(**result)
+
+@admin_router.post("/support/tickets/{ticket_id}/assist", response_model=TokenResponse)
+async def admin_start_remote_assistance(
+    ticket_id: str,
+    request: Request,
+    response: Response,
+    admin: User = Depends(require_superadmin),
+):
+    ticket = await db.support_tickets.find_one({"ticket_id": ticket_id}, {"_id": 0})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket introuvable")
+
+    is_remote_request = (
+        ticket.get("request_type") == "remote_assistance"
+        or "assistance" in str(ticket.get("subject") or "").lower()
+        and "distance" in str(ticket.get("subject") or "").lower()
+    )
+    if not is_remote_request:
+        raise HTTPException(status_code=400, detail="Ce ticket n'est pas une demande d'assistance à distance")
+    if ticket.get("status") == "closed":
+        raise HTTPException(status_code=400, detail="Ce ticket est déjà clôturé")
+
+    target_user_id = ticket.get("user_id")
+    target_doc = await db.users.find_one({"user_id": target_user_id}, {"_id": 0})
+    if not target_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if target_doc.get("role") == "superadmin":
+        raise HTTPException(status_code=403, detail="Accès refusé à ce compte")
+
+    session_tokens = await create_authenticated_session(
+        target_doc,
+        request,
+        response,
+        session_label=f"remote_assistance:{ticket_id}:{admin.user_id}",
+    )
+    await db.user_sessions.update_one(
+        {"session_id": session_tokens["session_id"]},
+        {
+            "$set": {
+                "session_type": "remote_assistance",
+                "assistance_ticket_id": ticket_id,
+                "assistance_admin_user_id": admin.user_id,
+            }
+        },
+    )
+    now = datetime.now(timezone.utc)
+    assist_message = SupportMessage(
+        sender_id=admin.user_id,
+        sender_name="Admin Stockman",
+        content=f"Session d'assistance ouverte par {admin.name}.",
+        created_at=now,
+    )
+    await db.support_tickets.update_one(
+        {"ticket_id": ticket_id},
+        {
+            "$push": {"messages": assist_message.model_dump()},
+            "$set": {
+                "status": "in_progress",
+                "updated_at": now,
+                "assistance_started_at": now,
+                "assistance_started_by": admin.user_id,
+                "support_surface": ticket.get("support_surface") or "web",
+            },
+        },
+    )
+    await log_activity(
+        user_id=target_user_id,
+        user_name=target_doc.get("name"),
+        owner_id=target_doc.get("parent_user_id") or target_user_id,
+        store_id=target_doc.get("active_store_id"),
+        action="remote_assistance_started",
+        module="support",
+        description="Session d'assistance à distance ouverte par un administrateur",
+        details={
+            "ticket_id": ticket_id,
+            "admin_user_id": admin.user_id,
+            "admin_name": admin.name,
+            "support_surface": ticket.get("support_surface"),
+        },
+    )
+    target_user = await build_user_from_doc(target_doc)
+    return TokenResponse(
+        access_token=session_tokens["access_token"],
+        refresh_token=session_tokens["refresh_token"],
+        user=target_user,
+    )
 
 @admin_router.post("/support/tickets/{ticket_id}/close")
 async def admin_close_ticket(ticket_id: str):

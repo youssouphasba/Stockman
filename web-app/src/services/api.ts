@@ -2563,8 +2563,8 @@ function toQueryString(params?: Record<string, unknown>) {
 
 // User support tickets
 export const support = {
-    createTicket: (subject: string, message: string) =>
-        request<any>('/support/tickets', { method: 'POST', body: { subject, message } }),
+    createTicket: (subject: string, message: string, metadata: Record<string, string> = {}) =>
+        request<any>('/support/tickets', { method: 'POST', body: { subject, message, ...metadata } }),
     getMyTickets: () => request<any[]>('/support/tickets/mine'),
     replyTicket: (ticketId: string, content: string) =>
         request<any>(`/support/tickets/${ticketId}/reply`, { method: 'POST', body: { content } }),
@@ -2765,6 +2765,7 @@ export const admin = {
     listTickets: (status?: string) => request<any[]>(`/admin/support/tickets${status ? `?status=${status}` : ''}`),
     replyTicket: (id: string, content: string) => request<any>(`/admin/support/tickets/${id}/reply`, { method: 'POST', body: { content } }),
     closeTicket: (id: string) => request<any>(`/admin/support/tickets/${id}/close`, { method: 'POST' }),
+    assistTicket: (id: string) => request<AuthResponse>(`/admin/support/tickets/${id}/assist`, { method: 'POST' }),
     listLogs: (module?: string, skip = 0, limit = 100) => request<any[]>(`/admin/logs?${module ? `module=${module}&` : ''}skip=${skip}&limit=${limit}`),
     getUserLogs: (userId: string, limit = 50) => request<any[]>(`/admin/logs?user_id=${encodeURIComponent(userId)}&limit=${limit}`),
     getMrrStats: (months = 12) => request<any>(`/admin/stats/mrr?months=${months}`),

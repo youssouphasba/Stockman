@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Send, Plus, MessageCircle, ChevronLeft, CheckCircle, ExternalLink, Mail, AlertTriangle, ShieldAlert, BadgeInfo } from 'lucide-react';
+import { X, Send, Plus, MessageCircle, ChevronLeft, CheckCircle, ExternalLink, Mail, AlertTriangle, ShieldAlert, BadgeInfo, MonitorCog } from 'lucide-react';
 import { support, disputes } from '../services/api';
 
 const WHATSAPP_SUPPORT_NUMBER = "+33661600490";
@@ -24,13 +24,12 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
     const plan = user?.effective_plan || user?.subscription_plan || user?.plan;
     const isEnterprisePlan = plan === 'enterprise';
 
-    // New item form
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [disputeType, setDisputeType] = useState('other');
     const [sending, setSending] = useState(false);
+    const [remoteSending, setRemoteSending] = useState(false);
 
-    // Reply
     const [replyText, setReplyText] = useState('');
     const [replying, setReplying] = useState(false);
 
@@ -47,7 +46,7 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
             ]);
             setTickets(Array.isArray(ticketsRes) ? ticketsRes : []);
             setUserDisputes(Array.isArray(disputesRes) ? disputesRes : []);
-        } catch { /* silent */ }
+        } catch { }
         finally { setLoading(false); }
     };
 
@@ -72,6 +71,35 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
             alert(t('support.createError', { defaultValue: "Erreur lors de l'envoi" }));
         } finally {
             setSending(false);
+        }
+    };
+
+    const handleRemoteAssistance = async () => {
+        setRemoteSending(true);
+        try {
+            await support.createTicket(
+                t('support.remoteSubject'),
+                t('support.remoteMessage', {
+                    name: user?.name || '-',
+                    email: user?.email || '-',
+                    id: user?.user_id || '-',
+                    plan: plan || '-',
+                    surface: isEnterprisePlan ? 'web' : 'mobile',
+                }),
+                {
+                    priority: 'high',
+                    request_type: 'remote_assistance',
+                    support_surface: isEnterprisePlan ? 'web' : 'mobile',
+                    plan: plan || 'starter',
+                }
+            );
+            await loadItems();
+            setTab('list');
+            alert(t('support.remoteSuccess'));
+        } catch {
+            alert(t('support.createError', { defaultValue: "Erreur lors de l'envoi" }));
+        } finally {
+            setRemoteSending(false);
         }
     };
 
@@ -116,7 +144,6 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
         <div className="fixed inset-0 z-50 flex justify-end">
             <div className="absolute inset-0 bg-black/40" onClick={onClose} />
             <div className="relative w-full max-w-md bg-[#0F172A] border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
-                {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
                     {tab === 'detail' ? (
                         <button onClick={() => { setTab('list'); setSelectedItem(null); }} className="flex items-center gap-2 text-slate-400 hover:text-white">
@@ -131,7 +158,6 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
                     </button>
                 </div>
 
-                {/* Tabs (only in list/new) */}
                 {tab !== 'detail' && (
                     <div className="flex gap-2 px-6 pt-4">
                         <button
@@ -149,25 +175,31 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
                     </div>
                 )}
 
-                {/* Content */}
                 <div className="flex-1 overflow-y-auto px-6 py-4">
                     {tab === 'list' && (
                         <div className="flex flex-col gap-4">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2 mb-1">{t('support.channelsTitle', { defaultValue: 'Canaux de Support Professionnel' })}</h3>
-                            <div className={`flex items-start gap-3 rounded-2xl border p-4 ${isEnterprisePlan ? 'border-primary/20 bg-primary/10 text-primary' : 'border-amber-500/20 bg-amber-500/10 text-amber-300'}`}>
-                                <BadgeInfo size={18} className="mt-0.5 shrink-0" />
-                                <div>
-                                    <p className="text-sm font-black text-white">
-                                        {isEnterprisePlan ? t('support.enterpriseSurfaceTitle') : t('support.mobileSurfaceTitle')}
-                                    </p>
-                                    <p className="mt-1 text-xs leading-5 text-slate-300">
-                                        {isEnterprisePlan ? t('support.enterpriseSurfaceDesc') : t('support.mobileSurfaceDesc')}
-                                    </p>
-                                </div>
-                            </div>
                             
                             <div className="grid grid-cols-1 gap-3 mb-6">
-                                {/* WhatsApp Button */}
+                                <button
+                                    onClick={handleRemoteAssistance}
+                                    disabled={remoteSending}
+                                    className="flex items-center gap-3 w-full bg-primary/10 text-primary border border-primary/20 p-4 rounded-2xl hover:bg-primary/20 transition-all group disabled:opacity-60"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                                        <MonitorCog size={20} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h3 className="font-bold text-sm">{t('support.remoteBtn')}</h3>
+                                        <p className="text-[10px] opacity-70">{t('support.remoteDesc')}</p>
+                                    </div>
+                                    {remoteSending ? (
+                                        <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                                    ) : (
+                                        <Plus size={14} className="opacity-40 group-hover:opacity-100" />
+                                    )}
+                                </button>
+
                                 <a
                                     href={`https://wa.me/${WHATSAPP_SUPPORT_NUMBER.replace(/\+/g, '')}?text=${encodeURIComponent(t('support.whatsappMessage', { defaultValue: 'Bonjour', id: user?.user_id || 'N/A' }))}`}
                                     target="_blank"
@@ -184,7 +216,6 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
                                     <ExternalLink size={14} className="opacity-40 group-hover:opacity-100" />
                                 </a>
 
-                                {/* Email Button */}
                                 <a
                                     href={`mailto:contact@stockman.pro?subject=Support Stockman - ${user?.name || 'Client'} (ID: ${user?.user_id || 'N/A'})`}
                                     className="flex items-center gap-3 w-full bg-blue-500/10 text-blue-400 border border-blue-500/20 p-4 rounded-2xl hover:bg-blue-500/20 transition-all group"
@@ -199,7 +230,6 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
                                     <ExternalLink size={14} className="opacity-40 group-hover:opacity-100" />
                                 </a>
 
-                                {/* Disputed / Official Support Button */}
                                 <button
                                     onClick={() => {
                                         setTab('new');

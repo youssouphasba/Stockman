@@ -2094,10 +2094,11 @@
     "replied": "Réponse reçue",
     "you": "Vous",
     "back": "Retour",
-    "enterpriseSurfaceTitle": "Assistance Enterprise sur le web",
-    "enterpriseSurfaceDesc": "Les demandes Enterprise se traitent depuis le web pour gérer correctement les boutiques, l'équipe, la facturation et les réglages avancés.",
-    "mobileSurfaceTitle": "Assistance Starter et Pro sur mobile",
-    "mobileSurfaceDesc": "Pour Starter et Pro, l'assistance principale se fait depuis l'application mobile, au plus près des opérations quotidiennes."
+    "remoteBtn": "Demander une assistance à distance",
+    "remoteDesc": "Créer une demande de prise en charge avec votre compte, votre plan et votre surface actuelle.",
+    "remoteSubject": "Demande d'assistance à distance",
+    "remoteMessage": "Demande d'assistance à distance.\nNom : {{name}}\nE-mail : {{email}}\nID utilisateur : {{id}}\nPlan : {{plan}}\nSurface : {{surface}}\nBesoin : accompagnement pour configuration ou diagnostic.",
+    "remoteSuccess": "Demande envoyée. Le support vous répondra avec les prochaines étapes."
   },
   "notifications": {
     "title": "Notifications",

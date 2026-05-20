@@ -1434,8 +1434,14 @@ export type SupportTicket = {
   ticket_id: string;
   user_id: string;
   user_name: string;
+  user_email?: string | null;
   subject: string;
-  status: 'open' | 'pending' | 'resolved';
+  type?: string | null;
+  priority?: string | null;
+  plan?: string | null;
+  support_surface?: string | null;
+  request_type?: string | null;
+  status: 'open' | 'pending' | 'in_progress' | 'resolved' | 'closed';
   messages: SupportMessage[];
   created_at: string;
   updated_at: string;
@@ -1600,6 +1606,8 @@ export const admin = {
     request<SupportTicket>(`/admin/support/tickets/${ticketId}/reply`, { method: 'POST', body: { content } }),
   closeTicket: (ticketId: string) =>
     request<{ message: string }>(`/admin/support/tickets/${ticketId}/close`, { method: 'POST' }),
+  assistTicket: (ticketId: string) =>
+    request<AuthResponse>(`/admin/support/tickets/${ticketId}/assist`, { method: 'POST' }),
 
   // Disputes
   listDisputes: (params?: { status?: string; type?: string; skip?: number; limit?: number }) => {
@@ -1649,8 +1657,8 @@ export const system = {
 
 
 export const support = {
-  createTicket: (subject: string, message: string) =>
-    request<SupportTicket>('/support/tickets', { method: 'POST', body: { subject, message } }),
+  createTicket: (subject: string, message: string, metadata: Record<string, string> = {}) =>
+    request<SupportTicket>('/support/tickets', { method: 'POST', body: { subject, message, ...metadata } }),
   getMyTickets: () =>
     request<SupportTicket[]>('/support/tickets/mine'),
   replyTicket: (ticketId: string, content: string) =>

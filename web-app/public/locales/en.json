@@ -2138,7 +2138,12 @@
     "statusClosed": "Closed",
     "replied": "Reply received",
     "you": "You",
-    "back": "Back"
+    "back": "Back",
+    "remoteBtn": "Request remote assistance",
+    "remoteDesc": "Create a support request with your account, plan and current surface.",
+    "remoteSubject": "Remote assistance request",
+    "remoteMessage": "Remote assistance request.\nName: {{name}}\nEmail: {{email}}\nUser ID: {{id}}\nPlan: {{plan}}\nSurface: {{surface}}\nNeed: configuration help or diagnosis.",
+    "remoteSuccess": "Request sent. Support will reply with the next steps."
   },
   "notifications": {
     "title": "Notifications",

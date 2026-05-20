@@ -1878,10 +1878,11 @@
       "replyError": "Error sending reply.",
       "whatsappBtn": "Chat on WhatsApp",
       "whatsappMessage": "Hello, I need help with my Stockman account. My user ID is {{id}}.",
-      "enterpriseSurfaceTitle": "Enterprise support on web",
-      "enterpriseSurfaceDesc": "Enterprise requests are handled from the web app so stores, staff, billing and advanced settings can be managed correctly.",
-      "mobileSurfaceTitle": "Starter and Pro support on mobile",
-      "mobileSurfaceDesc": "For Starter and Pro, support is primarily handled from this mobile app, close to daily operations."
+      "remoteBtn": "Request remote assistance",
+      "remoteDesc": "Create a support request with your account, plan and current surface.",
+      "remoteSubject": "Remote assistance request",
+      "remoteMessage": "Remote assistance request.\nName: {{name}}\nEmail: {{email}}\nUser ID: {{id}}\nPlan: {{plan}}\nSurface: {{surface}}\nNeed: configuration help or diagnosis.",
+      "remoteSuccess": "Request sent. Support will reply with the next steps."
     },
     "deleteAccount": {
       "dangerZone": "Danger Zone âš ï¸",

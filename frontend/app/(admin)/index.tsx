@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput, Alert, Animated, Dimensions, ActivityIndicator, Platform, Linking } from 'react-native';
-import { admin, system, SystemHealth, GlobalStats, DetailedStats, User, Product, Customer, SupportTicket, ActivityLog, StoreAdmin } from '../../services/api';
+import { admin, system, SystemHealth, GlobalStats, DetailedStats, User, Product, Customer, SupportTicket, ActivityLog, StoreAdmin, setToken, setRefreshToken } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -39,7 +39,7 @@ const COUNTRY_NAMES: Record<string, string> = {
 export default function AdminDashboard() {
     const { t } = useTranslation();
     const { colors, isDark } = useTheme();
-    const { user, logout } = useAuth();
+    const { user, logout, restoreSession } = useAuth();
 
     const SEGMENTS: { id: Segment; label: string; icon: string }[] = [
         { id: 'global', label: t('admin.segments.global'), icon: 'grid' },
@@ -112,6 +112,7 @@ export default function AdminDashboard() {
     const [msgChannels, setMsgChannels] = useState<AdminChannel[]>(['in_app', 'push']);
     const [replyText, setReplyText] = useState('');
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
+    const [assistingTicketId, setAssistingTicketId] = useState<string | null>(null);
     const [disputeResolution, setDisputeResolution] = useState('');
     const [disputeNotes, setDisputeNotes] = useState('');
     const [targetUserId, setTargetUserId] = useState('');
@@ -387,6 +388,24 @@ export default function AdminDashboard() {
     const handleCloseTicket = async (id: string) => {
         try { await admin.closeTicket(id); loadData(); } catch { Alert.alert(t('admin.actions.error')); }
     };
+    const handleAssistTicket = async (ticket: SupportTicket) => {
+        if (ticket.request_type !== 'remote_assistance') {
+            Alert.alert('Assistance', "Ce ticket n'est pas une demande d'assistance à distance.");
+            return;
+        }
+        setAssistingTicketId(ticket.ticket_id);
+        try {
+            const session = await admin.assistTicket(ticket.ticket_id);
+            await setToken(session.access_token);
+            if (session.refresh_token) await setRefreshToken(session.refresh_token);
+            await restoreSession(true);
+            router.replace('/(tabs)' as any);
+        } catch {
+            Alert.alert(t('admin.actions.error'));
+        } finally {
+            setAssistingTicketId(null);
+        }
+    };
     const handleReply = async (id: string, type: 'ticket' | 'dispute') => {
         if (!replyText.trim()) return;
         try {
@@ -428,7 +447,7 @@ export default function AdminDashboard() {
     };
 
     const roleColors: Record<string, string> = { superadmin: '#EF4444', shopkeeper: '#3B82F6', staff: '#10B981', supplier: '#F59E0B' };
-    const statusColors: Record<string, string> = { open: '#F59E0B', investigating: '#3B82F6', resolved: '#10B981', rejected: '#EF4444', closed: '#6B7280', pending: '#8B5CF6' };
+    const statusColors: Record<string, string> = { open: '#F59E0B', in_progress: '#3B82F6', investigating: '#3B82F6', resolved: '#10B981', rejected: '#EF4444', closed: '#6B7280', pending: '#8B5CF6' };
     const moduleColors: Record<string, string> = { stock: '#3B82F6', auth: '#EF4444', crm: '#10B981', pos: '#F59E0B', broadcast: '#8B5CF6', communication: '#06B6D4' };
     const renderInfoLine = (label: string, value?: string | number | null) => (
         <View style={st.infoLine}>
@@ -1130,6 +1149,7 @@ export default function AdminDashboard() {
                 filters={[
                     { id: 'all', label: t('admin.support.filterAll') },
                     { id: 'open', label: t('admin.support.filterOpen') },
+                    { id: 'in_progress', label: 'En cours' },
                     { id: 'pending', label: t('admin.support.filterPending') },
                     { id: 'closed', label: t('admin.support.filterClosed') }
                 ]}
@@ -1146,6 +1166,11 @@ export default function AdminDashboard() {
                     </View>
                     <View style={st.detailGrid}>
                         {renderInfoLine('Utilisateur', t_info.user_name)}
+                        {renderInfoLine('E-mail', t_info.user_email)}
+                        {renderInfoLine('Type', t_info.type)}
+                        {renderInfoLine('Plan', t_info.plan)}
+                        {renderInfoLine('Surface', t_info.support_surface)}
+                        {renderInfoLine('Priorité', t_info.priority)}
                         {renderInfoLine('ID ticket', t_info.ticket_id)}
                         {renderInfoLine('Créé le', formatDateTime(t_info.created_at))}
                         {renderInfoLine('Mis à jour', formatDateTime(t_info.updated_at))}
@@ -1162,6 +1187,14 @@ export default function AdminDashboard() {
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                         {t_info.status !== 'closed' && (
                             <>
+                                {t_info.request_type === 'remote_assistance' ? (
+                                    <ActionButton
+                                        label={assistingTicketId === t_info.ticket_id ? 'Ouverture...' : 'Accéder au compte'}
+                                        icon="log-in-outline"
+                                        color="#10B981"
+                                        onPress={() => handleAssistTicket(t_info)}
+                                    />
+                                ) : null}
                                 <ActionButton label={t('admin.actions.reply')} icon="chatbubble-outline" color={colors.primary} onPress={() => setReplyingTo(replyingTo === t_info.ticket_id ? null : t_info.ticket_id)} />
                                 <ActionButton label={t('admin.actions.close')} icon="checkmark-circle-outline" color="#10B981" onPress={() => handleCloseTicket(t_info.ticket_id)} />
                             </>
