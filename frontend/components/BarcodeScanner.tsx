@@ -77,15 +77,14 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
     const handleBarcodeScanned = ({ data }: { data: string }) => {
         if (scanned && !continuous) return;
 
+        setScanned(true);
         onScanned(data);
 
         if (!continuous) {
-            setScanned(true);
             onClose();
             return;
         }
 
-        setScanned(true);
         setTimeout(() => setScanned(false), 1200);
     };
 

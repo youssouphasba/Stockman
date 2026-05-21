@@ -94,7 +94,8 @@ export default function POSScreen() {
     const { setDrawerContent } = useDrawer();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const isMobile = screenWidth < 768;
-    const styles = getStyles(colors, glassStyle, isMobile, screenWidth);
+    const isCompactPOS = isMobile && screenWidth <= 400;
+    const styles = getStyles(colors, glassStyle, isMobile, screenWidth, isCompactPOS);
     const canWrite = hasPermission('pos', 'write');
     const [productList, setProductList] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -120,6 +121,7 @@ export default function POSScreen() {
     const [continuousScan, setContinuousScan] = useState(false);
     const [showProductList, setShowProductList] = useState(!isMobile); // Hidden by default on mobile
     const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
+    const lastPosScanRef = useRef<{ sku: string; time: number } | null>(null);
     // Voice to cart
     const [isVoiceRecording, setIsVoiceRecording] = useState(false);
     const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
@@ -1096,12 +1098,22 @@ export default function POSScreen() {
         }
     };
 
+    const openPosScanner = () => {
+        lastPosScanRef.current = null;
+        setContinuousScan(false);
+        setIsScannerVisible(true);
+    };
+
     const handleBarcodeScanned = (sku: string) => {
+        const now = Date.now();
+        const lastScan = lastPosScanRef.current;
+        if (lastScan?.sku === sku && now - lastScan.time < 1500) return;
+        lastPosScanRef.current = { sku, time: now };
+        if (!continuousScan) setIsScannerVisible(false);
         const found = productList.find(p => p.sku === sku);
         if (found) {
             if (!requiresFinishedStock(found) || found.quantity > 0) {
                 addToCart(found);
-                // No alert needed for speed, maybe a small sound or haptic feedback later
             } else {
                 if (Platform.OS === 'web') {
                     window.alert(t('pos.out_of_stock_msg', { name: found.name }));
@@ -1410,7 +1422,7 @@ export default function POSScreen() {
                                 </View>
                                 <TouchableOpacity
                                     style={styles.scanButton}
-                                    onPress={() => setIsScannerVisible(true)}
+                                    onPress={openPosScanner}
                                 >
                                     <Ionicons name="barcode-outline" size={24} color="#fff" />
                                     {isMobile && <Text style={styles.scanButtonText}>Scanner</Text>}
@@ -1479,41 +1491,52 @@ export default function POSScreen() {
                                 </View>
                             </View>
 
-                            {/* Customer Selector */}
-                            <View style={styles.customerSelector}>
-                                <View style={styles.customerHeader}>
+                            {isCompactPOS && cart.length > 0 ? (
+                                <View style={styles.compactCustomerSelector}>
                                     <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
                                         <Ionicons name="person-add" size={14} color={colors.primary} />
                                     </TouchableOpacity>
-                                    <Ionicons name="people-outline" size={16} color={colors.textMuted} />
-                                    <TextInput
-                                        style={styles.customerSearchInput}
-                                        placeholder={t('pos.search_customer')}
-                                        placeholderTextColor={colors.textMuted}
-                                        value={customerSearch}
-                                        onChangeText={setCustomerSearch}
-                                    />
+                                    <Ionicons name="person-outline" size={16} color={colors.textMuted} />
+                                    <Text style={styles.compactCustomerText} numberOfLines={1}>
+                                        {selectedCustomer?.name || t('pos.anonymous_customer')}
+                                    </Text>
                                 </View>
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.customerScroll} contentContainerStyle={styles.customerScrollContent}>
-                                    <TouchableOpacity
-                                        style={[styles.customerBadge, !selectedCustomer && styles.customerBadgeActive]}
-                                        onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: null }))}
-                                    >
-                                        <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>{t('pos.anonymous_customer')}</Text>
-                                    </TouchableOpacity>
-                                    {customerList
-                                        .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
-                                        .map(customer => (
-                                            <TouchableOpacity
-                                                key={customer.customer_id}
-                                                style={[styles.customerBadge, selectedCustomer?.customer_id === customer.customer_id && styles.customerBadgeActive]}
-                                                onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: customer }))}
-                                            >
-                                                <Text style={[styles.customerBadgeText, selectedCustomer?.customer_id === customer.customer_id && styles.customerBadgeTextActive]}>{customer.name}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                </ScrollView>
-                            </View>
+                            ) : (
+                                <View style={styles.customerSelector}>
+                                    <View style={styles.customerHeader}>
+                                        <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
+                                            <Ionicons name="person-add" size={14} color={colors.primary} />
+                                        </TouchableOpacity>
+                                        <Ionicons name="people-outline" size={16} color={colors.textMuted} />
+                                        <TextInput
+                                            style={styles.customerSearchInput}
+                                            placeholder={t('pos.search_customer')}
+                                            placeholderTextColor={colors.textMuted}
+                                            value={customerSearch}
+                                            onChangeText={setCustomerSearch}
+                                        />
+                                    </View>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.customerScroll} contentContainerStyle={styles.customerScrollContent}>
+                                        <TouchableOpacity
+                                            style={[styles.customerBadge, !selectedCustomer && styles.customerBadgeActive]}
+                                            onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: null }))}
+                                        >
+                                            <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>{t('pos.anonymous_customer')}</Text>
+                                        </TouchableOpacity>
+                                        {customerList
+                                            .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+                                            .map(customer => (
+                                                <TouchableOpacity
+                                                    key={customer.customer_id}
+                                                    style={[styles.customerBadge, selectedCustomer?.customer_id === customer.customer_id && styles.customerBadgeActive]}
+                                                    onPress={() => updateActiveSession(s => ({ ...s, selectedCustomer: customer }))}
+                                                >
+                                                    <Text style={[styles.customerBadgeText, selectedCustomer?.customer_id === customer.customer_id && styles.customerBadgeTextActive]}>{customer.name}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                    </ScrollView>
+                                </View>
+                            )}
 
                             <ScrollView style={styles.cartItems}>
                                 {cart.length === 0 ? (
@@ -1632,7 +1655,7 @@ export default function POSScreen() {
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.mobileFloatingAction, { backgroundColor: colors.info }]}
-                                    onPress={() => setIsScannerVisible(true)}
+                                    onPress={openPosScanner}
                                 >
                                     <Ionicons name="barcode" size={18} color="#fff" />
                                     <Text style={styles.mobileFloatingActionText} numberOfLines={1} ellipsizeMode="tail">{t('pos.scanner_btn', 'Scanner')}</Text>
@@ -1969,19 +1992,19 @@ export default function POSScreen() {
     );
 }
 
-const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, screenWidth: number = 375) => StyleSheet.create({
+const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, screenWidth: number = 375, isCompactPOS: boolean = false) => StyleSheet.create({
     container: { flex: 1 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgDark },
     content: {
         flex: 1,
         flexDirection: isMobile ? 'column' : 'row',
-        padding: Spacing.sm,
+        padding: isCompactPOS ? 6 : Spacing.sm,
     },
 
     // Session Tabs Styles
     tabsContainer: {
-        height: 50,
-        marginBottom: Spacing.sm,
+        height: isCompactPOS ? 42 : 50,
+        marginBottom: isCompactPOS ? 4 : Spacing.sm,
     },
     sessionScroll: {
         flexGrow: 0,
@@ -1989,8 +2012,8 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     sessionTab: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: Spacing.md,
-        paddingVertical: 8,
+        paddingHorizontal: isCompactPOS ? 12 : Spacing.md,
+        paddingVertical: isCompactPOS ? 6 : 8,
         borderRadius: BorderRadius.full,
         backgroundColor: colors.bgLight,
         marginRight: 8,
@@ -2002,7 +2025,7 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         borderColor: colors.primary,
     },
     sessionTabText: {
-        fontSize: 12,
+        fontSize: isCompactPOS ? 11 : 12,
         fontWeight: '600',
         color: colors.textMuted,
     },
@@ -2010,9 +2033,9 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         color: '#fff',
     },
     addSessionBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: isCompactPOS ? 34 : 36,
+        height: isCompactPOS ? 34 : 36,
+        borderRadius: isCompactPOS ? 17 : 18,
         backgroundColor: colors.bgLight,
         justifyContent: 'center',
         alignItems: 'center',
@@ -2066,9 +2089,9 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     mobileFloatingActions: {
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        gap: isCompactPOS ? 6 : 8,
+        paddingHorizontal: isCompactPOS ? 10 : 12,
+        paddingVertical: isCompactPOS ? 8 : 10,
         borderTopWidth: 1,
         borderTopColor: colors.glassBorder,
         backgroundColor: colors.bgDark,
@@ -2076,13 +2099,13 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     mobileFloatingAction: {
         flex: 1,
         minWidth: 0,
-        minHeight: 42,
+        minHeight: isCompactPOS ? 38 : 42,
         borderRadius: BorderRadius.full,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 5,
-        paddingHorizontal: 8,
+        gap: isCompactPOS ? 4 : 5,
+        paddingHorizontal: isCompactPOS ? 6 : 8,
         elevation: 3,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -2092,47 +2115,63 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     mobileFloatingActionText: {
         color: '#fff',
         flexShrink: 1,
-        fontSize: isMobile ? 10 : 11,
+        fontSize: isCompactPOS ? 11 : (isMobile ? 10 : 11),
         fontWeight: '800',
         textAlign: 'center',
     },
     rightPanel: {
         flex: 1,
         ...glassStyle,
-        padding: Spacing.md,
+        padding: isCompactPOS ? 10 : Spacing.md,
         borderRadius: BorderRadius.lg,
         // On mobile: rightPanel sits between products and checkout bar
-        marginBottom: isMobile ? Spacing.sm : 0,
+        marginBottom: isMobile ? (isCompactPOS ? 6 : Spacing.sm) : 0,
     },
 
     // Mobile: checkout always pinned at the very bottom
     checkoutBar: {
-        paddingHorizontal: Spacing.md,
-        paddingTop: Spacing.sm,
+        paddingHorizontal: isCompactPOS ? 10 : Spacing.md,
+        paddingTop: isCompactPOS ? 6 : Spacing.sm,
         borderTopWidth: 1,
         borderTopColor: colors.divider,
         backgroundColor: colors.bgMid,
     },
 
     customerSelector: {
-        marginBottom: Spacing.md,
-        paddingBottom: Spacing.md,
+        marginBottom: isCompactPOS ? 8 : Spacing.md,
+        paddingBottom: isCompactPOS ? 8 : Spacing.md,
         borderBottomWidth: 1,
         gap: 6,
         borderBottomColor: colors.divider,
     },
+    compactCustomerSelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingBottom: 8,
+        marginBottom: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.divider,
+    },
+    compactCustomerText: {
+        flex: 1,
+        minWidth: 0,
+        color: colors.text,
+        fontSize: 12,
+        fontWeight: '700',
+    },
     customerHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        minHeight: 28,
+        minHeight: isCompactPOS ? 24 : 28,
     },
     customerSearchInput: {
         flex: 1,
         minWidth: 0,
         marginLeft: Spacing.sm,
         paddingHorizontal: 10,
-        paddingVertical: 4,
-        fontSize: 12,
+        paddingVertical: isCompactPOS ? 2 : 4,
+        fontSize: isCompactPOS ? 11 : 12,
         color: colors.text,
         backgroundColor: colors.glass,
         borderRadius: 12,
@@ -2144,8 +2183,8 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         paddingRight: Spacing.xs,
     },
     customerBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingHorizontal: isCompactPOS ? 10 : 12,
+        paddingVertical: isCompactPOS ? 5 : 6,
         borderRadius: 15,
         backgroundColor: 'rgba(255,255,255,0.05)',
         marginRight: 6,
@@ -2155,7 +2194,7 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     },
     customerBadgeText: {
         color: colors.textMuted,
-        fontSize: 11,
+        fontSize: isCompactPOS ? 10 : 11,
         fontWeight: '600',
     },
     customerBadgeTextActive: {
@@ -2284,16 +2323,16 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: isCompactPOS ? 8 : Spacing.md,
     },
     cartTitle: {
         color: colors.text,
-        fontSize: FontSize.lg,
+        fontSize: isCompactPOS ? FontSize.md : FontSize.lg,
         fontWeight: '700',
     },
     clearCart: {
         color: colors.danger,
-        fontSize: FontSize.sm,
+        fontSize: isCompactPOS ? FontSize.xs : FontSize.sm,
     },
     cartItems: { flex: 1 },
     emptyCart: {
@@ -2342,7 +2381,7 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     cartItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: Spacing.sm,
+        paddingVertical: isCompactPOS ? 6 : Spacing.sm,
         borderBottomWidth: 1,
         borderBottomColor: colors.divider,
     },
@@ -2448,34 +2487,34 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: isCompactPOS ? 8 : Spacing.md,
     },
     totalLabel: {
         color: colors.text,
-        fontSize: FontSize.lg,
+        fontSize: isCompactPOS ? FontSize.md : FontSize.lg,
         fontWeight: '600',
     },
     totalAmount: {
         color: colors.success,
-        fontSize: FontSize.xl,
+        fontSize: isCompactPOS ? FontSize.lg : FontSize.xl,
         fontWeight: '800',
     },
     paymentMethods: {
         flexDirection: 'row',
-        gap: Spacing.sm,
+        gap: isCompactPOS ? 6 : Spacing.sm,
     },
     payButton: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: Spacing.md,
+        paddingVertical: isCompactPOS ? 10 : Spacing.md,
         borderRadius: BorderRadius.md,
-        gap: 8,
+        gap: isCompactPOS ? 5 : 8,
     },
     payButtonText: {
         color: '#fff',
-        fontSize: FontSize.sm,
+        fontSize: isCompactPOS ? 12 : FontSize.sm,
         fontWeight: '700',
     },
     addCustomerBtn: {
