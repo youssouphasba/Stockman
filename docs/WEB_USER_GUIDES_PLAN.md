@@ -484,6 +484,14 @@ Le guide doit couvrir séparément chaque sous-section :
 - historique ;
 - différence entre message ponctuel et diffusion globale.
 
+### L. Notifications admin
+
+- centre de notifications du backoffice ;
+- badges par onglet ;
+- nouveaux utilisateurs, tickets, litiges, boutiques, démos et communications ;
+- lecture globale ou par section ;
+- accès rapide vers l'onglet concerné.
+
 ## 21. Modules restauration
 
 Ces guides ne doivent être affichés et maintenus que pour les secteurs concernés.

@@ -2792,6 +2792,10 @@ class AdminMessageCreate(BaseModel):
     channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
 
 
+class AdminNotificationsReadUpdate(BaseModel):
+    section: str = "all"
+
+
 class PlannerItem(BaseModel):
     item_id: str = Field(default_factory=lambda: f"pln_{uuid.uuid4().hex[:12]}")
     user_id: str
@@ -6746,6 +6750,204 @@ async def admin_list_tickets(status: Optional[str] = None):
         query["status"] = status
     tickets = await db.support_tickets.find(query, {"_id": 0}).sort("updated_at", -1).to_list(100)
     return [SupportTicket(**t) for t in tickets]
+
+
+def admin_notification_item(
+    item_id: str,
+    section: str,
+    title: str,
+    description: str,
+    created_at: Any,
+    severity: str = "info",
+    actor_name: Optional[str] = None,
+    actor_email: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    timestamp = created_at if isinstance(created_at, datetime) else datetime.now(timezone.utc)
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=timezone.utc)
+    return {
+        "id": item_id,
+        "section": section,
+        "title": title,
+        "description": description,
+        "severity": severity,
+        "actor_name": actor_name,
+        "actor_email": actor_email,
+        "created_at": timestamp,
+        "metadata": metadata or {},
+    }
+
+
+def is_admin_notification_unread(item: Dict[str, Any], last_read_at: Optional[datetime], section_read_at: Optional[datetime]) -> bool:
+    read_at = section_read_at or last_read_at
+    if not read_at:
+        return True
+    created_at = item.get("created_at")
+    if not isinstance(created_at, datetime):
+        return False
+    if read_at.tzinfo is None:
+        read_at = read_at.replace(tzinfo=timezone.utc)
+    return created_at > read_at
+
+
+@admin_router.get("/notifications")
+async def admin_notifications(limit: int = 80, user: User = Depends(require_superadmin)):
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=30)
+    read_state = await db.admin_notification_reads.find_one({"admin_user_id": user.user_id}, {"_id": 0}) or {}
+    last_read_at = read_state.get("last_read_at")
+    section_reads = read_state.get("sections") or {}
+    items: List[Dict[str, Any]] = []
+
+    users = await db.users.find(
+        {"created_at": {"$gte": since}},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1, "role": 1, "plan": 1, "created_at": 1},
+    ).sort("created_at", -1).limit(25).to_list(25)
+    for row in users:
+        role = row.get("role") or "utilisateur"
+        plan = row.get("plan") or "starter"
+        items.append(admin_notification_item(
+            f"user:{row.get('user_id')}",
+            "users",
+            "Nouvel utilisateur",
+            f"{row.get('name') or row.get('email') or 'Utilisateur'} a créé un compte {role} ({plan}).",
+            row.get("created_at"),
+            "success",
+            row.get("name"),
+            row.get("email"),
+            {"user_id": row.get("user_id"), "role": role, "plan": plan},
+        ))
+
+    tickets = await db.support_tickets.find(
+        {"$or": [{"created_at": {"$gte": since}}, {"updated_at": {"$gte": since}}, {"status": {"$in": ["open", "in_progress", "pending"]}}]},
+        {"_id": 0},
+    ).sort("updated_at", -1).limit(35).to_list(35)
+    for ticket in tickets:
+        status = ticket.get("status") or "open"
+        severity = "warning" if status == "open" else "info"
+        timestamp = ticket.get("updated_at") or ticket.get("created_at")
+        items.append(admin_notification_item(
+            f"ticket:{ticket.get('ticket_id')}:{timestamp.isoformat() if isinstance(timestamp, datetime) else ''}",
+            "support",
+            "Ticket support",
+            f"{ticket.get('subject') or 'Demande support'} - {ticket.get('user_name') or ticket.get('user_email') or 'Utilisateur'}",
+            timestamp,
+            severity,
+            ticket.get("user_name"),
+            ticket.get("user_email"),
+            {"ticket_id": ticket.get("ticket_id"), "status": status, "request_type": ticket.get("request_type")},
+        ))
+
+    disputes = await db.disputes.find(
+        {"$or": [{"created_at": {"$gte": since}}, {"updated_at": {"$gte": since}}, {"status": {"$ne": "resolved"}}]},
+        {"_id": 0},
+    ).sort("updated_at", -1).limit(20).to_list(20)
+    for dispute in disputes:
+        timestamp = dispute.get("updated_at") or dispute.get("created_at")
+        items.append(admin_notification_item(
+            f"dispute:{dispute.get('dispute_id')}:{timestamp.isoformat() if isinstance(timestamp, datetime) else ''}",
+            "disputes",
+            "Litige à suivre",
+            f"{dispute.get('subject') or 'Litige'} - {dispute.get('reporter_name') or dispute.get('reporter_email') or 'Utilisateur'}",
+            timestamp,
+            "warning",
+            dispute.get("reporter_name"),
+            dispute.get("reporter_email"),
+            {"dispute_id": dispute.get("dispute_id"), "status": dispute.get("status")},
+        ))
+
+    stores = await db.stores.find(
+        {"created_at": {"$gte": since}},
+        {"_id": 0, "store_id": 1, "name": 1, "user_id": 1, "created_at": 1},
+    ).sort("created_at", -1).limit(20).to_list(20)
+    for store in stores:
+        items.append(admin_notification_item(
+            f"store:{store.get('store_id')}",
+            "stores",
+            "Nouvelle boutique",
+            f"{store.get('name') or 'Boutique'} a été créée.",
+            store.get("created_at"),
+            "info",
+            None,
+            None,
+            {"store_id": store.get("store_id"), "user_id": store.get("user_id")},
+        ))
+
+    demos = await db.demo_sessions.find(
+        {"created_at": {"$gte": since}},
+        {"_id": 0, "demo_session_id": 1, "contact_email": 1, "demo_type": 1, "demo_surface": 1, "created_at": 1, "status": 1},
+    ).sort("created_at", -1).limit(20).to_list(20)
+    for demo in demos:
+        items.append(admin_notification_item(
+            f"demo:{demo.get('demo_session_id')}",
+            "demos",
+            "Nouvelle démo",
+            f"Démo {demo.get('demo_type') or 'commerce'} lancée sur {demo.get('demo_surface') or 'app'}.",
+            demo.get("created_at"),
+            "info",
+            None,
+            demo.get("contact_email"),
+            {"demo_session_id": demo.get("demo_session_id"), "status": demo.get("status")},
+        ))
+
+    messages = await db.admin_messages.find(
+        {"sent_at": {"$gte": since}},
+        {"_id": 0, "message_id": 1, "title": 1, "target": 1, "type": 1, "sent_at": 1, "sent_by": 1},
+    ).sort("sent_at", -1).limit(20).to_list(20)
+    for message in messages:
+        items.append(admin_notification_item(
+            f"message:{message.get('message_id')}",
+            "broadcast",
+            "Communication envoyée",
+            f"{message.get('title') or 'Message'} vers {message.get('target') or 'all'}.",
+            message.get("sent_at"),
+            "success",
+            message.get("sent_by"),
+            None,
+            {"message_id": message.get("message_id"), "type": message.get("type")},
+        ))
+
+    items.sort(key=lambda item: item.get("created_at") or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+    items = items[:max(1, min(limit, 200))]
+    unread_by_section: Dict[str, int] = defaultdict(int)
+    total_by_section: Dict[str, int] = defaultdict(int)
+    for item in items:
+        section = item.get("section") or "overview"
+        total_by_section[section] += 1
+        section_read_at = section_reads.get(section)
+        if is_admin_notification_unread(item, last_read_at, section_read_at):
+            item["read"] = False
+            unread_by_section[section] += 1
+        else:
+            item["read"] = True
+
+    return {
+        "items": items,
+        "total": len(items),
+        "unread": sum(unread_by_section.values()),
+        "badges": dict(unread_by_section),
+        "totals": dict(total_by_section),
+        "last_read_at": last_read_at,
+    }
+
+
+@admin_router.post("/notifications/read")
+async def mark_admin_notifications_read(data: AdminNotificationsReadUpdate, user: User = Depends(require_superadmin)):
+    now = datetime.now(timezone.utc)
+    if data.section and data.section != "all":
+        await db.admin_notification_reads.update_one(
+            {"admin_user_id": user.user_id},
+            {"$set": {f"sections.{data.section}": now, "updated_at": now}, "$setOnInsert": {"created_at": now}},
+            upsert=True,
+        )
+    else:
+        await db.admin_notification_reads.update_one(
+            {"admin_user_id": user.user_id},
+            {"$set": {"last_read_at": now, "updated_at": now, "sections": {}}, "$setOnInsert": {"created_at": now}},
+            upsert=True,
+        )
+    return {"marked": True, "read_at": now}
 
 @admin_router.post("/support/tickets/{ticket_id}/reply", response_model=SupportTicket)
 async def admin_reply_ticket(ticket_id: str, reply: SupportReply, user: User = Depends(require_superadmin)):

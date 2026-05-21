@@ -189,6 +189,32 @@ function formatDemoSessionStatus(status: string | null) {
     }
 }
 
+function formatAdminNotificationSection(section: string | null | undefined) {
+    switch (section) {
+        case 'users':
+            return 'Utilisateurs';
+        case 'support':
+            return 'Support';
+        case 'disputes':
+            return 'Litiges';
+        case 'stores':
+            return 'Boutiques';
+        case 'demos':
+            return 'Démos';
+        case 'broadcast':
+            return 'Broadcast';
+        default:
+            return 'Admin';
+    }
+}
+
+function adminNotificationTone(severity: string | null | undefined) {
+    if (severity === 'warning') return 'border-amber-500/20 bg-amber-500/10 text-amber-300';
+    if (severity === 'success') return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300';
+    if (severity === 'danger') return 'border-rose-500/20 bg-rose-500/10 text-rose-300';
+    return 'border-blue-500/20 bg-blue-500/10 text-blue-300';
+}
+
 function formatRemainingDuration(seconds: number | null) {
     if (seconds === null || seconds === undefined) return '—';
     if (seconds <= 0) return 'Expirée';
@@ -198,8 +224,10 @@ function formatRemainingDuration(seconds: number | null) {
     return `${hours}h ${minutes}m`;
 }
 
+type AdminSection = 'overview' | 'notifications' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'crm' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring';
+
 export default function AdminDashboard() {
-    const [activeSection, setActiveSection] = useState<'overview' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'crm' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring'>('overview');
+    const [activeSection, setActiveSection] = useState<AdminSection>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [onboardingStats, setOnboardingStats] = useState<any>(null);
@@ -304,6 +332,9 @@ export default function AdminDashboard() {
     const [confirmDeleteUser, setConfirmDeleteUser] = useState<{ user_id: string; email: string; name: string } | null>(null);
     const [aiUsageStats, setAiUsageStats] = useState<any>(null);
     const [aiUsageLoading, setAiUsageLoading] = useState(false);
+    const [adminNotifications, setAdminNotifications] = useState<{ items: any[]; total: number; unread: number; badges: Record<string, number>; totals: Record<string, number> }>({ items: [], total: 0, unread: 0, badges: {}, totals: {} });
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [notificationsLoading, setNotificationsLoading] = useState(false);
 
     const healthSummary = health || {};
     const statsSummary = stats || { users_by_role: {}, users_by_plan: {}, users_by_country: {}, top_stores: [] };
@@ -348,6 +379,29 @@ export default function AdminDashboard() {
         setDetailData(null);
     };
 
+    const loadAdminNotifications = async () => {
+        setNotificationsLoading(true);
+        try {
+            const data = await adminApi.listNotifications(100);
+            setAdminNotifications({
+                items: data.items || [],
+                total: data.total || 0,
+                unread: data.unread || 0,
+                badges: data.badges || {},
+                totals: data.totals || {},
+            });
+        } catch {
+            setAdminNotifications(current => current);
+        } finally {
+            setNotificationsLoading(false);
+        }
+    };
+
+    const markAdminNotificationsRead = async (section = 'all') => {
+        await adminApi.markNotificationsRead(section);
+        await loadAdminNotifications();
+    };
+
     const toggleMessageRecipient = (userId: string) => {
         setBroadcastForm(current => {
             const nextIds = current.targetUserIds.includes(userId)
@@ -369,14 +423,22 @@ export default function AdminDashboard() {
                 adminApi.getOtpStats(),
                 adminApi.getEnterpriseSignupStats(),
                 adminApi.getConversionStats(),
+                adminApi.listNotifications(100),
             ]);
-            const [healthRes, statsRes, onboardingRes, otpRes, enterpriseRes, conversionRes] = results;
+            const [healthRes, statsRes, onboardingRes, otpRes, enterpriseRes, conversionRes, notificationsRes] = results;
             setHealth(healthRes.status === 'fulfilled' ? healthRes.value : {});
             setStats(statsRes.status === 'fulfilled' ? statsRes.value : { users_by_role: {}, users_by_plan: {}, users_by_country: {}, top_stores: [] });
             setOnboardingStats(onboardingRes.status === 'fulfilled' ? onboardingRes.value : { funnel: {}, by_plan: {}, by_surface: {}, by_country: {}, by_business_type: {} });
             setOtpStats(otpRes.status === 'fulfilled' ? otpRes.value : { providers: {} });
             setEnterpriseStats(enterpriseRes.status === 'fulfilled' ? enterpriseRes.value : {});
             setConversionStats(conversionRes.status === 'fulfilled' ? conversionRes.value : {});
+            setAdminNotifications(notificationsRes.status === 'fulfilled' ? {
+                items: notificationsRes.value.items || [],
+                total: notificationsRes.value.total || 0,
+                unread: notificationsRes.value.unread || 0,
+                badges: notificationsRes.value.badges || {},
+                totals: notificationsRes.value.totals || {},
+            } : { items: [], total: 0, unread: 0, badges: {}, totals: {} });
             const rejectedCount = results.filter((item) => item.status === 'rejected').length;
             if (rejectedCount > 0) {
                 console.error('Admin data load partial error', results);
@@ -387,6 +449,13 @@ export default function AdminDashboard() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            loadAdminNotifications();
+        }, 60000);
+        return () => window.clearInterval(timer);
+    }, []);
 
     const loadUsers = async () => {
         setRefreshing(true);
@@ -580,6 +649,7 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         if (activeSection === 'subscriptions' || activeSection === 'finance') loadSubscriptions();
+        if (activeSection === 'notifications') loadAdminNotifications();
         if (activeSection === 'demos') loadDemos();
         if (activeSection === 'users') loadUsers();
         if (activeSection === 'stores') loadStores();
@@ -1201,6 +1271,7 @@ export default function AdminDashboard() {
 
     const tabs = [
         { id: 'overview', icon: TrendingUp, label: 'Vue d\'ensemble' },
+        { id: 'notifications', icon: Bell, label: 'Notifications' },
         { id: 'finance', icon: Wallet, label: 'Finance' },
         { id: 'subscriptions', icon: CreditCard, label: 'Abonnements' },
         { id: 'demos', icon: Clock, label: 'Démos' },
@@ -1235,6 +1306,83 @@ export default function AdminDashboard() {
     return (
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+            {notificationsOpen && (
+                <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
+                    <div className="w-full max-w-xl bg-[#0F172A] border-l border-white/10 shadow-2xl flex flex-col">
+                        <div className="p-5 border-b border-white/10 flex items-start justify-between gap-4">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-primary">Centre de notifications</p>
+                                <h2 className="text-2xl font-black text-white mt-1">Nouveautés admin</h2>
+                                <p className="text-sm text-slate-400 mt-1">{adminNotifications.unread} non lue(s) sur {adminNotifications.total} événement(s)</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={loadAdminNotifications}
+                                    className="p-2 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white"
+                                >
+                                    <RefreshCw size={16} className={notificationsLoading ? 'animate-spin' : ''} />
+                                </button>
+                                <button onClick={() => setNotificationsOpen(false)} className="p-2 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-4 border-b border-white/10 flex flex-wrap gap-2">
+                            <button
+                                onClick={() => markAdminNotificationsRead('all')}
+                                disabled={adminNotifications.unread === 0}
+                                className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-40"
+                            >
+                                Tout marquer comme lu
+                            </button>
+                            {Object.entries(adminNotifications.badges || {}).filter(([, count]) => Number(count) > 0).map(([section, count]) => (
+                                <button
+                                    key={section}
+                                    onClick={() => markAdminNotificationsRead(section)}
+                                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10"
+                                >
+                                    {formatAdminNotificationSection(section)} · {Number(count)}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+                            {adminNotifications.items.length > 0 ? adminNotifications.items.map((item: any) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => {
+                                        if (item.section) setActiveSection(item.section as AdminSection);
+                                        setNotificationsOpen(false);
+                                    }}
+                                    className={`w-full text-left rounded-2xl border p-4 transition-all hover:bg-white/10 ${item.read ? 'border-white/10 bg-white/5' : 'border-primary/30 bg-primary/10'}`}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${adminNotificationTone(item.severity)}`}>
+                                                    {formatAdminNotificationSection(item.section)}
+                                                </span>
+                                                {!item.read ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
+                                            </div>
+                                            <h3 className="mt-3 text-sm font-black text-white">{item.title}</h3>
+                                            <p className="mt-1 text-sm text-slate-400 leading-relaxed">{item.description}</p>
+                                            {(item.actor_name || item.actor_email) ? (
+                                                <p className="mt-2 text-xs text-slate-500">{item.actor_name || item.actor_email}</p>
+                                            ) : null}
+                                        </div>
+                                        <span className="shrink-0 text-[11px] font-bold text-slate-500">{formatAdminDate(item.created_at)}</span>
+                                    </div>
+                                </button>
+                            )) : (
+                                <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center">
+                                    <Bell size={28} className="mx-auto text-slate-500" />
+                                    <p className="mt-4 text-sm font-bold text-slate-400">Aucune nouveauté récente.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Delete user confirmation modal */}
             {detailUser && (
@@ -1523,6 +1671,7 @@ export default function AdminDashboard() {
                     </div>
                     <button onClick={() => {
                         if (activeSection === 'subscriptions' || activeSection === 'finance') loadSubscriptions();
+                        else if (activeSection === 'notifications') loadAdminNotifications();
                         else if (activeSection === 'demos') loadDemos();
                         else if (activeSection === 'users') loadUsers();
                         else if (activeSection === 'stores') loadStores();
@@ -1547,22 +1696,120 @@ export default function AdminDashboard() {
                     }} className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
                         <RefreshCw size={18} />
                     </button>
+                    <button
+                        onClick={() => {
+                            setNotificationsOpen(true);
+                            loadAdminNotifications();
+                        }}
+                        className="relative p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all"
+                    >
+                        <Bell size={18} />
+                        {adminNotifications.unread > 0 ? (
+                            <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-black text-white">
+                                {adminNotifications.unread > 99 ? '99+' : adminNotifications.unread}
+                            </span>
+                        ) : null}
+                    </button>
                 </div>
             </header>
 
             {/* Nav Tabs */}
             <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-                {tabs.map(tab => (
+                {tabs.map(tab => {
+                    const badgeCount = Number(adminNotifications.badges?.[tab.id] || 0);
+                    return (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveSection(tab.id as any)}
+                        onClick={() => setActiveSection(tab.id as AdminSection)}
                         className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap border ${activeSection === tab.id ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white'}`}
                     >
                         <tab.icon size={16} />
                         {tab.label}
+                        {badgeCount > 0 ? (
+                            <span className={`${activeSection === tab.id ? 'bg-white text-primary' : 'bg-rose-500 text-white'} ml-1 min-w-5 rounded-full px-1.5 py-0.5 text-[10px] font-black`}>
+                                {badgeCount > 99 ? '99+' : badgeCount}
+                            </span>
+                        ) : null}
                     </button>
-                ))}
+                )})}
             </div>
+
+            {activeSection === 'notifications' && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <StatCard label="Non lues" value={adminNotifications.unread} icon={Bell} color="bg-rose-500" sub="À examiner" />
+                        <StatCard label="Événements" value={adminNotifications.total} icon={Activity} color="bg-primary" sub="30 derniers jours" />
+                        <StatCard label="Support" value={adminNotifications.badges.support || 0} icon={MessageSquare} color="bg-amber-500" sub="Tickets non lus" />
+                        <StatCard label="Utilisateurs" value={adminNotifications.badges.users || 0} icon={Users} color="bg-emerald-500" sub="Inscriptions non lues" />
+                    </div>
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-5 border-b border-white/5 bg-white/5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <h3 className="text-base font-black text-white uppercase tracking-tighter">Centre de notifications admin</h3>
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Suivi des nouveaux utilisateurs, tickets, litiges, boutiques, démos et communications.
+                                </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={loadAdminNotifications}
+                                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/10"
+                                >
+                                    Actualiser
+                                </button>
+                                <button
+                                    onClick={() => markAdminNotificationsRead('all')}
+                                    disabled={adminNotifications.unread === 0}
+                                    className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-40"
+                                >
+                                    Tout marquer comme lu
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-5 grid gap-3 md:grid-cols-3 lg:grid-cols-6 border-b border-white/5">
+                            {['users', 'support', 'disputes', 'stores', 'demos', 'broadcast'].map(section => (
+                                <button
+                                    key={section}
+                                    onClick={() => markAdminNotificationsRead(section)}
+                                    className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left hover:bg-white/10"
+                                >
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{formatAdminNotificationSection(section)}</p>
+                                    <p className="mt-2 text-2xl font-black text-white">{adminNotifications.badges?.[section] || 0}</p>
+                                    <p className="mt-1 text-xs text-slate-500">{adminNotifications.totals?.[section] || 0} récent(s)</p>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="divide-y divide-white/5">
+                            {adminNotifications.items.length > 0 ? adminNotifications.items.map((item: any) => (
+                                <div key={item.id} className={`p-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${item.read ? 'hover:bg-white/5' : 'bg-primary/10'}`}>
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${adminNotificationTone(item.severity)}`}>
+                                                {formatAdminNotificationSection(item.section)}
+                                            </span>
+                                            {!item.read ? <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">Nouveau</span> : null}
+                                            <span className="text-xs text-slate-500">{formatAdminDate(item.created_at)}</span>
+                                        </div>
+                                        <h4 className="mt-3 text-white font-black">{item.title}</h4>
+                                        <p className="mt-1 text-sm text-slate-400">{item.description}</p>
+                                        {(item.actor_name || item.actor_email) ? (
+                                            <p className="mt-2 text-xs text-slate-500">{item.actor_name || item.actor_email}</p>
+                                        ) : null}
+                                    </div>
+                                    <button
+                                        onClick={() => setActiveSection(item.section as AdminSection)}
+                                        className="self-start md:self-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/10"
+                                    >
+                                        Ouvrir
+                                    </button>
+                                </div>
+                            )) : (
+                                <div className="p-16 text-center text-slate-500 text-sm">Aucune notification récente.</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* -- OVERVIEW -- */}
             {activeSection === 'overview' && (

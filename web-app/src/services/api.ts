@@ -2802,6 +2802,8 @@ export const admin = {
     replyTicket: (id: string, content: string) => request<any>(`/admin/support/tickets/${id}/reply`, { method: 'POST', body: { content } }),
     closeTicket: (id: string) => request<any>(`/admin/support/tickets/${id}/close`, { method: 'POST' }),
     assistTicket: (id: string) => request<AuthResponse>(`/admin/support/tickets/${id}/assist`, { method: 'POST', headers: { 'X-Stockman-Assistance-Mode': 'bearer' } }),
+    listNotifications: (limit = 80) => request<{ items: any[]; total: number; unread: number; badges: Record<string, number>; totals: Record<string, number> }>(`/admin/notifications?limit=${limit}`),
+    markNotificationsRead: (section = 'all') => request<any>('/admin/notifications/read', { method: 'POST', body: { section } }),
     listLogs: (module?: string, skip = 0, limit = 100) => request<any[]>(`/admin/logs?${module ? `module=${module}&` : ''}skip=${skip}&limit=${limit}`),
     getUserLogs: (userId: string, limit = 50) => request<any[]>(`/admin/logs?user_id=${encodeURIComponent(userId)}&limit=${limit}`),
     getMrrStats: (months = 12) => request<any>(`/admin/stats/mrr?months=${months}`),
