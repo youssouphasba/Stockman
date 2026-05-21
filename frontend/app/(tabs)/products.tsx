@@ -17,6 +17,7 @@ import {
   Linking,
   LayoutAnimation,
   UIManager,
+  InteractionManager,
 } from 'react-native';
 import Skeleton from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
@@ -523,6 +524,8 @@ export default function ProductsScreen() {
   // Scanner
   const [showScanner, setShowScanner] = useState(false);
   const [scannerMode, setScannerMode] = useState<'search' | 'form'>('search');
+  const [openScannerAfterProductModalDismiss, setOpenScannerAfterProductModalDismiss] = useState(false);
+  const restoreProductModalAfterScannerRef = useRef(false);
   const [showGuide, setShowGuide] = useState(false);
   const { isFirstVisit, markSeen } = useFirstVisit('products');
 
@@ -2340,24 +2343,51 @@ export default function ProductsScreen() {
     );
   }
 
-  function handleBarCodeScanned(data: string) {
+  function runAfterScannerClosed(action?: () => void) {
     setShowScanner(false);
+    InteractionManager.runAfterInteractions(() => {
+      action?.();
+    });
+  }
+
+  function handleScannerClose() {
+    const shouldRestoreForm = scannerMode === 'form' && restoreProductModalAfterScannerRef.current;
+    restoreProductModalAfterScannerRef.current = false;
+    runAfterScannerClosed(shouldRestoreForm ? () => setShowAddModal(true) : undefined);
+  }
+
+  function handleBarCodeScanned(data: string) {
     if (scannerMode === 'search') {
-      // Logic: If product exists with this SKU, open edit. Otherwise start add flow.
       const found = productList.find(p => p.sku === data);
-      if (found) {
-        openEditModal(found);
-      } else {
-        // Not found: Start add flow with SKU pre-filled
-        openNewProductModal({ sku: data });
-      }
+      runAfterScannerClosed(() => found ? openEditModal(found) : openNewProductModal({ sku: data }));
     } else {
       setFormSku(data);
+      const shouldRestoreForm = restoreProductModalAfterScannerRef.current;
+      restoreProductModalAfterScannerRef.current = false;
+      runAfterScannerClosed(shouldRestoreForm ? () => setShowAddModal(true) : undefined);
     }
+  }
+
+  function handleProductModalDismiss() {
+    if (!openScannerAfterProductModalDismiss) return;
+    setOpenScannerAfterProductModalDismiss(false);
+    InteractionManager.runAfterInteractions(() => setShowScanner(true));
   }
 
   function openScanner(mode: 'search' | 'form') {
     setScannerMode(mode);
+    if (mode === 'form' && showAddModal) {
+      restoreProductModalAfterScannerRef.current = true;
+      if (Platform.OS === 'ios') {
+        setOpenScannerAfterProductModalDismiss(true);
+        setShowAddModal(false);
+        return;
+      }
+      setShowAddModal(false);
+      InteractionManager.runAfterInteractions(() => setShowScanner(true));
+      return;
+    }
+    restoreProductModalAfterScannerRef.current = false;
     setShowScanner(true);
   }
 
@@ -3915,7 +3945,7 @@ export default function ProductsScreen() {
 
 
       {/* Add Product Modal */}
-      < Modal visible={showAddModal} animationType="slide" transparent onRequestClose={requestCloseAddModal} >
+      < Modal visible={showAddModal} animationType="slide" transparent onRequestClose={requestCloseAddModal} onDismiss={handleProductModalDismiss} >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -5117,7 +5147,7 @@ export default function ProductsScreen() {
       {/* Scanner Modal */}
       < BarcodeScanner
         visible={showScanner}
-        onClose={() => setShowScanner(false)}
+        onClose={handleScannerClose}
         onScanned={handleBarCodeScanned}
       />
 
