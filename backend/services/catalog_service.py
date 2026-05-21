@@ -229,12 +229,20 @@ class CatalogService:
 
         created = 0
         for cp in catalog_products:
-            # Vérifier qu'un produit avec ce nom n'existe pas déjà
-            existing = await self.db.products.find_one({
+            raw_barcode = cp["barcodes"][0] if cp.get("barcodes") else None
+            product_barcode = str(raw_barcode or "").strip() or None
+            existing_query = {
                 "user_id": user_id,
                 "store_id": store_id,
-                "name": cp["display_name"],
-            })
+                "is_active": {"$ne": False},
+                "$or": [{"name": cp["display_name"]}],
+            }
+            if product_barcode:
+                existing_query["$or"].extend([
+                    {"sku": product_barcode},
+                    {"barcode": product_barcode},
+                ])
+            existing = await self.db.products.find_one(existing_query)
             if existing:
                 continue
 
@@ -243,8 +251,8 @@ class CatalogService:
                 "user_id": user_id,
                 "store_id": store_id,
                 "name": cp["display_name"],
-                "barcode": cp["barcodes"][0] if cp.get("barcodes") else None,
-                "sku": cp["barcodes"][0] if cp.get("barcodes") else None,
+                "barcode": product_barcode,
+                "sku": product_barcode,
                 "category": cp.get("category", ""),
                 "category_id": None,
                 "purchase_price": 0,

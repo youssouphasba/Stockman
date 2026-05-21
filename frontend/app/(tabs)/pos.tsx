@@ -360,6 +360,11 @@ export default function POSScreen() {
             });
     }, [productList, restaurantMode, search]);
 
+    const getProductScanCodes = (product: Product) =>
+        [product.sku, (product as any).barcode]
+            .map(code => String(code || '').trim())
+            .filter(Boolean);
+
     const updateActiveSession = (updater: (s: POSSession) => POSSession) => {
         setSessions(prev => prev.map(s => s.id === activeSessionId ? updater(s) : s));
     };
@@ -673,6 +678,11 @@ export default function POSScreen() {
 
         updateActiveSession(s => {
             const existingInSession = s.cart.find(item => item.product.product_id === product.product_id && !item.persisted);
+            const currentQuantity = existingInSession?.quantity || 0;
+            if (requiresFinishedStock(product) && currentQuantity + 1 > Number(product.quantity || 0)) {
+                Alert.alert(t('pos.insufficient_stock'), t('pos.not_enough_stock_detail', { qty: product.quantity, unit: product.unit, name: product.name }));
+                return s;
+            }
             if (existingInSession) {
                 return {
                     ...s,
@@ -1110,17 +1120,23 @@ export default function POSScreen() {
         if (lastScan?.sku === sku && now - lastScan.time < 1500) return;
         lastPosScanRef.current = { sku, time: now };
         if (!continuousScan) setIsScannerVisible(false);
-        const found = productList.find(p => p.sku === sku);
-        if (found) {
-            if (!requiresFinishedStock(found) || found.quantity > 0) {
-                addToCart(found);
+        const matches = productList.filter(product => getProductScanCodes(product).includes(String(sku || '').trim()));
+        if (matches.length === 1) {
+            const product = matches[0];
+            if (!requiresFinishedStock(product) || product.quantity > 0) {
+                addToCart(product);
             } else {
                 if (Platform.OS === 'web') {
-                    window.alert(t('pos.out_of_stock_msg', { name: found.name }));
+                    window.alert(t('pos.out_of_stock_msg', { name: product.name }));
                 } else {
-                    Alert.alert(t('pos.out_of_stock_title'), t('pos.out_of_stock_msg', { name: found.name }));
+                    Alert.alert(t('pos.out_of_stock_title'), t('pos.out_of_stock_msg', { name: product.name }));
                 }
             }
+        } else if (matches.length > 1) {
+            Alert.alert(
+                t('common.error'),
+                t('pos.duplicate_barcode_msg', 'Ce code-barres est utilisé par plusieurs produits dans cette boutique. Corrigez les fiches produits avant de scanner en caisse.')
+            );
         } else {
             if (Platform.OS === 'web') {
                 window.alert(t('pos.unknown_product_msg', { sku: sku }));

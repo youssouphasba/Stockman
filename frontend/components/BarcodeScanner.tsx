@@ -6,6 +6,7 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
+    Vibration,
     View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -78,6 +79,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
         if (scanned && !continuous) return;
 
         setScanned(true);
+        Vibration.vibrate(60);
         onScanned(data);
 
         if (!continuous) {

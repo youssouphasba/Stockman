@@ -87,6 +87,33 @@ class ImportService:
         locs = await self.db.locations.find(loc_query, {"location_id": 1, "name": 1}).to_list(None)
         location_ids = {l["location_id"] for l in locs}
         location_names = {str(l.get("name", "")).strip().lower(): l["location_id"] for l in locs if l.get("name")}
+        existing_skus = {
+            _normalize_text(sku)
+            for sku in await self.db.products.distinct(
+                "sku",
+                {
+                    "user_id": user_id,
+                    "store_id": store_id,
+                    "is_active": {"$ne": False},
+                    "sku": {"$nin": [None, ""]},
+                },
+            )
+            if _normalize_text(sku)
+        }
+        existing_skus.update({
+            _normalize_text(barcode)
+            for barcode in await self.db.products.distinct(
+                "barcode",
+                {
+                    "user_id": user_id,
+                    "store_id": store_id,
+                    "is_active": {"$ne": False},
+                    "barcode": {"$nin": [None, ""]},
+                },
+            )
+            if _normalize_text(barcode)
+        })
+        seen_skus = set()
 
         for local_index, row in enumerate(data):
             index = start_index + local_index
@@ -129,6 +156,7 @@ class ImportService:
                 purchase_price = clean_float(row.get("purchase_price") or row.get("prix_achat") or 0.0)
                 selling_price = clean_float(row.get("selling_price") or row.get("prix_vente") or 0.0)
                 quantity = clean_int(row.get("quantity") or row.get("stock") or 0)
+                sku = _normalize_text(row.get("sku") or row.get("SKU") or row.get("Référence"))
 
                 if purchase_price < 0 or selling_price < 0:
                     errors.append({"row": index, "error": "Prix négatif non autorisé"})
@@ -140,11 +168,17 @@ class ImportService:
                     errors.append({"row": index, "error": "Prix trop élevé"})
                     continue
 
+                if sku and (sku in existing_skus or sku in seen_skus):
+                    errors.append({"row": index, "error": f"Code-barres déjà utilisé dans cette boutique : {sku}"})
+                    continue
+                if sku:
+                    seen_skus.add(sku)
+
                 product = {
                     "product_id": f"prod_{uuid.uuid4().hex[:12]}",
                     "name": str(name).strip(),
                     "description": str(row.get("description", "")).strip(),
-                    "sku": str(row.get("sku") or row.get("SKU") or row.get("Référence") or "").strip(),
+                    "sku": sku,
                     "quantity": quantity,
                     "unit": str(row.get("unit") or "pièce").strip(),
                     "purchase_price": purchase_price,

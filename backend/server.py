@@ -13160,17 +13160,26 @@ TEXTE À PARSER :
     # Si auto_create=True, créer les produits directement
     if data.auto_create and user.active_store_id:
         created = 0
+        owner_id = get_owner_id(user)
         for p in products:
-            name = p.get("name", "").strip()
+            name = str(p.get("name") or "").strip()
             if not name:
                 continue
+            sku = normalize_product_sku(p.get("barcode"))
+            if sku:
+                try:
+                    await ensure_unique_product_sku(owner_id, user.active_store_id, sku)
+                except HTTPException as exc:
+                    if exc.status_code == 409:
+                        continue
+                    raise
             product_doc = {
                 "product_id": str(uuid.uuid4()),
-                "user_id": get_owner_id(user),
+                "user_id": owner_id,
                 "store_id": user.active_store_id,
                 "name": name,
-                "barcode": p.get("barcode"),
-                "sku": p.get("barcode"),
+                "barcode": sku,
+                "sku": sku,
                 "category": p.get("category", ""),
                 "category_id": None,
                 "purchase_price": float(p.get("purchase_price", 0)),
@@ -16281,6 +16290,34 @@ async def get_product(product_id: str, user: User = Depends(require_any_read("st
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     return _product_response_for_user(user, product)
 
+def normalize_product_sku(value: Any) -> Optional[str]:
+    sku = str(value or "").strip()
+    return sku or None
+
+async def ensure_unique_product_sku(
+    owner_id: str,
+    store_id: Optional[str],
+    sku: Optional[str],
+    exclude_product_id: Optional[str] = None,
+) -> None:
+    normalized_sku = normalize_product_sku(sku)
+    if not normalized_sku:
+        return
+    query: Dict[str, Any] = {
+        "user_id": owner_id,
+        "store_id": store_id,
+        "is_active": {"$ne": False},
+        "$or": [
+            {"sku": normalized_sku},
+            {"barcode": normalized_sku},
+        ],
+    }
+    if exclude_product_id:
+        query["product_id"] = {"$ne": exclude_product_id}
+    existing = await db.products.find_one(query, {"_id": 0, "product_id": 1, "name": 1})
+    if existing:
+        raise HTTPException(status_code=409, detail="duplicate_sku_in_store")
+
 @api_router.post("/products", response_model=Product)
 async def create_product(prod_data: ProductCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
@@ -16297,6 +16334,8 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
         prod_data.is_menu_item = True
 
     product_payload = normalize_product_measurement_fields(prod_data.model_dump(exclude={"force_override"}))
+    product_payload["sku"] = normalize_product_sku(product_payload.get("sku"))
+    await ensure_unique_product_sku(owner_id, user.active_store_id, product_payload.get("sku"))
     product = Product(
         **product_payload,
         user_id=owner_id,
@@ -16338,6 +16377,8 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
         
     update_dict = prod_data.model_dump(exclude_unset=True)
     force_override = bool(update_dict.pop("force_override", False))
+    if "sku" in update_dict:
+        update_dict["sku"] = normalize_product_sku(update_dict.get("sku"))
     if "location_id" in update_dict:
         ensure_enterprise_locations_allowed(user)
     if update_dict.get("linked_recipe_id"):
@@ -16351,6 +16392,14 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
     ensure_scoped_document_access(user, current_product, detail="Acces refuse pour ce produit")
     if not current_product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
+
+    if "sku" in update_dict:
+        await ensure_unique_product_sku(
+            owner_id,
+            current_product.get("store_id") or user.active_store_id,
+            update_dict.get("sku"),
+            exclude_product_id=product_id,
+        )
 
     if "purchase_price" in update_dict and not force_override:
         incoming_purchase_price = float(update_dict.get("purchase_price") or 0)

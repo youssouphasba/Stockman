@@ -37,12 +37,14 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Les quantités négatives sont refusées
 - Les prix supérieurs à 999 999 999 sont refusés
 - Une ligne avec un nom manquant est ignorée (erreur signalée)
+- Un même SKU/code-barres ne peut pas être utilisé par deux produits actifs dans la même boutique
 - Un mouvement de stock initial est automatiquement créé pour chaque produit importé avec une quantité > 0
 
 **Erreurs courantes et solutions :**
 - "Nom du produit manquant" → vérifier que la colonne nom est bien mappée
 - "Fichier trop volumineux" → réduire le fichier à moins de 5 Mo
 - "Type de fichier non autorisé" → utiliser uniquement CSV ou Excel
+- "Code-barres déjà utilisé dans cette boutique" → corriger le SKU dans le fichier ou dans la fiche produit existante
 - Caractères spéciaux (é, à, ç) mal affichés → sauvegarder le fichier en UTF-8 depuis Excel
 
 ---
@@ -372,7 +374,9 @@ Les fournisseurs ont leur propre interface dédiée pour gérer leur catalogue e
 ### Comment scanner un code-barres ?
 - Sur mobile : activer la caméra depuis la caisse ou la page produits
 - Pointer vers le code-barres — la reconnaissance est automatique
-- Si un produit correspond au SKU scanné, il est ajouté au panier ou affiché
+- Si un seul produit correspond au SKU scanné, il est ajouté au panier ou affiché
+- En caisse, un scan ajoute une seule unité et déclenche une vibration de confirmation
+- Si plusieurs produits actifs de la même boutique partagent le même code-barres, Stockman bloque l'ajout et demande de corriger les fiches produits
 
 ### Comment faire un scan en lot (batch scan) ?
 - **Inventaire** → **Scan en lot** (Batch Scan)

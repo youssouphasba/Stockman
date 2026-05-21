@@ -102,7 +102,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "cloud-upload-outline",
                 title: "Importer plusieurs produits d'un coup",
-                description: "L'import fichier sert à intégrer un CSV structuré. L'import texte sert quand vous avez une liste brute issue d'un message, d'un bon ou d'une note. Vérifiez toujours le résultat avant de valider la création."
+                description: "L'import fichier sert à intégrer un CSV structuré. L'import texte sert quand vous avez une liste brute issue d'un message, d'un bon ou d'une note. Un même code-barres ne peut pas être utilisé par deux produits dans la même boutique. Vérifiez toujours le résultat avant de valider la création."
             },
             {
                 icon: "scan-outline",
@@ -177,7 +177,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "barcode-outline",
                 title: "Scanner & Ajouter",
-                description: "Le bouton Scanner reste visible dans la caisse mobile, même sans ouvrir la liste produits. Scannez un code-barres ou ouvrez Ajouter produit pour rechercher manuellement."
+                description: "Le bouton Scanner reste visible dans la caisse mobile, même sans ouvrir la liste produits. Chaque scan ajoute une seule unité, avec vibration de confirmation. Si un code-barres est partagé par plusieurs produits de la même boutique, Stockman bloque l'ajout pour éviter une erreur de caisse."
             },
             {
                 icon: "cart-outline",

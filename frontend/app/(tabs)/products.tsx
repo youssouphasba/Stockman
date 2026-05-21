@@ -2018,6 +2018,11 @@ export default function ProductsScreen() {
             },
           ]
         );
+      } else if (err instanceof ApiError && err.message === 'duplicate_sku_in_store') {
+        Alert.alert(
+          t('common.error'),
+          t('products.duplicate_sku_in_store', 'Ce code-barres est déjà utilisé par un autre produit de cette boutique.')
+        );
       } else {
         Alert.alert(t('common.error'), err?.message || t('products.create_error'));
       }
@@ -2356,10 +2361,28 @@ export default function ProductsScreen() {
     runAfterScannerClosed(shouldRestoreForm ? () => setShowAddModal(true) : undefined);
   }
 
+  function getProductScanCodes(product: Product) {
+    return [product.sku, (product as any).barcode]
+      .map(code => String(code || '').trim())
+      .filter(Boolean);
+  }
+
   function handleBarCodeScanned(data: string) {
     if (scannerMode === 'search') {
-      const found = productList.find(p => p.sku === data);
-      runAfterScannerClosed(() => found ? openEditModal(found) : openNewProductModal({ sku: data }));
+      const code = String(data || '').trim();
+      const matches = productList.filter(product => getProductScanCodes(product).includes(code));
+      runAfterScannerClosed(() => {
+        if (matches.length === 1) {
+          openEditModal(matches[0]);
+        } else if (matches.length > 1) {
+          Alert.alert(
+            t('common.error'),
+            t('products.duplicate_sku_in_store', 'Ce code-barres est déjà utilisé par un autre produit de cette boutique.')
+          );
+        } else {
+          openNewProductModal({ sku: code });
+        }
+      });
     } else {
       setFormSku(data);
       const shouldRestoreForm = restoreProductModalAfterScannerRef.current;
