@@ -736,7 +736,9 @@ export default function AdminDashboard() {
             setToken(session.access_token);
             if (session.refresh_token) setRefreshToken(session.refresh_token);
             showToast(`Session ouverte pour ${ticket.user_name || ticket.user_email || 'cet utilisateur'}.`);
-            window.location.href = '/';
+            window.sessionStorage.setItem('stockman_active_tab', 'dashboard');
+            window.history.pushState({ tab: 'dashboard' }, '', '#dashboard');
+            window.dispatchEvent(new CustomEvent('stockman:assistance-session', { detail: session }));
         } catch (error: any) {
             showToast(error?.message || "Impossible d'ouvrir la session d'assistance.", 'error');
         } finally {

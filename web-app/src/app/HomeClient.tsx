@@ -213,6 +213,22 @@ export default function Home() {
     userFeatures.get().then(setFeatures).catch(() => { });
   }, []);
 
+  useEffect(() => {
+    const handleAssistanceSession = (event: Event) => {
+      const session = (event as CustomEvent<AuthResponse>).detail;
+      if (!session?.user) return;
+      hydrateAuthenticatedUser(session.user);
+      setActiveTab('dashboard');
+      setIsSidebarOpen(false);
+      setIsChatOpen(false);
+      setIsSupportOpen(false);
+      setIsNotificationsOpen(false);
+    };
+
+    window.addEventListener('stockman:assistance-session', handleAssistanceSession);
+    return () => window.removeEventListener('stockman:assistance-session', handleAssistanceSession);
+  }, [hydrateAuthenticatedUser, setActiveTab]);
+
   const loadUser = useCallback(async () => {
     try {
       const userData = await auth.me();
