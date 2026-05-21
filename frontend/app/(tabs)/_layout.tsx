@@ -84,8 +84,9 @@ function TabLayoutInner() {
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
   const hideDashboard = !hasPermission('dashboard', 'read');
   const hasEnterprisePlan = (user?.effective_plan || user?.plan) === 'enterprise';
-  const compactHeader = width < 390;
+  const compactHeader = width <= 400;
   const veryCompactHeader = width < 360;
+  const compactTabBar = width <= 400;
 
   const productsTabTitle = isRestaurant
     ? t('tabs.menu', 'Menu')
@@ -97,6 +98,24 @@ function TabLayoutInner() {
     : hasProduction
       ? 'flask-outline'
       : 'cube-outline';
+  const renderTabLabel = (label: string) => ({ color }: { color: string }) => (
+    <Text
+      allowFontScaling={false}
+      adjustsFontSizeToFit
+      minimumFontScale={0.7}
+      numberOfLines={1}
+      style={{
+        color,
+        fontSize: compactTabBar ? 9 : 10,
+        fontWeight: '600',
+        lineHeight: compactTabBar ? 11 : 12,
+        textAlign: 'center',
+        includeFontPadding: false,
+      }}
+    >
+      {label}
+    </Text>
+  );
 
   const segments = useSegments();
   const currentRoute = (segments[segments.length - 1] || 'index') as string;
@@ -293,11 +312,9 @@ function TabLayoutInner() {
               <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: compactHeader ? 3 : 4 }}>
                 <Ionicons name="sparkles-outline" size={compactHeader ? 22 : 24} color={colors.primary} />
               </TouchableOpacity>
-              {!veryCompactHeader && (
-                <TouchableOpacity onPress={() => setShowHelpCenter(true)} style={{ padding: compactHeader ? 3 : 4 }}>
-                  <Ionicons name="book-outline" size={compactHeader ? 22 : 24} color={colors.text} />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity onPress={() => setShowHelpCenter(true)} style={{ padding: compactHeader ? 3 : 4 }}>
+                <Ionicons name="book-outline" size={compactHeader ? 22 : 24} color={colors.text} />
+              </TouchableOpacity>
               {currentGuide && (
                 <TouchableOpacity onPress={() => setShowGuide(true)} style={{ padding: compactHeader ? 3 : 4 }}>
                   <Ionicons name="help-circle-outline" size={compactHeader ? 22 : 24} color={colors.text} />
@@ -310,16 +327,24 @@ function TabLayoutInner() {
             backgroundColor: isDark ? 'rgba(15, 12, 41, 0.95)' : '#FFFFFF',
             borderTopColor: colors.glassBorder,
             borderTopWidth: 1,
-            height: 70 + insets.bottom,
-            paddingBottom: insets.bottom + 8,
-            paddingTop: 8,
+            height: (compactTabBar ? 74 : 72) + insets.bottom,
+            paddingBottom: insets.bottom + (compactTabBar ? 7 : 8),
+            paddingTop: compactTabBar ? 6 : 8,
           },
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textMuted,
-          tabBarShowLabel: !veryCompactHeader,
+          tabBarShowLabel: true,
           tabBarLabelStyle: {
-            fontSize: compactHeader ? 8 : 9,
+            fontSize: compactTabBar ? 9 : 10,
             fontWeight: '600',
+            lineHeight: compactTabBar ? 11 : 12,
+          },
+          tabBarIconStyle: {
+            marginBottom: compactTabBar ? -2 : 0,
+          },
+          tabBarLabelPosition: 'below-icon',
+          tabBarItemStyle: {
+            paddingHorizontal: compactTabBar ? 0 : 2,
           },
         }}
       >
@@ -327,6 +352,7 @@ function TabLayoutInner() {
           name="index"
           options={{
             title: t('tabs.home'),
+            tabBarLabel: renderTabLabel(t('tabs.home')),
             href: (billingOnly || hideDashboard) ? null : '/',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
@@ -337,6 +363,7 @@ function TabLayoutInner() {
           name="products"
           options={{
             title: productsTabTitle,
+            tabBarLabel: renderTabLabel(productsTabTitle),
             href: billingOnly || (hideStock && !isRestaurant) ? null : '/products',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name={productsTabIcon as any} size={size} color={color} />
@@ -347,6 +374,7 @@ function TabLayoutInner() {
           name="pos"
           options={{
             title: t('tabs.pos'),
+            tabBarLabel: renderTabLabel(t('tabs.pos')),
             href: hidePos ? null : '/pos',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="calculator-outline" size={size} color={color} />
@@ -357,6 +385,7 @@ function TabLayoutInner() {
           name="accounting"
           options={{
             title: t('tabs.accounting'),
+            tabBarLabel: renderTabLabel(t('tabs.accounting')),
             href: hideAccounting ? null : '/accounting',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="bar-chart-outline" size={size} color={color} />
@@ -367,6 +396,7 @@ function TabLayoutInner() {
           name="suppliers"
           options={{
             title: t('tabs.suppliers'),
+            tabBarLabel: renderTabLabel(t('tabs.suppliers')),
             href: hideSuppliers ? null : '/suppliers',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="people-outline" size={size} color={color} />
@@ -377,6 +407,7 @@ function TabLayoutInner() {
           name="crm"
           options={{
             title: t('tabs.crm'),
+            tabBarLabel: renderTabLabel(t('tabs.crm')),
             href: hideCrm ? null : '/crm',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="person-add-outline" size={size} color={color} />
@@ -387,6 +418,7 @@ function TabLayoutInner() {
           name="orders"
           options={{
             title: t('tabs.orders'),
+            tabBarLabel: renderTabLabel(t('tabs.orders')),
             href: hideOrders ? null : '/orders',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="receipt-outline" size={size} color={color} />
@@ -397,6 +429,7 @@ function TabLayoutInner() {
           name="restaurant"
           options={{
             title: t('tabs.restaurant', 'Service'),
+            tabBarLabel: renderTabLabel(t('tabs.restaurant', 'Service')),
             href: isRestaurant && hasOperationalAccess ? '/restaurant' : null,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="restaurant-outline" size={size} color={color} />
@@ -414,6 +447,7 @@ function TabLayoutInner() {
           name="settings"
           options={{
             title: t('tabs.settings'),
+            tabBarLabel: renderTabLabel(t('tabs.settings')),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="settings-outline" size={size} color={color} />
             ),
@@ -437,6 +471,7 @@ function TabLayoutInner() {
           name="admin"
           options={{
             title: t('tabs.admin'),
+            tabBarLabel: renderTabLabel(t('tabs.admin')),
             href: (isSuperAdmin ? '/(admin)' : null) as any,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="shield-checkmark-outline" size={size} color={color} />

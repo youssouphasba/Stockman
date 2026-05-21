@@ -14,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 
+const PRODUCT_BARCODE_TYPES = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'code93', 'itf14'] as const;
+
 type Props = {
     visible: boolean;
     onClose: () => void;
@@ -28,24 +30,39 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
     const [permissionRequested, setPermissionRequested] = useState(false);
+    const [permissionLoading, setPermissionLoading] = useState(false);
+    const [permissionGranted, setPermissionGranted] = useState(false);
     const styles = createStyles(colors);
+    const hasPermission = permission?.granted || permissionGranted;
 
     useEffect(() => {
-        if (!visible || permission?.granted || permissionRequested) {
+        if (permission?.granted) {
+            setPermissionGranted(true);
+        }
+    }, [permission?.granted]);
+
+    useEffect(() => {
+        if (!visible || hasPermission || permissionRequested || permissionLoading) {
             return;
         }
 
         setPermissionRequested(true);
+        setPermissionLoading(true);
         requestPermission().then((result) => {
-            if (!result.granted) {
-                Alert.alert(
-                    t('common.error', 'Erreur'),
-                    t('scanner.permission_text', "L'accès à la caméra est nécessaire pour scanner les codes-barres."),
-                    [{ text: t('common.ok', 'OK'), onPress: onClose }]
-                );
+            if (result.granted) {
+                setPermissionGranted(true);
+                return;
             }
+
+            Alert.alert(
+                t('common.error', 'Erreur'),
+                t('scanner.permission_text', "L'accès à la caméra est nécessaire pour scanner les codes-barres."),
+                [{ text: t('common.ok', 'OK'), onPress: onClose }]
+            );
+        }).finally(() => {
+            setPermissionLoading(false);
         });
-    }, [visible, permission?.granted, permissionRequested, requestPermission, t, onClose]);
+    }, [visible, hasPermission, permissionRequested, permissionLoading, requestPermission, t, onClose]);
 
     useEffect(() => {
         if (visible) {
@@ -54,6 +71,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
         }
 
         setPermissionRequested(false);
+        setPermissionLoading(false);
     }, [visible]);
 
     const handleBarcodeScanned = ({ data }: { data: string }) => {
@@ -68,14 +86,14 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
         }
 
         setScanned(true);
-        setTimeout(() => setScanned(false), 1500);
+        setTimeout(() => setScanned(false), 1200);
     };
 
     if (!visible) {
         return null;
     }
 
-    if (!permission) {
+    if (!permission || permissionLoading) {
         return (
             <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
                 <View style={styles.permissionContainer}>
@@ -85,7 +103,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
         );
     }
 
-    if (!permission.granted) {
+    if (!hasPermission) {
         return (
             <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
                 <View style={styles.permissionContainer}>
@@ -96,8 +114,10 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
                     <TouchableOpacity
                         style={styles.permissionButton}
                         onPress={() => {
-                            setPermissionRequested(false);
-                            void requestPermission();
+                            setPermissionLoading(true);
+                            requestPermission()
+                                .then((result) => setPermissionGranted(result.granted))
+                                .finally(() => setPermissionLoading(false));
                         }}
                     >
                         <Text style={styles.permissionButtonText}>{t('scanner.allow_camera', 'Autoriser la caméra')}</Text>
@@ -120,9 +140,10 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
             <View style={styles.container}>
                 <CameraView
                     style={StyleSheet.absoluteFillObject}
+                    facing="back"
                     onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
                     barcodeScannerSettings={{
-                        barcodeTypes: ['qr', 'ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'code93', 'itf14', 'codabar', 'aztec', 'datamatrix', 'pdf417'],
+                        barcodeTypes: PRODUCT_BARCODE_TYPES as any,
                     }}
                 >
                     <View style={styles.overlay}>

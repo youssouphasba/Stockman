@@ -2116,12 +2116,19 @@ export default function DashboardScreen() {
 }
 
 
-const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => StyleSheet.create({
+const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => {
+  const isCompact = screenWidth <= 400;
+  const isVeryCompact = screenWidth < 360;
+  const horizontalPadding = isCompact ? Spacing.sm : Spacing.md;
+  const kpiGap = isCompact ? Spacing.sm : Spacing.md;
+  const kpiCardWidth = (screenWidth - horizontalPadding * 2 - kpiGap) / 2;
+
+  return StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   content: {
-    padding: Spacing.md,
-    paddingTop: Spacing.xl + (Platform.OS === 'ios' ? 40 : 20),
+    padding: horizontalPadding,
+    paddingTop: (isCompact ? Spacing.md : Spacing.xl) + (Platform.OS === 'ios' ? 28 : 14),
   },
   header: {
     flexDirection: 'row',
@@ -2140,7 +2147,7 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => S
     borderColor: 'rgba(255,255,255,0.15)',
   },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  headerSection: { marginBottom: Spacing.lg, paddingHorizontal: Spacing.xs },
+  headerSection: { marginBottom: isCompact ? Spacing.md : Spacing.lg, paddingHorizontal: isCompact ? 0 : Spacing.xs },
   dashboardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2170,22 +2177,23 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => S
     alignItems: 'center',
     alignSelf: 'flex-start',
   },
-  greeting: { fontSize: FontSize.xl, fontWeight: '700', color: colors.text },
+  greeting: { fontSize: isVeryCompact ? FontSize.lg : FontSize.xl, fontWeight: '700', color: colors.text },
   username: { fontSize: FontSize.md, color: colors.textSecondary },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.glass },
-  subGreeting: { fontSize: FontSize.sm, color: colors.textSecondary, marginTop: 4 },
-  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md, marginBottom: Spacing.lg },
+  subGreeting: { fontSize: isCompact ? FontSize.xs : FontSize.sm, color: colors.textSecondary, marginTop: 4 },
+  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: kpiGap, marginBottom: isCompact ? Spacing.md : Spacing.lg },
   kpiCard: {
     ...glassStyle,
-    width: (screenWidth - Spacing.md * 3) / 2,
-    padding: Spacing.md,
+    width: kpiCardWidth,
+    minHeight: isCompact ? 126 : 142,
+    padding: isCompact ? Spacing.sm : Spacing.md,
     alignItems: 'center',
     marginBottom: Spacing.xs,
   },
-  kpiIcon: { width: 48, height: 48, borderRadius: BorderRadius.full, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.sm },
-  kpiValue: { fontSize: FontSize.xl, fontWeight: 'bold', color: colors.text, marginBottom: Spacing.xs, maxWidth: '100%', textAlign: 'center' },
-  kpiLabel: { fontSize: FontSize.xs, color: colors.textSecondary, textAlign: 'center', maxWidth: '100%' },
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text, marginBottom: Spacing.md },
+  kpiIcon: { width: isCompact ? 42 : 48, height: isCompact ? 42 : 48, borderRadius: BorderRadius.full, justifyContent: 'center', alignItems: 'center', marginBottom: isCompact ? Spacing.xs : Spacing.sm },
+  kpiValue: { fontSize: isVeryCompact ? 20 : FontSize.xl, fontWeight: 'bold', color: colors.text, marginBottom: Spacing.xs, maxWidth: '100%', textAlign: 'center' },
+  kpiLabel: { fontSize: isCompact ? 11 : FontSize.xs, color: colors.textSecondary, textAlign: 'center', maxWidth: '100%' },
+  sectionTitle: { fontSize: isCompact ? FontSize.md : FontSize.lg, fontWeight: '700', color: colors.text, marginBottom: Spacing.md },
   reportMetricCard: { padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: colors.glass },
   reportMetricValue: { fontSize: 22, fontWeight: '800' },
   reportMetricLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '600', marginTop: 2 },
@@ -2339,3 +2347,4 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => S
   reorderMeta: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
   reorderSuggest: { fontSize: 14, color: colors.primaryLight, fontWeight: '600', marginBottom: Spacing.md },
 });
+};
