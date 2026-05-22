@@ -10,6 +10,7 @@ import {
 import { admin as adminApi, setRefreshToken, setToken } from '../services/api';
 import AdminProductsPanel from './admin/AdminProductsPanel';
 import AdminCatalogPanel from './admin/AdminCatalogPanel';
+import AdminStoreInventoryPanel from './admin/AdminStoreInventoryPanel';
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: any; icon: any; color: string; sub: string }) {
     return (
@@ -2872,6 +2873,7 @@ export default function AdminDashboard() {
                             </table>
                         </div>
                     </div>
+                    <AdminStoreInventoryPanel stores={stores} showToast={showToast} />
                 </div>
             )}
 

@@ -3060,7 +3060,7 @@ def parse_datetime_value(value: Any) -> Optional[datetime]:
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
     if isinstance(value, str):
         try:
-            parsed = datetime.fromisoformat(value)
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
         except ValueError:
             return None
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
@@ -8262,6 +8262,9 @@ async def admin_list_stores(skip: int = 0, limit: int = 50):
         {"$project": {
             "_id": 0,
             "store_id": 1, "user_id": 1, "name": 1, "address": 1, "created_at": 1,
+            "country_code": "$owner.country_code",
+            "currency": "$owner.currency",
+            "business_type": "$owner.business_type",
             "owner_name": {"$ifNull": ["$owner.name", "Inconnu"]},
             "owner_email": {"$ifNull": ["$owner.email", ""]},
             "product_count": {"$ifNull": [{"$arrayElemAt": ["$products_agg.count", 0]}, 0]},
@@ -8271,8 +8274,217 @@ async def admin_list_stores(skip: int = 0, limit: int = 50):
     ]
 
     stores = await db.stores.aggregate(pipeline).to_list(limit)
+    store_ids = [store.get("store_id") for store in stores if store.get("store_id")]
+    if store_ids:
+        product_rows = await db.products.find(
+            {"store_id": {"$in": store_ids}, "is_active": {"$ne": False}},
+            {"_id": 0, "store_id": 1, "quantity": 1, "min_stock": 1, "max_stock": 1, "purchase_price": 1, "expiry_date": 1},
+        ).to_list(None)
+        batches = await db.batches.find(
+            {"store_id": {"$in": store_ids}, "quantity": {"$gt": 0}},
+            {"_id": 0, "store_id": 1, "quantity": 1, "expiry_date": 1},
+        ).to_list(None)
+        active_alerts = await db.alerts.find(
+            {"store_id": {"$in": store_ids}, "is_dismissed": False},
+            {"_id": 0, "store_id": 1, "severity": 1},
+        ).to_list(None)
+
+        now = datetime.now(timezone.utc)
+        expiry_cutoff = now + timedelta(days=30)
+        metrics: Dict[str, Dict[str, Any]] = {
+            store_id: {
+                "low_stock_count": 0,
+                "out_of_stock_count": 0,
+                "overstock_count": 0,
+                "stock_value": 0.0,
+                "expiring_soon_count": 0,
+                "expired_count": 0,
+                "active_alerts_count": 0,
+                "critical_alerts_count": 0,
+            }
+            for store_id in store_ids
+        }
+
+        for product in product_rows:
+            store_id = product.get("store_id")
+            bucket = metrics.get(store_id)
+            if not bucket:
+                continue
+            quantity = float(product.get("quantity") or 0)
+            min_stock = float(product.get("min_stock") or 0)
+            max_stock = float(product.get("max_stock") or 0)
+            purchase_price = float(product.get("purchase_price") or 0)
+            bucket["stock_value"] += max(quantity, 0) * max(purchase_price, 0)
+            if quantity <= 0:
+                bucket["out_of_stock_count"] += 1
+            elif min_stock > 0 and quantity <= min_stock:
+                bucket["low_stock_count"] += 1
+            if max_stock > 0 and quantity >= max_stock:
+                bucket["overstock_count"] += 1
+            expiry_date = parse_datetime_value(product.get("expiry_date"))
+            if expiry_date and quantity > 0:
+                if expiry_date <= now:
+                    bucket["expired_count"] += 1
+                elif expiry_date <= expiry_cutoff:
+                    bucket["expiring_soon_count"] += 1
+
+        for batch in batches:
+            store_id = batch.get("store_id")
+            bucket = metrics.get(store_id)
+            expiry_date = parse_datetime_value(batch.get("expiry_date"))
+            if not bucket or not expiry_date:
+                continue
+            if expiry_date <= now:
+                bucket["expired_count"] += 1
+            elif expiry_date <= expiry_cutoff:
+                bucket["expiring_soon_count"] += 1
+
+        for alert in active_alerts:
+            store_id = alert.get("store_id")
+            bucket = metrics.get(store_id)
+            if not bucket:
+                continue
+            bucket["active_alerts_count"] += 1
+            if alert.get("severity") == "critical":
+                bucket["critical_alerts_count"] += 1
+
+        for store in stores:
+            store.update(metrics.get(store.get("store_id"), {}))
     total = await db.stores.count_documents({})
     return {"items": stores, "total": total}
+
+
+@admin_router.get("/stores/{store_id}/inventory")
+async def admin_get_store_inventory(
+    store_id: str,
+    search: Optional[str] = None,
+    stock_status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 200,
+    user: User = Depends(require_superadmin),
+):
+    store = await db.stores.find_one({"store_id": store_id}, {"_id": 0})
+    if not store:
+        raise HTTPException(status_code=404, detail="Boutique introuvable")
+
+    safe_skip = max(skip, 0)
+    safe_limit = min(max(limit, 1), 1000)
+    query: Dict[str, Any] = {"store_id": store_id, "is_active": {"$ne": False}}
+    if search:
+        safe = safe_regex(search)
+        query["$or"] = [
+            {"name": {"$regex": safe, "$options": "i"}},
+            {"barcode": {"$regex": safe, "$options": "i"}},
+            {"sku": {"$regex": safe, "$options": "i"}},
+        ]
+
+    products = await db.products.find(query, {"_id": 0}).sort("updated_at", -1).to_list(2000)
+    product_ids = [product.get("product_id") for product in products if product.get("product_id")]
+    batches = await db.batches.find(
+        {"user_id": store.get("user_id"), "product_id": {"$in": product_ids}, "quantity": {"$gt": 0}},
+        {"_id": 0},
+    ).sort("expiry_date", 1).to_list(None)
+    alerts = await db.alerts.find(
+        {
+            "is_dismissed": False,
+            "$or": [
+                {"store_id": store_id},
+                {"product_id": {"$in": product_ids}},
+            ],
+        },
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(200)
+
+    now = datetime.now(timezone.utc)
+    expiry_warning = now + timedelta(days=30)
+    batches_by_product: Dict[str, List[Dict[str, Any]]] = {}
+    alerts_by_product: Dict[str, List[Dict[str, Any]]] = {}
+    for batch in batches:
+        batches_by_product.setdefault(batch.get("product_id"), []).append(batch)
+    for alert in alerts:
+        if alert.get("product_id"):
+            alerts_by_product.setdefault(alert.get("product_id"), []).append(alert)
+
+    rows = []
+    summary = {
+        "total_products": 0,
+        "in_stock": 0,
+        "low_stock": 0,
+        "out_of_stock": 0,
+        "overstock": 0,
+        "expired": 0,
+        "expiring_soon": 0,
+        "stock_value": 0.0,
+        "active_alerts": len(alerts),
+    }
+    for product in products:
+        quantity = float(product.get("quantity") or 0)
+        min_stock = float(product.get("min_stock") or 0)
+        max_stock = float(product.get("max_stock") or 0)
+        purchase_price = float(product.get("purchase_price") or 0)
+        if quantity <= 0:
+            status = "out_of_stock"
+        elif min_stock > 0 and quantity <= min_stock:
+            status = "low_stock"
+        elif max_stock > 0 and quantity >= max_stock:
+            status = "overstock"
+        else:
+            status = "in_stock"
+
+        expiry_candidates = []
+        product_expiry = parse_datetime_value(product.get("expiry_date"))
+        if product_expiry:
+            expiry_candidates.append(product_expiry)
+        for batch in batches_by_product.get(product.get("product_id"), []):
+            batch_expiry = parse_datetime_value(batch.get("expiry_date"))
+            if batch_expiry:
+                expiry_candidates.append(batch_expiry)
+        nearest_expiry = min(expiry_candidates) if expiry_candidates else None
+        if nearest_expiry and nearest_expiry <= now:
+            expiry_status = "expired"
+        elif nearest_expiry and nearest_expiry <= expiry_warning:
+            expiry_status = "expiring_soon"
+        elif nearest_expiry:
+            expiry_status = "ok"
+        else:
+            expiry_status = "none"
+
+        summary["total_products"] += 1
+        summary[status] += 1
+        if expiry_status in ("expired", "expiring_soon"):
+            summary[expiry_status] += 1
+        summary["stock_value"] += max(quantity, 0) * max(purchase_price, 0)
+
+        rows.append({
+            **product,
+            "stock_status": status,
+            "stock_value": round(max(quantity, 0) * max(purchase_price, 0), 2),
+            "nearest_expiry_date": nearest_expiry.isoformat() if nearest_expiry else None,
+            "expiry_status": expiry_status,
+            "batches": batches_by_product.get(product.get("product_id"), [])[:5],
+            "active_alerts_count": len(alerts_by_product.get(product.get("product_id"), [])),
+        })
+
+    filtered_rows = rows
+    if stock_status and stock_status != "all":
+        filtered_rows = [row for row in rows if row.get("stock_status") == stock_status or row.get("expiry_status") == stock_status]
+    paginated_rows = filtered_rows[safe_skip:safe_skip + safe_limit]
+
+    owner = await db.users.find_one({"user_id": store.get("user_id")}, {"_id": 0, "user_id": 1, "name": 1, "email": 1, "currency": 1, "country_code": 1, "business_type": 1})
+    return {
+        "store": {
+            **store,
+            "owner_name": (owner or {}).get("name"),
+            "owner_email": (owner or {}).get("email"),
+            "currency": (owner or {}).get("currency"),
+            "country_code": (owner or {}).get("country_code"),
+            "business_type": (owner or {}).get("business_type"),
+        },
+        "summary": summary,
+        "products": paginated_rows,
+        "alerts": alerts[:20],
+        "total": len(filtered_rows),
+    }
 
 @admin_router.put("/users/{user_id}/toggle")
 async def admin_toggle_user(user_id: str):

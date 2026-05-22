@@ -427,3 +427,9 @@ R: Après validation d'une vente, l'écran de confirmation propose : Imprimer, E
 
 **Q: Comment voir les produits proches de leur date de péremption ?**
 R: **Tableau de bord** → section **Alertes Péremption**, ou **Alertes** → filtre Péremption.
+
+### Administration des boutiques
+- Le backoffice admin permet d'ouvrir une boutique pour consulter son inventaire réel.
+- Chaque produit affiche son état de stock, sa valeur, ses lots, sa prochaine date de péremption et ses alertes actives.
+- Les péremptions sont distinguées par statut : expiré, à surveiller ou valide.
+- Les filtres admin permettent de cibler rapidement les ruptures, les stocks bas et les produits proches de la péremption.

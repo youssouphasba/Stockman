@@ -124,3 +124,16 @@ On y retrouve les événements de sécurité, les vérifications et certaines se
 | Qui peut ouvrir ce module ? | Les super-administrateurs uniquement. |
 | Le backoffice sert-il à gérer les abonnements ? | Oui, c'est une des fonctions principales du module. |
 | Le suivi catalogue est-il aussi dans l'administration ? | Oui, notamment pour les imports, la revue et certains outils de pilotage global. |
+
+## 6. Boutiques et inventaire admin
+
+La section Boutiques permet de contrôler l'inventaire réel de chaque point de vente :
+
+- liste des produits par boutique ;
+- état de stock par produit : en stock, stock bas, rupture ou surstock ;
+- valeur de stock par produit et par boutique ;
+- lots actifs et dates de péremption ;
+- code couleur sur les péremptions : expiré, à surveiller ou valide ;
+- alertes actives rattachées au produit ou à la boutique.
+
+La sélection d'une boutique ouvre son détail d'inventaire. Les filtres permettent d'isoler rapidement les ruptures, les stocks bas, les produits expirés ou les produits à surveiller.
