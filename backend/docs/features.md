@@ -123,6 +123,7 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 1. Aller dans **Alertes** → **Configuration** ou icône engrenage
 2. Définir des règles : alerter quand stock < X unités, rupture, produit dormant (pas vendu depuis X jours)
 3. Activer les notifications push dans **Paramètres** pour recevoir des alertes en temps réel
+4. Les alertes liées à un produit ouvrent directement la fiche de ce produit dans l'application mobile, avec le filtre adapté quand il s'agit d'une rupture, d'un stock bas ou d'un surstock
 
 ### Types d'alertes disponibles :
 - **Stock bas** : quantité en dessous du seuil minimum
@@ -134,6 +135,7 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Marquer une alerte comme lue une fois traitée
 - Supprimer les alertes résolues
 - Filtrer par type d'alerte
+- Ouvrir le produit concerné depuis une notification push ou depuis la liste des alertes
 
 ---
 

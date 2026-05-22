@@ -13817,12 +13817,12 @@ async def check_alerts_loop():
         if not owner_id:
             continue
 
-        # Plan check: only pro/enterprise users get push notifications
         owner = await db.users.find_one(
             {"user_id": owner_id},
-            {"plan": 1, "push_notifications": 1, "account_id": 1}
+            {"plan": 1, "effective_plan": 1, "subscription_plan": 1, "push_notifications": 1, "account_id": 1}
         )
-        if not owner or owner.get("plan") not in ("pro", "enterprise"):
+        owner_plan = normalize_plan(owner.get("effective_plan") or owner.get("subscription_plan") or owner.get("plan")) if owner else "starter"
+        if owner_plan not in ("pro", "enterprise"):
             continue
 
         product_id = product.get("product_id")
@@ -13843,7 +13843,7 @@ async def check_alerts_loop():
             store_id=product.get("store_id"),
             product_id=product_id,
             type="low_stock",
-            title="Stock Bas",
+            title="Stock bas",
             message=f"Le produit {product['name']} est presque épuisé ({product['quantity']} restant(s)).",
             severity="warning" if product["quantity"] > 0 else "critical",
         )
@@ -13863,9 +13863,12 @@ async def check_alerts_loop():
         if not owner_id:
             continue
 
-        # Plan check (I6)
-        owner = await db.users.find_one({"user_id": owner_id}, {"plan": 1, "account_id": 1})
-        if not owner or owner.get("plan") not in ("pro", "enterprise"):
+        owner = await db.users.find_one(
+            {"user_id": owner_id},
+            {"plan": 1, "effective_plan": 1, "subscription_plan": 1, "account_id": 1}
+        )
+        owner_plan = normalize_plan(owner.get("effective_plan") or owner.get("subscription_plan") or owner.get("plan")) if owner else "starter"
+        if owner_plan not in ("pro", "enterprise"):
             continue
 
         batch_id = batch.get("batch_id") or batch.get("batch_number")
@@ -13885,7 +13888,7 @@ async def check_alerts_loop():
             store_id=batch.get("store_id"),
             product_id=batch.get("product_id"),
             type="expiry",
-            title="Expiration Proche",
+            title="Expiration proche",
             message=f"Le lot {batch['batch_number']} de {batch.get('product_name', 'produit')} expire le {batch['expiry_date']}.",
             severity="warning",
         )
@@ -14722,9 +14725,9 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         
         # Create default alert rules
         default_rules = [
-            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="low_stock", enabled=True, threshold_percentage=20, recipient_keys=["default", "stock"]),
-            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="out_of_stock", enabled=True, recipient_keys=["default", "stock"]),
-            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="overstock", enabled=True, threshold_percentage=90, recipient_keys=["stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="low_stock", enabled=True, threshold_percentage=20, notification_channels=ALERT_RULE_DEFAULT_CHANNELS["low_stock"], recipient_keys=["default", "stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="out_of_stock", enabled=True, notification_channels=ALERT_RULE_DEFAULT_CHANNELS["out_of_stock"], recipient_keys=["default", "stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="overstock", enabled=True, threshold_percentage=90, notification_channels=ALERT_RULE_DEFAULT_CHANNELS["overstock"], recipient_keys=["stock"]),
         ]
         for rule in default_rules:
             await db.alert_rules.insert_one(rule.model_dump())
@@ -15033,9 +15036,9 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
             user_doc["account_id"] = account_doc.get("account_id")
 
         default_rules = [
-            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="low_stock", enabled=True, threshold_percentage=20, recipient_keys=["default", "stock"]),
-            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="out_of_stock", enabled=True, recipient_keys=["default", "stock"]),
-            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="overstock", enabled=True, threshold_percentage=90, recipient_keys=["stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="low_stock", enabled=True, threshold_percentage=20, notification_channels=ALERT_RULE_DEFAULT_CHANNELS["low_stock"], recipient_keys=["default", "stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="out_of_stock", enabled=True, notification_channels=ALERT_RULE_DEFAULT_CHANNELS["out_of_stock"], recipient_keys=["default", "stock"]),
+            AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="overstock", enabled=True, threshold_percentage=90, notification_channels=ALERT_RULE_DEFAULT_CHANNELS["overstock"], recipient_keys=["stock"]),
         ]
         for rule in default_rules:
             await db.alert_rules.insert_one(rule.model_dump())
@@ -20604,6 +20607,15 @@ ALERT_RULE_DEFAULT_RECIPIENTS: Dict[str, List[str]] = {
     "expense_spike": ["default", "finance"],
     "debt_recovery": ["default", "crm", "finance"],
 }
+ALERT_RULE_DEFAULT_CHANNELS: Dict[str, List[str]] = {
+    "low_stock": ["in_app", "push"],
+    "out_of_stock": ["in_app", "push", "email"],
+    "overstock": ["in_app"],
+    "slow_moving": ["in_app", "email"],
+    "late_delivery": ["in_app", "push", "email"],
+    "expense_spike": ["in_app", "email"],
+    "debt_recovery": ["in_app", "push", "email"],
+}
 SEVERITY_RANK = {"info": 0, "warning": 1, "critical": 2}
 
 
@@ -20627,7 +20639,8 @@ def resolve_alert_rule_types(rule_type: str) -> List[str]:
 def normalize_alert_rule_payload(rule_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     normalized_type = normalize_alert_rule_type(rule_type)
     scope = payload.get("scope") if payload.get("scope") in {"account", "store"} else "account"
-    channels = [channel for channel in (payload.get("notification_channels") or ["in_app"]) if channel in NOTIFICATION_CHANNELS]
+    default_channels = ALERT_RULE_DEFAULT_CHANNELS.get(normalized_type, ["in_app"])
+    channels = [channel for channel in (payload.get("notification_channels") or default_channels) if channel in NOTIFICATION_CHANNELS]
     if "in_app" not in channels:
         channels.insert(0, "in_app")
     recipient_keys = [
@@ -20713,7 +20726,7 @@ async def resolve_alert_dispatch_rule(
             "scope": "store" if store_id else "account",
             "store_id": store_id if store_id else None,
             "enabled": True,
-            "notification_channels": ["in_app", "push"] if severity in {"warning", "critical"} else ["in_app"],
+            "notification_channels": ALERT_RULE_DEFAULT_CHANNELS.get(normalized_type, ["in_app", "push"] if severity in {"warning", "critical"} else ["in_app"]),
             "recipient_keys": ALERT_RULE_DEFAULT_RECIPIENTS.get(normalized_type, ["default"]),
             "recipient_emails": [],
             "minimum_severity": None,
@@ -20792,6 +20805,38 @@ def build_notification_email_html(
     """
 
 
+PRODUCT_NAVIGATION_ALERT_TYPES = {"low_stock", "out_of_stock", "overstock"}
+
+
+def build_alert_navigation_data(alert: Alert, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    payload = dict(data or {})
+    payload["alert_id"] = alert.alert_id
+    payload["alert_type"] = alert.type
+    if alert.store_id:
+        payload["store_id"] = alert.store_id
+    if alert.product_id:
+        payload["screen"] = "products"
+        payload["product_id"] = alert.product_id
+        payload["source"] = payload.get("source") or "alert"
+        if alert.type in PRODUCT_NAVIGATION_ALERT_TYPES:
+            payload["filter"] = alert.type
+    else:
+        payload.setdefault("screen", "alerts")
+    return payload
+
+
+def resolve_alert_channels_for_dispatch(alert: Alert, channels: List[str]) -> List[str]:
+    normalized = [channel for channel in dict.fromkeys(channels or ["in_app"]) if channel in NOTIFICATION_CHANNELS]
+    if (
+        alert.product_id
+        and alert.type in STOCK_LEVEL_ALERT_PRIORITIES
+        and alert.severity in {"warning", "critical"}
+        and normalized == ["in_app"]
+    ):
+        return ["in_app", "push"]
+    return normalized or ["in_app"]
+
+
 async def dispatch_alert_channels(
     owner_id: str,
     account_id: Optional[str],
@@ -20800,7 +20845,8 @@ async def dispatch_alert_channels(
     data: Optional[Dict[str, Any]] = None,
 ):
     rule = await resolve_alert_dispatch_rule(owner_id, account_id, store_id, alert.type, alert.severity)
-    channels = rule.get("notification_channels") or ["in_app"]
+    channels = resolve_alert_channels_for_dispatch(alert, rule.get("notification_channels") or ["in_app"])
+    notification_data = build_alert_navigation_data(alert, data)
 
     if "push" in channels and await user_allows_push_notifications(owner_id, alert.severity):
         await notification_service.notify_user(
@@ -20808,7 +20854,7 @@ async def dispatch_alert_channels(
             owner_id,
             alert.title,
             alert.message,
-            data=data,
+            data=notification_data,
             caller_owner_id=owner_id,
         )
 

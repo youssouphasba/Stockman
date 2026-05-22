@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   alerts as alertsApi,
   alertRules as alertRulesApi,
@@ -101,6 +101,7 @@ export default function AlertsScreen() {
   const { user, isOrgAdmin, hasPermission } = useAuth();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, glassStyle);
+  const router = useRouter();
 
   function getSeverityIcon(severity: string): keyof typeof Ionicons.glyphMap {
     switch (severity) {
@@ -234,6 +235,22 @@ export default function AlertsScreen() {
     } catch {
       // ignore
     }
+  }
+
+  function openAlertTarget(alert: AlertData) {
+    if (alert.product_id) {
+      const params: Record<string, string> = {
+        product_id: alert.product_id,
+        source: 'alert',
+        alert_id: alert.alert_id,
+      };
+      if (['low_stock', 'out_of_stock', 'overstock'].includes(alert.type)) {
+        params.filter = alert.type;
+      }
+      router.push({ pathname: '/(tabs)/products', params } as any);
+      return;
+    }
+    router.push('/(tabs)/alerts' as any);
   }
 
   async function openRulesModal() {
@@ -444,9 +461,11 @@ export default function AlertsScreen() {
         ) : (
           <View>
             {(showAllAlerts ? alertList : alertList.slice(0, 10)).map((alert) => (
-              <View
+              <TouchableOpacity
                 key={alert.alert_id}
                 style={[styles.alertCard, !alert.is_read && styles.alertCardUnread]}
+                onPress={() => openAlertTarget(alert)}
+                activeOpacity={0.84}
               >
                 <View style={styles.alertHeader}>
                   <View style={[styles.severityIcon, { backgroundColor: getSeverityColor(alert.severity) + '20' }]}>
@@ -472,17 +491,17 @@ export default function AlertsScreen() {
 
                 <View style={styles.alertActions}>
                   {!alert.is_read && (
-                    <TouchableOpacity style={styles.alertActionBtn} onPress={() => handleMarkRead(alert.alert_id)}>
+                    <TouchableOpacity style={styles.alertActionBtn} onPress={(event) => { event.stopPropagation(); handleMarkRead(alert.alert_id); }}>
                       <Ionicons name="checkmark" size={16} color={colors.success} />
                       <Text style={[styles.alertActionText, { color: colors.success }]}>{t('alerts.mark_read')}</Text>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity style={styles.alertActionBtn} onPress={() => handleDismiss(alert.alert_id)}>
+                  <TouchableOpacity style={styles.alertActionBtn} onPress={(event) => { event.stopPropagation(); handleDismiss(alert.alert_id); }}>
                     <Ionicons name="close" size={16} color={colors.textMuted} />
                     <Text style={[styles.alertActionText, { color: colors.textMuted }]}>{t('alerts.dismiss')}</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
             {alertList.length > 10 && (
               <TouchableOpacity

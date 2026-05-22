@@ -200,7 +200,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'bed-outline', title: 'help.modules.alerts.f3.t', description: "help.modules.alerts.f3.d" },
       { icon: 'checkmark-done-outline', title: 'help.modules.alerts.f4.t', description: "help.modules.alerts.f4.d" },
       { icon: 'sparkles-outline', title: 'help.modules.alerts.f5.t', description: "help.modules.alerts.f5.d" },
-      { icon: 'notifications-outline', title: 'help.modules.alerts.f6.t', description: "Compteur dans l'en-tete, notifications push et ouverture directe vers l'ecran Alertes quand une notification compatible est touchee." },
+      { icon: 'notifications-outline', title: 'help.modules.alerts.f6.t', description: "Compteur dans l'en-tête, notifications push et ouverture directe vers la fiche du produit concerné quand l'alerte est liée à un produit." },
     ],
   },
   {

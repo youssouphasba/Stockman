@@ -19,7 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
     customers as customersApi,
     promotions as promotionsApi,
@@ -98,6 +98,7 @@ export default function CRMScreen() {
     const { colors, glassStyle } = useTheme();
     const { t, i18n } = useTranslation();
     const router = useRouter();
+    const { customer_id: customerIdParam, tab: customerTabParam } = useLocalSearchParams<{ customer_id?: string; tab?: string }>();
     const insets = useSafeAreaInsets();
     const styles = getStyles(colors, glassStyle);
     const { user, hasPermission, isSuperAdmin } = useAuth();
@@ -171,6 +172,7 @@ export default function CRMScreen() {
     const [paymentType, setPaymentType] = useState<'payment' | 'debt'>('payment');
     const [shouldReturnToDetailAfterPayment, setShouldReturnToDetailAfterPayment] = useState(false);
     const paymentBaselineRef = useRef({ amount: '', notes: '', type: 'payment' as 'payment' | 'debt' });
+    const handledCustomerLinkRef = useRef<string | null>(null);
 
     const loadData = useCallback(async () => {
         try {
@@ -589,6 +591,39 @@ export default function CRMScreen() {
         setMessageCopied(false);
         setShowDetailModal(true);
     }
+
+    useEffect(() => {
+        const customerId = typeof customerIdParam === 'string' ? customerIdParam : undefined;
+        if (!customerId) return;
+        const targetTab = customerTabParam === 'compte' || customerTabParam === 'achats' || customerTabParam === 'contact'
+            ? customerTabParam
+            : 'infos';
+        const linkKey = `${customerId}:${targetTab}`;
+        if (handledCustomerLinkRef.current === linkKey) return;
+
+        const openLinkedCustomer = (customer: Customer) => {
+            handledCustomerLinkRef.current = linkKey;
+            setSearch('');
+            openCustomerDetail(customer);
+            setDetailTab(targetTab);
+        };
+
+        const existing = customerList.find((customer) => customer.customer_id === customerId);
+        if (existing) {
+            openLinkedCustomer(existing);
+            return;
+        }
+
+        customersApi.get(customerId)
+            .then((customer) => {
+                setCustomerList((current) => {
+                    const others = current.filter((item) => item.customer_id !== customer.customer_id);
+                    return [customer, ...others];
+                });
+                openLinkedCustomer(customer);
+            })
+            .catch(() => null);
+    }, [customerIdParam, customerList, customerTabParam]);
 
     async function loadCustomerSales(customerId: string) {
         setSalesLoading(true);

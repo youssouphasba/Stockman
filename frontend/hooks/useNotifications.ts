@@ -44,6 +44,48 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             const data = response.notification.request.content.data as any;
             onChangedRef.current?.();
+            const productId = data?.product_id || data?.productId;
+            if (productId) {
+                const params: Record<string, string> = {
+                    product_id: String(productId),
+                    source: 'notification',
+                };
+                if (data?.filter) params.filter = String(data.filter);
+                if (data?.alert_id) params.alert_id = String(data.alert_id);
+                if (data?.reminder_type) params.reminder_type = String(data.reminder_type);
+                router.push({ pathname: '/(tabs)/products', params } as any);
+                return;
+            }
+            const orderId = data?.order_id || data?.orderId;
+            if (orderId) {
+                const params: Record<string, string> = { order_id: String(orderId), source: 'notification' };
+                if (data?.product_id) params.product_id = String(data.product_id);
+                if (data?.reminder_type) params.reminder_type = String(data.reminder_type);
+                router.push({ pathname: '/(tabs)/orders', params } as any);
+                return;
+            }
+            const customerId = data?.customer_id || data?.customerId;
+            if (customerId) {
+                const params: Record<string, string> = { customer_id: String(customerId), source: 'notification' };
+                if (data?.tab) params.tab = String(data.tab);
+                if (data?.type === 'debt_recovery' || data?.type === 'customer_debt') params.tab = 'compte';
+                router.push({ pathname: '/(tabs)/crm', params } as any);
+                return;
+            }
+            const invoiceId = data?.invoice_id || data?.invoiceId;
+            if (invoiceId) {
+                router.push({ pathname: '/(tabs)/accounting', params: { invoice_id: String(invoiceId), source: 'notification' } } as any);
+                return;
+            }
+            const ticketId = data?.ticket_id || data?.ticketId;
+            if (ticketId) {
+                router.push({ pathname: '/(tabs)/settings', params: { ticket_id: String(ticketId), source: 'notification' } } as any);
+                return;
+            }
+            if (data?.screen === 'subscription' || data?.type === 'billing' || data?.type === 'subscription') {
+                router.push({ pathname: '/(tabs)/subscription', params: { source: 'notification', reason: String(data?.reason || data?.type || '') } } as any);
+                return;
+            }
             if (data?.url) {
                 Linking.openURL(String(data.url)).catch(() => null);
                 return;
@@ -54,11 +96,10 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
             }
             if (data?.screen === 'products') {
                 const filter = data?.filter;
-                if (filter) {
-                    router.push(`/(tabs)/products?filter=${filter}` as any);
-                } else {
-                    router.push('/(tabs)/products' as any);
-                }
+                router.push(filter
+                    ? { pathname: '/(tabs)/products', params: { filter: String(filter), source: 'notification' } } as any
+                    : '/(tabs)/products' as any
+                );
             }
         });
 

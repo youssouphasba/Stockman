@@ -32,7 +32,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "pie-chart-outline",
                 title: "Santé du Stock",
-                description: "Badges colorés : Rouge (rupture), Orange (stock bas), Bleu (surstock), Vert (normal). Touchez 'Tout voir' pour la liste complète."
+                description: "Les statuts de stock apparaissent juste après les cartes principales. Touchez une carte pour ouvrir Produits avec le bon filtre : rupture, stock bas ou surstock."
             },
             {
                 icon: "alert-circle-outline",
@@ -397,7 +397,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "notifications",
                 title: "Notifications Push",
-                description: "Les alertes non lues remontent maintenant sur l'icône d'alertes dans l'en-tête. Les notifications push peuvent aussi ouvrir directement l'écran Alertes si elles sont autorisées sur l'appareil."
+                description: "Les alertes non lues remontent sur l'icône d'alertes. Les notifications liées à un produit ouvrent directement la fiche du produit concerné avec le bon contexte."
             },
             {
                 icon: "checkmark-done",

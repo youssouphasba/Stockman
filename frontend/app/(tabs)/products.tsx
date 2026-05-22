@@ -94,6 +94,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ProductStockFilter = 'all' | 'in_stock' | 'out_of_stock' | 'low_stock' | 'overstock' | 'deadstock';
 type ProductSortMode = 'stock_priority' | 'quantity_desc' | 'name_asc' | 'recently_added';
+const PRODUCT_STOCK_FILTER_VALUES: ProductStockFilter[] = ['all', 'in_stock', 'out_of_stock', 'low_stock', 'overstock', 'deadstock'];
+
+function normalizeProductFilterParam(value: unknown): ProductStockFilter | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== 'string') return null;
+  return PRODUCT_STOCK_FILTER_VALUES.includes(raw as ProductStockFilter) ? raw as ProductStockFilter : null;
+}
 
 export default function ProductsScreen() {
   const MOBILE_PRODUCTS_FOCUS_TTL_MS = 60_000;
@@ -110,6 +117,8 @@ export default function ProductsScreen() {
   const {
     filter: filterParam,
     product_id: productIdParam,
+    source: sourceParam,
+    alert_id: alertIdParam,
     reminder_type: reminderTypeParam,
     prefill_source: prefillSourceParam,
     prefill_token: prefillTokenParam,
@@ -124,6 +133,8 @@ export default function ProductsScreen() {
   } = useLocalSearchParams<{
     filter?: string;
     product_id?: string;
+    source?: string;
+    alert_id?: string;
     reminder_type?: string;
     prefill_source?: string;
     prefill_token?: string;
@@ -145,6 +156,7 @@ export default function ProductsScreen() {
   const { setDrawerContent } = useDrawer();
 
   const [productList, setProductList] = useState<Product[]>([]);
+  const productListRef = useRef<FlatList<Product> | null>(null);
   const [categoryList, setCategoryList] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -160,6 +172,7 @@ export default function ProductsScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
+  const [focusedProductId, setFocusedProductId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<ProductStockFilter>('all');
   const [productSortMode, setProductSortMode] = useState<ProductSortMode>('stock_priority');
   const [deadstockIds, setDeadstockIds] = useState<Set<string>>(new Set());
@@ -201,24 +214,13 @@ export default function ProductsScreen() {
 
   // Apply filter from notification deep-link
   useEffect(() => {
-    if (filterParam === 'low_stock' || filterParam === 'out_of_stock' || filterParam === 'overstock') {
-      setFilterType(filterParam);
+    const nextFilter = normalizeProductFilterParam(filterParam);
+    if (nextFilter) {
+      setFilterType(nextFilter);
     }
   }, [filterParam]);
 
   const serverProductStatus = filterType === 'deadstock' || filterType === 'all' ? undefined : filterType;
-
-  useEffect(() => {
-    if (!productIdParam || productList.length === 0) return;
-    const reminderKey = `${String(productIdParam)}:${String(reminderTypeParam || '')}`;
-    if (handledReminderProductRef.current === reminderKey) return;
-
-    const targetProduct = productList.find((product) => product.product_id === String(productIdParam));
-    if (!targetProduct) return;
-
-    handledReminderProductRef.current = reminderKey;
-    openHistoryModal(targetProduct);
-  }, [productIdParam, reminderTypeParam, productList]);
 
   useEffect(() => {
     const source = typeof prefillSourceParam === 'string' ? prefillSourceParam : undefined;
@@ -442,6 +444,59 @@ export default function ProductsScreen() {
     });
     return Array.from(byId.values());
   }, []);
+
+  useEffect(() => {
+    const productId = Array.isArray(productIdParam) ? productIdParam[0] : productIdParam;
+    if (!productId) return;
+
+    const nextFilter = normalizeProductFilterParam(filterParam);
+    const reminderType = Array.isArray(reminderTypeParam) ? reminderTypeParam[0] : reminderTypeParam;
+    const source = Array.isArray(sourceParam) ? sourceParam[0] : sourceParam;
+    const alertId = Array.isArray(alertIdParam) ? alertIdParam[0] : alertIdParam;
+    const navigationKey = [productId, nextFilter || '', reminderType || '', source || '', alertId || ''].join(':');
+    if (handledReminderProductRef.current === navigationKey) return;
+
+    const focusProduct = (product: Product) => {
+      handledReminderProductRef.current = navigationKey;
+      setSearch('');
+      setServerSearchResults(null);
+      if (nextFilter) {
+        setFilterType(nextFilter);
+      } else if (source === 'notification' || source === 'alert' || source === 'dashboard_stock_status') {
+        setFilterType('all');
+      }
+      setExpandedProductId(product.product_id);
+      setFocusedProductId(product.product_id);
+      if (reminderType) {
+        openHistoryModal(product);
+      }
+    };
+
+    const existing = productList.find((product) => product.product_id === productId);
+    if (existing) {
+      focusProduct(existing);
+      return;
+    }
+
+    if (!isConnected) return;
+
+    productsApi.get(productId)
+      .then((product) => {
+        setProductList((current) => mergeUniqueProducts(current, [product]));
+        setProductsTotal((current) => Math.max(current, productList.length + 1));
+        focusProduct(product);
+      })
+      .catch(() => null);
+  }, [
+    alertIdParam,
+    filterParam,
+    isConnected,
+    mergeUniqueProducts,
+    productIdParam,
+    productList,
+    reminderTypeParam,
+    sourceParam,
+  ]);
 
   // Add/Edit product form
   const [formName, setFormName] = useState('');
@@ -1318,6 +1373,16 @@ export default function ProductsScreen() {
     if (!Array.isArray(sourceList)) return [];
     return sourceList.filter(matchesActiveProductFilters);
   }, [productList, serverSearchResults, debouncedSearch, matchesActiveProductFilters]);
+
+  useEffect(() => {
+    if (!focusedProductId || filtered.length === 0) return;
+    const index = filtered.findIndex((product) => product.product_id === focusedProductId);
+    if (index < 0) return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      productListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.12 });
+    });
+    return () => task.cancel();
+  }, [filtered, focusedProductId]);
 
   const selectedProducts = useMemo(
     () => filtered.filter((product) => selectedProductIds.has(product.product_id)),
@@ -3776,6 +3841,7 @@ export default function ProductsScreen() {
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
       <FlatList
+        ref={productListRef}
         style={styles.container}
         data={filtered}
         keyExtractor={(item) => item.product_id}
@@ -3789,6 +3855,10 @@ export default function ProductsScreen() {
         updateCellsBatchingPeriod={50}
         removeClippedSubviews={false}
         keyboardShouldPersistTaps="handled"
+        onScrollToIndexFailed={(info) => {
+          const offset = Math.max(0, info.averageItemLength * info.index);
+          setTimeout(() => productListRef.current?.scrollToOffset({ offset, animated: true }), 250);
+        }}
         extraData={{
           isSelectionMode,
           selectedProductIds,

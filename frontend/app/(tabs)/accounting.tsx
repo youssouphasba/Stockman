@@ -18,7 +18,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -192,6 +192,7 @@ export default function AccountingScreen() {
     const { colors, glassStyle, isDark } = useTheme();
     const { t, i18n } = useTranslation();
     const router = useRouter();
+    const { invoice_id: invoiceIdParam } = useLocalSearchParams<{ invoice_id?: string }>();
     const insets = useSafeAreaInsets();
     const { width: screenWidth } = useWindowDimensions();
     const styles = getStyles(colors, glassStyle, screenWidth);
@@ -203,6 +204,7 @@ export default function AccountingScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const lastLoadedAtRef = useRef(0);
+    const handledInvoiceLinkRef = useRef<string | null>(null);
     const FOCUS_TTL_MS = 60_000;
 
     const [selectedPeriod, setSelectedPeriod] = useState<number | 'custom'>(30);
@@ -412,6 +414,13 @@ export default function AccountingScreen() {
             Alert.alert(t('common.error'), t('accounting.invoice_open_error', { defaultValue: "Impossible d'ouvrir la facture." }));
         }
     };
+
+    React.useEffect(() => {
+        const invoiceId = typeof invoiceIdParam === 'string' ? invoiceIdParam : undefined;
+        if (!invoiceId || handledInvoiceLinkRef.current === invoiceId) return;
+        handledInvoiceLinkRef.current = invoiceId;
+        handleOpenStoredInvoice(invoiceId, invoiceHistory.find((invoice) => invoice.invoice_id === invoiceId));
+    }, [invoiceHistory, invoiceIdParam]);
 
     const handleCreateInvoiceFromSale = async (saleId: string) => {
         setInvoiceBusyId(saleId);

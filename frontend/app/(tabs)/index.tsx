@@ -110,12 +110,20 @@ function KpiCard({ icon, label, value, color, isCurrency = false, info, user, co
   );
 }
 
-function StatusBadge({ label, count, color, styles }: { label: string; count: number; color: string; styles: any }) {
+function StatusBadge({ label, count, color, styles, onPress }: { label: string; count: number; color: string; styles: any; onPress: () => void }) {
   return (
-    <View style={[styles.statusBadge, { borderColor: color + '40' }]}>
+    <TouchableOpacity
+      style={[styles.statusBadge, { borderColor: color + '40' }]}
+      onPress={onPress}
+      activeOpacity={0.82}
+      accessibilityRole="button"
+    >
       <Text style={[styles.statusCount, { color }]}>{count}</Text>
-      <Text style={styles.statusLabel}>{label}</Text>
-    </View>
+      <View style={styles.statusLabelRow}>
+        <Text style={styles.statusLabel} numberOfLines={2}>{label}</Text>
+        <Ionicons name="chevron-forward" size={12} color={color} />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -581,6 +589,122 @@ export default function DashboardScreen() {
     [router]
   );
 
+  const navigateToStockFilter = useCallback(
+    (filter: 'out_of_stock' | 'low_stock' | 'overstock', productId?: string) => {
+      router.push({
+        pathname: '/(tabs)/products',
+        params: {
+          filter,
+          ...(productId ? { product_id: productId } : {}),
+          source: 'dashboard_stock_status',
+        },
+      } as any);
+    },
+    [router]
+  );
+
+  const navigateToAlertTarget = useCallback(
+    (alert: any) => {
+      if (alert?.product_id) {
+        const params: Record<string, string> = {
+          product_id: String(alert.product_id),
+          source: 'dashboard_alert',
+          alert_id: String(alert.alert_id || ''),
+        };
+        if (['low_stock', 'out_of_stock', 'overstock'].includes(alert.type)) {
+          params.filter = String(alert.type);
+        }
+        router.push({ pathname: '/(tabs)/products', params } as any);
+        return;
+      }
+      router.push('/(tabs)/alerts' as any);
+    },
+    [router]
+  );
+
+  const renderStockStatusSection = () => {
+    if (userSettings?.dashboard_layout && !userSettings.dashboard_layout.show_stock_status) return null;
+
+    return (
+      <View style={styles.statusSection} onLayout={e => { sectionOffsets.current.stockStatus = e.nativeEvent.layout.y; }}>
+        <Text style={styles.sectionTitle}>{t('dashboard.stock_status')}</Text>
+        <View style={styles.statusRow}>
+          <StatusBadge
+            label={t('dashboard.out_of_stock')}
+            count={data?.out_of_stock_count ?? 0}
+            color={colors.danger}
+            styles={styles}
+            onPress={() => navigateToStockFilter('out_of_stock')}
+          />
+          <StatusBadge
+            label={t('dashboard.low_stock')}
+            count={data?.low_stock_count ?? 0}
+            color={colors.warning}
+            styles={styles}
+            onPress={() => navigateToStockFilter('low_stock')}
+          />
+          <StatusBadge
+            label={t('dashboard.overstock')}
+            count={data?.overstock_count ?? 0}
+            color={colors.info}
+            styles={styles}
+            onPress={() => navigateToStockFilter('overstock')}
+          />
+        </View>
+        {data?.critical_products && data.critical_products.length > 0 && (
+          <View style={{ marginTop: Spacing.md }}>
+            {(showAllCritical ? data.critical_products : data.critical_products.slice(0, 5)).map((product) => {
+              const targetFilter = product.quantity === 0 ? 'out_of_stock' : 'low_stock';
+              return (
+                <TouchableOpacity
+                  key={product.product_id}
+                  style={styles.criticalItem}
+                  onPress={() => navigateToStockFilter(targetFilter, product.product_id)}
+                  activeOpacity={0.82}
+                  accessibilityRole="button"
+                >
+                  <View style={styles.criticalInfo}>
+                    <Text style={styles.criticalName}>{product.name}</Text>
+                    <Text style={styles.criticalQty}>
+                      {product.quantity} {product.unit}(s)
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.criticalBadge,
+                      { backgroundColor: product.quantity === 0 ? colors.danger + '20' : colors.warning + '20' },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.criticalBadgeText,
+                        { color: product.quantity === 0 ? colors.danger : colors.warning },
+                      ]}
+                    >
+                      {product.quantity === 0 ? t('dashboard.out_of_stock') : t('dashboard.low_stock')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+            {data.critical_products.length > 5 && (
+              <TouchableOpacity
+                style={styles.seeMoreBtn}
+                onPress={() => setShowAllCritical(!showAllCritical)}
+              >
+                <Text style={styles.seeMoreText}>
+                  {showAllCritical ? t('dashboard.see_less') : t('dashboard.see_more_count', { count: data.critical_products.length - 5 })}
+                </Text>
+                <Ionicons name={showAllCritical ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   async function updateDashboardLayout(layout: NonNullable<UserSettings['dashboard_layout']>) {
     if (!userSettings) return;
     const newSettings = { ...userSettings, dashboard_layout: layout };
@@ -1030,6 +1154,8 @@ export default function DashboardScreen() {
 
         {renderKPIs()}
 
+        {renderStockStatusSection()}
+
         {/* Vague 1: Health Score + Monthly Prediction */}
         {showDashboardAiSections && (healthScore || prediction) && (
           <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
@@ -1324,59 +1450,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Statut des stocks */}
-        {(!userSettings?.dashboard_layout || userSettings.dashboard_layout.show_stock_status) && (
-          <View style={styles.statusSection} onLayout={e => { sectionOffsets.current.stockStatus = e.nativeEvent.layout.y; }}>
-            <Text style={styles.sectionTitle}>{t('dashboard.stock_status')}</Text>
-            <View style={styles.statusRow}>
-              <StatusBadge label={t('dashboard.out_of_stock')} count={data?.out_of_stock_count ?? 0} color={colors.danger} styles={styles} />
-              <StatusBadge label={t('dashboard.low_stock')} count={data?.low_stock_count ?? 0} color={colors.warning} styles={styles} />
-              <StatusBadge label={t('dashboard.overstock')} count={data?.overstock_count ?? 0} color={colors.info} styles={styles} />
-            </View>
-            {data?.critical_products && data.critical_products.length > 0 && (
-              <View style={{ marginTop: Spacing.md }}>
-                {(showAllCritical ? data.critical_products : data.critical_products.slice(0, 5)).map((product) => (
-                  <View key={product.product_id} style={styles.criticalItem}>
-                    <View style={styles.criticalInfo}>
-                      <Text style={styles.criticalName}>{product.name}</Text>
-                      <Text style={styles.criticalQty}>
-                        {product.quantity} {product.unit}(s)
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.criticalBadge,
-                        { backgroundColor: product.quantity === 0 ? colors.danger + '20' : colors.warning + '20' },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.criticalBadgeText,
-                          { color: product.quantity === 0 ? colors.danger : colors.warning },
-                        ]}
-                      >
-                        {product.quantity === 0 ? t('dashboard.out_of_stock') : t('dashboard.low_stock')}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-
-                {data.critical_products.length > 5 && (
-                  <TouchableOpacity
-                    style={styles.seeMoreBtn}
-                    onPress={() => setShowAllCritical(!showAllCritical)}
-                  >
-                    <Text style={styles.seeMoreText}>
-                      {showAllCritical ? t('dashboard.see_less') : t('dashboard.see_more_count', { count: data.critical_products.length - 5 })}
-                    </Text>
-                    <Ionicons name={showAllCritical ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        )}
-
         {/* AI Daily Summary */}
         {showDashboardAiSections && showDeferredEnterpriseCards && <AiDailySummary />}
 
@@ -1398,7 +1471,13 @@ export default function DashboardScreen() {
               .filter((alert) => Boolean(alert && (alert.title || alert.message)))
               .slice(0, 3)
               .map((alert) => (
-              <View key={alert.alert_id} style={styles.alertItem}>
+              <TouchableOpacity
+                key={alert.alert_id}
+                style={styles.alertItem}
+                onPress={() => navigateToAlertTarget(alert)}
+                activeOpacity={0.84}
+                accessibilityRole="button"
+              >
                 <Ionicons
                   name={
                     alert.severity === 'critical'
@@ -1420,7 +1499,7 @@ export default function DashboardScreen() {
                   <Text style={styles.alertTitle}>{alert.title ? t(alert.title) : ''}</Text>
                   <Text style={styles.alertMessage}>{alert.message || ''}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -2197,7 +2276,7 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => {
   reportMetricCard: { padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: colors.glass },
   reportMetricValue: { fontSize: 22, fontWeight: '800' },
   reportMetricLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '600', marginTop: 2 },
-  statusSection: { backgroundColor: colors.bgMid, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.xl },
+  statusSection: { backgroundColor: colors.bgMid, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.md },
   statusRow: { flexDirection: 'row', gap: Spacing.sm },
   abcContainer: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.sm, marginBottom: Spacing.sm },
   abcCard: { ...glassStyle, flex: 1, padding: Spacing.sm, backgroundColor: colors.glass },
@@ -2224,7 +2303,8 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => {
   abcClassTitle: { fontSize: FontSize.md, fontWeight: '700', color: colors.text, marginBottom: Spacing.xs },
   statusBadge: { flex: 1, alignItems: 'center', padding: Spacing.sm, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glass },
   statusCount: { fontSize: FontSize.lg, fontWeight: '700', color: colors.text },
-  statusLabel: { fontSize: FontSize.xs, color: colors.textSecondary, marginTop: 4 },
+  statusLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, marginTop: 4 },
+  statusLabel: { flexShrink: 1, fontSize: FontSize.xs, color: colors.textSecondary, textAlign: 'center' },
   section: { ...glassStyle, padding: Spacing.md, marginBottom: Spacing.md },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
   criticalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.divider },
