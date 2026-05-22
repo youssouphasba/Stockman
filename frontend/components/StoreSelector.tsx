@@ -82,8 +82,8 @@ export default function StoreSelector({ compact = false }: StoreSelectorProps) {
                 style={styles.selectorBtn}
                 onPress={() => setShowModal(true)}
             >
-                <Ionicons name="storefront-outline" size={compact ? 19 : 20} color={colors.text} />
-                {!compact && <Text style={styles.selectorText} numberOfLines={1} ellipsizeMode="tail">{activeStore.name}</Text>}
+                <Ionicons name="storefront-outline" size={compact ? 18 : 20} color={colors.text} />
+                <Text style={styles.selectorText} numberOfLines={1} ellipsizeMode="tail">{activeStore.name}</Text>
                 <Ionicons name="chevron-down" size={compact ? 14 : 16} color={colors.textMuted} />
             </TouchableOpacity>
 
@@ -175,14 +175,14 @@ const createStyles = (colors: any, glassStyle: any, compact: boolean) => StyleSh
         borderRadius: BorderRadius.full,
         borderWidth: 1,
         borderColor: colors.glassBorder,
-        maxWidth: compact ? 58 : 200,
-        minWidth: compact ? 50 : 0,
+        maxWidth: compact ? 132 : 200,
+        minWidth: compact ? 92 : 0,
     },
     selectorText: {
         color: colors.text,
-        fontSize: FontSize.sm,
+        fontSize: compact ? 12 : FontSize.sm,
         fontWeight: '600',
-        marginHorizontal: Spacing.xs,
+        marginHorizontal: compact ? 3 : Spacing.xs,
         flexShrink: 1,
     },
     modalOverlay: {
