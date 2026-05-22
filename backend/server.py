@@ -4504,6 +4504,11 @@ async def require_superadmin(user: User = Depends(require_auth)) -> User:
         raise HTTPException(status_code=403, detail=i18n.t("errors.forbidden", user.language))
     return user
 
+async def require_admin_or_superadmin(user: User = Depends(require_auth)) -> User:
+    if user.role not in {"admin", "superadmin"}:
+        raise HTTPException(status_code=403, detail=i18n.t("errors.forbidden", user.language))
+    return user
+
 
 def _iso_or_none(value: Any) -> Optional[str]:
     if isinstance(value, datetime):
@@ -6986,7 +6991,7 @@ async def admin_start_remote_assistance(
     ticket_id: str,
     request: Request,
     response: Response,
-    admin: User = Depends(require_superadmin),
+    admin: User = Depends(require_admin_or_superadmin),
 ):
     ticket = await db.support_tickets.find_one({"ticket_id": ticket_id}, {"_id": 0})
     if not ticket:

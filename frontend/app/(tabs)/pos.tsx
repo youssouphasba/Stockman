@@ -29,6 +29,7 @@ import {
     sales as salesApi,
     customers as customersApi,
     stores as storesApi,
+    ApiError,
     ai as aiApi,
     tables,
     kitchen,
@@ -89,7 +90,7 @@ export default function POSScreen() {
     const { colors, glassStyle } = useTheme();
     const { t, i18n } = useTranslation();
     const router = useRouter();
-    const { user, hasPermission } = useAuth();
+    const { user, hasPermission, restoreSession } = useAuth();
     const insets = useSafeAreaInsets();
     const { setDrawerContent } = useDrawer();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -99,6 +100,7 @@ export default function POSScreen() {
     const canWrite = hasPermission('pos', 'write');
     const [productList, setProductList] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [productLoadError, setProductLoadError] = useState<string | null>(null);
     const lastLoadedAtRef = useRef(0);
     const FOCUS_TTL_MS = 60_000;
     const [search, setSearch] = useState('');
@@ -243,8 +245,22 @@ export default function POSScreen() {
             const features = await userFeatures.get().catch(() => null);
             const isRestaurantAccount = Boolean(features && isRestaurantBusiness(features));
 
+            const loadProducts = async () => {
+                try {
+                    return await productsApi.list(undefined, 0, 500, isRestaurantAccount ? true : undefined);
+                } catch (error) {
+                    if (error instanceof ApiError && error.status === 401) {
+                        const restored = await restoreSession(true);
+                        if (restored) {
+                            return productsApi.list(undefined, 0, 500, isRestaurantAccount ? true : undefined);
+                        }
+                    }
+                    throw error;
+                }
+            };
+
             const [prodsRes, custsRes, storesRes] = await Promise.allSettled([
-                productsApi.list(undefined, 0, 500, isRestaurantAccount ? true : undefined),
+                loadProducts(),
                 customersApi.list(),
                 storesApi.list(),
             ]);
@@ -252,6 +268,10 @@ export default function POSScreen() {
                 const prods = prodsRes.value.items ?? prodsRes.value as any;
                 const mergedProducts = await mergePosProductsOfflineState(prods);
                 setProductList(mergedProducts.filter((p: any) => p?.is_active !== false));
+                setProductLoadError(null);
+            } else {
+                setProductList([]);
+                setProductLoadError(prodsRes.reason?.message || t('pos.products_load_error', 'Impossible de charger les produits de cette boutique.'));
             }
             if (custsRes.status === 'fulfilled') {
                 const custs = custsRes.value.items ?? custsRes.value as any;
@@ -290,7 +310,7 @@ export default function POSScreen() {
             setLoading(false);
             lastLoadedAtRef.current = Date.now();
         }
-    }, [user?.active_store_id, user?.plan]);
+    }, [restoreSession, t, user?.active_store_id, user?.plan]);
 
     useEffect(() => {
         const nextStoreId = user?.active_store_id;
@@ -1451,7 +1471,22 @@ export default function POSScreen() {
                             </View>
 
                             <ScrollView contentContainerStyle={styles.productGrid}>
-                                {filteredProducts.map(product => (
+                                {productLoadError ? (
+                                    <View style={styles.posProductEmptyState}>
+                                        <Ionicons name="warning-outline" size={28} color={colors.warning || colors.danger} />
+                                        <Text style={styles.posProductEmptyTitle}>{t('common.error', 'Erreur')}</Text>
+                                        <Text style={styles.posProductEmptyText}>{productLoadError}</Text>
+                                        <TouchableOpacity style={styles.posProductRetryButton} onPress={loadData}>
+                                            <Text style={styles.posProductRetryText}>{t('common.retry', 'Réessayer')}</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : filteredProducts.length === 0 ? (
+                                    <View style={styles.posProductEmptyState}>
+                                        <Ionicons name="cube-outline" size={28} color={colors.textMuted} />
+                                        <Text style={styles.posProductEmptyTitle}>{t('pos.no_products_title', 'Aucun produit')}</Text>
+                                        <Text style={styles.posProductEmptyText}>{t('pos.no_products_for_store', 'Aucun produit actif n’est disponible dans cette boutique.')}</Text>
+                                    </View>
+                                ) : filteredProducts.map(product => (
                                     <TouchableOpacity
                                         key={product.product_id}
                                         style={styles.productCard}
@@ -2333,6 +2368,38 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         color: colors.textMuted,
         fontSize: 10,
         marginTop: 4,
+    },
+    posProductEmptyState: {
+        width: '100%',
+        minHeight: 180,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: Spacing.lg,
+        gap: Spacing.sm,
+    },
+    posProductEmptyTitle: {
+        color: colors.text,
+        fontSize: FontSize.md,
+        fontWeight: '800',
+        textAlign: 'center',
+    },
+    posProductEmptyText: {
+        color: colors.textSecondary,
+        fontSize: FontSize.sm,
+        lineHeight: 20,
+        textAlign: 'center',
+    },
+    posProductRetryButton: {
+        marginTop: Spacing.sm,
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.md,
+        backgroundColor: colors.primary,
+    },
+    posProductRetryText: {
+        color: '#fff',
+        fontSize: FontSize.sm,
+        fontWeight: '800',
     },
 
     cartHeader: {

@@ -518,7 +518,7 @@ export default function Suppliers() {
                 'Boutiques',
                 'Delai moyen (jours)',
                 'Taux a l heure (%)',
-                'Taux livraison complete (%)',
+                'Taux de livraison complète (%)',
                 'Taux livraison partielle (%)',
                 'Taux annulation (%)',
                 'Variance prix (%)',
@@ -989,8 +989,8 @@ export default function Suppliers() {
                 notes: [
                     current.notes.trim(),
                     `Facture importee : ${file.name}`,
-                    result.supplier_name ? `Fournisseur detecte : ${result.supplier_name}` : '',
-                    result.date ? `Date detectee : ${result.date}` : '',
+                    result.supplier_name ? `Fournisseur détecté : ${result.supplier_name}` : '',
+                    result.date ? `Date détectée : ${result.date}` : '',
                 ].filter(Boolean).join('\n'),
             }));
             setSuccess('Facture importée. Vérifiez les champs avant de valider.');
@@ -1438,7 +1438,7 @@ export default function Suppliers() {
             .map((suggestion: any, index: number) => ({
                 key: `critical-${suggestion.product_id || index}`,
                 label: suggestion.product_name,
-                value: `${suggestion.store_name} ? ${suggestion.supplier_name}`,
+                value: `${suggestion.store_name} · ${suggestion.supplier_name}`,
                 tone: 'rose',
                 action: 'Préparer une commande',
             })),
@@ -1448,7 +1448,7 @@ export default function Suppliers() {
             .map((supplier: any) => ({
                 key: supplier.supplier_key,
                 label: supplier.supplier_name,
-                value: `${supplier.open_orders || 0} ouverte(s) ? ${Math.round(supplier.cancel_rate || 0)}% annulation`,
+                value: `${supplier.open_orders || 0} ouverte(s) · ${Math.round(supplier.cancel_rate || 0)}% annulation`,
                 tone: 'blue',
                 action: 'Voir la fiche',
             })),
@@ -2180,7 +2180,7 @@ export default function Suppliers() {
                                     <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Procurement enterprise</p>
                                     <h3 className="text-2xl font-black text-white mt-2">Pilotage achats multi-boutiques</h3>
                                     <p className="text-sm text-slate-400 mt-2">
-                                        Consolidez les besoins, comparez les fournisseurs et detectez les opportunites d'achat groupe sans bloquer les responsables de boutique.
+                                        Consolidez les besoins, comparez les fournisseurs et détectez les opportunités d'achat groupé sans bloquer les responsables de boutique.
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -2491,7 +2491,7 @@ export default function Suppliers() {
                                                             <p className="text-emerald-400 font-bold mt-1">{Math.round(supplier.on_time_rate || 0)}%</p>
                                                         </div>
                                                         <div className="bg-white/5 rounded-xl p-3">
-                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Livraison complete</p>
+                                                            <p className="text-slate-500 uppercase font-black text-[10px]">Livraison complète</p>
                                                             <p className="text-white font-bold mt-1">{Math.round(supplier.full_delivery_rate || 0)}%</p>
                                                         </div>
                                                         <div className="bg-white/5 rounded-xl p-3">
@@ -2529,7 +2529,7 @@ export default function Suppliers() {
                                                 <p className="text-sm text-slate-400 mt-1">Recommandations calcules sur la selection en cours.</p>
                                             </div>
                                             {procurementOverview.recommendations.length === 0 ? (
-                                                <p className="text-sm text-slate-400">Aucun signal critique detecte. Les boutiques peuvent continuer leurs achats normalement.</p>
+                                                <p className="text-sm text-slate-400">Aucun signal critique détecté. Les boutiques peuvent continuer leurs achats normalement.</p>
                                             ) : (
                                                 <div className="space-y-3">
                                                     {procurementOverview.recommendations.map((recommendation: string, index: number) => (
@@ -2629,7 +2629,7 @@ export default function Suppliers() {
                                             {procurementOverview.group_opportunities.length === 0 ? (
                                                 <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
                                                     <Truck size={32} className="mx-auto text-slate-700 mb-3" />
-                                                    <p className="text-sm text-slate-500 font-bold uppercase">Aucune opportunite groupee detectee</p>
+                                                    <p className="text-sm text-slate-500 font-bold uppercase">Aucune opportunité groupée détectée</p>
                                                 </div>
                                             ) : procurementOverview.group_opportunities.map((opportunity: any) => (
                                                 <div key={`${opportunity.supplier_id || 'marketplace'}-${opportunity.supplier_name}`} className="bg-slate-950/30 border border-white/5 rounded-2xl p-4 space-y-3">
@@ -3761,7 +3761,7 @@ export default function Suppliers() {
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">A l'heure</p>
                                         <p className="text-xl font-black text-emerald-400">{Math.round(supplierStats.on_time_rate || 0)}%</p>
-                                        <p className="text-xs text-slate-400 mt-2">Livraison complete: {Math.round(supplierStats.full_delivery_rate || 0)}%</p>
+                                        <p className="text-xs text-slate-400 mt-2">Livraison complète : {Math.round(supplierStats.full_delivery_rate || 0)}%</p>
                                     </div>
                                     <div className="p-5 bg-white/5 border border-white/5 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase">Livraison partielle</p>
@@ -3778,7 +3778,7 @@ export default function Suppliers() {
                                     <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
                                         <div>
                                             <p className="text-xs font-black uppercase tracking-widest text-slate-500">Incidents recents</p>
-                                            <p className="text-sm text-slate-400 mt-1">Retards, annulations ou livraisons partielles detectes sur ce fournisseur.</p>
+                                            <p className="text-sm text-slate-400 mt-1">Retards, annulations ou livraisons partielles détectés sur ce fournisseur.</p>
                                         </div>
                                         {supplierStats.recent_incidents.length ? (
                                             <div className="flex flex-wrap gap-2">
@@ -4109,7 +4109,7 @@ export default function Suppliers() {
                                                     <p className="text-xs font-black uppercase tracking-widest text-primary">Facture importée</p>
                                                     <p className="text-sm text-white font-bold mt-1">{importedInvoicePreview.fileName}</p>
                                                     <p className="text-xs text-slate-400 mt-1">
-                                                        {importedInvoicePreview.invoice_number ? `No ${importedInvoicePreview.invoice_number}` : 'Numero non detecte'}
+                                                        {importedInvoicePreview.invoice_number ? `N° ${importedInvoicePreview.invoice_number}` : 'Numéro non détecté'}
                                                         {importedInvoicePreview.date ? ` - ${importedInvoicePreview.date}` : ''}
                                                         {importedInvoicePreview.supplier_name ? ` - ${importedInvoicePreview.supplier_name}` : ''}
                                                     </p>
@@ -4189,7 +4189,7 @@ export default function Suppliers() {
                                                 <option value="">Aucune</option>
                                                 {supplierOrderHistory.map((order: any) => (
                                                     <option key={order.order_id} value={order.order_id}>
-                                                        {`#${order.order_id.substring(0, 8)} ? ${new Date(order.created_at).toLocaleDateString()}`}
+                                                        {`#${order.order_id.substring(0, 8)} · ${new Date(order.created_at).toLocaleDateString()}`}
                                                     </option>
                                                 ))}
                                             </select>

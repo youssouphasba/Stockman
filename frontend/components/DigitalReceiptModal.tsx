@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sale, Store } from '../services/api';
+import { API_URL, Sale, Store } from '../services/api';
 import { generateSalePdf } from '../utils/pdfReports';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -26,8 +26,9 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
     if (!sale) return null;
 
     const isOfflineReceipt = Boolean((sale as any).is_offline || (sale as any).offline_pending || !sale.public_receipt_token);
-    const receiptUrl = sale.public_receipt_token
-        ? `${Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8000'}/public/receipts/t/${sale.public_receipt_token}?download=1`
+    const receiptBaseUrl = String(Constants.expoConfig?.extra?.apiUrl || API_URL || '').replace(/\/+$/, '');
+    const receiptUrl = sale.public_receipt_token && receiptBaseUrl
+        ? `${receiptBaseUrl}/public/receipts/t/${sale.public_receipt_token}?download=1`
         : '';
 
     const handleSharePdf = async () => {

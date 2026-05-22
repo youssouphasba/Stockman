@@ -478,7 +478,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
       await hydrateAndPersistUser(updatedUser);
     } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        const restored = await restoreSession(true);
+        if (restored) {
+          const updatedUser = await storesApi.setActive(storeId);
+          await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
+          await hydrateAndPersistUser(updatedUser);
+          return;
+        }
+      }
       console.error('Failed to switch store', e);
+      throw e;
     }
   }
 
