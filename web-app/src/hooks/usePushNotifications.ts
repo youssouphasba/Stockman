@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { messaging, getToken, onMessage } from '../services/firebase';
+import { getMessagingInstance, getToken, onMessage } from '../services/firebase';
 
 export function usePushNotifications() {
     const [token, setToken] = useState<string | null>(null);
@@ -21,6 +21,7 @@ export function usePushNotifications() {
             const perm = await Notification.requestPermission();
             setPermission(perm);
 
+            const messaging = await getMessagingInstance();
             if (perm === 'granted' && messaging) {
                 const currentToken = await getToken(messaging);
 
@@ -40,13 +41,21 @@ export function usePushNotifications() {
     };
 
     const listenToMessages = (callback: (payload: any) => void) => {
-        if (messaging) {
-            return onMessage(messaging, (payload) => {
+        let unsubscribe: (() => void) | null = null;
+        let cancelled = false;
+
+        void getMessagingInstance().then((messaging) => {
+            if (cancelled || !messaging) return;
+            unsubscribe = onMessage(messaging, (payload) => {
                 console.log('Message reçu on foreground: ', payload);
                 callback(payload);
             });
-        }
-        return () => {};
+        });
+
+        return () => {
+            cancelled = true;
+            if (unsubscribe) unsubscribe();
+        };
     };
 
     return { token, permission, requestPermission, listenToMessages };

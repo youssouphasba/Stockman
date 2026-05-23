@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
+import { getMessaging, getToken, isSupported, onMessage, Messaging } from 'firebase/messaging';
 
 const isBrowser = typeof window !== 'undefined';
 const browserHost = isBrowser ? window.location.host : '';
@@ -29,13 +29,33 @@ const app = isBrowser && hasFirebaseConfig
     ? (!getApps().length ? initializeApp(firebaseConfig) : getApp())
     : null;
 
-let messaging: Messaging | null = null;
+let messagingPromise: Promise<Messaging | null> | null = null;
+
+function getMessagingInstance() {
+    if (!isBrowser || !app || !('serviceWorker' in navigator)) {
+        return Promise.resolve(null);
+    }
+    if (messagingPromise) {
+        return messagingPromise;
+    }
+    messagingPromise = isSupported()
+        .then((supported) => supported ? getMessaging(app) : null)
+        .catch(() => null);
+    return messagingPromise;
+}
+
+function clearMessagingInstance() {
+    messagingPromise = null;
+}
+
+const messaging = null;
+
 if (isBrowser && app && 'serviceWorker' in navigator) {
     try {
-        messaging = getMessaging(app);
+        void getMessagingInstance();
     } catch (e) {
         console.error('Firebase Messaging could not be initialized:', e);
     }
 }
 
-export { app, messaging, getToken, onMessage, hasFirebaseConfig };
+export { app, messaging, getMessagingInstance, clearMessagingInstance, getToken, onMessage, hasFirebaseConfig };
