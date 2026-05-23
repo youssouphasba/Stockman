@@ -85,6 +85,7 @@ const SORT_OPTIONS: { key: SortKey; labelKey: string; icon: string }[] = [
 const TIER_FILTERS = ['tous', 'bronze', 'argent', 'or', 'platine'] as const;
 type DetailTab = 'infos' | 'achats' | 'contact' | 'compte';
 type CategoryOption = 'particulier' | 'revendeur' | 'vip' | 'autre';
+type InsightFilter = 'all' | 'dormant' | 'debt';
 const CATEGORIES: { key: CategoryOption; labelKey: string }[] = [
     { key: 'particulier', labelKey: 'crm.category_private' },
     { key: 'revendeur', labelKey: 'crm.category_reseller' },
@@ -118,6 +119,7 @@ export default function CRMScreen() {
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState<SortKey>('name');
     const [tierFilter, setTierFilter] = useState<string>('tous');
+    const [insightFilter, setInsightFilter] = useState<InsightFilter>('all');
 
     // Customer modal
     const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -823,11 +825,21 @@ export default function CRMScreen() {
     }
 
     // --- Filtering ---
+    const isDormantCustomer = useCallback((customer: Customer) => {
+        if (!customer.last_purchase_date) return true;
+        const lastPurchase = new Date(customer.last_purchase_date);
+        return (Date.now() - lastPurchase.getTime()) >= 45 * 24 * 60 * 60 * 1000;
+    }, []);
+
     const filteredCustomers = customerList.filter(c => {
         const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
             (c.phone && c.phone.includes(search));
         const matchTier = tierFilter === 'tous' || (c.tier || 'bronze') === tierFilter;
-        return matchSearch && matchTier;
+        const matchInsight =
+            insightFilter === 'all' ||
+            (insightFilter === 'dormant' && isDormantCustomer(c)) ||
+            (insightFilter === 'debt' && (c.current_debt || 0) > 0);
+        return matchSearch && matchTier && matchInsight;
     });
 
     // Stats
@@ -838,11 +850,7 @@ export default function CRMScreen() {
         const d = new Date(c.last_purchase_date);
         return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
     }).length;
-    const dormantClients = customerList.filter((customer) => {
-        if (!customer.last_purchase_date) return true;
-        const lastPurchase = new Date(customer.last_purchase_date);
-        return (Date.now() - lastPurchase.getTime()) >= 45 * 24 * 60 * 60 * 1000;
-    }).length;
+    const dormantClients = customerList.filter(isDormantCustomer).length;
     const customersWithDebt = customerList.filter((customer) => (customer.current_debt || 0) > 0).length;
 
     const effectivePlan = user?.effective_plan || user?.plan || '';
@@ -935,18 +943,26 @@ export default function CRMScreen() {
                     </View>
 
                     <View style={styles.quickActionsRow}>
-                        <View style={styles.quickInsightCard}>
+                        <TouchableOpacity
+                            style={[styles.quickInsightCard, insightFilter === 'dormant' && styles.quickInsightCardActive]}
+                            onPress={() => setInsightFilter(current => current === 'dormant' ? 'all' : 'dormant')}
+                            activeOpacity={0.85}
+                        >
                             <Ionicons name="time-outline" size={20} color={colors.warning} />
                             <Text style={styles.quickActionTitle}>Clients à relancer</Text>
                             <Text style={styles.quickInsightValue}>{dormantClients}</Text>
                             <Text style={styles.quickActionDesc}>Aucun achat enregistré depuis au moins 45 jours.</Text>
-                        </View>
-                        <View style={styles.quickInsightCard}>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.quickInsightCard, insightFilter === 'debt' && styles.quickInsightCardActive]}
+                            onPress={() => setInsightFilter(current => current === 'debt' ? 'all' : 'debt')}
+                            activeOpacity={0.85}
+                        >
                             <Ionicons name="wallet-outline" size={20} color={colors.danger} />
-                            <Text style={styles.quickActionTitle}>Comptes à suivre</Text>
+                            <Text style={styles.quickActionTitle}>Clients à suivre</Text>
                             <Text style={styles.quickInsightValue}>{customersWithDebt}</Text>
-                            <Text style={styles.quickActionDesc}>Clients avec un solde débiteur à surveiller.</Text>
-                        </View>
+                            <Text style={styles.quickActionDesc}>Clients avec des dettes à surveiller.</Text>
+                        </TouchableOpacity>
                     </View>
 
                     {/* Loyalty Settings SECTION */}
@@ -2032,6 +2048,10 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         padding: Spacing.md,
         gap: Spacing.xs,
         minHeight: 110,
+    },
+    quickInsightCardActive: {
+        borderColor: colors.primary,
+        backgroundColor: colors.primary + '14',
     },
     quickActionTitle: {
         color: colors.text,
