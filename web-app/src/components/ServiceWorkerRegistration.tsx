@@ -12,6 +12,14 @@ export default function ServiceWorkerRegistration() {
             return;
         }
 
+        const handleControllerChange = () => {
+            if (sessionStorage.getItem('stockman-sw-refreshed') === '1') {
+                return;
+            }
+            sessionStorage.setItem('stockman-sw-refreshed', '1');
+            window.location.reload();
+        };
+
         const registerServiceWorker = async () => {
             try {
                 const registration = await navigator.serviceWorker.register('/sw.js');
@@ -35,6 +43,8 @@ export default function ServiceWorkerRegistration() {
             }
         };
 
+        navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
         if (document.readyState === 'complete') {
             void registerServiceWorker();
         } else {
@@ -42,6 +52,7 @@ export default function ServiceWorkerRegistration() {
         }
 
         return () => {
+            navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
             window.removeEventListener('load', registerServiceWorker);
         };
     }, []);

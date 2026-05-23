@@ -1,29 +1,56 @@
-const CACHE_NAME = 'stockman-cache-v4';
+const CACHE_NAME = 'stockman-cache-v5';
 const ASSETS_TO_CACHE = [
     '/',
     '/manifest.json',
 ];
 
+async function openCache() {
+    if (!self.caches) return null;
+    try {
+        return await caches.open(CACHE_NAME);
+    } catch {
+        return null;
+    }
+}
+
+async function matchCache(request) {
+    if (!self.caches) return null;
+    try {
+        return await caches.match(request);
+    } catch {
+        return null;
+    }
+}
+
+async function putCache(request, response) {
+    const cache = await openCache();
+    if (!cache) return;
+    try {
+        await cache.put(request, response.clone());
+    } catch {
+        return;
+    }
+}
+
 async function networkFirst(request) {
     try {
         const response = await fetch(request);
         if (response && response.ok) {
-            const cache = await caches.open(CACHE_NAME);
-            cache.put(request, response.clone());
+            await putCache(request, response);
         }
         return response;
-    } catch (error) {
-        const cached = await caches.match(request);
+    } catch {
+        const cached = await matchCache(request);
         if (cached) return cached;
-        throw error;
+        return new Response('', { status: 503, statusText: 'Service temporarily unavailable' });
     }
 }
 
 async function navigationFallback(request) {
     try {
         return await fetch(request);
-    } catch (error) {
-        const cachedRoot = await caches.match('/');
+    } catch {
+        const cachedRoot = await matchCache('/');
         if (cachedRoot) return cachedRoot;
 
         return new Response(
@@ -37,23 +64,23 @@ async function navigationFallback(request) {
 }
 
 async function staleWhileRevalidate(request) {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(request);
+    const cache = await openCache();
+    const cached = cache ? await cache.match(request).catch(() => null) : null;
     const networkPromise = fetch(request)
         .then((response) => {
             if (response && response.ok) {
-                cache.put(request, response.clone());
+                void putCache(request, response);
             }
             return response;
         })
-        .catch(() => cached);
+        .catch(() => cached || new Response('', { status: 503, statusText: 'Service temporarily unavailable' }));
 
     return cached || networkPromise;
 }
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+        openCache().then((cache) => cache ? cache.addAll(ASSETS_TO_CACHE).catch(() => undefined) : undefined)
     );
     self.skipWaiting();
 });
@@ -61,9 +88,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         Promise.all([
-            caches.keys().then((cacheNames) => Promise.all(
-                cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-            )),
+            self.caches ? caches.keys().then((cacheNames) => Promise.all(
+                cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name).catch(() => false))
+            )).catch(() => undefined) : undefined,
             self.clients.claim(),
         ])
     );
