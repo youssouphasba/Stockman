@@ -86,6 +86,25 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
                 router.push({ pathname: '/(tabs)/subscription', params: { source: 'notification', reason: String(data?.reason || data?.type || '') } } as any);
                 return;
             }
+            if (data?.type === 'system_activation') {
+                const scenario = String(data?.scenario || '');
+                if (scenario === 'subscription_attention') {
+                    router.push({ pathname: '/(tabs)/subscription', params: { source: 'notification', reason: scenario } } as any);
+                    return;
+                }
+                if (scenario === 'add_first_products') {
+                    router.push({ pathname: '/(tabs)/products', params: { source: 'notification', action: 'create' } } as any);
+                    return;
+                }
+                if (scenario === 'first_sale') {
+                    router.push({ pathname: '/(tabs)/pos', params: { source: 'notification' } } as any);
+                    return;
+                }
+                if (scenario === 'reactivation') {
+                    router.push({ pathname: '/(tabs)', params: { source: 'notification' } } as any);
+                    return;
+                }
+            }
             if (data?.url) {
                 Linking.openURL(String(data.url)).catch(() => null);
                 return;

@@ -3077,7 +3077,19 @@ def build_app_deeplink(path: str, params: Optional[Dict[str, Any]] = None) -> st
             continue
         query_parts.append(f"{quote(str(key), safe='')}={quote(str(value), safe='')}")
     query = f"?{'&'.join(query_parts)}" if query_parts else ""
-    return f"{scheme}://{normalized_path}{query}"
+    return f"{scheme}:///{normalized_path}{query}"
+
+
+def normalize_app_deeplink_url(url: str) -> str:
+    scheme = os.environ.get("APP_DEEPLINK_SCHEME", "stockman").strip().rstrip(":/") or "stockman"
+    value = str(url or "").strip()
+    prefix = f"{scheme}://"
+    if not value.startswith(prefix):
+        return value
+    rest = value[len(prefix):]
+    if rest.startswith("/"):
+        return value
+    return f"{scheme}:///{rest}"
 
 
 def build_signed_app_open_link(deeplink: str, purpose: str = "activation") -> str:
@@ -15773,7 +15785,7 @@ async def open_app_from_signed_link(t: str):
     scheme = os.environ.get("APP_DEEPLINK_SCHEME", "stockman").strip().rstrip(":/") or "stockman"
     if not deeplink.startswith(f"{scheme}://"):
         raise HTTPException(status_code=400, detail="Lien invalide")
-    return RedirectResponse(url=deeplink, status_code=307)
+    return RedirectResponse(url=normalize_app_deeplink_url(deeplink), status_code=307)
 
 
 @api_router.get("/auth/me")
