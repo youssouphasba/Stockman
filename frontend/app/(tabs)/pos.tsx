@@ -29,7 +29,6 @@ import {
     sales as salesApi,
     customers as customersApi,
     stores as storesApi,
-    ApiError,
     ai as aiApi,
     tables,
     kitchen,
@@ -90,7 +89,7 @@ export default function POSScreen() {
     const { colors, glassStyle } = useTheme();
     const { t, i18n } = useTranslation();
     const router = useRouter();
-    const { user, hasPermission, restoreSession } = useAuth();
+    const { user, hasPermission } = useAuth();
     const insets = useSafeAreaInsets();
     const { setDrawerContent } = useDrawer();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -245,22 +244,8 @@ export default function POSScreen() {
             const features = await userFeatures.get().catch(() => null);
             const isRestaurantAccount = Boolean(features && isRestaurantBusiness(features));
 
-            const loadProducts = async () => {
-                try {
-                    return await productsApi.list(undefined, 0, 500, isRestaurantAccount ? true : undefined);
-                } catch (error) {
-                    if (error instanceof ApiError && error.status === 401) {
-                        const restored = await restoreSession(true);
-                        if (restored) {
-                            return productsApi.list(undefined, 0, 500, isRestaurantAccount ? true : undefined);
-                        }
-                    }
-                    throw error;
-                }
-            };
-
             const [prodsRes, custsRes, storesRes] = await Promise.allSettled([
-                loadProducts(),
+                productsApi.list(undefined, 0, 500, isRestaurantAccount ? true : undefined),
                 customersApi.list(),
                 storesApi.list(),
             ]);
@@ -310,7 +295,7 @@ export default function POSScreen() {
             setLoading(false);
             lastLoadedAtRef.current = Date.now();
         }
-    }, [restoreSession, t, user?.active_store_id, user?.plan]);
+    }, [t, user?.active_store_id, user?.plan]);
 
     useEffect(() => {
         const nextStoreId = user?.active_store_id;

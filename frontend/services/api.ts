@@ -141,6 +141,8 @@ async function getToken(): Promise<string | null> {
 }
 
 async function setToken(token: string): Promise<void> {
+  refreshBlockedUntil = 0;
+  lastRefreshFailureStatus = null;
   if (Platform.OS === 'web') {
     localStorage.setItem(TOKEN_KEY, token);
   } else {
@@ -262,7 +264,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       return data;
     } catch (error) {
       // Never fallback to cache for authentication errors
-      if (error instanceof ApiError && error.status === 401) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 429)) {
         throw error;
       }
       // Fallback to cache if server error or network error
@@ -312,12 +314,22 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   }
 }
 
-// Mutex: ensures only one refresh runs at a time across concurrent 401s
 let refreshPromise: Promise<string | null> | null = null;
+let refreshBlockedUntil = 0;
+let lastRefreshFailureStatus: number | null = null;
 
 async function doRefresh(): Promise<string | null> {
   try {
+    if (Date.now() < refreshBlockedUntil) {
+      return null;
+    }
+
     const storedRefresh = await getRefreshToken();
+    if (!storedRefresh) {
+      lastRefreshFailureStatus = 401;
+      return null;
+    }
+
     const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -331,7 +343,21 @@ async function doRefresh(): Promise<string | null> {
       if (refreshData.refresh_token) await setRefreshToken(refreshData.refresh_token);
       return newToken;
     }
+
+    lastRefreshFailureStatus = refreshRes.status;
+    if (refreshRes.status === 401 || refreshRes.status === 403) {
+      refreshBlockedUntil = Date.now() + 10000;
+      await removeToken();
+      return null;
+    }
+    if (refreshRes.status === 429) {
+      refreshBlockedUntil = Date.now() + 60000;
+      return null;
+    }
+    refreshBlockedUntil = Date.now() + 10000;
   } catch (refreshErr) {
+    lastRefreshFailureStatus = 0;
+    refreshBlockedUntil = Date.now() + 10000;
     console.warn('Auto-refresh failed:', refreshErr);
   }
   return null;
@@ -446,8 +472,15 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
           }
         }
 
+        if (lastRefreshFailureStatus === 429) {
+          throw new ApiError('Trop de tentatives. Veuillez réessayer dans une minute.', 429);
+        }
+        if (lastRefreshFailureStatus === 401 || lastRefreshFailureStatus === 403) {
+          await removeToken();
+          throw new AuthError('Session expirée. Veuillez vous reconnecter.');
+        }
         await removeAccessToken();
-        throw new AuthError('Session expirée');
+        throw new AuthError('Session expirée. Veuillez vous reconnecter.');
       }
     }
 

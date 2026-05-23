@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { ApiError, stores as storesApi, Store } from '../services/api';
+import { stores as storesApi, Store } from '../services/api';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +14,7 @@ type StoreSelectorProps = {
 export default function StoreSelector({ compact = false }: StoreSelectorProps) {
     const { t } = useTranslation();
     const { colors, glassStyle } = useTheme();
-    const { user, switchStore, restoreSession, isLoading: authLoading } = useAuth();
+    const { user, switchStore, isLoading: authLoading } = useAuth();
     const [stores, setStores] = useState<Store[]>([]);
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -33,15 +33,6 @@ export default function StoreSelector({ compact = false }: StoreSelectorProps) {
             const list = await storesApi.list();
             setStores(list);
         } catch (e: any) {
-            if (e instanceof ApiError && e.status === 401) {
-                const restored = await restoreSession(true);
-                if (restored) {
-                    const list = await storesApi.list();
-                    setStores(list);
-                    setLoading(false);
-                    return;
-                }
-            }
             Alert.alert(t('common.error'), e?.message || t('store_selector.load_error'));
         } finally {
             setLoading(false);

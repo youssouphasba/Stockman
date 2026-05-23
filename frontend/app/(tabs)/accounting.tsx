@@ -281,27 +281,45 @@ export default function AccountingScreen() {
             const currentYear = new Date().getFullYear();
             const monthlyStartDate = `${currentYear}-01-01`;
             const monthlyEndDate = new Date().toISOString().slice(0, 10);
-            const [statsRes, salesRes, invoicesRes, expensesRes, storesRes, userSettingsRes] = await Promise.all([
+            const [statsRes, salesRes, invoicesRes, expensesRes, storesRes, userSettingsRes] = await Promise.allSettled([
                 accountingApi.getStats(days, start, end),
                 accountingApi.getSalesHistory(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
                 accountingApi.getInvoices(days, start, end, 0, 100),
                 expensesApi.list(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
                 storesApi.list(),
-                settingsApi.get().catch(() => null),
+                settingsApi.get(),
             ]);
+            const hasForbiddenCoreRequest = [statsRes, salesRes, invoicesRes, expensesRes].some(
+                result => result.status === 'rejected' && result.reason instanceof ApiError && result.reason.status === 403
+            );
+            if (hasForbiddenCoreRequest) {
+                setAccessDenied(true);
+                return;
+            }
+            const statsData = statsRes.status === 'fulfilled' ? statsRes.value : stats;
+            const salesData = salesRes.status === 'fulfilled' ? salesRes.value : { items: recentSales };
+            const invoicesData = invoicesRes.status === 'fulfilled' ? invoicesRes.value : { items: invoiceHistory };
+            const expensesData = expensesRes.status === 'fulfilled' ? expensesRes.value : expensesList;
+            const expensesItems = Array.isArray(expensesData)
+                ? expensesData
+                : Array.isArray((expensesData as any)?.items)
+                    ? (expensesData as any).items
+                    : [];
+            const storesData = storesRes.status === 'fulfilled' ? storesRes.value : [];
+            const userSettingsData = userSettingsRes.status === 'fulfilled' ? userSettingsRes.value : settingsData;
             const merged = await mergeAccountingOfflineState({
-                recentSales: Array.isArray(salesRes?.items) ? salesRes.items : [],
-                invoiceHistory: Array.isArray(invoicesRes?.items) ? invoicesRes.items : [],
-                expensesList: Array.isArray(expensesRes?.items) ? expensesRes.items : (expensesRes as any),
+                recentSales: Array.isArray(salesData?.items) ? salesData.items : [],
+                invoiceHistory: Array.isArray(invoicesData?.items) ? invoicesData.items : [],
+                expensesList: expensesItems,
             });
-            setStats(statsRes);
+            setStats(statsData);
             setRecentSales(merged.recentSales);
             setInvoiceHistory(merged.invoiceHistory);
             setExpensesList(merged.expensesList);
-            setSettingsData(userSettingsRes);
-            setExpenseCategories(buildExpenseCategories(userSettingsRes?.expense_categories || [], merged.expensesList));
+            setSettingsData(userSettingsData);
+            setExpenseCategories(buildExpenseCategories(userSettingsData?.expense_categories || [], merged.expensesList));
             setPendingSummary(merged.summary);
-            const active = (storesRes || []).find(s => s.store_id === user?.active_store_id) || null;
+            const active = (storesData || []).find(s => s.store_id === user?.active_store_id) || null;
             setCurrentStore(active);
             setAccessDenied(false);
         } catch (error) {
