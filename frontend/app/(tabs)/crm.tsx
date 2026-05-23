@@ -110,6 +110,8 @@ export default function CRMScreen() {
     const [loyaltySettings, setLoyaltySettings] = useState<LoyaltySettings | null>(null);
     const [loading, setLoading] = useState(true);
     const lastLoadedAtRef = useRef(0);
+    const scrollViewRef = useRef<ScrollView | null>(null);
+    const customerSectionYRef = useRef(0);
     const FOCUS_TTL_MS = 60_000;
     const [refreshing, setRefreshing] = useState(false);
     const [savingSettings, setSavingSettings] = useState(false);
@@ -853,6 +855,13 @@ export default function CRMScreen() {
     const dormantClients = customerList.filter(isDormantCustomer).length;
     const customersWithDebt = customerList.filter((customer) => (customer.current_debt || 0) > 0).length;
 
+    const openInsightFilter = useCallback((filter: InsightFilter) => {
+        setInsightFilter(current => current === filter ? 'all' : filter);
+        requestAnimationFrame(() => {
+            scrollViewRef.current?.scrollTo({ y: Math.max(customerSectionYRef.current - Spacing.md, 0), animated: true });
+        });
+    }, []);
+
     const effectivePlan = user?.effective_plan || user?.plan || '';
     const accessPhase = user?.subscription_access_phase || 'active';
     const canOpenDuringBillingFollowUp = ['active', 'grace', 'restricted', 'read_only'].includes(accessPhase);
@@ -893,6 +902,7 @@ export default function CRMScreen() {
         >
             <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
                 <ScrollView
+                    ref={scrollViewRef}
                     contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
                 >
@@ -945,7 +955,7 @@ export default function CRMScreen() {
                     <View style={styles.quickActionsRow}>
                         <TouchableOpacity
                             style={[styles.quickInsightCard, insightFilter === 'dormant' && styles.quickInsightCardActive]}
-                            onPress={() => setInsightFilter(current => current === 'dormant' ? 'all' : 'dormant')}
+                            onPress={() => openInsightFilter('dormant')}
                             activeOpacity={0.85}
                         >
                             <Ionicons name="time-outline" size={20} color={colors.warning} />
@@ -955,7 +965,7 @@ export default function CRMScreen() {
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.quickInsightCard, insightFilter === 'debt' && styles.quickInsightCardActive]}
-                            onPress={() => setInsightFilter(current => current === 'debt' ? 'all' : 'debt')}
+                            onPress={() => openInsightFilter('debt')}
                             activeOpacity={0.85}
                         >
                             <Ionicons name="wallet-outline" size={20} color={colors.danger} />
@@ -966,7 +976,12 @@ export default function CRMScreen() {
                     </View>
 
                     {/* Loyalty Settings SECTION */}
-                    <View style={styles.section}>
+                    <View
+                        style={styles.section}
+                        onLayout={(event) => {
+                            customerSectionYRef.current = event.nativeEvent.layout.y;
+                        }}
+                    >
                         <View style={styles.sectionHeaderRow}>
                             <Text style={styles.sectionTitle}>{t('crm.loyalty_strategy')}</Text>
                             {savingSettings && <ActivityIndicator size="small" color={colors.primary} />}
