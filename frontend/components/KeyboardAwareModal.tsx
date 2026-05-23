@@ -42,6 +42,7 @@ export default function KeyboardAwareModal({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const visibleHeight = height - insets.top - insets.bottom - keyboardHeight - Spacing.lg;
   const maxHeight = Math.max(280, visibleHeight * maxHeightRatio);
+  const fixedContentHeight = scroll ? undefined : maxHeight;
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -72,6 +73,7 @@ export default function KeyboardAwareModal({
               {
                 backgroundColor,
                 borderColor: borderColor || 'transparent',
+                height: fixedContentHeight,
                 maxHeight,
                 paddingBottom: Math.max(Spacing.md, insets.bottom + Spacing.sm),
               },
