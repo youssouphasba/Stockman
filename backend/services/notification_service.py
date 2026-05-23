@@ -54,7 +54,12 @@ class NotificationService:
 
         messages: List[Dict[str, Any]] = []
         invalid_tokens: List[str] = []
+        seen_tokens = set()
         for token in expo_tokens:
+            token = str(token or "").strip()
+            if token in seen_tokens:
+                continue
+            seen_tokens.add(token)
             if not is_expo_push_token(token):
                 logger.warning("Invalid Expo Push Token: %s", token)
                 invalid_tokens.append(token)

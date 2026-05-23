@@ -34,6 +34,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from bson import ObjectId
 from slowapi.errors import RateLimitExceeded
+from pymongo.errors import DuplicateKeyError
 import base64
 from fastapi.staticfiles import StaticFiles
 from collections import defaultdict
@@ -3196,6 +3197,71 @@ async def has_recent_system_delivery(filter_doc: dict, now: datetime) -> bool:
     return bool(recent_attempt)
 
 
+def build_system_delivery_key(
+    channel: str,
+    scenario: str,
+    milestone: str,
+    *,
+    target_user_id: Optional[str] = None,
+    recipient_email: Optional[str] = None,
+    demo_session_id: Optional[str] = None,
+) -> str:
+    recipient_key = target_user_id or recipient_email or demo_session_id or "unknown"
+    raw_key = f"{channel}:{scenario}:{milestone}:{recipient_key}".lower()
+    return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+
+
+async def reserve_system_delivery(
+    *,
+    delivery_key: str,
+    channel: str,
+    scenario: str,
+    milestone: str,
+    target_user_id: Optional[str] = None,
+    recipient_email: Optional[str] = None,
+    demo_session_id: Optional[str] = None,
+    now: datetime,
+) -> bool:
+    base_doc = {
+        "_id": delivery_key,
+        "delivery_id": f"sysmsg_{delivery_key[:12]}",
+        "channel": channel,
+        "scenario": scenario,
+        "milestone": milestone,
+        "status": "pending",
+        "target_user_id": target_user_id,
+        "recipient_email": recipient_email,
+        "demo_session_id": demo_session_id,
+        "created_at": now,
+        "updated_at": now,
+        "attempts": 1,
+    }
+    try:
+        await db.system_message_deliveries.insert_one(base_doc)
+        return True
+    except DuplicateKeyError:
+        existing = await db.system_message_deliveries.find_one({"_id": delivery_key}, {"status": 1, "created_at": 1})
+        if not existing:
+            return False
+        if existing.get("status") == "sent":
+            return False
+        created_at = parse_datetime_value(existing.get("created_at")) or now
+        if created_at >= now - timedelta(hours=24):
+            return False
+        await db.system_message_deliveries.update_one(
+            {"_id": delivery_key, "status": {"$ne": "sent"}},
+            {
+                "$set": {
+                    "status": "pending",
+                    "updated_at": now,
+                    "created_at": now,
+                },
+                "$inc": {"attempts": 1},
+            },
+        )
+        return True
+
+
 async def record_system_delivery(
     *,
     channel: str,
@@ -3214,9 +3280,10 @@ async def record_system_delivery(
     reason: Optional[str] = None,
     provider_result: Optional[Any] = None,
     permissions: Optional[Dict[str, Any]] = None,
+    delivery_key: Optional[str] = None,
 ) -> None:
     now = datetime.now(timezone.utc)
-    await db.system_message_deliveries.insert_one({
+    doc = {
         "delivery_id": f"sysmsg_{uuid.uuid4().hex[:12]}",
         "channel": channel,
         "scenario": scenario,
@@ -3236,7 +3303,19 @@ async def record_system_delivery(
         "permissions": permissions or {},
         "created_at": now,
         "updated_at": now,
-    })
+    }
+    if delivery_key:
+        doc["delivery_id"] = f"sysmsg_{delivery_key[:12]}"
+        await db.system_message_deliveries.update_one(
+            {"_id": delivery_key},
+            {
+                "$set": {k: v for k, v in doc.items() if k != "created_at"},
+                "$setOnInsert": {"created_at": now},
+            },
+            upsert=True,
+        )
+        return
+    await db.system_message_deliveries.insert_one(doc)
 
 
 def build_activation_email_html(name: str, body: str, action_url: str) -> str:
@@ -3252,7 +3331,22 @@ async def send_system_activation_email(user_doc: dict, account_doc: Optional[dic
     email = (user_doc.get("email") or "").strip()
     if not email:
         return
-    if await has_recent_system_delivery({**milestone_filter, "channel": "email"}, now):
+    delivery_key = build_system_delivery_key(
+        "email",
+        target["scenario"],
+        target["milestone"],
+        target_user_id=user_doc.get("user_id"),
+        recipient_email=email,
+    )
+    if not await reserve_system_delivery(
+        delivery_key=delivery_key,
+        channel="email",
+        scenario=target["scenario"],
+        milestone=target["milestone"],
+        target_user_id=user_doc.get("user_id"),
+        recipient_email=email,
+        now=now,
+    ):
         return
     name = user_doc.get("name") or "cher utilisateur"
     action_url = build_signed_app_open_link(target["deeplink"], purpose=target["scenario"])
@@ -3285,6 +3379,7 @@ async def send_system_activation_email(user_doc: dict, account_doc: Optional[dic
             "can_write_data": access_context.get("can_write_data"),
             "effective_permissions": access_context.get("effective_permissions"),
         },
+        delivery_key=delivery_key,
     )
 
 
@@ -3292,7 +3387,22 @@ async def send_system_activation_push(user_doc: dict, account_doc: Optional[dict
     user_id = user_doc.get("user_id")
     if not user_id:
         return
-    if await has_recent_system_delivery({**milestone_filter, "channel": "push"}, now):
+    delivery_key = build_system_delivery_key(
+        "push",
+        target["scenario"],
+        target["milestone"],
+        target_user_id=user_id,
+        recipient_email=user_doc.get("email"),
+    )
+    if not await reserve_system_delivery(
+        delivery_key=delivery_key,
+        channel="push",
+        scenario=target["scenario"],
+        milestone=target["milestone"],
+        target_user_id=user_id,
+        recipient_email=user_doc.get("email"),
+        now=now,
+    ):
         return
     result = await notification_service.notify_user(
         db,
@@ -3328,6 +3438,7 @@ async def send_system_activation_push(user_doc: dict, account_doc: Optional[dict
             "can_write_data": access_context.get("can_write_data"),
             "effective_permissions": access_context.get("effective_permissions"),
         },
+        delivery_key=delivery_key,
     )
 
 
