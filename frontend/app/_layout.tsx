@@ -13,6 +13,8 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../services/i18n';
 import { getFirstAuthorizedShopkeeperRoute } from '../utils/accountRouting';
+import { useTranslation } from 'react-i18next';
+import { useAnonymousPushRegistration } from '../hooks/useNotifications';
 
 const TEXT_SCALE_LIMIT = 1.12;
 (Text as any).defaultProps = {
@@ -27,9 +29,11 @@ const TEXT_SCALE_LIMIT = 1.12;
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, isSupplier, isSuperAdmin, isAppLocked, user } = useAuth();
   const { isDark, colors } = useTheme();
+  const { i18n } = useTranslation();
   const segments = useSegments();
   const router = useRouter();
   const lastRedirectRef = useRef<string | null>(null);
+  useAnonymousPushRegistration(i18n.resolvedLanguage || i18n.language);
 
   // Immersive mode for Android + unlock rotation
   useEffect(() => {

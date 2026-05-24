@@ -3044,7 +3044,7 @@
     "channel_in_app": "Dans l'application",
     "channel_in_app_desc": "Visibles dans le centre d'alertes de l'app.",
     "channel_push": "Push mobile",
-    "channel_push_desc": "Notification sur votre téléphone même si l'app est fermée.",
+    "channel_push_desc": "Notification sur votre téléphone même si l'app est fermée, avec la langue et le pays enregistrés sur l'installation mobile.",
     "channel_email": "E-mail",
     "channel_email_desc": "Envoyé aux destinataires configurés ci-dessous (ou à votre adresse par défaut).",
     "push_severity_label": "Sévérité minimale pour les push",

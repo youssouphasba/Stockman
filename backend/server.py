@@ -927,6 +927,11 @@ async def create_indexes_and_init():
                 await db.system_message_deliveries.create_index([("target_user_id", 1), ("created_at", -1)])
                 await db.system_message_deliveries.create_index([("target_user_id", 1), ("scenario", 1), ("milestone", 1), ("channel", 1), ("status", 1)])
                 await db.system_message_deliveries.create_index([("demo_session_id", 1), ("scenario", 1), ("milestone", 1), ("channel", 1), ("status", 1)])
+                await db.push_installations.create_index("installation_id", unique=True)
+                await db.push_installations.create_index("expo_push_token")
+                await db.push_installations.create_index([("language", 1), ("is_active", 1), ("updated_at", -1)])
+                await db.push_installations.create_index([("country_code", 1), ("language", 1), ("is_active", 1)])
+                await db.push_installations.create_index([("platform", 1), ("is_active", 1)])
                 await db.idempotency_keys.create_index("key", unique=True)
                 await db.idempotency_keys.create_index("created_at", expireAfterSeconds=86400*7) # 7 days TTL
                 await db.idempotency_cache.create_index("created_at", expireAfterSeconds=IDEMPOTENCY_TTL_SECONDS)
@@ -1896,6 +1901,23 @@ class Category(BaseModel):
 
 class PushTokenRegistration(BaseModel):
     token: str
+    installation_id: Optional[str] = None
+    platform: str = "unknown"
+    locale: Optional[str] = None
+    language: Optional[str] = None
+    country_code: Optional[str] = None
+    timezone: Optional[str] = None
+    app_version: Optional[str] = None
+
+class PushInstallationRegistration(BaseModel):
+    installation_id: str
+    token: str
+    platform: str = "unknown"
+    locale: Optional[str] = None
+    language: Optional[str] = None
+    country_code: Optional[str] = None
+    timezone: Optional[str] = None
+    app_version: Optional[str] = None
 
 class PushToken(BaseModel):
     user_id: str
@@ -2791,6 +2813,9 @@ class AdminMessageCreate(BaseModel):
     target: str = "all"
     recipient_user_ids: List[str] = Field(default_factory=list)
     channels: List[Literal["in_app", "push", "email"]] = Field(default_factory=lambda: ["in_app"])
+    installation_language: Optional[str] = None
+    installation_country_code: Optional[str] = None
+    installation_platform: Optional[str] = None
 
 
 class AdminNotificationsReadUpdate(BaseModel):
@@ -3149,19 +3174,17 @@ def choose_system_activation_target(
 
     if product_count <= 0 and permission_allows_write(permissions, "stock"):
         days_since_creation = max(0, (now - created_at).days)
-        if days_since_creation >= 1:
-            return {
-                "scenario": "add_first_products",
-                "milestone": "j1" if days_since_creation < 3 else "j3" if days_since_creation < 7 else "j7",
-                "deeplink": build_app_deeplink("products", {"action": "create", "source": "activation"}),
-                "email_subject": "Ajoutez vos premiers produits dans Stockman",
-                "push_title": "Commencez votre suivi de stock",
-                "push_body": "Ajoutez vos premiers produits pour suivre vos ventes et vos marges.",
-                "email_body": "Ajoutez vos premiers produits pour commencer à suivre votre stock, vos ventes et vos marges avec des données fiables.",
-                "plan": plan,
-                "phase": account_phase,
-            }
-        return None
+        return {
+            "scenario": "add_first_products",
+            "milestone": f"daily_d{days_since_creation}",
+            "deeplink": build_app_deeplink("settings", {"source": "activation", "section": "support", "request": "product_setup"}),
+            "email_subject": "Besoin d'aide pour créer vos produits ?",
+            "push_title": "Besoin d'aide pour démarrer ?",
+            "push_body": "Demandez l'assistance Stockman : notre équipe peut vous aider à créer vos premiers produits.",
+            "email_body": "Votre compte est pr\u00eat, mais aucun produit n'a encore \u00e9t\u00e9 cr\u00e9\u00e9. Demandez l'assistance Stockman depuis l'application pour \u00eatre accompagn\u00e9 dans la cr\u00e9ation de vos premiers produits.",
+            "plan": plan,
+            "phase": account_phase,
+        }
 
     if product_count > 0 and sale_count <= 0 and permission_allows_write(permissions, "pos"):
         anchor = first_product_at or created_at
@@ -3217,8 +3240,9 @@ def build_system_delivery_key(
     target_user_id: Optional[str] = None,
     recipient_email: Optional[str] = None,
     demo_session_id: Optional[str] = None,
+    installation_id: Optional[str] = None,
 ) -> str:
-    recipient_key = target_user_id or recipient_email or demo_session_id or "unknown"
+    recipient_key = target_user_id or recipient_email or demo_session_id or installation_id or "unknown"
     raw_key = f"{channel}:{scenario}:{milestone}:{recipient_key}".lower()
     return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
 
@@ -3232,6 +3256,7 @@ async def reserve_system_delivery(
     target_user_id: Optional[str] = None,
     recipient_email: Optional[str] = None,
     demo_session_id: Optional[str] = None,
+    installation_id: Optional[str] = None,
     now: datetime,
 ) -> bool:
     base_doc = {
@@ -3244,6 +3269,7 @@ async def reserve_system_delivery(
         "target_user_id": target_user_id,
         "recipient_email": recipient_email,
         "demo_session_id": demo_session_id,
+        "installation_id": installation_id,
         "created_at": now,
         "updated_at": now,
         "attempts": 1,
@@ -3286,6 +3312,7 @@ async def record_system_delivery(
     target_user_id: Optional[str] = None,
     recipient_email: Optional[str] = None,
     demo_session_id: Optional[str] = None,
+    installation_id: Optional[str] = None,
     account_id: Optional[str] = None,
     plan: Optional[str] = None,
     role: Optional[str] = None,
@@ -3307,6 +3334,7 @@ async def record_system_delivery(
         "target_user_id": target_user_id,
         "recipient_email": recipient_email,
         "demo_session_id": demo_session_id,
+        "installation_id": installation_id,
         "account_id": account_id,
         "plan": normalize_plan(plan) if plan else None,
         "role": role,
@@ -3503,8 +3531,182 @@ async def send_demo_conversion_email(session_doc: dict, now: datetime) -> None:
         )
 
 
+FRANCOPHONE_COUNTRY_CODES = {"SN", "CI", "ML", "BF", "TG", "BJ", "NE", "GN", "CM", "FR", "MA", "TN", "DZ", "GA", "CG", "CD"}
+
+ANONYMOUS_INSTALLATION_SYSTEM_NOTIFICATIONS = [
+    {
+        "scenario": "anonymous_installation_onboarding",
+        "milestone": "j1",
+        "min_age_days": 1,
+        "repeat_after_days": 1,
+        "deeplink": build_app_deeplink("register", {"source": "anonymous_push_j1"}),
+        "fr": {
+            "title": "Bienvenue sur Stockman",
+            "body": "Créez votre compte pour commencer à gérer votre stock, vos ventes et vos alertes depuis votre téléphone.",
+        },
+        "en": {
+            "title": "Welcome to Stockman",
+            "body": "Create your account to start managing stock, sales, and alerts from your phone.",
+        },
+    },
+    {
+        "scenario": "anonymous_installation_account_creation",
+        "milestone": "j3",
+        "min_age_days": 3,
+        "deeplink": build_app_deeplink("register", {"source": "anonymous_push_j3"}),
+        "fr": {
+            "title": "Votre espace de gestion vous attend",
+            "body": "En quelques minutes, configurez votre boutique et activez les alertes utiles pour éviter les ruptures.",
+        },
+        "en": {
+            "title": "Your workspace is waiting",
+            "body": "Set up your store in a few minutes and enable useful alerts to avoid stockouts.",
+        },
+    },
+    {
+        "scenario": "anonymous_installation_help",
+        "milestone": "j7",
+        "min_age_days": 7,
+        "deeplink": build_app_deeplink("register", {"source": "anonymous_push_j7"}),
+        "fr": {
+            "title": "Besoin d'aide pour démarrer ?",
+            "body": "Stockman vous guide pas à pas pour créer vos produits, suivre vos ventes et garder le contrôle du stock.",
+        },
+        "en": {
+            "title": "Need help getting started?",
+            "body": "Stockman guides you step by step to create products, track sales, and stay in control of stock.",
+        },
+    },
+]
+
+
+def resolve_anonymous_notification_language(installation: dict) -> str:
+    language = normalize_push_language(installation.get("language"), installation.get("locale"))
+    country_code = normalize_push_country_code(installation.get("country_code"), installation.get("locale"))
+    if language in {"fr", "en"}:
+        return language
+    if country_code in FRANCOPHONE_COUNTRY_CODES:
+        return "fr"
+    return "en"
+
+
+def choose_anonymous_installation_system_notification(installation: dict, now: datetime) -> Optional[Dict[str, Any]]:
+    created_at = parse_datetime_value(installation.get("created_at")) or parse_datetime_value(installation.get("updated_at")) or now
+    age_days = max(0, (now - created_at).days)
+    sent = installation.get("system_notifications_sent") or {}
+    for candidate in ANONYMOUS_INSTALLATION_SYSTEM_NOTIFICATIONS:
+        if age_days >= candidate["min_age_days"] and not sent.get(candidate["milestone"]):
+            lang = resolve_anonymous_notification_language(installation)
+            content = candidate.get(lang) or candidate["en"]
+            return {
+                **candidate,
+                "language": lang,
+                "title": content["title"],
+                "body": content["body"],
+            }
+    first_notification = ANONYMOUS_INSTALLATION_SYSTEM_NOTIFICATIONS[0]
+    next_milestone_sent = any(sent.get(candidate["milestone"]) for candidate in ANONYMOUS_INSTALLATION_SYSTEM_NOTIFICATIONS[1:])
+    last_j1_sent_at = parse_datetime_value(sent.get(first_notification["milestone"]))
+    if not next_milestone_sent and last_j1_sent_at and (now - last_j1_sent_at).days >= first_notification.get("repeat_after_days", 1):
+        repeat_counts = installation.get("system_notifications_repeat_count") or {}
+        repeat_number = int(repeat_counts.get(first_notification["milestone"], 0) or 0) + 1
+        lang = resolve_anonymous_notification_language(installation)
+        content = first_notification.get(lang) or first_notification["en"]
+        return {
+            **first_notification,
+            "milestone": f"{first_notification['milestone']}_repeat_{repeat_number}",
+            "storage_milestone": first_notification["milestone"],
+            "repeat_number": repeat_number,
+            "language": lang,
+            "title": content["title"],
+            "body": content["body"],
+        }
+    return None
+
+
+async def send_anonymous_installation_system_push(installation: dict, target: Dict[str, Any], now: datetime) -> None:
+    installation_id = installation.get("installation_id")
+    token = str(installation.get("expo_push_token") or "").strip()
+    if not installation_id or not token:
+        return
+    delivery_key = build_system_delivery_key(
+        "push",
+        target["scenario"],
+        target["milestone"],
+        installation_id=installation_id,
+    )
+    if not await reserve_system_delivery(
+        delivery_key=delivery_key,
+        channel="push",
+        scenario=target["scenario"],
+        milestone=target["milestone"],
+        installation_id=installation_id,
+        now=now,
+    ):
+        return
+    result = await notification_service.send_push_notification(
+        [token],
+        target["title"],
+        target["body"],
+        {
+            "type": "anonymous_system",
+            "scenario": target["scenario"],
+            "milestone": target["milestone"],
+            "url": target["deeplink"],
+        },
+    )
+    ok = bool((result or {}).get("ok"))
+    status = "sent" if ok else "failed"
+    await record_system_delivery(
+        channel="push",
+        scenario=target["scenario"],
+        milestone=target["milestone"],
+        status=status,
+        title=target["title"],
+        body=target["body"],
+        deeplink=target["deeplink"],
+        installation_id=installation_id,
+        role="anonymous_installation",
+        reason=f"language={target['language']};country={installation.get('country_code') or ''};platform={installation.get('platform') or ''}",
+        provider_result=result,
+        delivery_key=delivery_key,
+    )
+    if ok:
+        storage_milestone = target.get("storage_milestone") or target["milestone"]
+        updates = {
+            f"system_notifications_sent.{storage_milestone}": now,
+            "last_system_notification_at": now,
+        }
+        increments = {}
+        if target.get("repeat_number"):
+            increments[f"system_notifications_repeat_count.{storage_milestone}"] = 1
+        update_doc: Dict[str, Any] = {"$set": updates}
+        if increments:
+            update_doc["$inc"] = increments
+        await db.push_installations.update_one(
+            {"installation_id": installation_id},
+            update_doc,
+        )
+
+
+async def send_anonymous_installation_system_notifications(now: datetime) -> None:
+    installations = await db.push_installations.find(
+        {
+            "is_active": True,
+            "expo_push_token": {"$exists": True, "$ne": ""},
+            "$or": [{"last_user_id": {"$exists": False}}, {"last_user_id": None}],
+        },
+        {"_id": 0},
+    ).sort("updated_at", -1).limit(500).to_list(500)
+    for installation in installations:
+        target = choose_anonymous_installation_system_notification(installation, now)
+        if target:
+            await send_anonymous_installation_system_push(installation, target, now)
+
+
 async def check_activation_campaigns_loop():
     now = datetime.now(timezone.utc)
+    await send_anonymous_installation_system_notifications(now)
     demo_sessions = await db.demo_sessions.find(
         {
             "status": {"$in": ["expired", "cleaned"]},
@@ -6000,6 +6202,72 @@ async def list_activity_logs(user: User = Depends(require_account_history_view),
     logs = await db.activity_logs.find({"owner_id": owner_id}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return {"items": [ActivityLog(**l) for l in logs], "total": total}
 
+def normalize_push_language(language: Optional[str], locale: Optional[str]) -> str:
+    value = (language or locale or "fr").strip().lower()
+    if not value:
+        return "fr"
+    return value.split("-")[0].split("_")[0] or "fr"
+
+def normalize_push_country_code(country_code: Optional[str], locale: Optional[str]) -> Optional[str]:
+    value = (country_code or "").strip().upper()
+    if value:
+        return value[:2]
+    locale_value = (locale or "").strip()
+    if "-" in locale_value:
+        return locale_value.split("-")[-1].upper()[:2]
+    if "_" in locale_value:
+        return locale_value.split("_")[-1].upper()[:2]
+    return None
+
+def build_push_installation_update(data: PushInstallationRegistration, user_id: Optional[str] = None) -> Dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    set_data = {
+        "installation_id": data.installation_id.strip(),
+        "expo_push_token": data.token.strip(),
+        "platform": (data.platform or "unknown").strip().lower() or "unknown",
+        "locale": (data.locale or "").strip() or None,
+        "language": normalize_push_language(data.language, data.locale),
+        "country_code": normalize_push_country_code(data.country_code, data.locale),
+        "timezone": (data.timezone or "").strip() or None,
+        "app_version": (data.app_version or "").strip() or None,
+        "is_active": True,
+        "updated_at": now,
+    }
+    if user_id:
+        set_data["last_user_id"] = user_id
+    update: Dict[str, Any] = {
+        "$set": set_data,
+        "$setOnInsert": {"created_at": now},
+    }
+    if user_id:
+        update["$addToSet"] = {"user_ids": user_id}
+    return update
+
+async def upsert_push_installation(data: PushInstallationRegistration, user_id: Optional[str] = None):
+    installation_id = data.installation_id.strip()
+    token = data.token.strip()
+    if not installation_id:
+        raise HTTPException(status_code=400, detail="Identifiant d'installation requis")
+    if not (token.startswith("ExponentPushToken") or token.startswith("ExpoPushToken")):
+        raise HTTPException(status_code=400, detail="Format de jeton invalide")
+    await db.push_installations.update_one(
+        {"installation_id": installation_id},
+        build_push_installation_update(data, user_id),
+        upsert=True,
+    )
+
+@api_router.post("/notifications/installations/register")
+async def register_push_installation(data: PushInstallationRegistration, request: Request):
+    current_user = await get_current_user(request)
+    user_id = current_user.user_id if current_user else None
+    await upsert_push_installation(data, user_id)
+    if user_id:
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$addToSet": {"push_tokens": data.token.strip()}}
+        )
+    return {"message": "Installation push enregistrée"}
+
 @api_router.post("/notifications/register-token")
 async def register_push_token(data: PushTokenRegistration, user: User = Depends(require_auth)):
     """Register an Expo Push Token for the current user"""
@@ -6008,8 +6276,13 @@ async def register_push_token(data: PushTokenRegistration, user: User = Depends(
         
     await db.users.update_one(
         {"user_id": user.user_id},
-        {"$addToSet": {"push_tokens": data.token}}
+        {"$addToSet": {"push_tokens": data.token.strip()}}
     )
+    if data.installation_id:
+        await upsert_push_installation(
+            PushInstallationRegistration(**data.model_dump()),
+            user.user_id,
+        )
     return {"message": "Jeton enregistré avec succès"}
 
 @api_router.post("/notifications/test-push")
@@ -8688,6 +8961,38 @@ async def _resolve_admin_message_recipients(target: str, recipient_user_ids: Opt
     ).to_list(length=5000)
 
 
+def is_anonymous_installation_target(target: str) -> bool:
+    return (target or "").strip() in {"anonymous_installations", "anonymous"}
+
+
+async def _resolve_admin_push_installations(
+    target: str,
+    language: Optional[str] = None,
+    country_code: Optional[str] = None,
+    platform: Optional[str] = None,
+) -> List[dict]:
+    if not is_anonymous_installation_target(target):
+        return []
+    query: Dict[str, Any] = {
+        "is_active": True,
+        "expo_push_token": {"$exists": True, "$ne": ""},
+        "$or": [{"last_user_id": {"$exists": False}}, {"last_user_id": None}],
+    }
+    normalized_language = normalize_push_language(language, None) if language else None
+    normalized_country = normalize_push_country_code(country_code, None) if country_code else None
+    normalized_platform = (platform or "").strip().lower()
+    if normalized_language:
+        query["language"] = normalized_language
+    if normalized_country:
+        query["country_code"] = normalized_country
+    if normalized_platform and normalized_platform != "all":
+        query["platform"] = normalized_platform
+    return await db.push_installations.find(
+        query,
+        {"_id": 0, "installation_id": 1, "expo_push_token": 1, "language": 1, "country_code": 1, "platform": 1}
+    ).to_list(length=10000)
+
+
 async def _deliver_admin_message(message: AdminMessage, recipients: List[dict]) -> Dict[str, Any]:
     channels = set(message.channels or ["in_app"])
     delivery: Dict[str, Any] = {
@@ -8722,6 +9027,30 @@ async def _deliver_admin_message(message: AdminMessage, recipients: List[dict]) 
         )
         delivery["email_recipients"] = len(list(dict.fromkeys([str(email).strip().lower() for email in emails if email])))
     return delivery
+
+
+async def _deliver_admin_message_to_installations(message: AdminMessage, installations: List[dict]) -> Dict[str, Any]:
+    tokens = list(dict.fromkeys([
+        str(item.get("expo_push_token") or "").strip()
+        for item in installations
+        if str(item.get("expo_push_token") or "").strip()
+    ]))
+    result = await notification_service.send_push_notification(
+        tokens,
+        message.title,
+        message.content,
+        {"type": "admin_message", "message_id": message.message_id, "target": message.target},
+    )
+    return {
+        "target_installations": len(installations),
+        "channels": ["push"],
+        "push": result,
+        "filters": {
+            "languages": sorted({item.get("language") for item in installations if item.get("language")}),
+            "country_codes": sorted({item.get("country_code") for item in installations if item.get("country_code")}),
+            "platforms": sorted({item.get("platform") for item in installations if item.get("platform")}),
+        },
+    }
 
 
 @admin_router.post("/broadcast")
@@ -13277,6 +13606,8 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
     channels = list(dict.fromkeys(data.channels or ["in_app"]))
     if "in_app" not in channels:
         channels.insert(0, "in_app")
+    if is_anonymous_installation_target(data.target):
+        channels = ["push"]
     msg = AdminMessage(
         type=data.type,
         title=data.title,
@@ -13286,8 +13617,17 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
         channels=channels,
         sent_by=user.name
     )
-    recipients = await _resolve_admin_message_recipients(data.target, msg.target_user_ids)
-    delivery = await _deliver_admin_message(msg, recipients)
+    if is_anonymous_installation_target(data.target):
+        installations = await _resolve_admin_push_installations(
+            data.target,
+            language=data.installation_language,
+            country_code=data.installation_country_code,
+            platform=data.installation_platform,
+        )
+        delivery = await _deliver_admin_message_to_installations(msg, installations)
+    else:
+        recipients = await _resolve_admin_message_recipients(data.target, msg.target_user_ids)
+        delivery = await _deliver_admin_message(msg, recipients)
     msg.delivery = delivery
     await db.admin_messages.insert_one(msg.model_dump())
     

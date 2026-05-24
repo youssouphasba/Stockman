@@ -1,10 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { Linking, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import * as Crypto from 'expo-crypto';
+import { getLocales } from 'expo-localization';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
+import { notifications as notificationsApi, PushInstallationPayload } from '../services/api';
+import i18n from '../services/i18n';
+
+const PUSH_INSTALLATION_ID_KEY = 'push-installation-id';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -31,7 +38,9 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
             registerForPushNotificationsAsync().then(token => {
                 if (token) {
                     setExpoPushToken(token);
-                    registerRef.current(token).catch(console.warn);
+                    buildPushInstallationPayload(token).then(metadata => {
+                        registerRef.current(token, metadata).catch(console.warn);
+                    }).catch(console.warn);
                 }
             });
         }
@@ -133,6 +142,50 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
     }, [userId]);
 
     return { expoPushToken };
+}
+
+export function useAnonymousPushRegistration(language?: string) {
+    useEffect(() => {
+        let cancelled = false;
+        registerForPushNotificationsAsync().then(async token => {
+            if (!token || cancelled) return;
+            const payload = await buildPushInstallationPayload(token, language);
+            if (!cancelled) {
+                await notificationsApi.registerInstallation(payload);
+            }
+        }).catch(console.warn);
+        return () => {
+            cancelled = true;
+        };
+    }, [language]);
+}
+
+async function getPushInstallationId() {
+    const existing = await AsyncStorage.getItem(PUSH_INSTALLATION_ID_KEY);
+    if (existing) return existing;
+    const created = `inst_${Crypto.randomUUID()}`;
+    await AsyncStorage.setItem(PUSH_INSTALLATION_ID_KEY, created);
+    return created;
+}
+
+async function buildPushInstallationPayload(token: string, languageOverride?: string): Promise<PushInstallationPayload> {
+    const locales = getLocales();
+    const locale = locales[0]?.languageTag || i18n.resolvedLanguage || i18n.language || 'fr';
+    const language = (languageOverride || i18n.resolvedLanguage || i18n.language || locale || 'fr').split('-')[0];
+    let timezone: string | undefined;
+    try {
+        timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch { }
+    return {
+        installation_id: await getPushInstallationId(),
+        token,
+        platform: Platform.OS,
+        locale,
+        language,
+        country_code: locales[0]?.regionCode?.toUpperCase(),
+        timezone,
+        app_version: Constants.expoConfig?.version,
+    };
 }
 
 async function registerForPushNotificationsAsync() {

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Linking from 'expo-linking';
-import { ApiError, auth as authApi, stores as storesApi, userFeatures, notifications as notificationsApi, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeRefreshToken, User } from '../services/api';
+import { ApiError, auth as authApi, stores as storesApi, userFeatures, notifications as notificationsApi, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeRefreshToken, User, PushInstallationPayload } from '../services/api';
 import { initPurchases } from '../services/purchases';
 import { cache } from '../services/cache';
 import { isRestaurantBusiness } from '../utils/business';
@@ -52,7 +52,7 @@ type AuthState = {
   addAccount: (email: string, password: string) => Promise<User>;
   switchAccount: (userId: string) => Promise<User | null>;
   removeStoredAccount: (userId: string) => Promise<void>;
-  registerPushTokenForStoredAccounts: (pushToken: string) => Promise<void>;
+  registerPushTokenForStoredAccounts: (pushToken: string, metadata?: Partial<PushInstallationPayload>) => Promise<void>;
   logout: () => Promise<void>;
   switchStore: (storeId: string) => Promise<void>;
   setPin: (pin: string) => Promise<void>;
@@ -492,13 +492,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const registerPushTokenForStoredAccounts = useCallback(async (pushToken: string) => {
+  const registerPushTokenForStoredAccounts = useCallback(async (pushToken: string, metadata?: Partial<PushInstallationPayload>) => {
     const accounts = await listStoredAccountSessions();
     setStoredAccounts(accounts);
     await Promise.all(
       accounts.map(async (account) => {
         try {
-          await notificationsApi.registerTokenWithAccessToken(pushToken, account.access_token);
+          await notificationsApi.registerTokenWithAccessToken(pushToken, account.access_token, metadata);
         } catch (error) {
           console.warn(`Push token registration failed for account ${account.user.user_id}`, error);
         }

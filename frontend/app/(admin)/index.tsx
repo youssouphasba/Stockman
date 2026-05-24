@@ -13,6 +13,7 @@ import { formatCurrency, formatNumber } from '../../utils/format';
 const { width } = Dimensions.get('window');
 type Segment = 'global' | 'users' | 'stores' | 'subscriptions' | 'demos' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'leads' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
 type AdminChannel = 'in_app' | 'push' | 'email';
+type AdminMessageTarget = 'all' | 'shopkeeper' | 'supplier' | 'staff' | 'specific' | 'anonymous_installations';
 
 import { useTranslation } from 'react-i18next';
 
@@ -35,6 +36,28 @@ const COUNTRY_NAMES: Record<string, string> = {
     'CG': 'Congo',
     'CD': 'RDC',
 };
+
+const ADMIN_INSTALLATION_LANGUAGES = [
+    { code: 'all', label: 'Toutes les langues' },
+    { code: 'fr', label: 'Français' },
+    { code: 'en', label: 'English' },
+    { code: 'wo', label: 'Wolof' },
+    { code: 'ff', label: 'Pulaar' },
+    { code: 'ar', label: 'Arabe' },
+    { code: 'es', label: 'Espagnol' },
+    { code: 'pt', label: 'Portugais' },
+];
+
+const ADMIN_INSTALLATION_COUNTRIES = [
+    { code: 'all', label: 'Tous les pays' },
+    ...Object.entries(COUNTRY_NAMES).map(([code, name]) => ({ code, label: `${name} (${code})` })),
+];
+
+const ADMIN_INSTALLATION_PLATFORMS = [
+    { code: 'all', label: 'Toutes les plateformes' },
+    { code: 'android', label: 'Android' },
+    { code: 'ios', label: 'iOS' },
+];
 
 export default function AdminDashboard() {
     const { t } = useTranslation();
@@ -108,8 +131,11 @@ export default function AdminDashboard() {
     // Compose
     const [msgTitle, setMsgTitle] = useState('');
     const [msgContent, setMsgContent] = useState('');
-    const [msgTarget, setMsgTarget] = useState('all');
+    const [msgTarget, setMsgTarget] = useState<AdminMessageTarget>('all');
     const [msgChannels, setMsgChannels] = useState<AdminChannel[]>(['in_app', 'push']);
+    const [msgInstallationLanguage, setMsgInstallationLanguage] = useState('all');
+    const [msgInstallationCountry, setMsgInstallationCountry] = useState('all');
+    const [msgInstallationPlatform, setMsgInstallationPlatform] = useState('all');
     const [replyText, setReplyText] = useState('');
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     const [assistingTicketId, setAssistingTicketId] = useState<string | null>(null);
@@ -427,7 +453,17 @@ export default function AdminDashboard() {
         if (msgTarget === 'specific' && !targetUserId.trim()) return Alert.alert(t('admin.placeholders.targetUserId'));
         try {
             const messageType = finalTarget === 'all' ? 'broadcast' : msgTarget === 'specific' ? 'individual' : 'announcement';
-            await admin.sendMessage({ title: msgTitle, content: msgContent, target: finalTarget, type: messageType, channels: msgChannels });
+            const isAnonymousTarget = msgTarget === 'anonymous_installations';
+            await admin.sendMessage({
+                title: msgTitle,
+                content: msgContent,
+                target: finalTarget,
+                type: messageType,
+                channels: isAnonymousTarget ? ['push'] : msgChannels,
+                installation_language: isAnonymousTarget && msgInstallationLanguage !== 'all' ? msgInstallationLanguage : undefined,
+                installation_country_code: isAnonymousTarget && msgInstallationCountry !== 'all' ? msgInstallationCountry : undefined,
+                installation_platform: isAnonymousTarget && msgInstallationPlatform !== 'all' ? msgInstallationPlatform : undefined,
+            });
             Alert.alert(t('admin.actions.sendSuccess')); setMsgTitle(''); setMsgContent(''); setTargetUserId(''); setMsgChannels(['in_app', 'push']); loadData();
         } catch { Alert.alert(t('admin.actions.error')); }
     };
@@ -1317,16 +1353,26 @@ export default function AdminDashboard() {
                     multiline
                 />
                 <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}>{t('admin.comms.targetLabel')}:</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 11, marginBottom: 8 }}>
+                    Pour cibler les personnes qui ont installé l'application sans créer de compte, choisissez Installations sans compte.
+                </Text>
                 <FilterBar
                     filters={[
                         { id: 'all', label: t('admin.comms.targetAll') },
+                        { id: 'anonymous_installations', label: 'Installations sans compte' },
                         { id: 'shopkeeper', label: t('admin.comms.targetShopkeepers') },
                         { id: 'supplier', label: t('admin.comms.targetSuppliers') },
                         { id: 'staff', label: 'Staff' },
                         { id: 'specific', label: t('admin.comms.targetSpecific') }
                     ]}
                     active={msgTarget}
-                    onSelect={setMsgTarget as any}
+                    onSelect={(value) => {
+                        const nextTarget = value as AdminMessageTarget;
+                        setMsgTarget(nextTarget);
+                        if (nextTarget === 'anonymous_installations') {
+                            setMsgChannels(['push']);
+                        }
+                    }}
                     colors={colors}
                 />
 
@@ -1340,6 +1386,33 @@ export default function AdminDashboard() {
                     />
                 )}
 
+                {msgTarget === 'anonymous_installations' && (
+                    <View style={{ gap: 8, marginTop: 8, marginBottom: 8 }}>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Filtres installations anonymes :</Text>
+                        <FilterBar
+                            filters={ADMIN_INSTALLATION_COUNTRIES.map((item) => ({ id: item.code, label: item.label }))}
+                            active={msgInstallationCountry}
+                            onSelect={setMsgInstallationCountry}
+                            colors={colors}
+                        />
+                        <FilterBar
+                            filters={ADMIN_INSTALLATION_LANGUAGES.map((item) => ({ id: item.code, label: item.label }))}
+                            active={msgInstallationLanguage}
+                            onSelect={setMsgInstallationLanguage}
+                            colors={colors}
+                        />
+                        <FilterBar
+                            filters={ADMIN_INSTALLATION_PLATFORMS.map((item) => ({ id: item.code, label: item.label }))}
+                            active={msgInstallationPlatform}
+                            onSelect={setMsgInstallationPlatform}
+                            colors={colors}
+                        />
+                        <Text style={{ color: colors.textMuted, fontSize: 11 }}>
+                            Les installations sans compte reçoivent uniquement des notifications push. Le filtre pays permet d'envoyer le bon texte à la bonne audience linguistique.
+                        </Text>
+                    </View>
+                )}
+
                 <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, marginBottom: 6 }}>Canaux :</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                     {[
@@ -1348,7 +1421,7 @@ export default function AdminDashboard() {
                         { id: 'email' as AdminChannel, label: 'Email' },
                     ].map((channel) => {
                         const active = msgChannels.includes(channel.id);
-                        const disabled = channel.id === 'in_app';
+                        const disabled = channel.id === 'in_app' || msgTarget === 'anonymous_installations';
                         return (
                             <TouchableOpacity
                                 key={channel.id}

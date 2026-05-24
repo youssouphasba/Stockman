@@ -1406,13 +1406,27 @@ export const supplierInvoices = {
     request<any>(`/supplier/invoices/${invoiceId}/status`, { method: 'PUT', body: { status } }),
 };
 
+export type PushInstallationPayload = {
+  installation_id: string;
+  token: string;
+  platform: string;
+  locale?: string;
+  language?: string;
+  country_code?: string;
+  timezone?: string;
+  app_version?: string;
+};
+
 // Notifications
 export const notifications = {
-  registerToken: (token: string) => request<{ message: string }>('/notifications/register-token', { method: 'POST', body: { token } }),
-  registerTokenWithAccessToken: (token: string, accessToken: string) =>
+  registerInstallation: (payload: PushInstallationPayload) =>
+    rawRequest<{ message: string }>('/notifications/installations/register', { method: 'POST', body: payload }),
+  registerToken: (token: string, metadata?: Partial<PushInstallationPayload>) =>
+    request<{ message: string }>('/notifications/register-token', { method: 'POST', body: { ...(metadata || {}), token } }),
+  registerTokenWithAccessToken: (token: string, accessToken: string, metadata?: Partial<PushInstallationPayload>) =>
     rawRequest<{ message: string }>('/notifications/register-token', {
       method: 'POST',
-      body: { token },
+      body: { ...(metadata || {}), token },
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
   testPush: () => request<{ message: string }>('/notifications/test-push', { method: 'POST' }),
@@ -1654,7 +1668,16 @@ export const admin = {
   getDisputeStats: () => request<{ total: number; open: number; investigating: number; resolved: number; rejected: number; by_type: Record<string, number> }>('/admin/disputes/stats'),
 
   // Communication
-  sendMessage: (data: { title: string; content: string; type?: string; target?: string; channels?: ('in_app' | 'push' | 'email')[] }) =>
+  sendMessage: (data: {
+    title: string;
+    content: string;
+    type?: string;
+    target?: string;
+    channels?: ('in_app' | 'push' | 'email')[];
+    installation_language?: string;
+    installation_country_code?: string;
+    installation_platform?: string;
+  }) =>
     request<{ message_id: string; sent: boolean; delivery?: any }>('/admin/messages/send', { method: 'POST', body: data }),
   listMessages: (type?: string, skip = 0, limit = 50) => {
     const params = type ? `type=${type}&skip=${skip}&limit=${limit}` : `skip=${skip}&limit=${limit}`;

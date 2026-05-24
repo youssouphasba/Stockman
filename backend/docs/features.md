@@ -333,6 +333,26 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 ### Comment configurer les notifications push ?
 - **Paramètres** → **Notifications**
 - Activer les alertes pour : stock bas, rupture, produits dormants
+- L'application enregistre aussi l'installation mobile avec la langue de l'appareil ou la langue choisie, afin de pouvoir envoyer des notifications adaptées à la langue de l'utilisateur, y compris avant la création d'un compte lorsque l'autorisation push est accordée.
+
+### Comment cibler les installations sans compte depuis l'administration ?
+- Dans **Admin** → **Communication**, choisir la cible **Sans compte**.
+- Rédiger le titre et le message dans la langue voulue.
+- Filtrer l'audience par pays, langue et plateforme avant l'envoi.
+- Les installations sans compte reçoivent uniquement des notifications push ; les canaux in-app et e-mail restent réservés aux comptes enregistrés.
+
+### Quelles notifications système reçoivent les installations sans compte ?
+- **J+1** : bienvenue et invitation à créer un compte pour gérer le stock, les ventes et les alertes.
+- **J+3** : rappel de création de l'espace de gestion et activation des alertes utiles.
+- **J+7** : aide au démarrage avec les produits, les ventes et le suivi du stock.
+- Le message **J+1** est répété au maximum une fois par jour tant que l'installation n'est pas passée à l'étape suivante.
+- Les notifications sont envoyées uniquement si l'installation n'est pas encore rattachée à un compte.
+- Le texte est choisi selon la langue enregistrée ; à défaut, les pays francophones reçoivent le français et les autres pays reçoivent l'anglais.
+
+### Que reçoit un compte créé sans produit ?
+- Si un compte existe mais qu'aucun produit n'a encore été créé, les notifications d'activation dirigent l'utilisateur vers l'assistance Stockman.
+- Le message invite l'utilisateur à demander de l'aide pour créer ses premiers produits au lieu de simplement lui demander de les ajouter seul.
+- L'assistance est proposée dès la création du compte, puis au maximum une fois par jour tant qu'aucun produit n'est créé.
 
 ### Comment changer le mot de passe ?
 - **Paramètres** → **Sécurité** → **Changer le mot de passe**

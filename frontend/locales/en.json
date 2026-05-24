@@ -2705,7 +2705,7 @@
     "channel_in_app": "In the application",
     "channel_in_app_desc": "Visible in the app alert centre.",
     "channel_push": "Mobile push",
-    "channel_push_desc": "Notification on your phone even when the app is closed.",
+    "channel_push_desc": "Notification on your phone even when the app is closed, using the language and country saved for the mobile installation.",
     "channel_email": "Email",
     "channel_email_desc": "Sent to recipients configured below (or your default address).",
     "push_severity_label": "Minimum severity for push",
