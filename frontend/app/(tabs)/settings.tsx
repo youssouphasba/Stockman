@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { useFocusEffect, Link, useRouter } from 'expo-router';
+import { useFocusEffect, Link, useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
@@ -103,6 +103,56 @@ const SETTINGS_SECTION_GROUPS: SettingsSectionKey[][] = [
   ['security', 'legal', 'data'],
 ];
 
+const SETTINGS_SECTION_PARENT: Partial<Record<SettingsSectionKey, SettingsSectionKey>> = {
+  billing: 'accountAppGroup',
+  profile: 'accountAppGroup',
+  sync: 'accountAppGroup',
+  team: 'organizationGroup',
+  enterpriseHub: 'organizationGroup',
+  organization: 'organizationGroup',
+  storeIdentity: 'storeGroup',
+  storeDocuments: 'storeGroup',
+  storeEmpty: 'storeGroup',
+  notifications: 'alertsGroup',
+  accountAlerts: 'alertsGroup',
+  storeAlerts: 'alertsGroup',
+  tax: 'alertsGroup',
+  reminders: 'alertsGroup',
+  support: 'supportGroup',
+  incident: 'supportGroup',
+  security: 'securityGroup',
+  legal: 'securityGroup',
+  data: 'securityGroup',
+};
+
+const SETTINGS_SECTION_KEYS = new Set<SettingsSectionKey>([
+  'accountAppGroup',
+  'storeGroup',
+  'organizationGroup',
+  'alertsGroup',
+  'supportGroup',
+  'securityGroup',
+  'profile',
+  'notifications',
+  'team',
+  'enterpriseHub',
+  'organization',
+  'storeIdentity',
+  'storeDocuments',
+  'storeEmpty',
+  'storeAlerts',
+  'billing',
+  'accountAlerts',
+  'tax',
+  'reminders',
+  'sync',
+  'support',
+  'incident',
+  'security',
+  'legal',
+  'data',
+]);
+
 type SettingsAccordionSectionProps = {
   title: string;
   description: string;
@@ -153,6 +203,7 @@ function SettingsAccordionSection({
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const params = useLocalSearchParams<{ section?: string }>();
   const { colors, glassStyle, isDark, setTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -222,6 +273,18 @@ export default function SettingsScreen() {
     const timeout = setTimeout(() => setFeedback(null), 2600);
     return () => clearTimeout(timeout);
   }, [feedback]);
+
+  useEffect(() => {
+    const sectionParam = Array.isArray(params.section) ? params.section[0] : params.section;
+    if (!sectionParam || !SETTINGS_SECTION_KEYS.has(sectionParam as SettingsSectionKey)) return;
+    const section = sectionParam as SettingsSectionKey;
+    const parent = SETTINGS_SECTION_PARENT[section];
+    setExpandedSections((current) => ({
+      ...current,
+      ...(parent ? { [parent]: true } : {}),
+      [section]: true,
+    }));
+  }, [params.section]);
 
   function showFeedback(message: string, tone: 'success' | 'error' = 'success') {
     setFeedback({ tone, message });

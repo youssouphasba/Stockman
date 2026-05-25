@@ -2805,6 +2805,7 @@ class AdminMessage(BaseModel):
     read_count: int = 0
     read_by: List[str] = []
     delivery: Dict[str, Any] = Field(default_factory=dict)
+    deeplink: Dict[str, Any] = Field(default_factory=dict)
 
 class AdminMessageCreate(BaseModel):
     title: str
@@ -2816,6 +2817,24 @@ class AdminMessageCreate(BaseModel):
     installation_language: Optional[str] = None
     installation_country_code: Optional[str] = None
     installation_platform: Optional[str] = None
+    deeplink: Dict[str, Any] = Field(default_factory=dict)
+
+
+class AdminNotificationSuggestionRequest(BaseModel):
+    objective: str
+    target: str = "all"
+    language: str = "fr"
+    country_code: Optional[str] = None
+    tone: str = "clair"
+    current_title: Optional[str] = None
+    current_content: Optional[str] = None
+
+
+class AdminNotificationSuggestionResponse(BaseModel):
+    title: str
+    content: str
+    destination: str = "none"
+    rationale: str = ""
 
 
 class AdminNotificationsReadUpdate(BaseModel):
@@ -9010,7 +9029,12 @@ async def _deliver_admin_message(message: AdminMessage, recipients: List[dict]) 
             unique_tokens,
             message.title,
             message.content,
-            {"type": "admin_message", "message_id": message.message_id, "target": message.target},
+            {
+                "type": "admin_message",
+                "message_id": message.message_id,
+                "target": message.target,
+                **(message.deeplink or {}),
+            },
         )
     if "email" in channels:
         emails = [recipient.get("email") for recipient in recipients if recipient.get("email")]
@@ -9039,7 +9063,12 @@ async def _deliver_admin_message_to_installations(message: AdminMessage, install
         tokens,
         message.title,
         message.content,
-        {"type": "admin_message", "message_id": message.message_id, "target": message.target},
+        {
+            "type": "admin_message",
+            "message_id": message.message_id,
+            "target": message.target,
+            **(message.deeplink or {}),
+        },
     )
     return {
         "target_installations": len(installations),
@@ -13615,7 +13644,8 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
         target=data.target,
         target_user_ids=list(dict.fromkeys([user_id.strip() for user_id in data.recipient_user_ids if user_id.strip()])),
         channels=channels,
-        sent_by=user.name
+        sent_by=user.name,
+        deeplink={str(key): value for key, value in (data.deeplink or {}).items() if value is not None and str(value).strip()}
     )
     if is_anonymous_installation_target(data.target):
         installations = await _resolve_admin_push_installations(
@@ -13643,6 +13673,90 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
     })
     
     return {"message_id": msg.message_id, "sent": True, "delivery": delivery}
+
+
+ADMIN_NOTIFICATION_DESTINATIONS: Dict[str, str] = {
+    "none": "Aucune destination",
+    "home": "Accueil",
+    "products": "Produits",
+    "products_create": "Ajouter un produit",
+    "alerts": "Alertes",
+    "assistance": "Assistance",
+    "subscription": "Abonnement",
+    "orders": "Commandes",
+    "pos": "Caisse",
+    "crm": "CRM",
+    "accounting": "Comptabilité",
+    "settings": "Paramètres",
+}
+
+
+def clean_admin_notification_suggestion_text(value: Any, max_length: int) -> str:
+    text = re.sub(r"\s+", " ", str(value or "").strip())
+    return text[:max_length].strip()
+
+
+@admin_router.post("/messages/suggest", response_model=AdminNotificationSuggestionResponse)
+async def admin_suggest_notification_message(data: AdminNotificationSuggestionRequest, user: User = Depends(require_superadmin)):
+    objective = clean_admin_notification_suggestion_text(data.objective, 500)
+    if not objective:
+        raise HTTPException(status_code=400, detail="L'objectif est requis.")
+
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="La génération IA n'est pas configurée.")
+
+    allowed_destinations = "\n".join([f"- {key}: {label}" for key, label in ADMIN_NOTIFICATION_DESTINATIONS.items()])
+    prompt = f"""Tu es l'assistant de rédaction des notifications admin Stockman.
+Rédige une notification push professionnelle, courte et sans faute.
+
+Contexte :
+- Objectif : {objective}
+- Cible : {clean_admin_notification_suggestion_text(data.target, 80)}
+- Langue demandée : {clean_admin_notification_suggestion_text(data.language, 30)}
+- Pays : {clean_admin_notification_suggestion_text(data.country_code or "", 30) or "non précisé"}
+- Ton : {clean_admin_notification_suggestion_text(data.tone, 50)}
+- Titre actuel éventuel : {clean_admin_notification_suggestion_text(data.current_title or "", 120)}
+- Message actuel éventuel : {clean_admin_notification_suggestion_text(data.current_content or "", 260)}
+
+Destinations autorisées :
+{allowed_destinations}
+
+Contraintes :
+- Le titre doit faire 48 caractères maximum.
+- Le message doit faire 160 caractères maximum.
+- Choisis une seule destination parmi les clés autorisées.
+- Pour une aide au démarrage, choisis assistance.
+- Pour un compte sans produit, choisis assistance ou products_create selon le texte.
+- Pour une relance d'inscription, choisis none ou home si la cible a déjà un compte.
+- Ne promets pas de remise, d'appel ou de résultat non confirmé.
+- Réponds uniquement en JSON valide, sans markdown.
+
+Format attendu :
+{{"title":"...","content":"...","destination":"assistance","rationale":"..."}}"""
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(prompt)
+        raw_text = (response.text or "").strip()
+        if raw_text.startswith("```"):
+            raw_text = raw_text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        result = json.loads(raw_text)
+    except Exception as exc:
+        logger.error(f"Admin notification suggestion error: {exc}")
+        raise HTTPException(status_code=500, detail="Impossible de générer la notification pour le moment.")
+
+    destination = str(result.get("destination") or "none").strip()
+    if destination not in ADMIN_NOTIFICATION_DESTINATIONS:
+        destination = "none"
+
+    return AdminNotificationSuggestionResponse(
+        title=clean_admin_notification_suggestion_text(result.get("title"), 48) or "Stockman",
+        content=clean_admin_notification_suggestion_text(result.get("content"), 160),
+        destination=destination,
+        rationale=clean_admin_notification_suggestion_text(result.get("rationale"), 180),
+    )
 
 @admin_router.get("/messages")
 async def admin_list_messages(type: Optional[str] = None, skip: int = 0, limit: int = 50):

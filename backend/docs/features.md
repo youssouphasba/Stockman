@@ -339,7 +339,19 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 - Dans **Admin** → **Communication**, choisir la cible **Sans compte**.
 - Rédiger le titre et le message dans la langue voulue.
 - Filtrer l'audience par pays, langue et plateforme avant l'envoi.
+- Choisir une destination au clic si la notification doit ouvrir un écran précis.
 - Les installations sans compte reçoivent uniquement des notifications push ; les canaux in-app et e-mail restent réservés aux comptes enregistrés.
+
+### Les notifications admin peuvent-elles ouvrir une section précise ?
+- Oui. Depuis **Admin** → **Communication**, le champ **Destination au clic** permet d'ouvrir Accueil, Produits, Ajouter un produit, Alertes, Assistance, Abonnement, Commandes, Caisse, CRM, Comptabilité, Paramètres ou une section précise de **Paramètres**.
+- Les sections disponibles dans **Paramètres** couvrent notamment Compte et application, Abonnement et facturation, Profil et apparence, Synchronisation, Organisation et pilotage, Modules visibles, Boutique active, Boutique · Identité, Boutique · Documents, Fiscalité, Alertes et notifications, Canaux de réception, Destinataires, Support et incidents, Assistance, Déclarer un incident, Sécurité du compte, Informations légales, Données et suppression.
+- Pour les installations sans compte, privilégier une destination compatible avec l'étape d'inscription ou d'assistance, car les sections protégées nécessitent un compte connecté.
+
+### Comment utiliser l'aide IA pour rédiger une notification admin ?
+- Depuis **Admin** → **Communication**, renseigner l'objectif de la notification dans le bloc **Aide IA**.
+- L'IA propose un titre, un message court et une destination au clic cohérente avec la cible.
+- La proposition remplit le formulaire, mais l'envoi reste toujours manuel : l'administrateur doit relire puis cliquer sur **Envoyer**.
+- L'aide IA doit rester factuelle : elle ne doit pas promettre une remise, un appel ou un résultat qui n'a pas été confirmé.
 
 ### Quelles notifications système reçoivent les installations sans compte ?
 - **J+1** : bienvenue et invitation à créer un compte pour gérer le stock, les ventes et les alertes.

@@ -118,16 +118,48 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
                 Linking.openURL(String(data.url)).catch(() => null);
                 return;
             }
+            if (data?.screen === 'settings') {
+                const params: Record<string, string> = { source: 'notification' };
+                if (data?.section) params.section = String(data.section);
+                router.push({ pathname: '/(tabs)/settings', params } as any);
+                return;
+            }
+            if (data?.screen === 'home') {
+                router.push({ pathname: '/(tabs)', params: { source: 'notification' } } as any);
+                return;
+            }
+            if (data?.screen === 'orders') {
+                router.push({ pathname: '/(tabs)/orders', params: { source: 'notification' } } as any);
+                return;
+            }
+            if (data?.screen === 'pos') {
+                router.push({ pathname: '/(tabs)/pos', params: { source: 'notification' } } as any);
+                return;
+            }
+            if (data?.screen === 'crm') {
+                const params: Record<string, string> = { source: 'notification' };
+                if (data?.tab) params.tab = String(data.tab);
+                router.push({ pathname: '/(tabs)/crm', params } as any);
+                return;
+            }
+            if (data?.screen === 'accounting') {
+                router.push({ pathname: '/(tabs)/accounting', params: { source: 'notification' } } as any);
+                return;
+            }
+            if (data?.screen === 'subscription') {
+                router.push({ pathname: '/(tabs)/subscription', params: { source: 'notification' } } as any);
+                return;
+            }
             if (data?.screen === 'alerts') {
                 router.push('/(tabs)/alerts' as any);
                 return;
             }
             if (data?.screen === 'products') {
                 const filter = data?.filter;
-                router.push(filter
-                    ? { pathname: '/(tabs)/products', params: { filter: String(filter), source: 'notification' } } as any
-                    : '/(tabs)/products' as any
-                );
+                const params: Record<string, string> = { source: 'notification' };
+                if (filter) params.filter = String(filter);
+                if (data?.action) params.action = String(data.action);
+                router.push({ pathname: '/(tabs)/products', params } as any);
             }
         });
 

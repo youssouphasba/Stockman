@@ -492,7 +492,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "person-outline",
                 title: "Commencer par la bonne rubrique",
-                description: "L'écran Paramètres est organisé en grandes rubriques. Commencez par celle qui correspond à votre besoin réel : support, compte, boutique active, organisation, alertes ou sécurité."
+                description: "L'écran Paramètres est organisé en grandes rubriques. Commencez par celle qui correspond à votre besoin réel : support, compte, boutique active, organisation, alertes ou sécurité. Les notifications admin peuvent aussi ouvrir directement l'une de ces sections."
             },
             {
                 icon: "language-outline",
@@ -517,7 +517,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "notifications-outline",
                 title: "Alertes, rappels et facturation",
-                description: "Définissez ici comment vous recevez les alertes, à qui elles sont envoyées, quelles règles automatiques sont actives et testez l'envoi d'une notification push depuis votre appareil. L'installation mobile conserve aussi la langue et le pays de l'application pour préparer des notifications localisées, y compris les rappels système avant création de compte et l'orientation vers l'assistance au démarrage."
+                description: "Définissez ici comment vous recevez les alertes, à qui elles sont envoyées, quelles règles automatiques sont actives et testez l'envoi d'une notification push depuis votre appareil. L'installation mobile conserve aussi la langue et le pays de l'application pour préparer des notifications localisées, y compris les rappels système avant création de compte et l'orientation vers l'assistance au démarrage. Côté admin, l'aide IA peut proposer un titre, un message et une destination, mais l'envoi reste toujours validé manuellement."
             },
             {
                 icon: "lock-closed-outline",

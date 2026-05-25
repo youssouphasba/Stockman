@@ -2834,8 +2834,29 @@ export const admin = {
     // Communication
     broadcast: (message: string, title?: string) =>
         request<any>('/admin/broadcast', { method: 'POST', body: { message, title } }),
-    sendMessage: (data: { title: string; content: string; type?: string; target?: string; recipient_user_ids?: string[]; channels?: ('in_app' | 'push' | 'email')[] }) =>
+    sendMessage: (data: {
+        title: string;
+        content: string;
+        type?: string;
+        target?: string;
+        recipient_user_ids?: string[];
+        channels?: ('in_app' | 'push' | 'email')[];
+        installation_language?: string;
+        installation_country_code?: string;
+        installation_platform?: string;
+        deeplink?: Record<string, string>;
+    }) =>
         request<any>('/admin/messages/send', { method: 'POST', body: data }),
+    suggestNotificationMessage: (data: {
+        objective: string;
+        target?: string;
+        language?: string;
+        country_code?: string;
+        tone?: string;
+        current_title?: string;
+        current_content?: string;
+    }) =>
+        request<{ title: string; content: string; destination: string; rationale?: string }>('/admin/messages/suggest', { method: 'POST', body: data }),
     listMessages: (type?: string, skip = 0, limit = 50) => {
         const params = type ? `type=${type}&skip=${skip}&limit=${limit}` : `skip=${skip}&limit=${limit}`;
         return request<{ items: any[]; total: number }>(`/admin/messages?${params}`);

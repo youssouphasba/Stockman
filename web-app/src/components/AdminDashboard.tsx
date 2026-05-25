@@ -68,7 +68,83 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 type AdminChannel = 'in_app' | 'push' | 'email';
-type AdminMessageTarget = 'all' | 'shopkeeper' | 'supplier' | 'staff' | 'specific';
+type AdminMessageTarget = 'all' | 'shopkeeper' | 'supplier' | 'staff' | 'specific' | 'anonymous_installations';
+type AdminMessageDestination = { id: string; label: string; deeplink?: Record<string, string> };
+
+const ADMIN_INSTALLATION_LANGUAGES = [
+    { code: 'all', label: 'Toutes les langues' },
+    { code: 'fr', label: 'Français' },
+    { code: 'en', label: 'English' },
+    { code: 'wo', label: 'Wolof' },
+    { code: 'ff', label: 'Pulaar' },
+    { code: 'ar', label: 'Arabe' },
+    { code: 'es', label: 'Espagnol' },
+    { code: 'pt', label: 'Portugais' },
+];
+
+const ADMIN_INSTALLATION_COUNTRIES = [
+    { code: 'all', label: 'Tous les pays' },
+    { code: 'SN', label: 'Sénégal (SN)' },
+    { code: 'CI', label: "Côte d'Ivoire (CI)" },
+    { code: 'ML', label: 'Mali (ML)' },
+    { code: 'BF', label: 'Burkina Faso (BF)' },
+    { code: 'TG', label: 'Togo (TG)' },
+    { code: 'BJ', label: 'Bénin (BJ)' },
+    { code: 'NE', label: 'Niger (NE)' },
+    { code: 'GN', label: 'Guinée (GN)' },
+    { code: 'CM', label: 'Cameroun (CM)' },
+    { code: 'FR', label: 'France (FR)' },
+    { code: 'US', label: 'USA (US)' },
+    { code: 'MA', label: 'Maroc (MA)' },
+    { code: 'TN', label: 'Tunisie (TN)' },
+    { code: 'DZ', label: 'Algérie (DZ)' },
+    { code: 'GA', label: 'Gabon (GA)' },
+    { code: 'CG', label: 'Congo (CG)' },
+    { code: 'CD', label: 'RDC (CD)' },
+];
+
+const ADMIN_INSTALLATION_PLATFORMS = [
+    { code: 'all', label: 'Toutes les plateformes' },
+    { code: 'android', label: 'Android' },
+    { code: 'ios', label: 'iOS' },
+];
+
+const ADMIN_MESSAGE_DESTINATIONS: AdminMessageDestination[] = [
+    { id: 'none', label: 'Aucune destination' },
+    { id: 'home', label: 'Accueil', deeplink: { screen: 'home' } },
+    { id: 'products', label: 'Produits', deeplink: { screen: 'products' } },
+    { id: 'products_create', label: 'Produits · Ajouter un produit', deeplink: { screen: 'products', action: 'create' } },
+    { id: 'alerts', label: 'Alertes', deeplink: { screen: 'alerts' } },
+    { id: 'assistance', label: 'Assistance', deeplink: { screen: 'settings', section: 'support' } },
+    { id: 'orders', label: 'Commandes', deeplink: { screen: 'orders' } },
+    { id: 'pos', label: 'Caisse', deeplink: { screen: 'pos' } },
+    { id: 'crm', label: 'CRM', deeplink: { screen: 'crm' } },
+    { id: 'accounting', label: 'Comptabilité', deeplink: { screen: 'accounting' } },
+    { id: 'subscription', label: 'Abonnement', deeplink: { screen: 'subscription' } },
+    { id: 'settings', label: 'Paramètres', deeplink: { screen: 'settings' } },
+    { id: 'settings_account', label: 'Paramètres · Compte et application', deeplink: { screen: 'settings', section: 'accountAppGroup' } },
+    { id: 'settings_billing', label: 'Paramètres · Abonnement et facturation', deeplink: { screen: 'settings', section: 'billing' } },
+    { id: 'settings_profile', label: 'Paramètres · Profil et apparence', deeplink: { screen: 'settings', section: 'profile' } },
+    { id: 'settings_sync', label: 'Paramètres · Synchronisation', deeplink: { screen: 'settings', section: 'sync' } },
+    { id: 'settings_org', label: 'Paramètres · Organisation et pilotage', deeplink: { screen: 'settings', section: 'organizationGroup' } },
+    { id: 'settings_team', label: 'Paramètres · Équipe et accès', deeplink: { screen: 'settings', section: 'team' } },
+    { id: 'settings_modules', label: 'Paramètres · Modules visibles', deeplink: { screen: 'settings', section: 'organization' } },
+    { id: 'settings_store', label: 'Paramètres · Boutique active', deeplink: { screen: 'settings', section: 'storeGroup' } },
+    { id: 'settings_store_identity', label: 'Paramètres · Boutique · Identité', deeplink: { screen: 'settings', section: 'storeIdentity' } },
+    { id: 'settings_store_docs', label: 'Paramètres · Boutique · Documents', deeplink: { screen: 'settings', section: 'storeDocuments' } },
+    { id: 'settings_tax', label: 'Paramètres · Fiscalité', deeplink: { screen: 'settings', section: 'tax' } },
+    { id: 'settings_alerts', label: 'Paramètres · Alertes et notifications', deeplink: { screen: 'settings', section: 'alertsGroup' } },
+    { id: 'settings_channels', label: 'Paramètres · Canaux de réception', deeplink: { screen: 'settings', section: 'notifications' } },
+    { id: 'settings_account_recipients', label: 'Paramètres · Destinataires du compte', deeplink: { screen: 'settings', section: 'accountAlerts' } },
+    { id: 'settings_store_recipients', label: 'Paramètres · Destinataires de la boutique', deeplink: { screen: 'settings', section: 'storeAlerts' } },
+    { id: 'settings_support', label: 'Paramètres · Support et incidents', deeplink: { screen: 'settings', section: 'supportGroup' } },
+    { id: 'settings_assistance', label: 'Paramètres · Assistance', deeplink: { screen: 'settings', section: 'support' } },
+    { id: 'settings_incident', label: 'Paramètres · Déclarer un incident', deeplink: { screen: 'settings', section: 'incident' } },
+    { id: 'settings_security_group', label: 'Paramètres · Sécurité, légal et données', deeplink: { screen: 'settings', section: 'securityGroup' } },
+    { id: 'settings_security', label: 'Paramètres · Sécurité du compte', deeplink: { screen: 'settings', section: 'security' } },
+    { id: 'settings_legal', label: 'Paramètres · Informations légales', deeplink: { screen: 'settings', section: 'legal' } },
+    { id: 'settings_data', label: 'Paramètres · Données et suppression', deeplink: { screen: 'settings', section: 'data' } },
+];
 
 function formatAdminMoney(amount: any, currency: string) {
     if (amount === null || amount === undefined || amount === '') return '—';
@@ -112,6 +188,7 @@ function formatAdminMessageTarget(target: string | null | undefined) {
     if (target === 'shopkeeper') return 'Commerçants';
     if (target === 'supplier') return 'Fournisseurs';
     if (target === 'staff') return 'Staff';
+    if (target === 'anonymous_installations') return 'Installations sans compte';
     if (target.startsWith('selected_users:')) return `${target.split(':')[1] || 0} utilisateur(s) sélectionné(s)`;
     return target;
 }
@@ -255,10 +332,33 @@ export default function AdminDashboard() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [messageHistory, setMessageHistory] = useState<any[]>([]);
     const [messageHistoryTotal, setMessageHistoryTotal] = useState(0);
-    const [broadcastForm, setBroadcastForm] = useState<{ title: string; message: string; target: AdminMessageTarget; targetUserIds: string[]; channels: AdminChannel[] }>({ title: '', message: '', target: 'all', targetUserIds: [], channels: ['in_app', 'push'] });
+    const [broadcastForm, setBroadcastForm] = useState<{
+        title: string;
+        message: string;
+        target: AdminMessageTarget;
+        targetUserIds: string[];
+        channels: AdminChannel[];
+        destination: string;
+        installationLanguage: string;
+        installationCountry: string;
+        installationPlatform: string;
+    }>({
+        title: '',
+        message: '',
+        target: 'all',
+        targetUserIds: [],
+        channels: ['in_app', 'push'],
+        destination: 'none',
+        installationLanguage: 'all',
+        installationCountry: 'all',
+        installationPlatform: 'all',
+    });
     const [messageUserSearch, setMessageUserSearch] = useState('');
     const [messageUserPlanFilter, setMessageUserPlanFilter] = useState('');
     const [messageUserCountryFilter, setMessageUserCountryFilter] = useState('');
+    const [broadcastAiObjective, setBroadcastAiObjective] = useState('');
+    const [broadcastAiRationale, setBroadcastAiRationale] = useState('');
+    const [broadcastAiGenerating, setBroadcastAiGenerating] = useState(false);
     const [leadContacts, setLeadContacts] = useState<any[]>([]);
     const [leadSubscribers, setLeadSubscribers] = useState<any[]>([]);
     const [leadsLoading, setLeadsLoading] = useState(false);
@@ -374,7 +474,13 @@ export default function AdminDashboard() {
             target: 'specific',
             targetUserIds: [user.user_id],
             channels: ['in_app', 'push'],
+            destination: 'none',
+            installationLanguage: 'all',
+            installationCountry: 'all',
+            installationPlatform: 'all',
         });
+        setBroadcastAiObjective('');
+        setBroadcastAiRationale('');
         setActiveSection('broadcast');
         setDetailUser(null);
         setDetailData(null);
@@ -410,6 +516,39 @@ export default function AdminDashboard() {
                 : [...current.targetUserIds, userId];
             return { ...current, targetUserIds: nextIds };
         });
+    };
+
+    const generateBroadcastWithAi = async () => {
+        const objective = broadcastAiObjective.trim() || broadcastForm.message.trim();
+        if (!objective) {
+            showToast("Indiquez l'objectif de la notification.", 'error');
+            return;
+        }
+        setBroadcastAiGenerating(true);
+        try {
+            const suggestion = await adminApi.suggestNotificationMessage({
+                objective,
+                target: broadcastForm.target,
+                language: broadcastForm.installationLanguage !== 'all' ? broadcastForm.installationLanguage : 'fr',
+                country_code: broadcastForm.installationCountry !== 'all' ? broadcastForm.installationCountry : undefined,
+                tone: 'clair',
+                current_title: broadcastForm.title,
+                current_content: broadcastForm.message,
+            });
+            setBroadcastForm(current => ({
+                ...current,
+                title: suggestion.title || current.title,
+                message: suggestion.content || current.message,
+                destination: ADMIN_MESSAGE_DESTINATIONS.some(destination => destination.id === suggestion.destination)
+                    ? suggestion.destination
+                    : current.destination,
+            }));
+            setBroadcastAiRationale(suggestion.rationale || '');
+        } catch {
+            showToast("Impossible de générer une proposition pour le moment.", 'error');
+        } finally {
+            setBroadcastAiGenerating(false);
+        }
     };
 
     useEffect(() => { loadInitialData(); }, []);
@@ -3811,11 +3950,38 @@ export default function AdminDashboard() {
                                     placeholder="Contenu du message"
                                 />
                             </div>
+                            <div className="rounded-2xl border border-violet-500/20 bg-violet-500/10 p-4 space-y-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-violet-300">Aide IA</p>
+                                        <p className="mt-1 text-xs text-slate-400">Génère un titre, un message court et une destination. L'envoi reste manuel.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={generateBroadcastWithAi}
+                                        disabled={broadcastAiGenerating}
+                                        className="rounded-xl bg-violet-500 px-4 py-2 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-violet-400 disabled:opacity-50"
+                                    >
+                                        {broadcastAiGenerating ? 'Génération...' : 'Générer'}
+                                    </button>
+                                </div>
+                                <textarea
+                                    value={broadcastAiObjective}
+                                    onChange={e => setBroadcastAiObjective(e.target.value)}
+                                    rows={3}
+                                    className="w-full resize-none rounded-xl border border-white/10 bg-slate-950/50 p-3 text-sm text-white outline-none transition-all focus:border-violet-400/60"
+                                    placeholder="Objectif : relancer les comptes sans produits, annoncer une nouveauté, guider vers l'assistance..."
+                                />
+                                {broadcastAiRationale ? (
+                                    <p className="text-xs text-slate-500">{broadcastAiRationale}</p>
+                                ) : null}
+                            </div>
                             <div className="flex flex-col gap-3">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cible</label>
                                 <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
                                     {[
                                         { id: 'all' as AdminMessageTarget, label: 'Tous' },
+                                        { id: 'anonymous_installations' as AdminMessageTarget, label: 'Sans compte' },
                                         { id: 'shopkeeper' as AdminMessageTarget, label: 'Commerçants' },
                                         { id: 'supplier' as AdminMessageTarget, label: 'Fournisseurs' },
                                         { id: 'staff' as AdminMessageTarget, label: 'Staff' },
@@ -3826,7 +3992,12 @@ export default function AdminDashboard() {
                                             <button
                                                 key={target.id}
                                                 type="button"
-                                                onClick={() => setBroadcastForm(current => ({ ...current, target: target.id, targetUserIds: target.id === 'specific' ? current.targetUserIds : [] }))}
+                                                onClick={() => setBroadcastForm(current => ({
+                                                    ...current,
+                                                    target: target.id,
+                                                    targetUserIds: target.id === 'specific' ? current.targetUserIds : [],
+                                                    channels: target.id === 'anonymous_installations' ? ['push'] : current.channels,
+                                                }))}
                                                 className={`rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-widest transition-all ${active ? 'border-primary/40 bg-primary/15 text-primary' : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'}`}
                                             >
                                                 {target.label}
@@ -3915,6 +4086,53 @@ export default function AdminDashboard() {
                                     </div>
                                 ) : null}
                             </div>
+                            {broadcastForm.target === 'anonymous_installations' ? (
+                                <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 space-y-3">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Filtres installations sans compte</p>
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                        <select
+                                            value={broadcastForm.installationCountry}
+                                            onChange={e => setBroadcastForm(current => ({ ...current, installationCountry: e.target.value }))}
+                                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary/50"
+                                        >
+                                            {ADMIN_INSTALLATION_COUNTRIES.map(item => (
+                                                <option key={item.code} value={item.code}>{item.label}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={broadcastForm.installationLanguage}
+                                            onChange={e => setBroadcastForm(current => ({ ...current, installationLanguage: e.target.value }))}
+                                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary/50"
+                                        >
+                                            {ADMIN_INSTALLATION_LANGUAGES.map(item => (
+                                                <option key={item.code} value={item.code}>{item.label}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={broadcastForm.installationPlatform}
+                                            onChange={e => setBroadcastForm(current => ({ ...current, installationPlatform: e.target.value }))}
+                                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-primary/50"
+                                        >
+                                            {ADMIN_INSTALLATION_PLATFORMS.map(item => (
+                                                <option key={item.code} value={item.code}>{item.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <p className="text-xs text-slate-500">Les installations sans compte reçoivent uniquement des notifications push.</p>
+                                </div>
+                            ) : null}
+                            <div className="flex flex-col gap-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Destination au clic</label>
+                                <select
+                                    value={broadcastForm.destination}
+                                    onChange={e => setBroadcastForm(current => ({ ...current, destination: e.target.value }))}
+                                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50"
+                                >
+                                    {ADMIN_MESSAGE_DESTINATIONS.map(destination => (
+                                        <option key={destination.id} value={destination.id}>{destination.label}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div className="flex flex-col gap-3">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Canaux</label>
                                 <div className="flex flex-wrap gap-2">
@@ -3924,7 +4142,7 @@ export default function AdminDashboard() {
                                         { id: 'email' as AdminChannel, label: 'Email' },
                                     ].map(channel => {
                                         const active = broadcastForm.channels.includes(channel.id);
-                                        const locked = channel.id === 'in_app';
+                                        const locked = channel.id === 'in_app' || broadcastForm.target === 'anonymous_installations';
                                         return (
                                             <button
                                                 key={channel.id}
@@ -3948,6 +4166,7 @@ export default function AdminDashboard() {
                                     }
                                     setSaving(true);
                                     try {
+                                        const selectedDestination = ADMIN_MESSAGE_DESTINATIONS.find(destination => destination.id === broadcastForm.destination);
                                         const target = broadcastForm.target === 'specific'
                                             ? `selected_users:${broadcastForm.targetUserIds.length}`
                                             : broadcastForm.target;
@@ -3957,10 +4176,26 @@ export default function AdminDashboard() {
                                             target,
                                             recipient_user_ids: broadcastForm.target === 'specific' ? broadcastForm.targetUserIds : undefined,
                                             type: broadcastForm.target === 'all' ? 'broadcast' : broadcastForm.target === 'specific' ? 'individual' : 'announcement',
-                                            channels: broadcastForm.channels,
+                                            channels: broadcastForm.target === 'anonymous_installations' ? ['push'] : broadcastForm.channels,
+                                            installation_language: broadcastForm.target === 'anonymous_installations' && broadcastForm.installationLanguage !== 'all' ? broadcastForm.installationLanguage : undefined,
+                                            installation_country_code: broadcastForm.target === 'anonymous_installations' && broadcastForm.installationCountry !== 'all' ? broadcastForm.installationCountry : undefined,
+                                            installation_platform: broadcastForm.target === 'anonymous_installations' && broadcastForm.installationPlatform !== 'all' ? broadcastForm.installationPlatform : undefined,
+                                            deeplink: selectedDestination?.deeplink,
                                         });
                                         showToast('Message envoyé.');
-                                        setBroadcastForm({ title: '', message: '', target: 'all', targetUserIds: [], channels: ['in_app', 'push'] });
+                                        setBroadcastForm({
+                                            title: '',
+                                            message: '',
+                                            target: 'all',
+                                            targetUserIds: [],
+                                            channels: ['in_app', 'push'],
+                                            destination: 'none',
+                                            installationLanguage: 'all',
+                                            installationCountry: 'all',
+                                            installationPlatform: 'all',
+                                        });
+                                        setBroadcastAiObjective('');
+                                        setBroadcastAiRationale('');
                                         await loadBroadcastHistory();
                                     } catch {
                                         showToast("Erreur lors de l'envoi.", 'error');

@@ -14,6 +14,7 @@ const { width } = Dimensions.get('window');
 type Segment = 'global' | 'users' | 'stores' | 'subscriptions' | 'demos' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'leads' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
 type AdminChannel = 'in_app' | 'push' | 'email';
 type AdminMessageTarget = 'all' | 'shopkeeper' | 'supplier' | 'staff' | 'specific' | 'anonymous_installations';
+type AdminMessageDestination = { id: string; label: string; deeplink?: Record<string, string> };
 
 import { useTranslation } from 'react-i18next';
 
@@ -57,6 +58,43 @@ const ADMIN_INSTALLATION_PLATFORMS = [
     { code: 'all', label: 'Toutes les plateformes' },
     { code: 'android', label: 'Android' },
     { code: 'ios', label: 'iOS' },
+];
+
+const ADMIN_MESSAGE_DESTINATIONS: AdminMessageDestination[] = [
+    { id: 'none', label: 'Aucune destination' },
+    { id: 'home', label: 'Accueil', deeplink: { screen: 'home' } },
+    { id: 'products', label: 'Produits', deeplink: { screen: 'products' } },
+    { id: 'products_create', label: 'Produits · Ajouter un produit', deeplink: { screen: 'products', action: 'create' } },
+    { id: 'alerts', label: 'Alertes', deeplink: { screen: 'alerts' } },
+    { id: 'assistance', label: 'Assistance', deeplink: { screen: 'settings', section: 'support' } },
+    { id: 'orders', label: 'Commandes', deeplink: { screen: 'orders' } },
+    { id: 'pos', label: 'Caisse', deeplink: { screen: 'pos' } },
+    { id: 'crm', label: 'CRM', deeplink: { screen: 'crm' } },
+    { id: 'accounting', label: 'Comptabilité', deeplink: { screen: 'accounting' } },
+    { id: 'subscription', label: 'Abonnement', deeplink: { screen: 'subscription' } },
+    { id: 'settings', label: 'Paramètres', deeplink: { screen: 'settings' } },
+    { id: 'settings_account', label: 'Paramètres · Compte et application', deeplink: { screen: 'settings', section: 'accountAppGroup' } },
+    { id: 'settings_billing', label: 'Paramètres · Abonnement et facturation', deeplink: { screen: 'settings', section: 'billing' } },
+    { id: 'settings_profile', label: 'Paramètres · Profil et apparence', deeplink: { screen: 'settings', section: 'profile' } },
+    { id: 'settings_sync', label: 'Paramètres · Synchronisation', deeplink: { screen: 'settings', section: 'sync' } },
+    { id: 'settings_org', label: 'Paramètres · Organisation et pilotage', deeplink: { screen: 'settings', section: 'organizationGroup' } },
+    { id: 'settings_team', label: 'Paramètres · Équipe et accès', deeplink: { screen: 'settings', section: 'team' } },
+    { id: 'settings_modules', label: 'Paramètres · Modules visibles', deeplink: { screen: 'settings', section: 'organization' } },
+    { id: 'settings_store', label: 'Paramètres · Boutique active', deeplink: { screen: 'settings', section: 'storeGroup' } },
+    { id: 'settings_store_identity', label: 'Paramètres · Boutique · Identité', deeplink: { screen: 'settings', section: 'storeIdentity' } },
+    { id: 'settings_store_docs', label: 'Paramètres · Boutique · Documents', deeplink: { screen: 'settings', section: 'storeDocuments' } },
+    { id: 'settings_tax', label: 'Paramètres · Fiscalité', deeplink: { screen: 'settings', section: 'tax' } },
+    { id: 'settings_alerts', label: 'Paramètres · Alertes et notifications', deeplink: { screen: 'settings', section: 'alertsGroup' } },
+    { id: 'settings_channels', label: 'Paramètres · Canaux de réception', deeplink: { screen: 'settings', section: 'notifications' } },
+    { id: 'settings_account_recipients', label: 'Paramètres · Destinataires du compte', deeplink: { screen: 'settings', section: 'accountAlerts' } },
+    { id: 'settings_store_recipients', label: 'Paramètres · Destinataires de la boutique', deeplink: { screen: 'settings', section: 'storeAlerts' } },
+    { id: 'settings_support', label: 'Paramètres · Support et incidents', deeplink: { screen: 'settings', section: 'supportGroup' } },
+    { id: 'settings_assistance', label: 'Paramètres · Assistance', deeplink: { screen: 'settings', section: 'support' } },
+    { id: 'settings_incident', label: 'Paramètres · Déclarer un incident', deeplink: { screen: 'settings', section: 'incident' } },
+    { id: 'settings_security_group', label: 'Paramètres · Sécurité, légal et données', deeplink: { screen: 'settings', section: 'securityGroup' } },
+    { id: 'settings_security', label: 'Paramètres · Sécurité du compte', deeplink: { screen: 'settings', section: 'security' } },
+    { id: 'settings_legal', label: 'Paramètres · Informations légales', deeplink: { screen: 'settings', section: 'legal' } },
+    { id: 'settings_data', label: 'Paramètres · Données et suppression', deeplink: { screen: 'settings', section: 'data' } },
 ];
 
 export default function AdminDashboard() {
@@ -133,6 +171,10 @@ export default function AdminDashboard() {
     const [msgContent, setMsgContent] = useState('');
     const [msgTarget, setMsgTarget] = useState<AdminMessageTarget>('all');
     const [msgChannels, setMsgChannels] = useState<AdminChannel[]>(['in_app', 'push']);
+    const [msgDestination, setMsgDestination] = useState('none');
+    const [msgAiObjective, setMsgAiObjective] = useState('');
+    const [msgAiGenerating, setMsgAiGenerating] = useState(false);
+    const [msgAiRationale, setMsgAiRationale] = useState('');
     const [msgInstallationLanguage, setMsgInstallationLanguage] = useState('all');
     const [msgInstallationCountry, setMsgInstallationCountry] = useState('all');
     const [msgInstallationPlatform, setMsgInstallationPlatform] = useState('all');
@@ -454,6 +496,7 @@ export default function AdminDashboard() {
         try {
             const messageType = finalTarget === 'all' ? 'broadcast' : msgTarget === 'specific' ? 'individual' : 'announcement';
             const isAnonymousTarget = msgTarget === 'anonymous_installations';
+            const destination = ADMIN_MESSAGE_DESTINATIONS.find((item) => item.id === msgDestination);
             await admin.sendMessage({
                 title: msgTitle,
                 content: msgContent,
@@ -463,9 +506,38 @@ export default function AdminDashboard() {
                 installation_language: isAnonymousTarget && msgInstallationLanguage !== 'all' ? msgInstallationLanguage : undefined,
                 installation_country_code: isAnonymousTarget && msgInstallationCountry !== 'all' ? msgInstallationCountry : undefined,
                 installation_platform: isAnonymousTarget && msgInstallationPlatform !== 'all' ? msgInstallationPlatform : undefined,
+                deeplink: destination?.deeplink,
             });
-            Alert.alert(t('admin.actions.sendSuccess')); setMsgTitle(''); setMsgContent(''); setTargetUserId(''); setMsgChannels(['in_app', 'push']); loadData();
+            Alert.alert(t('admin.actions.sendSuccess')); setMsgTitle(''); setMsgContent(''); setMsgAiObjective(''); setMsgAiRationale(''); setTargetUserId(''); setMsgDestination('none'); setMsgChannels(['in_app', 'push']); loadData();
         } catch { Alert.alert(t('admin.actions.error')); }
+    };
+
+    const handleGenerateNotificationMessage = async () => {
+        const objective = msgAiObjective.trim() || msgContent.trim();
+        if (!objective) return Alert.alert('Aide IA', "Indique l'objectif de la notification.");
+        const finalTarget = msgTarget === 'specific' ? targetUserId.trim() || 'specific' : msgTarget;
+        try {
+            setMsgAiGenerating(true);
+            const suggestion = await admin.suggestNotificationMessage({
+                objective,
+                target: finalTarget,
+                language: msgInstallationLanguage !== 'all' ? msgInstallationLanguage : 'fr',
+                country_code: msgInstallationCountry !== 'all' ? msgInstallationCountry : undefined,
+                tone: 'clair',
+                current_title: msgTitle,
+                current_content: msgContent,
+            });
+            setMsgTitle(suggestion.title || msgTitle);
+            setMsgContent(suggestion.content || msgContent);
+            if (suggestion.destination && ADMIN_MESSAGE_DESTINATIONS.some((item) => item.id === suggestion.destination)) {
+                setMsgDestination(suggestion.destination);
+            }
+            setMsgAiRationale(suggestion.rationale || '');
+        } catch {
+            Alert.alert('Aide IA', "Impossible de générer une proposition pour le moment.");
+        } finally {
+            setMsgAiGenerating(false);
+        }
     };
 
     const toggleMsgChannel = (channel: AdminChannel) => {
@@ -476,6 +548,9 @@ export default function AdminDashboard() {
     const openUserCommunication = (target: User) => {
         setMsgTitle('');
         setMsgContent('');
+        setMsgAiObjective('');
+        setMsgAiRationale('');
+        setMsgDestination('none');
         setMsgTarget('specific');
         setTargetUserId(target.user_id);
         setMsgChannels(['in_app', 'push']);
@@ -1352,6 +1427,27 @@ export default function AdminDashboard() {
                     style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 10, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder, minHeight: 80, marginBottom: 8 }}
                     multiline
                 />
+                <View style={{ backgroundColor: colors.inputBg, borderRadius: 10, borderWidth: 1, borderColor: colors.glassBorder, padding: 10, marginBottom: 8, gap: 8 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700' }}>Aide IA</Text>
+                    <TextInput
+                        value={msgAiObjective}
+                        onChangeText={setMsgAiObjective}
+                        placeholder="Objectif de la notification"
+                        placeholderTextColor={colors.textMuted}
+                        style={{ color: colors.text, minHeight: 54 }}
+                        multiline
+                    />
+                    <TouchableOpacity
+                        onPress={handleGenerateNotificationMessage}
+                        disabled={msgAiGenerating}
+                        style={{ backgroundColor: '#8B5CF6', borderRadius: 8, padding: 10, alignItems: 'center', opacity: msgAiGenerating ? 0.7 : 1 }}
+                    >
+                        <Text style={{ color: '#fff', fontWeight: '700' }}>{msgAiGenerating ? 'Génération...' : 'Générer avec l’IA'}</Text>
+                    </TouchableOpacity>
+                    {!!msgAiRationale && (
+                        <Text style={{ color: colors.textMuted, fontSize: 11 }}>{msgAiRationale}</Text>
+                    )}
+                </View>
                 <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}>{t('admin.comms.targetLabel')}:</Text>
                 <Text style={{ color: colors.textMuted, fontSize: 11, marginBottom: 8 }}>
                     Pour cibler les personnes qui ont installé l'application sans créer de compte, choisissez Installations sans compte.
@@ -1412,6 +1508,14 @@ export default function AdminDashboard() {
                         </Text>
                     </View>
                 )}
+
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, marginBottom: 6 }}>Destination au clic :</Text>
+                <FilterBar
+                    filters={ADMIN_MESSAGE_DESTINATIONS.map((item) => ({ id: item.id, label: item.label }))}
+                    active={msgDestination}
+                    onSelect={setMsgDestination}
+                    colors={colors}
+                />
 
                 <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, marginBottom: 6 }}>Canaux :</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
