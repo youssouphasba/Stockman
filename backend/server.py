@@ -13765,8 +13765,9 @@ Contraintes :
 - Le titre doit faire 48 caractères maximum.
 - Le message doit faire 160 caractères maximum.
 - Choisis une seule destination parmi les clés autorisées.
-- Pour une aide au démarrage, choisis assistance.
-- Pour un compte sans produit, choisis assistance ou products_create selon le texte.
+- Si l'objectif demande d'ajouter, créer, importer ou configurer des produits, choisis products_create.
+- Pour une aide au démarrage sans demande explicite de création produit, choisis assistance.
+- Pour un compte sans produit, choisis products_create si le message invite à créer des produits, sinon assistance si le message invite à demander de l'aide.
 - Pour une relance d'inscription, choisis none ou home si la cible a déjà un compte.
 - Ne promets pas de remise, d'appel ou de résultat non confirmé.
 - Réponds uniquement en JSON valide, sans markdown.

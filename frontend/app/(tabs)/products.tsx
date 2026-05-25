@@ -117,6 +117,7 @@ export default function ProductsScreen() {
   const {
     filter: filterParam,
     product_id: productIdParam,
+    action: actionParam,
     source: sourceParam,
     alert_id: alertIdParam,
     reminder_type: reminderTypeParam,
@@ -133,6 +134,7 @@ export default function ProductsScreen() {
   } = useLocalSearchParams<{
     filter?: string;
     product_id?: string;
+    action?: string;
     source?: string;
     alert_id?: string;
     reminder_type?: string;
@@ -185,6 +187,7 @@ export default function ProductsScreen() {
   const [trackedImportJob, setTrackedImportJob] = useState<ProductImportJob | null>(null);
   const [trackedDeleteJob, setTrackedDeleteJob] = useState<ProductDeleteJob | null>(null);
   const handledReminderProductRef = useRef<string | null>(null);
+  const handledCreateActionRef = useRef<string | null>(null);
   const handledProductPrefillRef = useRef<string | null>(null);
   const deliveryReturnContextRef = useRef<{ orderId: string; catalogId: string; token: string } | null>(null);
   const lastLoadedAtRef = useRef(0);
@@ -219,6 +222,16 @@ export default function ProductsScreen() {
       setFilterType(nextFilter);
     }
   }, [filterParam]);
+
+  useEffect(() => {
+    const action = Array.isArray(actionParam) ? actionParam[0] : actionParam;
+    const source = Array.isArray(sourceParam) ? sourceParam[0] : sourceParam;
+    if (action !== 'create') return;
+    const actionKey = `${source || 'direct'}:${action}`;
+    if (handledCreateActionRef.current === actionKey) return;
+    handledCreateActionRef.current = actionKey;
+    setShowAddMenu(true);
+  }, [actionParam, sourceParam]);
 
   const serverProductStatus = filterType === 'deadstock' || filterType === 'all' ? undefined : filterType;
 

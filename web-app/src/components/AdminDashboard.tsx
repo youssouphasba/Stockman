@@ -3978,10 +3978,10 @@ export default function AdminDashboard() {
                             </div>
                             <div className="flex flex-col gap-3">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cible</label>
-                                <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+                                <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
                                     {[
                                         { id: 'all' as AdminMessageTarget, label: 'Tous' },
-                                        { id: 'anonymous_installations' as AdminMessageTarget, label: 'Sans compte' },
+                                        { id: 'anonymous_installations' as AdminMessageTarget, label: 'Installations sans compte' },
                                         { id: 'shopkeeper' as AdminMessageTarget, label: 'Commerçants' },
                                         { id: 'supplier' as AdminMessageTarget, label: 'Fournisseurs' },
                                         { id: 'staff' as AdminMessageTarget, label: 'Staff' },

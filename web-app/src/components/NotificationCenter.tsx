@@ -82,6 +82,9 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
         const tab = tabByScreen[screen];
         if (!tab) return;
         if (!notif.is_read) void handleMarkRead(notif.message_id);
+        if (screen === 'products' && notif.deeplink?.action === 'create') {
+            window.sessionStorage.setItem('stockman_inventory_action', 'create');
+        }
         onClose();
         window.location.hash = tab;
         window.dispatchEvent(new HashChangeEvent('hashchange'));

@@ -164,6 +164,14 @@ export default function Inventory() {
     const [trackedDeleteJob, setTrackedDeleteJob] = useState<ProductDeleteJob | null>(null);
     const [bulkDeleteProcessedCount, setBulkDeleteProcessedCount] = useState(0);
     const [bulkDeleteTotalCount, setBulkDeleteTotalCount] = useState(0);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const action = window.sessionStorage.getItem('stockman_inventory_action');
+        if (action !== 'create') return;
+        window.sessionStorage.removeItem('stockman_inventory_action');
+        setShowCreateMenu(true);
+    }, []);
     const deleteJobNotificationRef = useRef<string | null>(null);
     const [catalogImportLoading, setCatalogImportLoading] = useState(false);
     const [stockHealth, setStockHealth] = useState<AnalyticsStockHealth | null>(null);
