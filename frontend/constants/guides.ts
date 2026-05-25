@@ -517,7 +517,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "notifications-outline",
                 title: "Alertes, rappels et facturation",
-                description: "Définissez ici comment vous recevez les alertes, à qui elles sont envoyées, quelles règles automatiques sont actives et testez l'envoi d'une notification push depuis votre appareil. L'installation mobile conserve aussi la langue et le pays de l'application pour préparer des notifications localisées, y compris les rappels système avant création de compte et l'orientation vers l'assistance au démarrage. Côté admin, l'aide IA peut proposer un titre, un message et une destination, mais l'envoi reste toujours validé manuellement."
+                description: "Définissez ici comment vous recevez les alertes, à qui elles sont envoyées, quelles règles automatiques sont actives et testez l'envoi d'une notification push depuis votre appareil. L'installation mobile conserve aussi la langue et le pays de l'application pour préparer des notifications localisées, y compris les rappels système avant création de compte et l'orientation vers l'assistance au démarrage. Côté admin, l'aide IA peut proposer un titre, un message et une destination, mais l'envoi reste toujours validé manuellement. Les messages in-app et les e-mails affichent aussi un bouton d'ouverture quand une destination est définie."
             },
             {
                 icon: "lock-closed-outline",

@@ -9012,6 +9012,34 @@ async def _resolve_admin_push_installations(
     ).to_list(length=10000)
 
 
+def build_admin_message_action_url(deeplink: Optional[Dict[str, Any]]) -> Optional[str]:
+    data = deeplink or {}
+    screen = str(data.get("screen") or "").strip()
+    if not screen:
+        return None
+    path_by_screen = {
+        "home": "dashboard",
+        "products": "products",
+        "alerts": "alerts",
+        "settings": "settings",
+        "orders": "orders",
+        "pos": "pos",
+        "crm": "crm",
+        "accounting": "accounting",
+        "subscription": "subscription",
+    }
+    path = path_by_screen.get(screen)
+    if not path:
+        return None
+    params = {
+        key: value
+        for key, value in data.items()
+        if key != "screen" and value is not None and str(value).strip()
+    }
+    params["source"] = "admin_message"
+    return build_signed_app_open_link(build_app_deeplink(path, params), purpose="admin_message")
+
+
 async def _deliver_admin_message(message: AdminMessage, recipients: List[dict]) -> Dict[str, Any]:
     channels = set(message.channels or ["in_app"])
     delivery: Dict[str, Any] = {
@@ -9038,15 +9066,26 @@ async def _deliver_admin_message(message: AdminMessage, recipients: List[dict]) 
         )
     if "email" in channels:
         emails = [recipient.get("email") for recipient in recipients if recipient.get("email")]
+        action_url = build_admin_message_action_url(message.deeplink)
+        action_html = ""
+        action_text = ""
+        if action_url:
+            action_html = f"""
+        <p style="margin:20px 0;">
+            <a href="{escape(action_url)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Ouvrir dans Stockman</a>
+        </p>
+            """
+            action_text = f"\n\nOuvrir dans Stockman : {action_url}"
         html_body = f"""
         <p>{escape(message.content).replace(chr(10), '<br>')}</p>
+        {action_html}
         <p style="color:#64748b;font-size:12px;">Message envoyé par Stockman.</p>
         """
         delivery["email"] = await notification_service.send_email_notification(
             emails,
             message.title,
             html_body,
-            text_body=message.content,
+            text_body=f"{message.content}{action_text}",
             from_email=notification_service.communication_email_from,
         )
         delivery["email_recipients"] = len(list(dict.fromkeys([str(email).strip().lower() for email in emails if email])))

@@ -335,6 +335,30 @@ export default function DashboardScreen() {
     } catch { /* ignore */ }
   }, []);
 
+  const openNotificationDestination = useCallback((deeplink?: Record<string, string>) => {
+    const screen = String(deeplink?.screen || '');
+    if (!screen) return;
+    const params: Record<string, string> = { source: 'in_app_message' };
+    Object.entries(deeplink || {}).forEach(([key, value]) => {
+      if (key !== 'screen' && value) params[key] = String(value);
+    });
+    const routes: Record<string, any> = {
+      home: '/(tabs)',
+      products: '/(tabs)/products',
+      alerts: '/(tabs)/alerts',
+      settings: '/(tabs)/settings',
+      orders: '/(tabs)/orders',
+      pos: '/(tabs)/pos',
+      crm: '/(tabs)/crm',
+      accounting: '/(tabs)/accounting',
+      subscription: '/(tabs)/subscription',
+    };
+    const pathname = routes[screen];
+    if (!pathname) return;
+    setShowNotifModal(false);
+    router.push({ pathname, params } as any);
+  }, [router]);
+
   const cancelDeferredLoads = useCallback(() => {
     deferredLoadVersionRef.current += 1;
 
@@ -2171,6 +2195,28 @@ export default function DashboardScreen() {
                           <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 6 }}>
                             {n.sent_by}
                           </Text>
+                        )}
+                        {!!n.deeplink?.screen && (
+                          <TouchableOpacity
+                            onPress={() => {
+                              if (!n.is_read && n.message_id) {
+                                void handleMarkNotificationRead(n.message_id);
+                              }
+                              openNotificationDestination(n.deeplink);
+                            }}
+                            style={{
+                              alignSelf: 'flex-start',
+                              marginTop: 10,
+                              backgroundColor: colors.primary,
+                              borderRadius: 999,
+                              paddingVertical: 7,
+                              paddingHorizontal: 12,
+                            }}
+                          >
+                            <Text style={{ color: '#fff', fontSize: FontSize.xs, fontWeight: '700' }}>
+                              Ouvrir
+                            </Text>
+                          </TouchableOpacity>
                         )}
                       </View>
                     </View>

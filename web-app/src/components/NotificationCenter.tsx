@@ -65,6 +65,28 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
         } catch { /* silent */ }
     };
 
+    const openDestination = (notif: UserNotification) => {
+        const screen = String(notif.deeplink?.screen || '');
+        if (!screen) return;
+        const tabByScreen: Record<string, string> = {
+            home: 'dashboard',
+            products: 'inventory',
+            alerts: 'alerts',
+            settings: 'settings',
+            orders: 'orders',
+            pos: 'pos',
+            crm: 'crm',
+            accounting: 'accounting',
+            subscription: 'subscription',
+        };
+        const tab = tabByScreen[screen];
+        if (!tab) return;
+        if (!notif.is_read) void handleMarkRead(notif.message_id);
+        onClose();
+        window.location.hash = tab;
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -126,6 +148,18 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-white text-sm truncate">{notif.title}</p>
                                             <p className="text-xs text-slate-400 mt-1 line-clamp-2">{notif.content}</p>
+                                            {notif.deeplink?.screen && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        openDestination(notif);
+                                                    }}
+                                                    className="mt-3 rounded-full bg-primary px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90"
+                                                >
+                                                    Ouvrir
+                                                </button>
+                                            )}
                                             <div className="flex items-center gap-2 mt-2">
                                                 <span className="text-[9px] text-slate-600">
                                                     {notif.sent_at ? new Date(notif.sent_at).toLocaleString() : ''}

@@ -1872,6 +1872,7 @@ export type UserNotification = {
   sent_at?: string;
   is_read?: boolean;
   read_count?: number;
+  deeplink?: Record<string, string>;
 };
 
 export const userNotifications = {

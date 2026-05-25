@@ -345,6 +345,9 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 ### Les notifications admin peuvent-elles ouvrir une section précise ?
 - Oui. Depuis **Admin** → **Communication**, le champ **Destination au clic** permet d'ouvrir Accueil, Produits, Ajouter un produit, Alertes, Assistance, Abonnement, Commandes, Caisse, CRM, Comptabilité, Paramètres ou une section précise de **Paramètres**.
 - Les sections disponibles dans **Paramètres** couvrent notamment Compte et application, Abonnement et facturation, Profil et apparence, Synchronisation, Organisation et pilotage, Modules visibles, Boutique active, Boutique · Identité, Boutique · Documents, Fiscalité, Alertes et notifications, Canaux de réception, Destinataires, Support et incidents, Assistance, Déclarer un incident, Sécurité du compte, Informations légales, Données et suppression.
+- Quand la notification est envoyée en push, le clic ouvre directement la destination choisie.
+- Quand elle est envoyée en in-app, le centre de notifications affiche un bouton **Ouvrir** si une destination existe.
+- Quand elle est envoyée par e-mail, l'e-mail contient un bouton **Ouvrir dans Stockman** si une destination existe.
 - Pour les installations sans compte, privilégier une destination compatible avec l'étape d'inscription ou d'assistance, car les sections protégées nécessitent un compte connecté.
 
 ### Comment utiliser l'aide IA pour rédiger une notification admin ?
