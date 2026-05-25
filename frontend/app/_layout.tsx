@@ -15,6 +15,7 @@ import '../services/i18n';
 import { getFirstAuthorizedShopkeeperRoute } from '../utils/accountRouting';
 import { useTranslation } from 'react-i18next';
 import { useAnonymousPushRegistration } from '../hooks/useNotifications';
+import AppVersionGate from '../components/AppVersionGate';
 
 const TEXT_SCALE_LIMIT = 1.12;
 (Text as any).defaultProps = {
@@ -112,7 +113,9 @@ function RootLayoutNav() {
     return (
       <>
         <StatusBar style={isDark ? "light" : "dark"} />
-        <PinScreen />
+        <AppVersionGate>
+          <PinScreen />
+        </AppVersionGate>
       </>
     );
   }
@@ -120,8 +123,10 @@ function RootLayoutNav() {
   return (
     <>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <OfflineBanner />
-      <Slot />
+      <AppVersionGate>
+        <OfflineBanner />
+        <Slot />
+      </AppVersionGate>
     </>
   );
 }

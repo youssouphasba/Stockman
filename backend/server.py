@@ -570,6 +570,58 @@ class PrivacyPolicy(BaseModel):
     content: str
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class AppVersionSettings(BaseModel):
+    android_latest_version: str
+    android_min_version: str
+    ios_latest_version: str
+    ios_min_version: str
+    force_update: bool = False
+    message: str
+    android_update_url: Optional[str] = None
+    ios_update_url: Optional[str] = None
+
+def _read_env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on", "oui"}
+
+def _read_app_version_env(*names: str, default: str) -> str:
+    for name in names:
+        value = os.environ.get(name)
+        if value and value.strip():
+            return value.strip()
+    return default
+
+@api_router.get("/settings/app-version", response_model=AppVersionSettings)
+async def get_app_version_settings():
+    android_package = os.environ.get("ANDROID_PACKAGE_NAME", "com.youssouphasba.stockman").strip()
+    android_update_url = _read_app_version_env(
+        "APP_ANDROID_UPDATE_URL",
+        "STOCKMAN_ANDROID_UPDATE_URL",
+        default=f"https://play.google.com/store/apps/details?id={android_package}",
+    )
+    ios_update_url = _read_app_version_env(
+        "APP_IOS_UPDATE_URL",
+        "STOCKMAN_IOS_UPDATE_URL",
+        "MOBILE_APP_URL",
+        default="https://stockman.pro/app",
+    )
+    return AppVersionSettings(
+        android_latest_version=_read_app_version_env("APP_ANDROID_LATEST_VERSION", "STOCKMAN_ANDROID_LATEST_VERSION", default="1.0.20"),
+        android_min_version=_read_app_version_env("APP_ANDROID_MIN_VERSION", "STOCKMAN_ANDROID_MIN_VERSION", default="0.0.0"),
+        ios_latest_version=_read_app_version_env("APP_IOS_LATEST_VERSION", "STOCKMAN_IOS_LATEST_VERSION", default="1.0.20"),
+        ios_min_version=_read_app_version_env("APP_IOS_MIN_VERSION", "STOCKMAN_IOS_MIN_VERSION", default="0.0.0"),
+        force_update=_read_env_bool("APP_FORCE_UPDATE", _read_env_bool("STOCKMAN_FORCE_UPDATE", False)),
+        message=_read_app_version_env(
+            "APP_UPDATE_MESSAGE",
+            "STOCKMAN_UPDATE_MESSAGE",
+            default="Une nouvelle version est disponible.",
+        ),
+        android_update_url=android_update_url,
+        ios_update_url=ios_update_url,
+    )
+
 @api_router.get("/cgu")
 async def get_cgu(lang: str = "fr"):
     """Get current Terms of Service (Markdown) with auto-translation and caching"""

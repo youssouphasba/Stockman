@@ -4,6 +4,24 @@ Ce document est la référence principale de l'assistant IA. Il couvre toutes le
 
 ---
 
+## 0. Controle de version mobile
+
+Au lancement de l'application mobile, Stockman appelle l'endpoint public `/api/settings/app-version` pour comparer la version installee avec les versions minimales et recommandees configurees cote backend.
+
+### Comportement utilisateur
+
+- Si la version installee est inferieure a la version minimale Android ou iOS, l'application affiche un ecran bloquant **Mise a jour requise** avec le bouton **Mettre a jour**.
+- Sur Android, le bouton ouvre la fiche Play Store de l'application, avec un repli web si le lien natif Play Store n'est pas disponible.
+- Sur iOS, le bouton ouvre l'URL App Store configuree cote backend, avec un repli vers la page mobile Stockman.
+- Si la version installee est ancienne mais encore autorisee, l'application affiche une fenetre **Nouvelle version disponible** avec **Mettre a jour** et **Plus tard**.
+- Si l'appel backend echoue, l'application ne bloque pas l'utilisateur afin d'eviter une coupure injustifiee.
+
+### Configuration backend
+
+Les valeurs sont pilotables par variables d'environnement : `APP_ANDROID_LATEST_VERSION`, `APP_ANDROID_MIN_VERSION`, `APP_IOS_LATEST_VERSION`, `APP_IOS_MIN_VERSION`, `APP_FORCE_UPDATE`, `APP_UPDATE_MESSAGE`, `APP_ANDROID_UPDATE_URL` et `APP_IOS_UPDATE_URL`.
+
+---
+
 ## 1. Importation de Produits (CSV / Excel)
 
 ### Comment importer des produits ?

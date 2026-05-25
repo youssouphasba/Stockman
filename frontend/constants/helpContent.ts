@@ -255,6 +255,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'help-circle-outline', title: "Support et incidents", description: "Le centre d'aide, l'assistant, le contact support et la demande d'assistance à distance sont regroupés au même endroit. Une demande d'assistance autorise le support à ouvrir une session tracée sur le compte concerné." },
       { icon: 'warning-outline', title: "Déclarer un incident", description: "Utilisez ce formulaire quand vous devez remonter un incident ou une anomalie importante." },
       { icon: 'lock-closed-outline', title: "Sécurité et données", description: "Le code PIN, la biométrie, l'export et la suppression du compte sont dans cette zone sensible. Après une déconnexion, la reconnexion biométrique reste disponible si elle est activée." },
+      { icon: 'download-outline', title: "Mises à jour de l'application", description: "Au lancement, Stockman vérifie la version minimale autorisée. Une version trop ancienne affiche un écran bloquant avec le bouton Mettre à jour, tandis qu'une version conseillée affiche une fenêtre avec Mettre à jour et Plus tard." },
       { icon: 'help-circle-outline', title: "Centre d'aide", description: "Retrouvez ici les guides embarqués et les accès utiles quand vous avez besoin d'être accompagné dans l'application." },
     ],
   },

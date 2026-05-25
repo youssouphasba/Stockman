@@ -529,6 +529,21 @@ export class AuthError extends ApiError {
   }
 }
 
+export type AppVersionSettings = {
+  android_latest_version: string;
+  android_min_version: string;
+  ios_latest_version: string;
+  ios_min_version: string;
+  force_update: boolean;
+  message: string;
+  android_update_url?: string | null;
+  ios_update_url?: string | null;
+};
+
+export const appVersion = {
+  get: () => rawRequest<AppVersionSettings>('/settings/app-version'),
+};
+
 // Auth
 export const auth = {
   login: (email: string, password: string) =>
