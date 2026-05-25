@@ -68,6 +68,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'arrow-undo-outline', title: 'help.modules.products.f11.t', description: "help.modules.products.f11.d" },
       { icon: 'checkbox-outline', title: 'help.modules.products.f12.t', description: "help.modules.products.f12.d" },
       { icon: 'cube-outline', title: 'help.modules.products.f13.t', description: "help.modules.products.f13.d" },
+      { icon: 'image-outline', title: "Photos produits", description: "Les photos ajoutées depuis le mobile sont compressées puis enregistrées avec la fiche produit. Elles ne dépendent plus d'un fichier temporaire du serveur." },
       { icon: 'cash-outline', title: "CMP automatique", description: "Le coût d'achat d'un produit existant correspond désormais au CMP. Pour le modifier, ouvrez une entrée de stock et renseignez le prix d'achat unitaire réellement payé." },
     ],
   },

@@ -74,6 +74,12 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 2. Remplir : Nom (obligatoire), Prix d'achat, Prix de vente, Quantité, SKU (code-barres), Catégorie, Stock minimum, Unité
 3. Sauvegarder
 
+### Comment sont conservées les photos produits ?
+- Les photos ajoutées depuis le mobile passent par l'endpoint `/api/upload/image`.
+- L'image est compressée puis renvoyée sous forme d'image intégrée, afin d'être sauvegardée directement dans la fiche produit.
+- Une photo produit ne doit pas dépendre d'un fichier temporaire du serveur backend, car ce fichier peut disparaître lors d'un redéploiement ou d'un redémarrage.
+- Les anciennes fiches qui pointent encore vers `/uploads/products/...` peuvent perdre leur image si le fichier serveur d'origine n'existe plus ; il faut alors remettre la photo sur la fiche produit.
+
 ### Comment modifier le stock d'un produit ?
 - **Entrée de stock** (réception de marchandise) : bouton **+** ou "Entrée" sur la fiche produit
 - **Sortie de stock** (perte, casse, correction) : bouton **-** ou "Sortie" sur la fiche produit

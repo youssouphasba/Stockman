@@ -30950,13 +30950,12 @@ class ImageUploadRequest(BaseModel):
 @api_router.post("/upload/image")
 async def upload_image(req: ImageUploadRequest, user: User = Depends(require_auth)):
     try:
-        # Parse base64 data
         image_data = req.image
         if "," in image_data:
             image_data = image_data.split(",", 1)[1]
-        
+
         raw = base64.b64decode(image_data)
-        
+
         # Detect format from first bytes
         ext = "jpg"
         if raw[:8] == b'\x89PNG\r\n\x1a\n':
@@ -30964,26 +30963,18 @@ async def upload_image(req: ImageUploadRequest, user: User = Depends(require_aut
         elif raw[:4] == b'RIFF' and raw[8:12] == b'WEBP':
             ext = "webp"
         
-        # Save to uploads directory
-        # Valider le nom du dossier (alphanumérique, tirets, underscores uniquement)
         if not _re.match(r'^[a-zA-Z0-9_-]+$', req.folder):
             raise HTTPException(status_code=400, detail="Nom de dossier invalide")
 
         folder_path = UPLOADS_DIR / req.folder
 
-        # Double vérification : le chemin résolu doit rester dans UPLOADS_DIR
         if not folder_path.resolve().is_relative_to(UPLOADS_DIR.resolve()):
             raise HTTPException(status_code=400, detail="Chemin invalide")
 
-        folder_path.mkdir(exist_ok=True)
-        
         filename = f"{uuid.uuid4().hex[:16]}.{ext}"
-        filepath = folder_path / filename
-        filepath.write_bytes(raw)
-        
-        # Return the URL path
-        url = f"/uploads/{req.folder}/{filename}"
-        return {"url": url, "filename": filename}
+        mime_ext = "jpeg" if ext == "jpg" else ext
+        data_uri = f"data:image/{mime_ext};base64,{base64.b64encode(raw).decode()}"
+        return {"url": compress_image_base64(data_uri), "filename": filename, "storage": "embedded"}
     except Exception as e:
         raise HTTPException(status_code=400, detail="Erreur lors de l'upload de l'image")
 
