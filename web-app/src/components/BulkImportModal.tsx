@@ -15,12 +15,19 @@ interface BulkImportModalProps {
 const REQUIRED_FIELDS = ['name'];
 const OPTIONAL_FIELDS = ['sku', 'quantity', 'purchase_price', 'selling_price', 'unit', 'min_stock', 'category_name', 'description', 'location'];
 
+type ImportProfile = {
+    source: string;
+    label: string;
+    auto_mapping: boolean;
+};
+
 export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImportModalProps) {
     const { t } = useTranslation();
     const [step, setStep] = useState<'upload' | 'map' | 'confirm'>('upload');
     const [file, setFile] = useState<File | null>(null);
     const [parseResult, setParseResult] = useState<any>(null);
     const [mapping, setMapping] = useState<Record<string, string>>({});
+    const [importProfile, setImportProfile] = useState<ImportProfile | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [importSummary, setImportSummary] = useState<any>(null);
@@ -48,13 +55,13 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
         try {
             const res = await productsApi.importParse(uploadFile);
             setParseResult(res);
+            const detectedProfile = res.import_profile || null;
+            setImportProfile(detectedProfile);
 
-            // Smart mapping logic: Priority to AI, fallback to local heuristics
             const newMapping: Record<string, string> = { ...(res.ai_mapping || {}) };
             const columns = res.columns || [];
 
             [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS].forEach(field => {
-                // Only try heuristics if AI didn't find anything for this field
                 if (!newMapping[field]) {
                     const candidates = field === 'location'
                         ? ['location', 'emplacement']
@@ -102,7 +109,9 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
         setFile(null);
         setParseResult(null);
         setMapping({});
+        setImportProfile(null);
         setError(null);
+        setImportSummary(null);
     };
 
     return (
@@ -140,64 +149,70 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                 <CheckCircle size={18} className="text-emerald-400" />
                                 {parseResult.data.length} produits détectés
                             </h3>
-                            <p className="text-xs text-slate-400">Associez les colonnes de votre fichier aux champs Stockman.</p>
+                            <p className="text-xs text-slate-400">
+                                {importProfile?.auto_mapping
+                                    ? `Source détectée : ${importProfile.label}. Les colonnes ont été associées automatiquement.`
+                                    : 'Associez les colonnes de votre fichier aux champs Stockman.'}
+                            </p>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                            {REQUIRED_FIELDS.map(field => (
-                                <div key={field} className="flex items-center gap-4 bg-white/5 p-3 rounded-lg border border-primary/20">
-                                    <div className="flex-1">
-                                        <span className="text-xs font-black uppercase text-rose-400 block mb-1">Obligatoire</span>
-                                        <span className="text-white font-bold flex items-center gap-2">
-                                            {getFieldLabel(field)}
-                                            {parseResult.ai_mapping?.[field] && (
-                                                <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
-                                                    IA ✨
-                                                </span>
-                                            )}
-                                        </span>
+                        {!importProfile?.auto_mapping && (
+                            <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                {REQUIRED_FIELDS.map(field => (
+                                    <div key={field} className="flex items-center gap-4 bg-white/5 p-3 rounded-lg border border-primary/20">
+                                        <div className="flex-1">
+                                            <span className="text-xs font-black uppercase text-rose-400 block mb-1">Obligatoire</span>
+                                            <span className="text-white font-bold flex items-center gap-2">
+                                                {getFieldLabel(field)}
+                                                {parseResult.ai_mapping?.[field] && (
+                                                    <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
+                                                        IA ✨
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <ArrowRight size={16} className="text-slate-600" />
+                                        <select
+                                            value={mapping[field] || ''}
+                                            onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })}
+                                            className="bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm outline-none focus:border-primary w-48"
+                                        >
+                                            <option value="">Sélectionner...</option>
+                                            {parseResult.columns?.map((col: string) => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                    <ArrowRight size={16} className="text-slate-600" />
-                                    <select
-                                        value={mapping[field] || ''}
-                                        onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })}
-                                        className="bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm outline-none focus:border-primary w-48"
-                                    >
-                                        <option value="">Sélectionner...</option>
-                                        {parseResult.columns?.map((col: string) => (
-                                            <option key={col} value={col}>{col}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            ))}
+                                ))}
 
-                            {OPTIONAL_FIELDS.map(field => (
-                                <div key={field} className="flex items-center gap-4 bg-white/5 p-3 rounded-lg border border-white/5">
-                                    <div className="flex-1">
-                                        <span className="text-xs font-black uppercase text-slate-500 block mb-1">Optionnel</span>
-                                        <span className="text-white font-bold flex items-center gap-2">
-                                            {getFieldLabel(field)}
-                                            {parseResult.ai_mapping?.[field] && (
-                                                <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
-                                                    IA ✨
-                                                </span>
-                                            )}
-                                        </span>
+                                {OPTIONAL_FIELDS.map(field => (
+                                    <div key={field} className="flex items-center gap-4 bg-white/5 p-3 rounded-lg border border-white/5">
+                                        <div className="flex-1">
+                                            <span className="text-xs font-black uppercase text-slate-500 block mb-1">Optionnel</span>
+                                            <span className="text-white font-bold flex items-center gap-2">
+                                                {getFieldLabel(field)}
+                                                {parseResult.ai_mapping?.[field] && (
+                                                    <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full border border-primary/30">
+                                                        IA ✨
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <ArrowRight size={16} className="text-slate-600" />
+                                        <select
+                                            value={mapping[field] || ''}
+                                            onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })}
+                                            className="bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm outline-none focus:border-primary w-48"
+                                        >
+                                            <option value="">Ignorer</option>
+                                            {parseResult.columns?.map((col: string) => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                    <ArrowRight size={16} className="text-slate-600" />
-                                    <select
-                                        value={mapping[field] || ''}
-                                        onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })}
-                                        className="bg-black/20 border border-white/10 rounded-lg p-2 text-white text-sm outline-none focus:border-primary w-48"
-                                    >
-                                        <option value="">Ignorer</option>
-                                        {parseResult.columns?.map((col: string) => (
-                                            <option key={col} value={col}>{col}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
 
                         <div className="flex gap-3">
                             <button onClick={reset} className="flex-1 py-3 rounded-xl border border-white/10 text-white font-bold hover:bg-white/5 transition-all">Retour</button>

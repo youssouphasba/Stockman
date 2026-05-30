@@ -20,7 +20,7 @@ import {
     Truck,
     Undo2,
 } from 'lucide-react';
-import { ai as aiApi, creditNotes as creditNotesApi, returns as returnsApi, supplier_orders as ordersApi } from '../services/api';
+import { ai as aiApi, creditNotes as creditNotesApi, ecommerce as ecommerceApi, returns as returnsApi, supplier_orders as ordersApi } from '../services/api';
 import Modal from './Modal';
 import OrderReturnModal from './OrderReturnModal';
 import DeliveryConfirmationModal from './DeliveryConfirmationModal';
@@ -35,7 +35,7 @@ export default function Orders() {
 
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'orders' | 'returns'>('orders');
+    const [activeTab, setActiveTab] = useState<'orders' | 'returns' | 'web'>('orders');
     const [filterStatus, setFilterStatus] = useState<(typeof ORDER_STATUSES)[number]>('all');
     const [supplierFilter, setSupplierFilter] = useState('');
     const [filterSuppliers, setFilterSuppliers] = useState<any[]>([]);
@@ -45,6 +45,8 @@ export default function Orders() {
 
     const [returnsList, setReturnsList] = useState<any[]>([]);
     const [creditNotesList, setCreditNotesList] = useState<any[]>([]);
+    const [webOrders, setWebOrders] = useState<any[]>([]);
+    const [webOrdersLoading, setWebOrdersLoading] = useState(false);
     const [returnsLoading, setReturnsLoading] = useState(false);
     const [showReturnModal, setShowReturnModal] = useState(false);
     const [selectedOrderForReturn, setSelectedOrderForReturn] = useState<any>(null);
@@ -76,6 +78,9 @@ export default function Orders() {
     useEffect(() => {
         if (activeTab === 'returns') {
             loadReturnsData();
+        }
+        if (activeTab === 'web') {
+            loadWebOrders();
         }
     }, [activeTab]);
 
@@ -118,6 +123,27 @@ export default function Orders() {
             console.error('Returns load error', err);
         } finally {
             setReturnsLoading(false);
+        }
+    };
+
+    const loadWebOrders = async () => {
+        setWebOrdersLoading(true);
+        try {
+            const res = await ecommerceApi.listOrders();
+            setWebOrders(res.items || []);
+        } catch (err) {
+            console.error('Web orders load error', err);
+        } finally {
+            setWebOrdersLoading(false);
+        }
+    };
+
+    const updateWebOrderStatus = async (orderId: string, status: string) => {
+        try {
+            await ecommerceApi.updateOrderStatus(orderId, status);
+            await loadWebOrders();
+        } catch (err: any) {
+            alert(err?.message || 'Impossible de mettre à jour la commande web.');
         }
     };
 
@@ -337,9 +363,55 @@ export default function Orders() {
                 >
                     Retours
                 </button>
+                <button
+                    onClick={() => setActiveTab('web')}
+                    className={`rounded-xl px-8 py-3 font-bold transition-all ${activeTab === 'web' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
+                >
+                    Commandes web
+                </button>
             </div>
 
-            {activeTab === 'orders' ? (
+            {activeTab === 'web' ? (
+                <div className="space-y-4">
+                    {webOrdersLoading ? (
+                        <div className="flex justify-center py-16"><Loader2 className="animate-spin text-primary" /></div>
+                    ) : webOrders.length === 0 ? (
+                        <div className="glass-card p-12 text-center text-slate-400">Aucune commande web pour le moment.</div>
+                    ) : webOrders.map((order) => (
+                        <div key={order.order_id} className="glass-card p-5">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <h3 className="text-lg font-black text-white">{order.order_number}</h3>
+                                        <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-slate-300">{order.status}</span>
+                                    </div>
+                                    <p className="mt-2 text-sm text-slate-400">{order.customer_name} · {order.customer_phone || order.customer_email || 'Contact non renseigné'}</p>
+                                    {order.customer_address && <p className="mt-1 text-sm text-slate-500">{order.customer_address}</p>}
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xl font-black text-primary">{formatCurrency(order.total_amount || 0)}</p>
+                                    <p className="text-xs text-slate-500">{formatDate(order.created_at)}</p>
+                                </div>
+                            </div>
+                            <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                                {(order.items || []).map((item: any) => (
+                                    <div key={item.product_id} className="flex justify-between gap-4 text-sm">
+                                        <span className="text-slate-300">{item.product_name} x {item.quantity}</span>
+                                        <span className="font-bold text-white">{formatCurrency(item.total || 0)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {order.status === 'pending' && <button onClick={() => updateWebOrderStatus(order.order_id, 'confirmed')} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">Confirmer</button>}
+                                {['pending', 'confirmed', 'preparing'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'preparing')} className="rounded-xl bg-blue-500/15 px-4 py-2 text-sm font-bold text-blue-300">Préparer</button>}
+                                {['confirmed', 'preparing'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'ready')} className="rounded-xl bg-amber-500/15 px-4 py-2 text-sm font-bold text-amber-300">Prête</button>}
+                                {['confirmed', 'preparing', 'ready'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'delivered')} className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white">Livrer et créer la vente</button>}
+                                {['pending', 'confirmed'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'cancelled')} className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm font-bold text-rose-300">Annuler</button>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : activeTab === 'orders' ? (
                 <div className="space-y-8">
                     <div className="flex flex-wrap gap-8 border-b border-white/5">
                         {ORDER_STATUSES.map((status) => (

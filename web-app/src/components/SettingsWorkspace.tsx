@@ -21,7 +21,7 @@ import {
     Trash2,
     User,
 } from 'lucide-react';
-import { auth as authApi, settings as settingsApi, stores as storesApi, userFeatures as userFeaturesApi } from '../services/api';
+import { auth as authApi, ecommerce as ecommerceApi, settings as settingsApi, stores as storesApi, userFeatures as userFeaturesApi } from '../services/api';
 import type { NotificationContactMap, NotificationPreferences, User as AppUser } from '../services/api';
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
 import { getAccessContext } from '../utils/access';
@@ -176,6 +176,8 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     const [settings, setSettings] = useState<any>(null);
     const [storeList, setStoreList] = useState<any[]>([]);
     const [editingStore, setEditingStore] = useState<any>(null);
+    const [ecommerceSite, setEcommerceSite] = useState<any>(null);
+    const [ecommercePaymentInstructions, setEcommercePaymentInstructions] = useState('');
     const [sector, setSector] = useState('');
 
     const [profileName, setProfileName] = useState('');
@@ -268,10 +270,11 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     async function loadSettings() {
         setLoading(true);
         try {
-            const [res, storesRes, features] = await Promise.all([
+            const [res, storesRes, features, ecommerceRes] = await Promise.all([
                 settingsApi.get(),
                 storesApi.list(),
                 userFeaturesApi.get().catch(() => null),
+                ecommerceApi.getSite().catch(() => null),
             ]);
 
             setSettings(res);
@@ -298,6 +301,8 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
             setTerminals(res?.terminals || []);
             setModulesDraft(res?.modules || {});
             setStoreList(storesRes || []);
+            setEcommerceSite(ecommerceRes);
+            setEcommercePaymentInstructions(ecommerceRes?.payment_instructions || '');
             setSector(features?.sector || '');
         } catch (error: any) {
             setBanner({ tone: 'error', message: error?.message || t('settings_workspace.feedback.load_error') });
@@ -647,6 +652,52 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
 
                 {activeTab === 'stores' ? (
                     <>
+                        {canManageOrgSettings && ecommerceSite ? (
+                            <SectionCard
+                                icon={<Globe size={24} className="text-primary" />}
+                                title="Site e-commerce"
+                                scope={t('settings_workspace.scopes.store')}
+                                description="Activez le site public uniquement quand vous êtes prêt à recevoir des commandes depuis votre catalogue en ligne."
+                                actionHint="Le bouton d'ouverture du site apparaît seulement quand cette option est activée."
+                            >
+                                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                        <div>
+                                            <p className="text-sm font-black text-white">Site public</p>
+                                            <p className="mt-1 break-all text-sm text-slate-400">{ecommerceSite.site_url}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => void runSave('ecommerce-enabled', async () => {
+                                                const updated = await ecommerceApi.updateSite({ enabled: !ecommerceSite.enabled, payment_instructions: ecommercePaymentInstructions });
+                                                setEcommerceSite(updated);
+                                                setEcommercePaymentInstructions(updated.payment_instructions || '');
+                                            }, 'Réglages e-commerce enregistrés.')}
+                                            disabled={savingKey === 'ecommerce-enabled'}
+                                            className={`rounded-2xl px-5 py-3 text-sm font-black transition-colors disabled:opacity-50 ${ecommerceSite.enabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/10 text-slate-300 hover:bg-primary hover:text-white'}`}
+                                        >
+                                            {ecommerceSite.enabled ? 'Site activé' : 'Activer le site'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <Field label="Instructions de paiement manuel" hint="Exemple : paiement à la livraison, Wave, Orange Money, virement ou consignes de confirmation.">
+                                    <textarea value={ecommercePaymentInstructions} onChange={(event) => setEcommercePaymentInstructions(event.target.value)} rows={4} className={textareaClass} />
+                                </Field>
+                                <button
+                                    type="button"
+                                    onClick={() => void runSave('ecommerce-settings', async () => {
+                                        const updated = await ecommerceApi.updateSite({ enabled: ecommerceSite.enabled, payment_instructions: ecommercePaymentInstructions });
+                                        setEcommerceSite(updated);
+                                        setEcommercePaymentInstructions(updated.payment_instructions || '');
+                                    }, 'Réglages e-commerce enregistrés.')}
+                                    disabled={savingKey === 'ecommerce-settings'}
+                                    className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
+                                >
+                                    <Save size={18} />
+                                    {savingKey === 'ecommerce-settings' ? t('settings_workspace.actions.saving') : 'Enregistrer le site e-commerce'}
+                                </button>
+                            </SectionCard>
+                        ) : null}
                         {canManageOrgSettings && storeList.length ? (
                             <SectionCard
                                 icon={<Store size={24} className="text-primary" />}

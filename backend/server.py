@@ -895,6 +895,7 @@ async def create_indexes_and_init():
                 await db.users.create_index("email", unique=True)
                 await db.business_accounts.create_index("account_id", unique=True)
                 await db.business_accounts.create_index("owner_user_id")
+                await db.business_accounts.create_index("ecommerce_slug", unique=True, sparse=True)
                 await db.subscription_events.create_index("event_id", unique=True)
                 await db.subscription_events.create_index([("created_at", -1)])
                 await db.subscription_events.create_index([("account_id", 1), ("created_at", -1)])
@@ -931,6 +932,9 @@ async def create_indexes_and_init():
                 # Performance indexes
                 await db.orders.create_index([("user_id", 1), ("supplier_id", 1), ("created_at", -1)])
                 await db.order_items.create_index("order_id")
+                await db.ecommerce_orders.create_index("order_id", unique=True)
+                await db.ecommerce_orders.create_index([("user_id", 1), ("store_id", 1), ("created_at", -1)])
+                await db.ecommerce_orders.create_index([("site_slug", 1), ("created_at", -1)])
                 await db.sales.create_index([("store_id", 1), ("created_at", -1)])
                 await db.alert_rules.create_index([("user_id", 1), ("type", 1), ("scope", 1), ("store_id", 1)])
                 
@@ -1349,6 +1353,46 @@ class StoreUpdate(BaseModel):
     tax_rate: Optional[float] = None
     tax_mode: Optional[str] = None
 
+
+class EcommerceSiteInfo(BaseModel):
+    slug: str
+    site_url: str
+    enabled: bool = False
+    store_id: Optional[str] = None
+    store_name: Optional[str] = None
+    custom_domain: Optional[str] = None
+    payment_instructions: Optional[str] = None
+
+
+class EcommerceSiteUpdate(BaseModel):
+    enabled: Optional[bool] = None
+    payment_instructions: Optional[str] = Field(default=None, max_length=1200)
+
+
+class PublicEcommerceOrderItem(BaseModel):
+    product_id: str
+    quantity: float = Field(..., gt=0)
+
+
+class PublicEcommerceOrderCreate(BaseModel):
+    customer_name: str = Field(..., min_length=2, max_length=120)
+    customer_phone: Optional[str] = Field(default=None, max_length=40)
+    customer_email: Optional[EmailStr] = None
+    customer_address: Optional[str] = Field(default=None, max_length=500)
+    notes: Optional[str] = Field(default=None, max_length=1000)
+    items: List[PublicEcommerceOrderItem]
+
+
+class PublicEcommerceOrderResponse(BaseModel):
+    order_id: str
+    order_number: str
+    status: str
+    total_amount: float
+
+
+class EcommerceOrderStatusUpdate(BaseModel):
+    status: str
+
 class StockTransfer(BaseModel):
     product_id: str
     from_store_id: str
@@ -1434,6 +1478,185 @@ async def get_public_receipt(public_token: str):
         store_name=store_name,
         store_address=store_address,
         receipt_footer=receipt_footer
+    )
+
+
+@app.get("/api/public/ecommerce/{slug}")
+async def get_public_ecommerce_site(slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$")):
+    account_doc = await db.business_accounts.find_one(
+        {"ecommerce_slug": slug, "ecommerce_enabled": True},
+        {"_id": 0},
+    )
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+
+    owner_id = account_doc.get("owner_user_id")
+    store_id = account_doc.get("ecommerce_default_store_id")
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "name": 1, "phone": 1, "email": 1, "currency": 1})
+    store_doc = None
+    if store_id:
+        store_doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0})
+    if not store_doc:
+        store_doc = await db.stores.find_one({"user_id": owner_id}, {"_id": 0})
+        store_id = (store_doc or {}).get("store_id")
+    if not owner_doc or not store_doc:
+        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+
+    products_query = {
+        "user_id": owner_id,
+        "store_id": store_id,
+        "is_active": {"$ne": False},
+        "selling_price": {"$gt": 0},
+    }
+    products = await db.products.find(
+        products_query,
+        {
+            "_id": 0,
+            "product_id": 1,
+            "name": 1,
+            "description": 1,
+            "selling_price": 1,
+            "quantity": 1,
+            "unit": 1,
+            "image": 1,
+            "category_id": 1,
+        },
+    ).sort("name", 1).limit(500).to_list(500)
+    category_ids = [product.get("category_id") for product in products if product.get("category_id")]
+    categories = {}
+    if category_ids:
+        category_docs = await db.categories.find(
+            {"category_id": {"$in": category_ids}, "user_id": owner_id},
+            {"_id": 0, "category_id": 1, "name": 1},
+        ).to_list(len(category_ids))
+        categories = {category.get("category_id"): category.get("name") for category in category_docs}
+
+    public_products = []
+    for product in products:
+        public_products.append({
+            "product_id": product.get("product_id"),
+            "name": product.get("name"),
+            "description": product.get("description"),
+            "selling_price": float(product.get("selling_price") or 0),
+            "quantity": float(product.get("quantity") or 0),
+            "unit": product.get("unit") or "pièce",
+            "image": product.get("image"),
+            "category": categories.get(product.get("category_id")),
+            "available": float(product.get("quantity") or 0) > 0,
+        })
+
+    return {
+        "site": {
+            "slug": slug,
+            "store_id": store_id,
+            "name": store_doc.get("receipt_business_name") or store_doc.get("name") or owner_doc.get("name"),
+            "address": store_doc.get("address"),
+            "phone": owner_doc.get("phone"),
+            "email": owner_doc.get("email"),
+            "currency": store_doc.get("currency") or owner_doc.get("currency") or account_doc.get("currency") or "XOF",
+            "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
+        },
+        "products": public_products,
+    }
+
+
+@app.post("/api/public/ecommerce/{slug}/orders", response_model=PublicEcommerceOrderResponse)
+async def create_public_ecommerce_order(
+    payload: PublicEcommerceOrderCreate,
+    slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$"),
+):
+    account_doc = await db.business_accounts.find_one(
+        {"ecommerce_slug": slug, "ecommerce_enabled": True},
+        {"_id": 0},
+    )
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="Le panier est vide")
+
+    owner_id = account_doc.get("owner_user_id")
+    store_id = account_doc.get("ecommerce_default_store_id")
+    if not store_id:
+        store_doc = await db.stores.find_one({"user_id": owner_id}, {"_id": 0, "store_id": 1})
+        store_id = (store_doc or {}).get("store_id")
+    if not store_id:
+        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+
+    requested_quantities: Dict[str, float] = {}
+    for item in payload.items:
+        requested_quantities[item.product_id] = requested_quantities.get(item.product_id, 0) + float(item.quantity)
+
+    products = await db.products.find(
+        {
+            "product_id": {"$in": list(requested_quantities.keys())},
+            "user_id": owner_id,
+            "store_id": store_id,
+            "is_active": {"$ne": False},
+            "selling_price": {"$gt": 0},
+        },
+        {"_id": 0},
+    ).to_list(len(requested_quantities))
+    products_by_id = {product.get("product_id"): product for product in products}
+    order_items = []
+    total_amount = 0.0
+    for product_id, quantity in requested_quantities.items():
+        product = products_by_id.get(product_id)
+        if not product:
+            raise HTTPException(status_code=400, detail="Un produit du panier n'est plus disponible")
+        available_quantity = float(product.get("quantity") or 0)
+        if available_quantity <= 0 or quantity > available_quantity:
+            raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product.get('name')}")
+        unit_price = float(product.get("selling_price") or 0)
+        line_total = round(unit_price * quantity, 2)
+        total_amount += line_total
+        order_items.append({
+            "product_id": product_id,
+            "product_name": product.get("name"),
+            "quantity": quantity,
+            "unit_price": unit_price,
+            "total": line_total,
+            "unit": product.get("unit") or "pièce",
+        })
+
+    now = datetime.now(timezone.utc)
+    order_id = f"eord_{uuid.uuid4().hex[:12]}"
+    order_number = f"WEB-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
+    order_doc = {
+        "order_id": order_id,
+        "order_number": order_number,
+        "source": "ecommerce",
+        "status": "pending",
+        "user_id": owner_id,
+        "account_id": account_doc.get("account_id"),
+        "store_id": store_id,
+        "site_slug": slug,
+        "customer_name": payload.customer_name.strip(),
+        "customer_phone": (payload.customer_phone or "").strip() or None,
+        "customer_email": str(payload.customer_email) if payload.customer_email else None,
+        "customer_address": (payload.customer_address or "").strip() or None,
+        "notes": (payload.notes or "").strip() or None,
+        "items": order_items,
+        "total_amount": round(total_amount, 2),
+        "currency": account_doc.get("currency") or "XOF",
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.ecommerce_orders.insert_one(order_doc)
+    try:
+        await notification_service.notify_user(
+            db,
+            owner_id,
+            "Nouvelle commande web",
+            f"{payload.customer_name.strip()} a envoyé une commande de {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}.",
+            {"type": "ecommerce_order", "order_id": order_id, "screen": "orders"},
+        )
+    except Exception as notify_err:
+        logger.warning(f"E-commerce order notification failed: {notify_err}")
+    return PublicEcommerceOrderResponse(
+        order_id=order_id,
+        order_number=order_number,
+        status="pending",
+        total_amount=round(total_amount, 2),
     )
 
 
@@ -3051,6 +3274,102 @@ def get_web_app_base_url() -> str:
         or os.environ.get("PAYMENT_REDIRECT_BASE_URL")
         or "https://app.stockman.pro"
     ).rstrip("/")
+
+
+def normalize_ecommerce_slug(value: Optional[str]) -> str:
+    normalized = (value or "").strip().lower()
+    replacements = {
+        "é": "e", "è": "e", "ê": "e", "ë": "e",
+        "à": "a", "â": "a", "ä": "a",
+        "î": "i", "ï": "i",
+        "ô": "o", "ö": "o",
+        "ù": "u", "û": "u", "ü": "u",
+        "ç": "c", "ñ": "n",
+    }
+    for source, target in replacements.items():
+        normalized = normalized.replace(source, target)
+    normalized = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
+    return normalized[:50] or "boutique"
+
+
+async def build_unique_ecommerce_slug(seed: Optional[str], owner_id: str) -> str:
+    base_slug = normalize_ecommerce_slug(seed)
+    candidate = base_slug
+    suffix = 2
+    while True:
+        existing = await db.business_accounts.find_one(
+            {"ecommerce_slug": candidate, "owner_user_id": {"$ne": owner_id}},
+            {"_id": 1},
+        )
+        if not existing:
+            return candidate
+        candidate = f"{base_slug}-{suffix}"
+        suffix += 1
+
+
+async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str] = None) -> Dict[str, Any]:
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    if not owner_doc:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+
+    account_doc = await ensure_business_account_for_user_doc(owner_doc)
+    if not account_doc:
+        raise HTTPException(status_code=400, detail="Site e-commerce indisponible pour ce type de compte")
+
+    resolved_store_id = store_id or owner_doc.get("active_store_id")
+    if not resolved_store_id:
+        store_ids = account_doc.get("store_ids") or owner_doc.get("store_ids") or []
+        resolved_store_id = store_ids[0] if store_ids else None
+
+    store_doc = None
+    if resolved_store_id:
+        store_doc = await db.stores.find_one(
+            {"store_id": resolved_store_id, "user_id": owner_id},
+            {"_id": 0},
+        )
+    if not store_doc:
+        store_doc = await db.stores.find_one({"user_id": owner_id}, {"_id": 0})
+        resolved_store_id = (store_doc or {}).get("store_id")
+
+    slug = account_doc.get("ecommerce_slug")
+    if not slug:
+        slug_seed = (store_doc or {}).get("name") or owner_doc.get("name") or owner_id
+        slug = await build_unique_ecommerce_slug(slug_seed, owner_id)
+        await db.business_accounts.update_one(
+            {"account_id": account_doc["account_id"]},
+            {"$set": {
+                "ecommerce_slug": slug,
+                "ecommerce_enabled": False,
+                "ecommerce_default_store_id": resolved_store_id,
+                "updated_at": datetime.now(timezone.utc),
+            }},
+        )
+        account_doc.update({
+            "ecommerce_slug": slug,
+            "ecommerce_enabled": False,
+            "ecommerce_default_store_id": resolved_store_id,
+        })
+    elif resolved_store_id and not account_doc.get("ecommerce_default_store_id"):
+        await db.business_accounts.update_one(
+            {"account_id": account_doc["account_id"]},
+            {"$set": {
+                "ecommerce_default_store_id": resolved_store_id,
+                "updated_at": datetime.now(timezone.utc),
+            }},
+        )
+        account_doc["ecommerce_default_store_id"] = resolved_store_id
+
+    custom_domain = account_doc.get("ecommerce_custom_domain")
+    site_url = f"https://{custom_domain}" if custom_domain else f"{get_web_app_base_url()}/shop/{slug}"
+    return {
+        "slug": slug,
+        "site_url": site_url,
+        "enabled": bool(account_doc.get("ecommerce_enabled") is True),
+        "store_id": resolved_store_id,
+        "store_name": (store_doc or {}).get("name"),
+        "custom_domain": custom_domain,
+        "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
+    }
 
 
 def build_public_payment_link(provider: str, target_url: Optional[str]) -> Optional[str]:
@@ -5909,17 +6228,42 @@ async def parse_import_file(
         raise HTTPException(status_code=400, detail="Type de fichier non autorisé. CSV ou Excel uniquement.")
     try:
         res = await import_service.parse_csv(content)
-        
-        # AI Mapping (Smart detection)
+        import_profile = import_service.detect_import_profile(res.get("columns", []))
+
         ai_mapping = {}
-        if gemini_model and res.get("data"):
+        if import_profile.get("auto_mapping"):
+            source = import_profile.get("source")
+            normalized_data = import_service.normalize_platform_rows(res.get("data", []), source)
+            res["data"] = normalized_data
+            res["columns"] = list(import_service.get_identity_mapping().keys())
+            ai_mapping = import_service.get_identity_mapping()
+            logger.info(f"Platform import detected: {import_profile}")
+        elif gemini_model and res.get("data"):
             try:
-                ai_mapping = await import_service.infer_mapping_with_ai(res["data"][:5], gemini_model)
-                logger.info(f"AI Mapping detection: {ai_mapping}")
+                template_result = await import_service.infer_template_normalization_with_ai(res["data"][:10], gemini_model)
+                template_mapping = template_result.get("mapping") or {}
+                template_confidence = float(template_result.get("confidence") or 0)
+                if template_mapping.get("name") and template_confidence >= 0.7:
+                    res["data"] = import_service.map_columns(res.get("data", []), template_mapping)
+                    res["columns"] = list(import_service.get_identity_mapping().keys())
+                    ai_mapping = import_service.get_identity_mapping()
+                    import_profile = {
+                        "source": "ai_template",
+                        "label": "Template personnalisé",
+                        "confidence": round(template_confidence, 2),
+                        "auto_mapping": True,
+                        "detected_columns": list(template_mapping.values()),
+                        "ambiguous_fields": template_result.get("ambiguous_fields", []),
+                        "ignored_columns": template_result.get("ignored_columns", []),
+                    }
+                    logger.info(f"AI template normalized: {import_profile}")
+                else:
+                    ai_mapping = template_mapping or await import_service.infer_mapping_with_ai(res["data"][:5], gemini_model)
+                    logger.info(f"AI Mapping detection: {ai_mapping}")
             except Exception as ai_e:
                 logger.error(f"AI Mapping failed: {ai_e}")
 
-        return {**res, "ai_mapping": ai_mapping}
+        return {**res, "ai_mapping": ai_mapping, "import_profile": import_profile}
     except Exception as e:
         logger.error(f"Error parsing import file: {e}")
         raise HTTPException(status_code=400, detail=f"Erreur lors de l'analyse du fichier: {str(e)}")
@@ -15608,7 +15952,11 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         account_doc = await ensure_business_account_for_user_doc(user_doc)
         if account_doc:
             user_doc["account_id"] = account_doc.get("account_id")
-        
+            try:
+                await ensure_ecommerce_site_for_owner(user_id, store_id)
+            except Exception as ecommerce_err:
+                logger.warning(f"Default e-commerce site creation failed for {user_id}: {ecommerce_err}")
+
         # Create default alert rules
         default_rules = [
             AlertRule(user_id=user_id, account_id=user_doc.get("account_id"), type="low_stock", enabled=True, threshold_percentage=20, notification_channels=ALERT_RULE_DEFAULT_CHANNELS["low_stock"], recipient_keys=["default", "stock"]),
@@ -16720,6 +17068,183 @@ async def update_store(data: StoreUpdate, store_id: str = Path(..., pattern="^[a
     if not doc:
         raise HTTPException(status_code=404, detail="Boutique non trouvée")
     return Store(**doc)
+
+
+@api_router.get("/ecommerce/site", response_model=EcommerceSiteInfo)
+async def get_ecommerce_site(user: User = Depends(require_auth)):
+    owner_id = get_owner_id(user)
+    if user.role == "supplier":
+        raise HTTPException(status_code=403, detail="Site e-commerce indisponible pour les comptes fournisseurs")
+    store_id = user.active_store_id
+    if store_id:
+        ensure_user_store_access(user, store_id, detail="Boutique active invalide")
+    site = await ensure_ecommerce_site_for_owner(owner_id, store_id)
+    return EcommerceSiteInfo(**site)
+
+
+@api_router.put("/ecommerce/site", response_model=EcommerceSiteInfo)
+async def update_ecommerce_site(data: EcommerceSiteUpdate, user: User = Depends(require_auth)):
+    if not is_org_admin_user(user):
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs opérationnels peuvent modifier le site e-commerce")
+    owner_id = get_owner_id(user)
+    site = await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id)
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": owner_id, "role": "shopkeeper"})
+    updates: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc)}
+    if data.enabled is not None:
+        updates["ecommerce_enabled"] = bool(data.enabled)
+    if data.payment_instructions is not None:
+        updates["ecommerce_payment_instructions"] = data.payment_instructions.strip() or None
+    if len(updates) > 1 and account_doc:
+        await db.business_accounts.update_one({"account_id": account_doc["account_id"]}, {"$set": updates})
+    return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
+
+
+@api_router.get("/ecommerce/orders")
+async def list_ecommerce_orders(
+    status: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    user: User = Depends(require_permission("stock", "read")),
+):
+    owner_id = get_owner_id(user)
+    query: Dict[str, Any] = {"user_id": owner_id}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
+    if status and status != "all":
+        query["status"] = status
+    total = await db.ecommerce_orders.count_documents(query)
+    items = await db.ecommerce_orders.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    return {"items": items, "total": total}
+
+
+@api_router.get("/ecommerce/orders/{order_id}")
+async def get_ecommerce_order(order_id: str, user: User = Depends(require_permission("stock", "read"))):
+    owner_id = get_owner_id(user)
+    query = {"order_id": order_id, "user_id": owner_id}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
+    order = await db.ecommerce_orders.find_one(query, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande web introuvable")
+    return order
+
+
+async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> Dict[str, Any]:
+    owner_id = get_owner_id(user)
+    store_id = order.get("store_id") or user.active_store_id
+    if not store_id:
+        raise HTTPException(status_code=400, detail="Boutique active introuvable")
+    if order.get("sale_id"):
+        return order
+
+    sale_items: List[SaleItem] = []
+    for item in order.get("items") or []:
+        product_id = item.get("product_id")
+        quantity = float(item.get("quantity") or 0)
+        if not product_id or quantity <= 0:
+            continue
+        product = await db.products.find_one(
+            {"product_id": product_id, "user_id": owner_id, "store_id": store_id, "is_active": {"$ne": False}},
+            {"_id": 0},
+        )
+        if not product:
+            raise HTTPException(status_code=400, detail=f"Produit indisponible : {item.get('product_name') or product_id}")
+        current_quantity = float(product.get("quantity") or 0)
+        if current_quantity < quantity:
+            raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product.get('name')}")
+        update_result = await db.products.update_one(
+            {"product_id": product_id, "user_id": owner_id, "store_id": store_id, "quantity": {"$gte": quantity}},
+            {"$inc": {"quantity": -quantity}, "$set": {"updated_at": datetime.now(timezone.utc)}},
+        )
+        if update_result.modified_count == 0:
+            raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product.get('name')}")
+        new_quantity = current_quantity - quantity
+        movement = StockMovement(
+            product_id=product_id,
+            user_id=owner_id,
+            store_id=store_id,
+            type="out",
+            quantity=quantity,
+            reason=f"Commande web {order.get('order_number') or order.get('order_id')} livrée",
+            previous_quantity=current_quantity,
+            new_quantity=new_quantity,
+        )
+        await db.stock_movements.insert_one(movement.model_dump())
+        product["quantity"] = new_quantity
+        await check_and_create_alerts(Product(**product), user.user_id, store_id=store_id)
+        unit_price = float(item.get("unit_price") or product.get("selling_price") or 0)
+        sale_items.append(SaleItem(
+            product_id=product_id,
+            product_name=product.get("name") or item.get("product_name") or "Produit",
+            quantity=quantity,
+            purchase_price=float(product.get("purchase_price") or 0),
+            selling_price=unit_price,
+            total=round(unit_price * quantity, 2),
+            sold_quantity_input=quantity,
+            sold_unit=product.get("unit") or item.get("unit"),
+        ))
+
+    if not sale_items:
+        raise HTTPException(status_code=400, detail="Aucun article valide dans cette commande")
+
+    total_amount = round(sum(item.total for item in sale_items), 2)
+    sale = Sale(
+        user_id=owner_id,
+        store_id=store_id,
+        items=sale_items,
+        total_amount=total_amount,
+        payment_method=order.get("payment_method") or "cash",
+        customer_name=order.get("customer_name"),
+        notes=f"Commande web {order.get('order_number') or order.get('order_id')}",
+        status="completed",
+        service_type="delivery",
+        current_amount=total_amount,
+    )
+    await db.sales.insert_one(sale.model_dump())
+    await db.ecommerce_orders.update_one(
+        {"order_id": order["order_id"], "user_id": owner_id},
+        {"$set": {
+            "status": "delivered",
+            "sale_id": sale.sale_id,
+            "delivered_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }},
+    )
+    _invalidate_dashboard_ai_caches(owner_id, store_id)
+    updated = await db.ecommerce_orders.find_one({"order_id": order["order_id"], "user_id": owner_id}, {"_id": 0})
+    return updated or order
+
+
+@api_router.put("/ecommerce/orders/{order_id}/status")
+async def update_ecommerce_order_status(
+    order_id: str,
+    payload: EcommerceOrderStatusUpdate,
+    user: User = Depends(require_permission("stock", "write")),
+):
+    ensure_subscription_write_allowed(user)
+    owner_id = get_owner_id(user)
+    valid_statuses = {"pending", "confirmed", "preparing", "ready", "delivered", "cancelled", "rejected"}
+    if payload.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail="Statut invalide")
+    query = {"order_id": order_id, "user_id": owner_id}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
+    order = await db.ecommerce_orders.find_one(query, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande web introuvable")
+    if order.get("status") in {"delivered", "cancelled", "rejected"}:
+        raise HTTPException(status_code=400, detail="Cette commande est déjà clôturée")
+    if payload.status == "delivered":
+        updated = await convert_ecommerce_order_to_sale(order, user)
+        return {"message": "Commande livrée et vente créée", "order": updated}
+    await db.ecommerce_orders.update_one(
+        {"order_id": order_id, "user_id": owner_id},
+        {"$set": {"status": payload.status, "updated_at": datetime.now(timezone.utc)}},
+    )
+    updated = await db.ecommerce_orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
+    return {"message": "Statut mis à jour", "order": updated}
+
 
 @api_router.get("/stores/consolidated-stats")
 async def get_consolidated_stats(days: int = 30, user: User = Depends(require_org_admin)):

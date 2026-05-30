@@ -21,7 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
-import { notifications as notificationsApi, settings as settingsApi, UserSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
+import { ecommerce as ecommerceApi, notifications as notificationsApi, settings as settingsApi, UserSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import AiSupportModal from '../../components/AiSupportModal';
@@ -79,6 +79,7 @@ type SettingsSectionKey =
   | 'enterpriseHub'
   | 'organization'
   | 'storeIdentity'
+  | 'storeEcommerce'
   | 'storeDocuments'
   | 'storeEmpty'
   | 'storeAlerts'
@@ -111,6 +112,7 @@ const SETTINGS_SECTION_PARENT: Partial<Record<SettingsSectionKey, SettingsSectio
   enterpriseHub: 'organizationGroup',
   organization: 'organizationGroup',
   storeIdentity: 'storeGroup',
+  storeEcommerce: 'storeGroup',
   storeDocuments: 'storeGroup',
   storeEmpty: 'storeGroup',
   notifications: 'alertsGroup',
@@ -138,6 +140,7 @@ const SETTINGS_SECTION_KEYS = new Set<SettingsSectionKey>([
   'enterpriseHub',
   'organization',
   'storeIdentity',
+  'storeEcommerce',
   'storeDocuments',
   'storeEmpty',
   'storeAlerts',
@@ -233,6 +236,7 @@ export default function SettingsScreen() {
     enterpriseHub: false,
     organization: false,
     storeIdentity: true,
+    storeEcommerce: false,
     storeDocuments: false,
     storeEmpty: true,
     storeAlerts: false,
@@ -256,6 +260,9 @@ export default function SettingsScreen() {
   const [currentStore, setCurrentStore] = useState<Store | null>(null);
   const [storeName, setStoreName] = useState('');
   const [storeAddress, setStoreAddress] = useState('');
+  const [ecommerceSite, setEcommerceSite] = useState<{ enabled: boolean; site_url: string; payment_instructions?: string | null } | null>(null);
+  const [ecommercePaymentInstructions, setEcommercePaymentInstructions] = useState('');
+  const [ecommerceSaving, setEcommerceSaving] = useState(false);
   const [receiptName, setReceiptName] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('');
   const [invoiceName, setInvoiceName] = useState('');
@@ -361,10 +368,11 @@ export default function SettingsScreen() {
 
   const loadSettings = useCallback(async () => {
     try {
-      const [result, _features, storesList] = await Promise.all([
+      const [result, _features, storesList, ecommerceResult] = await Promise.all([
         settingsApi.get(),
         userFeatures.get().catch(() => null),
         storesApi.list().catch(() => []),
+        ecommerceApi.getSite().catch(() => null),
       ]);
       setSettingsData(result);
       setBillingContactName(result?.billing_contact_name || '');
@@ -376,6 +384,8 @@ export default function SettingsScreen() {
       setCurrentStore(activeStore);
       setStoreName(activeStore?.name || '');
       setStoreAddress(activeStore?.address || '');
+      setEcommerceSite(ecommerceResult);
+      setEcommercePaymentInstructions(ecommerceResult?.payment_instructions || '');
       setReceiptName(activeStore?.receipt_business_name || result?.receipt_business_name || '');
       setReceiptFooter(activeStore?.receipt_footer || result?.receipt_footer || '');
       setInvoiceName(activeStore?.invoice_business_name || result?.invoice_business_name || '');
@@ -583,6 +593,23 @@ export default function SettingsScreen() {
       showFeedback('Boutique mise à jour.');
     } catch {
       showFeedback('Impossible de mettre à jour la boutique active.', 'error');
+    }
+  }
+
+  async function saveEcommerceSettings(nextEnabled?: boolean) {
+    setEcommerceSaving(true);
+    try {
+      const updated = await ecommerceApi.updateSite({
+        enabled: typeof nextEnabled === 'boolean' ? nextEnabled : ecommerceSite?.enabled,
+        payment_instructions: ecommercePaymentInstructions,
+      });
+      setEcommerceSite(updated);
+      setEcommercePaymentInstructions(updated.payment_instructions || '');
+      showFeedback('Réglages e-commerce enregistrés.', 'success');
+    } catch {
+      showFeedback("Impossible d'enregistrer les réglages e-commerce.", 'error');
+    } finally {
+      setEcommerceSaving(false);
     }
   }
 
@@ -1088,6 +1115,52 @@ export default function SettingsScreen() {
             <Ionicons name="save-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
               {t('settings.save_store')}
+            </Text>
+          </TouchableOpacity>
+        </SettingsAccordionSection>
+        )}
+
+        {isOrgAdmin && currentStore && ecommerceSite && (
+        <SettingsAccordionSection
+          title="Site e-commerce"
+          description="Activez le site public de cette boutique uniquement quand vous êtes prêt à recevoir des commandes web."
+          icon="globe-outline"
+          accentColor={colors.info}
+          expanded={expandedSections.storeEcommerce}
+          onToggle={() => toggleSection('storeEcommerce')}
+          styles={styles}
+          colors={colors}
+          variant="nested"
+        >
+          <View style={styles.settingRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Activer le site public</Text>
+              <Text style={styles.settingDesc}>{ecommerceSite.site_url}</Text>
+            </View>
+            <Switch
+              value={!!ecommerceSite.enabled}
+              onValueChange={(value) => saveEcommerceSettings(value)}
+              disabled={ecommerceSaving}
+              trackColor={{ false: colors.divider, true: colors.primary + '66' }}
+              thumbColor={ecommerceSite.enabled ? colors.primary : colors.textMuted}
+            />
+          </View>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={ecommercePaymentInstructions}
+            onChangeText={setEcommercePaymentInstructions}
+            placeholder="Instructions de paiement manuel : Wave, Orange Money, paiement à la livraison..."
+            placeholderTextColor={colors.textMuted}
+            multiline
+          />
+          <TouchableOpacity
+            style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
+            onPress={() => saveEcommerceSettings()}
+            disabled={ecommerceSaving}
+          >
+            <Ionicons name="save-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
+              {ecommerceSaving ? 'Enregistrement...' : 'Enregistrer le site e-commerce'}
             </Text>
           </TouchableOpacity>
         </SettingsAccordionSection>
@@ -1899,6 +1972,10 @@ const getStyles = (colors: any, glassStyle: any, compact: boolean) => StyleSheet
     color: colors.text,
     borderRadius: BorderRadius.md,
     width: '100%',
+  },
+  textArea: {
+    minHeight: 96,
+    textAlignVertical: 'top',
   },
   aboutRow: {
     flexDirection: 'row',

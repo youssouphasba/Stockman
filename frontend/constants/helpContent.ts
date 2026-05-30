@@ -69,6 +69,8 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'checkbox-outline', title: 'help.modules.products.f12.t', description: "help.modules.products.f12.d" },
       { icon: 'cube-outline', title: 'help.modules.products.f13.t', description: "help.modules.products.f13.d" },
       { icon: 'image-outline', title: "Photos produits", description: "Les photos ajoutées depuis le mobile sont compressées puis enregistrées avec la fiche produit. Elles ne dépendent plus d'un fichier temporaire du serveur." },
+      { icon: 'cloud-done-outline', title: "Migration guidée", description: "Les exports Shopify, Odoo et WooCommerce sont reconnus automatiquement. Pour un template différent, l'IA peut arranger les colonnes vers le format Stockman avant l'import." },
+      { icon: 'storefront-outline', title: "Site e-commerce", description: "Stockman génère un site public pour la boutique. Le bouton dans l'en-tête mobile permet de l'ouvrir, et les clients peuvent envoyer une commande depuis le panier." },
       { icon: 'cash-outline', title: "CMP automatique", description: "Le coût d'achat d'un produit existant correspond désormais au CMP. Pour le modifier, ouvrez une entrée de stock et renseignez le prix d'achat unitaire réellement payé." },
     ],
   },

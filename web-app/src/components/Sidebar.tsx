@@ -40,7 +40,7 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { getAccessContext } from '../utils/access';
 import type { UserPermissions } from '../services/api';
-import { stores as storesApi, type Store as StoreRecord } from '../services/api';
+import { ecommerce as ecommerceApi, stores as storesApi, type Store as StoreRecord } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface SidebarProps {
@@ -126,6 +126,8 @@ export default function Sidebar({
     const [storeList, setStoreList] = useState<StoreRecord[]>([]);
     const [storesLoading, setStoresLoading] = useState(false);
     const [switchingStoreId, setSwitchingStoreId] = useState<string | null>(null);
+    const [openingEcommerceSite, setOpeningEcommerceSite] = useState(false);
+    const [ecommerceSite, setEcommerceSite] = useState<{ site_url: string; enabled: boolean } | null>(null);
 
     // Entrées communes (toujours visibles)
     const commonBottom: SidebarEntry[] = [
@@ -297,6 +299,27 @@ export default function Sidebar({
         };
     }, [user?.user_id, user?.active_store_id, (user?.store_ids || []).join(',')]);
 
+    useEffect(() => {
+        let cancelled = false;
+        if (!user || user.role === 'supplier' || !hasOperationalAccess) {
+            setEcommerceSite(null);
+            return () => {
+                cancelled = true;
+            };
+        }
+        ecommerceApi.getSite()
+            .then((site) => {
+                if (cancelled) return;
+                setEcommerceSite(site?.enabled ? { site_url: site.site_url, enabled: true } : null);
+            })
+            .catch(() => {
+                if (!cancelled) setEcommerceSite(null);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [hasOperationalAccess, user?.user_id, user?.active_store_id]);
+
     const activeStore = storeList.find((store) => store.store_id === user?.active_store_id) || null;
     const canSwitchStores = storeList.length > 1;
 
@@ -311,6 +334,21 @@ export default function Sidebar({
         } catch (error) {
             console.error(error);
             setSwitchingStoreId(null);
+        }
+    };
+
+    const openEcommerceSite = async () => {
+        if (openingEcommerceSite) return;
+        setOpeningEcommerceSite(true);
+        try {
+            const site = await ecommerceApi.getSite();
+            if (site?.enabled && site?.site_url) {
+                window.open(site.site_url, '_blank', 'noopener,noreferrer');
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setOpeningEcommerceSite(false);
         }
     };
 
@@ -474,6 +512,18 @@ export default function Sidebar({
                         <X size={18} />
                     </button>
                 </div>
+
+                {hasOperationalAccess && user?.role !== 'supplier' && ecommerceSite?.enabled && (
+                    <button
+                        type="button"
+                        onClick={openEcommerceSite}
+                        disabled={openingEcommerceSite}
+                        className="mb-4 flex w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 text-left text-primary transition-all hover:bg-primary/15 disabled:opacity-60"
+                    >
+                        <Globe size={17} className="shrink-0" />
+                        <span className="flex-1 text-sm font-black">Ouvrir le site e-commerce</span>
+                    </button>
+                )}
 
                 {storeList.length > 0 && (
                     <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3">

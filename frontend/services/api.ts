@@ -824,6 +824,23 @@ export const products = {
 
 export const productsApi = products;
 
+export const ecommerce = {
+  getSite: () =>
+    request<{ slug: string; site_url: string; enabled: boolean; store_id?: string | null; store_name?: string | null; custom_domain?: string | null; payment_instructions?: string | null }>('/ecommerce/site'),
+  updateSite: (data: { enabled?: boolean; payment_instructions?: string | null }) =>
+    request<{ slug: string; site_url: string; enabled: boolean; store_id?: string | null; store_name?: string | null; custom_domain?: string | null; payment_instructions?: string | null }>('/ecommerce/site', { method: 'PUT', body: data }),
+  listOrders: (status?: string, skip = 0, limit = 50) => {
+    const qs = new URLSearchParams();
+    if (status && status !== 'all') qs.set('status', status);
+    qs.set('skip', String(skip));
+    qs.set('limit', String(limit));
+    return request<{ items: any[]; total: number }>(`/ecommerce/orders?${qs.toString()}`);
+  },
+  getOrder: (orderId: string) => request<any>(`/ecommerce/orders/${orderId}`),
+  updateOrderStatus: (orderId: string, status: string) =>
+    request<{ message: string; order: any }>(`/ecommerce/orders/${orderId}/status`, { method: 'PUT', body: { status } }),
+};
+
 type ProjectAllocatePayload = {
   product_id: string;
   quantity: number;

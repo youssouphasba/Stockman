@@ -20,6 +20,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   orders as ordersApi,
+  ecommerce as ecommerceApi,
   ratings as ratingsApi,
   suppliers as suppliersApi,
   products as productsApi,
@@ -148,12 +149,14 @@ export default function OrdersScreen() {
   const [partialSaving, setPartialSaving] = useState(false);
 
   // Main tab: 'orders' | 'returns'
-  const [activeTab, setActiveTab] = useState<'orders' | 'returns'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'returns' | 'web'>('orders');
 
   // Returns
   const [returnsList, setReturnsList] = useState<ReturnData[]>([]);
   const [returnsLoading, setReturnsLoading] = useState(false);
   const [creditNotesList, setCreditNotesList] = useState<CreditNote[]>([]);
+  const [webOrders, setWebOrders] = useState<any[]>([]);
+  const [webOrdersLoading, setWebOrdersLoading] = useState(false);
 
   // Create return modal
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -313,6 +316,27 @@ export default function OrdersScreen() {
     }
   }, []);
 
+  const loadWebOrders = useCallback(async () => {
+    setWebOrdersLoading(true);
+    try {
+      const result = await ecommerceApi.listOrders();
+      setWebOrders(result.items || []);
+    } catch {
+      setWebOrders([]);
+    } finally {
+      setWebOrdersLoading(false);
+    }
+  }, []);
+
+  const updateWebOrderStatus = async (orderId: string, status: string) => {
+    try {
+      await ecommerceApi.updateOrderStatus(orderId, status);
+      await loadWebOrders();
+    } catch (err: any) {
+      Alert.alert(t('common.error'), err?.message || 'Impossible de mettre à jour la commande web.');
+    }
+  };
+
   // Register drawer menu items
   useFocusEffect(
     useCallback(() => {
@@ -331,7 +355,8 @@ export default function OrdersScreen() {
       loadData();
       loadSuppliers();
       loadReturns();
-    }, [loadData, loadSuppliers, loadReturns])
+      loadWebOrders();
+    }, [loadData, loadSuppliers, loadReturns, loadWebOrders])
   );
 
   useEffect(() => {
@@ -885,7 +910,9 @@ export default function OrdersScreen() {
               <Text style={styles.subtitle}>
                 {activeTab === 'orders'
                   ? t('orders.orders_count', { count: orderList.length })
-                  : t('orders.returns_count', { count: returnsList.length })}
+                  : activeTab === 'returns'
+                  ? t('orders.returns_count', { count: returnsList.length })
+                  : `${webOrders.length} commande(s) web`}
               </Text>
             </View>
             <View style={styles.headerActionsRow}>
@@ -920,12 +947,16 @@ export default function OrdersScreen() {
                       setShowCreateModal(true);
                       return;
                     }
+                    if (activeTab === 'web') {
+                      loadWebOrders();
+                      return;
+                    }
                     openCreateReturn();
                   }}
                 >
                   <Ionicons name="add" size={20} color="#fff" />
                   <Text numberOfLines={1} style={styles.headerPrimaryActionText}>
-                    {activeTab === 'orders' ? 'Nouvelle commande' : 'Nouveau retour'}
+                    {activeTab === 'orders' ? 'Nouvelle commande' : activeTab === 'web' ? 'Actualiser' : 'Nouveau retour'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -944,6 +975,17 @@ export default function OrdersScreen() {
             >
               <Ionicons name="cart-outline" size={16} color={activeTab === 'orders' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
               <Text style={[styles.filterText, activeTab === 'orders' && styles.filterTextActive]}>{t('orders.title')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.filterChip,
+                activeTab === 'web' && styles.filterChipActive,
+                { flex: 1, justifyContent: 'center' },
+              ]}
+              onPress={() => { setActiveTab('web'); loadWebOrders(); }}
+            >
+              <Ionicons name="globe-outline" size={16} color={activeTab === 'web' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
+              <Text style={[styles.filterText, activeTab === 'web' && styles.filterTextActive]}>Web</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -983,7 +1025,7 @@ export default function OrdersScreen() {
               style={{ flex: 1, color: colors.text, fontSize: FontSize.sm }}
               value={orderSearch}
               onChangeText={setOrderSearch}
-              placeholder={activeTab === 'orders' ? t('orders.search_orders_placeholder', 'Rechercher une commande, un fournisseur ou un produit') : t('orders.search_returns_placeholder', 'Rechercher un retour, un fournisseur ou un produit')}
+              placeholder={activeTab === 'orders' ? t('orders.search_orders_placeholder', 'Rechercher une commande, un fournisseur ou un produit') : activeTab === 'web' ? 'Rechercher une commande web ou un client' : t('orders.search_returns_placeholder', 'Rechercher un retour, un fournisseur ou un produit')}
               placeholderTextColor={colors.textMuted}
             />
             {orderSearch.length > 0 && (
@@ -993,7 +1035,7 @@ export default function OrdersScreen() {
             )}
           </View>
 
-          <TouchableOpacity
+          {activeTab !== 'web' && <TouchableOpacity
             style={styles.sectionToggleCard}
             onPress={() => setShowControlsPanel((current) => !current)}
             activeOpacity={0.85}
@@ -1007,7 +1049,44 @@ export default function OrdersScreen() {
               size={20}
               color={colors.textMuted}
             />
-          </TouchableOpacity>
+          </TouchableOpacity>}
+
+          {activeTab === 'web' && (
+            <View style={{ gap: Spacing.md }}>
+              {webOrdersLoading ? (
+                <ActivityIndicator color={colors.primary} style={{ marginTop: Spacing.xl }} />
+              ) : webOrders.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="globe-outline" size={64} color={colors.textMuted} />
+                  <Text style={styles.emptyTitle}>Aucune commande web</Text>
+                  <Text style={styles.emptyText}>Les commandes envoyées depuis le site e-commerce apparaîtront ici.</Text>
+                </View>
+              ) : webOrders.map((order) => (
+                <View key={order.order_id} style={styles.orderCard}>
+                  <View style={styles.orderHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.orderSupplier}>{order.order_number}</Text>
+                      <Text style={styles.orderDate}>{order.customer_name} · {order.customer_phone || order.customer_email || 'Contact non renseigné'}</Text>
+                    </View>
+                    <Text style={[styles.statusBadge, { color: colors.primary }]}>{order.status}</Text>
+                  </View>
+                  {(order.items || []).map((item: any) => (
+                    <View key={item.product_id} style={styles.detailRow}>
+                      <Text style={styles.detailRowText}>{item.product_name} x {item.quantity}</Text>
+                      <Text style={styles.detailRowSubtext}>{formatCurrency(item.total || 0, user?.currency)}</Text>
+                    </View>
+                  ))}
+                  <Text style={[styles.orderSupplier, { marginTop: Spacing.sm }]}>{formatCurrency(order.total_amount || 0, user?.currency)}</Text>
+                  <View style={styles.orderActions}>
+                    {order.status === 'pending' && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'confirmed')}><Text style={[styles.actionText, { color: colors.primary }]}>Confirmer</Text></TouchableOpacity>}
+                    {['confirmed', 'preparing'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'ready')}><Text style={[styles.actionText, { color: colors.warning }]}>Prête</Text></TouchableOpacity>}
+                    {['confirmed', 'preparing', 'ready'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'delivered')}><Text style={[styles.actionText, { color: colors.success }]}>Livrer</Text></TouchableOpacity>}
+                    {['pending', 'confirmed'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'cancelled')}><Text style={[styles.actionText, { color: colors.danger }]}>Annuler</Text></TouchableOpacity>}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
 
           {activeTab === 'orders' && (<>
             {showControlsPanel && (

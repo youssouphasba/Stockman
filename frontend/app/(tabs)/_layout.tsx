@@ -6,10 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { alerts as alertsApi, demo as demoApi, settings as settingsApi, DemoSessionInfo, UserSettings } from '../../services/api';
+import { alerts as alertsApi, demo as demoApi, ecommerce as ecommerceApi, settings as settingsApi, DemoSessionInfo, UserSettings } from '../../services/api';
 
 import StoreSelector from '../../components/StoreSelector';
-import { DeviceEventEmitter, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { Alert, DeviceEventEmitter, Linking, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
@@ -35,6 +35,8 @@ function TabLayoutInner() {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const settingsLoadedRef = useRef(false);
   const [unreadAlertCount, setUnreadAlertCount] = useState(0);
+  const [openingEcommerceSite, setOpeningEcommerceSite] = useState(false);
+  const [ecommerceSite, setEcommerceSite] = useState<{ site_url: string; enabled: boolean } | null>(null);
 
   const refreshAlertCount = useCallback(async () => {
     if (!user?.user_id || !hasOperationalAccess || isRestaurant || !hasPermission('stock', 'read')) {
@@ -57,6 +59,16 @@ function TabLayoutInner() {
       settingsApi.get().then(setUserSettings).catch(() => { });
     }
   }, [user?.user_id]);
+
+  useEffect(() => {
+    if (!user?.user_id || !hasOperationalAccess) {
+      setEcommerceSite(null);
+      return;
+    }
+    ecommerceApi.getSite().then((site) => {
+      setEcommerceSite(site?.enabled ? { site_url: site.site_url, enabled: true } : null);
+    }).catch(() => setEcommerceSite(null));
+  }, [hasOperationalAccess, user?.user_id, user?.active_store_id]);
 
   useEffect(() => {
     refreshAlertCount();
@@ -241,6 +253,21 @@ function TabLayoutInner() {
     }
   };
 
+  const openEcommerceSite = async () => {
+    if (openingEcommerceSite) return;
+    setOpeningEcommerceSite(true);
+    try {
+      const site = await ecommerceApi.getSite();
+      if (site?.enabled && site?.site_url) {
+        await Linking.openURL(site.site_url);
+      }
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error?.message || "Impossible d'ouvrir le site e-commerce.");
+    } finally {
+      setOpeningEcommerceSite(false);
+    }
+  };
+
   return (
     <>
       <TrialBanner />
@@ -268,6 +295,22 @@ function TabLayoutInner() {
           ) : undefined,
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: compactHeader ? 8 : 16, gap: compactHeader ? 6 : 12, maxWidth: width - (compactHeader ? 62 : 88) }}>
+              {hasOperationalAccess && ecommerceSite?.enabled && (
+                <TouchableOpacity
+                  onPress={openEcommerceSite}
+                  disabled={openingEcommerceSite}
+                  style={{
+                    padding: compactHeader ? 3 : 4,
+                    borderRadius: 999,
+                    backgroundColor: isDark ? 'rgba(59, 130, 246, 0.16)' : 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(96, 165, 250, 0.28)' : 'rgba(37, 99, 235, 0.2)',
+                    opacity: openingEcommerceSite ? 0.6 : 1,
+                  }}
+                >
+                  <Ionicons name="storefront-outline" size={compactHeader ? 21 : 23} color={colors.primary} />
+                </TouchableOpacity>
+              )}
               {hasOperationalAccess && (
                 <TouchableOpacity onPress={() => router.push('/(tabs)/alerts' as any)} style={{ padding: compactHeader ? 3 : 4, position: 'relative' }}>
                   <Ionicons name="notifications-outline" size={compactHeader ? 22 : 24} color={colors.text} />

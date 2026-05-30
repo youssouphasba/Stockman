@@ -41,6 +41,12 @@ const OPTIONAL_FIELDS = [
     { key: 'location', labelKey: 'settings_workspace.stores.locations.title' },
 ];
 
+type ImportProfile = {
+    source: string;
+    label: string;
+    auto_mapping: boolean;
+};
+
 export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpdate }: BulkImportModalProps) {
     const { t } = useTranslation();
     const { colors, glassStyle } = useTheme();
@@ -52,6 +58,7 @@ export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpda
     const [headers, setHeaders] = useState<string[]>([]);
     const [mapping, setMapping] = useState<Record<string, string>>({});
     const [rawData, setRawData] = useState<any[]>([]);
+    const [importProfile, setImportProfile] = useState<ImportProfile | null>(null);
     const [importSummary, setImportSummary] = useState<{ count: number; errors?: any[] } | null>(null);
     const [importJob, setImportJob] = useState<ProductImportJob | null>(null);
     const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -158,8 +165,10 @@ export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpda
 
             const response = await productsApi.parseImport(formData);
             const csvHeaders: string[] = response.columns || [];
+            const detectedProfile = response.import_profile || null;
             setHeaders(csvHeaders);
             setRawData(response.data || []);
+            setImportProfile(detectedProfile);
 
             const initialMapping: Record<string, string> = { ...(response.ai_mapping || {}) };
             REQUIRED_FIELDS.concat(OPTIONAL_FIELDS).forEach(field => {
@@ -179,7 +188,7 @@ export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpda
             });
 
             setMapping(initialMapping);
-            setStep(1);
+            setStep(detectedProfile?.auto_mapping && initialMapping.name ? 2 : 1);
         } catch (err) {
             console.error('Parse file error:', err);
             Alert.alert(t('common.error'), t('bulk_import.error_parse_file'));
@@ -243,6 +252,7 @@ export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpda
         setHeaders([]);
         setMapping({});
         setRawData([]);
+        setImportProfile(null);
         setImportSummary(null);
         setImportJob(null);
         onJobUpdate?.(null);
@@ -350,6 +360,9 @@ export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpda
 
                         <View style={styles.summaryCard}>
                             <Text style={styles.summaryText}>{t('bulk_import.file_label', { name: file?.assets?.[0]?.name || 'Products.csv' })}</Text>
+                            {importProfile?.auto_mapping && (
+                                <Text style={styles.summaryText}>Source détectée : {importProfile.label}</Text>
+                            )}
                             <Text style={styles.summaryText}>{t('bulk_import.products_to_import', { count: rawData.length })}</Text>
                             <Text style={styles.summaryText}>{t('bulk_import.mapped_columns', { count: Object.keys(mapping).length })}</Text>
                         </View>

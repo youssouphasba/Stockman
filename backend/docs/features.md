@@ -31,15 +31,22 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 1. Aller dans l'onglet **Produits**
 2. Appuyer sur le bouton **Importer** (icône nuage ou flèche vers le haut)
 3. Sélectionner votre fichier CSV ou Excel (taille max : 5 Mo)
-4. L'IA analyse automatiquement les colonnes et suggère un mapping (ex. : colonne "Prix Achat" → champ `purchase_price`)
-5. Vérifier et ajuster le mapping des colonnes si nécessaire
-6. Les champs **obligatoires** sont : `name` (nom du produit)
-7. Les champs **optionnels** sont : `sku`, `quantity`, `purchase_price`, `selling_price`, `description`, `unit`, `min_stock`, `category_id`
-8. Cliquer sur **Lancer l'importation**
-9. Un résumé affiche le nombre de produits importés et les erreurs éventuelles
+4. Si le fichier vient de Shopify, Odoo ou WooCommerce, Stockman détecte la source et mappe automatiquement les colonnes exportées vers les champs produits Stockman
+5. Pour les autres fichiers CSV, l'IA analyse les colonnes et peut transformer le template vers les champs Stockman avant l'import si elle identifie le nom du produit avec suffisamment de confiance
+6. Vérifier et ajuster le mapping des colonnes uniquement si la source n'a pas été reconnue ou si l'IA n'est pas assez sûre
+7. Les champs **obligatoires** sont : `name` (nom du produit)
+8. Les champs **optionnels** sont : `sku`, `quantity`, `purchase_price`, `selling_price`, `description`, `unit`, `min_stock`, `category_id`, `image`
+9. Cliquer sur **Lancer l'importation**
+10. Un résumé affiche le nombre de produits importés et les erreurs éventuelles
 
 **Formats acceptés :** CSV (virgule `,` ou point-virgule `;`), Excel (.xls, .xlsx)
 **Encodages supportés :** UTF-8, UTF-8 BOM, Latin-1, CP1252 (les accents français sont gérés automatiquement)
+
+**Migrations sans mapping manuel :**
+- Shopify : `Title`, `Variant SKU`, `Variant Price`, `Variant Inventory Qty`, `Image Src`, `Product Category` et champs de variantes
+- Odoo : `Name`, `Internal Reference`, `Sales Price`, `Cost`, `Quantity On Hand`, `Product Category`
+- WooCommerce : `Name`, `SKU`, `Regular price`, `Stock`, `Categories`, `Images`
+- Templates personnalisés : l'IA peut associer des colonnes comme `PV_TTC`, `Tarif vente`, `QTE_DEPOT`, `ART_LIB` ou `Famille` aux champs Stockman, puis présenter un aperçu avant validation
 
 **Noms de colonnes reconnus automatiquement :**
 - Nom du produit : `name`, `NOM`, `Désignation`, `Désignation Article`
@@ -78,6 +85,15 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Les photos ajoutées depuis le mobile passent par l'endpoint `/api/upload/image`.
 - L'image est compressée puis renvoyée sous forme d'image intégrée, afin d'être sauvegardée directement dans la fiche produit.
 - Une photo produit ne doit pas dépendre d'un fichier temporaire du serveur backend, car ce fichier peut disparaître lors d'un redéploiement ou d'un redémarrage.
+
+### Site e-commerce automatique
+- Chaque compte commerçant dispose d'un site e-commerce public généré par Stockman avec un slug unique, par exemple `/shop/ma-boutique`.
+- Le site affiche les produits actifs de la boutique active, avec nom, description, prix de vente, stock disponible, unité, image et catégorie.
+- Les clients peuvent ajouter des produits au panier et envoyer une commande avec nom, téléphone, email, adresse et note.
+- Les commandes créées depuis le site sont enregistrées avec la source `ecommerce`, le statut `pending`, le compte, la boutique, les lignes, le total et la devise.
+- Le stock n'est pas décrémenté automatiquement à la création de la commande publique : la boutique doit confirmer et traiter la commande avant toute sortie de stock.
+- Sur mobile, un bouton visible dans l'en-tête ouvre directement le site e-commerce de la boutique active.
+- Sur le web admin, un bouton visible sous le logo ouvre le site e-commerce dans un nouvel onglet.
 - Les anciennes fiches qui pointent encore vers `/uploads/products/...` peuvent perdre leur image si le fichier serveur d'origine n'existe plus ; il faut alors remettre la photo sur la fiche produit.
 
 ### Comment modifier le stock d'un produit ?

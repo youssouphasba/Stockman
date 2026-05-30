@@ -15,6 +15,111 @@ IMPORT_JOB_CHUNK_SIZE = 200
 def _normalize_text(value: Any) -> str:
     return str(value or "").strip()
 
+def _normalize_column(value: Any) -> str:
+    normalized = str(value or "").strip().lower()
+    replacements = {
+        "é": "e",
+        "è": "e",
+        "ê": "e",
+        "ë": "e",
+        "à": "a",
+        "â": "a",
+        "ä": "a",
+        "î": "i",
+        "ï": "i",
+        "ô": "o",
+        "ö": "o",
+        "ù": "u",
+        "û": "u",
+        "ü": "u",
+        "ç": "c",
+        "_": " ",
+        "-": " ",
+    }
+    for source, target in replacements.items():
+        normalized = normalized.replace(source, target)
+    return " ".join(normalized.split())
+
+
+def _first_present(row: Dict[str, Any], columns_by_alias: Dict[str, str], aliases: List[str]) -> Any:
+    for alias in aliases:
+        source = columns_by_alias.get(_normalize_column(alias))
+        if source and row.get(source) not in (None, ""):
+            return row.get(source)
+    return None
+
+
+def _join_defined(*values: Any, separator: str = " - ") -> str:
+    parts = [_normalize_text(value) for value in values if _normalize_text(value)]
+    return separator.join(parts)
+
+
+PLATFORM_IMPORT_PROFILES: Dict[str, Dict[str, Any]] = {
+    "shopify": {
+        "label": "Shopify",
+        "required_columns": ["title", "handle"],
+        "signature_columns": ["variant sku", "variant price", "image src", "body html", "variant inventory qty"],
+        "fields": {
+            "name": ["title"],
+            "sku": ["variant sku", "variant barcode"],
+            "quantity": ["variant inventory qty", "inventory quantity", "variant inventory quantity"],
+            "purchase_price": ["cost per item", "variant cost", "cost"],
+            "selling_price": ["variant price", "price"],
+            "category_name": ["product category", "type", "category", "custom product type"],
+            "description": ["body html", "description"],
+            "unit": ["unit", "variant unit"],
+            "image": ["image src"],
+        },
+    },
+    "odoo": {
+        "label": "Odoo",
+        "required_columns": ["name"],
+        "signature_columns": ["internal reference", "sales price", "cost", "quantity on hand", "product category"],
+        "fields": {
+            "name": ["name", "product name", "nom", "article"],
+            "sku": ["internal reference", "default code", "barcode", "reference interne", "code barre"],
+            "quantity": ["quantity on hand", "on hand", "qty available", "quantite en stock", "stock"],
+            "purchase_price": ["cost", "standard price", "cout", "prix de revient", "prix d'achat"],
+            "selling_price": ["sales price", "sale price", "prix de vente"],
+            "category_name": ["product category", "category", "categorie"],
+            "description": ["description", "internal notes", "notes"],
+            "unit": ["unit of measure", "uom", "unite de mesure", "unite"],
+            "image": ["image", "image 1920", "image url"],
+        },
+    },
+    "woocommerce": {
+        "label": "WooCommerce",
+        "required_columns": ["name"],
+        "signature_columns": ["regular price", "stock", "categories", "images", "sku"],
+        "fields": {
+            "name": ["name", "nom"],
+            "sku": ["sku", "ugs"],
+            "quantity": ["stock", "stock quantity", "quantite en stock"],
+            "purchase_price": ["cost", "purchase price", "prix d'achat"],
+            "selling_price": ["regular price", "sale price", "price", "tarif regulier"],
+            "category_name": ["categories", "category", "categorie"],
+            "description": ["description", "short description", "description courte"],
+            "unit": ["unit", "unite"],
+            "image": ["images", "image", "image url"],
+        },
+    },
+}
+
+
+STOCKMAN_IDENTITY_MAPPING = {
+    "name": "name",
+    "sku": "sku",
+    "quantity": "quantity",
+    "purchase_price": "purchase_price",
+    "selling_price": "selling_price",
+    "category_name": "category_name",
+    "description": "description",
+    "unit": "unit",
+    "min_stock": "min_stock",
+    "location": "location",
+    "image": "image",
+}
+
 class ImportService:
     def __init__(self, db):
         self.db = db
@@ -50,6 +155,96 @@ class ImportService:
             "data": rows,
             "row_count": len(rows)
         }
+
+    def detect_import_profile(self, columns: List[str]) -> Dict[str, Any]:
+        normalized_columns = {_normalize_column(column) for column in columns}
+        best_source = "generic"
+        best_profile: Dict[str, Any] = {}
+        best_score = 0.0
+        best_detected: List[str] = []
+
+        for source, profile in PLATFORM_IMPORT_PROFILES.items():
+            required = [_normalize_column(column) for column in profile.get("required_columns", [])]
+            signature = [_normalize_column(column) for column in profile.get("signature_columns", [])]
+            required_matches = [column for column in required if column in normalized_columns]
+            signature_matches = [column for column in signature if column in normalized_columns]
+
+            if len(required_matches) < len(required):
+                continue
+            if source != "shopify" and len(signature_matches) < 2:
+                continue
+            if source == "shopify" and len(signature_matches) < 1:
+                continue
+
+            score = min(1.0, (len(required_matches) * 0.35) + (len(signature_matches) / max(1, len(signature)) * 0.65))
+            if score > best_score:
+                best_source = source
+                best_profile = profile
+                best_score = score
+                best_detected = required_matches + signature_matches
+
+        if best_source == "generic":
+            return {
+                "source": "generic",
+                "label": "Fichier CSV",
+                "confidence": 0,
+                "auto_mapping": False,
+                "detected_columns": [],
+            }
+
+        return {
+            "source": best_source,
+            "label": best_profile.get("label", best_source.title()),
+            "confidence": round(best_score, 2),
+            "auto_mapping": True,
+            "detected_columns": best_detected,
+        }
+
+    def get_identity_mapping(self) -> Dict[str, str]:
+        return dict(STOCKMAN_IDENTITY_MAPPING)
+
+    def normalize_platform_rows(self, data: List[Dict[str, Any]], source: str) -> List[Dict[str, Any]]:
+        profile = PLATFORM_IMPORT_PROFILES.get(source)
+        if not profile:
+            return data
+
+        fields = profile.get("fields", {})
+        normalized_rows: List[Dict[str, Any]] = []
+        carried_shopify_values: Dict[str, Dict[str, Any]] = {}
+        for row in data:
+            columns_by_alias = {_normalize_column(column): column for column in row.keys()}
+            normalized_row: Dict[str, Any] = {}
+            shopify_handle = _normalize_text(_first_present(row, columns_by_alias, ["handle"]))
+            for field, aliases in fields.items():
+                value = _first_present(row, columns_by_alias, aliases)
+                if source == "shopify" and field in {"name", "category_name", "description", "image"}:
+                    if value not in (None, "") and shopify_handle:
+                        carried_shopify_values.setdefault(shopify_handle, {})[field] = value
+                    elif shopify_handle:
+                        value = carried_shopify_values.get(shopify_handle, {}).get(field)
+                if field == "image" and isinstance(value, str) and "," in value:
+                    value = value.split(",")[0]
+                normalized_row[field] = value
+
+            if source == "shopify":
+                title = _first_present(row, columns_by_alias, ["title"]) or normalized_row.get("name")
+                option_values = [
+                    _first_present(row, columns_by_alias, ["option1 value"]),
+                    _first_present(row, columns_by_alias, ["option2 value"]),
+                    _first_present(row, columns_by_alias, ["option3 value"]),
+                ]
+                option_values = [
+                    value for value in option_values
+                    if _normalize_text(value) and _normalize_text(value).lower() != "default title"
+                ]
+                variant_title = _first_present(row, columns_by_alias, ["variant title"])
+                if not option_values and _normalize_text(variant_title).lower() != "default title":
+                    option_values = [variant_title]
+                normalized_row["name"] = _join_defined(title, *option_values)
+
+            normalized_rows.append(normalized_row)
+
+        return normalized_rows
 
     def map_columns(self, data: List[Dict[str, Any]], mapping: Dict[str, str]) -> List[Dict[str, Any]]:
         """Map foreign columns to internal product fields"""
@@ -156,7 +351,8 @@ class ImportService:
                 purchase_price = clean_float(row.get("purchase_price") or row.get("prix_achat") or 0.0)
                 selling_price = clean_float(row.get("selling_price") or row.get("prix_vente") or 0.0)
                 quantity = clean_int(row.get("quantity") or row.get("stock") or 0)
-                sku = _normalize_text(row.get("sku") or row.get("SKU") or row.get("Référence"))
+                sku = _normalize_text(row.get("sku") or row.get("SKU") or row.get("barcode") or row.get("Référence"))
+                image = _normalize_text(row.get("image") or row.get("image_url") or row.get("Image Src"))
 
                 if purchase_price < 0 or selling_price < 0:
                     errors.append({"row": index, "error": "Prix négatif non autorisé"})
@@ -179,6 +375,7 @@ class ImportService:
                     "name": str(name).strip(),
                     "description": str(row.get("description", "")).strip(),
                     "sku": sku,
+                    "image": image or None,
                     "quantity": quantity,
                     "unit": str(row.get("unit") or "pièce").strip(),
                     "purchase_price": purchase_price,
@@ -508,7 +705,7 @@ class ImportService:
         Return ONLY a JSON mapping where keys are standard fields and values are CSV column names.
         Example: {{"name": "Désignation Article", "sku": "Ref #"}}
         """
-        
+
         try:
             response = await gemini_model.generate_content_async(prompt)
             # Basic JSON extraction
@@ -519,5 +716,92 @@ class ImportService:
                 return json.loads(text[start:end])
         except Exception as e:
             logger.error(f"AI Mapping Error: {e}")
-            
+
         return {}
+
+    async def infer_template_normalization_with_ai(self, sample_data: List[Dict[str, Any]], gemini_model) -> Dict[str, Any]:
+        if not sample_data:
+            return {"mapping": {}, "confidence": 0, "ambiguous_fields": [], "ignored_columns": []}
+
+        clean_data = []
+        for row in sample_data[:10]:
+            clean_row = {}
+            for key, value in row.items():
+                clean_key = str(key)[:80].replace('"', '').replace('\n', ' ')
+                clean_value = str(value)[:160].replace('"', '').replace('\n', ' ')
+                clean_row[clean_key] = clean_value
+            clean_data.append(clean_row)
+
+        prompt = f"""
+        Tu es un assistant de migration de catalogue produits vers Stockman.
+        Analyse ce fichier importé et associe uniquement les colonnes existantes aux champs Stockman.
+
+        Champs Stockman possibles :
+        - name : nom du produit, obligatoire
+        - sku : référence, SKU ou code-barres
+        - quantity : quantité en stock
+        - purchase_price : prix d'achat ou coût
+        - selling_price : prix de vente, tarif public ou prix TTC
+        - category_name : catégorie ou famille produit
+        - description : description
+        - unit : unité
+        - min_stock : stock minimum
+        - location : emplacement
+        - image : image ou URL d'image
+
+        Règles :
+        - N'invente jamais de colonne.
+        - Si une colonne est ambiguë, ne la mappe pas et ajoute le champ dans ambiguous_fields.
+        - Réponds uniquement en JSON valide.
+        - confidence doit représenter ta confiance globale entre 0 et 1.
+
+        Format attendu :
+        {{
+          "mapping": {{"name": "Nom colonne", "selling_price": "Nom colonne"}},
+          "confidence": 0.85,
+          "ambiguous_fields": ["purchase_price"],
+          "ignored_columns": ["Nom colonne ignorée"]
+        }}
+
+        Échantillon CSV :
+        {json.dumps(clean_data, ensure_ascii=False)}
+        """
+
+        try:
+            response = await gemini_model.generate_content_async(prompt)
+            text = response.text or ""
+            start = text.find("{")
+            end = text.rfind("}") + 1
+            if start == -1 or end <= start:
+                return {"mapping": {}, "confidence": 0, "ambiguous_fields": [], "ignored_columns": []}
+
+            payload = json.loads(text[start:end])
+            mapping = payload.get("mapping") if isinstance(payload, dict) else {}
+            if not isinstance(mapping, dict):
+                mapping = {}
+
+            sample_columns = set(sample_data[0].keys()) if sample_data else set()
+            allowed_fields = set(STOCKMAN_IDENTITY_MAPPING.keys())
+            safe_mapping = {
+                field: column
+                for field, column in mapping.items()
+                if field in allowed_fields and column in sample_columns
+            }
+            confidence = payload.get("confidence", 0)
+            try:
+                confidence = max(0, min(1, float(confidence)))
+            except (TypeError, ValueError):
+                confidence = 0
+
+            ambiguous_fields = payload.get("ambiguous_fields") or []
+            ignored_columns = payload.get("ignored_columns") or []
+            return {
+                "mapping": safe_mapping,
+                "confidence": confidence,
+                "ambiguous_fields": ambiguous_fields if isinstance(ambiguous_fields, list) else [],
+                "ignored_columns": ignored_columns if isinstance(ignored_columns, list) else [],
+            }
+        except Exception as e:
+            logger.error(f"AI template normalization error: {e}")
+
+        return {"mapping": {}, "confidence": 0, "ambiguous_fields": [], "ignored_columns": []}
