@@ -102,6 +102,7 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Les statistiques E-com suivent les visites publiques hors aperçu commerçant, les ajouts au panier, les commandes, le chiffre d'affaires, la conversion, les produits visibles, les ruptures et les produits les plus ajoutés ou commandés.
 - Les commandes créées depuis le site sont enregistrées avec la source `ecommerce`, le statut `pending`, le compte, la boutique, les lignes, le total et la devise.
 - Le stock n'est pas décrémenté automatiquement à la création de la commande publique : la boutique doit confirmer et traiter la commande avant toute sortie de stock.
+- Quand une commande E-com est livrée, elle est convertie en vente et sa sortie de stock n'est pas comptée comme une perte comptable.
 - Sur mobile, un bouton visible dans l'en-tête ouvre directement le site e-commerce de la boutique active.
 - Sur le web admin, un bouton visible sous le logo ouvre le site e-commerce dans un nouvel onglet.
 - Les anciennes fiches qui pointent encore vers `/uploads/products/...` peuvent perdre leur image si le fichier serveur d'origine n'existe plus ; il faut alors remettre la photo sur la fiche produit.

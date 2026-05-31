@@ -2724,6 +2724,8 @@ class StockMovement(BaseModel):
     new_quantity: float
     purchase_price: Optional[float] = None  # Cost basis for this incoming batch (None for outflows or unspecified)
     new_purchase_price: Optional[float] = None  # Product WAC after this movement (only on "in" with WAC update)
+    source_type: Optional[str] = None
+    source_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StockMovementCreate(BaseModel):
@@ -2733,6 +2735,33 @@ class StockMovementCreate(BaseModel):
     reason: str = ""
     batch_id: Optional[str] = None
     purchase_price: Optional[float] = None  # Unit cost of incoming batch; triggers WAC recalc when set
+    source_type: Optional[str] = None
+    source_id: Optional[str] = None
+
+NON_LOSS_STOCK_MOVEMENT_SOURCE_TYPES = {
+    "sale",
+    "pos_sale",
+    "ecommerce_order",
+    "ecommerce_sale",
+}
+
+NON_LOSS_STOCK_MOVEMENT_REASON_TOKENS = (
+    "vente",
+    "sale",
+    "commande web",
+    "commande e-com",
+    "commande e-commerce",
+    "stock.reasons.pos_sale",
+)
+
+def is_loss_stock_movement(movement: Dict[str, Any]) -> bool:
+    if (movement.get("type") or "").lower() != "out":
+        return False
+    source_type = (movement.get("source_type") or "").strip().lower()
+    if source_type in NON_LOSS_STOCK_MOVEMENT_SOURCE_TYPES:
+        return False
+    reason = (movement.get("reason") or "").strip().lower()
+    return not any(token in reason for token in NON_LOSS_STOCK_MOVEMENT_REASON_TOKENS)
 
 class StockAdjustmentRequest(BaseModel):
     actual_quantity: float
@@ -17563,7 +17592,7 @@ async def get_ecommerce_order(order_id: str, user: User = Depends(require_permis
         query["store_id"] = user.active_store_id
     order = await db.ecommerce_orders.find_one(query, {"_id": 0})
     if not order:
-        raise HTTPException(status_code=404, detail="Commande web introuvable")
+        raise HTTPException(status_code=404, detail="Commande E-com introuvable")
     return order
 
 
@@ -17603,9 +17632,11 @@ async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> 
             store_id=store_id,
             type="out",
             quantity=quantity,
-            reason=f"Commande web {order.get('order_number') or order.get('order_id')} livrée",
+            reason=f"Vente E-com {order.get('order_number') or order.get('order_id')} livrée",
             previous_quantity=current_quantity,
             new_quantity=new_quantity,
+            source_type="ecommerce_order",
+            source_id=order.get("order_id"),
         )
         await db.stock_movements.insert_one(movement.model_dump())
         product["quantity"] = new_quantity
@@ -17643,7 +17674,7 @@ async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> 
         loyalty_points_earned=customer_effects["loyalty_points_earned"],
         customer_total_spent_increment=customer_effects["customer_total_spent_increment"],
         credit_debt_applied=customer_effects["credit_debt_applied"],
-        notes=f"Commande web {order.get('order_number') or order.get('order_id')}",
+        notes=f"Commande E-com {order.get('order_number') or order.get('order_id')}",
         status="completed",
         service_type="delivery",
         current_amount=total_amount,
@@ -17680,7 +17711,7 @@ async def update_ecommerce_order_status(
         query["store_id"] = user.active_store_id
     order = await db.ecommerce_orders.find_one(query, {"_id": 0})
     if not order:
-        raise HTTPException(status_code=404, detail="Commande web introuvable")
+        raise HTTPException(status_code=404, detail="Commande E-com introuvable")
     if order.get("status") in {"delivered", "cancelled", "rejected"}:
         raise HTTPException(status_code=400, detail="Cette commande est déjà clôturée")
     if payload.status == "delivered":
@@ -18828,6 +18859,8 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
         new_quantity=new_quantity,
         purchase_price=mov_data.purchase_price if mov_data.type == "in" else None,
         new_purchase_price=new_wac,
+        source_type=mov_data.source_type,
+        source_id=mov_data.source_id,
     )
     await db.stock_movements.insert_one(movement.model_dump())
     _invalidate_dashboard_ai_caches(owner_id, product.get("store_id") or user.active_store_id)
@@ -21584,11 +21617,7 @@ async def get_accounting_stats(
     
     all_movements = await db.stock_movements.find(mv_query, {"_id": 0}).sort("created_at", -1).to_list(10000)
 
-    movements = []
-    for m in all_movements:
-        reason = m.get("reason", "")
-        if "vente" not in reason.lower() and "sale" not in reason.lower():
-            movements.append(m)
+    movements = [m for m in all_movements if is_loss_stock_movement(m)]
 
     total_losses = 0.0
     loss_breakdown: Dict[str, float] = {}
@@ -22264,10 +22293,7 @@ async def get_accounting_kpi_details(
         query = apply_accessible_store_scope(query, user, scoped_store_id)
         query["created_at"] = {"$gte": date_range["start"], "$lte": date_range["end"]}
         movement_docs = await db.stock_movements.find(query, {"_id": 0}).sort("created_at", -1).to_list(3000)
-        movement_docs = [
-            doc for doc in movement_docs
-            if "vente" not in (doc.get("reason") or "").lower() and "sale" not in (doc.get("reason") or "").lower()
-        ]
+        movement_docs = [doc for doc in movement_docs if is_loss_stock_movement(doc)]
         product_ids = [doc.get("product_id") for doc in movement_docs if doc.get("product_id")]
         product_docs = await db.products.find(
             {"user_id": owner_id, "product_id": {"$in": product_ids}},
@@ -26569,12 +26595,12 @@ async def get_grand_livre(
     # 3. STOCK LOSSES (movements that are not POS sales) → outflow (stock value lost)
     products = await db.products.find({"user_id": user_id}, {"_id": 0, "product_id": 1, "name": 1, "purchase_price": 1}).to_list(2000)
     prod_map = {p["product_id"]: p for p in products}
-    losses = await db.stock_movements.find({
+    loss_candidates = await db.stock_movements.find({
         **base_q,
         "type": "out",
         "created_at": date_filter,
-        "reason": {"$nin": ["Vente POS", "pos_sale", "stock.reasons.pos_sale"]}
     }).to_list(5000)
+    losses = [movement for movement in loss_candidates if is_loss_stock_movement(movement)]
     for m in losses:
         p = prod_map.get(m.get("product_id", ""), {})
         unit_price = p.get("purchase_price", 0) or 0
@@ -27811,10 +27837,11 @@ async def export_accounting_csv(
         apply_store_scope({"user_id": owner_id, "created_at": {"$gte": start_dt, "$lte": end_dt}}, user)
     ).to_list(5000)
     # Losses
-    loss_movements = await db.stock_movements.find(apply_store_scope({
+    loss_candidates = await db.stock_movements.find(apply_store_scope({
         "user_id": owner_id, "type": "out",
-        "created_at": {"$gte": start_dt, "$lte": end_dt}, "reason": {"$ne": "Vente POS"}
+        "created_at": {"$gte": start_dt, "$lte": end_dt}
     }, user)).to_list(5000)
+    loss_movements = [movement for movement in loss_candidates if is_loss_stock_movement(movement)]
     products = await db.products.find({"user_id": owner_id}, {"_id": 0}).to_list(1000)
     prod_map = {p["product_id"]: p for p in products}
     # Purchases
