@@ -398,6 +398,7 @@ export default function SettingsScreen() {
         delivery_info: ecommerceResult?.delivery_info || '',
         whatsapp_phone: ecommerceResult?.whatsapp_phone || '',
         payment_instructions: ecommerceResult?.payment_instructions || '',
+        show_out_of_stock_products: Boolean(ecommerceResult?.show_out_of_stock_products),
       });
       setReceiptName(activeStore?.receipt_business_name || result?.receipt_business_name || '');
       setReceiptFooter(activeStore?.receipt_footer || result?.receipt_footer || '');
@@ -628,6 +629,7 @@ export default function SettingsScreen() {
         delivery_info: updated.delivery_info || '',
         whatsapp_phone: updated.whatsapp_phone || '',
         payment_instructions: updated.payment_instructions || '',
+        show_out_of_stock_products: Boolean(updated.show_out_of_stock_products),
       });
       showFeedback('Réglages e-commerce enregistrés.', 'success');
     } catch {
@@ -1210,6 +1212,19 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          <View style={styles.settingRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Afficher les produits en rupture</Text>
+              <Text style={styles.settingDesc}>S'ils sont affichés, ils restent visibles sur le site, mais ne peuvent pas être commandés. Sinon, ils sont masqués.</Text>
+            </View>
+            <Switch
+              value={!!ecommerceDraft.show_out_of_stock_products}
+              onValueChange={(value) => setEcommerceDraft((draft: any) => ({ ...draft, show_out_of_stock_products: value }))}
+              disabled={ecommerceSaving}
+              trackColor={{ false: colors.divider, true: colors.primary + '66' }}
+              thumbColor={ecommerceDraft.show_out_of_stock_products ? colors.primary : colors.textMuted}
+            />
+          </View>
           <TextInput
             style={styles.input}
             value={ecommerceDraft.site_name || ''}

@@ -92,6 +92,10 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Chaque compte commerçant dispose d'un site e-commerce public généré par Stockman avec un slug unique, par exemple `/shop/ma-boutique`.
 - Le site affiche les produits actifs de la boutique active, avec nom, description, prix de vente, stock disponible, unité, image et catégorie.
 - Les clients peuvent ajouter des produits au panier et envoyer une commande avec nom, téléphone, email, adresse et note.
+- La vitrine affiche jusqu'à 50 produits par page, avec pagination au-delà.
+- Le clic sur une carte produit ouvre une fiche détaillée avec image agrandie, description, prix, stock, favori et ajout au panier.
+- Sur mobile, le panier s'ouvre dans un panneau dédié depuis l'en-tête au lieu d'apparaître en bas de page.
+- Le commerçant peut choisir d'afficher ou non les produits en rupture sur le site. S'ils sont affichés, ils restent visibles mais ne peuvent pas être commandés.
 - Les commandes créées depuis le site sont enregistrées avec la source `ecommerce`, le statut `pending`, le compte, la boutique, les lignes, le total et la devise.
 - Le stock n'est pas décrémenté automatiquement à la création de la commande publique : la boutique doit confirmer et traiter la commande avant toute sortie de stock.
 - Sur mobile, un bouton visible dans l'en-tête ouvre directement le site e-commerce de la boutique active.

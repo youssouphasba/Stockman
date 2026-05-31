@@ -1372,6 +1372,7 @@ class EcommerceSiteInfo(BaseModel):
     delivery_info: Optional[str] = None
     whatsapp_phone: Optional[str] = None
     payment_instructions: Optional[str] = None
+    show_out_of_stock_products: bool = False
 
 
 class EcommerceSiteUpdate(BaseModel):
@@ -1385,6 +1386,7 @@ class EcommerceSiteUpdate(BaseModel):
     delivery_info: Optional[str] = Field(default=None, max_length=800)
     whatsapp_phone: Optional[str] = Field(default=None, max_length=40)
     payment_instructions: Optional[str] = Field(default=None, max_length=1200)
+    show_out_of_stock_products: Optional[bool] = None
 
 
 class PublicEcommerceOrderItem(BaseModel):
@@ -1526,6 +1528,8 @@ async def get_public_ecommerce_site(slug: str = Path(..., pattern="^[a-z0-9-]{2,
         "is_active": {"$ne": False},
         "selling_price": {"$gt": 0},
     }
+    if not account_doc.get("ecommerce_show_out_of_stock_products"):
+        products_query["quantity"] = {"$gt": 0}
     products = await db.products.find(
         products_query,
         {
@@ -1539,7 +1543,7 @@ async def get_public_ecommerce_site(slug: str = Path(..., pattern="^[a-z0-9-]{2,
             "image": 1,
             "category_id": 1,
         },
-    ).sort("name", 1).limit(500).to_list(500)
+    ).sort("name", 1).limit(2000).to_list(2000)
     category_ids = [product.get("category_id") for product in products if product.get("category_id")]
     categories = {}
     if category_ids:
@@ -1579,6 +1583,7 @@ async def get_public_ecommerce_site(slug: str = Path(..., pattern="^[a-z0-9-]{2,
             "delivery_info": account_doc.get("ecommerce_delivery_info"),
             "whatsapp_phone": account_doc.get("ecommerce_whatsapp_phone"),
             "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
+            "show_out_of_stock_products": bool(account_doc.get("ecommerce_show_out_of_stock_products") is True),
         },
         "products": public_products,
     }
@@ -1731,7 +1736,7 @@ async def create_public_ecommerce_order(
         "updated_at": now,
     }
     await db.ecommerce_orders.insert_one(order_doc)
-    title = "Nouvelle commande web"
+    title = "Nouvelle commande E-com"
     message = f"{payload.customer_name.strip()} a envoyé une commande de {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}."
     try:
         await notification_service.notify_user(
@@ -1768,13 +1773,13 @@ async def create_public_ecommerce_order(
             order_url = f"{get_web_app_base_url()}/orders"
             html_body = (
                 f"<p>Bonjour {(owner_doc or {}).get('name') or ''},</p>"
-                f"<p>Vous avez reçu la commande web <strong>{order_number}</strong> pour un total de "
+                f"<p>Vous avez reçu la commande E-com <strong>{order_number}</strong> pour un total de "
                 f"<strong>{round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}</strong>.</p>"
                 f"<p>Client : {html.escape(payload.customer_name.strip())}</p>"
                 f"<p><a href=\"{order_url}\">Ouvrir les commandes dans Stockman</a></p>"
             )
             text_body = (
-                f"Nouvelle commande web {order_number}\n"
+                f"Nouvelle commande E-com {order_number}\n"
                 f"Total : {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}\n"
                 f"Client : {payload.customer_name.strip()}\n"
                 f"Ouvrir les commandes : {order_url}"
@@ -3555,6 +3560,7 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         "delivery_info": account_doc.get("ecommerce_delivery_info"),
         "whatsapp_phone": account_doc.get("ecommerce_whatsapp_phone"),
         "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
+        "show_out_of_stock_products": bool(account_doc.get("ecommerce_show_out_of_stock_products") is True),
     }
 
 
@@ -17317,6 +17323,8 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, user: User = Depends(
         updates["ecommerce_whatsapp_phone"] = data.whatsapp_phone.strip() or None
     if data.payment_instructions is not None:
         updates["ecommerce_payment_instructions"] = data.payment_instructions.strip() or None
+    if data.show_out_of_stock_products is not None:
+        updates["ecommerce_show_out_of_stock_products"] = bool(data.show_out_of_stock_products)
     if len(updates) > 1 and account_doc:
         await db.business_accounts.update_one({"account_id": account_doc["account_id"]}, {"$set": updates})
     return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))

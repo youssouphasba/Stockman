@@ -312,6 +312,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                 delivery_info: ecommerceRes?.delivery_info || '',
                 whatsapp_phone: ecommerceRes?.whatsapp_phone || '',
                 payment_instructions: ecommerceRes?.payment_instructions || '',
+                show_out_of_stock_products: Boolean(ecommerceRes?.show_out_of_stock_products),
             });
             setSector(features?.sector || '');
         } catch (error: any) {
@@ -702,6 +703,18 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         ))}
                                     </select>
                                 </Field>
+                                <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!ecommerceDraft.show_out_of_stock_products}
+                                        onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, show_out_of_stock_products: event.target.checked }))}
+                                        className="mt-1 h-4 w-4 rounded border-white/20 bg-white/10"
+                                    />
+                                    <span>
+                                        <span className="block text-sm font-black text-white">Afficher les produits en rupture</span>
+                                        <span className="mt-1 block text-sm leading-6 text-slate-400">Quand cette option est active, les produits sans stock apparaissent sur le site, mais ils ne peuvent pas être commandés. Si elle est désactivée, ils sont masqués.</span>
+                                    </span>
+                                </label>
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <Field label="Nom du site web" hint="Nom affiché dans l'en-tête de la boutique publique.">
                                         <input value={ecommerceDraft.site_name || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, site_name: event.target.value }))} className={inputClass} />
@@ -1159,10 +1172,10 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
 
                         <SectionCard
                             icon={<FileText size={24} className="text-primary" />}
-                            title="Mentions lÃ©gales"
+                            title="Mentions légales"
                             scope={t('settings_workspace.scopes.user')}
-                            description="Consultez les conditions gÃ©nÃ©rales d'utilisation et la politique de confidentialitÃ© de Stockman."
-                            actionHint="Ces documents sont mis Ã  jour rÃ©guliÃ¨rement."
+                            description="Consultez les conditions générales d'utilisation et la politique de confidentialité de Stockman."
+                            actionHint="Ces documents sont mis à jour régulièrement."
                         >
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <a
@@ -1175,7 +1188,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <FileText size={18} className="text-primary" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-black text-white">Conditions GÃ©nÃ©rales</p>
+                                        <p className="text-sm font-black text-white">Conditions Générales</p>
                                         <p className="mt-0.5 text-xs text-slate-500">CGU &mdash; Lire le document</p>
                                     </div>
                                     <ChevronRight size={16} className="ml-auto text-slate-500" />
@@ -1190,8 +1203,8 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <Eye size={18} className="text-primary" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-black text-white">Politique de ConfidentialitÃ©</p>
-                                        <p className="mt-0.5 text-xs text-slate-500">Vie privÃ©e &mdash; Lire le document</p>
+                                        <p className="text-sm font-black text-white">Politique de Confidentialité</p>
+                                        <p className="mt-0.5 text-xs text-slate-500">Vie privée &mdash; Lire le document</p>
                                     </div>
                                     <ChevronRight size={16} className="ml-auto text-slate-500" />
                                 </a>

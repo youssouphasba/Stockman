@@ -841,10 +841,11 @@ export type EcommerceSite = {
   delivery_info?: string | null;
   whatsapp_phone?: string | null;
   payment_instructions?: string | null;
+  show_out_of_stock_products?: boolean;
 };
 
 export type EcommerceSiteUpdate = Partial<Pick<EcommerceSite,
-  'enabled' | 'store_id' | 'custom_domain' | 'hero_title' | 'site_name' | 'welcome_message' | 'brand_color' | 'delivery_info' | 'whatsapp_phone' | 'payment_instructions'
+  'enabled' | 'store_id' | 'custom_domain' | 'hero_title' | 'site_name' | 'welcome_message' | 'brand_color' | 'delivery_info' | 'whatsapp_phone' | 'payment_instructions' | 'show_out_of_stock_products'
 >>;
 
 export const ecommerce = {
