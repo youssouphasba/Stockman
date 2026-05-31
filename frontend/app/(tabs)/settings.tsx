@@ -438,6 +438,17 @@ export default function SettingsScreen() {
     }, [loadSettings])
   );
 
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('settings:open-ecommerce', () => {
+      setExpandedSections((current) => ({
+        ...current,
+        storeGroup: true,
+        storeEcommerce: true,
+      }));
+    });
+    return () => subscription.remove();
+  }, []);
+
   function toggleSection(section: SettingsSectionKey) {
     setExpandedSections((current) => {
       const isCurrentlyExpanded = current[section];

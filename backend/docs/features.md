@@ -96,6 +96,8 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Le clic sur une carte produit ouvre une fiche détaillée avec image agrandie, description, prix, stock, favori et ajout au panier.
 - Sur mobile, le panier s'ouvre dans un panneau dédié depuis l'en-tête au lieu d'apparaître en bas de page.
 - Le commerçant peut choisir d'afficher ou non les produits en rupture sur le site. S'ils sont affichés, ils restent visibles mais ne peuvent pas être commandés.
+- Le bouton E-com du web et du mobile ouvre maintenant un menu avec trois actions : voir le site, consulter les statistiques E-com et ouvrir les paramètres E-com.
+- Les statistiques E-com suivent les visites publiques hors aperçu commerçant, les ajouts au panier, les commandes, le chiffre d'affaires, la conversion, les produits visibles, les ruptures et les produits les plus ajoutés ou commandés.
 - Les commandes créées depuis le site sont enregistrées avec la source `ecommerce`, le statut `pending`, le compte, la boutique, les lignes, le total et la devise.
 - Le stock n'est pas décrémenté automatiquement à la création de la commande publique : la boutique doit confirmer et traiter la commande avant toute sortie de stock.
 - Sur mobile, un bouton visible dans l'en-tête ouvre directement le site e-commerce de la boutique active.

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Grid2X2, Heart, Menu, Minus, Plus, Search, Send, ShoppingBag, SlidersHorizontal, Trash2, X } from 'lucide-react';
 
 type PublicProduct = {
@@ -57,6 +58,7 @@ function formatAmount(value: number, currency: string) {
 }
 
 export default function StorefrontClient({ slug }: { slug: string }) {
+  const searchParams = useSearchParams();
   const [payload, setPayload] = useState<SitePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +77,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
   const [selectedProduct, setSelectedProduct] = useState<PublicProduct | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewTracked, setViewTracked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,6 +145,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
   const cartCount = cartLines.reduce((sum, line) => sum + line.quantity, 0);
   const currency = payload?.site.currency || 'XOF';
   const brandColor = payload?.site.brand_color || '#047857';
+  const isPreview = searchParams.get('preview') === '1';
   const whatsappLink = payload?.site.whatsapp_phone
     ? `https://wa.me/${payload.site.whatsapp_phone.replace(/[^\d]/g, '')}`
     : null;
@@ -149,6 +153,16 @@ export default function StorefrontClient({ slug }: { slug: string }) {
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (!payload || isPreview || viewTracked) return;
+    setViewTracked(true);
+    fetch(`/api/public/ecommerce/${slug}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: 'site_view' }),
+    }).catch(() => null);
+  }, [isPreview, payload, slug, viewTracked]);
 
   const persistFavorites = (next: string[]) => {
     setFavorites(next);
@@ -175,6 +189,13 @@ export default function StorefrontClient({ slug }: { slug: string }) {
         [product.product_id]: { product, quantity: nextQuantity },
       };
     });
+    if (!isPreview) {
+      fetch(`/api/public/ecommerce/${slug}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_type: 'add_to_cart', product_id: product.product_id, quantity: 1 }),
+      }).catch(() => null);
+    }
   };
 
   const updateQuantity = (productId: string, quantity: number) => {

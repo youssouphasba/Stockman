@@ -262,6 +262,12 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     }, []);
 
     useEffect(() => {
+        const openEcommerceSettings = () => setActiveTab('stores');
+        window.addEventListener('settings:open-ecommerce', openEcommerceSettings);
+        return () => window.removeEventListener('settings:open-ecommerce', openEcommerceSettings);
+    }, []);
+
+    useEffect(() => {
         if (!tabs.some((tab) => tab.id === activeTab)) {
             setActiveTab('support');
         }

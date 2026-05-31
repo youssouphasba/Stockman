@@ -936,6 +936,8 @@ async def create_indexes_and_init():
                 await db.ecommerce_orders.create_index("order_id", unique=True)
                 await db.ecommerce_orders.create_index([("user_id", 1), ("store_id", 1), ("created_at", -1)])
                 await db.ecommerce_orders.create_index([("site_slug", 1), ("created_at", -1)])
+                await db.ecommerce_events.create_index([("user_id", 1), ("site_slug", 1), ("event_type", 1), ("created_at", -1)])
+                await db.ecommerce_events.create_index([("site_slug", 1), ("created_at", -1)])
                 await db.sales.create_index([("store_id", 1), ("created_at", -1)])
                 await db.alert_rules.create_index([("user_id", 1), ("type", 1), ("scope", 1), ("store_id", 1)])
                 
@@ -1359,6 +1361,7 @@ class EcommerceSiteInfo(BaseModel):
     slug: str
     site_url: str
     enabled: bool = False
+    currency: Optional[str] = None
     store_id: Optional[str] = None
     store_name: Optional[str] = None
     custom_domain: Optional[str] = None
@@ -1401,6 +1404,12 @@ class PublicEcommerceOrderCreate(BaseModel):
     customer_address: Optional[str] = Field(default=None, max_length=500)
     notes: Optional[str] = Field(default=None, max_length=1000)
     items: List[PublicEcommerceOrderItem]
+
+
+class PublicEcommerceEventCreate(BaseModel):
+    event_type: str = Field(..., pattern="^(site_view|add_to_cart)$")
+    product_id: Optional[str] = Field(default=None, max_length=80)
+    quantity: Optional[float] = Field(default=None, ge=0)
 
 
 class PublicEcommerceOrderResponse(BaseModel):
@@ -1587,6 +1596,54 @@ async def get_public_ecommerce_site(slug: str = Path(..., pattern="^[a-z0-9-]{2,
         },
         "products": public_products,
     }
+
+
+@app.post("/api/public/ecommerce/{slug}/events")
+async def record_public_ecommerce_event(
+    payload: PublicEcommerceEventCreate,
+    request: Request,
+    slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$"),
+):
+    account_doc = await db.business_accounts.find_one(
+        {"ecommerce_slug": slug, "ecommerce_enabled": True},
+        {"_id": 0, "owner_user_id": 1, "account_id": 1, "ecommerce_default_store_id": 1},
+    )
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+
+    owner_id = account_doc.get("owner_user_id")
+    store_id = account_doc.get("ecommerce_default_store_id")
+    now = datetime.now(timezone.utc)
+    event_doc: Dict[str, Any] = {
+        "event_id": f"eevt_{uuid.uuid4().hex[:12]}",
+        "event_type": payload.event_type,
+        "site_slug": slug,
+        "user_id": owner_id,
+        "account_id": account_doc.get("account_id"),
+        "store_id": store_id,
+        "created_at": now,
+        "visitor_key": hashlib.sha256(
+            f"{request.client.host if request.client else ''}|{request.headers.get('user-agent', '')}".encode("utf-8")
+        ).hexdigest()[:24],
+    }
+    if payload.product_id:
+        product = await db.products.find_one(
+            {
+                "product_id": payload.product_id,
+                "user_id": owner_id,
+                "is_active": {"$ne": False},
+            },
+            {"_id": 0, "product_id": 1, "name": 1, "selling_price": 1},
+        )
+        if product:
+            event_doc.update({
+                "product_id": product.get("product_id"),
+                "product_name": product.get("name"),
+                "unit_price": float(product.get("selling_price") or 0),
+                "quantity": float(payload.quantity or 1),
+            })
+    await db.ecommerce_events.insert_one(event_doc)
+    return {"status": "ok"}
 
 
 async def upsert_ecommerce_customer(
@@ -3547,6 +3604,7 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         "slug": slug,
         "site_url": site_url,
         "enabled": bool(account_doc.get("ecommerce_enabled") is True),
+        "currency": (store_doc or {}).get("currency") or owner_doc.get("currency") or account_doc.get("currency") or "XOF",
         "store_id": resolved_store_id,
         "store_name": (store_doc or {}).get("name"),
         "custom_domain": custom_domain,
@@ -17353,6 +17411,104 @@ async def verify_ecommerce_site_domain(user: User = Depends(require_auth)):
         }},
     )
     return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
+
+
+@api_router.get("/ecommerce/stats")
+async def get_ecommerce_stats(user: User = Depends(require_permission("stock", "read"))):
+    owner_id = get_owner_id(user)
+    site = await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id)
+    store_id = site.get("store_id")
+    slug = site.get("slug")
+    now = datetime.now(timezone.utc)
+    start_30d = now - timedelta(days=30)
+    start_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    base_event_query = {"user_id": owner_id, "site_slug": slug}
+    if store_id:
+        base_event_query["store_id"] = store_id
+    base_order_query = {"user_id": owner_id}
+    if store_id:
+        base_order_query["store_id"] = store_id
+
+    visits_30d_query = {**base_event_query, "event_type": "site_view", "created_at": {"$gte": start_30d}}
+    visits_today_query = {**base_event_query, "event_type": "site_view", "created_at": {"$gte": start_today}}
+    cart_30d_query = {**base_event_query, "event_type": "add_to_cart", "created_at": {"$gte": start_30d}}
+    orders_30d_query = {**base_order_query, "created_at": {"$gte": start_30d}}
+
+    visits_total = await db.ecommerce_events.count_documents({**base_event_query, "event_type": "site_view"})
+    visits_30d = await db.ecommerce_events.count_documents(visits_30d_query)
+    visits_today = await db.ecommerce_events.count_documents(visits_today_query)
+    unique_visitors_30d = len(await db.ecommerce_events.distinct("visitor_key", visits_30d_query))
+    add_to_cart_30d = await db.ecommerce_events.count_documents(cart_30d_query)
+    products_in_cart_30d = await db.ecommerce_events.distinct("product_id", {**cart_30d_query, "product_id": {"$ne": None}})
+    orders_total = await db.ecommerce_orders.count_documents(base_order_query)
+    orders_30d = await db.ecommerce_orders.count_documents(orders_30d_query)
+    pending_orders = await db.ecommerce_orders.count_documents({**base_order_query, "status": "pending"})
+    confirmed_orders = await db.ecommerce_orders.count_documents({**base_order_query, "status": {"$in": ["confirmed", "delivered"]}})
+    cancelled_orders = await db.ecommerce_orders.count_documents({**base_order_query, "status": "cancelled"})
+    catalog_query: Dict[str, Any] = {"user_id": owner_id, "is_active": {"$ne": False}, "selling_price": {"$gt": 0}}
+    if store_id:
+        catalog_query["store_id"] = store_id
+    catalog_products = await db.products.count_documents(catalog_query)
+    visible_catalog_query = dict(catalog_query)
+    if not site.get("show_out_of_stock_products"):
+        visible_catalog_query["quantity"] = {"$gt": 0}
+    visible_products = await db.products.count_documents(visible_catalog_query)
+    out_of_stock_products = await db.products.count_documents({**catalog_query, "quantity": {"$lte": 0}})
+
+    revenue_pipeline = [
+        {"$match": orders_30d_query},
+        {"$group": {"_id": None, "total": {"$sum": "$total_amount"}, "average": {"$avg": "$total_amount"}}},
+    ]
+    revenue_docs = await db.ecommerce_orders.aggregate(revenue_pipeline).to_list(1)
+    revenue_doc = revenue_docs[0] if revenue_docs else {}
+
+    top_cart_products = await db.ecommerce_events.aggregate([
+        {"$match": {**cart_30d_query, "product_id": {"$ne": None}}},
+        {"$group": {"_id": "$product_id", "name": {"$first": "$product_name"}, "quantity": {"$sum": {"$ifNull": ["$quantity", 1]}}, "events": {"$sum": 1}}},
+        {"$sort": {"quantity": -1, "events": -1}},
+        {"$limit": 5},
+    ]).to_list(5)
+    top_ordered_products = await db.ecommerce_orders.aggregate([
+        {"$match": orders_30d_query},
+        {"$unwind": "$items"},
+        {"$group": {"_id": "$items.product_id", "name": {"$first": "$items.product_name"}, "quantity": {"$sum": "$items.quantity"}, "amount": {"$sum": "$items.total"}}},
+        {"$sort": {"quantity": -1, "amount": -1}},
+        {"$limit": 5},
+    ]).to_list(5)
+
+    conversion_rate_30d = round((orders_30d / visits_30d) * 100, 2) if visits_30d else 0
+    cart_to_order_rate_30d = round((orders_30d / add_to_cart_30d) * 100, 2) if add_to_cart_30d else 0
+
+    return {
+        "site": site,
+        "period_days": 30,
+        "visits_total": visits_total,
+        "visits_30d": visits_30d,
+        "visits_today": visits_today,
+        "unique_visitors_30d": unique_visitors_30d,
+        "add_to_cart_30d": add_to_cart_30d,
+        "products_in_cart_30d": len(products_in_cart_30d),
+        "orders_total": orders_total,
+        "orders_30d": orders_30d,
+        "pending_orders": pending_orders,
+        "confirmed_orders": confirmed_orders,
+        "cancelled_orders": cancelled_orders,
+        "revenue_30d": round(float(revenue_doc.get("total") or 0), 2),
+        "average_order_30d": round(float(revenue_doc.get("average") or 0), 2),
+        "conversion_rate_30d": conversion_rate_30d,
+        "cart_to_order_rate_30d": cart_to_order_rate_30d,
+        "catalog_products": catalog_products,
+        "visible_products": visible_products,
+        "out_of_stock_products": out_of_stock_products,
+        "top_cart_products": [
+            {"product_id": item.get("_id"), "name": item.get("name") or "Produit", "quantity": item.get("quantity") or 0, "events": item.get("events") or 0}
+            for item in top_cart_products
+        ],
+        "top_ordered_products": [
+            {"product_id": item.get("_id"), "name": item.get("name") or "Produit", "quantity": item.get("quantity") or 0, "amount": round(float(item.get("amount") or 0), 2)}
+            for item in top_ordered_products
+        ],
+    }
 
 
 @api_router.get("/ecommerce/orders")

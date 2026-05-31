@@ -828,6 +828,7 @@ export type EcommerceSite = {
   slug: string;
   site_url: string;
   enabled: boolean;
+  currency?: string | null;
   store_id?: string | null;
   store_name?: string | null;
   custom_domain?: string | null;
@@ -848,6 +849,31 @@ export type EcommerceSiteUpdate = Partial<Pick<EcommerceSite,
   'enabled' | 'store_id' | 'custom_domain' | 'hero_title' | 'site_name' | 'welcome_message' | 'brand_color' | 'delivery_info' | 'whatsapp_phone' | 'payment_instructions' | 'show_out_of_stock_products'
 >>;
 
+export type EcommerceStats = {
+  site: EcommerceSite;
+  period_days: number;
+  visits_total: number;
+  visits_30d: number;
+  visits_today: number;
+  unique_visitors_30d: number;
+  add_to_cart_30d: number;
+  products_in_cart_30d: number;
+  orders_total: number;
+  orders_30d: number;
+  pending_orders: number;
+  confirmed_orders: number;
+  cancelled_orders: number;
+  revenue_30d: number;
+  average_order_30d: number;
+  conversion_rate_30d: number;
+  cart_to_order_rate_30d: number;
+  catalog_products: number;
+  visible_products: number;
+  out_of_stock_products: number;
+  top_cart_products: Array<{ product_id: string; name: string; quantity: number; events: number }>;
+  top_ordered_products: Array<{ product_id: string; name: string; quantity: number; amount: number }>;
+};
+
 export const ecommerce = {
   getSite: () =>
     request<EcommerceSite>('/ecommerce/site'),
@@ -855,6 +881,8 @@ export const ecommerce = {
     request<EcommerceSite>('/ecommerce/site', { method: 'PUT', body: data }),
   verifyDomain: () =>
     request<EcommerceSite>('/ecommerce/site/verify-domain', { method: 'POST' }),
+  getStats: () =>
+    request<EcommerceStats>('/ecommerce/stats'),
   listOrders: (status?: string, skip = 0, limit = 50) => {
     const qs = new URLSearchParams();
     if (status && status !== 'all') qs.set('status', status);

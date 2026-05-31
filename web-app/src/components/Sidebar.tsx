@@ -40,7 +40,7 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { getAccessContext } from '../utils/access';
 import type { UserPermissions } from '../services/api';
-import { ecommerce as ecommerceApi, stores as storesApi, type Store as StoreRecord } from '../services/api';
+import { ecommerce as ecommerceApi, stores as storesApi, type EcommerceStats, type Store as StoreRecord } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface SidebarProps {
@@ -128,6 +128,10 @@ export default function Sidebar({
     const [switchingStoreId, setSwitchingStoreId] = useState<string | null>(null);
     const [openingEcommerceSite, setOpeningEcommerceSite] = useState(false);
     const [ecommerceSite, setEcommerceSite] = useState<{ site_url: string; enabled: boolean } | null>(null);
+    const [ecommerceMenuOpen, setEcommerceMenuOpen] = useState(false);
+    const [ecommerceStats, setEcommerceStats] = useState<EcommerceStats | null>(null);
+    const [ecommerceStatsOpen, setEcommerceStatsOpen] = useState(false);
+    const [ecommerceStatsLoading, setEcommerceStatsLoading] = useState(false);
 
     // Entrées communes (toujours visibles)
     const commonBottom: SidebarEntry[] = [
@@ -348,12 +352,42 @@ export default function Sidebar({
         try {
             const site = await ecommerceApi.getSite();
             if (site?.enabled && site?.site_url) {
-                window.open(site.site_url, '_blank', 'noopener,noreferrer');
+                const url = new URL(site.site_url);
+                url.searchParams.set('preview', '1');
+                window.open(url.toString(), '_blank', 'noopener,noreferrer');
             }
         } catch (error) {
             console.error(error);
         } finally {
             setOpeningEcommerceSite(false);
+        }
+    };
+
+    const openEcommerceStats = async () => {
+        setEcommerceMenuOpen(false);
+        setEcommerceStatsOpen(true);
+        setEcommerceStatsLoading(true);
+        try {
+            setEcommerceStats(await ecommerceApi.getStats());
+        } catch (error) {
+            console.error(error);
+            setEcommerceStats(null);
+        } finally {
+            setEcommerceStatsLoading(false);
+        }
+    };
+
+    const openEcommerceSettings = () => {
+        setEcommerceMenuOpen(false);
+        handleTabClick('settings');
+        window.dispatchEvent(new Event('settings:open-ecommerce'));
+    };
+
+    const formatCurrency = (value: number, currency = 'XOF') => {
+        try {
+            return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: currency === 'XOF' ? 0 : 2 }).format(value || 0);
+        } catch {
+            return `${new Intl.NumberFormat('fr-FR').format(value || 0)} ${currency}`;
         }
     };
 
@@ -489,6 +523,100 @@ export default function Sidebar({
                 />
             )}
 
+            {ecommerceStatsOpen && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                    <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0F172A] p-6 shadow-2xl">
+                        <div className="mb-5 flex items-start justify-between gap-4">
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Statistiques E-com</p>
+                                <h2 className="mt-1 text-2xl font-black text-white">Performance de la boutique</h2>
+                                <p className="mt-1 text-sm text-slate-400">Données des 30 derniers jours, hors ouvertures en mode aperçu depuis Stockman.</p>
+                            </div>
+                            <button type="button" onClick={() => setEcommerceStatsOpen(false)} className="rounded-full border border-white/10 p-2 text-slate-400 hover:text-white">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        {ecommerceStatsLoading ? (
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center text-sm font-bold text-slate-300">Chargement des statistiques...</div>
+                        ) : ecommerceStats ? (
+                            <div className="space-y-5">
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    {[
+                                        ['Visites', ecommerceStats.visits_30d],
+                                        ['Visiteurs uniques', ecommerceStats.unique_visitors_30d],
+                                        ['Ajouts panier', ecommerceStats.add_to_cart_30d],
+                                        ['Commandes', ecommerceStats.orders_30d],
+                                    ].map(([label, value]) => (
+                                        <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{label}</p>
+                                            <p className="mt-2 text-2xl font-black text-white">{Number(value).toLocaleString('fr-FR')}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">CA E-com</p>
+                                        <p className="mt-2 text-xl font-black text-white">{formatCurrency(ecommerceStats.revenue_30d, ecommerceStats.site?.currency || 'XOF')}</p>
+                                    </div>
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Panier moyen</p>
+                                        <p className="mt-2 text-xl font-black text-white">{formatCurrency(ecommerceStats.average_order_30d, ecommerceStats.site?.currency || 'XOF')}</p>
+                                    </div>
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Conversion</p>
+                                        <p className="mt-2 text-xl font-black text-white">{ecommerceStats.conversion_rate_30d}%</p>
+                                    </div>
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Produits visibles</p>
+                                        <p className="mt-2 text-xl font-black text-white">{ecommerceStats.visible_products.toLocaleString('fr-FR')} / {ecommerceStats.catalog_products.toLocaleString('fr-FR')}</p>
+                                    </div>
+                                </div>
+                                <div className="grid gap-4 lg:grid-cols-2">
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                        <h3 className="font-black text-white">Produits ajoutés au panier</h3>
+                                        <div className="mt-3 space-y-2">
+                                            {ecommerceStats.top_cart_products.length ? ecommerceStats.top_cart_products.map((item) => (
+                                                <div key={item.product_id} className="flex items-center justify-between gap-3 rounded-xl bg-black/20 px-3 py-2 text-sm">
+                                                    <span className="truncate text-slate-300">{item.name}</span>
+                                                    <span className="font-black text-white">{Number(item.quantity).toLocaleString('fr-FR')}</span>
+                                                </div>
+                                            )) : <p className="text-sm text-slate-500">Aucun ajout au panier sur la période.</p>}
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                        <h3 className="font-black text-white">Produits commandés</h3>
+                                        <div className="mt-3 space-y-2">
+                                            {ecommerceStats.top_ordered_products.length ? ecommerceStats.top_ordered_products.map((item) => (
+                                                <div key={item.product_id} className="flex items-center justify-between gap-3 rounded-xl bg-black/20 px-3 py-2 text-sm">
+                                                    <span className="truncate text-slate-300">{item.name}</span>
+                                                    <span className="font-black text-white">{Number(item.quantity).toLocaleString('fr-FR')}</span>
+                                                </div>
+                                            )) : <p className="text-sm text-slate-500">Aucune commande sur la période.</p>}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">En attente</p>
+                                        <p className="mt-2 text-xl font-black text-white">{ecommerceStats.pending_orders}</p>
+                                    </div>
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Confirmées</p>
+                                        <p className="mt-2 text-xl font-black text-white">{ecommerceStats.confirmed_orders}</p>
+                                    </div>
+                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Ruptures catalogue</p>
+                                        <p className="mt-2 text-xl font-black text-white">{ecommerceStats.out_of_stock_products}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm font-bold text-rose-200">Impossible de charger les statistiques E-com.</div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <aside
                 className={`w-64 h-screen theme-sidebar border-r flex flex-col p-4 shrink-0 transition-all duration-300 fixed left-0 top-0 z-50 md:sticky md:top-0 md:z-auto ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
                     }`}
@@ -519,15 +647,34 @@ export default function Sidebar({
                 </div>
 
                 {hasOperationalAccess && user?.role !== 'supplier' && ecommerceSite?.enabled && (
-                    <button
-                        type="button"
-                        onClick={openEcommerceSite}
-                        disabled={openingEcommerceSite}
-                        className="mb-4 flex w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 text-left text-primary transition-all hover:bg-primary/15 disabled:opacity-60"
-                    >
-                        <Globe size={17} className="shrink-0" />
-                        <span className="flex-1 text-sm font-black">Ouvrir le site e-commerce</span>
-                    </button>
+                    <div className="relative mb-4">
+                        <button
+                            type="button"
+                            onClick={() => setEcommerceMenuOpen((open) => !open)}
+                            disabled={openingEcommerceSite}
+                            className="flex w-full items-center gap-3 rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 text-left text-primary transition-all hover:bg-primary/15 disabled:opacity-60"
+                        >
+                            <Globe size={17} className="shrink-0" />
+                            <span className="flex-1 text-sm font-black">E-com</span>
+                            <ChevronDown size={14} />
+                        </button>
+                        {ecommerceMenuOpen && (
+                            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-2xl border border-white/10 bg-[#111827] p-2 shadow-2xl">
+                                <button type="button" onClick={openEcommerceSite} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-200 hover:bg-white/5">
+                                    <Globe size={16} className="text-primary" />
+                                    Voir le site
+                                </button>
+                                <button type="button" onClick={openEcommerceStats} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-200 hover:bg-white/5">
+                                    <BarChart3 size={16} className="text-primary" />
+                                    Voir les statistiques E-com
+                                </button>
+                                <button type="button" onClick={openEcommerceSettings} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-200 hover:bg-white/5">
+                                    <Settings size={16} className="text-primary" />
+                                    Paramètres E-com
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {storeList.length > 0 && (

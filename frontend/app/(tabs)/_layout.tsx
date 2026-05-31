@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { alerts as alertsApi, demo as demoApi, ecommerce as ecommerceApi, settings as settingsApi, DemoSessionInfo, UserSettings } from '../../services/api';
+import { alerts as alertsApi, demo as demoApi, ecommerce as ecommerceApi, settings as settingsApi, DemoSessionInfo, EcommerceStats, UserSettings } from '../../services/api';
 
 import StoreSelector from '../../components/StoreSelector';
 import { Alert, DeviceEventEmitter, Linking, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
@@ -37,6 +37,10 @@ function TabLayoutInner() {
   const [unreadAlertCount, setUnreadAlertCount] = useState(0);
   const [openingEcommerceSite, setOpeningEcommerceSite] = useState(false);
   const [ecommerceSite, setEcommerceSite] = useState<{ site_url: string; enabled: boolean } | null>(null);
+  const [showEcommerceActions, setShowEcommerceActions] = useState(false);
+  const [showEcommerceStats, setShowEcommerceStats] = useState(false);
+  const [ecommerceStats, setEcommerceStats] = useState<EcommerceStats | null>(null);
+  const [ecommerceStatsLoading, setEcommerceStatsLoading] = useState(false);
 
   const refreshAlertCount = useCallback(async () => {
     if (!user?.user_id || !hasOperationalAccess || isRestaurant || !hasPermission('stock', 'read')) {
@@ -267,7 +271,8 @@ function TabLayoutInner() {
     try {
       const site = await ecommerceApi.getSite();
       if (site?.enabled && site?.site_url) {
-        await Linking.openURL(site.site_url);
+        const separator = site.site_url.includes('?') ? '&' : '?';
+        await Linking.openURL(`${site.site_url}${separator}preview=1`);
       }
     } catch (error: any) {
       Alert.alert(t('common.error'), error?.message || "Impossible d'ouvrir le site e-commerce.");
@@ -276,10 +281,127 @@ function TabLayoutInner() {
     }
   };
 
+  const openEcommerceStats = async () => {
+    setShowEcommerceActions(false);
+    setShowEcommerceStats(true);
+    setEcommerceStatsLoading(true);
+    try {
+      setEcommerceStats(await ecommerceApi.getStats());
+    } catch (error: any) {
+      setEcommerceStats(null);
+      Alert.alert(t('common.error'), error?.message || "Impossible de charger les statistiques E-com.");
+    } finally {
+      setEcommerceStatsLoading(false);
+    }
+  };
+
+  const openEcommerceSettings = () => {
+    setShowEcommerceActions(false);
+    router.push('/(tabs)/settings' as any);
+    setTimeout(() => DeviceEventEmitter.emit('settings:open-ecommerce'), 250);
+  };
+
+  const formatEcommerceAmount = (value: number, currency = 'XOF') => {
+    try {
+      return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: currency === 'XOF' ? 0 : 2 }).format(value || 0);
+    } catch {
+      return `${new Intl.NumberFormat('fr-FR').format(value || 0)} ${currency}`;
+    }
+  };
+
   return (
     <>
       <TrialBanner />
       <SyncWarningBanner />
+      <KeyboardAwareModal
+        visible={showEcommerceActions}
+        onClose={() => setShowEcommerceActions(false)}
+        backgroundColor={colors.card}
+        borderColor={colors.border}
+        align="center"
+      >
+        <View style={{ gap: 12 }}>
+          <View>
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>E-com</Text>
+            <Text style={{ color: colors.textMuted, marginTop: 4 }}>Gérez votre site, vos statistiques et les réglages essentiels.</Text>
+          </View>
+          {[
+            { label: 'Voir le site', icon: 'globe-outline', action: () => { setShowEcommerceActions(false); openEcommerceSite(); } },
+            { label: 'Voir les statistiques E-com', icon: 'stats-chart-outline', action: openEcommerceStats },
+            { label: 'Paramètres E-com', icon: 'settings-outline', action: openEcommerceSettings },
+          ].map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              onPress={item.action}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.glass, borderRadius: 18, padding: 14 }}
+            >
+              <Ionicons name={item.icon as any} size={22} color={colors.primary} />
+              <Text style={{ flex: 1, color: colors.text, fontWeight: '800' }}>{item.label}</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </KeyboardAwareModal>
+      <KeyboardAwareModal
+        visible={showEcommerceStats}
+        onClose={() => setShowEcommerceStats(false)}
+        backgroundColor={colors.card}
+        borderColor={colors.border}
+        align="center"
+      >
+        <View style={{ gap: 14 }}>
+          <View>
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>Statistiques E-com</Text>
+            <Text style={{ color: colors.textMuted, marginTop: 4 }}>Données des 30 derniers jours, hors visites en mode aperçu.</Text>
+          </View>
+          {ecommerceStatsLoading ? (
+            <Text style={{ color: colors.textMuted, textAlign: 'center', paddingVertical: 24 }}>Chargement des statistiques...</Text>
+          ) : ecommerceStats ? (
+            <>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                {[
+                  ['Visites', ecommerceStats.visits_30d],
+                  ['Visiteurs uniques', ecommerceStats.unique_visitors_30d],
+                  ['Ajouts panier', ecommerceStats.add_to_cart_30d],
+                  ['Commandes', ecommerceStats.orders_30d],
+                  ['Produits en panier', ecommerceStats.products_in_cart_30d],
+                  ['Conversion', `${ecommerceStats.conversion_rate_30d}%`],
+                ].map(([label, value]) => (
+                  <View key={label} style={{ width: '48%', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.glass, borderRadius: 16, padding: 12 }}>
+                    <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>{label}</Text>
+                    <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 6 }}>{String(value)}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.glass, borderRadius: 16, padding: 14 }}>
+                <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Chiffre d'affaires E-com</Text>
+                <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', marginTop: 6 }}>{formatEcommerceAmount(ecommerceStats.revenue_30d, ecommerceStats.site?.currency || 'XOF')}</Text>
+                <Text style={{ color: colors.textMuted, marginTop: 4 }}>Panier moyen : {formatEcommerceAmount(ecommerceStats.average_order_30d, ecommerceStats.site?.currency || 'XOF')}</Text>
+              </View>
+              <View style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.glass, borderRadius: 16, padding: 14 }}>
+                <Text style={{ color: colors.text, fontWeight: '800', marginBottom: 8 }}>Produits les plus ajoutés au panier</Text>
+                {ecommerceStats.top_cart_products.length ? ecommerceStats.top_cart_products.map((item) => (
+                  <View key={item.product_id} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingVertical: 6 }}>
+                    <Text style={{ flex: 1, color: colors.textMuted }} numberOfLines={1}>{item.name}</Text>
+                    <Text style={{ color: colors.text, fontWeight: '800' }}>{Number(item.quantity).toLocaleString('fr-FR')}</Text>
+                  </View>
+                )) : <Text style={{ color: colors.textMuted }}>Aucun ajout au panier sur la période.</Text>}
+              </View>
+              <View style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.glass, borderRadius: 16, padding: 14 }}>
+                <Text style={{ color: colors.text, fontWeight: '800', marginBottom: 8 }}>Produits les plus commandés</Text>
+                {ecommerceStats.top_ordered_products.length ? ecommerceStats.top_ordered_products.map((item) => (
+                  <View key={item.product_id} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingVertical: 6 }}>
+                    <Text style={{ flex: 1, color: colors.textMuted }} numberOfLines={1}>{item.name}</Text>
+                    <Text style={{ color: colors.text, fontWeight: '800' }}>{Number(item.quantity).toLocaleString('fr-FR')}</Text>
+                  </View>
+                )) : <Text style={{ color: colors.textMuted }}>Aucune commande sur la période.</Text>}
+              </View>
+            </>
+          ) : (
+            <Text style={{ color: colors.danger, textAlign: 'center', paddingVertical: 24 }}>Impossible de charger les statistiques E-com.</Text>
+          )}
+        </View>
+      </KeyboardAwareModal>
       <Tabs
         detachInactiveScreens={false}
         screenOptions={{
@@ -305,7 +427,7 @@ function TabLayoutInner() {
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: compactHeader ? 8 : 16, gap: compactHeader ? 6 : 12, maxWidth: width - (compactHeader ? 62 : 88) }}>
               {hasOperationalAccess && ecommerceSite?.enabled && (
                 <TouchableOpacity
-                  onPress={openEcommerceSite}
+                  onPress={() => setShowEcommerceActions(true)}
                   disabled={openingEcommerceSite}
                   style={{
                     padding: compactHeader ? 3 : 4,
