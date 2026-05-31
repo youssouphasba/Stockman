@@ -132,7 +132,7 @@ export default function Orders() {
             const res = await ecommerceApi.listOrders();
             setWebOrders(res.items || []);
         } catch (err) {
-            console.error('Web orders load error', err);
+            console.error('E-com orders load error', err);
         } finally {
             setWebOrdersLoading(false);
         }
@@ -143,7 +143,7 @@ export default function Orders() {
             await ecommerceApi.updateOrderStatus(orderId, status);
             await loadWebOrders();
         } catch (err: any) {
-            alert(err?.message || 'Impossible de mettre à jour la commande web.');
+            alert(err?.message || 'Impossible de mettre à jour la commande E-com.');
         }
     };
 
@@ -367,7 +367,7 @@ export default function Orders() {
                     onClick={() => setActiveTab('web')}
                     className={`rounded-xl px-8 py-3 font-bold transition-all ${activeTab === 'web' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-white'}`}
                 >
-                    Commandes web
+                    Commandes E-com
                 </button>
             </div>
 
@@ -376,7 +376,7 @@ export default function Orders() {
                     {webOrdersLoading ? (
                         <div className="flex justify-center py-16"><Loader2 className="animate-spin text-primary" /></div>
                     ) : webOrders.length === 0 ? (
-                        <div className="glass-card p-12 text-center text-slate-400">Aucune commande web pour le moment.</div>
+                        <div className="glass-card p-12 text-center text-slate-400">Aucune commande E-com pour le moment.</div>
                     ) : webOrders.map((order) => (
                         <div key={order.order_id} className="glass-card p-5">
                             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

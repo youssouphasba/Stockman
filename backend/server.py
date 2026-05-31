@@ -26,7 +26,8 @@ import html
 import asyncio
 import base64
 import re
-from urllib.parse import quote
+import socket
+from urllib.parse import quote, urlparse
 from decimal import Decimal, InvalidOperation
 from PIL import Image
 from starlette.responses import RedirectResponse, StreamingResponse
@@ -1361,11 +1362,28 @@ class EcommerceSiteInfo(BaseModel):
     store_id: Optional[str] = None
     store_name: Optional[str] = None
     custom_domain: Optional[str] = None
+    domain_status: str = "not_configured"
+    domain_verified_at: Optional[datetime] = None
+    domain_verification_target: Optional[str] = None
+    hero_title: Optional[str] = None
+    site_name: Optional[str] = None
+    welcome_message: Optional[str] = None
+    brand_color: Optional[str] = None
+    delivery_info: Optional[str] = None
+    whatsapp_phone: Optional[str] = None
     payment_instructions: Optional[str] = None
 
 
 class EcommerceSiteUpdate(BaseModel):
     enabled: Optional[bool] = None
+    store_id: Optional[str] = Field(default=None, max_length=80)
+    custom_domain: Optional[str] = Field(default=None, max_length=255)
+    hero_title: Optional[str] = Field(default=None, max_length=120)
+    site_name: Optional[str] = Field(default=None, max_length=120)
+    welcome_message: Optional[str] = Field(default=None, max_length=600)
+    brand_color: Optional[str] = Field(default=None, max_length=7)
+    delivery_info: Optional[str] = Field(default=None, max_length=800)
+    whatsapp_phone: Optional[str] = Field(default=None, max_length=40)
     payment_instructions: Optional[str] = Field(default=None, max_length=1200)
 
 
@@ -1549,15 +1567,84 @@ async def get_public_ecommerce_site(slug: str = Path(..., pattern="^[a-z0-9-]{2,
         "site": {
             "slug": slug,
             "store_id": store_id,
-            "name": store_doc.get("receipt_business_name") or store_doc.get("name") or owner_doc.get("name"),
+            "name": account_doc.get("ecommerce_site_name") or store_doc.get("receipt_business_name") or store_doc.get("name") or owner_doc.get("name"),
             "address": store_doc.get("address"),
             "phone": owner_doc.get("phone"),
             "email": owner_doc.get("email"),
             "currency": store_doc.get("currency") or owner_doc.get("currency") or account_doc.get("currency") or "XOF",
+            "hero_title": account_doc.get("ecommerce_hero_title"),
+            "site_name": account_doc.get("ecommerce_site_name"),
+            "welcome_message": account_doc.get("ecommerce_welcome_message"),
+            "brand_color": account_doc.get("ecommerce_brand_color"),
+            "delivery_info": account_doc.get("ecommerce_delivery_info"),
+            "whatsapp_phone": account_doc.get("ecommerce_whatsapp_phone"),
             "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
         },
         "products": public_products,
     }
+
+
+async def upsert_ecommerce_customer(
+    owner_id: str,
+    store_id: Optional[str],
+    payload: PublicEcommerceOrderCreate,
+    order_number: str,
+    now: datetime,
+) -> Optional[str]:
+    name = payload.customer_name.strip()
+    phone = (payload.customer_phone or "").strip() or None
+    email = str(payload.customer_email).strip().lower() if payload.customer_email else None
+    address = (payload.customer_address or "").strip() or None
+    if not name or not (phone or email or address):
+        return None
+
+    match_clauses: List[Dict[str, Any]] = []
+    if email:
+        match_clauses.append({"email": email})
+    if phone:
+        match_clauses.append({"phone": phone})
+
+    existing = None
+    if match_clauses:
+        existing = await db.customers.find_one(
+            {"user_id": owner_id, "$or": match_clauses},
+            {"_id": 0},
+        )
+
+    note = f"Commande e-commerce {order_number}"
+    if address:
+        note = f"{note} | Adresse : {address}"
+
+    if existing:
+        updates: Dict[str, Any] = {"updated_at": now}
+        if not existing.get("store_id") and store_id:
+            updates["store_id"] = store_id
+        if email and not existing.get("email"):
+            updates["email"] = email
+        if phone and not existing.get("phone"):
+            updates["phone"] = phone
+        if not existing.get("category"):
+            updates["category"] = "E-commerce"
+        if not existing.get("notes"):
+            updates["notes"] = note
+        await db.customers.update_one(
+            {"customer_id": existing["customer_id"], "user_id": owner_id},
+            {"$set": updates, "$push": {"note_history": {"content": note, "source": "ecommerce", "created_at": now}}},
+        )
+        return existing.get("customer_id")
+
+    customer = Customer(
+        user_id=owner_id,
+        store_id=store_id,
+        name=name,
+        phone=phone,
+        email=email,
+        notes=note,
+        note_history=[{"content": note, "source": "ecommerce", "created_at": now}],
+        category="E-commerce",
+    )
+    await db.customers.insert_one(customer.model_dump())
+    return customer.customer_id
 
 
 @app.post("/api/public/ecommerce/{slug}/orders", response_model=PublicEcommerceOrderResponse)
@@ -1621,6 +1708,7 @@ async def create_public_ecommerce_order(
     now = datetime.now(timezone.utc)
     order_id = f"eord_{uuid.uuid4().hex[:12]}"
     order_number = f"WEB-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
+    customer_id = await upsert_ecommerce_customer(owner_id, store_id, payload, order_number, now)
     order_doc = {
         "order_id": order_id,
         "order_number": order_number,
@@ -1631,6 +1719,7 @@ async def create_public_ecommerce_order(
         "store_id": store_id,
         "site_slug": slug,
         "customer_name": payload.customer_name.strip(),
+        "customer_id": customer_id,
         "customer_phone": (payload.customer_phone or "").strip() or None,
         "customer_email": str(payload.customer_email) if payload.customer_email else None,
         "customer_address": (payload.customer_address or "").strip() or None,
@@ -1642,16 +1731,57 @@ async def create_public_ecommerce_order(
         "updated_at": now,
     }
     await db.ecommerce_orders.insert_one(order_doc)
+    title = "Nouvelle commande web"
+    message = f"{payload.customer_name.strip()} a envoyé une commande de {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}."
     try:
         await notification_service.notify_user(
             db,
             owner_id,
-            "Nouvelle commande web",
-            f"{payload.customer_name.strip()} a envoyé une commande de {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}.",
+            title,
+            message,
             {"type": "ecommerce_order", "order_id": order_id, "screen": "orders"},
         )
     except Exception as notify_err:
-        logger.warning(f"E-commerce order notification failed: {notify_err}")
+        logger.warning(f"E-commerce order push notification failed: {notify_err}")
+    try:
+        await db.admin_messages.insert_one({
+            "message_id": f"msg_{uuid.uuid4().hex[:12]}",
+            "title": title,
+            "content": message,
+            "message": message,
+            "type": "ecommerce_order",
+            "target": owner_id,
+            "target_user_ids": [owner_id],
+            "sent_by": "system",
+            "sent_at": now,
+            "created_at": now,
+            "read_by": [],
+            "read_count": 0,
+            "metadata": {"order_id": order_id, "screen": "orders"},
+        })
+    except Exception as in_app_err:
+        logger.warning(f"E-commerce order in-app notification failed: {in_app_err}")
+    try:
+        owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "email": 1, "name": 1})
+        owner_email = (owner_doc or {}).get("email")
+        if owner_email:
+            order_url = f"{get_web_app_base_url()}/orders"
+            html_body = (
+                f"<p>Bonjour {(owner_doc or {}).get('name') or ''},</p>"
+                f"<p>Vous avez reçu la commande web <strong>{order_number}</strong> pour un total de "
+                f"<strong>{round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}</strong>.</p>"
+                f"<p>Client : {html.escape(payload.customer_name.strip())}</p>"
+                f"<p><a href=\"{order_url}\">Ouvrir les commandes dans Stockman</a></p>"
+            )
+            text_body = (
+                f"Nouvelle commande web {order_number}\n"
+                f"Total : {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}\n"
+                f"Client : {payload.customer_name.strip()}\n"
+                f"Ouvrir les commandes : {order_url}"
+            )
+            await notification_service.send_email_notification([owner_email], title, html_body, text_body=text_body)
+    except Exception as email_err:
+        logger.warning(f"E-commerce order email notification failed: {email_err}")
     return PublicEcommerceOrderResponse(
         order_id=order_id,
         order_number=order_number,
@@ -3292,6 +3422,48 @@ def normalize_ecommerce_slug(value: Optional[str]) -> str:
     return normalized[:50] or "boutique"
 
 
+def normalize_ecommerce_domain(value: Optional[str]) -> Optional[str]:
+    raw = (value or "").strip().lower()
+    if not raw:
+        return None
+    if "://" not in raw:
+        raw = f"https://{raw}"
+    parsed = urlparse(raw)
+    domain = (parsed.netloc or parsed.path).split("/")[0].split(":")[0].strip(".")
+    if domain.startswith("www."):
+        domain = domain[4:]
+    if not domain or len(domain) > 253:
+        raise HTTPException(status_code=400, detail="Nom de domaine invalide")
+    if not re.fullmatch(r"(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}", domain):
+        raise HTTPException(status_code=400, detail="Nom de domaine invalide")
+    return domain
+
+
+def normalize_ecommerce_color(value: Optional[str]) -> Optional[str]:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    if not re.fullmatch(r"#[0-9A-Fa-f]{6}", raw):
+        raise HTTPException(status_code=400, detail="Couleur de marque invalide")
+    return raw.upper()
+
+
+def get_ecommerce_domain_target() -> str:
+    parsed = urlparse(get_web_app_base_url())
+    return parsed.netloc or parsed.path.replace("https://", "").replace("http://", "").split("/")[0]
+
+
+async def verify_ecommerce_domain_resolution(domain: Optional[str]) -> bool:
+    if not domain:
+        return False
+    loop = asyncio.get_running_loop()
+    try:
+        await loop.run_in_executor(None, socket.getaddrinfo, domain, 443)
+        return True
+    except Exception:
+        return False
+
+
 async def build_unique_ecommerce_slug(seed: Optional[str], owner_id: str) -> str:
     base_slug = normalize_ecommerce_slug(seed)
     candidate = base_slug
@@ -3316,7 +3488,7 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
     if not account_doc:
         raise HTTPException(status_code=400, detail="Site e-commerce indisponible pour ce type de compte")
 
-    resolved_store_id = store_id or owner_doc.get("active_store_id")
+    resolved_store_id = account_doc.get("ecommerce_default_store_id") or store_id or owner_doc.get("active_store_id")
     if not resolved_store_id:
         store_ids = account_doc.get("store_ids") or owner_doc.get("store_ids") or []
         resolved_store_id = store_ids[0] if store_ids else None
@@ -3361,6 +3533,11 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
 
     custom_domain = account_doc.get("ecommerce_custom_domain")
     site_url = f"https://{custom_domain}" if custom_domain else f"{get_web_app_base_url()}/shop/{slug}"
+    domain_status = account_doc.get("ecommerce_domain_status")
+    if not custom_domain:
+        domain_status = "not_configured"
+    elif not domain_status:
+        domain_status = "pending_verification"
     return {
         "slug": slug,
         "site_url": site_url,
@@ -3368,6 +3545,15 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         "store_id": resolved_store_id,
         "store_name": (store_doc or {}).get("name"),
         "custom_domain": custom_domain,
+        "domain_status": domain_status,
+        "domain_verified_at": account_doc.get("ecommerce_domain_verified_at"),
+        "domain_verification_target": get_ecommerce_domain_target(),
+        "hero_title": account_doc.get("ecommerce_hero_title"),
+        "site_name": account_doc.get("ecommerce_site_name"),
+        "welcome_message": account_doc.get("ecommerce_welcome_message"),
+        "brand_color": account_doc.get("ecommerce_brand_color"),
+        "delivery_info": account_doc.get("ecommerce_delivery_info"),
+        "whatsapp_phone": account_doc.get("ecommerce_whatsapp_phone"),
         "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
     }
 
@@ -17090,13 +17276,74 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, user: User = Depends(
     site = await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id)
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": owner_id, "role": "shopkeeper"})
+    if not account_doc:
+        raise HTTPException(status_code=400, detail="Site e-commerce indisponible pour ce compte")
     updates: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc)}
     if data.enabled is not None:
         updates["ecommerce_enabled"] = bool(data.enabled)
+    if data.store_id is not None:
+        store_id = data.store_id.strip()
+        store_doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0, "name": 1})
+        if not store_doc:
+            raise HTTPException(status_code=404, detail="Boutique introuvable")
+        updates["ecommerce_default_store_id"] = store_id
+    if data.custom_domain is not None:
+        custom_domain = normalize_ecommerce_domain(data.custom_domain)
+        if custom_domain:
+            existing = await db.business_accounts.find_one(
+                {"ecommerce_custom_domain": custom_domain, "account_id": {"$ne": account_doc.get("account_id")}},
+                {"_id": 0, "account_id": 1},
+            )
+            if existing:
+                raise HTTPException(status_code=409, detail="Ce nom de domaine est déjà utilisé")
+            updates["ecommerce_custom_domain"] = custom_domain
+            updates["ecommerce_domain_status"] = "pending_verification"
+            updates["ecommerce_domain_verified_at"] = None
+        else:
+            updates["ecommerce_custom_domain"] = None
+            updates["ecommerce_domain_status"] = "not_configured"
+            updates["ecommerce_domain_verified_at"] = None
+    if data.hero_title is not None:
+        updates["ecommerce_hero_title"] = data.hero_title.strip() or None
+    if data.site_name is not None:
+        updates["ecommerce_site_name"] = data.site_name.strip() or None
+    if data.welcome_message is not None:
+        updates["ecommerce_welcome_message"] = data.welcome_message.strip() or None
+    if data.brand_color is not None:
+        updates["ecommerce_brand_color"] = normalize_ecommerce_color(data.brand_color)
+    if data.delivery_info is not None:
+        updates["ecommerce_delivery_info"] = data.delivery_info.strip() or None
+    if data.whatsapp_phone is not None:
+        updates["ecommerce_whatsapp_phone"] = data.whatsapp_phone.strip() or None
     if data.payment_instructions is not None:
         updates["ecommerce_payment_instructions"] = data.payment_instructions.strip() or None
     if len(updates) > 1 and account_doc:
         await db.business_accounts.update_one({"account_id": account_doc["account_id"]}, {"$set": updates})
+    return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
+
+
+@api_router.post("/ecommerce/site/verify-domain", response_model=EcommerceSiteInfo)
+async def verify_ecommerce_site_domain(user: User = Depends(require_auth)):
+    if not is_org_admin_user(user):
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs opérationnels peuvent vérifier le domaine du site e-commerce")
+    owner_id = get_owner_id(user)
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": owner_id, "role": "shopkeeper"})
+    if not account_doc:
+        raise HTTPException(status_code=400, detail="Site e-commerce indisponible pour ce compte")
+    domain = account_doc.get("ecommerce_custom_domain")
+    if not domain:
+        raise HTTPException(status_code=400, detail="Ajoutez d'abord un nom de domaine")
+    verified = await verify_ecommerce_domain_resolution(domain)
+    now = datetime.now(timezone.utc)
+    await db.business_accounts.update_one(
+        {"account_id": account_doc["account_id"]},
+        {"$set": {
+            "ecommerce_domain_status": "verified" if verified else "pending_verification",
+            "ecommerce_domain_verified_at": now if verified else None,
+            "updated_at": now,
+        }},
+    )
     return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
 
 
@@ -17189,19 +17436,30 @@ async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> 
         raise HTTPException(status_code=400, detail="Aucun article valide dans cette commande")
 
     total_amount = round(sum(item.total for item in sale_items), 2)
+    customer_effects = await _compute_sale_customer_effects(
+        owner_id,
+        order.get("customer_id"),
+        total_amount,
+        order.get("payment_method") or "cash",
+    )
     sale = Sale(
         user_id=owner_id,
         store_id=store_id,
         items=sale_items,
         total_amount=total_amount,
         payment_method=order.get("payment_method") or "cash",
+        customer_id=order.get("customer_id"),
         customer_name=order.get("customer_name"),
+        loyalty_points_earned=customer_effects["loyalty_points_earned"],
+        customer_total_spent_increment=customer_effects["customer_total_spent_increment"],
+        credit_debt_applied=customer_effects["credit_debt_applied"],
         notes=f"Commande web {order.get('order_number') or order.get('order_id')}",
         status="completed",
         service_type="delivery",
         current_amount=total_amount,
     )
     await db.sales.insert_one(sale.model_dump())
+    await _apply_sale_customer_effects(owner_id, order.get("customer_id"), customer_effects)
     await db.ecommerce_orders.update_one(
         {"order_id": order["order_id"], "user_id": owner_id},
         {"$set": {

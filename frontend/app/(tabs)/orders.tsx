@@ -157,6 +157,8 @@ export default function OrdersScreen() {
   const [creditNotesList, setCreditNotesList] = useState<CreditNote[]>([]);
   const [webOrders, setWebOrders] = useState<any[]>([]);
   const [webOrdersLoading, setWebOrdersLoading] = useState(false);
+  const [selectedWebOrder, setSelectedWebOrder] = useState<any | null>(null);
+  const [showWebOrderDetailModal, setShowWebOrderDetailModal] = useState(false);
 
   // Create return modal
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -333,7 +335,7 @@ export default function OrdersScreen() {
       await ecommerceApi.updateOrderStatus(orderId, status);
       await loadWebOrders();
     } catch (err: any) {
-      Alert.alert(t('common.error'), err?.message || 'Impossible de mettre à jour la commande web.');
+      Alert.alert(t('common.error'), err?.message || 'Impossible de mettre à jour la commande E-com.');
     }
   };
 
@@ -912,7 +914,7 @@ export default function OrdersScreen() {
                   ? t('orders.orders_count', { count: orderList.length })
                   : activeTab === 'returns'
                   ? t('orders.returns_count', { count: returnsList.length })
-                  : `${webOrders.length} commande(s) web`}
+                  : `${webOrders.length} commande(s) E-com`}
               </Text>
             </View>
             <View style={styles.headerActionsRow}>
@@ -985,7 +987,7 @@ export default function OrdersScreen() {
               onPress={() => { setActiveTab('web'); loadWebOrders(); }}
             >
               <Ionicons name="globe-outline" size={16} color={activeTab === 'web' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
-              <Text style={[styles.filterText, activeTab === 'web' && styles.filterTextActive]}>Web</Text>
+              <Text style={[styles.filterText, activeTab === 'web' && styles.filterTextActive]}>E-com</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -1025,7 +1027,7 @@ export default function OrdersScreen() {
               style={{ flex: 1, color: colors.text, fontSize: FontSize.sm }}
               value={orderSearch}
               onChangeText={setOrderSearch}
-              placeholder={activeTab === 'orders' ? t('orders.search_orders_placeholder', 'Rechercher une commande, un fournisseur ou un produit') : activeTab === 'web' ? 'Rechercher une commande web ou un client' : t('orders.search_returns_placeholder', 'Rechercher un retour, un fournisseur ou un produit')}
+              placeholder={activeTab === 'orders' ? t('orders.search_orders_placeholder', 'Rechercher une commande, un fournisseur ou un produit') : activeTab === 'web' ? 'Rechercher une commande E-com ou un client' : t('orders.search_returns_placeholder', 'Rechercher un retour, un fournisseur ou un produit')}
               placeholderTextColor={colors.textMuted}
             />
             {orderSearch.length > 0 && (
@@ -1058,11 +1060,19 @@ export default function OrdersScreen() {
               ) : webOrders.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="globe-outline" size={64} color={colors.textMuted} />
-                  <Text style={styles.emptyTitle}>Aucune commande web</Text>
+                  <Text style={styles.emptyTitle}>Aucune commande E-com</Text>
                   <Text style={styles.emptyText}>Les commandes envoyées depuis le site e-commerce apparaîtront ici.</Text>
                 </View>
               ) : webOrders.map((order) => (
-                <View key={order.order_id} style={styles.orderCard}>
+                <TouchableOpacity
+                  key={order.order_id}
+                  style={styles.orderCard}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setSelectedWebOrder(order);
+                    setShowWebOrderDetailModal(true);
+                  }}
+                >
                   <View style={styles.orderHeader}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.orderSupplier}>{order.order_number}</Text>
@@ -1070,20 +1080,25 @@ export default function OrdersScreen() {
                     </View>
                     <Text style={[styles.statusBadge, { color: colors.primary }]}>{order.status}</Text>
                   </View>
-                  {(order.items || []).map((item: any) => (
-                    <View key={item.product_id} style={styles.detailRow}>
-                      <Text style={styles.detailRowText}>{item.product_name} x {item.quantity}</Text>
-                      <Text style={styles.detailRowSubtext}>{formatCurrency(item.total || 0, user?.currency)}</Text>
+                  <View style={styles.orderDetails}>
+                    <View style={styles.orderDetail}>
+                      <Text style={styles.orderDetailLabel}>Articles</Text>
+                      <Text style={styles.orderDetailValue}>{(order.items || []).length}</Text>
                     </View>
-                  ))}
-                  <Text style={[styles.orderSupplier, { marginTop: Spacing.sm }]}>{formatCurrency(order.total_amount || 0, user?.currency)}</Text>
+                    <View style={styles.orderDetail}>
+                      <Text style={styles.orderDetailLabel}>Total</Text>
+                      <Text style={styles.orderDetailValue}>{formatCurrency(order.total_amount || 0, user?.currency)}</Text>
+                    </View>
+                  </View>
+                  {order.customer_address ? <Text numberOfLines={1} style={styles.orderDate}>{order.customer_address}</Text> : null}
+                  <Text style={[styles.orderDate, { marginTop: Spacing.xs }]}>Appuyez pour voir les détails</Text>
                   <View style={styles.orderActions}>
                     {order.status === 'pending' && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'confirmed')}><Text style={[styles.actionText, { color: colors.primary }]}>Confirmer</Text></TouchableOpacity>}
                     {['confirmed', 'preparing'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'ready')}><Text style={[styles.actionText, { color: colors.warning }]}>Prête</Text></TouchableOpacity>}
                     {['confirmed', 'preparing', 'ready'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'delivered')}><Text style={[styles.actionText, { color: colors.success }]}>Livrer</Text></TouchableOpacity>}
                     {['pending', 'confirmed'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'cancelled')}><Text style={[styles.actionText, { color: colors.danger }]}>Annuler</Text></TouchableOpacity>}
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           )}
@@ -1532,6 +1547,65 @@ export default function OrdersScreen() {
           onCreateProduct={handleCreateProductFromDelivery}
           autoLinkRequest={deliveryAutoLinkRequest}
         />
+
+        {showWebOrderDetailModal && selectedWebOrder && <Modal visible={showWebOrderDetailModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={styles.modalTitle}>Commande E-com</Text>
+                  <Text style={styles.modalSubtitle}>{selectedWebOrder.order_number}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowWebOrderDetailModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.orderHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.orderSupplier}>{selectedWebOrder.customer_name}</Text>
+                    <Text style={styles.orderDate}>{selectedWebOrder.customer_phone || selectedWebOrder.customer_email || 'Contact non renseigné'}</Text>
+                    {selectedWebOrder.customer_address ? <Text style={styles.orderDate}>{selectedWebOrder.customer_address}</Text> : null}
+                  </View>
+                  <Text style={[styles.statusBadge, { color: colors.primary }]}>{selectedWebOrder.status}</Text>
+                </View>
+                <View style={{ marginTop: Spacing.md, gap: Spacing.sm }}>
+                  {(selectedWebOrder.items || []).map((item: any, index: number) => (
+                    <View key={`${item.product_id || item.product_name}-${index}`} style={styles.detailRow}>
+                      <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+                        <Text style={styles.detailRowText}>{item.product_name}</Text>
+                        <Text style={styles.detailRowSubtext}>Quantité : {item.quantity}</Text>
+                      </View>
+                      <Text style={styles.detailRowText}>{formatCurrency(item.total || 0, user?.currency)}</Text>
+                    </View>
+                  ))}
+                </View>
+                {selectedWebOrder.notes ? (
+                  <View style={[styles.infoCard, { marginTop: Spacing.md }]}>
+                    <Text style={styles.infoCardTitle}>Note client</Text>
+                    <Text style={styles.infoCardText}>{selectedWebOrder.notes}</Text>
+                  </View>
+                ) : null}
+                <View style={[styles.orderDetails, { marginTop: Spacing.md }]}>
+                  <View style={styles.orderDetail}>
+                    <Text style={styles.orderDetailLabel}>Articles</Text>
+                    <Text style={styles.orderDetailValue}>{(selectedWebOrder.items || []).length}</Text>
+                  </View>
+                  <View style={styles.orderDetail}>
+                    <Text style={styles.orderDetailLabel}>Total</Text>
+                    <Text style={styles.orderDetailValue}>{formatCurrency(selectedWebOrder.total_amount || 0, user?.currency)}</Text>
+                  </View>
+                </View>
+                <View style={[styles.orderActions, { marginTop: Spacing.lg }]}>
+                  {selectedWebOrder.status === 'pending' && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'confirmed'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.primary }]}>Confirmer</Text></TouchableOpacity>}
+                  {['confirmed', 'preparing'].includes(selectedWebOrder.status) && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'ready'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.warning }]}>Prête</Text></TouchableOpacity>}
+                  {['confirmed', 'preparing', 'ready'].includes(selectedWebOrder.status) && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'delivered'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.success }]}>Livrer</Text></TouchableOpacity>}
+                  {['pending', 'confirmed'].includes(selectedWebOrder.status) && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'cancelled'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.danger }]}>Annuler</Text></TouchableOpacity>}
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>}
 
         {/* Order Detail Modal */}
         {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
@@ -2454,6 +2528,24 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontSize: FontSize.lg,
     fontWeight: '700',
     color: colors.text,
+  },
+  infoCard: {
+    backgroundColor: colors.glass,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    padding: Spacing.md,
+  },
+  infoCardTitle: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+  },
+  infoCardText: {
+    color: colors.textSecondary,
+    fontSize: FontSize.sm,
+    lineHeight: 20,
   },
   seeMoreBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,

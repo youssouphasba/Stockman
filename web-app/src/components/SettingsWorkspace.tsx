@@ -177,7 +177,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     const [storeList, setStoreList] = useState<any[]>([]);
     const [editingStore, setEditingStore] = useState<any>(null);
     const [ecommerceSite, setEcommerceSite] = useState<any>(null);
-    const [ecommercePaymentInstructions, setEcommercePaymentInstructions] = useState('');
+    const [ecommerceDraft, setEcommerceDraft] = useState<any>({});
     const [sector, setSector] = useState('');
 
     const [profileName, setProfileName] = useState('');
@@ -302,7 +302,17 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
             setModulesDraft(res?.modules || {});
             setStoreList(storesRes || []);
             setEcommerceSite(ecommerceRes);
-            setEcommercePaymentInstructions(ecommerceRes?.payment_instructions || '');
+            setEcommerceDraft({
+                store_id: ecommerceRes?.store_id || '',
+                custom_domain: ecommerceRes?.custom_domain || '',
+                hero_title: ecommerceRes?.hero_title || '',
+                site_name: ecommerceRes?.site_name || '',
+                welcome_message: ecommerceRes?.welcome_message || '',
+                brand_color: ecommerceRes?.brand_color || '#2563EB',
+                delivery_info: ecommerceRes?.delivery_info || '',
+                whatsapp_phone: ecommerceRes?.whatsapp_phone || '',
+                payment_instructions: ecommerceRes?.payment_instructions || '',
+            });
             setSector(features?.sector || '');
         } catch (error: any) {
             setBanner({ tone: 'error', message: error?.message || t('settings_workspace.feedback.load_error') });
@@ -665,13 +675,18 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <div>
                                             <p className="text-sm font-black text-white">Site public</p>
                                             <p className="mt-1 break-all text-sm text-slate-400">{ecommerceSite.site_url}</p>
+                                            {ecommerceSite.custom_domain ? (
+                                                <p className="mt-1 text-xs text-slate-500">
+                                                    Domaine : {ecommerceSite.custom_domain} · {ecommerceSite.domain_status === 'verified' ? 'vérifié' : 'en attente'}
+                                                </p>
+                                            ) : null}
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => void runSave('ecommerce-enabled', async () => {
-                                                const updated = await ecommerceApi.updateSite({ enabled: !ecommerceSite.enabled, payment_instructions: ecommercePaymentInstructions });
+                                                const updated = await ecommerceApi.updateSite({ ...ecommerceDraft, enabled: !ecommerceSite.enabled });
                                                 setEcommerceSite(updated);
-                                                setEcommercePaymentInstructions(updated.payment_instructions || '');
+                                                window.dispatchEvent(new Event('ecommerce:changed'));
                                             }, 'Réglages e-commerce enregistrés.')}
                                             disabled={savingKey === 'ecommerce-enabled'}
                                             className={`rounded-2xl px-5 py-3 text-sm font-black transition-colors disabled:opacity-50 ${ecommerceSite.enabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/10 text-slate-300 hover:bg-primary hover:text-white'}`}
@@ -680,15 +695,65 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         </button>
                                     </div>
                                 </div>
+                                <Field label="Boutique liée" hint="Les produits visibles sur le site viennent de cette boutique.">
+                                    <select value={ecommerceDraft.store_id || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, store_id: event.target.value }))} className={inputClass}>
+                                        {storeList.map((store) => (
+                                            <option key={store.store_id} value={store.store_id}>{store.name}</option>
+                                        ))}
+                                    </select>
+                                </Field>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <Field label="Nom du site web" hint="Nom affiché dans l'en-tête de la boutique publique.">
+                                        <input value={ecommerceDraft.site_name || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, site_name: event.target.value }))} className={inputClass} />
+                                    </Field>
+                                    <Field label="Titre d'accueil" hint="Ce titre apparaît en haut de la vitrine.">
+                                        <input value={ecommerceDraft.hero_title || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, hero_title: event.target.value }))} className={inputClass} />
+                                    </Field>
+                                </div>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <Field label="Couleur de marque" hint="Utilisée pour les boutons et les accents du site.">
+                                        <input type="color" value={ecommerceDraft.brand_color || '#2563EB'} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, brand_color: event.target.value }))} className="h-12 w-full rounded-2xl border border-white/10 bg-white/10 p-1" />
+                                    </Field>
+                                </div>
+                                <Field label="Message d'accueil" hint="Présentez rapidement votre boutique aux clients.">
+                                    <textarea value={ecommerceDraft.welcome_message || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, welcome_message: event.target.value }))} rows={3} className={textareaClass} />
+                                </Field>
+                                <Field label="Livraison" hint="Délais, zones desservies, retrait ou consignes utiles.">
+                                    <textarea value={ecommerceDraft.delivery_info || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, delivery_info: event.target.value }))} rows={3} className={textareaClass} />
+                                </Field>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <Field label="WhatsApp" hint="Numéro utilisé pour contacter la boutique depuis le site.">
+                                        <input value={ecommerceDraft.whatsapp_phone || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, whatsapp_phone: event.target.value }))} className={inputClass} />
+                                    </Field>
+                                    <Field label="Nom de domaine" hint={`Créez un CNAME vers ${ecommerceSite.domain_verification_target || 'votre domaine Stockman'}, puis vérifiez le domaine.`}>
+                                        <input value={ecommerceDraft.custom_domain || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, custom_domain: event.target.value }))} placeholder="boutique.example.com" className={inputClass} />
+                                    </Field>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => void runSave('ecommerce-domain', async () => {
+                                        const saved = await ecommerceApi.updateSite({ ...ecommerceDraft, enabled: ecommerceSite.enabled });
+                                        setEcommerceSite(saved);
+                                        window.dispatchEvent(new Event('ecommerce:changed'));
+                                        const verified = await ecommerceApi.verifyDomain();
+                                        setEcommerceSite(verified);
+                                        window.dispatchEvent(new Event('ecommerce:changed'));
+                                    }, 'Vérification du domaine lancée.')}
+                                    disabled={savingKey === 'ecommerce-domain' || !ecommerceDraft.custom_domain}
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-white/15 disabled:opacity-50"
+                                >
+                                    <Globe size={18} />
+                                    Vérifier le domaine
+                                </button>
                                 <Field label="Instructions de paiement manuel" hint="Exemple : paiement à la livraison, Wave, Orange Money, virement ou consignes de confirmation.">
-                                    <textarea value={ecommercePaymentInstructions} onChange={(event) => setEcommercePaymentInstructions(event.target.value)} rows={4} className={textareaClass} />
+                                    <textarea value={ecommerceDraft.payment_instructions || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, payment_instructions: event.target.value }))} rows={4} className={textareaClass} />
                                 </Field>
                                 <button
                                     type="button"
                                     onClick={() => void runSave('ecommerce-settings', async () => {
-                                        const updated = await ecommerceApi.updateSite({ enabled: ecommerceSite.enabled, payment_instructions: ecommercePaymentInstructions });
+                                        const updated = await ecommerceApi.updateSite({ ...ecommerceDraft, enabled: ecommerceSite.enabled });
                                         setEcommerceSite(updated);
-                                        setEcommercePaymentInstructions(updated.payment_instructions || '');
+                                        window.dispatchEvent(new Event('ecommerce:changed'));
                                     }, 'Réglages e-commerce enregistrés.')}
                                     disabled={savingKey === 'ecommerce-settings'}
                                     className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
@@ -1094,10 +1159,10 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
 
                         <SectionCard
                             icon={<FileText size={24} className="text-primary" />}
-                            title="Mentions légales"
+                            title="Mentions lÃ©gales"
                             scope={t('settings_workspace.scopes.user')}
-                            description="Consultez les conditions générales d'utilisation et la politique de confidentialité de Stockman."
-                            actionHint="Ces documents sont mis à jour régulièrement."
+                            description="Consultez les conditions gÃ©nÃ©rales d'utilisation et la politique de confidentialitÃ© de Stockman."
+                            actionHint="Ces documents sont mis Ã  jour rÃ©guliÃ¨rement."
                         >
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <a
@@ -1110,7 +1175,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <FileText size={18} className="text-primary" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-black text-white">Conditions Générales</p>
+                                        <p className="text-sm font-black text-white">Conditions GÃ©nÃ©rales</p>
                                         <p className="mt-0.5 text-xs text-slate-500">CGU &mdash; Lire le document</p>
                                     </div>
                                     <ChevronRight size={16} className="ml-auto text-slate-500" />
@@ -1125,8 +1190,8 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <Eye size={18} className="text-primary" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-black text-white">Politique de Confidentialité</p>
-                                        <p className="mt-0.5 text-xs text-slate-500">Vie privée &mdash; Lire le document</p>
+                                        <p className="text-sm font-black text-white">Politique de ConfidentialitÃ©</p>
+                                        <p className="mt-0.5 text-xs text-slate-500">Vie privÃ©e &mdash; Lire le document</p>
                                     </div>
                                     <ChevronRight size={16} className="ml-auto text-slate-500" />
                                 </a>

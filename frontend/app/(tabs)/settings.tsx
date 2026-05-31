@@ -11,6 +11,7 @@ import {
   Platform,
   TextInput,
   useWindowDimensions,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -258,10 +259,11 @@ export default function SettingsScreen() {
   const [notificationPreferences, setNotificationPreferences] = useState(DEFAULT_NOTIFICATION_PREFERENCES);
   const [testPushSending, setTestPushSending] = useState(false);
   const [currentStore, setCurrentStore] = useState<Store | null>(null);
+  const [storeList, setStoreList] = useState<Store[]>([]);
   const [storeName, setStoreName] = useState('');
   const [storeAddress, setStoreAddress] = useState('');
-  const [ecommerceSite, setEcommerceSite] = useState<{ enabled: boolean; site_url: string; payment_instructions?: string | null } | null>(null);
-  const [ecommercePaymentInstructions, setEcommercePaymentInstructions] = useState('');
+  const [ecommerceSite, setEcommerceSite] = useState<any | null>(null);
+  const [ecommerceDraft, setEcommerceDraft] = useState<any>({});
   const [ecommerceSaving, setEcommerceSaving] = useState(false);
   const [receiptName, setReceiptName] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('');
@@ -381,11 +383,22 @@ export default function SettingsScreen() {
       setStoreNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(result?.store_notification_contacts || {}) });
       setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(result?.notification_preferences || {}) });
       const activeStore = (storesList || []).find((store) => store.store_id === user?.active_store_id) || null;
+      setStoreList(storesList || []);
       setCurrentStore(activeStore);
       setStoreName(activeStore?.name || '');
       setStoreAddress(activeStore?.address || '');
       setEcommerceSite(ecommerceResult);
-      setEcommercePaymentInstructions(ecommerceResult?.payment_instructions || '');
+      setEcommerceDraft({
+        store_id: ecommerceResult?.store_id || activeStore?.store_id || '',
+        custom_domain: ecommerceResult?.custom_domain || '',
+        hero_title: ecommerceResult?.hero_title || '',
+        site_name: ecommerceResult?.site_name || '',
+        welcome_message: ecommerceResult?.welcome_message || '',
+        brand_color: ecommerceResult?.brand_color || '#2563EB',
+        delivery_info: ecommerceResult?.delivery_info || '',
+        whatsapp_phone: ecommerceResult?.whatsapp_phone || '',
+        payment_instructions: ecommerceResult?.payment_instructions || '',
+      });
       setReceiptName(activeStore?.receipt_business_name || result?.receipt_business_name || '');
       setReceiptFooter(activeStore?.receipt_footer || result?.receipt_footer || '');
       setInvoiceName(activeStore?.invoice_business_name || result?.invoice_business_name || '');
@@ -601,13 +614,48 @@ export default function SettingsScreen() {
     try {
       const updated = await ecommerceApi.updateSite({
         enabled: typeof nextEnabled === 'boolean' ? nextEnabled : ecommerceSite?.enabled,
-        payment_instructions: ecommercePaymentInstructions,
+        ...ecommerceDraft,
       });
       setEcommerceSite(updated);
-      setEcommercePaymentInstructions(updated.payment_instructions || '');
+      DeviceEventEmitter.emit('ecommerce:changed');
+      setEcommerceDraft({
+        store_id: updated.store_id || '',
+        custom_domain: updated.custom_domain || '',
+        hero_title: updated.hero_title || '',
+        site_name: updated.site_name || '',
+        welcome_message: updated.welcome_message || '',
+        brand_color: updated.brand_color || '#2563EB',
+        delivery_info: updated.delivery_info || '',
+        whatsapp_phone: updated.whatsapp_phone || '',
+        payment_instructions: updated.payment_instructions || '',
+      });
       showFeedback('Réglages e-commerce enregistrés.', 'success');
     } catch {
       showFeedback("Impossible d'enregistrer les réglages e-commerce.", 'error');
+    } finally {
+      setEcommerceSaving(false);
+    }
+  }
+
+  async function verifyEcommerceDomain() {
+    setEcommerceSaving(true);
+    try {
+      const saved = await ecommerceApi.updateSite({
+        enabled: ecommerceSite?.enabled,
+        ...ecommerceDraft,
+      });
+      setEcommerceSite(saved);
+      DeviceEventEmitter.emit('ecommerce:changed');
+      const verified = await ecommerceApi.verifyDomain();
+      setEcommerceSite(verified);
+      DeviceEventEmitter.emit('ecommerce:changed');
+      setEcommerceDraft((draft: any) => ({
+        ...draft,
+        custom_domain: verified.custom_domain || '',
+      }));
+      showFeedback('Vérification du domaine lancée.', 'success');
+    } catch {
+      showFeedback('Impossible de vérifier le domaine.', 'error');
     } finally {
       setEcommerceSaving(false);
     }
@@ -1145,10 +1193,93 @@ export default function SettingsScreen() {
               thumbColor={ecommerceSite.enabled ? colors.primary : colors.textMuted}
             />
           </View>
+          <Text style={styles.settingLabel}>Boutique liée</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
+            {storeList.map((store) => (
+              <TouchableOpacity
+                key={store.store_id}
+                style={[
+                  styles.chip,
+                  ecommerceDraft.store_id === store.store_id && { backgroundColor: colors.primary + '20', borderColor: colors.primary },
+                ]}
+                onPress={() => setEcommerceDraft((draft: any) => ({ ...draft, store_id: store.store_id }))}
+              >
+                <Text style={[styles.chipText, ecommerceDraft.store_id === store.store_id && { color: colors.primary }]}>
+                  {store.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TextInput
+            style={styles.input}
+            value={ecommerceDraft.site_name || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, site_name: value }))}
+            placeholder="Nom du site web"
+            placeholderTextColor={colors.textMuted}
+          />
+          <TextInput
+            style={styles.input}
+            value={ecommerceDraft.hero_title || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, hero_title: value }))}
+            placeholder="Titre d'accueil"
+            placeholderTextColor={colors.textMuted}
+          />
           <TextInput
             style={[styles.input, styles.textArea]}
-            value={ecommercePaymentInstructions}
-            onChangeText={setEcommercePaymentInstructions}
+            value={ecommerceDraft.welcome_message || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, welcome_message: value }))}
+            placeholder="Message d'accueil"
+            placeholderTextColor={colors.textMuted}
+            multiline
+          />
+          <TextInput
+            style={styles.input}
+            value={ecommerceDraft.brand_color || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, brand_color: value }))}
+            placeholder="Couleur de marque, ex. #2563EB"
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="characters"
+          />
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={ecommerceDraft.delivery_info || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, delivery_info: value }))}
+            placeholder="Informations de livraison"
+            placeholderTextColor={colors.textMuted}
+            multiline
+          />
+          <TextInput
+            style={styles.input}
+            value={ecommerceDraft.whatsapp_phone || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, whatsapp_phone: value }))}
+            placeholder="Numéro WhatsApp"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="phone-pad"
+          />
+          <TextInput
+            style={styles.input}
+            value={ecommerceDraft.custom_domain || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, custom_domain: value }))}
+            placeholder="Nom de domaine personnalisé"
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="none"
+          />
+          {ecommerceDraft.custom_domain ? (
+            <TouchableOpacity
+              style={[styles.syncButton, { backgroundColor: colors.info + '15', borderColor: colors.info + '30', alignSelf: 'stretch', marginBottom: Spacing.md }]}
+              onPress={verifyEcommerceDomain}
+              disabled={ecommerceSaving}
+            >
+              <Ionicons name="globe-outline" size={18} color={colors.info} />
+              <Text style={{ color: colors.info, fontSize: FontSize.sm, fontWeight: '600' }}>
+                {ecommerceSite.domain_status === 'verified' ? 'Domaine vérifié' : `Vérifier le domaine vers ${ecommerceSite.domain_verification_target || 'Stockman'}`}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={ecommerceDraft.payment_instructions || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, payment_instructions: value }))}
             placeholder="Instructions de paiement manuel : Wave, Orange Money, paiement à la livraison..."
             placeholderTextColor={colors.textMuted}
             multiline
@@ -2043,6 +2174,20 @@ const getStyles = (colors: any, glassStyle: any, compact: boolean) => StyleSheet
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginRight: Spacing.sm,
+    backgroundColor: colors.card,
+  },
+  chipText: {
+    color: colors.textSecondary,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
   },
   outlineButton: {
     flexDirection: 'row',

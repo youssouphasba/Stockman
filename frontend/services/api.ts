@@ -824,11 +824,36 @@ export const products = {
 
 export const productsApi = products;
 
+export type EcommerceSite = {
+  slug: string;
+  site_url: string;
+  enabled: boolean;
+  store_id?: string | null;
+  store_name?: string | null;
+  custom_domain?: string | null;
+  domain_status?: string | null;
+  domain_verified_at?: string | null;
+  domain_verification_target?: string | null;
+  hero_title?: string | null;
+  site_name?: string | null;
+  welcome_message?: string | null;
+  brand_color?: string | null;
+  delivery_info?: string | null;
+  whatsapp_phone?: string | null;
+  payment_instructions?: string | null;
+};
+
+export type EcommerceSiteUpdate = Partial<Pick<EcommerceSite,
+  'enabled' | 'store_id' | 'custom_domain' | 'hero_title' | 'site_name' | 'welcome_message' | 'brand_color' | 'delivery_info' | 'whatsapp_phone' | 'payment_instructions'
+>>;
+
 export const ecommerce = {
   getSite: () =>
-    request<{ slug: string; site_url: string; enabled: boolean; store_id?: string | null; store_name?: string | null; custom_domain?: string | null; payment_instructions?: string | null }>('/ecommerce/site'),
-  updateSite: (data: { enabled?: boolean; payment_instructions?: string | null }) =>
-    request<{ slug: string; site_url: string; enabled: boolean; store_id?: string | null; store_name?: string | null; custom_domain?: string | null; payment_instructions?: string | null }>('/ecommerce/site', { method: 'PUT', body: data }),
+    request<EcommerceSite>('/ecommerce/site'),
+  updateSite: (data: EcommerceSiteUpdate) =>
+    request<EcommerceSite>('/ecommerce/site', { method: 'PUT', body: data }),
+  verifyDomain: () =>
+    request<EcommerceSite>('/ecommerce/site/verify-domain', { method: 'POST' }),
   listOrders: (status?: string, skip = 0, limit = 50) => {
     const qs = new URLSearchParams();
     if (status && status !== 'all') qs.set('status', status);

@@ -299,13 +299,11 @@ export default function Sidebar({
         };
     }, [user?.user_id, user?.active_store_id, (user?.store_ids || []).join(',')]);
 
-    useEffect(() => {
+    const refreshEcommerceSite = React.useCallback(() => {
         let cancelled = false;
         if (!user || user.role === 'supplier' || !hasOperationalAccess) {
             setEcommerceSite(null);
-            return () => {
-                cancelled = true;
-            };
+            return () => { cancelled = true; };
         }
         ecommerceApi.getSite()
             .then((site) => {
@@ -318,7 +316,14 @@ export default function Sidebar({
         return () => {
             cancelled = true;
         };
-    }, [hasOperationalAccess, user?.user_id, user?.active_store_id]);
+    }, [hasOperationalAccess, user, user?.active_store_id]);
+
+    useEffect(() => refreshEcommerceSite(), [refreshEcommerceSite]);
+
+    useEffect(() => {
+        window.addEventListener('ecommerce:changed', refreshEcommerceSite);
+        return () => window.removeEventListener('ecommerce:changed', refreshEcommerceSite);
+    }, [refreshEcommerceSite]);
 
     const activeStore = storeList.find((store) => store.store_id === user?.active_store_id) || null;
     const canSwitchStores = storeList.length > 1;

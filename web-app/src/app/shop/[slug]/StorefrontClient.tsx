@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Minus, Plus, Search, Send, ShoppingBag, Trash2 } from 'lucide-react';
+import { Grid2X2, Heart, Menu, Minus, Plus, Search, Send, ShoppingBag, SlidersHorizontal, Trash2 } from 'lucide-react';
 
 type PublicProduct = {
   product_id: string;
@@ -23,6 +23,11 @@ type PublicSite = {
   phone?: string | null;
   email?: string | null;
   currency: string;
+  hero_title?: string | null;
+  welcome_message?: string | null;
+  brand_color?: string | null;
+  delivery_info?: string | null;
+  whatsapp_phone?: string | null;
   payment_instructions?: string | null;
 };
 
@@ -113,6 +118,10 @@ export default function StorefrontClient({ slug }: { slug: string }) {
   const cartTotal = cartLines.reduce((sum, line) => sum + line.product.selling_price * line.quantity, 0);
   const cartCount = cartLines.reduce((sum, line) => sum + line.quantity, 0);
   const currency = payload?.site.currency || 'XOF';
+  const brandColor = payload?.site.brand_color || '#047857';
+  const whatsappLink = payload?.site.whatsapp_phone
+    ? `https://wa.me/${payload.site.whatsapp_phone.replace(/[^\d]/g, '')}`
+    : null;
 
   const addToCart = (product: PublicProduct) => {
     if (!product.available) return;
@@ -204,89 +213,129 @@ export default function StorefrontClient({ slug }: { slug: string }) {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8f4] text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-950">{payload?.site.name}</h1>
-              <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-600">
-                {payload?.site.address && <span>{payload.site.address}</span>}
+    <main className="min-h-screen bg-white text-slate-950">
+      <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="min-w-0">
+            <p className="truncate text-xl font-black tracking-tight text-slate-950">{payload?.site.name}</p>
+            {(payload?.site.phone || whatsappLink) && (
+              <div className="mt-1 flex items-center gap-3 text-xs font-medium text-slate-500">
                 {payload?.site.phone && <span>{payload.site.phone}</span>}
+                {whatsappLink && <a href={whatsappLink} target="_blank" rel="noreferrer" style={{ color: brandColor }}>WhatsApp</a>}
               </div>
-            </div>
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800">
-              <ShoppingBag className="h-4 w-4" />
-              {cartCount} article{cartCount > 1 ? 's' : ''}
-            </div>
-          </div>
-          <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-            <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-[#f7f8f4] px-4 py-3">
-              <Search className="h-4 w-4 text-slate-500" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Rechercher un produit"
-                className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-slate-500"
-              />
-            </label>
-            {categories.length > 0 && (
-              <select
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-[#f7f8f4] px-4 py-3 text-sm font-bold outline-none"
-              >
-                <option value="all">Toutes les catégories</option>
-                {categories.map((value) => (
-                  <option key={value} value={value}>{value}</option>
-                ))}
-              </select>
             )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="button" className="relative rounded-full p-3 text-slate-950">
+              <ShoppingBag className="h-6 w-6" />
+              {cartCount > 0 && (
+                <span className="absolute right-0 top-0 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-black text-white" style={{ backgroundColor: brandColor }}>
+                  {cartCount}
+                </span>
+              )}
+            </button>
+            <button type="button" className="rounded-full p-3 text-slate-950">
+              <Menu className="h-7 w-7" />
+            </button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {(payload?.site.hero_title || payload?.site.welcome_message) && (
+          <div className="mb-6">
+            {payload?.site.hero_title && <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-4xl">{payload.site.hero_title}</h1>}
+            {payload?.site.welcome_message && <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{payload.site.welcome_message}</p>}
+          </div>
+        )}
+        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+          <label className="flex h-14 items-center gap-3 rounded-md bg-slate-100 px-4">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Recherche..."
+              className="min-w-0 flex-1 bg-transparent text-base font-medium outline-none placeholder:text-slate-400"
+            />
+            <Search className="h-6 w-6 text-slate-950" />
+          </label>
+          <button type="button" className="hidden h-14 w-14 items-center justify-center rounded-md border border-slate-300 bg-slate-100 text-slate-950 sm:flex">
+            <Grid2X2 className="h-6 w-6" />
+          </button>
+          {categories.length > 0 ? (
+            <label className="flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-slate-950">
+              <SlidersHorizontal className="h-5 w-5" />
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                aria-label="Filtrer par catÃ©gorie"
+                className="absolute h-14 w-14 cursor-pointer opacity-0"
+              >
+                <option value="all">Toutes les catÃ©gories</option>
+                {categories.map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <button type="button" className="flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-slate-950">
+              <SlidersHorizontal className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      </section>
+
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-8 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
         <section>
           {filteredProducts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">
               Aucun produit disponible pour cette recherche.
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 xl:grid-cols-4">
               {filteredProducts.map((product) => (
-                <article key={product.product_id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <div className="aspect-[4/3] bg-slate-100">
+                <article key={product.product_id} className="group bg-white">
+                  <div className="aspect-square overflow-hidden bg-slate-100">
                     {product.image ? (
-                      <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+                      <img src={product.image} alt={product.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-slate-400">
-                        <ShoppingBag className="h-10 w-10" />
+                        <ShoppingBag className="h-9 w-9" />
                       </div>
                     )}
                   </div>
-                  <div className="space-y-3 p-4">
+                  <div className="space-y-3 pt-3">
                     <div>
-                      {product.category && <p className="mb-1 text-xs font-black uppercase text-emerald-700">{product.category}</p>}
-                      <h2 className="line-clamp-2 text-lg font-black">{product.name}</h2>
-                      {product.description && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{product.description}</p>}
+                      <h2 className="line-clamp-2 min-h-11 text-sm font-semibold uppercase tracking-wide text-slate-700 sm:text-base">{product.name}</h2>
+                      {product.category && <p className="mt-1 text-xs font-medium uppercase text-slate-400">{product.category}</p>}
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-lg font-black text-slate-950">{formatAmount(product.selling_price, currency)}</div>
-                        <div className="text-xs font-semibold text-slate-500">
-                          {product.quantity > 0 ? `${product.quantity} ${product.unit || ''} disponible(s)` : 'Rupture'}
-                        </div>
+                    <div>
+                      <div className="text-base font-medium text-slate-950 sm:text-lg">{formatAmount(product.selling_price, currency)}</div>
+                      <div className={`mt-1 text-xs font-semibold ${product.available ? 'text-slate-500' : 'text-rose-600'}`}>
+                        {product.quantity > 0 ? `${product.quantity} ${product.unit || ''} disponible(s)` : 'Rupture'}
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => addToCart(product)}
                         disabled={!product.available}
-                        className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:bg-slate-300"
+                        className="flex h-11 w-11 items-center justify-center border border-slate-300 bg-slate-100 text-slate-950 transition hover:bg-slate-200 disabled:text-slate-300"
+                        aria-label={`Ajouter ${product.name}`}
                       >
-                        Ajouter
+                        <ShoppingBag className="h-5 w-5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled
+                        className="flex h-11 w-11 items-center justify-center border border-slate-300 bg-slate-100 text-slate-950 disabled:opacity-60"
+                        aria-label="Favori"
+                      >
+                        <Heart className="h-5 w-5 fill-slate-950" />
                       </button>
                     </div>
+                    {product.description && (
+                      <p className="line-clamp-2 text-xs leading-5 text-slate-500 sm:text-sm">{product.description}</p>
+                    )}
                   </div>
                 </article>
               ))}
@@ -302,7 +351,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
 
           <div className="space-y-3">
             {cartLines.length === 0 ? (
-              <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Ajoutez des produits pour préparer votre commande.</p>
+              <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Ajoutez des produits pour prÃ©parer votre commande.</p>
             ) : (
               cartLines.map((line) => (
                 <div key={line.product.product_id} className="rounded-xl border border-slate-200 p-3">
@@ -339,7 +388,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
 
           {orderNumber && (
             <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
-              Commande envoyée : {orderNumber}. La boutique vous recontactera pour confirmer.
+              Commande envoyÃ©e : {orderNumber}. La boutique vous recontactera pour confirmer.
             </div>
           )}
           {error && payload && (
@@ -350,7 +399,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
 
           <div className="space-y-3">
             <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Nom complet" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
-            <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="Téléphone" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
+            <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="TÃ©lÃ©phone" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
             <input value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} placeholder="Email" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
             <textarea value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} placeholder="Adresse de livraison" rows={3} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
             <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Note pour la boutique" rows={3} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
@@ -363,11 +412,19 @@ export default function StorefrontClient({ slug }: { slug: string }) {
             </div>
           )}
 
+          {payload?.site.delivery_info && (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+              <p className="font-black text-slate-950">Livraison</p>
+              <p className="mt-1 whitespace-pre-line">{payload.site.delivery_info}</p>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={submitOrder}
             disabled={submitting || !customerName.trim() || cartLines.length === 0}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-4 text-sm font-black text-white transition hover:bg-emerald-800 disabled:bg-slate-300"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-4 text-sm font-black text-white transition disabled:bg-slate-300"
+            style={{ backgroundColor: submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandColor }}
           >
             <Send className="h-4 w-4" />
             {submitting ? 'Envoi...' : 'Envoyer la commande'}

@@ -87,6 +87,8 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Une photo produit ne doit pas dépendre d'un fichier temporaire du serveur backend, car ce fichier peut disparaître lors d'un redéploiement ou d'un redémarrage.
 
 ### Site e-commerce automatique
+- Le nom du site web est personnalisable dans les paramètres e-commerce et s'affiche dans l'en-tête de la vitrine publique.
+- Quand le client renseigne au moins une coordonnée utile, Stockman crée ou met à jour automatiquement sa fiche dans le CRM avec la source e-commerce.
 - Chaque compte commerçant dispose d'un site e-commerce public généré par Stockman avec un slug unique, par exemple `/shop/ma-boutique`.
 - Le site affiche les produits actifs de la boutique active, avec nom, description, prix de vente, stock disponible, unité, image et catégorie.
 - Les clients peuvent ajouter des produits au panier et envoyer une commande avec nom, téléphone, email, adresse et note.

@@ -60,15 +60,22 @@ function TabLayoutInner() {
     }
   }, [user?.user_id]);
 
-  useEffect(() => {
+  const refreshEcommerceSite = useCallback(async () => {
     if (!user?.user_id || !hasOperationalAccess) {
       setEcommerceSite(null);
       return;
     }
-    ecommerceApi.getSite().then((site) => {
+    try {
+      const site = await ecommerceApi.getSite();
       setEcommerceSite(site?.enabled ? { site_url: site.site_url, enabled: true } : null);
-    }).catch(() => setEcommerceSite(null));
+    } catch {
+      setEcommerceSite(null);
+    }
   }, [hasOperationalAccess, user?.user_id, user?.active_store_id]);
+
+  useEffect(() => {
+    refreshEcommerceSite();
+  }, [refreshEcommerceSite]);
 
   useEffect(() => {
     refreshAlertCount();
@@ -81,8 +88,9 @@ function TabLayoutInner() {
   useEffect(() => {
     const sub1 = DeviceEventEmitter.addListener('alerts:changed', refreshAlertCount);
     const sub2 = DeviceEventEmitter.addListener('open:chat', () => setShowChat(true));
-    return () => { sub1.remove(); sub2.remove(); };
-  }, [refreshAlertCount]);
+    const sub3 = DeviceEventEmitter.addListener('ecommerce:changed', refreshEcommerceSite);
+    return () => { sub1.remove(); sub2.remove(); sub3.remove(); };
+  }, [refreshAlertCount, refreshEcommerceSite]);
 
   const modules = userSettings?.modules ?? {};
   const billingOnly = isBillingAdmin && !hasOperationalAccess;
