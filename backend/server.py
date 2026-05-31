@@ -1365,6 +1365,9 @@ class EcommerceSiteInfo(BaseModel):
     store_id: Optional[str] = None
     store_name: Optional[str] = None
     custom_domain: Optional[str] = None
+    domain_mode: str = "stockman"
+    domain_requested_name: Optional[str] = None
+    domain_request_notes: Optional[str] = None
     domain_status: str = "not_configured"
     domain_verified_at: Optional[datetime] = None
     domain_verification_target: Optional[str] = None
@@ -1382,6 +1385,9 @@ class EcommerceSiteUpdate(BaseModel):
     enabled: Optional[bool] = None
     store_id: Optional[str] = Field(default=None, max_length=80)
     custom_domain: Optional[str] = Field(default=None, max_length=255)
+    domain_mode: Optional[str] = Field(default=None, pattern="^(stockman|connect|help)$")
+    domain_requested_name: Optional[str] = Field(default=None, max_length=255)
+    domain_request_notes: Optional[str] = Field(default=None, max_length=800)
     hero_title: Optional[str] = Field(default=None, max_length=120)
     site_name: Optional[str] = Field(default=None, max_length=120)
     welcome_message: Optional[str] = Field(default=None, max_length=600)
@@ -3600,6 +3606,9 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         domain_status = "not_configured"
     elif not domain_status:
         domain_status = "pending_verification"
+    domain_mode = account_doc.get("ecommerce_domain_mode")
+    if domain_mode not in {"stockman", "connect", "help"}:
+        domain_mode = "connect" if custom_domain else ("help" if account_doc.get("ecommerce_domain_requested_name") else "stockman")
     return {
         "slug": slug,
         "site_url": site_url,
@@ -3608,6 +3617,9 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         "store_id": resolved_store_id,
         "store_name": (store_doc or {}).get("name"),
         "custom_domain": custom_domain,
+        "domain_mode": domain_mode,
+        "domain_requested_name": account_doc.get("ecommerce_domain_requested_name"),
+        "domain_request_notes": account_doc.get("ecommerce_domain_request_notes"),
         "domain_status": domain_status,
         "domain_verified_at": account_doc.get("ecommerce_domain_verified_at"),
         "domain_verification_target": get_ecommerce_domain_target(),
@@ -17351,6 +17363,12 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, user: User = Depends(
         if not store_doc:
             raise HTTPException(status_code=404, detail="Boutique introuvable")
         updates["ecommerce_default_store_id"] = store_id
+    if data.domain_mode is not None:
+        updates["ecommerce_domain_mode"] = data.domain_mode
+        if data.domain_mode == "stockman":
+            updates["ecommerce_custom_domain"] = None
+            updates["ecommerce_domain_status"] = "not_configured"
+            updates["ecommerce_domain_verified_at"] = None
     if data.custom_domain is not None:
         custom_domain = normalize_ecommerce_domain(data.custom_domain)
         if custom_domain:
@@ -17361,12 +17379,20 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, user: User = Depends(
             if existing:
                 raise HTTPException(status_code=409, detail="Ce nom de domaine est déjà utilisé")
             updates["ecommerce_custom_domain"] = custom_domain
+            updates["ecommerce_domain_mode"] = "connect"
             updates["ecommerce_domain_status"] = "pending_verification"
             updates["ecommerce_domain_verified_at"] = None
         else:
             updates["ecommerce_custom_domain"] = None
             updates["ecommerce_domain_status"] = "not_configured"
             updates["ecommerce_domain_verified_at"] = None
+    if data.domain_requested_name is not None:
+        requested_domain = normalize_ecommerce_domain(data.domain_requested_name)
+        updates["ecommerce_domain_requested_name"] = requested_domain
+        if requested_domain and data.domain_mode is None and not updates.get("ecommerce_custom_domain"):
+            updates["ecommerce_domain_mode"] = "help"
+    if data.domain_request_notes is not None:
+        updates["ecommerce_domain_request_notes"] = data.domain_request_notes.strip() or None
     if data.hero_title is not None:
         updates["ecommerce_hero_title"] = data.hero_title.strip() or None
     if data.site_name is not None:

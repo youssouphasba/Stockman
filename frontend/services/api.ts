@@ -832,6 +832,9 @@ export type EcommerceSite = {
   store_id?: string | null;
   store_name?: string | null;
   custom_domain?: string | null;
+  domain_mode?: 'stockman' | 'connect' | 'help';
+  domain_requested_name?: string | null;
+  domain_request_notes?: string | null;
   domain_status?: string | null;
   domain_verified_at?: string | null;
   domain_verification_target?: string | null;
@@ -846,7 +849,7 @@ export type EcommerceSite = {
 };
 
 export type EcommerceSiteUpdate = Partial<Pick<EcommerceSite,
-  'enabled' | 'store_id' | 'custom_domain' | 'hero_title' | 'site_name' | 'welcome_message' | 'brand_color' | 'delivery_info' | 'whatsapp_phone' | 'payment_instructions' | 'show_out_of_stock_products'
+  'enabled' | 'store_id' | 'custom_domain' | 'domain_mode' | 'domain_requested_name' | 'domain_request_notes' | 'hero_title' | 'site_name' | 'welcome_message' | 'brand_color' | 'delivery_info' | 'whatsapp_phone' | 'payment_instructions' | 'show_out_of_stock_products'
 >>;
 
 export type EcommerceStats = {

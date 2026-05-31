@@ -88,6 +88,8 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 
 ### Site e-commerce automatique
 - Le nom du site web est personnalisable dans les paramètres e-commerce et s'affiche dans l'en-tête de la vitrine publique.
+- Le domaine du site se règle dans un parcours dédié : garder le domaine Stockman, connecter un domaine déjà acheté par CNAME, ou demander de l'aide pour choisir et brancher un domaine externe.
+- Les couleurs du site se choisissent avec des pastilles visuelles dans les paramètres E-com, sans saisie obligatoire de code couleur.
 - Quand le client renseigne au moins une coordonnée utile, Stockman crée ou met à jour automatiquement sa fiche dans le CRM avec la source e-commerce.
 - Chaque compte commerçant dispose d'un site e-commerce public généré par Stockman avec un slug unique, par exemple `/shop/ma-boutique`.
 - Le site affiche les produits actifs de la boutique active, avec nom, description, prix de vente, stock disponible, unité, image et catégorie.

@@ -67,6 +67,15 @@ const NOTIFICATION_CONTACT_FIELDS: { key: keyof typeof DEFAULT_NOTIFICATION_CONT
   { key: 'billing', labelKey: 'settings.email_channel_billing', placeholder: 'billing@entreprise.com' },
 ];
 
+const ECOMMERCE_COLOR_SWATCHES = [
+  { label: 'Émeraude', value: '#047857' },
+  { label: 'Bleu', value: '#2563EB' },
+  { label: 'Noir premium', value: '#111827' },
+  { label: 'Rose', value: '#DB2777' },
+  { label: 'Orange', value: '#EA580C' },
+  { label: 'Violet', value: '#7C3AED' },
+];
+
 type SettingsSectionKey =
   | 'accountAppGroup'
   | 'storeGroup'
@@ -99,7 +108,7 @@ const SETTINGS_SECTION_GROUPS: SettingsSectionKey[][] = [
   ['accountAppGroup', 'storeGroup', 'organizationGroup', 'alertsGroup', 'supportGroup', 'securityGroup'],
   ['billing', 'profile'],
   ['team', 'enterpriseHub', 'organization'],
-  ['storeIdentity', 'storeDocuments', 'storeEmpty'],
+  ['storeIdentity', 'storeEcommerce', 'storeDocuments', 'storeEmpty'],
   ['accountAlerts', 'storeAlerts', 'tax', 'reminders', 'sync'],
   ['support', 'incident'],
   ['security', 'legal', 'data'],
@@ -391,6 +400,9 @@ export default function SettingsScreen() {
       setEcommerceDraft({
         store_id: ecommerceResult?.store_id || activeStore?.store_id || '',
         custom_domain: ecommerceResult?.custom_domain || '',
+        domain_mode: ecommerceResult?.domain_mode || (ecommerceResult?.custom_domain ? 'connect' : 'stockman'),
+        domain_requested_name: ecommerceResult?.domain_requested_name || '',
+        domain_request_notes: ecommerceResult?.domain_request_notes || '',
         hero_title: ecommerceResult?.hero_title || '',
         site_name: ecommerceResult?.site_name || '',
         welcome_message: ecommerceResult?.welcome_message || '',
@@ -633,6 +645,9 @@ export default function SettingsScreen() {
       setEcommerceDraft({
         store_id: updated.store_id || '',
         custom_domain: updated.custom_domain || '',
+        domain_mode: updated.domain_mode || (updated.custom_domain ? 'connect' : 'stockman'),
+        domain_requested_name: updated.domain_requested_name || '',
+        domain_request_notes: updated.domain_request_notes || '',
         hero_title: updated.hero_title || '',
         site_name: updated.site_name || '',
         welcome_message: updated.welcome_message || '',
@@ -665,6 +680,7 @@ export default function SettingsScreen() {
       setEcommerceDraft((draft: any) => ({
         ...draft,
         custom_domain: verified.custom_domain || '',
+        domain_mode: verified.domain_mode || (verified.custom_domain ? 'connect' : 'stockman'),
       }));
       showFeedback('Vérification du domaine lancée.', 'success');
     } catch {
@@ -1258,14 +1274,26 @@ export default function SettingsScreen() {
             placeholderTextColor={colors.textMuted}
             multiline
           />
-          <TextInput
-            style={styles.input}
-            value={ecommerceDraft.brand_color || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, brand_color: value }))}
-            placeholder="Couleur de marque, ex. #2563EB"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="characters"
-          />
+          <Text style={styles.settingLabel}>Couleur de marque</Text>
+          <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Choisissez une couleur visuelle pour les boutons et les accents du site.</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md }}>
+            {ECOMMERCE_COLOR_SWATCHES.map((swatch) => {
+              const active = (ecommerceDraft.brand_color || '#2563EB').toLowerCase() === swatch.value.toLowerCase();
+              return (
+                <TouchableOpacity
+                  key={swatch.value}
+                  onPress={() => setEcommerceDraft((draft: any) => ({ ...draft, brand_color: swatch.value }))}
+                  style={[
+                    styles.chip,
+                    active && { backgroundColor: colors.primary + '20', borderColor: colors.primary },
+                  ]}
+                >
+                  <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: swatch.value, marginRight: 6 }} />
+                  <Text style={[styles.chipText, active && { color: colors.primary }]}>{swatch.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={ecommerceDraft.delivery_info || ''}
@@ -1282,15 +1310,56 @@ export default function SettingsScreen() {
             placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
           />
-          <TextInput
-            style={styles.input}
-            value={ecommerceDraft.custom_domain || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, custom_domain: value }))}
-            placeholder="Nom de domaine personnalisé"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="none"
-          />
-          {ecommerceDraft.custom_domain ? (
+          <Text style={styles.settingLabel}>Domaine du site</Text>
+          <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Le domaine Stockman reste disponible. Si vous possédez déjà un domaine, vous pouvez le connecter. Sinon, demandez de l'aide pour choisir un domaine auprès d'un fournisseur externe et le brancher.</Text>
+          <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
+            {[
+              { key: 'stockman', label: 'Domaine Stockman', desc: 'Garder l’adresse générée automatiquement.' },
+              { key: 'connect', label: 'J’ai déjà un domaine', desc: 'Connecter votre domaine avec un CNAME.' },
+              { key: 'help', label: "Besoin d'aide", desc: "Demander de l'aide pour choisir ou connecter un domaine." },
+            ].map((option) => {
+              const active = (ecommerceDraft.domain_mode || 'stockman') === option.key;
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  onPress={() => setEcommerceDraft((draft: any) => ({
+                    ...draft,
+                    domain_mode: option.key,
+                    custom_domain: option.key === 'stockman' ? '' : draft.custom_domain,
+                  }))}
+                  style={[
+                    styles.settingRow,
+                    active && { borderColor: colors.primary, backgroundColor: colors.primary + '12' },
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.settingLabel}>{option.label}</Text>
+                    <Text style={styles.settingDesc}>{option.desc}</Text>
+                  </View>
+                  <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? colors.primary : colors.textMuted} />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {(ecommerceDraft.domain_mode || 'stockman') === 'stockman' ? (
+            <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>Adresse actuelle : {ecommerceSite.site_url}</Text>
+          ) : null}
+          {ecommerceDraft.domain_mode === 'connect' ? (
+            <>
+              <TextInput
+                style={styles.input}
+                value={ecommerceDraft.custom_domain || ''}
+                onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, custom_domain: value }))}
+                placeholder="Domaine à connecter"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+              />
+              <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>
+                Créez un CNAME chez votre hébergeur DNS vers {ecommerceSite.domain_verification_target || 'shops.stockman.pro'}.
+              </Text>
+            </>
+          ) : null}
+          {ecommerceDraft.domain_mode === 'connect' && ecommerceDraft.custom_domain ? (
             <TouchableOpacity
               style={[styles.syncButton, { backgroundColor: colors.info + '15', borderColor: colors.info + '30', alignSelf: 'stretch', marginBottom: Spacing.md }]}
               onPress={verifyEcommerceDomain}
@@ -1301,6 +1370,26 @@ export default function SettingsScreen() {
                 {ecommerceSite.domain_status === 'verified' ? 'Domaine vérifié' : `Vérifier le domaine vers ${ecommerceSite.domain_verification_target || 'Stockman'}`}
               </Text>
             </TouchableOpacity>
+          ) : null}
+          {ecommerceDraft.domain_mode === 'help' ? (
+            <>
+              <TextInput
+                style={styles.input}
+                value={ecommerceDraft.domain_requested_name || ''}
+                onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, domain_requested_name: value }))}
+                placeholder="Domaine envisagé"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={ecommerceDraft.domain_request_notes || ''}
+                onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, domain_request_notes: value }))}
+                placeholder="Domaine déjà acheté, besoin de conseils, registrar utilisé ou question DNS"
+                placeholderTextColor={colors.textMuted}
+                multiline
+              />
+            </>
           ) : null}
           <TextInput
             style={[styles.input, styles.textArea]}
