@@ -1068,16 +1068,16 @@ async def create_indexes_and_init():
                 subject = "Dernier jour de votre essai Stockman gratuit"
                 body = f"""Bonjour {name or 'cher utilisateur'},<br><br>
 C'est votre <strong>dernier jour d'essai gratuit</strong> sur Stockman.<br>
-Pour continuer Ã  accÃ©der Ã  toutes vos donnÃ©es et fonctionnalitÃ©s, activez votre plan dÃ¨s maintenant.<br><br>
+Pour continuer à accéder à toutes vos données et fonctionnalités, activez votre plan dès maintenant.<br><br>
 <a href="{payment_url}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Activer mon plan</a><br><br>
-Ã€ bientÃ´t,<br>L'Ã©quipe Stockman"""
+À bientôt,<br>L'équipe Stockman"""
             else:
                 subject = f"Plus que {days_left} jours d'essai gratuit Stockman"
                 body = f"""Bonjour {name or 'cher utilisateur'},<br><br>
 Il vous reste <strong>{days_left} jours</strong> sur votre essai gratuit Stockman.<br>
-Anticipez dÃ¨s maintenant pour ne pas Ãªtre interrompu dans votre activitÃ©.<br><br>
+Anticipez dès maintenant pour ne pas être interrompu dans votre activité.<br><br>
 <a href="{payment_url}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Activer mon plan</a><br><br>
-Ã€ bientÃ´t,<br>L'Ã©quipe Stockman"""
+À bientôt,<br>L'équipe Stockman"""
 
             import httpx as _httpx
             try:
@@ -1141,20 +1141,19 @@ Anticipez dÃ¨s maintenant pour ne pas Ãªtre interrompu dans votre activitÃ�
             line_stripe = f"<a href=\"{email_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if email_stripe else ""
             line_flt = f"<a href=\"{email_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if email_flt else ""
             body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
-Votre abonnement <strong>{plan.title()}</strong> arrive Ã  expiration dans <strong>{days_left} jour(s)</strong>.<br>
-Vous pouvez rÃ©gulariser maintenant pour Ã©viter toute limitation dâ€™accÃ¨s.<br><br>
+Votre abonnement <strong>{plan.title()}</strong> arrive à expiration dans <strong>{days_left} jour(s)</strong>.<br>
+Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br><br>
 {line_stripe}<br><br>
 {line_flt if line_flt else ''}
 <br><br>
-Ã€ bientÃ´t,<br>Lâ€™Ã©quipe Stockman."""
-
+À bientôt,<br>L’équipe Stockman."""
             text_body = (
                 f"Bonjour {owner_doc.get('name') or 'cher utilisateur'},\n\n"
-                f"Votre abonnement {plan.title()} arrive Ã  expiration dans {days_left} jour(s).\n"
-                "Vous pouvez rÃ©gulariser maintenant pour Ã©viter toute limitation dâ€™accÃ¨s.\n\n"
+                f"Votre abonnement {plan.title()} arrive à expiration dans {days_left} jour(s).\n"
+                "Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.\n\n"
                 + (f"Payer par carte (Stripe): {email_stripe}\n" if email_stripe else "")
                 + (f"Payer par Mobile Money (Flutterwave): {email_flt}\n" if email_flt else "")
-                + "\nÃ€ bientÃ´t,\nLâ€™Ã©quipe Stockman."
+                + "\nÀ bientôt,\nL’équipe Stockman."
             )
             if recipients:
                 await notification_service.send_email_notification(
@@ -1169,8 +1168,8 @@ Vous pouvez rÃ©gulariser maintenant pour Ã©viter toute limitation dâ€™a
                 await notification_service.notify_user(
                     db,
                     owner_doc.get("user_id"),
-                    "Rappel dâ€™abonnement",
-                    f"Votre abonnement expire dans {days_left} jour(s). RÃ©gularisez pour continuer.",
+                    "Rappel d’abonnement",
+                    f"Votre abonnement expire dans {days_left} jour(s). Régularisez pour continuer.",
                     data={"url": reminder_url, "days_left": days_left, "plan": plan},
                 )
 
@@ -4370,9 +4369,9 @@ def choose_system_activation_target(
                 "milestone": "j1" if days_since_creation < 3 else "j3" if days_since_creation < 7 else "j7",
                 "deeplink": build_app_deeplink("subscription", {"source": "activation"}),
                 "email_subject": "Votre espace Stockman attend votre abonnement",
-                "push_title": "Votre espace est prÃªt",
-                "push_body": "Activez votre abonnement pour commencer Ã  travailler dans Stockman.",
-                "email_body": "Votre espace Stockman est prÃªt. Activez votre abonnement pour dÃ©bloquer les actions de gestion adaptÃ©es Ã  votre plan.",
+                "push_title": "Votre espace est prêt",
+                "push_body": "Activez votre abonnement pour commencer à travailler dans Stockman.",
+                "email_body": "Votre espace Stockman est prêt. Activez votre abonnement pour débloquer les actions de gestion adaptées à votre plan.",
                 "plan": plan,
                 "phase": account_phase,
             }
@@ -4384,10 +4383,10 @@ def choose_system_activation_target(
             "scenario": "add_first_products",
             "milestone": f"daily_d{days_since_creation}",
             "deeplink": build_app_deeplink("settings", {"source": "activation", "section": "support", "request": "product_setup"}),
-            "email_subject": "Besoin d'aide pour crÃ©er vos produits ?",
-            "push_title": "Besoin d'aide pour dÃ©marrer ?",
-            "push_body": "Demandez l'assistance Stockman : notre Ã©quipe peut vous aider Ã  crÃ©er vos premiers produits.",
-            "email_body": "Votre compte est pr\u00eat, mais aucun produit n'a encore \u00e9t\u00e9 cr\u00e9\u00e9. Demandez l'assistance Stockman depuis l'application pour \u00eatre accompagn\u00e9 dans la cr\u00e9ation de vos premiers produits.",
+            "email_subject": "Besoin d'aide pour créer vos produits ?",
+            "push_title": "Besoin d'aide pour démarrer ?",
+            "push_body": "Demandez l'assistance Stockman : notre équipe peut vous aider à créer vos premiers produits.",
+            "email_body": "Votre compte est prêt, mais aucun produit n'a encore été créé. Demandez l'assistance Stockman depuis l'application pour être accompagné dans la création de vos premiers produits.",
             "plan": plan,
             "phase": account_phase,
         }
@@ -4400,10 +4399,10 @@ def choose_system_activation_target(
                 "scenario": "first_sale",
                 "milestone": "j1" if days_since_product < 3 else "j3" if days_since_product < 7 else "j7",
                 "deeplink": build_app_deeplink("pos", {"source": "activation"}),
-                "email_subject": "Enregistrez votre premiÃ¨re vente dans Stockman",
-                "push_title": "PrÃªt pour la premiÃ¨re vente",
-                "push_body": "Vos produits sont lÃ . Passez en caisse pour enregistrer votre premiÃ¨re vente.",
-                "email_body": "Vos produits sont prÃªts. Enregistrez votre premiÃ¨re vente pour alimenter vos tableaux de bord et vos indicateurs.",
+                "email_subject": "Enregistrez votre première vente dans Stockman",
+                "push_title": "Prêt pour la première vente",
+                "push_body": "Vos produits sont là. Passez en caisse pour enregistrer votre première vente.",
+                "email_body": "Vos produits sont prêts. Enregistrez votre première vente pour alimenter vos tableaux de bord et vos indicateurs.",
                 "plan": plan,
                 "phase": account_phase,
             }
@@ -4417,10 +4416,10 @@ def choose_system_activation_target(
                 "scenario": "reactivation",
                 "milestone": "j7" if days_since_activity < 21 else "j21" if days_since_activity < 35 else "j35",
                 "deeplink": build_app_deeplink("dashboard", {"source": "reactivation"}),
-                "email_subject": "Vos chiffres Stockman mÃ©ritent une vÃ©rification",
+                "email_subject": "Vos chiffres Stockman méritent une vérification",
                 "push_title": "Un point rapide sur vos chiffres",
-                "push_body": "Ouvrez Stockman pour vÃ©rifier vos ventes, vos dÃ©penses et votre stock.",
-                "email_body": "Revenez quelques minutes dans Stockman pour vÃ©rifier vos ventes, vos dÃ©penses et l'Ã©tat de votre stock.",
+                "push_body": "Ouvrez Stockman pour vérifier vos ventes, vos dépenses et votre stock.",
+                "email_body": "Revenez quelques minutes dans Stockman pour vérifier vos ventes, vos dépenses et l'état de votre stock.",
                 "plan": plan,
                 "phase": account_phase,
             }
@@ -4569,8 +4568,8 @@ def build_activation_email_html(name: str, body: str, action_url: str) -> str:
     return f"""Bonjour {safe_name},<br><br>
 {body}<br><br>
 <a href="{action_url}" style="background:#0f172a;color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block;">Ouvrir dans Stockman</a><br><br>
-Si le bouton ne s'ouvre pas, lancez l'application Stockman depuis votre tÃ©lÃ©phone.<br><br>
-Ã€ bientÃ´t,<br>L'Ã©quipe Stockman."""
+Si le bouton ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone.<br><br>
+À bientôt,<br>L'équipe Stockman."""
 
 
 async def send_system_activation_email(user_doc: dict, account_doc: Optional[dict], target: Dict[str, Any], milestone_filter: dict, now: datetime) -> None:
@@ -4601,8 +4600,8 @@ async def send_system_activation_email(user_doc: dict, account_doc: Optional[dic
         f"Bonjour {name},\n\n"
         f"{target['email_body']}\n\n"
         f"Ouvrir dans Stockman : {action_url}\n\n"
-        "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre tÃ©lÃ©phone.\n\n"
-        "Ã€ bientÃ´t,\nL'Ã©quipe Stockman."
+        "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone.\n\n"
+        "À bientôt,\nL'équipe Stockman."
     )
     result = await notification_service.send_email_notification([email], target["email_subject"], html_body, text_body=text_body)
     status = "sent" if result else "failed"
@@ -4706,13 +4705,13 @@ async def send_demo_conversion_email(session_doc: dict, now: datetime) -> None:
         "email": email,
     })
     action_url = build_signed_app_open_link(deeplink, purpose="demo_conversion")
-    subject = "CrÃ©ez votre compte Stockman Ã  partir de votre dÃ©mo"
-    body = "Votre dÃ©mo est terminÃ©e. CrÃ©ez votre compte pour repartir sur un espace propre et continuer avec vos propres produits, clients et ventes."
+    subject = "Créez votre compte Stockman à partir de votre démo"
+    body = "Votre démo est terminée. Créez votre compte pour repartir sur un espace propre et continuer avec vos propres produits, clients et ventes."
     html_body = build_activation_email_html("cher utilisateur", body, action_url)
     text_body = (
         f"{body}\n\n"
         f"Ouvrir dans Stockman : {action_url}\n\n"
-        "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre tÃ©lÃ©phone."
+        "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone."
     )
     result = await notification_service.send_email_notification([email], subject, html_body, text_body=text_body)
     status = "sent" if result else "failed"
@@ -6465,20 +6464,19 @@ async def admin_send_subscription_reminder(
     line_stripe = f"<a href=\"{email_stripe}\" style=\"background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par carte (Stripe)</a>" if email_stripe else ""
     line_flt = f"<a href=\"{email_flt}\" style=\"background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;\">Payer par Mobile Money (Flutterwave)</a>" if email_flt else ""
     body = f"""Bonjour {owner_doc.get('name') or 'cher utilisateur'},<br><br>
-Votre abonnement <strong>{plan.title()}</strong> arrive Ã  expiration dans <strong>{days_left} jour(s)</strong>.<br>
-Vous pouvez rÃ©gulariser maintenant pour Ã©viter toute limitation dâ€™accÃ¨s.<br><br>
+Votre abonnement <strong>{plan.title()}</strong> arrive à expiration dans <strong>{days_left} jour(s)</strong>.<br>
+Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br><br>
 {line_stripe}<br><br>
 {line_flt if line_flt else ''}
 <br><br>
-Ã€ bientÃ´t,<br>Lâ€™Ã©quipe Stockman."""
-
+À bientôt,<br>L’équipe Stockman."""
     text_body = (
         f"Bonjour {owner_doc.get('name') or 'cher utilisateur'},\n\n"
-        f"Votre abonnement {plan.title()} arrive Ã  expiration dans {days_left} jour(s).\n"
-        "Vous pouvez rÃ©gulariser maintenant pour Ã©viter toute limitation dâ€™accÃ¨s.\n\n"
+        f"Votre abonnement {plan.title()} arrive à expiration dans {days_left} jour(s).\n"
+        "Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.\n\n"
         + (f"Payer par carte (Stripe): {email_stripe}\n" if email_stripe else "")
         + (f"Payer par Mobile Money (Flutterwave): {email_flt}\n" if email_flt else "")
-        + "\nÃ€ bientÃ´t,\nLâ€™Ã©quipe Stockman."
+        + "\nÀ bientôt,\nL’équipe Stockman."
     )
 
     if recipients:
@@ -6489,8 +6487,8 @@ Vous pouvez rÃ©gulariser maintenant pour Ã©viter toute limitation dâ€™a
         await notification_service.notify_user(
             db,
             owner_doc.get("user_id"),
-            "Rappel dâ€™abonnement",
-            f"Votre abonnement expire dans {days_left} jour(s). RÃ©gularisez pour continuer.",
+            "Rappel d’abonnement",
+            f"Votre abonnement expire dans {days_left} jour(s). Régularisez pour continuer.",
             data={"url": reminder_url, "days_left": days_left, "plan": plan},
         )
 
@@ -7452,7 +7450,7 @@ async def register_push_installation(data: PushInstallationRegistration, request
             {"user_id": user_id},
             {"$addToSet": {"push_tokens": data.token.strip()}}
         )
-    return {"message": "Installation push enregistrÃ©e"}
+    return {"message": "Installation push enregistrée"}
 
 @api_router.post("/notifications/register-token")
 async def register_push_token(data: PushTokenRegistration, user: User = Depends(require_auth)):
@@ -7469,7 +7467,7 @@ async def register_push_token(data: PushTokenRegistration, user: User = Depends(
             PushInstallationRegistration(**data.model_dump()),
             user.user_id,
         )
-    return {"message": "Jeton enregistrÃ© avec succÃ¨s"}
+    return {"message": "Jeton enregistré avec succès"}
 
 @api_router.post("/notifications/test-push")
 async def test_push_notification(user: User = Depends(require_auth)):
@@ -7520,12 +7518,12 @@ def build_support_email_html(title: str, body: str, ticket_id: str, subject: Opt
         <h2 style="margin:0 0 16px;font-size:24px;line-height:1.25;">{safe_title}</h2>
         <p style="margin:0 0 18px;font-size:15px;line-height:1.65;color:#334155;">{safe_body}</p>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-top:18px;">
-          <p style="margin:0;color:#64748b;font-size:12px;">RÃ©fÃ©rence du ticket</p>
+          <p style="margin:0;color:#64748b;font-size:12px;">Référence du ticket</p>
           <p style="margin:4px 0 0;font-weight:700;">{safe_ticket_id}</p>
           <p style="margin:12px 0 0;color:#64748b;font-size:12px;">Sujet</p>
           <p style="margin:4px 0 0;font-weight:700;">{safe_subject}</p>
         </div>
-        <p style="margin:22px 0 0;color:#64748b;font-size:13px;line-height:1.5;">Vous pouvez suivre ce ticket dans Stockman, rubrique RÃ©glages puis Support et incidents.</p>
+        <p style="margin:22px 0 0;color:#64748b;font-size:13px;line-height:1.5;">Vous pouvez suivre ce ticket dans Stockman, rubrique Réglages puis Support et incidents.</p>
       </div>
     </div>
     """
@@ -7541,7 +7539,7 @@ async def send_support_email(
     if not recipient_email:
         return
     email_subject = f"Stockman Support - {title}"
-    text_body = f"{title}\n\n{body}\n\nRÃ©fÃ©rence du ticket : {ticket_id}\nSujet : {subject or 'Support'}"
+    text_body = f"{title}\n\n{body}\n\nRéférence du ticket : {ticket_id}\nSujet : {subject or 'Support'}"
     await notification_service.send_email_notification(
         [str(recipient_email)],
         email_subject,
@@ -7559,7 +7557,7 @@ async def create_support_ticket(data: SupportTicketCreate, user: User = Depends(
         user_name=user.name,
         user_email=user.email,
         subject=data.subject,
-        type=data.type or ("Assistance Ã  distance" if request_type == "remote_assistance" else "Support"),
+        type=data.type or ("Assistance à distance" if request_type == "remote_assistance" else "Support"),
         priority=data.priority or ("high" if request_type == "remote_assistance" else "standard"),
         plan=data.plan or user.effective_plan or user.subscription_plan or user.plan,
         support_surface=data.support_surface,
@@ -7590,8 +7588,8 @@ async def create_support_ticket(data: SupportTicketCreate, user: User = Depends(
     try:
         await send_support_email(
             user.email,
-            "Votre demande a bien Ã©tÃ© reÃ§ue",
-            "Notre Ã©quipe a reÃ§u votre message. Un membre du support vous rÃ©pondra depuis votre ticket.",
+            "Votre demande a bien été reçue",
+            "Notre équipe a reçu votre message. Un membre du support vous répondra depuis votre ticket.",
             ticket.ticket_id,
             ticket.subject,
         )
@@ -7613,7 +7611,7 @@ async def user_reply_ticket(ticket_id: str, reply: SupportReply, user: User = De
     """Allow user to reply to their own ticket."""
     ticket = await db.support_tickets.find_one({"ticket_id": ticket_id, "user_id": user.user_id})
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Ticket non trouvé")
     msg = SupportMessage(sender_id=user.user_id, sender_name=user.name, content=reply.content)
     await db.support_tickets.update_one(
         {"ticket_id": ticket_id},
@@ -7631,7 +7629,7 @@ async def user_reply_ticket(ticket_id: str, reply: SupportReply, user: User = De
         if admin_tokens:
             await notification_service.send_push_notification(
                 list(set(admin_tokens)),
-                f"RÃ©ponse ticket: {ticket.get('subject', '')}",
+                f"Réponse ticket : {ticket.get('subject', '')}",
                 f"{user.name}: {reply.content[:100]}",
                 {"type": "support_ticket", "ticket_id": ticket_id}
             )
@@ -7640,8 +7638,8 @@ async def user_reply_ticket(ticket_id: str, reply: SupportReply, user: User = De
     try:
         await send_support_email(
             user.email,
-            "Votre rÃ©ponse a Ã©tÃ© ajoutÃ©e",
-            "Votre message a bien Ã©tÃ© ajoutÃ© au ticket. L'Ã©quipe Stockman en sera informÃ©e.",
+            "Votre réponse a été ajoutée",
+            "Votre message a bien été ajouté au ticket. L'équipe Stockman en sera informée.",
             ticket_id,
             ticket.get("subject"),
         )
@@ -8551,14 +8549,14 @@ async def admin_reply_ticket(ticket_id: str, reply: SupportReply, user: User = D
         if ticket_owner_id:
             await notification_service.notify_user(
                 db, ticket_owner_id,
-                f"RÃ©ponse Ã  votre ticket: {ticket_subject}",
+                f"Réponse à votre ticket : {ticket_subject}",
                 reply.content[:200],
                 {"type": "ticket_reply", "ticket_id": ticket_id}
             )
             owner_doc = await db.users.find_one({"user_id": ticket_owner_id}, {"email": 1})
             await send_support_email(
                 owner_doc.get("email") if owner_doc else result.get("user_email"),
-                "RÃ©ponse de l'Ã©quipe Stockman",
+                "Réponse de l'équipe Stockman",
                 reply.content,
                 ticket_id,
                 ticket_subject,
@@ -8585,9 +8583,9 @@ async def admin_start_remote_assistance(
         and "distance" in str(ticket.get("subject") or "").lower()
     )
     if not is_remote_request:
-        raise HTTPException(status_code=400, detail="Ce ticket n'est pas une demande d'assistance Ã  distance")
+        raise HTTPException(status_code=400, detail="Ce ticket n'est pas une demande d'assistance à distance")
     if ticket.get("status") == "closed":
-        raise HTTPException(status_code=400, detail="Ce ticket est dÃ©jÃ  clÃ´turÃ©")
+        raise HTTPException(status_code=400, detail="Ce ticket est déjà clôturé")
 
     target_user_id = ticket.get("user_id")
     target_doc = await db.users.find_one({"user_id": target_user_id}, {"_id": 0})
@@ -8639,7 +8637,7 @@ async def admin_start_remote_assistance(
         store_id=target_doc.get("active_store_id"),
         action="remote_assistance_started",
         module="support",
-        description="Session d'assistance Ã  distance ouverte par un administrateur",
+        description="Session d'assistance à distance ouverte par un administrateur",
         details={
             "ticket_id": ticket_id,
             "admin_user_id": admin.user_id,
@@ -8651,14 +8649,14 @@ async def admin_start_remote_assistance(
         await notification_service.notify_user(
             db,
             target_user_id,
-            "Assistance Stockman dÃ©marrÃ©e",
-            "Une session d'assistance Ã  distance a Ã©tÃ© ouverte sur votre demande.",
+            "Assistance Stockman démarrée",
+            "Une session d'assistance à distance a été ouverte sur votre demande.",
             {"type": "support_assistance_started", "ticket_id": ticket_id},
         )
         await send_support_email(
             target_doc.get("email") or ticket.get("user_email"),
-            "Assistance Ã  distance dÃ©marrÃ©e",
-            "Une session d'assistance Ã  distance a Ã©tÃ© ouverte par Stockman Support sur votre demande.",
+            "Assistance à distance démarrée",
+            "Une session d'assistance à distance a été ouverte par Stockman Support sur votre demande.",
             ticket_id,
             ticket.get("subject"),
         )
@@ -8676,32 +8674,32 @@ async def admin_close_ticket(ticket_id: str):
     """Close a support ticket"""
     ticket = await db.support_tickets.find_one({"ticket_id": ticket_id}, {"_id": 0})
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Ticket non trouvé")
     result = await db.support_tickets.update_one(
         {"ticket_id": ticket_id},
         {"$set": {"status": "closed", "updated_at": datetime.now(timezone.utc)}}
     )
     if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Ticket non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Ticket non trouvé")
     try:
         if ticket.get("user_id"):
             await notification_service.notify_user(
                 db,
                 ticket.get("user_id"),
-                "Ticket clÃ´turÃ©",
-                "Votre ticket Stockman Support a Ã©tÃ© clÃ´turÃ©.",
+                "Ticket clôturé",
+                "Votre ticket Stockman Support a été clôturé.",
                 {"type": "ticket_closed", "ticket_id": ticket_id},
             )
         await send_support_email(
             ticket.get("user_email"),
-            "Votre ticket a Ã©tÃ© clÃ´turÃ©",
-            "Votre demande est maintenant clÃ´turÃ©e. Si le problÃ¨me revient, vous pouvez crÃ©er un nouveau ticket depuis Stockman.",
+            "Votre ticket a été clôturé",
+            "Votre demande est maintenant clôturée. Si le problème revient, vous pouvez créer un nouveau ticket depuis Stockman.",
             ticket_id,
             ticket.get("subject"),
         )
     except Exception as e:
         logger.warning(f"Failed to notify user of ticket close: {e}")
-    return {"message": "Ticket fermÃ©"}
+    return {"message": "Ticket fermé"}
 
 @admin_router.get("/stats/detailed")
 async def admin_detailed_stats():
@@ -14759,7 +14757,7 @@ async def admin_reply_dispute(dispute_id: str, reply: SupportReply, user: User =
         {"$push": {"messages": msg.model_dump()}, "$set": {"updated_at": datetime.now(timezone.utc)}}
     )
     if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Litige non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Litige non trouvé")
     updated = await db.disputes.find_one({"dispute_id": dispute_id}, {"_id": 0})
 
     # Notify dispute reporter via push + email
@@ -14769,7 +14767,7 @@ async def admin_reply_dispute(dispute_id: str, reply: SupportReply, user: User =
         if reporter_id:
             await notification_service.notify_user(
                 db, reporter_id,
-                f"RÃ©ponse Ã  votre litige: {dispute_subject}",
+                f"Réponse à votre litige : {dispute_subject}",
                 reply.content[:200],
                 {"type": "dispute_reply", "dispute_id": dispute_id}
             )
@@ -14777,8 +14775,8 @@ async def admin_reply_dispute(dispute_id: str, reply: SupportReply, user: User =
             if reporter_email:
                 await notification_service.send_email_notification(
                     [reporter_email],
-                    f"Stockman â€” Litige: {dispute_subject}",
-                    f"<h3>RÃ©ponse de l'Ã©quipe Stockman</h3><p>{reply.content}</p><p style='color:#666;font-size:12px;'>Connectez-vous Ã  l'app pour rÃ©pondre.</p>"
+                    f"Stockman - Litige : {dispute_subject}",
+                    f"<h3>Réponse de l'équipe Stockman</h3><p>{reply.content}</p><p style='color:#666;font-size:12px;'>Connectez-vous à l'application pour répondre.</p>"
                 )
     except Exception as e:
         logger.warning(f"Failed to notify user of dispute reply: {e}")
@@ -14797,7 +14795,7 @@ async def admin_update_dispute_status(dispute_id: str, update: DisputeStatusUpda
         {"$set": update_fields}
     )
     if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Litige non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Litige non trouvé")
     return {"message": f"Litige mis Ã  jour: {update.status}"}
 
 @admin_router.get("/disputes/stats")
@@ -18193,7 +18191,7 @@ async def update_ecommerce_order_status(
     if not order:
         raise HTTPException(status_code=404, detail="Commande E-com introuvable")
     if order.get("status") in {"delivered", "cancelled", "rejected"}:
-        raise HTTPException(status_code=400, detail="Cette commande est dÃ©jÃ  clÃ´turÃ©e")
+        raise HTTPException(status_code=400, detail="Cette commande est déjà clôturée")
     account_doc = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0, "ecommerce_site_name": 1, "ecommerce_slug": 1, "currency": 1})
     if payload.status == "delivered":
         updated = await convert_ecommerce_order_to_sale(order, user)
