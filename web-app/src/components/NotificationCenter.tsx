@@ -82,6 +82,16 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
         const tab = tabByScreen[screen];
         if (!tab) return;
         if (!notif.is_read) void handleMarkRead(notif.message_id);
+        if (screen === 'orders' && notif.deeplink?.tab === 'web' && notif.deeplink?.order_id) {
+            window.sessionStorage.setItem('stockman_orders_open_tab', 'web');
+            window.sessionStorage.setItem('stockman_orders_open_ecom', String(notif.deeplink.order_id));
+        }
+        if (screen === 'crm' && notif.deeplink?.customer_id) {
+            window.sessionStorage.setItem('stockman_crm_customer_id', String(notif.deeplink.customer_id));
+            if (notif.deeplink?.tab) {
+                window.sessionStorage.setItem('stockman_crm_customer_tab', String(notif.deeplink.tab));
+            }
+        }
         if (screen === 'products' && notif.deeplink?.action === 'create') {
             window.sessionStorage.setItem('stockman_inventory_action', 'create');
         }

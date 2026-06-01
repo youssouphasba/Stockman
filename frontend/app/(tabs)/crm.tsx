@@ -86,6 +86,7 @@ const TIER_FILTERS = ['tous', 'bronze', 'argent', 'or', 'platine'] as const;
 type DetailTab = 'infos' | 'achats' | 'contact' | 'compte';
 type CategoryOption = 'particulier' | 'revendeur' | 'vip' | 'autre';
 type InsightFilter = 'all' | 'dormant' | 'debt';
+type SourceFilter = 'all' | 'physical' | 'ecommerce' | 'mixed';
 const CATEGORIES: { key: CategoryOption; labelKey: string }[] = [
     { key: 'particulier', labelKey: 'crm.category_private' },
     { key: 'revendeur', labelKey: 'crm.category_reseller' },
@@ -122,6 +123,7 @@ export default function CRMScreen() {
     const [sortBy, setSortBy] = useState<SortKey>('name');
     const [tierFilter, setTierFilter] = useState<string>('tous');
     const [insightFilter, setInsightFilter] = useState<InsightFilter>('all');
+    const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
 
     // Customer modal
     const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -293,6 +295,17 @@ export default function CRMScreen() {
     const onRefresh = () => {
         setRefreshing(true);
         loadData();
+    };
+
+    const getCustomerSourceMeta = (customer: Customer | null | undefined) => {
+        const source = (customer?.customer_source || 'physical') as SourceFilter;
+        if (source === 'ecommerce') {
+            return { label: 'E-com', color: colors.info };
+        }
+        if (source === 'mixed') {
+            return { label: 'Mixte', color: colors.warning };
+        }
+        return { label: 'Physique', color: colors.success };
     };
 
     const updateLoyaltySettings = async (updates: Partial<LoyaltySettings>) => {
@@ -837,11 +850,12 @@ export default function CRMScreen() {
         const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
             (c.phone && c.phone.includes(search));
         const matchTier = tierFilter === 'tous' || (c.tier || 'bronze') === tierFilter;
+        const matchSource = sourceFilter === 'all' || (c.customer_source || 'physical') === sourceFilter;
         const matchInsight =
             insightFilter === 'all' ||
             (insightFilter === 'dormant' && isDormantCustomer(c)) ||
             (insightFilter === 'debt' && (c.current_debt || 0) > 0);
-        return matchSearch && matchTier && matchInsight;
+        return matchSearch && matchTier && matchSource && matchInsight;
     });
 
     // Stats
@@ -1090,6 +1104,28 @@ export default function CRMScreen() {
                         </View>
                     </ScrollView>
 
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
+                        <View style={styles.sortRow}>
+                            {[
+                                { key: 'all' as const, label: 'Tous' },
+                                { key: 'physical' as const, label: 'Physiques' },
+                                { key: 'ecommerce' as const, label: 'E-com' },
+                                { key: 'mixed' as const, label: 'Mixtes' },
+                            ].map((option) => {
+                                const active = sourceFilter === option.key;
+                                return (
+                                    <TouchableOpacity
+                                        key={option.key}
+                                        style={[styles.tierChip, active && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                                        onPress={() => setSourceFilter(option.key)}
+                                    >
+                                        <Text style={[styles.tierChipText, active && { color: '#FFF' }]}>{option.label}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </ScrollView>
+
                     {/* Customers Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>{t('crm.customer_file', { count: filteredCustomers.length })}</Text>
@@ -1104,6 +1140,7 @@ export default function CRMScreen() {
                         )}
                         {filteredCustomers.map(customer => {
                             const tc = getTierConfig(customer.tier);
+                            const sourceMeta = getCustomerSourceMeta(customer);
                             return (
                                 <TouchableOpacity key={customer.customer_id} style={styles.customerCard} onPress={() => openCustomerDetail(customer)}>
                                     <View style={[styles.customerAvatar, { borderColor: tc.color, borderWidth: 2 }]}>
@@ -1115,6 +1152,9 @@ export default function CRMScreen() {
                                             <View style={[styles.tierBadge, { backgroundColor: tc.color + '25', borderColor: tc.color }]}>
                                                 <Ionicons name={tc.icon as any} size={10} color={tc.color} />
                                                 <Text style={[styles.tierBadgeText, { color: tc.color }]}>{t(tc.labelKey)}</Text>
+                                            </View>
+                                            <View style={[styles.tierBadge, { backgroundColor: sourceMeta.color + '18', borderColor: sourceMeta.color }]}>
+                                                <Text style={[styles.tierBadgeText, { color: sourceMeta.color }]}>{sourceMeta.label}</Text>
                                             </View>
                                             {(customer as any).offline_pending && (
                                                 <View style={[styles.tierBadge, { backgroundColor: colors.warning + '18', borderColor: colors.warning }]}>
@@ -1458,12 +1498,13 @@ export default function CRMScreen() {
                                                                                 {new Date(sale.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                                                                             </Text>
                                                                         </View>
-                                                                        <View style={[styles.paymentBadge, { backgroundColor: sale.payment_method === 'cash' ? colors.success + '20' : colors.info + '20' }]}>
-                                                                            <Text style={[styles.paymentBadgeText, { color: sale.payment_method === 'cash' ? colors.success : colors.info }]}>
-                                                                                {sale.payment_method === 'cash' ? t('common.cash') : sale.payment_method === 'mobile_money' ? t('common.mobile_money') : sale.payment_method}
+                                                                        <View style={[styles.paymentBadge, { backgroundColor: sale.source === 'ecommerce' ? colors.warning + '20' : sale.payment_method === 'cash' ? colors.success + '20' : colors.info + '20' }]}>
+                                                                            <Text style={[styles.paymentBadgeText, { color: sale.source === 'ecommerce' ? colors.warning : sale.payment_method === 'cash' ? colors.success : colors.info }]}>
+                                                                                {sale.source === 'ecommerce' ? `E-com · ${sale.status || 'pending'}` : sale.payment_method === 'cash' ? t('common.cash') : sale.payment_method === 'mobile_money' ? t('common.mobile_money') : sale.payment_method}
                                                                             </Text>
                                                                         </View>
                                                                     </View>
+                                                                    {sale.customer_address ? <Text style={styles.saleItemName}>{sale.customer_address}</Text> : null}
                                                                     {sale.items.map((item, i) => (
                                                                         <View key={i} style={styles.saleItemRow}>
                                                                             <Text style={styles.saleItemName} numberOfLines={1}>{item.product_name}</Text>
@@ -1698,6 +1739,17 @@ export default function CRMScreen() {
                                                             </View>
                                                         </TouchableOpacity>
                                                     )}
+                                                    {detailCustomer.notes ? (
+                                                        <View style={[styles.contactBtn, { alignItems: 'flex-start' }]}>
+                                                            <View style={[styles.contactIconCircle, { backgroundColor: colors.warning + '20' }]}>
+                                                                <Ionicons name="document-text-outline" size={22} color={colors.warning} />
+                                                            </View>
+                                                            <View style={styles.contactTextWrap}>
+                                                                <Text style={styles.contactBtnTitle}>Dernier message</Text>
+                                                                <Text style={styles.contactBtnSub}>{detailCustomer.notes}</Text>
+                                                            </View>
+                                                        </View>
+                                                    ) : null}
                                                 </View>
 
                                             )}

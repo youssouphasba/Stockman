@@ -182,6 +182,8 @@ export default function OrdersScreen() {
   const handledDeliveryProductRef = useRef<string | null>(null);
   const {
     order_id: orderIdParam,
+    tab: tabParam,
+    source: sourceParam,
     product_id: productIdParam,
     reminder_type: reminderTypeParam,
     delivery_order_id: deliveryOrderIdParam,
@@ -190,6 +192,8 @@ export default function OrdersScreen() {
     delivery_link_token: deliveryLinkTokenParam,
   } = useLocalSearchParams<{
     order_id?: string;
+    tab?: string;
+    source?: string;
     product_id?: string;
     reminder_type?: string;
     delivery_order_id?: string;
@@ -331,6 +335,19 @@ export default function OrdersScreen() {
     }
   }, []);
 
+  async function openWebOrderDetail(orderId: string) {
+    setActiveTab('web');
+    setShowWebOrderDetailModal(true);
+    setSelectedWebOrder(null);
+    try {
+      const order = await ecommerceApi.getOrder(orderId);
+      setSelectedWebOrder(order);
+    } catch {
+      Alert.alert(t('common.error'), 'Impossible d’ouvrir la commande E-com.');
+      setShowWebOrderDetailModal(false);
+    }
+  }
+
   const updateWebOrderStatus = async (orderId: string, status: string) => {
     try {
       await ecommerceApi.updateOrderStatus(orderId, status);
@@ -364,6 +381,8 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     const orderId = typeof orderIdParam === 'string' ? orderIdParam : undefined;
+    const tab = typeof tabParam === 'string' ? tabParam : undefined;
+    const source = typeof sourceParam === 'string' ? sourceParam : undefined;
     const productId = typeof productIdParam === 'string' ? productIdParam : undefined;
     const reminderType = typeof reminderTypeParam === 'string' ? reminderTypeParam : undefined;
 
@@ -373,13 +392,17 @@ export default function OrdersScreen() {
     if (handledReminderRef.current === reminderKey) return;
     handledReminderRef.current = reminderKey;
 
-    setActiveTab('orders');
-
     if (orderId) {
+      if (source === 'ecommerce' || tab === 'web') {
+        openWebOrderDetail(orderId);
+        return;
+      }
+      setActiveTab('orders');
       openDetailModal(orderId);
       return;
     }
 
+    setActiveTab('orders');
     if (productId && reminderType === 'replenishment') {
       setPreSelectedProductId(productId);
       setShowCreateModal(true);

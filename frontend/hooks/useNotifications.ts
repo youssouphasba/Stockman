@@ -72,7 +72,11 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
             }
             const orderId = data?.order_id || data?.orderId;
             if (orderId) {
-                const params: Record<string, string> = { order_id: String(orderId), source: 'notification' };
+                const params: Record<string, string> = {
+                    order_id: String(orderId),
+                    source: String(data?.source || 'notification'),
+                };
+                if (data?.tab) params.tab = String(data.tab);
                 if (data?.product_id) params.product_id = String(data.product_id);
                 if (data?.reminder_type) params.reminder_type = String(data.reminder_type);
                 router.push({ pathname: '/(tabs)/orders', params } as any);

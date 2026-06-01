@@ -85,6 +85,15 @@ export default function Orders() {
         }
     }, [activeTab]);
 
+    useEffect(() => {
+        const targetTab = window.sessionStorage.getItem('stockman_orders_open_tab');
+        if (targetTab === 'web') {
+            setActiveTab('web');
+            window.sessionStorage.removeItem('stockman_orders_open_tab');
+            window.sessionStorage.removeItem('stockman_orders_open_ecom');
+        }
+    }, []);
+
     const loadOrders = async () => {
         setLoading(true);
         try {

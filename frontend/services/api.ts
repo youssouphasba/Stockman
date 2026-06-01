@@ -2728,6 +2728,8 @@ export type Customer = {
   last_purchase_date?: string;
   average_basket?: number;
   tier?: 'bronze' | 'argent' | 'or' | 'platine';
+  customer_channels?: string[];
+  customer_source?: 'physical' | 'ecommerce' | 'mixed';
 };
 
 
@@ -2749,6 +2751,7 @@ export type SaleItem = {
 
 export type Sale = {
   sale_id: string;
+  order_number?: string;
   public_receipt_token?: string;
   user_id: string;
   store_id: string;
@@ -2757,8 +2760,11 @@ export type Sale = {
   payment_method: string;
   customer_id?: string;
   customer_name?: string;
+  customer_address?: string;
   created_at: string;
   status?: string;
+  source?: 'physical' | 'ecommerce';
+  notes?: string;
   cancelled_at?: string;
   cancellation_reason?: string;
 };

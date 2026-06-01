@@ -202,6 +202,7 @@ class NotificationService:
         html_body: str,
         text_body: Optional[str] = None,
         from_email: Optional[str] = None,
+        reply_to: Optional[str] = None,
     ):
         """
         Send an email notification via Resend.
@@ -226,6 +227,8 @@ class NotificationService:
         }
         if text_body:
             payload["text"] = text_body
+        if reply_to:
+            payload["reply_to"] = str(reply_to).strip()
 
         try:
             async with httpx.AsyncClient() as client:

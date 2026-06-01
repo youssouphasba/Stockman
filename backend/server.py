@@ -1607,6 +1607,29 @@ async def record_public_ecommerce_event(
     return {"status": "ok"}
 
 
+def _normalize_customer_channels(value: Any) -> Set[str]:
+    channels: Set[str] = set()
+    if isinstance(value, (list, tuple, set)):
+        raw_values = value
+    elif value:
+        raw_values = [value]
+    else:
+        raw_values = []
+    for raw in raw_values:
+        normalized = str(raw or "").strip().lower()
+        if normalized in {"physical", "ecommerce"}:
+            channels.add(normalized)
+    return channels
+
+
+def _derive_customer_source(channels: Set[str]) -> str:
+    if "physical" in channels and "ecommerce" in channels:
+        return "mixed"
+    if "ecommerce" in channels:
+        return "ecommerce"
+    return "physical"
+
+
 async def upsert_ecommerce_customer(
     owner_id: str,
     store_id: Optional[str],
@@ -1614,6 +1637,14 @@ async def upsert_ecommerce_customer(
     order_number: str,
     now: datetime,
 ) -> Optional[str]:
+    def build_order_note() -> str:
+        note_lines = [f"Commande E-com {order_number}"]
+        if payload.customer_address:
+            note_lines.append(f"Adresse : {payload.customer_address.strip()}")
+        if payload.notes:
+            note_lines.append(f"Note client : {payload.notes.strip()}")
+        return "\n".join(note_lines)
+
     name = payload.customer_name.strip()
     phone = (payload.customer_phone or "").strip() or None
     email = str(payload.customer_email).strip().lower() if payload.customer_email else None
@@ -1634,9 +1665,13 @@ async def upsert_ecommerce_customer(
             {"_id": 0},
         )
 
-    note = f"Commande e-commerce {order_number}"
-    if address:
-        note = f"{note} | Adresse : {address}"
+    note = build_order_note()
+
+    existing_channels = _normalize_customer_channels(existing.get("customer_channels") if existing else None)
+    if str((existing or {}).get("category") or "").strip().lower() in {"e-commerce", "ecommerce", "e-com"}:
+        existing_channels.add("ecommerce")
+    existing_channels.add("ecommerce")
+    customer_source = _derive_customer_source(existing_channels)
 
     if existing:
         updates: Dict[str, Any] = {"updated_at": now}
@@ -1646,13 +1681,13 @@ async def upsert_ecommerce_customer(
             updates["email"] = email
         if phone and not existing.get("phone"):
             updates["phone"] = phone
-        if not existing.get("category"):
-            updates["category"] = "E-commerce"
         if not existing.get("notes"):
             updates["notes"] = note
+        updates["customer_channels"] = sorted(existing_channels)
+        updates["customer_source"] = customer_source
         await db.customers.update_one(
             {"customer_id": existing["customer_id"], "user_id": owner_id},
-            {"$set": updates, "$push": {"note_history": {"content": note, "source": "ecommerce", "created_at": now}}},
+            {"$set": updates, "$push": {"note_history": {"entry_id": f"cn_{uuid.uuid4().hex[:12]}", "content": note, "source": "ecommerce", "created_at": now}}},
         )
         return existing.get("customer_id")
 
@@ -1663,19 +1698,30 @@ async def upsert_ecommerce_customer(
         phone=phone,
         email=email,
         notes=note,
-        note_history=[{"content": note, "source": "ecommerce", "created_at": now}],
-        category="E-commerce",
+        note_history=[{"entry_id": f"cn_{uuid.uuid4().hex[:12]}", "content": note, "source": "ecommerce", "created_at": now}],
+        customer_channels=["ecommerce"],
+        customer_source="ecommerce",
     )
     await db.customers.insert_one(customer.model_dump())
     return customer.customer_id
-
-
 async def upsert_ecommerce_contact_customer(
     owner_id: str,
     store_id: Optional[str],
     payload: PublicEcommerceContactCreate,
     now: datetime,
 ) -> Optional[str]:
+    def build_contact_note() -> str:
+        lines = [f"Demande de contact E-com | Sujet : {payload.subject.strip()}"]
+        if payload.company_name:
+            lines.append(f"Société : {payload.company_name.strip()}")
+        if payload.customer_email:
+            lines.append(f"E-mail : {str(payload.customer_email).strip().lower()}")
+        if payload.customer_phone:
+            lines.append(f"Téléphone : {payload.customer_phone.strip()}")
+        lines.append("Message :")
+        lines.append(payload.message.strip())
+        return "\n".join(lines)
+
     name = payload.customer_name.strip()
     phone = (payload.customer_phone or "").strip() or None
     email = str(payload.customer_email).strip().lower() if payload.customer_email else None
@@ -1696,9 +1742,13 @@ async def upsert_ecommerce_contact_customer(
             {"_id": 0},
         )
 
-    note = f"Demande de contact e-commerce | Sujet : {payload.subject.strip()}"
-    if company_name:
-        note = f"{note} | SociÃ©tÃ© : {company_name}"
+    note = build_contact_note()
+
+    existing_channels = _normalize_customer_channels(existing.get("customer_channels") if existing else None)
+    if str((existing or {}).get("category") or "").strip().lower() in {"e-commerce", "ecommerce", "e-com"}:
+        existing_channels.add("ecommerce")
+    existing_channels.add("ecommerce")
+    customer_source = _derive_customer_source(existing_channels)
 
     if existing:
         updates: Dict[str, Any] = {"updated_at": now}
@@ -1708,13 +1758,12 @@ async def upsert_ecommerce_contact_customer(
             updates["email"] = email
         if phone and not existing.get("phone"):
             updates["phone"] = phone
-        if not existing.get("category"):
-            updates["category"] = "E-commerce"
-        if not existing.get("notes"):
-            updates["notes"] = note
+        updates["notes"] = note
+        updates["customer_channels"] = sorted(existing_channels)
+        updates["customer_source"] = customer_source
         await db.customers.update_one(
             {"customer_id": existing["customer_id"], "user_id": owner_id},
-            {"$set": updates, "$push": {"note_history": {"content": note, "source": "ecommerce_contact", "created_at": now}}},
+            {"$set": updates, "$push": {"note_history": {"entry_id": f"cn_{uuid.uuid4().hex[:12]}", "content": note, "source": "ecommerce_contact", "created_at": now}}},
         )
         return existing.get("customer_id")
 
@@ -1725,8 +1774,9 @@ async def upsert_ecommerce_contact_customer(
         phone=phone,
         email=email,
         notes=note,
-        note_history=[{"content": note, "source": "ecommerce_contact", "created_at": now}],
-        category="E-commerce",
+        note_history=[{"entry_id": f"cn_{uuid.uuid4().hex[:12]}", "content": note, "source": "ecommerce_contact", "created_at": now}],
+        customer_channels=["ecommerce"],
+        customer_source="ecommerce",
     )
     await db.customers.insert_one(customer.model_dump())
     return customer.customer_id
@@ -1821,7 +1871,7 @@ async def create_public_ecommerce_order(
     await db.ecommerce_orders.insert_one(order_doc)
     title = "Nouvelle commande E-com"
     message = f"{payload.customer_name.strip()} a envoyé une commande de {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}."
-    notification_deeplink = build_notification_deeplink("orders", {"order_id": order_id, "source": "ecommerce"})
+    notification_deeplink = build_notification_deeplink("orders", {"order_id": order_id, "source": "ecommerce", "tab": "web"})
     try:
         await notification_service.notify_user(
             db,
@@ -1846,13 +1896,17 @@ async def create_public_ecommerce_order(
             "created_at": now,
             "read_by": [],
             "read_count": 0,
-            "metadata": {"order_id": order_id, "screen": "orders"},
+            "metadata": {"order_id": order_id, "screen": "orders", "tab": "web", "source": "ecommerce"},
             "deeplink": notification_deeplink,
         })
     except Exception as in_app_err:
         logger.warning(f"E-commerce order in-app notification failed: {in_app_err}")
     try:
         owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "email": 1, "name": 1})
+        def format_order_value(value: Any) -> str:
+            numeric = float(value or 0)
+            return str(int(numeric)) if numeric.is_integer() else f"{numeric:.2f}".rstrip("0").rstrip(".")
+
         notification_rule = {
             "recipient_keys": ["default", "crm"],
             "recipient_emails": [account_doc.get("ecommerce_contact_email")] if account_doc.get("ecommerce_contact_email") else [],
@@ -1862,21 +1916,64 @@ async def create_public_ecommerce_order(
         if owner_email and owner_email not in email_recipients:
             email_recipients.append(owner_email)
         if email_recipients:
-            order_url = f"{get_web_app_base_url()}/orders"
+            order_url = build_web_dashboard_hash_url("orders")
+            app_open_url = build_signed_app_open_link(str(notification_deeplink.get("url") or ""), purpose="ecommerce_order")
+            items_html = "".join(
+                f"<li>{html.escape(str(item.get('product_name') or 'Produit'))} x {format_order_value(item.get('quantity'))} - "
+                f"{format_order_value(item.get('total'))} {html.escape(str(order_doc.get('currency') or 'XOF'))}</li>"
+                for item in order_items
+            )
+            items_text = "\n".join(
+                f"- {item.get('product_name') or 'Produit'} x {format_order_value(item.get('quantity'))} - {format_order_value(item.get('total'))} {order_doc.get('currency') or 'XOF'}"
+                for item in order_items
+            )
             html_body = (
                 f"<p>Bonjour {(owner_doc or {}).get('name') or ''},</p>"
                 f"<p>Vous avez reçu la commande E-com <strong>{order_number}</strong> pour un total de "
                 f"<strong>{round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}</strong>.</p>"
                 f"<p>Client : {html.escape(payload.customer_name.strip())}</p>"
-                f"<p><a href=\"{order_url}\">Ouvrir les commandes dans Stockman</a></p>"
+                f"<ul>{items_html}</ul>"
+                f"<p><a href=\"{app_open_url}\">Ouvrir directement la commande dans l'application</a></p>"
+                f"<p><a href=\"{order_url}\">Ouvrir les commandes sur le web</a></p>"
             )
             text_body = (
                 f"Nouvelle commande E-com {order_number}\n"
                 f"Total : {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}\n"
                 f"Client : {payload.customer_name.strip()}\n"
-                f"Ouvrir les commandes : {order_url}"
+                f"{items_text}\n"
+                f"Ouvrir dans l'application : {app_open_url}\n"
+                f"Ouvrir sur le web : {order_url}"
             )
-            await notification_service.send_email_notification(email_recipients, title, html_body, text_body=text_body)
+            await notification_service.send_email_notification(
+                email_recipients,
+                title,
+                html_body,
+                text_body=text_body,
+                reply_to=str(payload.customer_email).strip().lower() if payload.customer_email else None,
+            )
+        customer_email = str(payload.customer_email).strip().lower() if payload.customer_email else ""
+        if customer_email:
+            store_name = (
+                account_doc.get("ecommerce_site_name")
+                or account_doc.get("ecommerce_site_display_name")
+                or ((store_doc or {}).get("name"))
+                or account_doc.get("ecommerce_slug")
+            )
+            customer_html = (
+                f"<p>Bonjour {html.escape(payload.customer_name.strip())},</p>"
+                f"<p>Votre commande <strong>{order_number}</strong> a bien été reçue par {html.escape(str(store_name or 'la boutique'))}.</p>"
+                f"<ul>{items_html}</ul>"
+                f"<p>Total : <strong>{round(total_amount, 2)} {html.escape(str(order_doc.get('currency') or 'XOF'))}</strong></p>"
+                f"<p>Nous vous contacterons dès qu'elle sera confirmée.</p>"
+            )
+            customer_text = (
+                f"Bonjour {payload.customer_name.strip()},\n"
+                f"Votre commande {order_number} a bien été reçue.\n"
+                f"{items_text}\n"
+                f"Total : {round(total_amount, 2)} {order_doc.get('currency') or 'XOF'}\n"
+                "Nous vous contacterons dès qu'elle sera confirmée."
+            )
+            await notification_service.send_email_notification([customer_email], f"Commande reçue {order_number}", customer_html, text_body=customer_text)
     except Exception as email_err:
         logger.warning(f"E-commerce order email notification failed: {email_err}")
     return PublicEcommerceOrderResponse(
@@ -1930,7 +2027,10 @@ async def create_public_ecommerce_contact_request(
 
     title = "Nouveau contact E-com"
     message = f"{payload.customer_name.strip()} a envoyé une demande de contact : {payload.subject.strip()}."
-    notification_deeplink = build_notification_deeplink("crm", {"request_id": request_id, "source": "ecommerce", "tab": "clients"})
+    notification_deeplink = build_notification_deeplink(
+        "crm",
+        {"request_id": request_id, "customer_id": customer_id, "source": "ecommerce", "tab": "contact"},
+    )
     try:
         await notification_service.notify_user(
             db,
@@ -1955,32 +2055,49 @@ async def create_public_ecommerce_contact_request(
             "created_at": now,
             "read_by": [],
             "read_count": 0,
-            "metadata": {"request_id": request_id, "screen": "crm"},
+            "metadata": {"request_id": request_id, "customer_id": customer_id, "screen": "crm", "tab": "contact", "message": payload.message.strip()},
             "deeplink": notification_deeplink,
         })
     except Exception as in_app_err:
         logger.warning(f"E-commerce contact in-app notification failed: {in_app_err}")
     try:
         owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "email": 1, "name": 1})
-        owner_email = (owner_doc or {}).get("email")
-        if owner_email:
-            crm_url = f"{get_web_app_base_url()}/crm"
+        notification_rule = {
+            "recipient_keys": ["default", "crm"],
+            "recipient_emails": [account_doc.get("ecommerce_contact_email")] if account_doc.get("ecommerce_contact_email") else [],
+        }
+        store_doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0}) if store_id else None
+        email_recipients = resolve_notification_recipients(account_doc, store_doc, notification_rule)
+        owner_email = ((owner_doc or {}).get("email") or "").strip().lower()
+        if owner_email and owner_email not in email_recipients:
+            email_recipients.append(owner_email)
+        if email_recipients:
+            crm_url = build_web_dashboard_hash_url("crm")
+            app_open_url = build_signed_app_open_link(str(notification_deeplink.get("url") or ""), purpose="ecommerce_contact")
             html_body = (
                 f"<p>Bonjour {(owner_doc or {}).get('name') or ''},</p>"
                 f"<p>Vous avez reçu une nouvelle demande de contact depuis votre site E-com.</p>"
                 f"<p><strong>Sujet :</strong> {html.escape(payload.subject.strip())}</p>"
                 f"<p><strong>Client :</strong> {html.escape(payload.customer_name.strip())}</p>"
                 f"<p><strong>Message :</strong><br>{html.escape(payload.message.strip()).replace(chr(10), '<br>')}</p>"
-                f"<p><a href=\"{crm_url}\">Ouvrir le CRM dans Stockman</a></p>"
+                f"<p><a href=\"{app_open_url}\">Ouvrir directement la fiche client dans l'application</a></p>"
+                f"<p><a href=\"{crm_url}\">Ouvrir le CRM sur le web</a></p>"
             )
             text_body = (
                 "Nouvelle demande de contact E-com\n"
                 f"Sujet : {payload.subject.strip()}\n"
                 f"Client : {payload.customer_name.strip()}\n"
                 f"Message : {payload.message.strip()}\n"
+                f"Ouvrir dans l'application : {app_open_url}\n"
                 f"Ouvrir le CRM : {crm_url}"
             )
-            await notification_service.send_email_notification([owner_email], title, html_body, text_body=text_body)
+            await notification_service.send_email_notification(
+                email_recipients,
+                title,
+                html_body,
+                text_body=text_body,
+                reply_to=str(payload.customer_email).strip().lower() if payload.customer_email else None,
+            )
     except Exception as email_err:
         logger.warning(f"E-commerce contact email notification failed: {email_err}")
 
@@ -3296,6 +3413,8 @@ class Customer(BaseModel):
     note_history: List[Dict[str, Any]] = Field(default_factory=list)
     birthday: Optional[str] = None
     category: Optional[str] = None
+    customer_channels: List[str] = Field(default_factory=list)
+    customer_source: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     # Computed fields
     visit_count: int = 0
@@ -4195,6 +4314,25 @@ def build_signed_app_open_link(deeplink: str, purpose: str = "activation") -> st
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return f"{get_api_public_base_url()}/api/open-app?t={quote(token, safe='')}"
+
+
+def build_web_dashboard_hash_url(tab: str) -> str:
+    normalized_tab = str(tab or "").strip() or "dashboard"
+    return f"{get_web_app_base_url()}/#{normalized_tab}"
+
+
+def get_ecommerce_order_status_label(status: Optional[str]) -> str:
+    mapping = {
+        "pending": "en attente",
+        "confirmed": "confirmée",
+        "preparing": "en préparation",
+        "ready": "prête",
+        "delivered": "livrée",
+        "cancelled": "annulée",
+        "rejected": "refusée",
+    }
+    normalized = str(status or "").strip().lower()
+    return mapping.get(normalized, normalized or "mise à jour")
 
 
 def permission_allows_write(permissions: Dict[str, str], module: str) -> bool:
@@ -18022,7 +18160,7 @@ async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> 
         current_amount=total_amount,
     )
     await db.sales.insert_one(sale.model_dump())
-    await _apply_sale_customer_effects(owner_id, order.get("customer_id"), customer_effects)
+    await _apply_sale_customer_effects(owner_id, order.get("customer_id"), customer_effects, customer_channel="ecommerce")
     await db.ecommerce_orders.update_one(
         {"order_id": order["order_id"], "user_id": owner_id},
         {"$set": {
@@ -18056,14 +18194,54 @@ async def update_ecommerce_order_status(
         raise HTTPException(status_code=404, detail="Commande E-com introuvable")
     if order.get("status") in {"delivered", "cancelled", "rejected"}:
         raise HTTPException(status_code=400, detail="Cette commande est dÃ©jÃ  clÃ´turÃ©e")
+    account_doc = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0, "ecommerce_site_name": 1, "ecommerce_slug": 1, "currency": 1})
     if payload.status == "delivered":
         updated = await convert_ecommerce_order_to_sale(order, user)
+        customer_email = str(updated.get("customer_email") or "").strip().lower()
+        if customer_email:
+            try:
+                store_name = account_doc.get("ecommerce_site_name") or account_doc.get("ecommerce_slug") or "la boutique"
+                await notification_service.send_email_notification(
+                    [customer_email],
+                    f"Commande livrée {updated.get('order_number') or updated.get('order_id')}",
+                    (
+                        f"<p>Bonjour {html.escape(str(updated.get('customer_name') or ''))},</p>"
+                        f"<p>Votre commande <strong>{html.escape(str(updated.get('order_number') or updated.get('order_id') or ''))}</strong> chez "
+                        f"{html.escape(str(store_name))} a été livrée.</p>"
+                    ),
+                    text_body=(
+                        f"Bonjour {updated.get('customer_name') or ''},\n"
+                        f"Votre commande {updated.get('order_number') or updated.get('order_id') or ''} a été livrée."
+                    ),
+                )
+            except Exception as email_err:
+                logger.warning(f"E-commerce delivered status email failed: {email_err}")
         return {"message": "Commande livrÃ©e et vente crÃ©Ã©e", "order": updated}
     await db.ecommerce_orders.update_one(
         {"order_id": order_id, "user_id": owner_id},
         {"$set": {"status": payload.status, "updated_at": datetime.now(timezone.utc)}},
     )
     updated = await db.ecommerce_orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
+    customer_email = str((updated or {}).get("customer_email") or "").strip().lower()
+    if customer_email:
+        try:
+            store_name = account_doc.get("ecommerce_site_name") or account_doc.get("ecommerce_slug") or "la boutique"
+            status_label = get_ecommerce_order_status_label(payload.status)
+            await notification_service.send_email_notification(
+                [customer_email],
+                f"Mise à jour de commande {updated.get('order_number') or order_id}",
+                (
+                    f"<p>Bonjour {html.escape(str(updated.get('customer_name') or ''))},</p>"
+                    f"<p>Votre commande <strong>{html.escape(str(updated.get('order_number') or order_id))}</strong> chez "
+                    f"{html.escape(str(store_name))} est maintenant <strong>{html.escape(status_label)}</strong>.</p>"
+                ),
+                text_body=(
+                    f"Bonjour {updated.get('customer_name') or ''},\n"
+                    f"Votre commande {updated.get('order_number') or order_id} est maintenant {status_label}."
+                ),
+            )
+        except Exception as email_err:
+            logger.warning(f"E-commerce status email failed: {email_err}")
     return {"message": "Statut mis Ã  jour", "order": updated}
 
 
@@ -20514,6 +20692,75 @@ def _classify_crm_segment(
     return "occasional"
 
 
+async def _get_customer_sales_and_ecommerce_stats(
+    owner_id: str,
+    customer_ids: List[str],
+    user: User,
+) -> Dict[str, Dict[str, Any]]:
+    if not customer_ids:
+        return {}
+
+    sales_pipeline = [
+        {"$match": apply_store_scope({"user_id": owner_id, "customer_id": {"$in": customer_ids}}, user)},
+        {"$group": {
+            "_id": "$customer_id",
+            "visit_count": {"$sum": 1},
+            "total_sales": {"$sum": "$total_amount"},
+            "last_purchase_date": {"$max": "$created_at"},
+        }},
+    ]
+    open_order_expression = {
+        "$or": [
+            {"$eq": ["$sale_id", None]},
+            {"$eq": ["$sale_id", ""]},
+        ]
+    }
+    ecommerce_pipeline = [
+        {"$match": apply_store_scope(
+            {
+                "user_id": owner_id,
+                "customer_id": {"$in": customer_ids},
+                "status": {"$nin": ["cancelled", "rejected"]},
+            },
+            user,
+        )},
+        {"$group": {
+            "_id": "$customer_id",
+            "order_count": {"$sum": 1},
+            "open_order_count": {"$sum": {"$cond": [open_order_expression, 1, 0]}},
+            "open_total_amount": {"$sum": {"$cond": [open_order_expression, "$total_amount", 0]}},
+            "last_order_date": {"$max": "$created_at"},
+        }},
+    ]
+
+    sales_stats = await db.sales.aggregate(sales_pipeline).to_list(1000)
+    ecommerce_stats = await db.ecommerce_orders.aggregate(ecommerce_pipeline).to_list(1000)
+    sales_map = {row["_id"]: row for row in sales_stats}
+    ecommerce_map = {row["_id"]: row for row in ecommerce_stats}
+
+    stats_by_customer: Dict[str, Dict[str, Any]] = {}
+    for customer_id in customer_ids:
+        sales = sales_map.get(customer_id, {})
+        ecommerce = ecommerce_map.get(customer_id, {})
+        physical_sale_count = int(sales.get("visit_count") or 0)
+        open_ecommerce_order_count = int(ecommerce.get("open_order_count") or 0)
+        last_sale_date = sales.get("last_purchase_date")
+        last_order_date = ecommerce.get("last_order_date")
+        last_purchase_date = max(
+            [value for value in [last_sale_date, last_order_date] if isinstance(value, datetime)],
+            default=last_sale_date or last_order_date,
+        )
+        stats_by_customer[customer_id] = {
+            "physical_sale_count": physical_sale_count,
+            "ecommerce_order_count": int(ecommerce.get("order_count") or 0),
+            "open_ecommerce_order_count": open_ecommerce_order_count,
+            "visit_count": physical_sale_count + open_ecommerce_order_count,
+            "total_spent": round(float(sales.get("total_sales") or 0) + float(ecommerce.get("open_total_amount") or 0), 2),
+            "last_purchase_date": last_purchase_date,
+        }
+    return stats_by_customer
+
+
 async def _build_crm_customer_rows(owner_id: str, start_date: datetime, end_date: datetime, store_id: Optional[str] = None) -> List[Dict[str, Any]]:
     now = datetime.now(timezone.utc)
     cust_query: dict = {"user_id": owner_id}
@@ -20669,32 +20916,30 @@ async def get_customers(
     cust_query = apply_store_scope_with_legacy({"user_id": owner_id}, user)
     total = await db.customers.count_documents(cust_query)
     customers_raw = await db.customers.find(cust_query).skip(skip).limit(limit).to_list(limit)
-
-    # Aggregate sales stats per customer in one query
     customer_ids = [c["customer_id"] for c in customers_raw if "customer_id" in c]
-    sales_pipeline = [
-        {"$match": apply_store_scope({"user_id": owner_id, "customer_id": {"$in": customer_ids}}, user)},
-        {"$group": {
-            "_id": "$customer_id",
-            "visit_count": {"$sum": 1},
-            "total_sales": {"$sum": "$total_amount"},
-            "last_purchase_date": {"$max": "$created_at"},
-        }}
-    ]
-    sales_stats = await db.sales.aggregate(sales_pipeline).to_list(1000)
-    stats_map = {s["_id"]: s for s in sales_stats}
+    stats_map = await _get_customer_sales_and_ecommerce_stats(owner_id, customer_ids, user)
 
     customers = []
     for c in customers_raw:
         c.pop("_id", None)
         cid = c.get("customer_id", "")
         st = stats_map.get(cid, {})
-        vc = st.get("visit_count", 0)
+        vc = int(st.get("visit_count") or 0)
         lp = st.get("last_purchase_date")
+        channels = _normalize_customer_channels(c.get("customer_channels"))
+        if str(c.get("category") or "").strip().lower() in {"e-commerce", "ecommerce", "e-com"}:
+            channels.add("ecommerce")
+        if int(st.get("physical_sale_count") or 0) > 0:
+            channels.add("physical")
+        if int(st.get("ecommerce_order_count") or 0) > 0:
+            channels.add("ecommerce")
         c["visit_count"] = vc
         c["last_purchase_date"] = str(lp) if lp else None
+        c["total_spent"] = float(st.get("total_spent") or c.get("total_spent") or 0)
         c["average_basket"] = round(c.get("total_spent", 0) / vc, 0) if vc > 0 else 0
         c["tier"] = _compute_tier(vc)
+        c["customer_channels"] = sorted(channels)
+        c["customer_source"] = _derive_customer_source(channels)
         customers.append(Customer(**c))
 
     # Sort
@@ -21002,18 +21247,65 @@ async def get_customer_sales(customer_id: str, user: User = Depends(require_perm
     sales = await db.sales.find(
         apply_store_scope({"customer_id": customer_id, "user_id": owner_id}, user), {"_id": 0}
     ).sort("created_at", -1).to_list(500)
+    ecommerce_orders = await db.ecommerce_orders.find(
+        apply_store_scope(
+            {
+                "customer_id": customer_id,
+                "user_id": owner_id,
+                "status": {"$nin": ["cancelled", "rejected"]},
+                "$or": [{"sale_id": {"$exists": False}}, {"sale_id": None}, {"sale_id": ""}],
+            },
+            user,
+        ),
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(500)
 
-    visit_count = len(sales)
-    total = sum(s.get("total_amount", 0) for s in sales)
-    last_date = sales[0].get("created_at") if sales else None
-
-    # Serialize datetimes to strings
     for s in sales:
         if isinstance(s.get("created_at"), datetime):
             s["created_at"] = s["created_at"].isoformat()
+        s["source"] = s.get("source") or "physical"
+
+    ecommerce_sales: List[Dict[str, Any]] = []
+    for order in ecommerce_orders:
+        created_at = order.get("created_at")
+        ecommerce_sales.append({
+            "sale_id": order.get("order_id"),
+            "order_number": order.get("order_number"),
+            "user_id": order.get("user_id"),
+            "store_id": order.get("store_id"),
+            "items": [
+                {
+                    "product_id": item.get("product_id"),
+                    "product_name": item.get("product_name"),
+                    "quantity": item.get("quantity"),
+                    "selling_price": float(item.get("unit_price") or 0),
+                    "total": float(item.get("total") or 0),
+                    "sold_unit": item.get("unit"),
+                }
+                for item in order.get("items") or []
+            ],
+            "total_amount": float(order.get("total_amount") or 0),
+            "payment_method": order.get("payment_method") or "ecommerce",
+            "customer_id": order.get("customer_id"),
+            "customer_name": order.get("customer_name"),
+            "customer_address": order.get("customer_address"),
+            "created_at": created_at.isoformat() if isinstance(created_at, datetime) else str(created_at or ""),
+            "status": order.get("status"),
+            "source": "ecommerce",
+            "notes": order.get("notes"),
+        })
+
+    combined_sales = sorted(
+        [*sales, *ecommerce_sales],
+        key=lambda row: parse_datetime_value(row.get("created_at")) or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
+    visit_count = len(combined_sales)
+    total = sum(float(s.get("total_amount") or 0) for s in combined_sales)
+    last_date = combined_sales[0].get("created_at") if combined_sales else None
 
     return {
-        "sales": sales,
+        "sales": combined_sales,
         "visit_count": visit_count,
         "average_basket": round(total / visit_count, 0) if visit_count else 0,
         "last_purchase_date": str(last_date) if last_date else None,
@@ -21053,14 +21345,25 @@ async def get_customer(customer_id: str, user: User = Depends(require_permission
     )
     ensure_scoped_document_access(user, cust, detail="Acces refuse pour ce client")
     cust.pop("_id", None)
-    # Compute stats
-    customer_sales_query = apply_completed_sales_scope(apply_store_scope({"customer_id": customer_id, "user_id": owner_id}, user))
-    sales_count = await db.sales.count_documents(customer_sales_query)
-    cust["visit_count"] = sales_count
-    cust["average_basket"] = round(cust.get("total_spent", 0) / sales_count, 0) if sales_count > 0 else 0
-    cust["tier"] = _compute_tier(sales_count)
-    last_sale = await db.sales.find_one(customer_sales_query, sort=[("created_at", -1)])
-    cust["last_purchase_date"] = str(last_sale["created_at"]) if last_sale else None
+    stats_map = await _get_customer_sales_and_ecommerce_stats(owner_id, [customer_id], user)
+    stats = stats_map.get(customer_id, {})
+    channels = _normalize_customer_channels(cust.get("customer_channels"))
+    if str(cust.get("category") or "").strip().lower() in {"e-commerce", "ecommerce", "e-com"}:
+        channels.add("ecommerce")
+    if int(stats.get("physical_sale_count") or 0) > 0:
+        channels.add("physical")
+    if int(stats.get("ecommerce_order_count") or 0) > 0:
+        channels.add("ecommerce")
+    visit_count = int(stats.get("visit_count") or 0)
+    total_spent = float(stats.get("total_spent") or cust.get("total_spent") or 0)
+    last_purchase_date = stats.get("last_purchase_date")
+    cust["visit_count"] = visit_count
+    cust["total_spent"] = total_spent
+    cust["average_basket"] = round(total_spent / visit_count, 0) if visit_count > 0 else 0
+    cust["tier"] = _compute_tier(visit_count)
+    cust["last_purchase_date"] = str(last_purchase_date) if last_purchase_date else None
+    cust["customer_channels"] = sorted(channels)
+    cust["customer_source"] = _derive_customer_source(channels)
     return Customer(**cust)
 
 @api_router.put("/customers/{customer_id}", response_model=Customer)
@@ -21342,6 +21645,7 @@ async def _apply_sale_customer_effects(
     customer_id: Optional[str],
     effects: Dict[str, Any],
     multiplier: int = 1,
+    customer_channel: str = "physical",
 ) -> None:
     if not customer_id:
         return
@@ -21359,11 +21663,26 @@ async def _apply_sale_customer_effects(
     if total_spent:
         inc_payload["total_spent"] = total_spent
 
+    existing = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id}, {"_id": 0, "customer_channels": 1, "customer_source": 1, "category": 1})
+    channels = _normalize_customer_channels((existing or {}).get("customer_channels"))
+    if str((existing or {}).get("category") or "").strip().lower() in {"e-commerce", "ecommerce", "e-com"}:
+        channels.add("ecommerce")
+    if customer_channel in {"physical", "ecommerce"}:
+        channels.add(customer_channel)
+
+    update_doc: Dict[str, Any] = {
+        "$set": {
+            "customer_channels": sorted(channels),
+            "customer_source": _derive_customer_source(channels),
+        }
+    }
     if inc_payload:
-        await db.customers.update_one(
-            {"customer_id": customer_id, "user_id": owner_id},
-            {"$inc": inc_payload},
-        )
+        update_doc["$inc"] = inc_payload
+
+    await db.customers.update_one(
+        {"customer_id": customer_id, "user_id": owner_id},
+        update_doc,
+    )
 
 
 def _normalize_tax_mode(tax_mode: Optional[str]) -> str:

@@ -97,7 +97,7 @@ export default function CRM({ user }: CRMProps) {
     const [isPromotionModalOpen, setIsPromotionModalOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
-    const [detailTab, setDetailTab] = useState<'info' | 'history' | 'purchases'>('info');
+    const [detailTab, setDetailTab] = useState<'info' | 'history' | 'purchases' | 'contact'>('info');
     // Vague 7: AI customer summary + message generator
     const [customerSummaryText, setCustomerSummaryText] = useState<string | null>(null);
     const [customerSummaryLoading, setCustomerSummaryLoading] = useState(false);
@@ -137,6 +137,7 @@ export default function CRM({ user }: CRMProps) {
     // Filter & Sort State
     const [filterCategory, setFilterCategory] = useState<string>('all');
     const [filterTier, setFilterTier] = useState<string>('all');
+    const [filterSource, setFilterSource] = useState<'all' | 'physical' | 'ecommerce' | 'mixed'>('all');
     const [sortBy, setSortBy] = useState<string>('name');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -190,6 +191,25 @@ export default function CRM({ user }: CRMProps) {
     useEffect(() => {
         loadCustomers();
     }, [sortBy]);
+
+    useEffect(() => {
+        const customerId = window.sessionStorage.getItem('stockman_crm_customer_id');
+        if (!customerId || customers.length === 0) return;
+        const customer = customers.find((item: any) => String(item.customer_id) === customerId);
+        if (!customer) return;
+        const targetTab = window.sessionStorage.getItem('stockman_crm_customer_tab');
+        window.sessionStorage.removeItem('stockman_crm_customer_id');
+        window.sessionStorage.removeItem('stockman_crm_customer_tab');
+        void handleOpenDetail(customer).then(() => {
+            if (targetTab === 'contact') {
+                setDetailTab('contact');
+            } else if (targetTab === 'purchases') {
+                setDetailTab('purchases');
+            } else if (targetTab === 'history') {
+                setDetailTab('history');
+            }
+        });
+    }, [customers]);
 
     useEffect(() => {
         if (!useCustomRange) {
@@ -470,8 +490,19 @@ export default function CRM({ user }: CRMProps) {
         const matchSearch = (c.name || '').toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search);
         const matchCategory = filterCategory === 'all' || (c.category || 'particulier') === filterCategory;
         const matchTier = filterTier === 'all' || getTier(c) === filterTier;
-        return matchSearch && matchCategory && matchTier;
+        const matchSource = filterSource === 'all' || (c.customer_source || 'physical') === filterSource;
+        return matchSearch && matchCategory && matchTier && matchSource;
     });
+
+    const getCustomerSourceMeta = (customer: any) => {
+        if (customer?.customer_source === 'ecommerce') {
+            return { label: 'E-com', style: 'border-cyan-500/20 bg-cyan-500/10 text-cyan-300' };
+        }
+        if (customer?.customer_source === 'mixed') {
+            return { label: 'Mixte', style: 'border-amber-500/20 bg-amber-500/10 text-amber-300' };
+        }
+        return { label: 'Physique', style: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' };
+    };
 
     const debtHistoryWithBalance = (() => {
         let runningBalance = Number(selectedCustomer?.current_debt || 0);
@@ -985,6 +1016,21 @@ export default function CRM({ user }: CRMProps) {
                     </button>
                 ))}
                 <div className="h-6 w-px bg-white/10 mx-1 self-center" />
+                {[
+                    { key: 'all', label: 'Tous' },
+                    { key: 'physical', label: 'Physiques' },
+                    { key: 'ecommerce', label: 'E-com' },
+                    { key: 'mixed', label: 'Mixtes' },
+                ].map(source => (
+                    <button
+                        key={source.key}
+                        onClick={() => setFilterSource(source.key as any)}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${filterSource === source.key ? 'bg-primary text-white border-primary' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white hover:border-primary/40'}`}
+                    >
+                        {source.label}
+                    </button>
+                ))}
+                <div className="h-6 w-px bg-white/10 mx-1 self-center" />
                 {/* Sort */}
                 {[
                     { key: 'name', label: 'A→Z' },
@@ -1081,6 +1127,7 @@ export default function CRM({ user }: CRMProps) {
                                     const tier = getTier(c);
                                     const tc = TIER_CONFIG[tier];
                                     const TierIcon = tc.icon;
+                                    const sourceMeta = getCustomerSourceMeta(c);
 
                                     return (
                                         <tr key={c.customer_id} className="hover:bg-white/5 transition-colors group">
@@ -1092,6 +1139,9 @@ export default function CRM({ user }: CRMProps) {
                                                     <div className="flex flex-col">
                                                         <span className="text-white font-bold flex items-center gap-2">
                                                             {c.name}
+                                                            <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] ${sourceMeta.style}`}>
+                                                                {sourceMeta.label}
+                                                            </span>
                                                             {c.offline_pending && (
                                                                 <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-300">
                                                                     Hors ligne
@@ -1530,21 +1580,40 @@ export default function CRM({ user }: CRMProps) {
                                 ) : (
                                     <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                                         {customerSales.map((sale: any, idx: number) => (
-                                            <div key={idx} className="bg-white/5 border border-white/5 p-4 rounded-2xl flex justify-between items-center hover:bg-white/10 transition-all">
-                                                <div className="flex items-center gap-3">
+                                            <div key={idx} className="bg-white/5 border border-white/5 p-4 rounded-2xl hover:bg-white/10 transition-all">
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex items-center gap-3">
                                                     <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                                                         <ShoppingBag size={16} />
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs font-bold text-white">
-                                                            #{(sale.sale_id || '').substring(0, 8).toUpperCase()}
+                                                        <p className="flex items-center gap-2 text-xs font-bold text-white">
+                                                            #{String(sale.order_number || sale.sale_id || '').substring(0, 8).toUpperCase()}
+                                                            {sale.source === 'ecommerce' && (
+                                                                <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-cyan-300">
+                                                                    E-com
+                                                                </span>
+                                                            )}
                                                         </p>
                                                         <p className="text-[10px] text-slate-500">{formatDate(sale.created_at)} · {(sale.items || []).length} article(s)</p>
+                                                        {sale.customer_address && (
+                                                            <p className="mt-1 text-[10px] text-slate-500">{sale.customer_address}</p>
+                                                        )}
+                                                    </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-sm font-black text-emerald-400">{formatCurrency(sale.total_amount || 0)}</p>
+                                                        <p className="text-[10px] text-slate-600 uppercase">{sale.source === 'ecommerce' ? sale.status || 'pending' : sale.payment_method || 'cash'}</p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-sm font-black text-emerald-400">{formatCurrency(sale.total_amount || 0)}</p>
-                                                    <p className="text-[10px] text-slate-600 uppercase">{sale.payment_method || 'cash'}</p>
+                                                <div className="mt-3 space-y-1 border-t border-white/5 pt-3">
+                                                    {(sale.items || []).map((item: any, itemIndex: number) => (
+                                                        <div key={`${sale.sale_id || idx}-${itemIndex}`} className="flex items-center justify-between gap-3 text-xs">
+                                                            <span className="text-slate-300">{item.product_name || 'Produit'}</span>
+                                                            <span className="text-slate-500">x {item.quantity}</span>
+                                                            <span className="font-bold text-white">{formatCurrency(item.total || 0)}</span>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         ))}
@@ -1675,6 +1744,13 @@ export default function CRM({ user }: CRMProps) {
                                 </div>
                             )}
                         </div>
+
+                        {detailTab === 'contact' && selectedCustomer?.notes && (
+                            <div className="glass-card p-5">
+                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-300">Dernier message</h4>
+                                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-300">{selectedCustomer.notes}</p>
+                            </div>
+                        )}
                     </div>
                 )}
             </Modal >
