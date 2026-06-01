@@ -379,8 +379,11 @@ export default function Sidebar({
 
     const openEcommerceSettings = () => {
         setEcommerceMenuOpen(false);
+        if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem('settings:target-section', 'ecommerce');
+        }
         handleTabClick('settings');
-        window.dispatchEvent(new Event('settings:open-ecommerce'));
+        window.setTimeout(() => window.dispatchEvent(new Event('settings:open-ecommerce')), 0);
     };
 
     const formatCurrency = (value: number, currency = 'XOF') => {

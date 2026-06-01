@@ -11,6 +11,7 @@
   Alert,
   Share,
   Image,
+  Linking,
   Platform,
   useWindowDimensions,
   LayoutAnimation,
@@ -336,6 +337,12 @@ export default function DashboardScreen() {
   }, []);
 
   const openNotificationDestination = useCallback((deeplink?: Record<string, string>) => {
+    const deeplinkUrl = String(deeplink?.url || '');
+    if (deeplinkUrl) {
+      setShowNotifModal(false);
+      Linking.openURL(deeplinkUrl).catch(() => null);
+      return;
+    }
     const screen = String(deeplink?.screen || '');
     if (!screen) return;
     const params: Record<string, string> = { source: 'in_app_message' };

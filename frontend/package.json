@@ -6,7 +6,13 @@
     "start": "expo start",
     "web": "expo start --web",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "export:android": "node scripts/run-expo-export.js android",
+    "export:ios": "node scripts/run-expo-export.js ios",
+    "export:web": "node scripts/run-expo-export.js web",
+    "update:android": "node scripts/run-eas-update.js android",
+    "update:ios": "node scripts/run-eas-update.js ios",
+    "update:all": "npm run update:android && npm run update:ios"
   },
   "dependencies": {
     "@expo/ngrok": "^4.1.3",

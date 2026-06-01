@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -74,6 +74,14 @@ const ECOMMERCE_COLOR_SWATCHES = [
   { label: 'Rose', value: '#DB2777' },
   { label: 'Orange', value: '#EA580C' },
   { label: 'Violet', value: '#7C3AED' },
+];
+
+type DomainRegistrarKey = 'cloudflare' | 'ovh' | 'godaddy';
+
+const DOMAIN_REGISTRAR_OPTIONS: Array<{ key: DomainRegistrarKey; label: string; hint: string }> = [
+  { key: 'cloudflare', label: 'Cloudflare', hint: 'DNS only, puis vérification dans Stockman.' },
+  { key: 'ovh', label: 'OVHcloud', hint: 'Zone DNS, suppression des anciens records, puis vérification.' },
+  { key: 'godaddy', label: 'GoDaddy', hint: 'Manage DNS, puis redirection du domaine racine vers www.' },
 ];
 
 type SettingsSectionKey =
@@ -273,6 +281,7 @@ export default function SettingsScreen() {
   const [storeAddress, setStoreAddress] = useState('');
   const [ecommerceSite, setEcommerceSite] = useState<any | null>(null);
   const [ecommerceDraft, setEcommerceDraft] = useState<any>({});
+  const [ecommerceRegistrar, setEcommerceRegistrar] = useState<DomainRegistrarKey>('cloudflare');
   const [ecommerceSaving, setEcommerceSaving] = useState(false);
   const [receiptName, setReceiptName] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('');
@@ -285,6 +294,38 @@ export default function SettingsScreen() {
   const [helpGuide, setHelpGuide] = useState<{ title: string; steps: any[] } | null>(null);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   // Sector state removed - sector is set at registration
+  const currentDomain = (ecommerceDraft.custom_domain || ecommerceSite?.custom_domain || '').trim();
+  const currentRootDomain = currentDomain.startsWith('www.') ? currentDomain.slice(4) : currentDomain;
+  const domainSetupChecklist = useMemo(() => {
+    const rootDomain = currentRootDomain || 'votredomaine.com';
+    const targetValue = ecommerceSite?.domain_record_value || ecommerceSite?.domain_verification_target || 'app.stockman.pro';
+    const commonTail = [
+      "Revenez ensuite dans Stockman pour lancer la vérification automatique.",
+      "Gardez l'adresse Stockman comme URL de secours tant que le statut n'est pas vérifié.",
+    ];
+    if (ecommerceRegistrar === 'cloudflare') {
+      return [
+        `Dans Cloudflare, ouvrez DNS puis supprimez tout ancien enregistrement sur www.${rootDomain}.`,
+        `Créez un ${ecommerceSite?.domain_record_type || 'CNAME'} pour ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
+        `Laissez le proxy désactivé pour ce record le temps de la connexion, puis redirigez ${rootDomain} vers https://www.${rootDomain}.`,
+        ...commonTail,
+      ];
+    }
+    if (ecommerceRegistrar === 'ovh') {
+      return [
+        `Dans OVHcloud, ouvrez la zone DNS et retirez les anciens A, AAAA ou CNAME sur www.${rootDomain}.`,
+        `Ajoutez un ${ecommerceSite?.domain_record_type || 'CNAME'} nommé ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
+        `Configurez ensuite une redirection 301 de ${rootDomain} vers https://www.${rootDomain}.`,
+        ...commonTail,
+      ];
+    }
+    return [
+      `Dans GoDaddy, ouvrez Manage DNS et retirez les anciens enregistrements sur www.${rootDomain}.`,
+      `Ajoutez un ${ecommerceSite?.domain_record_type || 'CNAME'} sur ${ecommerceSite?.domain_record_name || 'www'} avec la valeur ${targetValue}.`,
+      `Ajoutez ensuite une redirection du domaine racine ${rootDomain} vers https://www.${rootDomain}.`,
+      ...commonTail,
+    ];
+  }, [currentRootDomain, ecommerceRegistrar, ecommerceSite?.domain_record_name, ecommerceSite?.domain_record_type, ecommerceSite?.domain_record_value, ecommerceSite?.domain_verification_target]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -407,6 +448,9 @@ export default function SettingsScreen() {
         site_name: ecommerceResult?.site_name || '',
         welcome_message: ecommerceResult?.welcome_message || '',
         brand_color: ecommerceResult?.brand_color || '#2563EB',
+        contact_email: ecommerceResult?.contact_email || '',
+        contact_phone: ecommerceResult?.contact_phone || '',
+        contact_address: ecommerceResult?.contact_address || '',
         delivery_info: ecommerceResult?.delivery_info || '',
         whatsapp_phone: ecommerceResult?.whatsapp_phone || '',
         payment_instructions: ecommerceResult?.payment_instructions || '',
@@ -652,6 +696,9 @@ export default function SettingsScreen() {
         site_name: updated.site_name || '',
         welcome_message: updated.welcome_message || '',
         brand_color: updated.brand_color || '#2563EB',
+        contact_email: updated.contact_email || '',
+        contact_phone: updated.contact_phone || '',
+        contact_address: updated.contact_address || '',
         delivery_info: updated.delivery_info || '',
         whatsapp_phone: updated.whatsapp_phone || '',
         payment_instructions: updated.payment_instructions || '',
@@ -1274,6 +1321,30 @@ export default function SettingsScreen() {
             placeholderTextColor={colors.textMuted}
             multiline
           />
+          <TextInput
+            style={styles.input}
+            value={ecommerceDraft.contact_email || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_email: value }))}
+            placeholder="E-mail de contact"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <TextInput
+            style={styles.input}
+            value={ecommerceDraft.contact_phone || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_phone: value }))}
+            placeholder="Téléphone de contact"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="phone-pad"
+          />
+          <TextInput
+            style={styles.input}
+            value={ecommerceDraft.contact_address || ''}
+            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_address: value }))}
+            placeholder="Adresse de contact"
+            placeholderTextColor={colors.textMuted}
+          />
           <Text style={styles.settingLabel}>Couleur de marque</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Cette couleur pilote les boutons principaux, les badges, les filtres actifs et les accents visuels du site e-commerce.</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md }}>
@@ -1372,6 +1443,27 @@ export default function SettingsScreen() {
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
               />
+              <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
+                {DOMAIN_REGISTRAR_OPTIONS.map((provider) => {
+                  const active = ecommerceRegistrar === provider.key;
+                  return (
+                    <TouchableOpacity
+                      key={provider.key}
+                      onPress={() => setEcommerceRegistrar(provider.key)}
+                      style={[
+                        styles.settingRow,
+                        active && { borderColor: colors.primary, backgroundColor: colors.primary + '12' },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.settingLabel}>{provider.label}</Text>
+                        <Text style={styles.settingDesc}>{provider.hint}</Text>
+                      </View>
+                      <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? colors.primary : colors.textMuted} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
               <View style={[styles.card, { gap: Spacing.sm, marginBottom: Spacing.sm }]}>
                 <Text style={styles.sectionTitle}>Instructions détaillées</Text>
                 <Text style={styles.settingDesc}>Utilisez d’abord le sous-domaine www, puis redirigez le domaine racine vers cette adresse.</Text>
@@ -1400,6 +1492,17 @@ export default function SettingsScreen() {
                     <Text style={[styles.settingDesc, { flex: 1 }]}>{step}</Text>
                   </View>
                 ))}
+                <View style={{ gap: Spacing.sm, marginTop: Spacing.sm }}>
+                  <Text style={styles.sectionTitle}>Guide {DOMAIN_REGISTRAR_OPTIONS.find((provider) => provider.key === ecommerceRegistrar)?.label}</Text>
+                  {domainSetupChecklist.map((step, index) => (
+                    <View key={`${ecommerceRegistrar}-${index}`} style={{ flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' }}>
+                      <View style={[styles.badge, { backgroundColor: colors.info + '20' }]}>
+                        <Text style={{ color: colors.info, fontWeight: '700', fontSize: FontSize.xs }}>{index + 1}</Text>
+                      </View>
+                      <Text style={[styles.settingDesc, { flex: 1 }]}>{step}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
               <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>
                 Format recommande : www.votredomaine.com. Pointez www vers Stockman, puis redirigez votredomaine.com vers ce sous-domaine.
@@ -1446,6 +1549,9 @@ export default function SettingsScreen() {
             placeholderTextColor={colors.textMuted}
             multiline
           />
+          <Text style={[styles.settingDesc, { marginTop: Spacing.xs }]}>
+            Chaque formulaire public alimente le CRM, crée une notification dans Stockman et envoie un e-mail au contact E-com ainsi qu'aux groupes par défaut et CRM s'ils sont configurés.
+          </Text>
           <TouchableOpacity
             style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
             onPress={() => saveEcommerceSettings()}

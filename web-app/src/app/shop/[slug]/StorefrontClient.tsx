@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Grid2X2, Heart, Menu, Minus, Plus, Search, Send, ShoppingBag, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { Building2, Grid2X2, Heart, Mail, MapPin, Menu, MessageSquare, Minus, Phone, Plus, Search, Send, ShoppingBag, SlidersHorizontal, Trash2, X } from 'lucide-react';
 
 type PublicProduct = {
   product_id: string;
@@ -20,6 +20,7 @@ type PublicSite = {
   slug: string;
   store_id: string;
   name: string;
+  logo_url?: string | null;
   address?: string | null;
   phone?: string | null;
   email?: string | null;
@@ -92,6 +93,15 @@ export default function StorefrontClient({ slug }: { slug: string }) {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [viewTracked, setViewTracked] = useState(false);
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactCompany, setContactCompany] = useState('');
+  const [contactSubject, setContactSubject] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState<string | null>(null);
+  const [contactError, setContactError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,6 +173,12 @@ export default function StorefrontClient({ slug }: { slug: string }) {
   const brandSurface = withAlpha(brandColor, 0.14);
   const brandBorder = withAlpha(brandColor, 0.24);
   const isPreview = searchParams.get('preview') === '1';
+  const siteMark = (payload?.site.name || 'SM')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((chunk) => chunk.charAt(0).toUpperCase())
+    .join('');
   const whatsappLink = payload?.site.whatsapp_phone
     ? `https://wa.me/${payload.site.whatsapp_phone.replace(/[^\d]/g, '')}`
     : null;
@@ -263,6 +279,42 @@ export default function StorefrontClient({ slug }: { slug: string }) {
       setError(err?.message || "Impossible d'envoyer la commande.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const submitContactRequest = async () => {
+    if (!contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim()) return;
+    setContactSubmitting(true);
+    setContactSuccess(null);
+    setContactError(null);
+    try {
+      const response = await fetch(`/api/public/ecommerce/${slug}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: contactName.trim(),
+          customer_phone: contactPhone.trim() || null,
+          customer_email: contactEmail.trim() || null,
+          company_name: contactCompany.trim() || null,
+          subject: contactSubject.trim(),
+          message: contactMessage.trim(),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.detail || "Impossible d'envoyer votre demande.");
+      }
+      setContactSuccess('Votre message a bien été envoyé. La boutique vous répondra rapidement.');
+      setContactName('');
+      setContactPhone('');
+      setContactEmail('');
+      setContactCompany('');
+      setContactSubject('');
+      setContactMessage('');
+    } catch (err: any) {
+      setContactError(err?.message || "Impossible d'envoyer votre demande.");
+    } finally {
+      setContactSubmitting(false);
     }
   };
 
@@ -397,10 +449,23 @@ export default function StorefrontClient({ slug }: { slug: string }) {
           <button type="button" onClick={() => setMenuOpen(true)} className="rounded-full border border-slate-200 p-3 text-slate-950 lg:hidden" aria-label="Ouvrir le menu">
             <Menu className="h-6 w-6" />
           </button>
-          <div className="min-w-0 flex-1 px-4 lg:px-0">
-            <p className="truncate text-xl font-black tracking-tight text-slate-950">{payload?.site.name}</p>
+          <div className="min-w-0 flex flex-1 items-center gap-3 px-4 lg:px-0">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black text-white shadow-sm" style={{ backgroundColor: brandColor }}>
+              {payload?.site.logo_url ? (
+                <img src={payload.site.logo_url} alt={payload.site.name} className="h-full w-full object-cover" />
+              ) : (
+                siteMark || 'SM'
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xl font-black tracking-tight text-slate-950">{payload?.site.name}</p>
+              <div className="mt-1 hidden items-center gap-3 text-xs font-medium text-slate-500 lg:flex">
+                <a href="#contact" className="transition hover:text-slate-950">Contactez-nous</a>
+                {whatsappLink ? <a href={whatsappLink} target="_blank" rel="noreferrer" style={{ color: brandColor }}>WhatsApp</a> : null}
+              </div>
+            </div>
             {whatsappLink && (
-              <div className="mt-1 flex items-center gap-3 text-xs font-medium text-slate-500">
+              <div className="mt-1 flex items-center gap-3 text-xs font-medium text-slate-500 lg:hidden">
                 <a href={whatsappLink} target="_blank" rel="noreferrer" style={{ color: brandColor }}>WhatsApp</a>
               </div>
             )}
@@ -429,6 +494,16 @@ export default function StorefrontClient({ slug }: { slug: string }) {
               {payload?.site.hero_title || payload?.site.name}
             </h1>
             {payload?.site.welcome_message && <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{payload.site.welcome_message}</p>}
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <a href="#contact" className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white shadow-sm" style={{ backgroundColor: brandColor, boxShadow: `0 10px 24px ${withAlpha(brandColor, 0.22)}` }}>
+                Contactez-nous
+              </a>
+              {whatsappLink ? (
+                <a href={whatsappLink} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-xl border bg-white px-5 py-3 text-sm font-black text-slate-900 shadow-sm" style={{ borderColor: brandBorder }}>
+                  WhatsApp
+                </a>
+              ) : null}
+            </div>
           </div>
           <div className="rounded-2xl border bg-white p-4 shadow-sm" style={{ borderColor: brandBorder, boxShadow: `0 18px 40px ${withAlpha(brandColor, 0.08)}` }}>
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -597,6 +672,143 @@ export default function StorefrontClient({ slug }: { slug: string }) {
         {cartPanel}
       </div>
 
+      <section id="contact" className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+        <div className="rounded-[28px] border bg-white p-6 shadow-sm sm:p-8" style={{ borderColor: brandBorder, boxShadow: `0 18px 40px ${withAlpha(brandColor, 0.08)}` }}>
+          <div className="mb-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.24em]" style={{ color: brandColor }}>Contact</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Contactez-nous</h2>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+                Une question sur un produit, une disponibilité, une livraison ou une commande en préparation ? Envoyez votre message et la boutique vous répondra dans les meilleurs délais.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              {payload?.site.address ? (
+                <div className="rounded-2xl border bg-slate-50 p-4" style={{ borderColor: brandBorder }}>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="mt-0.5 h-5 w-5 shrink-0" style={{ color: brandColor }} />
+                    <div>
+                      <p className="text-sm font-black text-slate-950">Adresse</p>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">{payload.site.address}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              {payload?.site.email ? (
+                <div className="rounded-2xl border bg-slate-50 p-4" style={{ borderColor: brandBorder }}>
+                  <div className="flex items-start gap-3">
+                    <Mail className="mt-0.5 h-5 w-5 shrink-0" style={{ color: brandColor }} />
+                    <div>
+                      <p className="text-sm font-black text-slate-950">E-mail</p>
+                      <a href={`mailto:${payload.site.email}`} className="mt-1 block text-sm leading-6 text-slate-600 hover:text-slate-950">{payload.site.email}</a>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              {payload?.site.phone ? (
+                <div className="rounded-2xl border bg-slate-50 p-4" style={{ borderColor: brandBorder }}>
+                  <div className="flex items-start gap-3">
+                    <Phone className="mt-0.5 h-5 w-5 shrink-0" style={{ color: brandColor }} />
+                    <div>
+                      <p className="text-sm font-black text-slate-950">Téléphone</p>
+                      <a href={`tel:${payload.site.phone}`} className="mt-1 block text-sm leading-6 text-slate-600 hover:text-slate-950">{payload.site.phone}</a>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              {whatsappLink ? (
+                <div className="rounded-2xl border bg-slate-50 p-4" style={{ borderColor: brandBorder }}>
+                  <div className="flex items-start gap-3">
+                    <MessageSquare className="mt-0.5 h-5 w-5 shrink-0" style={{ color: brandColor }} />
+                    <div>
+                      <p className="text-sm font-black text-slate-950">WhatsApp</p>
+                      <a href={whatsappLink} target="_blank" rel="noreferrer" className="mt-1 inline-flex text-sm leading-6 hover:text-slate-950" style={{ color: brandColor }}>Discuter avec la boutique</a>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <input value={contactName} onChange={(event) => setContactName(event.target.value)} placeholder="Nom complet *" className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-slate-900" />
+                <input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} placeholder="Téléphone" type="tel" className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-slate-900" />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <input value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} placeholder="E-mail *" type="email" className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-slate-900" />
+                <input value={contactCompany} onChange={(event) => setContactCompany(event.target.value)} placeholder="Société" className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-slate-900" />
+              </div>
+              <input value={contactSubject} onChange={(event) => setContactSubject(event.target.value)} placeholder="Sujet *" className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-slate-900" />
+              <textarea value={contactMessage} onChange={(event) => setContactMessage(event.target.value)} placeholder="Votre message *" rows={6} className="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-slate-900" />
+
+              {contactSuccess ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                  {contactSuccess}
+                </div>
+              ) : null}
+              {contactError ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  {contactError}
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={submitContactRequest}
+                disabled={contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black text-white transition disabled:bg-slate-300"
+                style={{ backgroundColor: contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim() ? undefined : brandColor }}
+              >
+                <Send className="h-4 w-4" />
+                {contactSubmitting ? 'Envoi...' : 'Envoyer le message'}
+              </button>
+            </div>
+
+            <div className="rounded-3xl border bg-slate-50 p-5 sm:p-6" style={{ borderColor: brandBorder }}>
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-lg font-black text-white shadow-sm" style={{ backgroundColor: brandColor }}>
+                  {payload?.site.logo_url ? (
+                    <img src={payload.site.logo_url} alt={payload.site.name} className="h-full w-full object-cover" />
+                  ) : (
+                    siteMark || 'SM'
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Boutique</p>
+                  <h3 className="mt-1 text-2xl font-black text-slate-950">{payload?.site.name}</h3>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <div className="rounded-2xl bg-white p-4">
+                  <div className="flex items-start gap-3">
+                    <Building2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: brandColor }} />
+                    <div>
+                      <p className="text-sm font-black text-slate-950">Service client</p>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">Nous répondons aux questions sur les produits, la disponibilité, la livraison et les commandes envoyées via le site.</p>
+                    </div>
+                  </div>
+                </div>
+                {payload?.site.delivery_info ? (
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-sm font-black text-slate-950">Livraison</p>
+                    <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-600">{payload.site.delivery_info}</p>
+                  </div>
+                ) : null}
+                {payload?.site.payment_instructions ? (
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-sm font-black text-slate-950">Paiement</p>
+                    <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-600">{payload.site.payment_instructions}</p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {menuOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/40" onClick={() => setMenuOpen(false)}>
           <aside className="ml-auto flex h-full w-full max-w-sm flex-col overflow-y-auto bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
@@ -610,6 +822,13 @@ export default function StorefrontClient({ slug }: { slug: string }) {
               </button>
             </div>
             <div className="space-y-2">
+              <a
+                href="#contact"
+                onClick={() => setMenuOpen(false)}
+                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-black text-slate-700"
+              >
+                Contactez-nous
+              </a>
               <button
                 type="button"
                 onClick={() => {

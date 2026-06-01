@@ -5,9 +5,9 @@
     },
     "build": {
         "development": {
-            "developmentClient": true,
-            "distribution": "internal",
-            "node": "22.12.0",
+        "developmentClient": true,
+        "distribution": "internal",
+        "node": "20.19.4",
             "ios": {
                 "image": "latest"
             },
@@ -25,7 +25,7 @@
             }
         },
         "preview": {
-            "node": "22.12.0",
+            "node": "20.19.4",
             "distribution": "internal",
             "env": {
                 "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
@@ -51,7 +51,7 @@
         },
         "production": {
             "environment": "production",
-            "node": "22.12.0",
+            "node": "20.19.4",
             "ios": {
                 "image": "latest"
             },

@@ -91,6 +91,7 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Le domaine du site se règle dans un parcours dédié : garder le domaine Stockman, ou connecter de préférence `www.votredomaine.com` avec un CNAME puis rediriger `votredomaine.com` vers ce sous-domaine.
 - Tant que le domaine personnalisé n'est pas vérifié, Stockman continue d'ouvrir l'URL Stockman du site pour éviter d'envoyer le commerçant vers un ancien hébergement encore actif sur ce domaine.
 - Les réglages E-com affichent maintenant les consignes DNS utiles : type d'enregistrement, nom, valeur cible, suppression des anciens enregistrements, cas du sous-domaine et cas du domaine racine.
+- Un guide plus assisté aide le commerçant selon son fournisseur DNS habituel, avec des étapes concrètes pour Cloudflare, OVHcloud et GoDaddy avant la vérification finale.
 - Les couleurs du site se choisissent avec des pastilles visuelles dans les paramètres E-com, sans saisie obligatoire de code couleur.
 - Quand le client renseigne au moins une coordonnée utile, Stockman crée ou met à jour automatiquement sa fiche dans le CRM avec la source e-commerce.
 - Chaque compte commerçant dispose d'un site e-commerce public généré par Stockman avec un slug unique, par exemple `/shop/ma-boutique`.
@@ -100,6 +101,11 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Le clic sur une carte produit ouvre une fiche détaillée avec image agrandie, description, prix, stock, favori et ajout au panier.
 - Sur mobile, le panier s'ouvre dans un panneau dédié depuis l'en-tête au lieu d'apparaître en bas de page.
 - L'en-tête public reste sobre : il affiche le nom du site, le panier et le menu, sans exposer le numéro de téléphone du commerçant.
+- La vitrine affiche désormais une identité de boutique visible dès l'en-tête avec un monogramme de marque par défaut, même quand aucun logo image n'a encore été configuré.
+- Une section `Contactez-nous` complète a été ajoutée en bas de la vitrine, avec coordonnées, livraison, paiement et formulaire public de contact.
+- Les coordonnées publiques du site E-com sont maintenant configurables dans les paramètres : e-mail, téléphone et adresse de contact.
+- Chaque demande de contact E-com crée une trace dédiée, notifie le commerçant en in-app et en push, envoie un e-mail aux destinataires configurés, et peut enrichir le CRM si le visiteur laisse un e-mail ou un téléphone.
+- Les notifications E-com embarquent désormais une destination directe pour ouvrir la bonne section dans l'application, par exemple les commandes ou le CRM.
 - Le commerçant peut choisir d'afficher ou non les produits en rupture sur le site. S'ils sont affichés, ils restent visibles mais ne peuvent pas être commandés.
 - Le bouton E-com du web et du mobile ouvre maintenant un menu avec trois actions : voir le site, consulter les statistiques E-com et ouvrir les paramètres E-com.
 - Les statistiques E-com suivent les visites publiques hors aperçu commerçant, les ajouts au panier, les commandes, le chiffre d'affaires, la conversion, les produits visibles, les ruptures et les produits les plus ajoutés ou commandés.
@@ -411,10 +417,8 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 - L'aide IA doit rester factuelle : elle ne doit pas promettre une remise, un appel ou un résultat qui n'a pas été confirmé.
 
 ### Quelles notifications système reçoivent les installations sans compte ?
-- **J+1** : bienvenue et invitation à créer un compte pour gérer le stock, les ventes et les alertes.
-- **J+3** : rappel de création de l'espace de gestion et activation des alertes utiles.
-- **J+7** : aide au démarrage avec les produits, les ventes et le suivi du stock.
-- Le message **J+1** est répété au maximum une fois par jour tant que l'installation n'est pas passée à l'étape suivante.
+- Tant qu'aucun compte n'a été créé, l'installation reçoit un rappel quotidien pour créer son compte et commencer à gérer le stock, les ventes et les alertes.
+- Le rappel s'arrête dès que l'installation passe à l'étape suivante, c'est-à-dire dès qu'un compte est rattaché à l'appareil.
 - Les notifications sont envoyées uniquement si l'installation n'est pas encore rattachée à un compte.
 - Le texte est choisi selon la langue enregistrée ; à défaut, les pays francophones reçoivent le français et les autres pays reçoivent l'anglais.
 
