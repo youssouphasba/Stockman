@@ -350,9 +350,28 @@ function TabLayoutInner() {
         align="center"
       >
         <View style={{ gap: 14 }}>
-          <View>
-            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>Statistiques E-com</Text>
-            <Text style={{ color: colors.textMuted, marginTop: 4 }}>Données des 30 derniers jours, hors visites en mode aperçu.</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>Statistiques E-com</Text>
+              <Text style={{ color: colors.textMuted, marginTop: 4 }}>Données des 30 derniers jours, hors visites en mode aperçu.</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowEcommerceStats(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Fermer les statistiques E-com"
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.glass,
+              }}
+            >
+              <Ionicons name="close" size={20} color={colors.text} />
+            </TouchableOpacity>
           </View>
           {ecommerceStatsLoading ? (
             <Text style={{ color: colors.textMuted, textAlign: 'center', paddingVertical: 24 }}>Chargement des statistiques...</Text>
@@ -400,6 +419,21 @@ function TabLayoutInner() {
           ) : (
             <Text style={{ color: colors.danger, textAlign: 'center', paddingVertical: 24 }}>Impossible de charger les statistiques E-com.</Text>
           )}
+          <TouchableOpacity
+            onPress={() => setShowEcommerceStats(false)}
+            accessibilityRole="button"
+            style={{
+              marginTop: 4,
+              minHeight: 48,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.primary,
+              paddingHorizontal: 16,
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>Fermer</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAwareModal>
       <Tabs

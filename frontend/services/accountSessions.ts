@@ -5,6 +5,7 @@ import { User } from './api';
 
 const STORED_ACCOUNTS_KEY = 'stockman_saved_accounts_v1';
 const ACTIVE_ACCOUNT_ID_KEY = 'stockman_active_account_id_v1';
+const EXPLICIT_LOGOUT_KEY = 'stockman_explicit_logout_v1';
 
 export type StoredAccountSession = {
   user: User;
@@ -132,4 +133,16 @@ export async function setActiveStoredAccountId(userId: string): Promise<void> {
 
 export async function clearActiveStoredAccountId(): Promise<void> {
   await removeStoredValue(ACTIVE_ACCOUNT_ID_KEY);
+}
+
+export async function markExplicitLogout(): Promise<void> {
+  await setStoredValue(EXPLICIT_LOGOUT_KEY, '1');
+}
+
+export async function clearExplicitLogout(): Promise<void> {
+  await removeStoredValue(EXPLICIT_LOGOUT_KEY);
+}
+
+export async function hasExplicitLogoutMarker(): Promise<boolean> {
+  return (await getStoredValue(EXPLICIT_LOGOUT_KEY)) === '1';
 }

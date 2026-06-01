@@ -10,10 +10,13 @@ import { isRestaurantBusiness } from '../utils/business';
 import { getAccessContext, hasModulePermission } from '../utils/access';
 import { useTranslation } from 'react-i18next';
 import {
+  clearExplicitLogout,
   clearActiveStoredAccountId,
   getActiveStoredAccountId,
   getStoredAccountSession,
+  hasExplicitLogoutMarker,
   listStoredAccountSessions,
+  markExplicitLogout,
   removeStoredAccountSession,
   saveStoredAccountSession,
   setActiveStoredAccountId,
@@ -104,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!currentAccessToken) return;
     const currentRefreshToken = await getRefreshToken();
     const updatedAccounts = await saveStoredAccountSession(userData, currentAccessToken, currentRefreshToken);
+    await clearExplicitLogout();
     setStoredAccounts(updatedAccounts);
     setActiveAccountIdState(userData.user_id);
   }, []);
@@ -142,6 +146,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const rememberedAccounts = await listStoredAccountSessions();
     setStoredAccounts(rememberedAccounts);
+    const explicitLogout = await hasExplicitLogoutMarker();
+    if (explicitLogout) {
+      setUser(null);
+      setHasProduction(false);
+      setIsRestaurant(false);
+      setActiveAccountIdState(null);
+      return null;
+    }
 
     const preferredAccountId = await getActiveStoredAccountId();
     const orderedAccounts = [
@@ -376,8 +388,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsRestaurant(false);
     setActiveAccountIdState(null);
     setStoredAccounts(rememberedAccounts);
+    await markExplicitLogout();
     await clearActiveStoredAccountId();
     await removeToken();
+    await removeRefreshToken();
   }
 
   async function switchAccount(userId: string) {
