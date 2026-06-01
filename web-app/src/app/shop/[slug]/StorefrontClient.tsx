@@ -57,6 +57,20 @@ function formatAmount(value: number, currency: string) {
   }
 }
 
+function withAlpha(hex: string, alpha: number) {
+  const normalized = (hex || '').replace('#', '').trim();
+  const expanded = normalized.length === 3
+    ? normalized.split('').map((char) => `${char}${char}`).join('')
+    : normalized;
+  if (!/^[0-9a-fA-F]{6}$/.test(expanded)) {
+    return `rgba(4, 120, 87, ${alpha})`;
+  }
+  const red = Number.parseInt(expanded.slice(0, 2), 16);
+  const green = Number.parseInt(expanded.slice(2, 4), 16);
+  const blue = Number.parseInt(expanded.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
 export default function StorefrontClient({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
   const [payload, setPayload] = useState<SitePayload | null>(null);
@@ -145,6 +159,9 @@ export default function StorefrontClient({ slug }: { slug: string }) {
   const cartCount = cartLines.reduce((sum, line) => sum + line.quantity, 0);
   const currency = payload?.site.currency || 'XOF';
   const brandColor = payload?.site.brand_color || '#047857';
+  const brandSoft = withAlpha(brandColor, 0.10);
+  const brandSurface = withAlpha(brandColor, 0.14);
+  const brandBorder = withAlpha(brandColor, 0.24);
   const isPreview = searchParams.get('preview') === '1';
   const whatsappLink = payload?.site.whatsapp_phone
     ? `https://wa.me/${payload.site.whatsapp_phone.replace(/[^\d]/g, '')}`
@@ -375,17 +392,16 @@ export default function StorefrontClient({ slug }: { slug: string }) {
 
   return (
     <main className="min-h-screen bg-[#f8f8f5] text-slate-950">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur" style={{ borderColor: brandBorder }}>
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <button type="button" onClick={() => setMenuOpen(true)} className="rounded-full border border-slate-200 p-3 text-slate-950 lg:hidden" aria-label="Ouvrir le menu">
             <Menu className="h-6 w-6" />
           </button>
           <div className="min-w-0 flex-1 px-4 lg:px-0">
             <p className="truncate text-xl font-black tracking-tight text-slate-950">{payload?.site.name}</p>
-            {(payload?.site.phone || whatsappLink) && (
+            {whatsappLink && (
               <div className="mt-1 flex items-center gap-3 text-xs font-medium text-slate-500">
-                {payload?.site.phone && <span>{payload.site.phone}</span>}
-                {whatsappLink && <a href={whatsappLink} target="_blank" rel="noreferrer" style={{ color: brandColor }}>WhatsApp</a>}
+                <a href={whatsappLink} target="_blank" rel="noreferrer" style={{ color: brandColor }}>WhatsApp</a>
               </div>
             )}
           </div>
@@ -414,7 +430,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
             </h1>
             {payload?.site.welcome_message && <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{payload.site.welcome_message}</p>}
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border bg-white p-4 shadow-sm" style={{ borderColor: brandBorder, boxShadow: `0 18px 40px ${withAlpha(brandColor, 0.08)}` }}>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-xs font-bold uppercase text-slate-400">Catalogue</p>
@@ -510,6 +526,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                             toggleFavorite(product.product_id);
                           }}
                           className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-900 shadow-sm"
+                          style={isFavorite ? { backgroundColor: brandSoft, border: `1px solid ${brandBorder}` } : undefined}
                           aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                         >
                           <Heart className={`h-5 w-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
@@ -534,7 +551,8 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                             setCartOpen(true);
                           }}
                           disabled={!product.available}
-                          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-950 px-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400"
+                          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-black text-white transition disabled:bg-slate-200 disabled:text-slate-400"
+                          style={product.available ? { backgroundColor: brandColor, borderColor: brandColor, boxShadow: `0 10px 24px ${withAlpha(brandColor, 0.22)}` } : undefined}
                           aria-label={`Ajouter ${product.name}`}
                         >
                           <ShoppingBag className="h-4 w-4" />
@@ -552,18 +570,20 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                     type="button"
                     onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                     disabled={currentPage === 1}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm disabled:opacity-40"
+                    className="rounded-xl border bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm disabled:opacity-40"
+                    style={currentPage > 1 ? { borderColor: brandBorder } : undefined}
                   >
                     Précédent
                   </button>
-                  <span className="rounded-xl bg-white px-4 py-3 text-sm font-black text-slate-500 shadow-sm">
+                  <span className="rounded-xl border bg-white px-4 py-3 text-sm font-black text-slate-500 shadow-sm" style={{ borderColor: brandBorder }}>
                     Page {currentPage} / {totalPages}
                   </span>
                   <button
                     type="button"
                     onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
                     disabled={currentPage === totalPages}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm disabled:opacity-40"
+                    className="rounded-xl border bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm disabled:opacity-40"
+                    style={currentPage < totalPages ? { borderColor: brandBorder } : undefined}
                   >
                     Suivant
                   </button>
@@ -596,7 +616,8 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                   setCategory('all');
                   setMenuOpen(false);
                 }}
-                className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-black ${category === 'all' ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 text-slate-700'}`}
+                className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-black ${category === 'all' ? 'text-white' : 'border-slate-200 text-slate-700'}`}
+                style={category === 'all' ? { borderColor: brandColor, backgroundColor: brandColor } : undefined}
               >
                 Tous les produits
               </button>
@@ -608,7 +629,8 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                     setCategory(value);
                     setMenuOpen(false);
                   }}
-                  className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-black ${category === value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 text-slate-700'}`}
+                  className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-black ${category === value ? 'text-white' : 'border-slate-200 text-slate-700'}`}
+                  style={category === value ? { borderColor: brandColor, backgroundColor: brandColor } : undefined}
                 >
                   {value}
                 </button>
@@ -660,6 +682,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                   type="button"
                   onClick={() => toggleFavorite(selectedProduct.product_id)}
                   className="flex h-14 w-14 items-center justify-center rounded-xl border border-slate-200 text-slate-950"
+                  style={favorites.includes(selectedProduct.product_id) ? { backgroundColor: brandSurface, borderColor: brandBorder } : undefined}
                   aria-label={favorites.includes(selectedProduct.product_id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                 >
                   <Heart className={`h-5 w-5 ${favorites.includes(selectedProduct.product_id) ? 'fill-rose-500 text-rose-500' : ''}`} />

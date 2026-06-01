@@ -88,7 +88,9 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 
 ### Site e-commerce automatique
 - Le nom du site web est personnalisable dans les paramètres e-commerce et s'affiche dans l'en-tête de la vitrine publique.
-- Le domaine du site se règle dans un parcours dédié : garder le domaine Stockman, connecter un domaine déjà acheté par CNAME, ou demander de l'aide pour choisir et brancher un domaine externe.
+- Le domaine du site se règle dans un parcours dédié : garder le domaine Stockman, ou connecter de préférence `www.votredomaine.com` avec un CNAME puis rediriger `votredomaine.com` vers ce sous-domaine.
+- Tant que le domaine personnalisé n'est pas vérifié, Stockman continue d'ouvrir l'URL Stockman du site pour éviter d'envoyer le commerçant vers un ancien hébergement encore actif sur ce domaine.
+- Les réglages E-com affichent maintenant les consignes DNS utiles : type d'enregistrement, nom, valeur cible, suppression des anciens enregistrements, cas du sous-domaine et cas du domaine racine.
 - Les couleurs du site se choisissent avec des pastilles visuelles dans les paramètres E-com, sans saisie obligatoire de code couleur.
 - Quand le client renseigne au moins une coordonnée utile, Stockman crée ou met à jour automatiquement sa fiche dans le CRM avec la source e-commerce.
 - Chaque compte commerçant dispose d'un site e-commerce public généré par Stockman avec un slug unique, par exemple `/shop/ma-boutique`.
@@ -97,6 +99,7 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - La vitrine affiche jusqu'à 50 produits par page, avec pagination au-delà.
 - Le clic sur une carte produit ouvre une fiche détaillée avec image agrandie, description, prix, stock, favori et ajout au panier.
 - Sur mobile, le panier s'ouvre dans un panneau dédié depuis l'en-tête au lieu d'apparaître en bas de page.
+- L'en-tête public reste sobre : il affiche le nom du site, le panier et le menu, sans exposer le numéro de téléphone du commerçant.
 - Le commerçant peut choisir d'afficher ou non les produits en rupture sur le site. S'ils sont affichés, ils restent visibles mais ne peuvent pas être commandés.
 - Le bouton E-com du web et du mobile ouvre maintenant un menu avec trois actions : voir le site, consulter les statistiques E-com et ouvrir les paramètres E-com.
 - Les statistiques E-com suivent les visites publiques hors aperçu commerçant, les ajouts au panier, les commandes, le chiffre d'affaires, la conversion, les produits visibles, les ruptures et les produits les plus ajoutés ou commandés.

@@ -827,6 +827,8 @@ export const productsApi = products;
 export type EcommerceSite = {
   slug: string;
   site_url: string;
+  stockman_site_url?: string | null;
+  custom_domain_url?: string | null;
   enabled: boolean;
   currency?: string | null;
   store_id?: string | null;
@@ -838,6 +840,12 @@ export type EcommerceSite = {
   domain_status?: string | null;
   domain_verified_at?: string | null;
   domain_verification_target?: string | null;
+  domain_record_type?: string | null;
+  domain_record_name?: string | null;
+  domain_record_value?: string | null;
+  domain_dns_mode?: string | null;
+  domain_connection_steps?: string[];
+  domain_connection_warning?: string | null;
   hero_title?: string | null;
   site_name?: string | null;
   welcome_message?: string | null;

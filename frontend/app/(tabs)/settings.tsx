@@ -199,7 +199,7 @@ function SettingsAccordionSection({
         </View>
         <View style={styles.accordionCopy}>
           <Text style={styles.accordionTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78}>{title}</Text>
-          <Text style={styles.accordionDescription} numberOfLines={2} ellipsizeMode="tail">{description}</Text>
+          <Text style={styles.accordionDescription}>{description}</Text>
         </View>
         <Ionicons
           name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
@@ -1275,7 +1275,7 @@ export default function SettingsScreen() {
             multiline
           />
           <Text style={styles.settingLabel}>Couleur de marque</Text>
-          <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Choisissez une couleur visuelle pour les boutons et les accents du site.</Text>
+          <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Cette couleur pilote les boutons principaux, les badges, les filtres actifs et les accents visuels du site e-commerce.</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md }}>
             {ECOMMERCE_COLOR_SWATCHES.map((swatch) => {
               const active = (ecommerceDraft.brand_color || '#2563EB').toLowerCase() === swatch.value.toLowerCase();
@@ -1311,12 +1311,30 @@ export default function SettingsScreen() {
             keyboardType="phone-pad"
           />
           <Text style={styles.settingLabel}>Domaine du site</Text>
-          <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Le domaine Stockman reste disponible. Si vous possédez déjà un domaine, vous pouvez le connecter. Sinon, demandez de l'aide pour choisir un domaine auprès d'un fournisseur externe et le brancher.</Text>
+          <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Le domaine Stockman reste toujours disponible. Si vous possédez déjà un domaine, connectez de préférence www.votredomaine.com. Sinon, préparez ce projet avec un fournisseur externe avant la connexion.</Text>
+          <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricLabel}>Adresse Stockman</Text>
+              <Text style={styles.metricValue}>{ecommerceSite.stockman_site_url || ecommerceSite.site_url}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              <View style={[styles.metricCard, { flex: 1 }]}>
+                <Text style={styles.metricLabel}>Domaine personnalisé</Text>
+                <Text style={[styles.metricValue, { fontSize: FontSize.xs }]}>{ecommerceSite.custom_domain_url || 'Non connecté'}</Text>
+              </View>
+              <View style={[styles.metricCard, { flex: 1 }]}>
+                <Text style={styles.metricLabel}>Statut</Text>
+                <Text style={[styles.metricValue, { fontSize: FontSize.xs }]}>
+                  {ecommerceSite.domain_status === 'verified' ? 'Domaine vérifié' : ecommerceSite.custom_domain ? 'En attente' : 'Stockman actif'}
+                </Text>
+              </View>
+            </View>
+          </View>
           <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
             {[
-              { key: 'stockman', label: 'Domaine Stockman', desc: 'Garder l’adresse générée automatiquement.' },
-              { key: 'connect', label: 'J’ai déjà un domaine', desc: 'Connecter votre domaine avec un CNAME.' },
-              { key: 'help', label: "Besoin d'aide", desc: "Demander de l'aide pour choisir ou connecter un domaine." },
+              { key: 'stockman', label: 'Domaine Stockman', desc: 'Utiliser l’adresse Stockman prête à l’emploi.' },
+              { key: 'connect', label: 'J’ai déjà un domaine', desc: 'Connecter www.votredomaine.com avec les réglages DNS.' },
+              { key: 'help', label: "Besoin d'aide", desc: "Préparer un domaine externe avant la connexion." },
             ].map((option) => {
               const active = (ecommerceDraft.domain_mode || 'stockman') === option.key;
               return (
@@ -1350,12 +1368,41 @@ export default function SettingsScreen() {
                 style={styles.input}
                 value={ecommerceDraft.custom_domain || ''}
                 onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, custom_domain: value }))}
-                placeholder="Domaine à connecter"
+                placeholder="www.votredomaine.com"
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
               />
+              <View style={[styles.card, { gap: Spacing.sm, marginBottom: Spacing.sm }]}>
+                <Text style={styles.sectionTitle}>Instructions détaillées</Text>
+                <Text style={styles.settingDesc}>Utilisez d’abord le sous-domaine www, puis redirigez le domaine racine vers cette adresse.</Text>
+                <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                  <View style={[styles.metricCard, { flex: 1 }]}>
+                    <Text style={styles.metricLabel}>Type</Text>
+                    <Text style={styles.metricValue}>{ecommerceSite.domain_record_type || 'CNAME'}</Text>
+                  </View>
+                  <View style={[styles.metricCard, { flex: 1 }]}>
+                    <Text style={styles.metricLabel}>Nom</Text>
+                    <Text style={[styles.metricValue, { fontSize: FontSize.xs }]}>{ecommerceSite.domain_record_name || '@'}</Text>
+                  </View>
+                </View>
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>Valeur cible</Text>
+                  <Text style={[styles.metricValue, { fontSize: FontSize.xs }]}>{ecommerceSite.domain_record_value || ecommerceSite.domain_verification_target || 'app.stockman.pro'}</Text>
+                </View>
+                {ecommerceSite.domain_connection_warning ? (
+                  <Text style={[styles.settingDesc, { color: colors.warning }]}>{ecommerceSite.domain_connection_warning}</Text>
+                ) : null}
+                {ecommerceSite.domain_connection_steps?.map((step: string, index: number) => (
+                  <View key={`${index}-${step}`} style={{ flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' }}>
+                    <View style={[styles.badge, { backgroundColor: colors.primary + '20' }]}>
+                      <Text style={{ color: colors.primary, fontWeight: '700', fontSize: FontSize.xs }}>{index + 1}</Text>
+                    </View>
+                    <Text style={[styles.settingDesc, { flex: 1 }]}>{step}</Text>
+                  </View>
+                ))}
+              </View>
               <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>
-                Créez un CNAME chez votre hébergeur DNS vers {ecommerceSite.domain_verification_target || 'shops.stockman.pro'}.
+                Format recommande : www.votredomaine.com. Pointez www vers Stockman, puis redirigez votredomaine.com vers ce sous-domaine.
               </Text>
             </>
           ) : null}
@@ -2163,6 +2210,33 @@ const getStyles = (colors: any, glassStyle: any, compact: boolean) => StyleSheet
     height: 1,
     backgroundColor: colors.divider,
     marginVertical: Spacing.md,
+  },
+  metricCard: {
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: BorderRadius.md,
+    backgroundColor: colors.bgDark + '35',
+    padding: Spacing.sm,
+  },
+  metricLabel: {
+    fontSize: FontSize.xs,
+    color: colors.textMuted,
+    fontWeight: '700',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  metricValue: {
+    fontSize: FontSize.sm,
+    color: colors.text,
+    fontWeight: '700',
+  },
+  badge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
   },
   userSection: {
     flexDirection: 'row',

@@ -1360,6 +1360,8 @@ class StoreUpdate(BaseModel):
 class EcommerceSiteInfo(BaseModel):
     slug: str
     site_url: str
+    stockman_site_url: Optional[str] = None
+    custom_domain_url: Optional[str] = None
     enabled: bool = False
     currency: Optional[str] = None
     store_id: Optional[str] = None
@@ -1371,6 +1373,12 @@ class EcommerceSiteInfo(BaseModel):
     domain_status: str = "not_configured"
     domain_verified_at: Optional[datetime] = None
     domain_verification_target: Optional[str] = None
+    domain_record_type: Optional[str] = None
+    domain_record_name: Optional[str] = None
+    domain_record_value: Optional[str] = None
+    domain_dns_mode: Optional[str] = None
+    domain_connection_steps: List[str] = Field(default_factory=list)
+    domain_connection_warning: Optional[str] = None
     hero_title: Optional[str] = None
     site_name: Optional[str] = None
     welcome_message: Optional[str] = None
@@ -1515,93 +1523,20 @@ async def get_public_receipt(public_token: str):
         receipt_footer=receipt_footer
     )
 
+@app.get("/api/public/ecommerce/by-domain")
+async def get_public_ecommerce_site_by_domain(
+    request: Request,
+    domain: Optional[str] = Query(None, max_length=255),
+):
+    requested_domain = domain or get_normalized_request_host(request)
+    account_doc = await get_public_ecommerce_account_by_domain(requested_domain)
+    return await build_public_ecommerce_payload(account_doc)
+
 
 @app.get("/api/public/ecommerce/{slug}")
 async def get_public_ecommerce_site(slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$")):
-    account_doc = await db.business_accounts.find_one(
-        {"ecommerce_slug": slug, "ecommerce_enabled": True},
-        {"_id": 0},
-    )
-    if not account_doc:
-        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
-
-    owner_id = account_doc.get("owner_user_id")
-    store_id = account_doc.get("ecommerce_default_store_id")
-    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "name": 1, "phone": 1, "email": 1, "currency": 1})
-    store_doc = None
-    if store_id:
-        store_doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0})
-    if not store_doc:
-        store_doc = await db.stores.find_one({"user_id": owner_id}, {"_id": 0})
-        store_id = (store_doc or {}).get("store_id")
-    if not owner_doc or not store_doc:
-        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
-
-    products_query = {
-        "user_id": owner_id,
-        "store_id": store_id,
-        "is_active": {"$ne": False},
-        "selling_price": {"$gt": 0},
-    }
-    if not account_doc.get("ecommerce_show_out_of_stock_products"):
-        products_query["quantity"] = {"$gt": 0}
-    products = await db.products.find(
-        products_query,
-        {
-            "_id": 0,
-            "product_id": 1,
-            "name": 1,
-            "description": 1,
-            "selling_price": 1,
-            "quantity": 1,
-            "unit": 1,
-            "image": 1,
-            "category_id": 1,
-        },
-    ).sort("name", 1).limit(2000).to_list(2000)
-    category_ids = [product.get("category_id") for product in products if product.get("category_id")]
-    categories = {}
-    if category_ids:
-        category_docs = await db.categories.find(
-            {"category_id": {"$in": category_ids}, "user_id": owner_id},
-            {"_id": 0, "category_id": 1, "name": 1},
-        ).to_list(len(category_ids))
-        categories = {category.get("category_id"): category.get("name") for category in category_docs}
-
-    public_products = []
-    for product in products:
-        public_products.append({
-            "product_id": product.get("product_id"),
-            "name": product.get("name"),
-            "description": product.get("description"),
-            "selling_price": float(product.get("selling_price") or 0),
-            "quantity": float(product.get("quantity") or 0),
-            "unit": product.get("unit") or "pièce",
-            "image": product.get("image"),
-            "category": categories.get(product.get("category_id")),
-            "available": float(product.get("quantity") or 0) > 0,
-        })
-
-    return {
-        "site": {
-            "slug": slug,
-            "store_id": store_id,
-            "name": account_doc.get("ecommerce_site_name") or store_doc.get("receipt_business_name") or store_doc.get("name") or owner_doc.get("name"),
-            "address": store_doc.get("address"),
-            "phone": owner_doc.get("phone"),
-            "email": owner_doc.get("email"),
-            "currency": store_doc.get("currency") or owner_doc.get("currency") or account_doc.get("currency") or "XOF",
-            "hero_title": account_doc.get("ecommerce_hero_title"),
-            "site_name": account_doc.get("ecommerce_site_name"),
-            "welcome_message": account_doc.get("ecommerce_welcome_message"),
-            "brand_color": account_doc.get("ecommerce_brand_color"),
-            "delivery_info": account_doc.get("ecommerce_delivery_info"),
-            "whatsapp_phone": account_doc.get("ecommerce_whatsapp_phone"),
-            "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
-            "show_out_of_stock_products": bool(account_doc.get("ecommerce_show_out_of_stock_products") is True),
-        },
-        "products": public_products,
-    }
+    account_doc = await get_public_ecommerce_account_by_slug(slug)
+    return await build_public_ecommerce_payload(account_doc)
 
 
 @app.post("/api/public/ecommerce/{slug}/events")
@@ -3527,8 +3462,6 @@ def normalize_ecommerce_domain(value: Optional[str]) -> Optional[str]:
         raw = f"https://{raw}"
     parsed = urlparse(raw)
     domain = (parsed.netloc or parsed.path).split("/")[0].split(":")[0].strip(".")
-    if domain.startswith("www."):
-        domain = domain[4:]
     if not domain or len(domain) > 253:
         raise HTTPException(status_code=400, detail="Nom de domaine invalide")
     if not re.fullmatch(r"(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}", domain):
@@ -3545,20 +3478,133 @@ def normalize_ecommerce_color(value: Optional[str]) -> Optional[str]:
     return raw.upper()
 
 
+def is_preferred_ecommerce_connect_domain(domain: Optional[str]) -> bool:
+    normalized_domain = (domain or "").strip().lower()
+    return bool(normalized_domain) and normalized_domain.startswith("www.") and len(normalized_domain.split(".")) >= 3
+
+
 def get_ecommerce_domain_target() -> str:
     parsed = urlparse(get_web_app_base_url())
     return parsed.netloc or parsed.path.replace("https://", "").replace("http://", "").split("/")[0]
 
 
+def get_normalized_request_host(request: Optional[Request]) -> Optional[str]:
+    if not request:
+        return None
+    forwarded_host = (request.headers.get("x-forwarded-host") or "").strip()
+    raw_host = forwarded_host or (request.headers.get("host") or "").strip()
+    if not raw_host:
+        return None
+    host = raw_host.split(",")[0].strip().split(":")[0].strip().lower().strip(".")
+    return host or None
+
+
+def is_primary_stockman_host(host: Optional[str]) -> bool:
+    normalized_host = (host or "").strip().lower().strip(".")
+    if not normalized_host:
+        return False
+    primary_target = get_ecommerce_domain_target().lower().strip(".")
+    reserved_hosts = {
+        "stockman.pro",
+        "app.stockman.pro",
+        "www.stockman.pro",
+        primary_target,
+        "localhost",
+        "127.0.0.1",
+    }
+    return normalized_host in reserved_hosts or normalized_host.endswith(".vercel.app")
+
+
+def build_ecommerce_domain_dns_config(custom_domain: Optional[str]) -> Dict[str, Any]:
+    target_host = get_ecommerce_domain_target()
+    domain = normalize_ecommerce_domain(custom_domain) if custom_domain else None
+    if not domain:
+        return {
+            "record_type": "CNAME",
+            "record_name": None,
+            "record_value": target_host,
+            "dns_mode": "subdomain",
+            "warning": None,
+            "steps": [],
+        }
+
+    if is_preferred_ecommerce_connect_domain(domain):
+        apex_domain = domain[4:]
+        return {
+            "record_type": "CNAME",
+            "record_name": "www",
+            "record_value": target_host,
+            "dns_mode": "preferred_www",
+            "warning": f"Ne laissez pas l'ancien site actif sur www.{apex_domain} et redirigez {apex_domain} vers https://www.{apex_domain}.",
+            "steps": [
+                f"Entrez et connectez www.{apex_domain} comme domaine principal de votre boutique.",
+                f"Chez votre hébergeur DNS, supprimez tout ancien enregistrement A, AAAA ou CNAME sur www.{apex_domain}.",
+                f"Créez un CNAME sur www qui pointe vers {target_host}.",
+                f"Créez ensuite une redirection 301 de {apex_domain} vers https://www.{apex_domain}.",
+                "Après propagation DNS, lancez la vérification depuis Stockman.",
+            ],
+        }
+
+    labels = domain.split(".")
+    root_domain = ".".join(labels[-2:]) if len(labels) >= 2 else domain
+    is_root_domain = len(labels) == 2
+    if is_root_domain:
+        return {
+            "record_type": "ALIAS / ANAME",
+            "record_name": "@",
+            "record_value": target_host,
+            "dns_mode": "apex",
+            "warning": "N'utilisez pas un ancien A, AAAA ou CNAME qui continue d'envoyer le trafic vers votre ancien site.",
+            "steps": [
+                f"Chez votre hébergeur DNS, supprimez tout ancien enregistrement A, AAAA, CNAME ou redirection Web encore actif sur {domain}.",
+                f"Si votre fournisseur DNS accepte ALIAS, ANAME ou CNAME flattening sur le domaine racine, créez ce pointage sur @ vers {target_host}.",
+                f"Si votre fournisseur ne gère pas ALIAS ou ANAME sur {domain}, créez plutôt un sous-domaine www en CNAME vers {target_host}, puis redirigez {domain} vers www.{domain}.",
+                "Après propagation DNS, lancez la vérification depuis Stockman.",
+            ],
+        }
+
+    record_name = domain[: -(len(root_domain) + 1)]
+    return {
+        "record_type": "CNAME",
+        "record_name": record_name,
+        "record_value": target_host,
+        "dns_mode": "subdomain",
+        "warning": "Supprimez tout ancien A, AAAA ou CNAME sur ce même sous-domaine pour éviter que l'ancien site continue de s'ouvrir.",
+        "steps": [
+            f"Chez votre hébergeur DNS, supprimez tout ancien enregistrement A, AAAA ou CNAME encore actif sur {domain}.",
+            f"Créez un CNAME sur {record_name} qui pointe vers {target_host}.",
+            "Ne laissez pas de redirection Web ou de proxy actif vers votre ancien site sur ce même nom.",
+            "Après propagation DNS, lancez la vérification depuis Stockman.",
+        ],
+    }
+
+
+async def resolve_host_ip_set(host: Optional[str]) -> set[str]:
+    if not host:
+        return set()
+    loop = asyncio.get_running_loop()
+    try:
+        addrinfo = await loop.run_in_executor(None, socket.getaddrinfo, host, 443, socket.AF_UNSPEC, socket.SOCK_STREAM)
+    except Exception:
+        return set()
+    resolved_ips: set[str] = set()
+    for entry in addrinfo:
+        sockaddr = entry[4]
+        if sockaddr and sockaddr[0]:
+            resolved_ips.add(str(sockaddr[0]))
+    return resolved_ips
+
+
 async def verify_ecommerce_domain_resolution(domain: Optional[str]) -> bool:
     if not domain:
         return False
-    loop = asyncio.get_running_loop()
-    try:
-        await loop.run_in_executor(None, socket.getaddrinfo, domain, 443)
-        return True
-    except Exception:
+    domain_ips = await resolve_host_ip_set(domain)
+    if not domain_ips:
         return False
+    target_ips = await resolve_host_ip_set(get_ecommerce_domain_target())
+    if not target_ips:
+        return False
+    return bool(domain_ips.intersection(target_ips))
 
 
 async def build_unique_ecommerce_slug(seed: Optional[str], owner_id: str) -> str:
@@ -3629,18 +3675,23 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         account_doc["ecommerce_default_store_id"] = resolved_store_id
 
     custom_domain = account_doc.get("ecommerce_custom_domain")
-    site_url = f"https://{custom_domain}" if custom_domain else f"{get_web_app_base_url()}/shop/{slug}"
+    stockman_site_url = f"{get_web_app_base_url()}/shop/{slug}"
+    custom_domain_url = f"https://{custom_domain}" if custom_domain else None
     domain_status = account_doc.get("ecommerce_domain_status")
     if not custom_domain:
         domain_status = "not_configured"
     elif not domain_status:
         domain_status = "pending_verification"
+    site_url = custom_domain_url if custom_domain_url and domain_status == "verified" else stockman_site_url
     domain_mode = account_doc.get("ecommerce_domain_mode")
     if domain_mode not in {"stockman", "connect", "help"}:
         domain_mode = "connect" if custom_domain else ("help" if account_doc.get("ecommerce_domain_requested_name") else "stockman")
+    dns_config = build_ecommerce_domain_dns_config(custom_domain)
     return {
         "slug": slug,
         "site_url": site_url,
+        "stockman_site_url": stockman_site_url,
+        "custom_domain_url": custom_domain_url,
         "enabled": bool(account_doc.get("ecommerce_enabled") is True),
         "currency": (store_doc or {}).get("currency") or owner_doc.get("currency") or account_doc.get("currency") or "XOF",
         "store_id": resolved_store_id,
@@ -3652,6 +3703,12 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         "domain_status": domain_status,
         "domain_verified_at": account_doc.get("ecommerce_domain_verified_at"),
         "domain_verification_target": get_ecommerce_domain_target(),
+        "domain_record_type": dns_config["record_type"],
+        "domain_record_name": dns_config["record_name"],
+        "domain_record_value": dns_config["record_value"],
+        "domain_dns_mode": dns_config["dns_mode"],
+        "domain_connection_steps": dns_config["steps"],
+        "domain_connection_warning": dns_config["warning"],
         "hero_title": account_doc.get("ecommerce_hero_title"),
         "site_name": account_doc.get("ecommerce_site_name"),
         "welcome_message": account_doc.get("ecommerce_welcome_message"),
@@ -3661,6 +3718,107 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
         "show_out_of_stock_products": bool(account_doc.get("ecommerce_show_out_of_stock_products") is True),
     }
+
+
+async def build_public_ecommerce_payload(account_doc: Dict[str, Any]) -> Dict[str, Any]:
+    owner_id = account_doc.get("owner_user_id")
+    store_id = account_doc.get("ecommerce_default_store_id")
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "name": 1, "phone": 1, "email": 1, "currency": 1})
+    store_doc = None
+    if store_id:
+        store_doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0})
+    if not store_doc:
+        store_doc = await db.stores.find_one({"user_id": owner_id}, {"_id": 0})
+        store_id = (store_doc or {}).get("store_id")
+    if not owner_doc or not store_doc:
+        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+
+    products_query = {
+        "user_id": owner_id,
+        "store_id": store_id,
+        "is_active": {"$ne": False},
+        "selling_price": {"$gt": 0},
+    }
+    if not account_doc.get("ecommerce_show_out_of_stock_products"):
+        products_query["quantity"] = {"$gt": 0}
+    products = await db.products.find(
+        products_query,
+        {
+            "_id": 0,
+            "product_id": 1,
+            "name": 1,
+            "description": 1,
+            "selling_price": 1,
+            "quantity": 1,
+            "unit": 1,
+            "image": 1,
+            "category_id": 1,
+        },
+    ).sort("name", 1).limit(2000).to_list(2000)
+    category_ids = [product.get("category_id") for product in products if product.get("category_id")]
+    categories = {}
+    if category_ids:
+        category_docs = await db.categories.find(
+            {"category_id": {"$in": category_ids}, "user_id": owner_id},
+            {"_id": 0, "category_id": 1, "name": 1},
+        ).to_list(len(category_ids))
+        categories = {category.get("category_id"): category.get("name") for category in category_docs}
+
+    public_products = []
+    for product in products:
+        public_products.append({
+            "product_id": product.get("product_id"),
+            "name": product.get("name"),
+            "description": product.get("description"),
+            "selling_price": float(product.get("selling_price") or 0),
+            "quantity": float(product.get("quantity") or 0),
+            "unit": product.get("unit") or "piece",
+            "image": product.get("image"),
+            "category": categories.get(product.get("category_id")),
+            "available": float(product.get("quantity") or 0) > 0,
+        })
+
+    return {
+        "site": {
+            "slug": account_doc.get("ecommerce_slug"),
+            "store_id": store_id,
+            "name": account_doc.get("ecommerce_site_name") or store_doc.get("receipt_business_name") or store_doc.get("name") or owner_doc.get("name"),
+            "address": store_doc.get("address"),
+            "phone": owner_doc.get("phone"),
+            "email": owner_doc.get("email"),
+            "currency": store_doc.get("currency") or owner_doc.get("currency") or account_doc.get("currency") or "XOF",
+            "hero_title": account_doc.get("ecommerce_hero_title"),
+            "site_name": account_doc.get("ecommerce_site_name"),
+            "welcome_message": account_doc.get("ecommerce_welcome_message"),
+            "brand_color": account_doc.get("ecommerce_brand_color"),
+            "delivery_info": account_doc.get("ecommerce_delivery_info"),
+            "whatsapp_phone": account_doc.get("ecommerce_whatsapp_phone"),
+            "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
+            "show_out_of_stock_products": bool(account_doc.get("ecommerce_show_out_of_stock_products") is True),
+        },
+        "products": public_products,
+    }
+
+
+async def get_public_ecommerce_account_by_slug(slug: str) -> Dict[str, Any]:
+    account_doc = await db.business_accounts.find_one(
+        {"ecommerce_slug": slug, "ecommerce_enabled": True},
+        {"_id": 0},
+    )
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+    return account_doc
+
+
+async def get_public_ecommerce_account_by_domain(domain: Optional[str]) -> Dict[str, Any]:
+    normalized_domain = normalize_ecommerce_domain(domain)
+    account_doc = await db.business_accounts.find_one(
+        {"ecommerce_custom_domain": normalized_domain, "ecommerce_enabled": True},
+        {"_id": 0},
+    )
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+    return account_doc
 
 
 def build_public_payment_link(provider: str, target_url: Optional[str]) -> Optional[str]:
@@ -17401,6 +17559,11 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, user: User = Depends(
     if data.custom_domain is not None:
         custom_domain = normalize_ecommerce_domain(data.custom_domain)
         if custom_domain:
+            if not is_preferred_ecommerce_connect_domain(custom_domain):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Utilisez le format recommande www.votredomaine.com. Redirigez ensuite votredomaine.com vers ce sous-domaine chez votre hebergeur.",
+                )
             existing = await db.business_accounts.find_one(
                 {"ecommerce_custom_domain": custom_domain, "account_id": {"$ne": account_doc.get("account_id")}},
                 {"_id": 0, "account_id": 1},
