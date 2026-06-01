@@ -1405,7 +1405,6 @@ export default function SettingsScreen() {
             {[
               { key: 'stockman', label: 'Domaine Stockman', desc: 'Utiliser l’adresse Stockman prête à l’emploi.' },
               { key: 'connect', label: 'J’ai déjà un domaine', desc: 'Connecter www.votredomaine.com avec les réglages DNS.' },
-              { key: 'help', label: "Besoin d'aide", desc: "Préparer un domaine externe avant la connexion." },
             ].map((option) => {
               const active = (ecommerceDraft.domain_mode || 'stockman') === option.key;
               return (
@@ -1505,7 +1504,7 @@ export default function SettingsScreen() {
                 </View>
               </View>
               <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>
-                Format recommande : www.votredomaine.com. Pointez www vers Stockman, puis redirigez votredomaine.com vers ce sous-domaine.
+                Format recommandé : www.votredomaine.com. Pointez www vers Stockman, puis redirigez votredomaine.com vers ce sous-domaine.
               </Text>
             </>
           ) : null}
@@ -1521,26 +1520,6 @@ export default function SettingsScreen() {
               </Text>
             </TouchableOpacity>
           ) : null}
-          {ecommerceDraft.domain_mode === 'help' ? (
-            <>
-              <TextInput
-                style={styles.input}
-                value={ecommerceDraft.domain_requested_name || ''}
-                onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, domain_requested_name: value }))}
-                placeholder="Domaine envisagé"
-                placeholderTextColor={colors.textMuted}
-                autoCapitalize="none"
-              />
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={ecommerceDraft.domain_request_notes || ''}
-                onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, domain_request_notes: value }))}
-                placeholder="Domaine déjà acheté, besoin de conseils, registrar utilisé ou question DNS"
-                placeholderTextColor={colors.textMuted}
-                multiline
-              />
-            </>
-          ) : null}
           <TextInput
             style={[styles.input, styles.textArea]}
             value={ecommerceDraft.payment_instructions || ''}
@@ -1549,9 +1528,6 @@ export default function SettingsScreen() {
             placeholderTextColor={colors.textMuted}
             multiline
           />
-          <Text style={[styles.settingDesc, { marginTop: Spacing.xs }]}>
-            Chaque formulaire public alimente le CRM, crée une notification dans Stockman et envoie un e-mail au contact E-com ainsi qu'aux groupes par défaut et CRM s'ils sont configurés.
-          </Text>
           <TouchableOpacity
             style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
             onPress={() => saveEcommerceSettings()}

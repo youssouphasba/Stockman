@@ -886,22 +886,35 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
 
                                         <div className="mb-5 grid gap-3 md:grid-cols-3">
                                             {[
-                                                { label: '1. Stockman actif', done: true, text: 'La boutique reste toujours accessible sur le domaine Stockman.' },
-                                                { label: '2. DNS à connecter', done: Boolean(currentDomain), text: currentDomain ? `Le domaine saisi est ${currentDomain}.` : 'Saisissez d abord www.votredomaine.com.' },
-                                                { label: '3. Vérification finale', done: ecommerceSite.domain_status === 'verified', text: ecommerceSite.domain_status === 'verified' ? 'Le domaine répond bien vers votre boutique Stockman.' : 'Relancez la vérification après la propagation DNS.' },
-                                            ].map((step) => (
-                                                <div key={step.label} className={`rounded-2xl border p-4 ${step.done ? 'border-emerald-500/20 bg-emerald-500/10' : 'border-white/10 bg-slate-950/50'}`}>
-                                                    <p className={`text-[11px] font-black uppercase tracking-[0.18em] ${step.done ? 'text-emerald-300' : 'text-slate-400'}`}>{step.label}</p>
-                                                    <p className="mt-2 text-sm leading-6 text-slate-200">{step.text}</p>
+                                                { label: '1. Stockman actif', done: true, text: 'La boutique reste toujours accessible sur le domaine Stockman.', tone: 'emerald' },
+                                                { label: '2. DNS à connecter', done: Boolean(currentDomain), text: currentDomain ? `Le domaine saisi est ${currentDomain}.` : 'Saisissez d abord www.votredomaine.com.', tone: 'sky' },
+                                                { label: '3. Vérification finale', done: ecommerceSite.domain_status === 'verified', text: ecommerceSite.domain_status === 'verified' ? 'Le domaine répond bien vers votre boutique Stockman.' : 'Relancez la vérification après la propagation DNS.', tone: 'amber' },
+                                            ].map((step) => {
+                                                const activeClass = step.tone === 'emerald'
+                                                    ? 'border-emerald-400/30 bg-emerald-500/12 shadow-[0_16px_40px_rgba(16,185,129,0.12)]'
+                                                    : step.tone === 'sky'
+                                                        ? 'border-sky-400/30 bg-sky-500/12 shadow-[0_16px_40px_rgba(14,165,233,0.12)]'
+                                                        : 'border-amber-400/30 bg-amber-500/12 shadow-[0_16px_40px_rgba(245,158,11,0.12)]';
+                                                const idleClass = 'border-slate-700/70 bg-slate-900/80';
+                                                const titleClass = step.done
+                                                    ? step.tone === 'emerald'
+                                                        ? 'text-emerald-200'
+                                                        : step.tone === 'sky'
+                                                            ? 'text-sky-200'
+                                                            : 'text-amber-200'
+                                                    : 'text-slate-300';
+                                                return (
+                                                <div key={step.label} className={`rounded-2xl border p-4 backdrop-blur-sm ${step.done ? activeClass : idleClass}`}>
+                                                    <p className={`text-[11px] font-black uppercase tracking-[0.18em] ${titleClass}`}>{step.label}</p>
+                                                    <p className="mt-2 text-sm leading-6 text-slate-100">{step.text}</p>
                                                 </div>
-                                            ))}
+                                            )})}
                                         </div>
 
-                                        <div className="grid gap-3 md:grid-cols-3">
+                                        <div className="grid gap-3 md:grid-cols-2">
                                             {[
                                                 { key: 'stockman', title: "Domaine Stockman", desc: "Utiliser l'adresse Stockman prête à l'emploi." },
                                                 { key: 'connect', title: "J'ai déjà un domaine", desc: 'Connecter www.votredomaine.com avec les réglages DNS.' },
-                                                { key: 'help', title: "Besoin d'aide", desc: 'Préparer un domaine externe avant la connexion.' },
                                             ].map((option) => {
                                                 const active = (ecommerceDraft.domain_mode || 'stockman') === option.key;
                                                 return (
@@ -923,8 +936,9 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         </div>
 
                                         {(ecommerceDraft.domain_mode || 'stockman') === 'stockman' ? (
-                                            <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm leading-6 text-emerald-100">
-                                                Adresse actuelle : <span className="break-all font-black">{ecommerceSite.stockman_site_url || ecommerceSite.site_url}</span>
+                                            <div className="mt-4 rounded-2xl border border-primary/20 bg-slate-950/80 p-4 text-sm leading-6 text-slate-200">
+                                                <span className="font-semibold text-slate-100">Adresse actuelle :</span>{' '}
+                                                <span className="break-all font-black text-white">{ecommerceSite.stockman_site_url || ecommerceSite.site_url}</span>
                                             </div>
                                         ) : null}
 
@@ -1018,23 +1032,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                                 </button>
                                             </div>
                                         ) : null}
-
-                                        {ecommerceDraft.domain_mode === 'help' ? (
-                                            <div className="mt-4 grid gap-4 md:grid-cols-2">
-                                                <Field label="Domaine envisagé" hint="Nom que le commerçant aimerait utiliser, même s'il n'est pas encore acheté.">
-                                                    <input value={ecommerceDraft.domain_requested_name || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, domain_requested_name: event.target.value }))} placeholder="ma-boutique.com" className={inputClass} />
-                                                </Field>
-                                                <Field label="Besoin d'aide" hint="Expliquez le contexte : domaine déjà acheté, hébergeur DNS ou blocage rencontré.">
-                                                    <textarea value={ecommerceDraft.domain_request_notes || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, domain_request_notes: event.target.value }))} rows={3} className={textareaClass} />
-                                                </Field>
-                                            </div>
-                                        ) : null}
                                     </div>
-
-                                    <Notice
-                                        title="Notifications de contact"
-                                        text="Chaque formulaire public alimente le CRM, crée une notification in-app et push pour le commerçant, puis envoie un e-mail au contact E-com et aux groupes de notification par défaut et CRM s'ils sont configurés."
-                                    />
 
                                     <button
                                         type="button"

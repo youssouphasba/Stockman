@@ -72,6 +72,23 @@ function withAlpha(hex: string, alpha: number) {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+function normalizeHexColor(hex: string) {
+  const normalized = (hex || '').replace('#', '').trim();
+  const expanded = normalized.length === 3
+    ? normalized.split('').map((char) => `${char}${char}`).join('')
+    : normalized;
+  return /^[0-9a-fA-F]{6}$/.test(expanded) ? expanded : '047857';
+}
+
+function getBrandOnColor(hex: string) {
+  const normalized = normalizeHexColor(hex);
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+  return luminance > 0.6 ? '#0f172a' : '#ffffff';
+}
+
 export default function StorefrontClient({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
   const [payload, setPayload] = useState<SitePayload | null>(null);
@@ -172,6 +189,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
   const brandSoft = withAlpha(brandColor, 0.10);
   const brandSurface = withAlpha(brandColor, 0.14);
   const brandBorder = withAlpha(brandColor, 0.24);
+  const brandOnColor = getBrandOnColor(brandColor);
   const isPreview = searchParams.get('preview') === '1';
   const siteMark = (payload?.site.name || 'SM')
     .split(/\s+/)
@@ -407,8 +425,8 @@ export default function StorefrontClient({ slug }: { slug: string }) {
         type="button"
         onClick={submitOrder}
         disabled={submitting || !customerName.trim() || cartLines.length === 0}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-4 text-sm font-black text-white transition disabled:bg-slate-300"
-        style={{ backgroundColor: submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandColor }}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-4 text-sm font-black transition disabled:bg-slate-300 disabled:text-slate-500"
+        style={{ backgroundColor: submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandColor, color: submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandOnColor }}
       >
         <Send className="h-4 w-4" />
         {submitting ? 'Envoi...' : 'Envoyer la commande'}
@@ -450,7 +468,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
             <Menu className="h-6 w-6" />
           </button>
           <div className="min-w-0 flex flex-1 items-center gap-3 px-4 lg:px-0">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black text-white shadow-sm" style={{ backgroundColor: brandColor }}>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black shadow-sm" style={{ backgroundColor: brandColor, color: brandOnColor }}>
               {payload?.site.logo_url ? (
                 <img src={payload.site.logo_url} alt={payload.site.name} className="h-full w-full object-cover" />
               ) : (
@@ -474,7 +492,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
             <button type="button" onClick={() => setCartOpen(true)} className="relative rounded-full border border-slate-200 p-3 text-slate-950" aria-label="Ouvrir le panier">
               <ShoppingBag className="h-6 w-6" />
               {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-black text-white" style={{ backgroundColor: brandColor }}>
+                <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-black" style={{ backgroundColor: brandColor, color: brandOnColor }}>
                   {cartCount}
                 </span>
               )}
@@ -495,7 +513,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
             </h1>
             {payload?.site.welcome_message && <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{payload.site.welcome_message}</p>}
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <a href="#contact" className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white shadow-sm" style={{ backgroundColor: brandColor, boxShadow: `0 10px 24px ${withAlpha(brandColor, 0.22)}` }}>
+              <a href="#contact" className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black shadow-sm" style={{ backgroundColor: brandColor, color: brandOnColor, boxShadow: `0 10px 24px ${withAlpha(brandColor, 0.22)}` }}>
                 Contactez-nous
               </a>
               {whatsappLink ? (
@@ -626,8 +644,8 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                             setCartOpen(true);
                           }}
                           disabled={!product.available}
-                          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-black text-white transition disabled:bg-slate-200 disabled:text-slate-400"
-                          style={product.available ? { backgroundColor: brandColor, borderColor: brandColor, boxShadow: `0 10px 24px ${withAlpha(brandColor, 0.22)}` } : undefined}
+                          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-black transition disabled:bg-slate-200 disabled:text-slate-400"
+                          style={product.available ? { backgroundColor: brandColor, borderColor: brandColor, color: brandOnColor, boxShadow: `0 10px 24px ${withAlpha(brandColor, 0.22)}` } : undefined}
                           aria-label={`Ajouter ${product.name}`}
                         >
                           <ShoppingBag className="h-4 w-4" />
@@ -758,8 +776,8 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                 type="button"
                 onClick={submitContactRequest}
                 disabled={contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black text-white transition disabled:bg-slate-300"
-                style={{ backgroundColor: contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim() ? undefined : brandColor }}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black transition disabled:bg-slate-300 disabled:text-slate-500"
+                style={{ backgroundColor: contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim() ? undefined : brandColor, color: contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim() ? undefined : brandOnColor }}
               >
                 <Send className="h-4 w-4" />
                 {contactSubmitting ? 'Envoi...' : 'Envoyer le message'}
@@ -768,7 +786,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
 
             <div className="rounded-3xl border bg-slate-50 p-5 sm:p-6" style={{ borderColor: brandBorder }}>
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-lg font-black text-white shadow-sm" style={{ backgroundColor: brandColor }}>
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-lg font-black shadow-sm" style={{ backgroundColor: brandColor, color: brandOnColor }}>
                   {payload?.site.logo_url ? (
                     <img src={payload.site.logo_url} alt={payload.site.name} className="h-full w-full object-cover" />
                   ) : (
@@ -835,8 +853,8 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                   setCategory('all');
                   setMenuOpen(false);
                 }}
-                className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-black ${category === 'all' ? 'text-white' : 'border-slate-200 text-slate-700'}`}
-                style={category === 'all' ? { borderColor: brandColor, backgroundColor: brandColor } : undefined}
+                className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-black ${category === 'all' ? '' : 'border-slate-200 text-slate-700'}`}
+                style={category === 'all' ? { borderColor: brandColor, backgroundColor: brandColor, color: brandOnColor } : undefined}
               >
                 Tous les produits
               </button>
@@ -848,8 +866,8 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                     setCategory(value);
                     setMenuOpen(false);
                   }}
-                  className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-black ${category === value ? 'text-white' : 'border-slate-200 text-slate-700'}`}
-                  style={category === value ? { borderColor: brandColor, backgroundColor: brandColor } : undefined}
+                  className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-black ${category === value ? '' : 'border-slate-200 text-slate-700'}`}
+                  style={category === value ? { borderColor: brandColor, backgroundColor: brandColor, color: brandOnColor } : undefined}
                 >
                   {value}
                 </button>
@@ -859,7 +877,7 @@ export default function StorefrontClient({ slug }: { slug: string }) {
               {payload?.site.phone && <p><span className="font-black text-slate-950">Téléphone : </span>{payload.site.phone}</p>}
               {payload?.site.email && <p><span className="font-black text-slate-950">Email : </span>{payload.site.email}</p>}
               {payload?.site.address && <p><span className="font-black text-slate-950">Adresse : </span>{payload.site.address}</p>}
-              {whatsappLink && <a href={whatsappLink} target="_blank" rel="noreferrer" className="inline-flex rounded-xl px-4 py-3 text-sm font-black text-white" style={{ backgroundColor: brandColor }}>Contacter sur WhatsApp</a>}
+              {whatsappLink && <a href={whatsappLink} target="_blank" rel="noreferrer" className="inline-flex rounded-xl px-4 py-3 text-sm font-black" style={{ backgroundColor: brandColor, color: brandOnColor }}>Contacter sur WhatsApp</a>}
             </div>
           </aside>
         </div>
@@ -914,8 +932,8 @@ export default function StorefrontClient({ slug }: { slug: string }) {
                     setSelectedProduct(null);
                   }}
                   disabled={!selectedProduct.available}
-                  className="flex h-14 flex-1 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black text-white transition disabled:bg-slate-300"
-                  style={{ backgroundColor: selectedProduct.available ? brandColor : undefined }}
+                  className="flex h-14 flex-1 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:bg-slate-300 disabled:text-slate-500"
+                  style={{ backgroundColor: selectedProduct.available ? brandColor : undefined, color: selectedProduct.available ? brandOnColor : undefined }}
                 >
                   <ShoppingBag className="h-4 w-4" />
                   Ajouter au panier
