@@ -51,6 +51,7 @@ import DeliveryConfirmationModal from '../../components/DeliveryConfirmationModa
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
 import { generateAndSharePdf, generatePurchaseOrderPdf } from '../../utils/pdfReports';
 import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
+import { openDenkmaForOrder } from '../../utils/denkma';
 import { useAuth } from '../../contexts/AuthContext';
 import PremiumGate from '../../components/PremiumGate';
 import AccessDenied from '../../components/AccessDenied';
@@ -1597,6 +1598,20 @@ export default function OrdersScreen() {
                   </View>
                 </View>
                 <View style={[styles.orderActions, { marginTop: Spacing.lg }]}>
+                  {['pending', 'confirmed', 'preparing', 'ready'].includes(selectedWebOrder.status) && (
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={async () => {
+                        try {
+                          await openDenkmaForOrder(selectedWebOrder);
+                        } catch (error: any) {
+                          Alert.alert(t('common.error'), error?.message || 'Impossible d’ouvrir Denkma.');
+                        }
+                      }}
+                    >
+                      <Text style={[styles.actionText, { color: '#2563EB' }]}>Livrer avec Denkma</Text>
+                    </TouchableOpacity>
+                  )}
                   {selectedWebOrder.status === 'pending' && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'confirmed'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.primary }]}>Confirmer</Text></TouchableOpacity>}
                   {['confirmed', 'preparing'].includes(selectedWebOrder.status) && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'ready'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.warning }]}>Prête</Text></TouchableOpacity>}
                   {['confirmed', 'preparing', 'ready'].includes(selectedWebOrder.status) && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'delivered'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.success }]}>Livrer</Text></TouchableOpacity>}

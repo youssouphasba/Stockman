@@ -25,6 +25,7 @@ import Modal from './Modal';
 import OrderReturnModal from './OrderReturnModal';
 import DeliveryConfirmationModal from './DeliveryConfirmationModal';
 import { exportOrders } from '../utils/ExportService';
+import { openDenkmaForOrder } from '../utils/denkma';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 const ORDER_STATUSES = ['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'] as const;
@@ -402,6 +403,7 @@ export default function Orders() {
                                 ))}
                             </div>
                             <div className="mt-4 flex flex-wrap gap-2">
+                                {['pending', 'confirmed', 'preparing', 'ready'].includes(order.status) && <button onClick={() => openDenkmaForOrder(order)} className="rounded-xl bg-blue-500/15 px-4 py-2 text-sm font-bold text-blue-300">Livrer avec Denkma</button>}
                                 {order.status === 'pending' && <button onClick={() => updateWebOrderStatus(order.order_id, 'confirmed')} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">Confirmer</button>}
                                 {['pending', 'confirmed', 'preparing'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'preparing')} className="rounded-xl bg-blue-500/15 px-4 py-2 text-sm font-bold text-blue-300">Préparer</button>}
                                 {['confirmed', 'preparing'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'ready')} className="rounded-xl bg-amber-500/15 px-4 py-2 text-sm font-bold text-amber-300">Prête</button>}
