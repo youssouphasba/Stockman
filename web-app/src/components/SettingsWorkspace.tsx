@@ -245,7 +245,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
         if (tab.id === 'support') {
             return {
                 ...tab,
-                label: `${t('support.title')} et ${t('admin.nav.disputes').toLowerCase()}`,
+                label: `${t('support.title')} et ${t('admin.disputes.title').toLowerCase()}`,
                 description: t('settings.help_support'),
             };
         }
@@ -513,7 +513,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                 {activeTab === 'support' ? (
                     <SectionCard
                         icon={<HelpCircle size={24} className="text-primary" />}
-                        title={`${t('support.title')} et ${t('admin.nav.disputes').toLowerCase()}`}
+                        title={`${t('support.title')} et ${t('admin.disputes.title').toLowerCase()}`}
                         scope={t('settings_workspace.scopes.user')}
                         description={t('settings.help_support')}
                         actionHint={t('settings.contact_admin_desc')}
@@ -887,26 +887,26 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <div className="mb-5 grid gap-3 md:grid-cols-3">
                                             {[
                                                 { label: '1. Stockman actif', done: true, text: 'La boutique reste toujours accessible sur le domaine Stockman.', tone: 'emerald' },
-                                                { label: '2. DNS à connecter', done: Boolean(currentDomain), text: currentDomain ? `Le domaine saisi est ${currentDomain}.` : 'Saisissez d abord www.votredomaine.com.', tone: 'sky' },
+                                                { label: '2. DNS à connecter', done: Boolean(currentDomain), text: currentDomain ? `Le domaine saisi est ${currentDomain}.` : "Saisissez d'abord www.votredomaine.com.", tone: 'sky' },
                                                 { label: '3. Vérification finale', done: ecommerceSite.domain_status === 'verified', text: ecommerceSite.domain_status === 'verified' ? 'Le domaine répond bien vers votre boutique Stockman.' : 'Relancez la vérification après la propagation DNS.', tone: 'amber' },
                                             ].map((step) => {
                                                 const activeClass = step.tone === 'emerald'
-                                                    ? 'border-emerald-400/30 bg-emerald-500/12 shadow-[0_16px_40px_rgba(16,185,129,0.12)]'
+                                                    ? 'border-emerald-300/50 bg-emerald-500/14 shadow-[0_16px_40px_rgba(16,185,129,0.14)]'
                                                     : step.tone === 'sky'
-                                                        ? 'border-sky-400/30 bg-sky-500/12 shadow-[0_16px_40px_rgba(14,165,233,0.12)]'
-                                                        : 'border-amber-400/30 bg-amber-500/12 shadow-[0_16px_40px_rgba(245,158,11,0.12)]';
-                                                const idleClass = 'border-slate-700/70 bg-slate-900/80';
+                                                        ? 'border-sky-300/50 bg-sky-500/14 shadow-[0_16px_40px_rgba(14,165,233,0.14)]'
+                                                        : 'border-amber-300/50 bg-amber-500/14 shadow-[0_16px_40px_rgba(245,158,11,0.14)]';
+                                                const idleClass = 'border-slate-500/40 bg-slate-700';
                                                 const titleClass = step.done
                                                     ? step.tone === 'emerald'
-                                                        ? 'text-emerald-200'
+                                                        ? 'text-emerald-50'
                                                         : step.tone === 'sky'
-                                                            ? 'text-sky-200'
-                                                            : 'text-amber-200'
-                                                    : 'text-slate-300';
+                                                            ? 'text-sky-50'
+                                                            : 'text-amber-50'
+                                                    : 'text-white';
                                                 return (
                                                 <div key={step.label} className={`rounded-2xl border p-4 backdrop-blur-sm ${step.done ? activeClass : idleClass}`}>
                                                     <p className={`text-[11px] font-black uppercase tracking-[0.18em] ${titleClass}`}>{step.label}</p>
-                                                    <p className="mt-2 text-sm leading-6 text-slate-100">{step.text}</p>
+                                                    <p className="mt-2 text-sm leading-6 text-white">{step.text}</p>
                                                 </div>
                                             )})}
                                         </div>
