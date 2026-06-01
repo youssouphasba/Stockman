@@ -898,10 +898,10 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                                 const idleClass = 'border-slate-500/40 bg-slate-700';
                                                 const titleClass = step.done
                                                     ? step.tone === 'emerald'
-                                                        ? 'text-emerald-50'
+                                                        ? 'text-emerald-950'
                                                         : step.tone === 'sky'
-                                                            ? 'text-sky-50'
-                                                            : 'text-amber-50'
+                                                            ? 'text-sky-950'
+                                                            : 'text-amber-950'
                                                     : 'text-white';
                                                 return (
                                                 <div key={step.label} className={`rounded-2xl border p-4 backdrop-blur-sm ${step.done ? activeClass : idleClass}`}>
