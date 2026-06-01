@@ -2,6 +2,7 @@ const DENKMA_SCHEME_URL = 'denkma://app/create-parcel';
 const DENKMA_APP_LINK_URL = 'https://denkma.com/app/create-parcel';
 const DENKMA_ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=com.denkma.app';
 const DENKMA_IOS_STORE_URL = 'https://apps.apple.com/fr/app/denkma/id6760837156';
+const DENKMA_ANDROID_PACKAGE = 'com.denkma.app';
 
 export type DenkmaOrderPayload = {
     order_id?: string;
@@ -32,14 +33,11 @@ function isIosUserAgent(): boolean {
     return /iPad|iPhone|iPod/i.test(navigator.userAgent);
 }
 
-export function buildDenkmaCreateParcelUrl(order: DenkmaOrderPayload): string {
-    const params = buildDenkmaCreateParcelParams(order);
-    return `${DENKMA_SCHEME_URL}?${params.toString()}`;
-}
-
-export function buildDenkmaCreateParcelAppLink(order: DenkmaOrderPayload): string {
-    const params = buildDenkmaCreateParcelParams(order);
-    return `${DENKMA_APP_LINK_URL}?${params.toString()}`;
+function isAndroidUserAgent(): boolean {
+    if (typeof navigator === 'undefined') {
+        return false;
+    }
+    return /Android/i.test(navigator.userAgent);
 }
 
 function buildDenkmaCreateParcelParams(order: DenkmaOrderPayload): URLSearchParams {
@@ -60,15 +58,39 @@ function buildDenkmaCreateParcelParams(order: DenkmaOrderPayload): URLSearchPara
     return params;
 }
 
+export function buildDenkmaCreateParcelUrl(order: DenkmaOrderPayload): string {
+    const params = buildDenkmaCreateParcelParams(order);
+    return `${DENKMA_SCHEME_URL}?${params.toString()}`;
+}
+
+export function buildDenkmaCreateParcelAppLink(order: DenkmaOrderPayload): string {
+    const params = buildDenkmaCreateParcelParams(order);
+    return `${DENKMA_APP_LINK_URL}?${params.toString()}`;
+}
+
+export function buildDenkmaCreateParcelAndroidIntentUrl(order: DenkmaOrderPayload): string {
+    const params = buildDenkmaCreateParcelParams(order).toString();
+    return `intent://app/create-parcel?${params}#Intent;scheme=denkma;package=${DENKMA_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(DENKMA_ANDROID_STORE_URL)};end`;
+}
+
 export function openDenkmaForOrder(order: DenkmaOrderPayload): void {
     if (typeof window === 'undefined') {
         return;
     }
+
     const deepLink = buildDenkmaCreateParcelUrl(order);
     const appLink = buildDenkmaCreateParcelAppLink(order);
+    const primaryUrl = isAndroidUserAgent()
+        ? buildDenkmaCreateParcelAndroidIntentUrl(order)
+        : deepLink;
     const fallbackUrl = isIosUserAgent() ? DENKMA_IOS_STORE_URL : DENKMA_ANDROID_STORE_URL;
-    window.location.assign(deepLink);
+
+    window.location.assign(primaryUrl);
     window.setTimeout(() => {
+        if (primaryUrl !== deepLink) {
+            window.location.assign(deepLink);
+            return;
+        }
         const popup = window.open(appLink, '_blank', 'noopener,noreferrer');
         if (popup) {
             return;
