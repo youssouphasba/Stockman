@@ -1,4 +1,5 @@
 const DENKMA_SCHEME_URL = 'denkma://app/create-parcel';
+const DENKMA_APP_LINK_URL = 'https://denkma.com/app/create-parcel';
 const DENKMA_ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=com.denkma.app';
 const DENKMA_IOS_STORE_URL = 'https://apps.apple.com/fr/app/denkma/id6760837156';
 
@@ -32,6 +33,16 @@ function isIosUserAgent(): boolean {
 }
 
 export function buildDenkmaCreateParcelUrl(order: DenkmaOrderPayload): string {
+    const params = buildDenkmaCreateParcelParams(order);
+    return `${DENKMA_SCHEME_URL}?${params.toString()}`;
+}
+
+export function buildDenkmaCreateParcelAppLink(order: DenkmaOrderPayload): string {
+    const params = buildDenkmaCreateParcelParams(order);
+    return `${DENKMA_APP_LINK_URL}?${params.toString()}`;
+}
+
+function buildDenkmaCreateParcelParams(order: DenkmaOrderPayload): URLSearchParams {
     const reference = cleanText(order.order_number) || cleanText(order.order_id);
     const itemCount = Array.isArray(order.items) ? order.items.length : 0;
     const description = reference
@@ -46,7 +57,7 @@ export function buildDenkmaCreateParcelUrl(order: DenkmaOrderPayload): string {
     if (cleanText(order.customer_address)) params.set('delivery_address_label', cleanText(order.customer_address));
     if (normalizeAmount(order.total_amount)) params.set('declared_value', normalizeAmount(order.total_amount));
     params.set('description', description);
-    return `${DENKMA_SCHEME_URL}?${params.toString()}`;
+    return params;
 }
 
 export function openDenkmaForOrder(order: DenkmaOrderPayload): void {
@@ -54,9 +65,14 @@ export function openDenkmaForOrder(order: DenkmaOrderPayload): void {
         return;
     }
     const deepLink = buildDenkmaCreateParcelUrl(order);
+    const appLink = buildDenkmaCreateParcelAppLink(order);
     const fallbackUrl = isIosUserAgent() ? DENKMA_IOS_STORE_URL : DENKMA_ANDROID_STORE_URL;
     window.location.assign(deepLink);
     window.setTimeout(() => {
-        window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+        const popup = window.open(appLink, '_blank', 'noopener,noreferrer');
+        if (popup) {
+            return;
+        }
+        window.location.assign(fallbackUrl);
     }, 1200);
 }
