@@ -118,14 +118,21 @@ except Exception:
 def resolve_gemini_api_key() -> str:
     return (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
 
+
+DEFAULT_GEMINI_MODEL = (os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash").strip()
+
+
+def build_gemini_model(**kwargs):
+    return genai.GenerativeModel(DEFAULT_GEMINI_MODEL, **kwargs)
+
+
 google_key = resolve_gemini_api_key()
 gemini_model = None
 if google_key:
     try:
         genai.configure(api_key=google_key)
-        # Using Gemini 2.0 Flash (referred to as 2.5 by the user)
-        gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-        logger.info("Gemini 2.0 Flash Model initialized for Import Service")
+        gemini_model = build_gemini_model()
+        logger.info("Gemini model %s initialized for Import Service", DEFAULT_GEMINI_MODEL)
     except Exception as e:
         logger.error(f"Failed to initialize Gemini: {e}")
 
@@ -164,7 +171,7 @@ if not SECRET_KEY:
     if IS_PROD:
         logger.critical("Ã¢ÂÃ…â€™ JWT_SECRET IS REQUIRED IN PRODUCTION!")
         raise RuntimeError("JWT_SECRET environment variable is not set. This is required in production.")
-    
+
     _default_secret = os.urandom(32).hex()
     import warnings
     warnings.warn("âš ï¸  JWT_SECRET non dÃ©fini ! Utilisation d'une clÃ© alÃ©atoire (tokens invalidÃ©s au redÃ©marrage). DÃ©finissez JWT_SECRET en production.", stacklevel=2)
@@ -557,11 +564,11 @@ async def add_process_time_header(request: Request, call_next):
     start_time = datetime.now()
     response = await call_next(request)
     process_time = (datetime.now() - start_time).total_seconds()
-    
+
     # Log slow requests (> 1s)
     if process_time > 1.0:
         logger.warning(f"SLOW REQUEST: {request.method} {request.url.path} took {process_time:.2f}s")
-    
+
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
@@ -630,7 +637,7 @@ async def get_app_version_settings():
 async def get_cgu(lang: str = "fr"):
     """Get current Terms of Service (Markdown) with auto-translation and caching"""
     lang = (lang or "fr").lower().split("-")[0]
-    
+
     # 1. Get base document (French)
     source_doc = await db.system_configs.find_one({"config_id": "cgu"}, {"_id": 0, "content": 1, "updated_at": 1})
     if not source_doc:
@@ -646,14 +653,14 @@ async def get_cgu(lang: str = "fr"):
     # 2. Check cache for translated version
     cache_id = f"cgu_{lang}"
     cached_doc = await db.system_configs.find_one({"config_id": cache_id}, {"_id": 0, "content": 1, "updated_at": 1, "source_updated_at": 1})
-    
+
     # If cache exists and is up to date with source
     if cached_doc and cached_doc.get("source_updated_at") == source_updated_at:
         return {"content": cached_doc["content"], "updated_at": cached_doc["updated_at"]}
 
     # 3. Translate if not in cache or out of date
     translated_content = await translate_legal_document(source_content, lang)
-    
+
     # 4. Update cache
     new_cached_doc = {
         "config_id": cache_id,
@@ -662,7 +669,7 @@ async def get_cgu(lang: str = "fr"):
         "source_updated_at": source_updated_at
     }
     await db.system_configs.update_one({"config_id": cache_id}, {"$set": new_cached_doc}, upsert=True)
-    
+
     return {"content": translated_content, "updated_at": new_cached_doc["updated_at"]}
 
 @admin_router.post("/cgu")
@@ -683,12 +690,12 @@ async def translate_legal_document(text: str, target_lang: str) -> str:
     api_key = resolve_gemini_api_key()
     if not api_key:
         return text # Fallback to original if no key
-    
+
     try:
         genai.configure(api_key=api_key)
         lang_name = LANGUAGE_NAMES.get(target_lang, target_lang)
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
+        model = build_gemini_model()
+
         prompt = f"""Tu es un traducteur juridique expert. Traduis le document Markdown suivant en {lang_name} ({target_lang}).
 Conserve EXACTEMENT la structure Markdown, les liens, les titres et la mise en forme.
 Le ton doit Ãªtre professionnel et juridiquement formel.
@@ -709,7 +716,7 @@ RÃ©ponds UNIQUEMENT avec la traduction, sans aucun autre texte.
 async def get_privacy(lang: str = "fr"):
     """Get current Privacy Policy (Markdown) with auto-translation and caching"""
     lang = (lang or "fr").lower().split("-")[0]
-    
+
     # 1. Get base document (French)
     source_doc = await db.system_configs.find_one({"config_id": "privacy"}, {"_id": 0, "content": 1, "updated_at": 1})
     if not source_doc:
@@ -725,14 +732,14 @@ async def get_privacy(lang: str = "fr"):
     # 2. Check cache for translated version
     cache_id = f"privacy_{lang}"
     cached_doc = await db.system_configs.find_one({"config_id": cache_id}, {"_id": 0, "content": 1, "updated_at": 1, "source_updated_at": 1})
-    
+
     # If cache exists and is up to date with source
     if cached_doc and cached_doc.get("source_updated_at") == source_updated_at:
         return {"content": cached_doc["content"], "updated_at": cached_doc["updated_at"]}
 
     # 3. Translate if not in cache or out of date
     translated_content = await translate_legal_document(source_content, lang)
-    
+
     # 4. Update cache
     new_cached_doc = {
         "config_id": cache_id,
@@ -741,7 +748,7 @@ async def get_privacy(lang: str = "fr"):
         "source_updated_at": source_updated_at
     }
     await db.system_configs.update_one({"config_id": cache_id}, {"$set": new_cached_doc}, upsert=True)
-    
+
     return {"content": translated_content, "updated_at": new_cached_doc["updated_at"]}
 
 @admin_router.post("/privacy")
@@ -892,7 +899,7 @@ async def create_indexes_and_init():
                         logger.info("Building RAG index in background...")
                         await rag_service.index_documents()
                     logger.info("RAG Service initialized")
-                
+
                 # Indexes ... (Moved to background to fix Railway 502)
                 logger.info("Initializing database indexes in background...")
                 await db.users.create_index("user_id", unique=True)
@@ -943,7 +950,7 @@ async def create_indexes_and_init():
                 await db.ecommerce_events.create_index([("site_slug", 1), ("created_at", -1)])
                 await db.sales.create_index([("store_id", 1), ("created_at", -1)])
                 await db.alert_rules.create_index([("user_id", 1), ("type", 1), ("scope", 1), ("store_id", 1)])
-                
+
                 # Additional performance indexes
                 await db.stores.create_index("created_at")
                 await db.categories.create_index("user_id")
@@ -1516,7 +1523,7 @@ async def get_public_receipt(public_token: str):
     sale = await db.sales.find_one({"public_receipt_token": public_token})
     if not sale:
         raise HTTPException(status_code=404, detail="ReÃ§u non trouvÃ©")
-    
+
     # Get store info
     store = await db.stores.find_one({"store_id": sale["store_id"]})
     store_name = (store or {}).get("receipt_business_name") or (store or {}).get("name") or "Ma Boutique"
@@ -5521,21 +5528,21 @@ def require_permission(module: str, level: str = "read"):
 
         if "org_admin" in (user.account_roles or []):
             return user
-        
+
         user_perms = user.effective_permissions or user.permissions or {}
         perm = user_perms.get(module, "none")
-        
+
         if level == "write" and perm != "write":
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail=f"Action interdite : vous n'avez pas les droits d'Ã©criture sur le module '{module}'."
             )
         if level == "read" and perm == "none":
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail=f"AccÃ¨s refusÃ© : vous n'avez pas les droits de lecture sur le module '{module}'."
             )
-            
+
         return user
     return permission_checker
 
@@ -6866,7 +6873,7 @@ async def flutterwave_webhook(request: Request):
         "plan": plan,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    
+
     await db.pending_transactions.delete_one({"transaction_id": transaction_id})
     logger.info(f"Flutterwave payment confirmed: user={pending['user_id']} plan={plan}")
     return {"status": "ok"}
@@ -7051,7 +7058,7 @@ async def confirm_import(
     try:
         import_data = data.get("importData")
         mapping = data.get("mapping")
-        
+
         if not import_data or not mapping:
             raise HTTPException(status_code=400, detail="DonnÃ©es d'importation ou mappage manquants")
         if mapping.get("location"):
@@ -7109,28 +7116,28 @@ def compress_image_base64(base64_str: str, max_size=(800, 800), quality=75) -> s
     """Decodes base64, resizes if needed, and compresses to JPEG to save space."""
     if not base64_str or not base64_str.startswith("data:image"):
          return base64_str
-    
+
     try:
         # Standard base64 format check
         if ',' not in base64_str:
             return base64_str
-            
+
         header, data = base64_str.split(',', 1)
         image_data = base64.b64decode(data)
         img = Image.open(io.BytesIO(image_data))
-        
+
         # Convert to RGB if needed (JPEG doesn't support transparency/alpha)
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
-            
+
         # Resize maintaining aspect ratio
         img.thumbnail(max_size)
-        
+
         # Save to buffer with compression
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG", quality=quality, optimize=True)
         compressed_data = base64.b64encode(buffer.getvalue()).decode()
-        
+
         return f"data:image/jpeg;base64,{compressed_data}"
     except Exception as e:
         logger.error(f"Image compression failed: {e}")
@@ -7248,7 +7255,7 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
         raise HTTPException(status_code=403, detail="Vous ne pouvez pas dÃ©lÃ©guer la gestion d'Ã©quipe")
     if is_delegated_manager and sub_user_data.account_roles:
         raise HTTPException(status_code=403, detail="Vous ne pouvez pas attribuer des rÃ´les de compte")
-    
+
     # Plan limits on staff count
     STAFF_LIMITS = {"starter": 0, "pro": 5, "enterprise": 9999}
     owner_id = get_owner_id(user)
@@ -7263,7 +7270,7 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
     # Check if email exists
     if await db.users.find_one({"email": sub_user_data.email}):
         raise HTTPException(status_code=400, detail="Cet email est dÃ©jÃ  utilisÃ©")
-    
+
     new_user_id = f"user_{uuid.uuid4().hex[:12]}"
     hashed_password = pwd_context.hash(sub_user_data.password)
     account_store_ids = resolve_allowed_store_ids({"role": "shopkeeper", "store_ids": (account_doc or {}).get("store_ids") or []}, account_doc)
@@ -7293,7 +7300,7 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
         store_ids=store_scope["store_ids"],
         created_at=datetime.now(timezone.utc)
     )
-    
+
     # Save to DB
     new_user_payload = new_user.model_dump(exclude={"effective_permissions", "effective_plan", "effective_subscription_status"})
     new_user_payload.update({
@@ -7362,7 +7369,7 @@ async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
     if not is_org_admin_user(user) and not is_delegated_manager:
         raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ©")
-    
+
     owner_id = user.parent_user_id or user.user_id
     target_user = await db.users.find_one({"user_id": sub_user_id, "parent_user_id": owner_id}, {"name": 1, "permissions": 1, "account_roles": 1, "role": 1})
     # Anti-escalade : manager dÃ©lÃ©guÃ© ne peut pas supprimer un autre manager
@@ -7460,7 +7467,7 @@ async def register_push_token(data: PushTokenRegistration, user: User = Depends(
     """Register an Expo Push Token for the current user"""
     if not (data.token.startswith("ExponentPushToken") or data.token.startswith("ExpoPushToken")):
         raise HTTPException(status_code=400, detail="Format de jeton invalide")
-        
+
     await db.users.update_one(
         {"user_id": user.user_id},
         {"$addToSet": {"push_tokens": data.token.strip()}}
@@ -7927,7 +7934,7 @@ async def admin_global_stats(user: User = Depends(require_superadmin)):
     store_count = await db.stores.count_documents({})
     product_count = await db.products.count_documents({})
     sale_count = await db.sales.count_documents({})
-    
+
     # Retention KPIs
     deleted_count = await db.deleted_users_archive.count_documents({})
     inactive_threshold = datetime.now(timezone.utc) - timedelta(days=30)
@@ -8210,7 +8217,7 @@ async def admin_delete_product(product_id: str, user: User = Depends(require_sup
     result = await db.products.delete_one({"product_id": product_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
-    
+
     # Log the action
     await log_activity(
         user_id=user.user_id,
@@ -8226,13 +8233,13 @@ async def admin_toggle_product(product_id: str, user: User = Depends(require_sup
     product = await db.products.find_one({"product_id": product_id})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
-    
+
     new_status = not product.get("is_active", True)
     await db.products.update_one(
         {"product_id": product_id},
         {"$set": {"is_active": new_status, "updated_at": datetime.now(timezone.utc)}}
     )
-    
+
     # Log the action
     await log_activity(
         user_id=user.user_id,
@@ -8748,12 +8755,12 @@ async def admin_detailed_stats():
         {"$match": {"created_at": {"$gte": today_start}}},
         {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
     ]).to_list(1)
-    
+
     revenue_week_agg = await db.sales.aggregate([
         {"$match": {"created_at": {"$gte": seven_days_ago}}},
         {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
     ]).to_list(1)
-    
+
     revenue_month_agg = await db.sales.aggregate([
         {"$match": {"created_at": {"$gte": thirty_days_ago}}},
         {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
@@ -10400,7 +10407,7 @@ async def admin_toggle_user(user_id: str):
     user_doc = await db.users.find_one({"user_id": user_id})
     if not user_doc:
         raise HTTPException(status_code=404, detail=i18n.t("errors.user_not_found", current_user.language))
-    
+
     new_status = not user_doc.get("is_active", True)
     await db.users.update_one(
         {"user_id": user_id},
@@ -10613,8 +10620,8 @@ async def admin_broadcast(data: BroadcastMessage):
     delivery = await _deliver_admin_message(msg, recipients)
     msg.delivery = delivery
     await db.admin_messages.insert_one(msg.model_dump())
-    
-    
+
+
     # Log the broadcast
     await db.activity_logs.insert_one({
         "log_id": f"log_{uuid.uuid4().hex[:12]}",
@@ -10625,7 +10632,7 @@ async def admin_broadcast(data: BroadcastMessage):
         "description": f"Diffusion: {data.title} - {data.message}",
         "created_at": datetime.now(timezone.utc)
     })
-    
+
     sent_to = (delivery.get("push") or {}).get("valid_tokens", 0)
     return {"status": "sent", "count": sent_to, "sent_to": sent_to, "delivery": delivery}
 
@@ -10636,7 +10643,7 @@ async def run_abc_analysis(user: User = Depends(require_org_admin)):
     """Run ABC Analysis for the user's inventory"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
-    
+
     result = await OperationalService.calculate_abc_classes(db, owner_id, store_id, lang=user.language)
     return result
 
@@ -10649,33 +10656,33 @@ class BatchActionRequest(BaseModel):
 async def batch_product_action(data: BatchActionRequest, user: User = Depends(require_permission("stock", "write"))):
     """Perform bulk actions on selected products"""
     owner_id = get_owner_id(user)
-    
+
     query = {
         "user_id": owner_id,
         "product_id": {"$in": data.product_ids}
     }
-    
+
     if data.action == "delete":
         result = await db.products.delete_many(query)
         message = f"{result.deleted_count} produits supprimÃ©s"
-        
+
     elif data.action == "activate":
         result = await db.products.update_many(query, {"$set": {"is_active": True}})
         message = f"{result.modified_count} produits activÃ©s"
-        
+
     elif data.action == "deactivate":
         result = await db.products.update_many(query, {"$set": {"is_active": False}})
         message = f"{result.modified_count} produits dÃ©sactivÃ©s"
-        
+
     elif data.action == "set_category":
         if not data.value:
             raise HTTPException(status_code=400, detail="Category ID required")
         result = await db.products.update_many(query, {"$set": {"category_id": data.value}})
         message = f"{result.modified_count} produits mis Ã  jour"
-        
+
     else:
         raise HTTPException(status_code=400, detail="Action non supportÃ©e")
-    
+
     await db.activity_logs.insert_one({
         "log_id": f"log_{uuid.uuid4().hex[:12]}",
         "user_id": user.user_id,
@@ -10686,7 +10693,7 @@ async def batch_product_action(data: BatchActionRequest, user: User = Depends(re
         "description": message,
         "created_at": datetime.now(timezone.utc)
     })
-    
+
     return {"message": message, "count": result.modified_count if hasattr(result, 'modified_count') else result.deleted_count}
 
 class SupplierOrderRequest(BaseModel):
@@ -10699,12 +10706,12 @@ async def send_marketplace_order(order: SupplierOrderRequest, user: User = Depen
     """Simulate sending an order to a supplier"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
-    
+
     result = await MarketplaceAutomationService.send_order(
-        db, 
-        owner_id, 
-        order.items, 
-        order.supplier_id, 
+        db,
+        owner_id,
+        order.items,
+        order.supplier_id,
         store_id,
         user.language
     )
@@ -10725,7 +10732,7 @@ async def list_collections():
     for name in visible_collections:
         count = await db[name].count_documents({})
         result.append({"name": name, "count": count})
-    
+
     return result
 
 @admin_router.get("/collections/{name}")
@@ -10736,7 +10743,7 @@ async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Opt
     # Security check: ensure strictly read-only and no arbitrary code execution
     if name not in await db.list_collection_names():
         raise HTTPException(status_code=404, detail="Collection not found")
-        
+
     query = {}
     if search:
         search = search.strip()
@@ -10747,7 +10754,7 @@ async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Opt
             regex = {"$regex": safe_regex(search), "$options": "i"}
             query = {"$or": [
                 {"name": regex}, {"title": regex}, {"email": regex},
-                {"description": regex}, {"phone": regex}, 
+                {"description": regex}, {"phone": regex},
                 {"company_name": regex}, {"status": regex},
                 {"user_id": regex}, {"store_id": regex},
                 {"subject": regex}, {"content": regex}
@@ -10756,7 +10763,7 @@ async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Opt
     cursor = db[name].find(query).skip(skip).limit(limit).sort("_id", -1)
     documents = await cursor.to_list(length=limit)
     total_count = await db[name].count_documents(query)
-    
+
     # Helper for serialization
     def serialize_doc(doc):
         if isinstance(doc, list):
@@ -10770,7 +10777,7 @@ async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Opt
         return doc
 
     serialized_docs = [serialize_doc(doc) for doc in documents]
-        
+
     return {"data": serialized_docs, "total": total_count, "skip": skip, "limit": limit}
 
 LANGUAGE_NAMES = {
@@ -11173,8 +11180,8 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
             if data_summary:
                 contextualized_message += f"--- DONNEES REELLES ---\n{data_summary}\n\n"
             contextualized_message += f"[QUESTION]\n{prompt.message}"
-        model = genai.GenerativeModel('gemini-2.0-flash', system_instruction=system_instruction, tools=tools_list)
-        
+        model = build_gemini_model(system_instruction=system_instruction, tools=tools_list)
+
         # Load full history from DB
         db_history = await db.ai_conversations.find_one({"user_id": user.user_id})
         chat_history = []
@@ -11193,14 +11200,14 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
                 chat_history.append(genai.protos.Content(role=role, parts=[part]))
 
         chat = model.start_chat(history=chat_history)
-        
+
         # Send message and handle function calls loop (C6: Generic Error)
         try:
             response = chat.send_message(contextualized_message)
         except Exception as e:
             logger.error(f"AI support response error: {str(e)}")
             raise HTTPException(status_code=500, detail="Une erreur est survenue lors de la discussion avec l'IA")
-        
+
         # Limit max function calls to prevent infinite loops
         max_calls = 5
         calls = 0
@@ -11226,7 +11233,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
                 if isinstance(text_value, str) and text_value.strip():
                     text_chunks.append(text_value.strip())
             return "\n".join(text_chunks).strip()
-        
+
         while calls < max_calls:
             parts = _get_response_parts(response)
             if not parts:
@@ -11266,14 +11273,14 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
             else:
                 # Text response ready
                 break
-        
+
         response_text = _extract_response_text(response)
         if not response_text:
             raise HTTPException(
                 status_code=500,
                 detail="L'assistant IA n'a pas pu generer de reponse exploitable pour cette demande.",
             )
-        
+
         # Save Assistant Message
         try:
             await _save_ai_message(user.user_id, "assistant", response_text)
@@ -11282,7 +11289,7 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
         await track_ai_usage(user.user_id, "support_chat", plan=_resolve_ai_plan(user))
 
         return {"response": response_text}
-        
+
     except HTTPException:
         raise
     except Exception:
@@ -11356,7 +11363,7 @@ RÃ©ponds UNIQUEMENT avec un JSON valide (sans markdown) :
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         text = response.text.strip()
         if text.startswith("```"):
@@ -11421,7 +11428,7 @@ RÃ©ponds UNIQUEMENT avec la description, sans guillemets, sans prÃ©fixe.
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         description = response.text.strip().strip('"').strip("'")
         await track_ai_usage(user.user_id, "generate_description", plan=_resolve_ai_plan(user))
@@ -11500,7 +11507,7 @@ Structure du briefing (max 250 mots) :
 Sois direct comme un associÃ© qui connaÃ®t le business. Aucune formule de politesse. Que des faits et des actions."""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         await track_ai_usage(user.user_id, "daily_summary", plan=_resolve_ai_plan(user))
         return {"summary": response.text.strip()}
@@ -11519,7 +11526,7 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
         query = {"user_id": user_id}
         if store_id:
             query["store_id"] = store_id
-        
+
         products = await db.products.find(query, {"_id": 0}).to_list(1000)
         # Skip anomaly detection for empty accounts â€” avoids AI false positives
         if not products:
@@ -11553,7 +11560,7 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
         business_profile = get_ai_business_profile(user_doc)
         business_guidance = get_ai_business_guidance(business_profile, lang)
         currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
-        
+
         avg_daily_rev = sum(daily_rev.values()) / max(len(daily_rev), 1)
         out_of_stock_count = len([p for p in products if _safe_float(p.get("quantity"), 0.0) <= 0])
         out_of_stock_ratio = out_of_stock_count / max(len(products), 1)
@@ -11617,7 +11624,7 @@ Contraintes importantes:
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         text = response.text.strip()
         if text.startswith("```"):
@@ -11815,7 +11822,7 @@ Sois prÃ©cis avec les quantitÃ©s. Utilise les donnÃ©es fournies.
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         await track_ai_usage(user.user_id, "replenishment_advice", plan=_resolve_ai_plan(user))
         return {
@@ -11868,7 +11875,7 @@ async def ai_suggest_price(request: Request, data: dict = Body(...), user: User 
         business_profile = get_ai_business_profile({"business_type": user.business_type})
         business_guidance = get_ai_business_guidance(business_profile, lang)
         currency = user.currency if hasattr(user, 'currency') else "XOF"
-        
+
         # Price history
         price_history = await db.price_history.find(
             {"product_id": product_id}, {"_id": 0}
@@ -11927,7 +11934,7 @@ Le prix suggÃ©rÃ© doit Ãªtre rÃ©aliste (> prix achat, cohÃ©rent avec l
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         text = response.text.strip()
         if text.startswith("```"):
@@ -11974,7 +11981,7 @@ async def ai_scan_invoice(request: Request, data: dict = Body(...), user: User =
             image_base64 = image_base64.split(",", 1)[1]
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
 
         image_part = {
             "mime_type": "image/jpeg",
@@ -12079,7 +12086,7 @@ Fournis une analyse structurÃ©e en 4 points :
 Sois direct, analytique, utilise les chiffres. Pas de formules creuses."""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         return {
             "analysis": response.text.strip(),
@@ -12112,20 +12119,20 @@ async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = D
             lpd = c.get("last_purchase_date")
             if not lpd:
                 continue
-            
+
             try:
                 # Handle both datetime and string formats
                 d = lpd if isinstance(lpd, datetime) else datetime.fromisoformat(str(lpd).replace("Z", "+00:00"))
                 if d.tzinfo is None:
                     d = d.replace(tzinfo=timezone.utc)
-                
+
                 days_inactive = (now - d).days
                 if days_inactive >= 30:
                     # Anonymize name (I13)
                     raw_name = c.get("name", "N/A")
                     initials = "".join([n[0] for n in str(raw_name).split() if n]) if raw_name else "XX"
                     anon_name = f"Client {initials}***"
-                    
+
                     at_risk.append({
                         "customer_id": c.get("customer_id"),
                         "name": anon_name,
@@ -12165,7 +12172,7 @@ Fournis une analyse structurÃ©e :
 Sois direct et opÃ©rationnel. Utilise les chiffres fournis."""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(summary_prompt)
 
         return {"at_risk": top_at_risk, "total_at_risk": len(at_risk), "summary": response.text.strip()}
@@ -12261,7 +12268,7 @@ Exactement 3 actions numÃ©rotÃ©es, chacune avec : quoi faire, pourquoi, impa
 Sois professionnel, analytique et chiffrÃ©. Utilise uniquement les donnÃ©es fournies."""
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         return {"report": response.text.strip(), "generated_at": now.isoformat()}
     except Exception as e:
@@ -12287,7 +12294,7 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
             audio_base64 = audio_base64.split(",", 1)[1]
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
 
         audio_part = {
             "mime_type": "audio/mp4",
@@ -14564,7 +14571,7 @@ NOTES : {notes or "Aucune"}
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         summary_text = response.text.strip()
     except Exception as e:
@@ -14700,7 +14707,7 @@ Rules:
         raise HTTPException(status_code=503, detail="AI service not configured")
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = build_gemini_model()
     response = model.generate_content(prompt)
     message_text = response.text.strip() if response and response.text else ""
 
@@ -14953,7 +14960,7 @@ async def natural_language_query(body: dict = Body(...), user: User = Depends(re
             api_key = resolve_gemini_api_key()
             if api_key:
                 genai.configure(api_key=api_key)
-                model = genai.GenerativeModel("gemini-2.0-flash")
+                model = build_gemini_model()
                 prompt = f"""You are a business data assistant. Classify this query into ONE of these intents:
 revenue, top_products, low_stock, deadstock, debt_customers, expenses, orders, margin, alerts, inventory, unknown
 
@@ -15072,7 +15079,7 @@ async def voice_to_cart(body: dict = Body(...), user: User = Depends(require_ope
         raise HTTPException(status_code=503, detail="AI service not configured")
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = build_gemini_model()
 
     lang_names = {"fr": "French", "en": "English", "es": "Spanish", "ar": "Arabic", "pt": "Portuguese"}
     lang_name = lang_names.get(lang, "French")
@@ -15174,7 +15181,7 @@ async def admin_update_dispute_status(dispute_id: str, update: DisputeStatusUpda
     update_fields = {"status": update.status, "updated_at": datetime.now(timezone.utc)}
     if update.resolution: update_fields["resolution"] = update.resolution
     if update.admin_notes: update_fields["admin_notes"] = update.admin_notes
-    
+
     result = await db.disputes.update_one(
         {"dispute_id": dispute_id},
         {"$set": update_fields}
@@ -15191,11 +15198,11 @@ async def admin_dispute_stats():
     investigating = await db.disputes.count_documents({"status": "investigating"})
     resolved = await db.disputes.count_documents({"status": "resolved"})
     rejected = await db.disputes.count_documents({"status": "rejected"})
-    
+
     type_pipeline = [{"$group": {"_id": "$type", "count": {"$sum": 1}}}]
     type_data = await db.disputes.aggregate(type_pipeline).to_list(10)
     by_type = {t["_id"]: t["count"] for t in type_data}
-    
+
     return {
         "total": total,
         "open": open_count,
@@ -15238,7 +15245,7 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
         delivery = await _deliver_admin_message(msg, recipients)
     msg.delivery = delivery
     await db.admin_messages.insert_one(msg.model_dump())
-    
+
     # Log
     await db.activity_logs.insert_one({
         "log_id": f"log_{uuid.uuid4().hex[:12]}",
@@ -15249,7 +15256,7 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
         "description": f"Message ({data.type}): {data.title} â†’ {data.target}",
         "created_at": datetime.now(timezone.utc)
     })
-    
+
     return {"message_id": msg.message_id, "sent": True, "delivery": delivery}
 
 
@@ -15316,7 +15323,7 @@ Format attendu :
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         raw_text = (response.text or "").strip()
         if raw_text.startswith("```"):
@@ -15365,14 +15372,14 @@ async def admin_security_stats():
     now = datetime.now(timezone.utc)
     last_24h = now - timedelta(hours=24)
     last_7d = now - timedelta(days=7)
-    
+
     total_events = await db.security_events.count_documents({})
     failed_logins_24h = await db.security_events.count_documents({"type": "login_failed", "created_at": {"$gte": last_24h}})
     failed_logins_7d = await db.security_events.count_documents({"type": "login_failed", "created_at": {"$gte": last_7d}})
     successful_logins_24h = await db.security_events.count_documents({"type": "login_success", "created_at": {"$gte": last_24h}})
     password_changes = await db.security_events.count_documents({"type": "password_changed", "created_at": {"$gte": last_7d}})
     blocked_users = await db.users.count_documents({"is_active": False})
-    
+
     return {
         "total_events": total_events,
         "failed_logins_24h": failed_logins_24h,
@@ -15515,7 +15522,7 @@ TEXTE Ã€ PARSER :
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = build_gemini_model()
         response = model.generate_content(prompt)
         text_result = response.text.strip()
         if text_result.startswith("```"):
@@ -16114,7 +16121,7 @@ async def check_ai_anomalies_loop():
         store_id = u["active_store_id"]
         account_id = u.get("account_id")
         anomalies = await detect_anomalies_internal(user_id, store_id)
-        
+
         for anomaly in anomalies:
             alert_type = f"ai_{anomaly['type']}"
 
@@ -16171,7 +16178,7 @@ async def check_ai_anomalies_loop():
                     alert,
                     data={"screen": "alerts", "filter": "anomalies"},
                 )
-    
+
     logger.info("Global AI anomaly detection check completed")
 
 async def check_alerts_loop():
@@ -16380,12 +16387,12 @@ async def cleanup_logs_loop():
     """Removes security logs older than 90 days (I11)"""
     retention_days = 90
     threshold = datetime.now(timezone.utc) - timedelta(days=retention_days)
-    
+
     # 1. Cleanup security events
     result = await db.security_events.delete_many({"created_at": {"$lt": threshold}})
     if result.deleted_count:
         logger.info(f"Cleanup: Removed {result.deleted_count} security logs older than {retention_days} days")
-    
+
     # 2. Cleanup activity logs
     result_act = await db.activity_logs.delete_many({"created_at": {"$lt": threshold}})
     if result_act.deleted_count:
@@ -16402,8 +16409,8 @@ async def cleanup_logs_loop():
 
 @api_router.post("/customers/{customer_id}/payments", response_model=CustomerPayment)
 async def create_customer_payment(
-    customer_id: str, 
-    payment_data: CustomerPaymentCreate, 
+    customer_id: str,
+    payment_data: CustomerPaymentCreate,
     user: User = Depends(require_permission("crm", "write"))
 ):
     ensure_subscription_write_allowed(user)
@@ -16538,7 +16545,7 @@ async def get_customer_debt_history(
 
 @api_router.get("/customers/{customer_id}/payments", response_model=List[CustomerPayment])
 async def get_customer_payments(
-    customer_id: str, 
+    customer_id: str,
     user: User = Depends(require_permission("crm", "read"))
 ):
     owner_id = get_owner_id(user)
@@ -17013,7 +17020,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
         if existing:
             raise HTTPException(status_code=400, detail="Cet email est dÃ©jÃ  utilisÃ©")
-        
+
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         hashed_password = get_password_hash(user_data.password)
 
@@ -17025,7 +17032,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             name=f"Magasin de {user_data.name}"
         )
         await db.stores.insert_one(store.model_dump())
-        
+
         role = user_data.role if user_data.role in ("shopkeeper", "supplier") else "shopkeeper"
         initial_plan = user_data.plan if user_data.plan in ("starter", "pro", "enterprise") else "starter"
         signup_surface = resolve_signup_surface(user_data.signup_surface, initial_plan)
@@ -17076,7 +17083,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             "country_code": user_data.country_code or "SN",
             "created_at": datetime.now(timezone.utc)
         }
-        
+
         await db.users.insert_one(user_doc)
 
         # Log registration activity
@@ -17088,7 +17095,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             f"Nouvel utilisateur: {user_data.name} ({user_data.business_type or 'N/A'})",
             {"how_did_you_hear": user_data.how_did_you_hear}
         )
-        
+
         # Create default settings
         settings = UserSettings(user_id=user_id, account_id=user_doc.get("account_id"))
         await db.user_settings.insert_one(settings.model_dump())
@@ -17161,7 +17168,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             )
 
         session_tokens = await create_authenticated_session(user_doc, request, response)
-        
+
         user = await build_user_from_doc(user_doc)
 
         return TokenResponse(
@@ -17712,7 +17719,7 @@ async def login(request: Request, user_data: UserLogin, response: Response):
     if not user_doc:
         await log_security_event("login_failed", user_email=user_data.email, request=request, details="email_not_found")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     if user_doc.get("auth_type") in ("google", "apple") and not user_doc.get("password_set"):
         raise HTTPException(status_code=400, detail="Ce compte utilise la connexion Google. Connectez-vous via Google ou definissez un mot de passe dans les parametres.")
 
@@ -17725,7 +17732,7 @@ async def login(request: Request, user_data: UserLogin, response: Response):
             details="login_locked",
         )
         raise HTTPException(status_code=423, detail="Compte temporairement verrouille. Reessayez plus tard.")
-    
+
     stored_password_hash = user_doc.get("password_hash", "")
     if not stored_password_hash:
         credentials_doc = await db.credentials.find_one({"user_id": user_doc["user_id"]}, {"_id": 0, "password_hash": 1})
@@ -17744,7 +17751,7 @@ async def login(request: Request, user_data: UserLogin, response: Response):
         if refreshed_doc and is_login_locked(refreshed_doc):
             raise HTTPException(status_code=423, detail="Compte temporairement verrouille. Reessayez plus tard.")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     login_at = datetime.now(timezone.utc)
     login_updates = {
         "last_login": login_at,
@@ -17767,11 +17774,11 @@ async def login(request: Request, user_data: UserLogin, response: Response):
         details="login",
     )
     session_tokens = await create_authenticated_session(user_doc, request, response)
-    
+
     # Ensure store info is returned (compatibility with older users)
     active_store_id = user_doc.get("active_store_id")
     store_ids = user_doc.get("store_ids", [])
-    
+
     # Migration for old users without stores: create one if needed
     try:
         if not store_ids and user_doc.get("role") == "shopkeeper":
@@ -17792,7 +17799,7 @@ async def login(request: Request, user_data: UserLogin, response: Response):
         logger.error(f"Migration error for user {user_doc.get('user_id')}: {e}")
         # On continue quand mÃªme le login si possible
 
-        
+
     try:
         user_doc["active_store_id"] = active_store_id
         user_doc["store_ids"] = store_ids
@@ -18173,22 +18180,22 @@ async def set_active_store(store_data: dict, user: User = Depends(require_auth))
     if not store_id:
         raise HTTPException(status_code=400, detail="Magasin invalide")
     ensure_user_store_access(user, store_id, detail="Magasin invalide")
-        
+
     # Check that store is within current plan limits
     STORE_LIMITS = {"starter": 1, "pro": 2, "enterprise": 9999}
     plan = user.effective_plan or user.plan
     limit = STORE_LIMITS.get(plan, 1)
-    
+
     try:
         store_index = user.store_ids.index(store_id)
         if store_index >= limit:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail=f"Votre plan '{user.plan}' est limitÃ© Ã  {limit} boutique(s). Passez Ã  un plan supÃ©rieur pour accÃ©der Ã  cette boutique."
             )
     except ValueError:
         raise HTTPException(status_code=400, detail="Magasin non trouvÃ©")
-        
+
     await db.users.update_one(
         {"user_id": user.user_id},
         {"$set": {"active_store_id": store_id}}
@@ -18824,7 +18831,7 @@ async def get_categories(user: User = Depends(require_any_read("stock", "pos")),
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id}
     query = apply_store_scope(query, user, store_id)
-        
+
     categories = await db.categories.find(query, {"_id": 0}).to_list(100)
     return [Category(**cat) for cat in categories]
 
@@ -19038,12 +19045,12 @@ class ProductStats(BaseModel):
 @api_router.get("/products/{product_id}/stats", response_model=ProductStats)
 async def get_product_stats(product_id: str, user: User = Depends(require_permission("stock", "read"))):
     owner_id = get_owner_id(user)
-    
+
     # 1. Total sales & revenue
     sales_pipeline = [
         {"$match": {
-            "user_id": owner_id, 
-            "$or": [{"status": {"$exists": False}}, {"status": "completed"}], 
+            "user_id": owner_id,
+            "$or": [{"status": {"$exists": False}}, {"status": "completed"}],
             "items.product_id": product_id
         }},
         {"$unwind": "$items"},
@@ -19066,7 +19073,7 @@ async def get_product_stats(product_id: str, user: User = Depends(require_permis
         }}
     ]
     mov_res = await db.stock_movements.aggregate(mov_pipeline).to_list(None)
-    
+
     total_in = next((m.get("total_quantity", 0) for m in mov_res if m["_id"] == "in"), 0)
     total_out = next((m.get("total_quantity", 0) for m in mov_res if m["_id"] == "out"), 0)
 
@@ -19119,11 +19126,11 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
     owner_id = get_owner_id(user)
     if prod_data.location_id:
         ensure_enterprise_locations_allowed(user)
-    
+
     # Compress product image (I16)
     if prod_data.image:
         prod_data.image = compress_image_base64(prod_data.image)
-        
+
     if prod_data.linked_recipe_id:
         prod_data.is_menu_item = True
     if prod_data.production_mode in ("on_demand", "hybrid"):
@@ -19166,11 +19173,11 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
 @api_router.put("/products/{product_id}", response_model=Product)
 async def update_product(product_id: str, prod_data: ProductUpdate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
-    
+
     # Compress product image (I16)
     if prod_data.image:
         prod_data.image = compress_image_base64(prod_data.image)
-        
+
     update_dict = prod_data.model_dump(exclude_unset=True)
     force_override = bool(update_dict.pop("force_override", False))
     if "sku" in update_dict:
@@ -19402,13 +19409,13 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
-    
+
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     product = normalize_product_measurement_fields(product)
     previous_quantity = float(product["quantity"])
     actual_quantity = adj_data.actual_quantity
     diff = actual_quantity - previous_quantity
-    
+
     if diff == 0:
         return _product_response(product) # No change needed
 
@@ -19418,7 +19425,7 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
         {"product_id": product_id, "user_id": owner_id},
         {"$set": {"quantity": actual_quantity, "updated_at": datetime.now(timezone.utc)}}
     )
-    
+
     # Record movement
     movement = StockMovement(
         product_id=product_id,
@@ -19433,7 +19440,7 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
     )
     await db.stock_movements.insert_one(movement.model_dump())
     _invalidate_dashboard_ai_caches(owner_id, product.get("store_id") or user.active_store_id)
-    
+
     # Log activity
     await log_activity(
         user=user,
@@ -19447,7 +19454,7 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
     product["quantity"] = actual_quantity
     normalized_product = normalize_product_measurement_fields(product)
     await check_and_create_alerts(Product(**normalized_product), owner_id, store_id=user.active_store_id)
-    
+
     return Product(**normalized_product)
 
 @api_router.delete("/products/{product_id}")
@@ -19747,7 +19754,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
                     {"$inc": {"quantity": -deduct}, "$set": {"updated_at": datetime.now(timezone.utc)}}
                 )
                 qty_to_deduct -= deduct
-    
+
     # Create movement record
     movement = StockMovement(
         product_id=mov_data.product_id,
@@ -19855,11 +19862,11 @@ async def create_batch(batch_data: BatchCreate, user: User = Depends(require_per
         store_id=user.active_store_id
     )
     await db.batches.insert_one(batch.model_dump())
-    
+
     # Optional: Automatically create a stock movement for this initial batch quantity?
     # For now, let's assume batches are created via stock movements or separately.
     # If created separately, we should probably record a movement to keep product total sync.
-    
+
     return batch
 
 def _build_location_generation_entries(level: LocationGenerationLevel) -> List[Dict[str, str]]:
@@ -20903,7 +20910,7 @@ async def generate_inventory_tasks(user: User = Depends(require_permission("stoc
 
 @api_router.put("/inventory/tasks/{task_id}", response_model=InventoryTask)
 async def submit_inventory_result(
-    task_id: str, 
+    task_id: str,
     update: InventoryTaskUpdate,
     user: User = Depends(require_permission("stock", "write"))
 ):
@@ -20911,13 +20918,13 @@ async def submit_inventory_result(
     if not task:
         raise HTTPException(status_code=404, detail=i18n.t("inventory.task_not_found", user.language))
     ensure_scoped_document_access(user, task, detail="Acces refuse pour cette tache d'inventaire")
-        
+
     actual = update.actual_quantity
     expected = task["expected_quantity"]
     discrepancy = actual - expected
-    
+
     updated_at = datetime.now(timezone.utc)
-    
+
     result = await db.inventory_tasks.find_one_and_update(
         {"task_id": task_id},
         {"$set": {
@@ -20928,12 +20935,12 @@ async def submit_inventory_result(
         }},
         return_document=True
     )
-    
+
     # If discrepancy, we should probably record a stock movement to adjust!
     if discrepancy != 0:
         mov_type = "in" if discrepancy > 0 else "out"
         qty = abs(discrepancy)
-        
+
         # We'll call the logic directly instead of a sub-request
         # For simplicity, let's just create a movement record
         movement = StockMovement(
@@ -20949,16 +20956,16 @@ async def submit_inventory_result(
         )
         await db.stock_movements.insert_one(movement.model_dump())
         _invalidate_dashboard_ai_caches(get_owner_id(user), task.get("store_id") or user.active_store_id)
-        
+
         # Update product
         await db.products.update_one(
             {"product_id": task["product_id"], "user_id": get_owner_id(user)},
             {"$set": {"quantity": actual, "updated_at": updated_at}}
         )
-        
+
         # Also need to check alerts for the new quantity
         # ... logic skipped for brevity but ideally called here
-        
+
     result.pop("_id", None)
     return InventoryTask(**result)
 
@@ -21601,7 +21608,7 @@ async def create_campaign(data: CampaignCreate, user: User = Depends(require_per
         "created_at": datetime.now(timezone.utc),
     }
     await db.campaigns.insert_one(campaign)
-    
+
     await log_activity(
         user=user,
         action="campaign",
@@ -21609,7 +21616,7 @@ async def create_campaign(data: CampaignCreate, user: User = Depends(require_per
         description=f"Campagne {data.channel} envoyÃ©e Ã  {len(data.customer_ids)} clients",
         details={"campaign_id": campaign["campaign_id"], "recipients": len(data.customer_ids)}
     )
-    
+
     return {"message": f"Campagne enregistrÃ©e ({len(data.customer_ids)} destinataires)"}
 
 @api_router.get("/customers/{customer_id}/sales")
@@ -21703,7 +21710,7 @@ async def create_customer(customer_data: CustomerCreate, user: User = Depends(re
         **customer_data.model_dump(exclude_none=True)
     )
     await db.customers.insert_one(customer.model_dump())
-    
+
     await log_activity(
         user=user,
         action="create_customer",
@@ -21711,7 +21718,7 @@ async def create_customer(customer_data: CustomerCreate, user: User = Depends(re
         description=f"Nouveau client crÃ©Ã© : {customer.name}",
         details={"customer_id": customer.customer_id}
     )
-    
+
     return customer
 
 @api_router.get("/customers/{customer_id}", response_model=Customer)
@@ -22216,7 +22223,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     user_id = user.user_id
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
-    
+
     sale_items = []
     is_open_order = (sale_data.status == "open")
 
@@ -22419,7 +22426,7 @@ async def create_expense(expense_data: ExpenseCreate, user: User = Depends(requi
     )
     if expense_data.date:
         expense.created_at = expense_data.date
-        
+
     await db.expenses.insert_one(expense.model_dump())
     _invalidate_dashboard_ai_caches(owner_id, expense.store_id or user.active_store_id)
 
@@ -22559,7 +22566,7 @@ def build_accounting_summary(
 
 @api_router.get("/accounting/stats", response_model=AccountingStats)
 async def get_accounting_stats(
-    days: Optional[int] = 30, 
+    days: Optional[int] = 30,
     start_date_str: Optional[str] = Query(None, alias="start_date"),
     end_date_str: Optional[str] = Query(None, alias="end_date"),
     user: User = Depends(require_permission("accounting", "read"))
@@ -22596,10 +22603,10 @@ async def get_accounting_stats(
     sales_query: dict = {"user_id": user_id}
     sales_query = apply_accessible_store_scope(sales_query, user, store_id)
     sales_query = apply_completed_sales_scope(sales_query)
-    
+
     # Apply date filters directly to the query
     sales_query["created_at"] = {"$gte": start_date, "$lte": end_date}
-    
+
     sales = await db.sales.find(sales_query, {"_id": 0}).sort("created_at", -1).to_list(5000)
 
     revenue = 0.0
@@ -22633,7 +22640,7 @@ async def get_accounting_stats(
                 qty = item.get("quantity", 0)
                 item_revenue = item.get("total", 0.0) or (qty * item.get("selling_price", 0.0))
                 item_cost = item.get("purchase_price", 0.0) * qty
-                
+
                 cogs += item_cost
                 sale_cogs += item_cost
                 total_items_sold += qty
@@ -22655,10 +22662,10 @@ async def get_accounting_stats(
     # 2. Losses Data
     mv_query: dict = {"user_id": user_id, "type": "out"}
     mv_query = apply_accessible_store_scope(mv_query, user, store_id)
-    
+
     # Apply date filters directly to the query
     mv_query["created_at"] = {"$gte": start_date, "$lte": end_date}
-    
+
     all_movements = await db.stock_movements.find(mv_query, {"_id": 0}).sort("created_at", -1).to_list(10000)
 
     movements = [m for m in all_movements if is_loss_stock_movement(m)]
@@ -22692,7 +22699,7 @@ async def get_accounting_stats(
     exp_query: dict = {"user_id": user_id}
     exp_query = apply_accessible_store_scope(exp_query, user, store_id)
     all_expenses_docs = await db.expenses.find(exp_query, {"_id": 0}).to_list(2000)
-    
+
     total_expenses = 0.0
     expenses_breakdown: Dict[str, float] = {}
     for e in all_expenses_docs:
@@ -25597,7 +25604,7 @@ async def get_dashboard(user: User = Depends(require_operational_access)):
         stats_query,
         {"_id": 0, "created_at": 1, "total_amount": 1, "tax_total": 1}
     ).to_list(5000)
-    
+
     def parse_date(d):
         if isinstance(d, str):
             try:
@@ -25914,14 +25921,14 @@ async def get_supplier_products(supplier_id: str, user: User = Depends(require_p
     links = await db.supplier_products.find(
         {"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0}
     ).to_list(100)
-    
+
     # Get product details
     product_ids = [link["product_id"] for link in links]
     product_query = {"product_id": {"$in": product_ids}, "user_id": owner_id}
     product_query = apply_store_scope(product_query, user)
     products = await db.products.find(product_query, {"_id": 0}).to_list(100)
     products_map = {p["product_id"]: p for p in products}
-    
+
     result = []
     for link in links:
         product = products_map.get(link["product_id"])
@@ -26149,44 +26156,44 @@ async def get_supplier_stats(supplier_id: str, user: User = Depends(require_perm
         raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     return await _build_supplier_stats_payload(supplier_id, owner_id, user)
-    
+
     # Verify supplier
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
-        
+
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
 
     # Get all orders for this supplier
     orders_query = {"supplier_id": supplier_id, "user_id": owner_id}
     orders_query = apply_store_scope(orders_query, user)
     orders = await db.orders.find(orders_query).to_list(1000)
-    
+
     total_spent = sum(o.get("total_amount", 0) for o in orders if o["status"] == "delivered")
     pending_spent = sum(o.get("total_amount", 0) for o in orders if o["status"] in ["pending", "confirmed", "shipped"])
-    
+
     orders_count = len(orders)
     delivered_orders = [o for o in orders if o["status"] == "delivered"]
     pending_orders_count = len([o for o in orders if o["status"] in ["pending", "confirmed", "shipped"]])
-    
+
     # Calculate delivery performance
     delays = []
     for o in delivered_orders:
         created = o.get("created_at")
         updated = o.get("updated_at")
         if created and updated:
-            if isinstance(created, str): 
+            if isinstance(created, str):
                 try: created = datetime.fromisoformat(created.replace('Z', '+00:00'))
                 except: continue
-            if isinstance(updated, str): 
+            if isinstance(updated, str):
                 try: updated = datetime.fromisoformat(updated.replace('Z', '+00:00'))
                 except: continue
-            
+
             diff = (updated - created).days
             delays.append(max(0, diff))
-            
+
     avg_delivery_days = sum(delays) / len(delays) if delays else 0
-    
+
     return {
         "total_spent": total_spent,
         "pending_spent": pending_spent,
@@ -26453,13 +26460,13 @@ async def link_supplier_product(link_data: SupplierProductCreate, user: User = D
         "product_id": link_data.product_id,
         "user_id": owner_id
     }, {"_id": 0})
-    
+
     if existing:
         raise HTTPException(status_code=400, detail="Ce produit est dÃ©jÃ  liÃ© Ã  ce fournisseur")
-    
+
     link = SupplierProduct(**link_data.model_dump(), user_id=owner_id)
     await db.supplier_products.insert_one(link.model_dump())
-    
+
     # If preferred, remove preferred from other suppliers
     if link.is_preferred:
         await db.supplier_products.update_many(
@@ -26470,7 +26477,7 @@ async def link_supplier_product(link_data: SupplierProductCreate, user: User = D
             },
             {"$set": {"is_preferred": False}}
         )
-    
+
     return link
 
 @api_router.put("/supplier-products/{link_id}", response_model=SupplierProduct)
@@ -26594,7 +26601,7 @@ async def get_orders(
     # Batch fetch order_items for all orders (Fix N+1)
     all_order_ids = [o["order_id"] for o in orders]
     all_items = await db.order_items.find({"order_id": {"$in": all_order_ids}}, {"_id": 0}).to_list(1000)
-    
+
     # Group items by order_id
     order_items_map = {} # order_id -> list of items
     all_item_product_ids = []
@@ -26604,26 +26611,26 @@ async def get_orders(
             order_items_map[oid] = []
         order_items_map[oid].append(item)
         all_item_product_ids.append(item["product_id"])
-    
+
     for order in orders:
         items = order_items_map.get(order["order_id"], [])
         order["items_count"] = len(items)
-    
+
     unique_product_ids = list(set(all_item_product_ids))
-    
+
     # Fetch names from local products and catalog products
     products = await db.products.find({"product_id": {"$in": unique_product_ids}, "user_id": owner_id}, {"_id": 0, "product_id": 1, "name": 1}).to_list(len(unique_product_ids))
     catalog_products = await db.catalog_products.find({"catalog_id": {"$in": unique_product_ids}}, {"_id": 0, "catalog_id": 1, "name": 1}).to_list(len(unique_product_ids))
 
     product_names_map = {p["product_id"]: p["name"] for p in products}
     product_names_map.update({p["catalog_id"]: p["name"] for p in catalog_products})
-    
+
     for order in orders:
         if order.get("is_connected") and order.get("supplier_user_id"):
             order["supplier_name"] = mp_map.get(order["supplier_user_id"], "Fournisseur Marketplace")
         else:
             order["supplier_name"] = suppliers_map.get(order["supplier_id"], "Inconnu")
-            
+
         items = order_items_map.get(order["order_id"], [])
         # Resolve names: use stored name if available, otherwise fallback to map, otherwise "Produit"
         preview_names = []
@@ -26632,7 +26639,7 @@ async def get_orders(
             if not name or name == "Produit":
                 name = product_names_map.get(i["product_id"], "Produit")
             preview_names.append(name)
-            
+
         order["items_preview"] = preview_names
         if len(items) > 3:
             order["items_preview"].append(f"+{len(items)-3} autres")
@@ -26643,7 +26650,7 @@ async def get_orders(
 async def get_orders_filter_suppliers(user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
     await backfill_inferred_legacy_store_scope(db.orders, owner_id, user, "order_id")
-    
+
     # Aggregate orders to find unique suppliers and their last order date
     match_stage: dict = {"user_id": owner_id}
     match_stage = apply_store_scope_with_legacy(match_stage, user)
@@ -26660,16 +26667,16 @@ async def get_orders_filter_suppliers(user: User = Depends(require_procurement_a
         },
         {"$sort": {"latest_order_at": -1}}
     ]
-    
+
     results = await db.orders.aggregate(pipeline).to_list(100)
     filter_suppliers = []
-    
+
     # Resolve names
     for res in results:
         is_connected = res["_id"]["is_connected"]
         sup_id = res["_id"]["id"]
         if not sup_id: continue
-        
+
         name = "Inconnu"
         if is_connected:
             profile = await db.supplier_profiles.find_one({"user_id": sup_id}, {"_id": 0, "company_name": 1})
@@ -26678,14 +26685,14 @@ async def get_orders_filter_suppliers(user: User = Depends(require_procurement_a
         else:
             sup = await db.suppliers.find_one({"supplier_id": sup_id, "user_id": owner_id}, {"_id": 0, "name": 1})
             if sup: name = sup["name"]
-            
+
         filter_suppliers.append({
             "id": sup_id,
             "name": name,
             "is_connected": is_connected,
             "latest_order_at": res["latest_order_at"]
         })
-        
+
     return filter_suppliers
 
 @api_router.get("/orders/{order_id}")
@@ -26701,7 +26708,7 @@ async def get_order(order_id: str, user: User = Depends(require_procurement_acce
     ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
-    
+
     # Get supplier (manual or marketplace)
     if order.get("is_connected") and order.get("supplier_user_id"):
         profile = await db.supplier_profiles.find_one({"user_id": order["supplier_user_id"]}, {"_id": 0})
@@ -26711,7 +26718,7 @@ async def get_order(order_id: str, user: User = Depends(require_procurement_acce
         supplier = await db.suppliers.find_one({"supplier_id": order["supplier_id"], "user_id": owner_id}, {"_id": 0})
         order["supplier"] = supplier
         order["supplier_name"] = supplier["name"] if supplier else "Inconnu"
-    
+
     # Get items with product details
     items = await db.order_items.find({"order_id": order_id}, {"_id": 0}).to_list(100)
     product_ids = [item["product_id"] for item in items]
@@ -26807,9 +26814,9 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_pro
         notes=order_data.notes,
         expected_delivery=order_data.expected_delivery
     )
-    
+
     await db.orders.insert_one(order.model_dump())
-    
+
     # Create order items
     for item in order_data.items:
         product_name = "Produit"
@@ -26829,7 +26836,7 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_pro
             total_price=item["quantity"] * item["unit_price"]
         )
         await db.order_items.insert_one(order_item.model_dump())
-    
+
     # Send order email to manual supplier (not connected to marketplace)
     if not is_connected:
         supplier_doc = await db.suppliers.find_one({"supplier_id": resolved_supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -26912,10 +26919,10 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
         {"$set": {"status": status_data.status, "updated_at": datetime.now(timezone.utc)}},
         return_document=True
     )
-    
+
     if not result:
         raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
-    
+
     # If delivered, update stock (only for manual orders â€” marketplace uses confirm-delivery)
     if status_data.status == "delivered" and not result.get("is_connected"):
         items = await db.order_items.find({"order_id": order_id}, {"_id": 0}).to_list(100)
@@ -27011,8 +27018,8 @@ class CreditNote(BaseModel):
 
 @api_router.put("/orders/{order_id}/receive-partial")
 async def receive_partial_delivery(
-    order_id: str, 
-    data: PartialDeliveryRequest, 
+    order_id: str,
+    data: PartialDeliveryRequest,
     request: Request,
     user: User = Depends(require_permission("stock", "write"))
 ):
@@ -27163,16 +27170,16 @@ async def update_supplier_order_status(order_id: str, status_data: OrderStatusUp
     valid_statuses = ["confirmed", "shipped", "partially_delivered", "delivered", "cancelled"]
     if status_data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail="Statut invalide")
-    
+
     result = await db.orders.find_one_and_update(
         {"order_id": order_id, "supplier_user_id": user.user_id, "is_connected": True},
         {"$set": {"status": status_data.status, "updated_at": datetime.now(timezone.utc)}},
         return_document=True
     )
-    
+
     if not result:
         raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
-    
+
     # Notify shopkeeper of status change
     await notification_service.notify_user(
         db,
@@ -27181,7 +27188,7 @@ async def update_supplier_order_status(order_id: str, status_data: OrderStatusUp
         f"Votre commande {order_id} est passÃ©e au statut: {status_data.status}",
         caller_owner_id=get_owner_id(user)
     )
-    
+
     return {"message": "Statut mis Ã  jour"}
 
 @api_router.delete("/orders/{order_id}")
@@ -27200,7 +27207,7 @@ async def delete_order(order_id: str, user: User = Depends(require_procurement_a
 
     if order["status"] not in ["pending", "cancelled"]:
         raise HTTPException(status_code=400, detail="Impossible de supprimer une commande en cours")
-    
+
     delete_query = {"order_id": order_id, "user_id": owner_id}
     if order.get("store_id"):
         delete_query["store_id"] = order["store_id"]
@@ -27235,16 +27242,16 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
     products = await db.products.find(product_query, {"_id": 0}).to_list(1000)
     movements = await db.stock_movements.find(movement_query, {"_id": 0}).sort("created_at", -1).to_list(500)
     orders = await db.orders.find(orders_query, {"_id": 0}).to_list(100)
-    
+
     # Fetch Sales for Revenue Stats (Last 30 days for ABC, last 7 for history)
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     sales_query["created_at"] = {"$gte": thirty_days_ago}
     recent_sales = await db.sales.find(sales_query, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    
+
     # Stock by category
     categories = await db.categories.find(category_query, {"_id": 0}).to_list(100)
     category_map = {c["category_id"]: c["name"] for c in categories}
-    
+
     stock_by_category = {}
     for product in products:
         cat_id = product.get("category_id")
@@ -27253,7 +27260,7 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
             stock_by_category[cat_name] = {"count": 0, "value": 0}
         stock_by_category[cat_name]["count"] += 1
         stock_by_category[cat_name]["value"] += product.get("quantity", 0) * product.get("purchase_price", 0)
-    
+
     # Stock status distribution
     status_distribution = {
         "normal": 0,
@@ -27261,12 +27268,12 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
         "out_of_stock": 0,
         "overstock": 0
     }
-    
+
     for p in products:
         qty = p.get("quantity", 0)
         min_s = p.get("min_stock", 0)
         max_s = p.get("max_stock", 0)
-        
+
         if qty == 0:
             status_distribution["out_of_stock"] += 1
         elif min_s > 0 and qty <= min_s:
@@ -27275,20 +27282,20 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
             status_distribution["overstock"] += 1
         else:
             status_distribution["normal"] += 1
-    
+
     # Calculate stock value history (last 7 days)
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     history_dates = [today - timedelta(days=i) for i in range(7)]
     history_dates.reverse() # Oldest to newest
-    
+
     # Current total value
     # Product price map
     price_map = {p["product_id"]: p.get("purchase_price", 0) for p in products}
-    
+
     current_total_value = sum(p.get("quantity", 0) * price_map[p["product_id"]] for p in products)
-    
+
     stock_value_chart = []
-    
+
     # Calculate backwards logic for Stock Value
     # ... (simplified: just use movements to adjust current value)
     # Re-using logic from before
@@ -27307,12 +27314,12 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
 
     running_value = current_total_value
     stock_history_values = {}
-    
-    for i in range(7): 
+
+    for i in range(7):
         date = today - timedelta(days=i)
         date_str = date.strftime("%Y-%m-%d")
         stock_history_values[date_str] = running_value
-        
+
         # Reverse movements to go back in time
         day_movements = movements_by_date.get(date_str, [])
         for m in day_movements:
@@ -27323,7 +27330,7 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
                 running_value -= (qty * price)
             else:
                 running_value += (qty * price)
-    
+
     for d in history_dates:
         d_str = d.strftime("%Y-%m-%d")
         val = stock_history_values.get(d_str, 0)
@@ -27332,7 +27339,7 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
     # Calculate Revenue History (Last 7 days)
     revenue_chart = []
     revenue_by_date = {}
-    
+
     for s in recent_sales:
         s_date = s["created_at"]
         if isinstance(s_date, str):
@@ -27342,7 +27349,7 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
                 continue
         date_key = s_date.strftime("%Y-%m-%d")
         revenue_by_date[date_key] = revenue_by_date.get(date_key, 0) + s.get("total_amount", 0)
-        
+
     for d in history_dates:
         d_str = d.strftime("%Y-%m-%d")
         val = revenue_by_date.get(d_str, 0)
@@ -27369,12 +27376,12 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
 
     movements_in = sum(m["quantity"] for m in recent_movements if m["type"] == "in")
     movements_out = sum(m["quantity"] for m in recent_movements if m["type"] == "out")
-    
+
     # Orders stats (Purchases)
     orders_pending = len([o for o in orders if o["status"] == "pending"])
     orders_completed = len([o for o in orders if o["status"] == "delivered"])
     total_orders_value = sum(o.get("total_amount", 0) for o in orders if o["status"] == "delivered")
-    
+
     # Top products by value (Stock Value)
     products_by_value = sorted(products, key=lambda p: p.get("quantity", 0) * p.get("purchase_price", 0), reverse=True)[:5]
 
@@ -27395,15 +27402,15 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
         {"$sort": {"value": -1}}
     ]
     profit_by_category = await db.sales.aggregate(profit_pipeline).to_list(10)
-        
+
     # ABC Analysis (Pareto Principle) based on REVENUE (Sales)
     # Class A: Top 80% of revenue
     # Class B: Next 15% of revenue
     # Class C: Last 5% of revenue
-    
+
     product_revenue = {}
     total_revenue_abc = 0
-    
+
     for sale in recent_sales: # Using sales, not orders
         items = sale.get("items", [])
         for item in items:
@@ -27412,22 +27419,22 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
             if pid:
                 product_revenue[pid] = product_revenue.get(pid, 0) + rev
                 total_revenue_abc += rev
-                
+
     sorted_by_revenue = sorted(product_revenue.items(), key=lambda x: x[1], reverse=True)
-    
+
     abc_data = {"A": [], "B": [], "C": []}
     current_revenue = 0
-    
+
     for pid, rev in sorted_by_revenue:
         current_revenue += rev
         if total_revenue_abc > 0:
             percentage = (current_revenue / total_revenue_abc) * 100
         else:
-            percentage = 100 
-            
+            percentage = 100
+
         p_name = next((p["name"] for p in products if p["product_id"] == pid), "Unknown Product")
         item_data = {"id": pid, "name": p_name, "revenue": rev, "percentage": (rev/total_revenue_abc*100) if total_revenue_abc > 0 else 0}
-        
+
         if percentage <= 80:
             abc_data["A"].append(item_data)
         elif percentage <= 95:
@@ -27443,14 +27450,14 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
 
     # Reorder Recommendations (Smart Reordering)
     reorder_recommendations = []
-    
+
     # Calculate daily sales for each product in last 30 days
     product_sales_history = {} # pid -> {date_str: qty}
-    
+
     # Use SALES data for reordering recommendations instead of 'out' movements (more accurate for sales)
     # Alternatively, stick to movements for consistency with manual adjustments
     # Let's stick to movements 'out' as it covers sold + lost/damaged
-    
+
     for m in movements:
         if m["type"] != "out":
             continue
@@ -27469,16 +27476,16 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
     for p in products:
         pid = p["product_id"]
         sales_days = product_sales_history.get(pid, {})
-        
+
         total_qty_30 = sum(sales_days.values())
         avg_daily = total_qty_30 / 30.0
         max_daily = max(sales_days.values()) if sales_days else 0
-        
+
         lead_time = p.get("lead_time_days", 3)
-        max_lead_time = lead_time * 1.5 
+        max_lead_time = lead_time * 1.5
         safety_stock = (max_daily * max_lead_time) - (avg_daily * lead_time)
         reorder_point = (avg_daily * lead_time) + safety_stock
-        
+
         if p["quantity"] <= reorder_point and total_qty_30 > 0:
             reorder_recommendations.append({
                 "product_id": pid,
@@ -27492,7 +27499,7 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
     # Expiry Alerts (Next 30 days)
     expiry_alerts = []
     thirty_days_later = datetime.now(timezone.utc) + timedelta(days=30)
-    
+
     expiry_query = {
         "user_id": user_id,
         "quantity": {"$gt": 0},
@@ -27500,15 +27507,15 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
     }
     expiry_query = apply_store_scope(expiry_query, user)
     expiring_soon = await db.batches.find(expiry_query, {"_id": 0}).to_list(100)
-    
+
     for b in expiring_soon:
         prod = next((p for p in products if p["product_id"] == b["product_id"]), None)
         b_expiry = parse_date(b.get("expiry_date"))
-        
+
         priority = "warning"
         if b_expiry and b_expiry <= datetime.now(timezone.utc):
             priority = "critical"
-            
+
         expiry_alerts.append({
             "product_id": b["product_id"],
             "name": prod["name"] if prod else "Produit inconnu",
@@ -28050,15 +28057,15 @@ async def get_supplier_dashboard(user: User = Depends(require_supplier)):
 @api_router.get("/supplier/ratings")
 async def get_supplier_ratings(user: User = Depends(require_supplier)):
     ratings = await db.supplier_ratings.find({"supplier_user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
-    
+
     # Get raters names
     rater_ids = [r["shopkeeper_user_id"] for r in ratings]
     raters = await db.users.find({"user_id": {"$in": rater_ids}}, {"_id": 0, "user_id": 1, "name": 1}).to_list(100)
     raters_map = {u["user_id"]: u["name"] for u in raters}
-    
+
     for r in ratings:
         r["shopkeeper_name"] = raters_map.get(r["shopkeeper_user_id"], "Anonyme")
-        
+
     return ratings
 
 @api_router.get("/supplier/clients")
@@ -28073,14 +28080,14 @@ async def get_supplier_clients(user: User = Depends(require_supplier)):
         }},
         {"$sort": {"latest_order_at": -1}}
     ]
-    
+
     results = await db.orders.aggregate(pipeline).to_list(100)
-    
+
     # Enrich with shopkeeper names
     shopkeeper_ids = [r["_id"] for r in results]
     shopkeepers = await db.users.find({"user_id": {"$in": shopkeeper_ids}}, {"_id": 0, "user_id": 1, "name": 1}).to_list(100)
     shopkeepers_map = {u["user_id"]: u["name"] for u in shopkeepers}
-    
+
     clients = []
     for r in results:
         clients.append({
@@ -28089,14 +28096,14 @@ async def get_supplier_clients(user: User = Depends(require_supplier)):
             "latest_order_at": r["latest_order_at"],
             "total_orders": r["total_orders"]
         })
-        
+
     return clients
 
 # ===================== SUPPLIER ORDERS RECEIVED (CAS 1) =====================
 
 @api_router.get("/supplier/orders")
 async def get_supplier_orders(
-    user: User = Depends(require_supplier), 
+    user: User = Depends(require_supplier),
     status: Optional[str] = None,
     shopkeeper_user_id: Optional[str] = None,
     start_date: Optional[str] = None,
@@ -28107,7 +28114,7 @@ async def get_supplier_orders(
         query["status"] = status
     if shopkeeper_user_id:
         query["user_id"] = shopkeeper_user_id
-        
+
     if start_date or end_date:
         query["created_at"] = {}
         if start_date:
@@ -28153,7 +28160,7 @@ async def get_supplier_orders(
         order["shopkeeper_name"] = users_map.get(order["user_id"], "Inconnu")
         items = order_items_map.get(order["order_id"], [])
         order["items_count"] = len(items)
-        
+
         # Enrich items with product details
         for item in items:
             item["product"] = catalog_full_map.get(item["product_id"])
@@ -28538,7 +28545,7 @@ async def search_marketplace_products(
         query["name"] = {"$regex": fuzzy_q, "$options": "i"}
     if category:
         query["category"] = {"$regex": safe_regex(category), "$options": "i"}
-    
+
     if price_min is not None or price_max is not None:
         price_filter = {}
         if price_min is not None: price_filter["$gte"] = price_min
@@ -28557,11 +28564,11 @@ async def search_marketplace_products(
     for product in products:
         sup_profile = profiles_map.get(product["supplier_user_id"])
         rating = sup_profile.get("rating_average", 0) if sup_profile else 0
-        
+
         # Filter by supplier rating
         if min_supplier_rating is not None and rating < min_supplier_rating:
             continue
-            
+
         product["supplier_name"] = sup_profile.get("company_name", "Inconnu") if sup_profile else "Inconnu"
         product["supplier_city"] = sup_profile.get("city", "") if sup_profile else ""
         product["supplier_rating"] = rating
@@ -28821,7 +28828,7 @@ async def export_movements_csv(
     query = apply_store_scope({"user_id": owner_id}, user)
     if product_id:
         query["product_id"] = product_id
-    
+
     if days:
         dt = datetime.now(timezone.utc) - timedelta(days=days)
         query["created_at"] = {"$gte": dt}
@@ -29082,7 +29089,7 @@ class AiTools:
         now = datetime.now(timezone.utc)
         s_date = now
         e_date = None
-        
+
         if period == "today":
             s_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif period == "yesterday":
@@ -29104,22 +29111,22 @@ class AiTools:
                     e_date = s_date + timedelta(days=1)
             except ValueError:
                 return i18n.t("ai.tools.forecast.invalid_date", self.lang)
-            
+
         initial_query = {"user_id": self.user_id, "created_at": {"$gte": s_date}}
         if e_date:
             initial_query["created_at"]["$lt"] = e_date
         if self.store_id:
             initial_query["store_id"] = self.store_id
-            
+
         pipeline = [
             {"$match": initial_query},
             {"$group": {"_id": None, "total_revenue": {"$sum": "$total_amount"}, "sales_count": {"$sum": 1}}}
         ]
-        
+
         result = await db.sales.aggregate(pipeline).to_list(1)
         if not result:
             return {"period": period, "revenue": 0, "sales_count": 0}
-            
+
         stats = result[0]
         return {
             "period": period,
@@ -29140,11 +29147,11 @@ class AiTools:
         }
         if self.store_id:
             query["store_id"] = self.store_id
-            
+
         products = await db.products.find(query).limit(5).to_list(5)
         if not products:
             return i18n.t("ai.tools.product_info.not_found", self.lang, name=name)
-            
+
         info = []
         for p in products:
             status = i18n.t("ai.tools.product_info.status_out", self.lang) if p.get("quantity", 0) <= 0 else i18n.t("ai.tools.product_info.status_in", self.lang)
@@ -29163,17 +29170,17 @@ class AiTools:
         query = {"user_id": self.user_id, "quantity": {"$lte": 5}}
         if self.store_id:
             query["store_id"] = self.store_id
-            
+
         low_stock = await db.products.find(query).limit(10).to_list(10)
-        
+
         alerts = []
         for p in low_stock:
              alerts.append(i18n.t("ai.tools.inventory_alerts.format", self.lang, name=p.get('name'), quantity=p.get('quantity'), min_stock=p.get('min_stock', '?')))
-             
+
         if not alerts:
             return i18n.t("ai.tools.inventory_alerts.empty", self.lang)
         return {"alerts": alerts, "count": len(alerts)}
-    
+
     async def get_system_alerts(self):
         """
         Get global system alerts (Admin only).
@@ -29181,25 +29188,25 @@ class AiTools:
         """
         now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
-        
+
         # 1. Security check
         failed_logins = await db.security_events.count_documents({
-            "type": "login_failed", 
+            "type": "login_failed",
             "timestamp": {"$gte": yesterday}
         })
-        
+
         # 2. Support backlog
         open_tickets = await db.support_tickets.count_documents({"status": "open"})
-        
+
         # 3. Critical DB health
         # (Could add more checks here)
-        
+
         alerts = []
         if failed_logins > 10:
             alerts.append(i18n.t("ai.tools.system_alerts.critical_login", self.lang, count=failed_logins))
         if open_tickets > 5:
             alerts.append(i18n.t("ai.tools.system_alerts.support_backlog", self.lang, count=open_tickets))
-            
+
         if not alerts:
             return i18n.t("ai.tools.system_alerts.empty", self.lang)
         return {"system_alerts": alerts, "status": "ATTENTION"}
@@ -30416,16 +30423,16 @@ class AiTools:
         if self.store_id:
             query["store_id"] = self.store_id
         product = await db.products.find_one(query)
-        
+
         if not product:
             return i18n.t("ai.tools.forecast.not_found", self.lang, name=product_name)
-            
+
         pid = product["product_id"]
-        
+
         # 2. Get Sales History (last 3 months)
         now = datetime.now(timezone.utc)
         three_months_ago = now - timedelta(days=90)
-        
+
         sales_query = {
             "user_id": self.user_id,
             "created_at": {"$gte": three_months_ago},
@@ -30433,13 +30440,13 @@ class AiTools:
         }
         if self.store_id:
             sales_query["store_id"] = self.store_id
-            
+
         sales = await db.sales.find(sales_query).to_list(1000)
-        
+
         # 3. Aggregate by month
         monthly_sales = {} # "YYYY-MM" -> qty
         total_qty = 0
-        
+
         for s in sales:
             month_key = s["created_at"].strftime("%Y-%m")
             for item in s["items"]:
@@ -30447,11 +30454,11 @@ class AiTools:
                     qty = item["quantity"]
                     monthly_sales[month_key] = monthly_sales.get(month_key, 0) + qty
                     total_qty += qty
-                    
+
         # 4. Simple Forecast
         avg_monthly = total_qty / 3 if total_qty > 0 else 0
         trend = "stable"
-        
+
         sorted_months = sorted(monthly_sales.keys())
         if len(sorted_months) >= 2:
             last_month = monthly_sales[sorted_months[-1]]
@@ -30460,9 +30467,9 @@ class AiTools:
                 trend = "en hausse"
             elif last_month < prev_month * 0.9:
                 trend = "en baisse"
-                
+
         forecast_qty = int(avg_monthly * 1.1) if trend == "en hausse" else int(avg_monthly)
-        
+
         return {
             "product": product["name"],
             "current_stock": product["quantity"],
@@ -30802,36 +30809,36 @@ async def get_replenishment_suggestions(user: User = Depends(require_permission(
         # 1. Get all products
         query = {"user_id": owner_id}
         query = apply_store_scope(query, user)
-        
+
         products = await db.products.find(query).to_list(1000)
         if not products:
             return []
-        
+
         # 2. Calculate velocity (last 30 days)
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         sales_query = {"user_id": owner_id, "created_at": {"$gte": thirty_days_ago}}
         sales_query = apply_store_scope(sales_query, user)
-            
+
         sales = await db.sales.find(sales_query).to_list(5000)
-        
+
         velocity_map = defaultdict(float)
         for s in sales:
             for item in s.get("items", []):
                 pid = item.get("product_id")
                 qty = item.get("quantity", 0)
                 velocity_map[pid] += qty / 30.0 # Average per day
-                
+
         # 3. Get supplier-product mappings
         supplier_products = await db.supplier_products.find({"user_id": owner_id}).to_list(1000)
         sp_map = {sp.get("product_id"): sp for sp in supplier_products if sp.get("product_id")}
-        
+
         # Get suppliers names
         supplier_ids = list(set(sp.get("supplier_id") for sp in supplier_products if sp.get("supplier_id")))
         suppliers = await db.suppliers.find({"supplier_id": {"$in": supplier_ids}, "user_id": owner_id}).to_list(100)
         supplier_names = {s.get("supplier_id"): s.get("name", "Fournisseur") for s in suppliers if s.get("supplier_id")}
 
         suggestions = []
-        
+
         for p in products:
             try:
                 pid = p.get("product_id")
@@ -30842,23 +30849,23 @@ async def get_replenishment_suggestions(user: User = Depends(require_permission(
                 max_stock = p.get("max_stock", 100)
                 velocity = velocity_map.get(pid, 0.0)
                 lead_time = p.get("lead_time_days", 3)
-                
+
                 # Logic:
                 # - If qty <= min_stock -> Critical/Warning
                 # - If qty / velocity <= lead_time + 2 days -> Warning
-                
+
                 days_left = qty / velocity if velocity > 0 else 999
-                
+
                 is_needed = False
                 priority = "info"
-                
+
                 if qty <= min_stock:
                     is_needed = True
                     priority = "critical" if qty == 0 else "warning"
                 elif days_left <= (lead_time + 2):
                     is_needed = True
                     priority = "warning"
-                    
+
                 if is_needed:
                     suggested_qty = max(0, max_stock - qty)
                     if suggested_qty > 0:
@@ -30880,14 +30887,14 @@ async def get_replenishment_suggestions(user: User = Depends(require_permission(
             except Exception as e:
                 logger.error(f"Error processing replenishment suggestion for product {p.get('product_id')}: {e}")
                 continue
-                
+
         # Sort suggestions by priority (critical first) and then by days_left
         priority_order = {"critical": 0, "warning": 1, "info": 2}
         try:
             suggestions.sort(key=lambda x: (priority_order.get(x.priority, 3), x.days_until_stock_out if x.days_until_stock_out is not None else 999))
         except Exception as e:
             logger.error(f"Error sorting replenishment suggestions: {e}")
-        
+
         return suggestions
     except Exception as e:
         logger.error(f"CRITICAL ERROR in get_replenishment_suggestions: {e}", exc_info=True)
@@ -30900,10 +30907,10 @@ async def automate_replenishment(user: User = Depends(require_procurement_access
     """Backend trigger for the automated reorder approval workflow"""
     owner_id = get_owner_id(user)
     suggestions = await get_replenishment_suggestions(user)
-    
+
     # Filter only critical and warning suggestions that have a supplier
     to_reorder = [s for s in suggestions if s.priority in ["critical", "warning"] and s.supplier_id]
-    
+
     if not to_reorder:
         return {"message": "Aucun rÃ©approvisionnement nÃ©cessaire pour le moment.", "created_count": 0}
 
@@ -30911,7 +30918,7 @@ async def automate_replenishment(user: User = Depends(require_procurement_access
     by_supplier = defaultdict(list)
     for s in to_reorder:
         by_supplier[s.supplier_id].append(s)
-        
+
     created_orders = []
     for supplier_id, items in by_supplier.items():
         # Check if a draft order already exists for this supplier in the last 24h
@@ -30922,7 +30929,7 @@ async def automate_replenishment(user: User = Depends(require_procurement_access
             "status": "pending",
             "created_at": {"$gte": day_ago}
         })
-        
+
         if existing:
             # Add items to existing draft
             order_id = existing["order_id"]
@@ -31325,7 +31332,7 @@ async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(requir
     """Increment stock for all products matching the scanned RFID tags or SKUs"""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
-    
+
     updated_count = 0
     not_found = []
     for code in data.codes:
@@ -31336,7 +31343,7 @@ async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(requir
         }
         query = apply_store_scope(query, user)
         target = await db.products.find_one(query)
-        
+
         if target:
             ensure_scoped_document_access(user, target, detail="Acces refuse pour ce produit")
             # Increment quantity
@@ -31347,7 +31354,7 @@ async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(requir
                     "$set": {"updated_at": datetime.now(timezone.utc)}
                 }
             )
-            
+
             # Log movement
             await db.stock_movements.insert_one({
                 "movement_id": f"mov_{uuid.uuid4().hex[:12]}",
@@ -31363,7 +31370,7 @@ async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(requir
             updated_count += 1
         else:
             not_found.append(code)
-            
+
     return {
         "message": f"{updated_count} articles mis Ã  jour.",
         "updated_count": updated_count,
@@ -31382,7 +31389,7 @@ class BatchRFIDAssociation(BaseModel):
 async def batch_associate_rfid(data: BatchRFIDAssociation, user: User = Depends(require_permission("stock", "write"))):
     """Associate multiple RFID tags with existing SKUs"""
     owner_id = get_owner_id(user)
-    
+
     associated_count = 0
     for assoc in data.associations:
         # Find product by SKU
@@ -31396,7 +31403,7 @@ async def batch_associate_rfid(data: BatchRFIDAssociation, user: User = Depends(
                 {"$set": {"rfid_tag": assoc.rfid, "updated_at": datetime.now(timezone.utc)}}
             )
             associated_count += 1
-            
+
     return {"message": f"{associated_count} tags RFID associÃ©s.", "associated_count": associated_count}
 
 
@@ -31529,7 +31536,7 @@ Par exemple "Riz brisÃ© 25kg" et "Riz cassÃ© sac 25" sont le mÃªme produit
 RÃ©ponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour), format:
 [{{"catalog_id": "...", "matched_product_id": "..." ou null si aucun match, "confidence": 0.0 Ã  1.0, "reason": "explication courte"}}]"""
 
-                model = genai.GenerativeModel(model_name='gemini-2.5-flash')
+                model = build_gemini_model()
                 response = model.generate_content(prompt)
                 response_text = response.text.strip()
 
@@ -31801,15 +31808,15 @@ async def add_product_variant(product_id: str, variant: ProductVariant, user: Us
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
-    
+
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     variants = product.get("variants", [])
     new_variant = variant.model_dump()
     variants.append(new_variant)
-    
+
     # Update total quantity = sum of variant quantities
     total_qty = sum(v.get("quantity", 0) for v in variants)
-    
+
     await db.products.update_one(
         {"product_id": product_id},
         {"$set": {
@@ -31819,7 +31826,7 @@ async def add_product_variant(product_id: str, variant: ProductVariant, user: Us
             "updated_at": datetime.now(timezone.utc),
         }}
     )
-    
+
     await log_activity(user, "create", "stock", f"Variante '{variant.name}' ajoutÃ©e Ã  {product['name']}")
     return {"message": "Variante ajoutÃ©e", "variant": new_variant, "total_quantity": total_qty}
 
@@ -31829,7 +31836,7 @@ async def update_product_variant(product_id: str, variant_id: str, variant: Prod
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
-    
+
     variants = product.get("variants", [])
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     found = False
@@ -31840,12 +31847,12 @@ async def update_product_variant(product_id: str, variant_id: str, variant: Prod
             variants[i] = update_data
             found = True
             break
-    
+
     if not found:
         raise HTTPException(status_code=404, detail="Variante non trouvÃ©e")
-    
+
     total_qty = sum(v.get("quantity", 0) for v in variants)
-    
+
     await db.products.update_one(
         {"product_id": product_id},
         {"$set": {
@@ -31854,7 +31861,7 @@ async def update_product_variant(product_id: str, variant_id: str, variant: Prod
             "updated_at": datetime.now(timezone.utc),
         }}
     )
-    
+
     return {"message": "Variante mise Ã  jour", "total_quantity": total_qty}
 
 @api_router.delete("/products/{product_id}/variants/{variant_id}")
@@ -31863,17 +31870,17 @@ async def delete_product_variant(product_id: str, variant_id: str, user: User = 
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
-    
+
     variants = product.get("variants", [])
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     new_variants = [v for v in variants if v.get("variant_id") != variant_id]
-    
+
     if len(new_variants) == len(variants):
         raise HTTPException(status_code=404, detail="Variante non trouvÃ©e")
-    
+
     total_qty = sum(v.get("quantity", 0) for v in new_variants)
     has_variants = len(new_variants) > 0
-    
+
     await db.products.update_one(
         {"product_id": product_id},
         {"$set": {
@@ -31883,7 +31890,7 @@ async def delete_product_variant(product_id: str, variant_id: str, user: User = 
             "updated_at": datetime.now(timezone.utc),
         }}
     )
-    
+
     await log_activity(user, "delete", "stock", f"Variante supprimÃ©e du produit {product['name']}")
     return {"message": "Variante supprimÃ©e", "total_quantity": total_qty}
 
@@ -31916,7 +31923,7 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
     store_id = user.active_store_id
     user_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "currency": 1})
     currency = user_doc.get("currency", "XOF") if user_doc else "XOF"
-    
+
     # Get products
     query = {"user_id": owner_id}
     if store_id:
@@ -31924,29 +31931,29 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
     products = await db.products.find(query, {"_id": 0}).to_list(1000)
     if not products:
         return SalesForecastResponse(generated_at=datetime.now(timezone.utc).isoformat(), currency=currency).model_dump()
-    
+
     now = datetime.now(timezone.utc)
-    
+
     # Sales last 30 days
     thirty_days_ago = now - timedelta(days=30)
     sales_query_30 = {"user_id": owner_id, "created_at": {"$gte": thirty_days_ago}}
     if store_id:
         sales_query_30["store_id"] = store_id
     sales_30 = await db.sales.find(sales_query_30).to_list(10000)
-    
+
     # Sales last 7 days (for trend comparison)
     seven_days_ago = now - timedelta(days=7)
-    
+
     # Aggregate by product
     from collections import defaultdict
     qty_30d = defaultdict(int)
     rev_30d = defaultdict(float)
     qty_7d = defaultdict(int)
-    
+
     for s in sales_30:
         sale_date = parse_datetime_value(s.get("created_at"))
         is_last_7 = sale_date >= seven_days_ago if sale_date else False
-        
+
         for item in s.get("items", []):
             pid = item.get("product_id", "")
             qty = item.get("quantity", 0)
@@ -31955,20 +31962,20 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
             rev_30d[pid] += qty * price
             if is_last_7:
                 qty_7d[pid] += qty
-    
+
     # Build forecast per product
     forecast_products = []
     total_rev_7d = 0.0
     total_rev_30d = 0.0
-    
+
     for p in products:
         pid = p["product_id"]
         stock = p.get("quantity", 0)
         selling_price = p.get("selling_price", 0)
-        
+
         vel_30 = qty_30d[pid] / 30.0  # avg per day over 30d
         vel_7 = qty_7d[pid] / 7.0     # avg per day over 7d
-        
+
         # Trend detection
         if vel_30 == 0:
             trend = "stable"
@@ -31978,15 +31985,15 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
             trend = "down"
         else:
             trend = "stable"
-        
+
         # Use recent velocity (weighted: 60% last 7d, 40% last 30d) for prediction
         effective_vel = vel_7 * 0.6 + vel_30 * 0.4 if vel_30 > 0 else vel_7
-        
+
         predicted_7d = round(effective_vel * 7)
         predicted_30d = round(effective_vel * 30)
-        
+
         days_of_stock = stock / effective_vel if effective_vel > 0 else 999
-        
+
         # Risk level
         if stock == 0 and effective_vel > 0:
             risk = "critical"
@@ -31996,12 +32003,12 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
             risk = "warning"
         else:
             risk = "ok"
-        
+
         rev_7d = predicted_7d * selling_price
         rev_30d = predicted_30d * selling_price
         total_rev_7d += rev_7d
         total_rev_30d += rev_30d
-        
+
         # Only include products that have sales activity or stock
         if vel_30 > 0 or stock > 0:
             forecast_products.append(ForecastProduct(
@@ -32015,11 +32022,11 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
                 trend=trend,
                 risk_level=risk,
             ))
-    
+
     # Generate daily_forecast for the AreaChart in the dashboard
     # We mix actual sales from last 7 days + projected sales for next 14 days
     daily_forecast = []
-    
+
     # Past 7 days actual revenue
     for i in range(7, 0, -1):
         date = now - timedelta(days=i)
@@ -32036,26 +32043,26 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
             if s_date and s_date.strftime("%Y-%m-%d") == d_str:
                 day_rev += s.get("total_amount", 0)
         daily_forecast.append({"date": d_str, "expected_revenue": day_rev, "is_predicted": False})
-        
+
     # Future 14 days projected revenue
     total_daily_velocity_rev = sum(
         (qty_7d[p["product_id"]] / 7.0 if qty_7d[p["product_id"]] > 0 else qty_30d[p["product_id"]] / 30.0) * p.get("selling_price", 0)
         for p in products
     )
-    
+
     for i in range(14):
         date = now + timedelta(days=i)
         d_str = date.strftime("%Y-%m-%d")
         daily_forecast.append({
-            "date": d_str, 
+            "date": d_str,
             "expected_revenue": round(total_daily_velocity_rev, 2),
             "is_predicted": True
         })
-    
+
     # Sort: critical first, then by velocity desc
     risk_order = {"critical": 0, "warning": 1, "ok": 2}
     forecast_products.sort(key=lambda x: (risk_order.get(x.risk_level, 2), -x.velocity))
-    
+
     # Gemini AI summary (optional, only if API key available)
     ai_summary = ""
     api_key = resolve_gemini_api_key()
@@ -32067,11 +32074,11 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
                 f"- {fp.name}: stock={fp.current_stock}, vitesse={fp.velocity}/j, tendance={fp.trend}, risque={fp.risk_level}, jours_restants={fp.days_of_stock}"
                 for fp in top_items
             ])
-            
+
             critical_count = len([fp for fp in forecast_products if fp.risk_level == "critical"])
             warning_count = len([fp for fp in forecast_products if fp.risk_level == "warning"])
-            
-            
+
+
             prompt_text = f"""Analyse ces prÃ©visions de ventes et donne un rÃ©sumÃ© en 3-4 phrases concises en franÃ§ais.
 Mentionne les produits critiques, les tendances importantes et une recommandation.
 
@@ -32082,13 +32089,13 @@ Produits critiques: {critical_count} | Attention: {warning_count}
 Top produits:
 {items_text}
 """
-            model = genai.GenerativeModel(model_name='gemini-2.5-flash')
+            model = build_gemini_model()
             response = model.generate_content(prompt_text)
             ai_summary = response.text
         except Exception as e:
             logger.error(f"Gemini forecast summary error: {e}")
             ai_summary = ""
-    
+
     return SalesForecastResponse(
         products=forecast_products[:30],
         total_predicted_revenue_7d=round(total_rev_7d),
@@ -32106,42 +32113,42 @@ async def get_product_sales_forecast(product_id: str, user: User = Depends(requi
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
-        
+
     now = datetime.now(timezone.utc)
     thirty_days_ago = now - timedelta(days=30)
     seven_days_ago = now - timedelta(days=7)
-    
+
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
 
     # Sales last 30 days for this product
     sales_query = {
-        "user_id": owner_id, 
+        "user_id": owner_id,
         "created_at": {"$gte": thirty_days_ago},
         "items.product_id": product_id
     }
     sales_query = apply_store_scope(sales_query, user)
-        
+
     sales_30 = await db.sales.find(sales_query).to_list(1000)
-    
+
     qty_30d = 0
     qty_7d = 0
-    
+
     for s in sales_30:
         sale_date = parse_datetime_value(s.get("created_at"))
         is_last_7 = sale_date >= seven_days_ago if sale_date else False
-        
+
         for item in s.get("items", []):
             if item.get("product_id") == product_id:
                 qty = item.get("quantity", 0)
                 qty_30d += qty
                 if is_last_7:
                     qty_7d += qty
-    
+
     stock = product.get("quantity", 0)
-    
+
     vel_30 = qty_30d / 30.0
     vel_7 = qty_7d / 7.0
-    
+
     if vel_30 == 0:
         trend = "stable"
     elif vel_7 > vel_30 * 1.2:
@@ -32150,10 +32157,10 @@ async def get_product_sales_forecast(product_id: str, user: User = Depends(requi
         trend = "down"
     else:
         trend = "stable"
-        
+
     effective_vel = vel_7 * 0.6 + vel_30 * 0.4 if vel_30 > 0 else vel_7
     days_of_stock = stock / effective_vel if effective_vel > 0 else 999
-    
+
     if stock == 0 and effective_vel > 0:
         risk = "critical"
     elif days_of_stock < 7:
@@ -32162,7 +32169,7 @@ async def get_product_sales_forecast(product_id: str, user: User = Depends(requi
         risk = "warning"
     else:
         risk = "ok"
-        
+
     forecast = ForecastProduct(
         product_id=product_id,
         name=product["name"],
@@ -32174,7 +32181,7 @@ async def get_product_sales_forecast(product_id: str, user: User = Depends(requi
         trend=trend,
         risk_level=risk,
     )
-    
+
     return forecast.model_dump()
 
 # ===================== RETURNS & CREDIT NOTES ENDPOINTS =====================
@@ -32213,16 +32220,16 @@ async def _compute_return_totals(items: List[ReturnItem], owner_id: str, user: U
 @api_router.post("/returns")
 async def create_return(data: ReturnCreate, user: User = Depends(require_procurement_access("write"))):
     owner_id = get_owner_id(user)
-    
+
     # Build supplier name
     supplier_name = None
     if data.supplier_id:
         supplier = await db.suppliers.find_one({"supplier_id": data.supplier_id, "user_id": owner_id}, {"_id": 0})
         if supplier:
             supplier_name = supplier.get("name")
-    
+
     totals = await _compute_return_totals(data.items, owner_id, user)
-    
+
     ret = Return(
         user_id=owner_id,
         store_id=user.active_store_id,
@@ -32237,10 +32244,10 @@ async def create_return(data: ReturnCreate, user: User = Depends(require_procure
         subtotal_ht=totals["subtotal_ht"],
         notes=data.notes,
     )
-    
+
     await db.returns.insert_one(ret.model_dump())
     await log_activity(user, "create", "returns", f"Retour crÃ©Ã© - {ret.total_amount:.0f} FCFA" + (f" - {supplier_name}" if supplier_name else ""))
-    
+
     return ret.model_dump()
 
 @api_router.get("/returns")
@@ -32252,7 +32259,7 @@ async def list_returns(type: Optional[str] = None, status: Optional[str] = None,
         query["type"] = type
     if status:
         query["status"] = status
-    
+
     total = await db.returns.count_documents(query)
     items = await db.returns.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return {"items": items, "total": total}
@@ -32273,15 +32280,15 @@ async def complete_return(return_id: str, user: User = Depends(require_procureme
     ret = await db.returns.find_one({"return_id": return_id, "user_id": owner_id}, {"_id": 0})
     if not ret:
         raise HTTPException(status_code=404, detail="Retour non trouvÃ©")
-    
+
     ensure_scoped_document_access(user, ret, detail="Acces refuse pour ce retour")
     if ret["status"] == "completed":
         raise HTTPException(status_code=400, detail="Ce retour est dÃ©jÃ  complÃ©tÃ©")
-    
+
     # Reintegrate stock for supplier returns (products go back to supplier, so OUT of stock)
     # For customer returns (customer brings back), products go IN to stock
     movement_type = "in" if ret["type"] == "customer" else "out"
-    
+
     for item in ret["items"]:
         product = await db.products.find_one({"product_id": item["product_id"], "user_id": owner_id}, {"_id": 0})
         if product:
@@ -32291,12 +32298,12 @@ async def complete_return(return_id: str, user: User = Depends(require_procureme
                 new_qty = old_qty + item["quantity"]
             else:
                 new_qty = max(0, old_qty - item["quantity"])
-            
+
             await db.products.update_one(
                 {"product_id": item["product_id"], "user_id": owner_id, "store_id": product.get("store_id")},
                 {"$set": {"quantity": new_qty, "updated_at": datetime.now(timezone.utc)}}
             )
-            
+
             movement = StockMovement(
                 product_id=item["product_id"],
                 product_name=item.get("product_name", ""),
@@ -32309,10 +32316,10 @@ async def complete_return(return_id: str, user: User = Depends(require_procureme
                 new_quantity=new_qty,
             )
             await db.stock_movements.insert_one(movement.model_dump())
-            
+
             product["quantity"] = new_qty
             await check_and_create_alerts(Product(**product), owner_id, store_id=product.get("store_id") or ret.get("store_id") or user.active_store_id)
-    
+
     # Generate credit note
     credit_note = CreditNote(
         return_id=return_id,
@@ -32328,7 +32335,7 @@ async def complete_return(return_id: str, user: User = Depends(require_procureme
         notes=f"Avoir gÃ©nÃ©rÃ© pour retour {return_id}",
     )
     await db.credit_notes.insert_one(credit_note.model_dump())
-    
+
     # Update return status
     await db.returns.update_one(
         {"return_id": return_id},
@@ -32338,9 +32345,9 @@ async def complete_return(return_id: str, user: User = Depends(require_procureme
             "updated_at": datetime.now(timezone.utc),
         }}
     )
-    
+
     await log_activity(user, "complete", "returns", f"Retour complÃ©tÃ© + avoir {credit_note.credit_note_id} - {ret['total_amount']:.0f} FCFA")
-    
+
     return {
         "message": "Retour complÃ©tÃ© et avoir gÃ©nÃ©rÃ©",
         "credit_note": credit_note.model_dump(),
@@ -32353,7 +32360,7 @@ async def list_credit_notes(status: Optional[str] = None, skip: int = 0, limit: 
     query = apply_store_scope(query, user)
     if status:
         query["status"] = status
-    
+
     total = await db.credit_notes.count_documents(query)
     items = await db.credit_notes.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return {"items": items, "total": total}
@@ -32409,10 +32416,10 @@ async def create_or_get_conversation(
             {"shopkeeper_id": partner_id, "supplier_id": user.user_id},
         ]
     }, {"_id": 0})
-    
+
     if existing:
         return existing
-    
+
     # Determine roles
     is_supplier = user.role == "supplier"
     convo = Conversation(
@@ -32434,7 +32441,7 @@ async def get_messages(conversation_id: str, skip: int = 0, limit: int = 50, use
     })
     if not convo:
         raise HTTPException(status_code=404, detail="Conversation non trouvÃ©e")
-    
+
     # Mark messages as read
     is_supplier = user.user_id == convo.get("supplier_id")
     await db.chat_messages.update_many(
@@ -32447,12 +32454,12 @@ async def get_messages(conversation_id: str, skip: int = 0, limit: int = 50, use
         {"conversation_id": conversation_id},
         {"$set": {unread_field: 0}}
     )
-    
+
     total = await db.chat_messages.count_documents({"conversation_id": conversation_id})
     messages = await db.chat_messages.find(
         {"conversation_id": conversation_id}, {"_id": 0}
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
-    
+
     return {"items": messages, "total": total}
 
 @api_router.post("/conversations/{conversation_id}/messages")
@@ -32464,9 +32471,9 @@ async def send_message(conversation_id: str, msg: ChatMessageCreate, user: User 
     })
     if not convo:
         raise HTTPException(status_code=404, detail="Conversation non trouvÃ©e")
-    
+
     is_supplier = user.user_id == convo.get("supplier_id")
-    
+
     message = ChatMessage(
         conversation_id=conversation_id,
         sender_id=user.user_id,
@@ -32475,7 +32482,7 @@ async def send_message(conversation_id: str, msg: ChatMessageCreate, user: User 
         content=msg.content.strip(),
     )
     await db.chat_messages.insert_one(message.model_dump())
-    
+
     # Update conversation
     unread_field = "unread_shopkeeper" if is_supplier else "unread_supplier"
     await db.conversations.update_one(
@@ -32488,7 +32495,7 @@ async def send_message(conversation_id: str, msg: ChatMessageCreate, user: User 
             "$inc": {unread_field: 1}
         }
     )
-    
+
     return message.model_dump()
 
 @api_router.get("/conversations/unread-count")
@@ -32496,7 +32503,7 @@ async def get_unread_count(user: User = Depends(require_auth)):
     """Get total unread message count for the user"""
     is_supplier = user.role == "supplier"
     unread_field = "unread_supplier" if is_supplier else "unread_shopkeeper"
-    
+
     pipeline = [
         {"$match": {"$or": [{"shopkeeper_id": user.user_id}, {"supplier_id": user.user_id}]}},
         {"$group": {"_id": None, "total": {"$sum": f"${unread_field}"}}}
@@ -33006,7 +33013,7 @@ async def upload_image(req: ImageUploadRequest, user: User = Depends(require_aut
             ext = "png"
         elif raw[:4] == b'RIFF' and raw[8:12] == b'WEBP':
             ext = "webp"
-        
+
         if not _re.match(r'^[a-zA-Z0-9_-]+$', req.folder):
             raise HTTPException(status_code=400, detail="Nom de dossier invalide")
 
@@ -33030,21 +33037,21 @@ class PasswordConfirmation(BaseModel):
 @api_router.get("/profile/export")
 async def export_user_data(user: User = Depends(require_auth)):
     """Export all user data in JSON format for GDPR portability."""
-    
+
     # helper to fetch all docs for a user
     async def fetch_collection(collection_name, query):
         docs = await db[collection_name].find(query, {"_id": 0}).to_list(None)
-        # default serialization for datetime/objectId is handled by json.dumps default if we use a custom encoder, 
+        # default serialization for datetime/objectId is handled by json.dumps default if we use a custom encoder,
         # but here we can just use jsonable_encoder or manual stringify if needed.
         # simpler: let's do a manual pass to stringify ObjectIds and Datetimes inside the list
         return json.loads(json.dumps(docs, default=str))
 
     owner_id = get_owner_id(user)
-    
+
     # 1. User & Stores
     user_data = user.model_dump()
     stores = await fetch_collection("stores", {"user_id": owner_id})
-    
+
     # 2. Main Data
     products = await fetch_collection("products", {"user_id": owner_id})
     sales = await fetch_collection("sales", {"user_id": owner_id})
@@ -33052,7 +33059,7 @@ async def export_user_data(user: User = Depends(require_auth)):
     expenses = await fetch_collection("expenses", {"user_id": owner_id})
     stock_movements = await fetch_collection("stock_movements", {"user_id": owner_id})
     suppliers = await fetch_collection("suppliers", {"user_id": owner_id})
-    
+
     # 3. Compile
     export_data = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -33065,17 +33072,17 @@ async def export_user_data(user: User = Depends(require_auth)):
         "stock_movements": stock_movements,
         "suppliers": suppliers
     }
-    
+
     # Streaming response to avoid memory overload if possible, though here we built a huge dict in memory.
-    # For a true large scale, we should stream line by line. 
+    # For a true large scale, we should stream line by line.
     # But for this app scale, json.dump is likely fine.
-    
+
     stream = io.StringIO()
     json.dump(export_data, stream, default=str, indent=2)
     stream.seek(0)
-    
+
     return StreamingResponse(
-        stream, 
+        stream,
         media_type="application/json",
         headers={"Content-Disposition": f"attachment; filename=stockman_export_{user.user_id}.json"}
     )
@@ -33314,13 +33321,13 @@ async def delete_account(
 
     # If user is owner, CASCADE DELETE EVERYTHING
     # Collections to clean based on user_id or owner_id
-    
+
     # A. Collections using user_id as owner
     # NOTE: 'invoices' is efficiently excluded/not present yet, but explicitly NOT in this list.
     collections_to_wipe = [
-        "products", "sales", "stock_movements", "batches", "alerts", 
+        "products", "sales", "stock_movements", "batches", "alerts",
         "rules", "user_settings", "push_tokens", "stores",
-        "customers", "suppliers", "catalog_product_mappings", 
+        "customers", "suppliers", "catalog_product_mappings",
         "expenses", "orders", "promotions", "activity_logs",
         "support_tickets", "user_sessions", "idempotency_keys",
         "security_events", "pending_transactions", "notifications",
@@ -33329,17 +33336,17 @@ async def delete_account(
         "categories", "locations", "tables", "reservations",
         "returns", "credit_notes"
     ]
-    
+
     for col in collections_to_wipe:
         await db[col].delete_many({"user_id": owner_id})
-        
+
     # B. Catalog products (supplier side)
     await db.catalog_products.delete_many({"supplier_user_id": owner_id})
-    
+
     # C. Sub-users
     await db.users.delete_many({"parent_user_id": owner_id})
     await db.business_accounts.delete_many({"$or": [{"owner_user_id": owner_id}, {"account_id": user.account_id}]})
-    
+
     # D. The user itself
     await db.users.delete_one({"user_id": owner_id})
     await db.credentials.delete_one({"user_id": owner_id})
