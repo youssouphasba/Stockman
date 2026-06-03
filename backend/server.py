@@ -10969,7 +10969,8 @@ async def get_ai_history(user: User = Depends(require_permission("ai", "read")))
     history = await db.ai_conversations.find_one({"user_id": user.user_id})
     if not history:
         return {"messages": []}
-    return {"messages": history.get("messages", [])}
+    messages = history.get("messages", [])
+    return {"messages": messages[-60:]}
 
 @api_router.delete("/ai/history")
 async def clear_ai_history(user: User = Depends(require_permission("ai", "write"))):
@@ -10983,7 +10984,12 @@ async def _save_ai_message(user_id: str, role: str, content: str):
     await db.ai_conversations.update_one(
         {"user_id": user_id},
         {
-            "$push": {"messages": msg.dict()},
+            "$push": {
+                "messages": {
+                    "$each": [msg.dict()],
+                    "$slice": -120,
+                }
+            },
             "$set": {"updated_at": datetime.now(timezone.utc)},
             "$setOnInsert": {"created_at": datetime.now(timezone.utc)}
         },
@@ -10998,10 +11004,12 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
-    # Save User Message
-    await _save_ai_message(user.user_id, "user", prompt.message)
-
     try:
+        try:
+            await _save_ai_message(user.user_id, "user", prompt.message)
+        except Exception:
+            logger.exception("AI support: impossible d'enregistrer le message utilisateur")
+
         try:
             user_doc = await db.users.find_one({"user_id": user.user_id})
         except Exception:
@@ -11267,7 +11275,10 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
             )
         
         # Save Assistant Message
-        await _save_ai_message(user.user_id, "assistant", response_text)
+        try:
+            await _save_ai_message(user.user_id, "assistant", response_text)
+        except Exception:
+            logger.exception("AI support: impossible d'enregistrer la reponse assistant")
         await track_ai_usage(user.user_id, "support_chat", plan=_resolve_ai_plan(user))
 
         return {"response": response_text}
