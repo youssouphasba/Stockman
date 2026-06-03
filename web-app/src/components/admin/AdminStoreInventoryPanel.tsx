@@ -7,6 +7,8 @@ import { admin as adminApi } from '../../services/api';
 type Props = {
     stores: any[];
     showToast: (message: string, type?: 'success' | 'error') => void;
+    selectedStoreId?: string | null;
+    onStoreChange?: (storeId: string) => void;
 };
 
 const STOCK_FILTERS = [
@@ -22,7 +24,9 @@ const STOCK_FILTERS = [
 function formatMoney(amount: any, currency: string) {
     const numeric = Number(amount || 0);
     const suffix = currency === 'XOF' || currency === 'XAF' ? 'FCFA' : currency || '';
-    if (currency === 'EUR') return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    if (currency === 'EUR') {
+        return `${numeric.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    }
     return `${numeric.toLocaleString('fr-FR')} ${suffix}`.trim();
 }
 
@@ -35,7 +39,9 @@ function formatDate(value: any) {
 
 function formatQuantity(value: any, unit?: string) {
     const numeric = Number(value || 0);
-    const quantity = Number.isInteger(numeric) ? numeric.toLocaleString('fr-FR') : numeric.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+    const quantity = Number.isInteger(numeric)
+        ? numeric.toLocaleString('fr-FR')
+        : numeric.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
     return `${quantity}${unit ? ` ${unit}` : ''}`;
 }
 
@@ -67,7 +73,7 @@ function expiryClass(status: string) {
     return 'border-slate-500/20 bg-slate-500/10 text-slate-400';
 }
 
-export default function AdminStoreInventoryPanel({ stores, showToast }: Props) {
+export default function AdminStoreInventoryPanel({ stores, showToast, selectedStoreId, onStoreChange }: Props) {
     const [storeId, setStoreId] = useState('');
     const [filter, setFilter] = useState('all');
     const [search, setSearch] = useState('');
@@ -85,7 +91,19 @@ export default function AdminStoreInventoryPanel({ stores, showToast }: Props) {
         }
     }, [storeId, stores]);
 
-    const loadInventory = async (targetStoreId = selectedStore?.store_id, targetFilter = filter, targetSearch = search) => {
+    useEffect(() => {
+        if (selectedStoreId && selectedStoreId !== storeId) {
+            setStoreId(selectedStoreId);
+            setFilter('all');
+            setSearch('');
+        }
+    }, [selectedStoreId, storeId]);
+
+    const loadInventory = async (
+        targetStoreId = selectedStore?.store_id,
+        targetFilter = filter,
+        targetSearch = search,
+    ) => {
         if (!targetStoreId) return;
         setLoading(true);
         try {
@@ -127,6 +145,7 @@ export default function AdminStoreInventoryPanel({ stores, showToast }: Props) {
                                 setStoreId(event.target.value);
                                 setFilter('all');
                                 setSearch('');
+                                onStoreChange?.(event.target.value);
                             }}
                             className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-2 text-sm font-bold text-white outline-none"
                         >

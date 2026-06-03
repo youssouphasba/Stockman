@@ -9876,9 +9876,25 @@ async def admin_list_stores(skip: int = 0, limit: int = 50):
             {"store_id": {"$in": store_ids}, "is_dismissed": False},
             {"_id": 0, "store_id": 1, "severity": 1},
         ).to_list(None)
+        customer_counts = await db.customers.aggregate([
+            {"$match": {"store_id": {"$in": store_ids}}},
+            {"$group": {"_id": "$store_id", "count": {"$sum": 1}}},
+        ]).to_list(len(store_ids))
+        supplier_counts = await db.suppliers.aggregate([
+            {"$match": {"store_id": {"$in": store_ids}, "is_active": {"$ne": False}}},
+            {"$group": {"_id": "$store_id", "count": {"$sum": 1}}},
+        ]).to_list(len(store_ids))
+        last_movements = await db.stock_movements.aggregate([
+            {"$match": {"store_id": {"$in": store_ids}}},
+            {"$sort": {"created_at": -1}},
+            {"$group": {"_id": "$store_id", "created_at": {"$first": "$created_at"}}},
+        ]).to_list(len(store_ids))
 
         now = datetime.now(timezone.utc)
         expiry_cutoff = now + timedelta(days=30)
+        customer_count_map = {row.get("_id"): int(row.get("count") or 0) for row in customer_counts}
+        supplier_count_map = {row.get("_id"): int(row.get("count") or 0) for row in supplier_counts}
+        last_movement_map = {row.get("_id"): row.get("created_at") for row in last_movements}
         metrics: Dict[str, Dict[str, Any]] = {
             store_id: {
                 "low_stock_count": 0,
@@ -9889,6 +9905,9 @@ async def admin_list_stores(skip: int = 0, limit: int = 50):
                 "expired_count": 0,
                 "active_alerts_count": 0,
                 "critical_alerts_count": 0,
+                "customer_count": customer_count_map.get(store_id, 0),
+                "supplier_count": supplier_count_map.get(store_id, 0),
+                "last_movement_at": last_movement_map.get(store_id),
             }
             for store_id in store_ids
         }
@@ -9940,6 +9959,307 @@ async def admin_list_stores(skip: int = 0, limit: int = 50):
             store.update(metrics.get(store.get("store_id"), {}))
     total = await db.stores.count_documents({})
     return {"items": stores, "total": total}
+
+
+@admin_router.get("/stores/{store_id}/overview")
+async def admin_get_store_overview(
+    store_id: str,
+    user: User = Depends(require_superadmin),
+):
+    store = await db.stores.find_one({"store_id": store_id}, {"_id": 0})
+    if not store:
+        raise HTTPException(status_code=404, detail="Boutique introuvable")
+
+    owner = await db.users.find_one(
+        {"user_id": store.get("user_id")},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1, "country_code": 1, "currency": 1, "business_type": 1},
+    ) or {}
+
+    products = await db.products.find(
+        {"store_id": store_id, "is_active": {"$ne": False}},
+        {"_id": 0, "product_id": 1, "name": 1, "quantity": 1, "unit": 1, "min_stock": 1, "max_stock": 1, "purchase_price": 1, "updated_at": 1},
+    ).to_list(5000)
+    product_ids = [product.get("product_id") for product in products if product.get("product_id")]
+    product_name_map = {
+        product.get("product_id"): product.get("name") or "Produit"
+        for product in products
+        if product.get("product_id")
+    }
+
+    sales = await db.sales.find(
+        {"store_id": store_id},
+        {"_id": 0, "created_at": 1, "items.product_id": 1},
+    ).sort("created_at", -1).to_list(5000)
+    sold_product_ids = {
+        item.get("product_id")
+        for sale in sales
+        for item in (sale.get("items") or [])
+        if item.get("product_id")
+    }
+
+    stock_movements = await db.stock_movements.find(
+        {"store_id": store_id},
+        {"_id": 0, "movement_id": 1, "product_name": 1, "type": 1, "quantity": 1, "reason": 1, "created_at": 1},
+    ).sort("created_at", -1).limit(20).to_list(20)
+
+    alerts_query: Dict[str, Any] = {"is_dismissed": False, "store_id": store_id}
+    if product_ids:
+        alerts_query = {
+            "is_dismissed": False,
+            "$or": [
+                {"store_id": store_id},
+                {"product_id": {"$in": product_ids}},
+            ],
+        }
+    alerts = await db.alerts.find(
+        alerts_query,
+        {"_id": 0, "alert_id": 1, "product_id": 1, "type": 1, "title": 1, "message": 1, "severity": 1, "created_at": 1},
+    ).sort("created_at", -1).to_list(1000)
+    store_alert_rules_count = await db.alert_rules.count_documents({"store_id": store_id, "enabled": True})
+
+    customers = await db.customers.find(
+        {"store_id": store_id},
+        {"_id": 0, "customer_id": 1, "name": 1, "phone": 1, "email": 1, "customer_source": 1, "total_spent": 1, "current_debt": 1, "last_purchase_date": 1, "created_at": 1},
+    ).to_list(5000)
+
+    suppliers = await db.suppliers.find(
+        {"store_id": store_id, "is_active": {"$ne": False}},
+        {"_id": 0, "supplier_id": 1, "name": 1, "contact_name": 1, "phone": 1, "email": 1, "created_at": 1},
+    ).to_list(2000)
+    orders = await db.orders.find(
+        {"store_id": store_id},
+        {"_id": 0, "order_id": 1, "supplier_id": 1, "supplier_name": 1, "status": 1, "total_amount": 1, "created_at": 1, "expected_delivery": 1},
+    ).sort("created_at", -1).to_list(5000)
+
+    now = datetime.now(timezone.utc)
+    stock_value = 0.0
+    low_stock_count = 0
+    out_of_stock_count = 0
+    overstock_count = 0
+    dormant_products: List[Dict[str, Any]] = []
+    low_stock_items: List[Dict[str, Any]] = []
+    out_of_stock_items: List[Dict[str, Any]] = []
+    latest_product_update_at: Optional[datetime] = None
+
+    for product in products:
+        quantity = float(product.get("quantity") or 0)
+        min_stock = float(product.get("min_stock") or 0)
+        max_stock = float(product.get("max_stock") or 0)
+        purchase_price = float(product.get("purchase_price") or 0)
+        stock_value += max(quantity, 0) * max(purchase_price, 0)
+
+        updated_at = parse_datetime_value(product.get("updated_at"))
+        if updated_at and (latest_product_update_at is None or updated_at > latest_product_update_at):
+            latest_product_update_at = updated_at
+
+        row = {
+            "product_id": product.get("product_id"),
+            "name": product.get("name") or "Produit sans nom",
+            "quantity": quantity,
+            "unit": product.get("unit"),
+            "min_stock": min_stock,
+            "max_stock": max_stock,
+        }
+        if quantity <= 0:
+            out_of_stock_count += 1
+            out_of_stock_items.append(row)
+        elif min_stock > 0 and quantity <= min_stock:
+            low_stock_count += 1
+            low_stock_items.append(row)
+        if max_stock > 0 and quantity >= max_stock:
+            overstock_count += 1
+        if quantity > 0 and product.get("product_id") not in sold_product_ids:
+            dormant_products.append(row)
+
+    severity_buckets = {"critical": 0, "warning": 0, "info": 0}
+    alert_items: List[Dict[str, Any]] = []
+    latest_alert_at: Optional[datetime] = None
+    for alert in alerts:
+        severity = str(alert.get("severity") or "warning").lower()
+        if severity not in severity_buckets:
+            severity_buckets[severity] = 0
+        severity_buckets[severity] += 1
+        created_at = parse_datetime_value(alert.get("created_at"))
+        if created_at and (latest_alert_at is None or created_at > latest_alert_at):
+            latest_alert_at = created_at
+        alert_items.append({
+            "alert_id": alert.get("alert_id"),
+            "title": alert.get("title"),
+            "message": alert.get("message"),
+            "severity": severity,
+            "type": alert.get("type"),
+            "created_at": created_at.isoformat() if created_at else None,
+            "product_name": product_name_map.get(alert.get("product_id")),
+        })
+
+    def normalize_customer_source(value: Optional[str]) -> str:
+        source = str(value or "").strip().lower()
+        if source == "mixed":
+            return "mixed"
+        if "ecommerce" in source:
+            return "ecommerce"
+        return "physical"
+
+    customer_source_counts = {"physical": 0, "ecommerce": 0, "mixed": 0}
+    debt_balance = 0.0
+    debtors_count = 0
+    latest_customer_at: Optional[datetime] = None
+    customer_items: List[Dict[str, Any]] = []
+    for customer in customers:
+        source = normalize_customer_source(customer.get("customer_source"))
+        customer_source_counts[source] += 1
+        current_debt = max(float(customer.get("current_debt") or 0), 0)
+        if current_debt > 0:
+            debtors_count += 1
+            debt_balance += current_debt
+        created_at = parse_datetime_value(customer.get("created_at"))
+        if created_at and (latest_customer_at is None or created_at > latest_customer_at):
+            latest_customer_at = created_at
+        customer_items.append({
+            "customer_id": customer.get("customer_id"),
+            "name": customer.get("name") or "Client sans nom",
+            "phone": customer.get("phone"),
+            "email": customer.get("email"),
+            "customer_source": source,
+            "total_spent": round(float(customer.get("total_spent") or 0), 2),
+            "current_debt": round(current_debt, 2),
+            "last_purchase_date": customer.get("last_purchase_date"),
+            "created_at": created_at.isoformat() if created_at else None,
+        })
+    customer_items.sort(key=lambda row: (-float(row.get("total_spent") or 0), row.get("name") or ""))
+
+    supplier_name_map = {
+        supplier.get("supplier_id"): supplier.get("name") or "Fournisseur"
+        for supplier in suppliers
+        if supplier.get("supplier_id")
+    }
+    supplier_stats: Dict[str, Dict[str, Any]] = {
+        supplier.get("supplier_id"): {
+            "supplier_id": supplier.get("supplier_id"),
+            "name": supplier.get("name") or "Fournisseur",
+            "contact_name": supplier.get("contact_name"),
+            "phone": supplier.get("phone"),
+            "email": supplier.get("email"),
+            "created_at": parse_datetime_value(supplier.get("created_at")).isoformat() if parse_datetime_value(supplier.get("created_at")) else None,
+            "orders_count": 0,
+            "open_orders_count": 0,
+            "late_orders_count": 0,
+            "total_ordered_amount": 0.0,
+            "last_order_at": None,
+        }
+        for supplier in suppliers
+        if supplier.get("supplier_id")
+    }
+    open_order_statuses = {"pending", "confirmed", "shipped"}
+    total_ordered_amount = 0.0
+    late_orders_count = 0
+    latest_order_at: Optional[datetime] = None
+    for order in orders:
+        supplier_id = order.get("supplier_id")
+        stats_bucket = supplier_stats.setdefault(
+            supplier_id or order.get("supplier_name") or "unknown",
+            {
+                "supplier_id": supplier_id,
+                "name": supplier_name_map.get(supplier_id) or order.get("supplier_name") or "Fournisseur",
+                "contact_name": None,
+                "phone": None,
+                "email": None,
+                "created_at": None,
+                "orders_count": 0,
+                "open_orders_count": 0,
+                "late_orders_count": 0,
+                "total_ordered_amount": 0.0,
+                "last_order_at": None,
+            },
+        )
+        amount = float(order.get("total_amount") or 0)
+        total_ordered_amount += amount
+        stats_bucket["orders_count"] += 1
+        stats_bucket["total_ordered_amount"] += amount
+        status = str(order.get("status") or "").lower()
+        if status in open_order_statuses:
+            stats_bucket["open_orders_count"] += 1
+        created_at = parse_datetime_value(order.get("created_at"))
+        if created_at and (latest_order_at is None or created_at > latest_order_at):
+            latest_order_at = created_at
+        if created_at and (not stats_bucket.get("last_order_at") or created_at.isoformat() > str(stats_bucket.get("last_order_at"))):
+            stats_bucket["last_order_at"] = created_at.isoformat()
+        expected_delivery = parse_datetime_value(order.get("expected_delivery"))
+        if expected_delivery and expected_delivery < now and status not in {"delivered", "cancelled"}:
+            late_orders_count += 1
+            stats_bucket["late_orders_count"] += 1
+
+    supplier_items = list(supplier_stats.values())
+    supplier_items.sort(key=lambda row: (-float(row.get("total_ordered_amount") or 0), -(int(row.get("orders_count") or 0))))
+    latest_movement_at = parse_datetime_value(stock_movements[0].get("created_at")) if stock_movements else None
+
+    return {
+        "store": {
+            **store,
+            "owner_name": owner.get("name"),
+            "owner_email": owner.get("email"),
+            "country_code": owner.get("country_code"),
+            "currency": owner.get("currency"),
+            "business_type": owner.get("business_type"),
+        },
+        "stock": {
+            "summary": {
+                "total_products": len(products),
+                "stock_value": round(stock_value, 2),
+                "low_stock_count": low_stock_count,
+                "out_of_stock_count": out_of_stock_count,
+                "overstock_count": overstock_count,
+                "dormant_products_count": len(dormant_products),
+                "latest_movement_at": latest_movement_at.isoformat() if latest_movement_at else None,
+                "latest_product_update_at": latest_product_update_at.isoformat() if latest_product_update_at else None,
+            },
+            "highlights": {
+                "low_stock": sorted(low_stock_items, key=lambda row: (float(row.get("quantity") or 0) - float(row.get("min_stock") or 0)))[:8],
+                "out_of_stock": out_of_stock_items[:8],
+                "dormant": dormant_products[:8],
+                "recent_movements": [
+                    {
+                        **movement,
+                        "created_at": parse_datetime_value(movement.get("created_at")).isoformat() if parse_datetime_value(movement.get("created_at")) else None,
+                    }
+                    for movement in stock_movements
+                ],
+            },
+        },
+        "alerts": {
+            "summary": {
+                "total_active": len(alert_items),
+                "critical_count": severity_buckets.get("critical", 0),
+                "warning_count": severity_buckets.get("warning", 0),
+                "info_count": severity_buckets.get("info", 0),
+                "latest_alert_at": latest_alert_at.isoformat() if latest_alert_at else None,
+                "store_rules_count": store_alert_rules_count,
+            },
+            "items": alert_items,
+        },
+        "customers": {
+            "summary": {
+                "total": len(customer_items),
+                "physical_count": customer_source_counts.get("physical", 0),
+                "ecommerce_count": customer_source_counts.get("ecommerce", 0),
+                "mixed_count": customer_source_counts.get("mixed", 0),
+                "debtors_count": debtors_count,
+                "debt_balance": round(debt_balance, 2),
+                "latest_customer_at": latest_customer_at.isoformat() if latest_customer_at else None,
+            },
+            "items": customer_items,
+        },
+        "suppliers": {
+            "summary": {
+                "total": len(suppliers),
+                "open_orders_count": sum(int(item.get("open_orders_count") or 0) for item in supplier_items),
+                "late_orders_count": late_orders_count,
+                "total_ordered_amount": round(total_ordered_amount, 2),
+                "latest_order_at": latest_order_at.isoformat() if latest_order_at else None,
+            },
+            "items": supplier_items,
+        },
+    }
 
 
 @admin_router.get("/stores/{store_id}/inventory")

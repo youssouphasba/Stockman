@@ -10,7 +10,7 @@ import {
 import { admin as adminApi, setRefreshToken, setToken } from '../services/api';
 import AdminProductsPanel from './admin/AdminProductsPanel';
 import AdminCatalogPanel from './admin/AdminCatalogPanel';
-import AdminStoreInventoryPanel from './admin/AdminStoreInventoryPanel';
+import AdminStoreOverviewPanel from './admin/AdminStoreOverviewPanel';
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: any; icon: any; color: string; sub: string }) {
     return (
@@ -1338,7 +1338,7 @@ export default function AdminDashboard() {
     const storesInsights = useMemo(() => {
         const withoutProducts = stores.filter((store: any) => Number(store.product_count || 0) === 0);
         const withoutRevenue = stores.filter((store: any) => Number(store.total_revenue || 0) === 0);
-        const lowStock = stores.filter((store: any) => Number(store.low_stock_count || store.low_stock_products || 0) > 0);
+        const lowStock = stores.filter((store: any) => Number(store.low_stock_count || 0) > 0 || Number(store.out_of_stock_count || 0) > 0);
         return { withoutProducts, withoutRevenue, lowStock };
     }, [stores]);
 
@@ -2941,79 +2941,7 @@ export default function AdminDashboard() {
 
             {/* -- STORES -- */}
             {activeSection === 'stores' && (
-                <div className="space-y-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard label="Boutiques" value={stores.length} icon={Store} color="bg-primary" sub="Total chargé" />
-                        <StatCard label="Sans produit" value={storesInsights.withoutProducts.length} icon={Package} color="bg-rose-500" sub="À configurer" />
-                        <StatCard label="Sans CA" value={storesInsights.withoutRevenue.length} icon={TrendingUp} color="bg-amber-500" sub="Aucune vente connue" />
-                        <StatCard label="Stock bas" value={storesInsights.lowStock.length} icon={AlertTriangle} color="bg-violet-500" sub="Boutiques concernées" />
-                    </div>
-
-                    <div className="glass-card overflow-hidden">
-                        <div className="p-5 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                            <div>
-                                <h3 className="text-base font-black text-white uppercase tracking-tighter">
-                                    Boutiques {refreshing ? '' : `(${stores.length})`}
-                                </h3>
-                                <p className="mt-1 text-xs text-slate-500">Propriétaire, activité, stock et chiffre d’affaires par boutique.</p>
-                            </div>
-                            <button onClick={loadStores} className="p-2 text-slate-400 hover:text-white transition-all">
-                                <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-                            </button>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
-                                        <th className="px-6 py-4">Boutique</th>
-                                        <th className="px-6 py-4">Propriétaire</th>
-                                        <th className="px-6 py-4">Pays / devise</th>
-                                        <th className="px-6 py-4">Produits</th>
-                                        <th className="px-6 py-4">Stock</th>
-                                        <th className="px-6 py-4">CA total</th>
-                                        <th className="px-6 py-4">Création</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/5 text-sm">
-                                    {stores.map((store: any) => (
-                                        <tr key={store.store_id} className="hover:bg-white/5 transition-all">
-                                            <td className="px-6 py-4">
-                                                <p className="text-white font-bold">{store.name || 'Boutique sans nom'}</p>
-                                                <p className="text-[10px] text-slate-500 font-mono">{String(store.store_id || '').slice(-8) || '—'}</p>
-                                                <p className="mt-1 text-[10px] text-slate-600">{store.store_id || '—'}</p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className="text-slate-300 font-semibold">{store.owner_name || store.owner_email || '—'}</p>
-                                                <p className="text-[11px] text-slate-500">{store.owner_email || store.email || store.owner_user_id || store.user_id || '—'}</p>
-                                            </td>
-                                            <td className="px-6 py-4 text-slate-400">
-                                                <p className="font-mono text-xs">{store.country_code || '—'} / {store.currency || '—'}</p>
-                                                <p className="text-[11px] text-slate-500">{store.business_type || store.store_type || '—'}</p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className="text-white font-bold">{store.product_count ?? 0}</p>
-                                                <p className="text-[11px] text-slate-500">{Number(store.product_count || 0) === 0 ? 'Aucun produit' : 'Catalogue actif'}</p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className="text-slate-300">{store.low_stock_count || store.low_stock_products || 0} stock bas</p>
-                                                <p className="text-[11px] text-slate-500">{store.out_of_stock_count || store.out_of_stock_products || 0} rupture</p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className="text-emerald-400 font-black">{store.total_revenue != null ? formatAdminMoney(store.total_revenue, store.currency || 'XOF') : '—'}</p>
-                                                <p className="text-[11px] text-slate-500">{store.sales_count || 0} vente(s)</p>
-                                            </td>
-                                            <td className="px-6 py-4 text-xs text-slate-400">{formatAdminDate(store.created_at)}</td>
-                                        </tr>
-                                    ))}
-                                    {stores.length === 0 && (
-                                        <tr><td colSpan={7} className="px-6 py-16 text-center text-slate-600">Aucune boutique</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <AdminStoreInventoryPanel stores={stores} showToast={showToast} />
-                </div>
+                <AdminStoreOverviewPanel stores={stores} refreshing={refreshing} onRefresh={loadStores} showToast={showToast} />
             )}
 
             {/* -- DISPUTES -- */}

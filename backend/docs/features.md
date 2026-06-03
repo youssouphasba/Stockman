@@ -114,6 +114,11 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Quand une commande E-com est livrée, elle est convertie en vente et sa sortie de stock n'est pas comptée comme une perte comptable.
 - Sur mobile, un bouton visible dans l'en-tête ouvre directement le site e-commerce de la boutique active.
 - Sur le web admin, un bouton visible sous le logo ouvre le site e-commerce dans un nouvel onglet.
+- Dans l'admin web, l'onglet **Boutiques** affiche désormais un résumé exploitable par boutique sans noyer l'écran dans tout le détail.
+- Chaque boutique peut être ouverte en mode **analyse** pour afficher un aperçu structuré du **stock**, des **alertes**, des **clients** et des **fournisseurs**.
+- Le stock complet reste accessible à la demande depuis **Voir tout le stock**, avec l'inventaire détaillé filtré sur la boutique choisie.
+- Les autres blocs ouvrent des vues complètes dédiées pour consulter toutes les alertes, tous les clients ou tous les fournisseurs liés à cette boutique.
+- Les résumés ne sont pas limités à une période fixe : ils reflètent l'état global de la boutique, avec un aperçu léger et un accès immédiat au détail.
 - Les anciennes fiches qui pointent encore vers `/uploads/products/...` peuvent perdre leur image si le fichier serveur d'origine n'existe plus ; il faut alors remettre la photo sur la fiche produit.
 
 ### Comment modifier le stock d'un produit ?
