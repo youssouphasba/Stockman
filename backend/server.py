@@ -115,7 +115,10 @@ except Exception:
     RAGService = None
 
 # Gemini model initialization
-google_key = os.environ.get('GOOGLE_API_KEY')
+def resolve_gemini_api_key() -> str:
+    return (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+
+google_key = resolve_gemini_api_key()
 gemini_model = None
 if google_key:
     try:
@@ -677,7 +680,7 @@ async def update_cgu(cgu_data: CGU):
 
 async def translate_legal_document(text: str, target_lang: str) -> str:
     """Helper to translate legal documents using Gemini"""
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         return text # Fallback to original if no key
     
@@ -878,7 +881,7 @@ async def create_indexes_and_init():
         async def init_rag_and_migrations():
             global rag_service
             try:
-                api_key = os.environ.get("GOOGLE_API_KEY")
+                api_key = resolve_gemini_api_key()
                 if api_key and RAGService:
                     rag_service = RAGService(api_key, ROOT_DIR)
                     try:
@@ -10671,7 +10674,7 @@ async def _save_ai_message(user_id: str, role: str, content: str):
 @limiter.limit("20/minute")
 async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(require_permission("ai", "write"))):
     await check_ai_limit(user, "support_chat")
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
@@ -10914,7 +10917,7 @@ async def ai_suggest_category(request: Request, data: dict = Body(...), user: Us
     if not product_name:
         raise HTTPException(status_code=400, detail="product_name required")
 
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
     business_profile = get_ai_business_profile({"business_type": user.business_type})
@@ -11002,7 +11005,7 @@ async def ai_generate_description(request: Request, data: dict = Body(...), user
     if not product_name:
         raise HTTPException(status_code=400, detail="product_name required")
 
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
     business_profile = get_ai_business_profile({"business_type": user.business_type})
@@ -11054,7 +11057,7 @@ async def ai_daily_summary(request: Request, lang: str = "fr", user: User = Depe
         detail="Le resume IA du dashboard mobile est reserve au plan Enterprise.",
     )
     await check_ai_limit(user, "daily_summary")
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
@@ -11125,7 +11128,7 @@ Sois direct comme un associÃ© qui connaÃ®t le business. Aucune formule de po
 
 async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None, lang: str = "fr") -> List[dict]:
     """Core logic for AI anomaly detection, returns list of anomaly objects"""
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         return []
 
@@ -11376,7 +11379,7 @@ async def ai_basket_suggestions(data: dict = Body(...), user: User = Depends(req
 async def ai_replenishment_advice(request: Request, lang: str = "fr", user: User = Depends(require_permission("ai", "read"))):
     """Use Gemini to provide smart replenishment advice based on current suggestions"""
     await check_ai_limit(user, "replenishment_advice")
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
@@ -11451,7 +11454,7 @@ async def ai_suggest_price(request: Request, data: dict = Body(...), user: User 
     if not product_id:
         raise HTTPException(status_code=400, detail="product_id required")
 
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
@@ -11580,7 +11583,7 @@ async def ai_scan_invoice(request: Request, data: dict = Body(...), user: User =
     if not image_base64:
         raise HTTPException(status_code=400, detail="image (base64) required")
 
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
     try:
@@ -11636,7 +11639,7 @@ Si un champ n'est pas lisible, mets null. Les prix doivent Ãªtre des nombres.
 @limiter.limit("10/minute")
 async def ai_pl_analysis(request: Request, lang: str = "fr", days: int = 30, user: User = Depends(require_permission("accounting", "read"))):
     """AI narrative analysis of P&L for the Accounting screen"""
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="ClÃ© API IA manquante")
     try:
@@ -11709,7 +11712,7 @@ Sois direct, analytique, utilise les chiffres. Pas de formules creuses."""
 @limiter.limit("10/minute")
 async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = Depends(require_permission("crm", "read"))):
     """AI churn prediction â€” identifies at-risk customers"""
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="ClÃ© API IA manquante")
     try:
@@ -11793,7 +11796,7 @@ Sois direct et opÃ©rationnel. Utilise les chiffres fournis."""
 @limiter.limit("5/minute")
 async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Depends(require_permission("accounting", "read"))):
     """Generate a full AI monthly report (narrative, exportable)"""
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="ClÃ© API IA manquante")
     try:
@@ -11893,7 +11896,7 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
     if not audio_base64:
         raise HTTPException(status_code=400, detail="audio (base64) required")
 
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
 
@@ -14103,7 +14106,7 @@ async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = 
     if cached and (datetime.now(timezone.utc).timestamp() - _ai_cache_ts.get(cache_key, 0)) < 43200:
         return cached
 
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=503, detail="ClÃ© API IA manquante")
 
@@ -14310,7 +14313,7 @@ Rules:
 """
 
     import google.generativeai as genai
-    api_key = os.environ.get("GEMINI_API_KEY", "")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=503, detail="AI service not configured")
 
@@ -14565,7 +14568,7 @@ async def natural_language_query(body: dict = Body(...), user: User = Depends(re
     if intent is None:
         try:
             import google.generativeai as genai
-            api_key = os.environ.get("GEMINI_API_KEY", "")
+            api_key = resolve_gemini_api_key()
             if api_key:
                 genai.configure(api_key=api_key)
                 model = genai.GenerativeModel("gemini-2.0-flash")
@@ -14682,7 +14685,7 @@ async def voice_to_cart(body: dict = Body(...), user: User = Depends(require_ope
 
     # Transcribe audio with Gemini
     import google.generativeai as genai
-    api_key = os.environ.get("GEMINI_API_KEY", "")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=503, detail="AI service not configured")
 
@@ -14895,7 +14898,7 @@ async def admin_suggest_notification_message(data: AdminNotificationSuggestionRe
     if not objective:
         raise HTTPException(status_code=400, detail="L'objectif est requis.")
 
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="La gÃ©nÃ©ration IA n'est pas configurÃ©e.")
 
@@ -15100,7 +15103,7 @@ async def import_products_from_text(
     Importer des produits depuis un texte libre (WhatsApp, notes, etc.).
     L'IA parse le texte et retourne une liste structurÃ©e de produits.
     """
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=503, detail="Service IA non configurÃ©")
 
@@ -31112,7 +31115,7 @@ async def get_catalog_suggestions(order_id: str, user: User = Depends(require_pe
 
     # Call Gemini for unmatched items
     if items_for_gemini and inventory:
-        api_key = os.environ.get("GOOGLE_API_KEY")
+        api_key = resolve_gemini_api_key()
         if api_key:
             try:
                 genai.configure(api_key=api_key)
@@ -31673,7 +31676,7 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
     
     # Gemini AI summary (optional, only if API key available)
     ai_summary = ""
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = resolve_gemini_api_key()
     if api_key and forecast_products:
         try:
             genai.configure(api_key=api_key)
