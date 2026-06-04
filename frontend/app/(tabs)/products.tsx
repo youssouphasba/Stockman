@@ -149,6 +149,114 @@ function fuzzyMatch(text: string, query: string) {
   });
 }
 
+const BulkEditProductRow = React.memo(function BulkEditProductRow({
+  item,
+  categoryName,
+  nameValue,
+  sellingValue,
+  purchaseValue,
+  stockValue,
+  sellingLabel,
+  purchaseLabel,
+  stockLabel,
+  colors,
+  styles,
+  bulkPriceSaving,
+  isRestaurant,
+  onNameChange,
+  onSellingChange,
+  onPurchaseChange,
+  onStockChange,
+  onRemove,
+  namePlaceholder,
+}: {
+  item: Product;
+  categoryName?: string;
+  nameValue: string;
+  sellingValue: string;
+  purchaseValue: string;
+  stockValue: string;
+  sellingLabel: string;
+  purchaseLabel: string;
+  stockLabel: string;
+  colors: any;
+  styles: ReturnType<typeof getStyles>;
+  bulkPriceSaving: boolean;
+  isRestaurant: boolean;
+  onNameChange: (value: string) => void;
+  onSellingChange: (value: string) => void;
+  onPurchaseChange: (value: string) => void;
+  onStockChange: (value: string) => void;
+  onRemove: () => void;
+  namePlaceholder: string;
+}) {
+  return (
+    <View style={[styles.bulkPriceRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
+      <View style={styles.bulkPriceRowHeader}>
+        <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+          <TextInput
+            style={styles.bulkNameInput}
+            value={nameValue}
+            onChangeText={onNameChange}
+            placeholder={namePlaceholder}
+            placeholderTextColor={colors.textMuted}
+            blurOnSubmit={false}
+            autoCorrect={false}
+          />
+          {!!categoryName && <Text style={styles.bulkPriceMeta}>{categoryName}</Text>}
+        </View>
+        <TouchableOpacity
+          style={styles.bulkRowRemoveBtn}
+          onPress={onRemove}
+          disabled={bulkPriceSaving}
+        >
+          <Ionicons name="close-circle-outline" size={22} color={colors.danger} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>{sellingLabel}</Text>
+          <TextInput
+            style={styles.bulkPriceInput}
+            value={sellingValue}
+            onChangeText={onSellingChange}
+            keyboardType="decimal-pad"
+            placeholder={String(item.selling_price ?? 0)}
+            placeholderTextColor={colors.textMuted}
+          />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>{purchaseLabel}</Text>
+          <TextInput
+            style={styles.bulkPriceInput}
+            value={purchaseValue}
+            onChangeText={onPurchaseChange}
+            keyboardType="decimal-pad"
+            placeholder={String(item.purchase_price ?? 0)}
+            placeholderTextColor={colors.textMuted}
+          />
+        </View>
+
+        {!isRestaurant && (
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>{stockLabel}</Text>
+            <TextInput
+              style={styles.bulkPriceInput}
+              value={stockValue}
+              onChangeText={onStockChange}
+              keyboardType="decimal-pad"
+              placeholder={String(item.quantity ?? 0)}
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+        )}
+      </View>
+    </View>
+  );
+});
+
 export default function ProductsScreen() {
   const MOBILE_PRODUCTS_FOCUS_TTL_MS = 60_000;
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
@@ -1486,6 +1594,136 @@ export default function ProductsScreen() {
       query,
     ));
   }, [bulkEditSearch, categoryNameById, selectedProducts]);
+
+  const bulkNamePlaceholder = t('products.quick_add_name_placeholder', 'Nom du produit');
+
+  const renderBulkEditHeader = useMemo(() => (
+    <View>
+      <View style={styles.bulkEditSearchWrap}>
+        <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+        <TextInput
+          style={styles.bulkEditSearchInput}
+          value={bulkEditSearch}
+          onChangeText={setBulkEditSearch}
+          placeholder={t('products.bulk_edit_search_placeholder', 'Rechercher un produit sélectionné')}
+          placeholderTextColor={colors.textMuted}
+        />
+      </View>
+      <View style={styles.bulkQuickCreateCard}>
+        <Text style={styles.bulkQuickCreateTitle}>{t('products.quick_add_title', 'Ajout rapide')}</Text>
+        <TextInput
+          style={styles.bulkQuickCreateNameInput}
+          value={bulkQuickCreateName}
+          onChangeText={setBulkQuickCreateName}
+          placeholder={bulkNamePlaceholder}
+          placeholderTextColor={colors.textMuted}
+        />
+        <View style={styles.bulkQuickCreateGrid}>
+          <View style={styles.bulkQuickCreateField}>
+            <Text style={styles.bulkQuickCreateLabel}>{t('products.field_purchase_price')}</Text>
+            <TextInput
+              style={styles.bulkPriceInput}
+              value={bulkQuickCreatePurchasePrice}
+              onChangeText={setBulkQuickCreatePurchasePrice}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+          <View style={styles.bulkQuickCreateField}>
+            <Text style={styles.bulkQuickCreateLabel}>{t('products.field_selling_price')}</Text>
+            <TextInput
+              style={styles.bulkPriceInput}
+              value={bulkQuickCreateSellingPrice}
+              onChangeText={setBulkQuickCreateSellingPrice}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+          {!isRestaurant && (
+            <View style={styles.bulkQuickCreateField}>
+              <Text style={styles.bulkQuickCreateLabel}>{t('products.field_quantity')}</Text>
+              <TextInput
+                style={styles.bulkPriceInput}
+                value={bulkQuickCreateStock}
+                onChangeText={setBulkQuickCreateStock}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+          )}
+        </View>
+        <TouchableOpacity
+          style={[styles.bulkQuickCreateButton, bulkQuickCreateSaving && styles.submitBtnDisabled]}
+          onPress={handleQuickCreateBulkProduct}
+          disabled={bulkQuickCreateSaving}
+        >
+          {bulkQuickCreateSaving ? (
+            <ActivityIndicator color={colors.text} />
+          ) : (
+            <>
+              <Ionicons name="add-circle-outline" size={18} color={colors.text} />
+              <Text style={styles.bulkQuickCreateButtonText}>{t('products.quick_add_cta', 'Créer et ajouter')}</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  ), [
+    bulkEditSearch,
+    bulkNamePlaceholder,
+    bulkQuickCreateName,
+    bulkQuickCreatePurchasePrice,
+    bulkQuickCreateSaving,
+    bulkQuickCreateSellingPrice,
+    bulkQuickCreateStock,
+    colors.text,
+    colors.textMuted,
+    handleQuickCreateBulkProduct,
+    isRestaurant,
+    styles,
+    t,
+  ]);
+
+  const renderBulkEditItem = useCallback(({ item }: { item: Product }) => (
+    <BulkEditProductRow
+      item={item}
+      categoryName={categoryNameById.get(item.category_id || '')}
+      nameValue={bulkNameValues[item.product_id] ?? ''}
+      sellingValue={bulkPriceValues[item.product_id] ?? ''}
+      purchaseValue={bulkPurchaseValues[item.product_id] ?? ''}
+      stockValue={bulkStockValues[item.product_id] ?? ''}
+      sellingLabel={`${t('products.field_selling_price')} (${formatUserCurrency(item.selling_price, user)})`}
+      purchaseLabel={`${t('products.field_purchase_price')} (${formatUserCurrency(item.purchase_price, user)})`}
+      stockLabel={`${t('products.field_quantity')} (${formatMeasurementQuantity(item.quantity, item.display_unit || item.unit)})`}
+      colors={colors}
+      styles={styles}
+      bulkPriceSaving={bulkPriceSaving}
+      isRestaurant={isRestaurant}
+      onNameChange={(value) => setBulkNameValues((prev) => ({ ...prev, [item.product_id]: value }))}
+      onSellingChange={(value) => setBulkPriceValues((prev) => ({ ...prev, [item.product_id]: value }))}
+      onPurchaseChange={(value) => setBulkPurchaseValues((prev) => ({ ...prev, [item.product_id]: value }))}
+      onStockChange={(value) => setBulkStockValues((prev) => ({ ...prev, [item.product_id]: value }))}
+      onRemove={() => removeProductFromBulkEdit(item.product_id)}
+      namePlaceholder={bulkNamePlaceholder}
+    />
+  ), [
+    bulkNamePlaceholder,
+    bulkNameValues,
+    bulkPriceSaving,
+    bulkPriceValues,
+    bulkPurchaseValues,
+    bulkStockValues,
+    categoryNameById,
+    colors,
+    isRestaurant,
+    removeProductFromBulkEdit,
+    styles,
+    t,
+    user,
+  ]);
 
   const allVisibleProductsSelected = filtered.length > 0 && filtered.every((product) => selectedProductIds.has(product.product_id));
 
@@ -4344,151 +4582,19 @@ export default function ProductsScreen() {
               </TouchableOpacity>
             </View>
             <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
               style={{ flex: 1 }}
               keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(8, insets.top / 2) : 0}
             >
-              <View style={styles.bulkEditSearchWrap}>
-                <Ionicons name="search-outline" size={18} color={colors.textMuted} />
-                <TextInput
-                  style={styles.bulkEditSearchInput}
-                  value={bulkEditSearch}
-                  onChangeText={setBulkEditSearch}
-                  placeholder={t('products.bulk_edit_search_placeholder', 'Rechercher un produit sélectionné')}
-                  placeholderTextColor={colors.textMuted}
-                />
-              </View>
-              <View style={styles.bulkQuickCreateCard}>
-                <Text style={styles.bulkQuickCreateTitle}>{t('products.quick_add_title', 'Ajout rapide')}</Text>
-                <TextInput
-                  style={styles.bulkQuickCreateNameInput}
-                  value={bulkQuickCreateName}
-                  onChangeText={setBulkQuickCreateName}
-                  placeholder={t('products.quick_add_name_placeholder', 'Nom du produit')}
-                  placeholderTextColor={colors.textMuted}
-                />
-                <View style={styles.bulkQuickCreateGrid}>
-                  <View style={styles.bulkQuickCreateField}>
-                    <Text style={styles.bulkQuickCreateLabel}>{t('products.field_purchase_price')}</Text>
-                    <TextInput
-                      style={styles.bulkPriceInput}
-                      value={bulkQuickCreatePurchasePrice}
-                      onChangeText={setBulkQuickCreatePurchasePrice}
-                      keyboardType="decimal-pad"
-                      placeholder="0"
-                      placeholderTextColor={colors.textMuted}
-                    />
-                  </View>
-                  <View style={styles.bulkQuickCreateField}>
-                    <Text style={styles.bulkQuickCreateLabel}>{t('products.field_selling_price')}</Text>
-                    <TextInput
-                      style={styles.bulkPriceInput}
-                      value={bulkQuickCreateSellingPrice}
-                      onChangeText={setBulkQuickCreateSellingPrice}
-                      keyboardType="decimal-pad"
-                      placeholder="0"
-                      placeholderTextColor={colors.textMuted}
-                    />
-                  </View>
-                  {!isRestaurant && (
-                    <View style={styles.bulkQuickCreateField}>
-                      <Text style={styles.bulkQuickCreateLabel}>{t('products.field_quantity')}</Text>
-                      <TextInput
-                        style={styles.bulkPriceInput}
-                        value={bulkQuickCreateStock}
-                        onChangeText={setBulkQuickCreateStock}
-                        keyboardType="decimal-pad"
-                        placeholder="0"
-                        placeholderTextColor={colors.textMuted}
-                      />
-                    </View>
-                  )}
-                </View>
-                <TouchableOpacity
-                  style={[styles.bulkQuickCreateButton, bulkQuickCreateSaving && styles.submitBtnDisabled]}
-                  onPress={handleQuickCreateBulkProduct}
-                  disabled={bulkQuickCreateSaving}
-                >
-                  {bulkQuickCreateSaving ? (
-                    <ActivityIndicator color={colors.text} />
-                  ) : (
-                    <>
-                      <Ionicons name="add-circle-outline" size={18} color={colors.text} />
-                      <Text style={styles.bulkQuickCreateButtonText}>{t('products.quick_add_cta', 'Créer et ajouter')}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
               <FlatList
                 data={bulkEditVisibleProducts}
                 keyExtractor={(item) => item.product_id}
-                keyboardShouldPersistTaps="handled"
+                ListHeaderComponent={renderBulkEditHeader}
+                keyboardShouldPersistTaps="always"
+                keyboardDismissMode="none"
+                removeClippedSubviews={false}
                 contentContainerStyle={{ paddingBottom: Spacing.sm }}
-                renderItem={({ item }) => (
-                  <View style={[styles.bulkPriceRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
-                    <View style={styles.bulkPriceRowHeader}>
-                      <View style={{ flex: 1, paddingRight: Spacing.sm }}>
-                        <TextInput
-                          style={styles.bulkNameInput}
-                          value={bulkNameValues[item.product_id] ?? item.name}
-                          onChangeText={(value) => setBulkNameValues((prev) => ({ ...prev, [item.product_id]: value }))}
-                          placeholder={t('products.quick_add_name_placeholder', 'Nom du produit')}
-                          placeholderTextColor={colors.textMuted}
-                        />
-                        {!!categoryNameById.get(item.category_id || '') && (
-                          <Text style={styles.bulkPriceMeta}>{categoryNameById.get(item.category_id || '')}</Text>
-                        )}
-                      </View>
-                      <TouchableOpacity
-                        style={styles.bulkRowRemoveBtn}
-                        onPress={() => removeProductFromBulkEdit(item.product_id)}
-                        disabled={bulkPriceSaving}
-                      >
-                        <Ionicons name="close-circle-outline" size={22} color={colors.danger} />
-                      </TouchableOpacity>
-                    </View>
-                    
-                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>Vente ({formatUserCurrency(item.selling_price, user)})</Text>
-                        <TextInput
-                          style={styles.bulkPriceInput}
-                          value={bulkPriceValues[item.product_id] ?? ''}
-                          onChangeText={(value) => setBulkPriceValues((prev) => ({ ...prev, [item.product_id]: value }))}
-                          keyboardType="decimal-pad"
-                          placeholder={String(item.selling_price ?? 0)}
-                          placeholderTextColor={colors.textMuted}
-                        />
-                      </View>
-                      
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>Achat ({formatUserCurrency(item.purchase_price, user)})</Text>
-                        <TextInput
-                          style={styles.bulkPriceInput}
-                          value={bulkPurchaseValues[item.product_id] ?? ''}
-                          onChangeText={(value) => setBulkPurchaseValues((prev) => ({ ...prev, [item.product_id]: value }))}
-                          keyboardType="decimal-pad"
-                          placeholder={String(item.purchase_price ?? 0)}
-                          placeholderTextColor={colors.textMuted}
-                        />
-                      </View>
-
-                      {!isRestaurant && (
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>Stock ({formatMeasurementQuantity(item.quantity, item.display_unit || item.unit)})</Text>
-                        <TextInput
-                          style={styles.bulkPriceInput}
-                          value={bulkStockValues[item.product_id] ?? ''}
-                          onChangeText={(value) => setBulkStockValues((prev) => ({ ...prev, [item.product_id]: value }))}
-                          keyboardType="decimal-pad"
-                          placeholder={String(item.quantity ?? 0)}
-                          placeholderTextColor={colors.textMuted}
-                        />
-                      </View>
-                      )}
-                    </View>
-                  </View>
-                )}
+                renderItem={renderBulkEditItem}
                 ListEmptyComponent={(
                   <View style={styles.bulkEmptyState}>
                     <Text style={styles.bulkEmptyStateText}>
