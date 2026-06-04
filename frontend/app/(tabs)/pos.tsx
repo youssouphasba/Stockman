@@ -117,6 +117,7 @@ export default function POSScreen() {
 
     const [customerList, setCustomerList] = useState<Customer[]>([]);
     const [customerSearch, setCustomerSearch] = useState('');
+    const [showCustomerPickerModal, setShowCustomerPickerModal] = useState(false);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [isScannerVisible, setIsScannerVisible] = useState(false);
     const [continuousScan, setContinuousScan] = useState(false);
@@ -364,6 +365,19 @@ export default function POSScreen() {
                 return normalizeSearchText(a.name).localeCompare(normalizeSearchText(b.name));
             });
     }, [productList, restaurantMode, search]);
+
+    const filteredCustomers = useMemo(() => {
+        const normalizedSearch = normalizeSearchText(customerSearch);
+        if (!normalizedSearch) return customerList;
+        return customerList.filter(customer => {
+            const haystack = normalizeSearchText([
+                customer.name,
+                customer.phone,
+                customer.email,
+            ].filter(Boolean).join(' '));
+            return haystack.includes(normalizedSearch);
+        });
+    }, [customerList, customerSearch]);
 
     const getProductScanCodes = (product: Product) =>
         [product.sku, (product as any).barcode]
@@ -1532,10 +1546,16 @@ export default function POSScreen() {
                                     <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
                                         <Ionicons name="person-add" size={14} color={colors.primary} />
                                     </TouchableOpacity>
-                                    <Ionicons name="person-outline" size={16} color={colors.textMuted} />
-                                    <Text style={styles.compactCustomerText} numberOfLines={1}>
-                                        {selectedCustomer?.name || t('pos.anonymous_customer')}
-                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.compactCustomerSelectorButton}
+                                        onPress={() => setShowCustomerPickerModal(true)}
+                                    >
+                                        <Ionicons name="person-outline" size={16} color={colors.textMuted} />
+                                        <Text style={styles.compactCustomerText} numberOfLines={1}>
+                                            {selectedCustomer?.name || t('pos.anonymous_customer')}
+                                        </Text>
+                                        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+                                    </TouchableOpacity>
                                 </View>
                             ) : (
                                 <View style={styles.customerSelector}>
@@ -1559,9 +1579,7 @@ export default function POSScreen() {
                                         >
                                             <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>{t('pos.anonymous_customer')}</Text>
                                         </TouchableOpacity>
-                                        {customerList
-                                            .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
-                                            .map(customer => (
+                                        {filteredCustomers.map(customer => (
                                                 <TouchableOpacity
                                                     key={customer.customer_id}
                                                     style={[styles.customerBadge, selectedCustomer?.customer_id === customer.customer_id && styles.customerBadgeActive]}
@@ -2001,6 +2019,82 @@ export default function POSScreen() {
                         </TouchableOpacity>
             </KeyboardAwareModal>}
 
+            {showCustomerPickerModal && <KeyboardAwareModal
+                visible={showCustomerPickerModal}
+                onClose={() => setShowCustomerPickerModal(false)}
+                backgroundColor={colors.bgMid}
+                borderColor={colors.glassBorder}
+                maxHeightRatio={0.78}
+            >
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{t('pos.associate_customer', 'Associer un client')}</Text>
+                            <TouchableOpacity onPress={() => setShowCustomerPickerModal(false)}>
+                                <Ionicons name="close" size={24} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.customerPickerHeader}>
+                            <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+                            <TextInput
+                                style={styles.customerPickerSearchInput}
+                                placeholder={t('pos.search_customer')}
+                                placeholderTextColor={colors.textMuted}
+                                value={customerSearch}
+                                onChangeText={setCustomerSearch}
+                            />
+                        </View>
+                        <ScrollView style={styles.customerPickerList} keyboardShouldPersistTaps="handled">
+                            <TouchableOpacity
+                                style={[styles.customerPickerRow, !selectedCustomer && styles.customerPickerRowActive]}
+                                onPress={() => {
+                                    updateActiveSession(s => ({ ...s, selectedCustomer: null }));
+                                    setShowCustomerPickerModal(false);
+                                }}
+                            >
+                                <View style={styles.customerPickerIdentity}>
+                                    <Ionicons name="person-outline" size={16} color={!selectedCustomer ? colors.primary : colors.textMuted} />
+                                    <Text style={[styles.customerPickerName, !selectedCustomer && styles.customerPickerNameActive]}>
+                                        {t('pos.anonymous_customer')}
+                                    </Text>
+                                </View>
+                                {!selectedCustomer ? <Ionicons name="checkmark-circle" size={18} color={colors.primary} /> : null}
+                            </TouchableOpacity>
+                            {filteredCustomers.map(customer => {
+                                const isSelected = selectedCustomer?.customer_id === customer.customer_id;
+                                return (
+                                    <TouchableOpacity
+                                        key={customer.customer_id}
+                                        style={[styles.customerPickerRow, isSelected && styles.customerPickerRowActive]}
+                                        onPress={() => {
+                                            updateActiveSession(s => ({ ...s, selectedCustomer: customer }));
+                                            setShowCustomerPickerModal(false);
+                                        }}
+                                    >
+                                        <View style={styles.customerPickerIdentity}>
+                                            <Ionicons name="person-circle-outline" size={18} color={isSelected ? colors.primary : colors.textMuted} />
+                                            <View style={styles.customerPickerTextBlock}>
+                                                <Text style={[styles.customerPickerName, isSelected && styles.customerPickerNameActive]} numberOfLines={1}>
+                                                    {customer.name}
+                                                </Text>
+                                                {customer.phone ? (
+                                                    <Text style={styles.customerPickerMeta} numberOfLines={1}>
+                                                        {customer.phone}
+                                                    </Text>
+                                                ) : null}
+                                            </View>
+                                        </View>
+                                        {isSelected ? <Ionicons name="checkmark-circle" size={18} color={colors.primary} /> : null}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                            {filteredCustomers.length === 0 ? (
+                                <View style={styles.customerPickerEmpty}>
+                                    <Ionicons name="people-outline" size={24} color={colors.textMuted} />
+                                    <Text style={styles.customerPickerEmptyText}>{t('crm.no_customer_found')}</Text>
+                                </View>
+                            ) : null}
+                        </ScrollView>
+            </KeyboardAwareModal>}
+
             {showTableModal && <Modal visible={showTableModal} animationType="slide" transparent>
                 <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
                     <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '60%' }}>
@@ -2189,6 +2283,13 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
         borderBottomWidth: 1,
         borderBottomColor: colors.divider,
     },
+    compactCustomerSelectorButton: {
+        flex: 1,
+        minWidth: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     compactCustomerText: {
         flex: 1,
         minWidth: 0,
@@ -2217,6 +2318,78 @@ const getStyles = (colors: any, glassStyle: any, isMobile: boolean = true, scree
     },
     customerScrollContent: {
         paddingRight: Spacing.xs,
+    },
+    customerPickerHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.glass,
+        borderRadius: BorderRadius.md,
+        paddingHorizontal: 12,
+        marginBottom: 12,
+    },
+    customerPickerSearchInput: {
+        flex: 1,
+        color: colors.text,
+        paddingVertical: 12,
+        fontSize: FontSize.md,
+    },
+    customerPickerList: {
+        maxHeight: 360,
+    },
+    customerPickerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.bgElevated,
+        marginBottom: 8,
+    },
+    customerPickerRowActive: {
+        borderColor: colors.primary,
+        backgroundColor: colors.primary + '12',
+    },
+    customerPickerIdentity: {
+        flex: 1,
+        minWidth: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    customerPickerTextBlock: {
+        flex: 1,
+        minWidth: 0,
+    },
+    customerPickerName: {
+        color: colors.text,
+        fontSize: FontSize.md,
+        fontWeight: '600',
+    },
+    customerPickerNameActive: {
+        color: colors.primary,
+    },
+    customerPickerMeta: {
+        color: colors.textMuted,
+        fontSize: FontSize.xs,
+        marginTop: 2,
+    },
+    customerPickerEmpty: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 24,
+    },
+    customerPickerEmptyText: {
+        color: colors.textMuted,
+        fontSize: FontSize.sm,
+        textAlign: 'center',
     },
     customerBadge: {
         paddingHorizontal: isCompactPOS ? 10 : 12,
