@@ -102,6 +102,53 @@ function normalizeProductFilterParam(value: unknown): ProductStockFilter | null 
   return PRODUCT_STOCK_FILTER_VALUES.includes(raw as ProductStockFilter) ? raw as ProductStockFilter : null;
 }
 
+function normalizeFuzzySearchValue(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function editDistance(a: string, b: string): number {
+  if (Math.abs(a.length - b.length) > 3) return 99;
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) => {
+    const row = new Array(n + 1).fill(0);
+    row[0] = i;
+    return row;
+  });
+  for (let j = 0; j <= n; j += 1) dp[0][j] = j;
+  for (let i = 1; i <= m; i += 1) {
+    for (let j = 1; j <= n; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost,
+      );
+    }
+  }
+  return dp[m][n];
+}
+
+function fuzzyMatch(text: string, query: string) {
+  if (!query) return true;
+  const normalizedText = normalizeFuzzySearchValue(text);
+  const normalizedQuery = normalizeFuzzySearchValue(query);
+  if (normalizedText.includes(normalizedQuery)) return true;
+  const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
+  const textWords = normalizedText.split(/[\s,;|/\\-]+/).filter(Boolean);
+  return queryWords.every((queryWord) => {
+    if (normalizedText.includes(queryWord)) return true;
+    if (queryWord.length >= 3) {
+      return textWords.some((textWord) => editDistance(textWord, queryWord) <= Math.floor(queryWord.length / 3));
+    }
+    return false;
+  });
+}
+
 export default function ProductsScreen() {
   const MOBILE_PRODUCTS_FOCUS_TTL_MS = 60_000;
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
@@ -406,12 +453,19 @@ export default function ProductsScreen() {
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
+  const [bulkNameValues, setBulkNameValues] = useState<Record<string, string>>({});
   const [bulkPriceValues, setBulkPriceValues] = useState<Record<string, string>>({});
   const [bulkPriceSaving, setBulkPriceSaving] = useState(false);
   const [showBulkStockModal, setShowBulkStockModal] = useState(false);
   const [bulkStockValues, setBulkStockValues] = useState<Record<string, string>>({});
   const [bulkPurchaseValues, setBulkPurchaseValues] = useState<Record<string, string>>({});
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditSearch, setBulkEditSearch] = useState('');
+  const [bulkQuickCreateName, setBulkQuickCreateName] = useState('');
+  const [bulkQuickCreateSellingPrice, setBulkQuickCreateSellingPrice] = useState('');
+  const [bulkQuickCreatePurchasePrice, setBulkQuickCreatePurchasePrice] = useState('');
+  const [bulkQuickCreateStock, setBulkQuickCreateStock] = useState('');
+  const [bulkQuickCreateSaving, setBulkQuickCreateSaving] = useState(false);
   const [bulkStockSaving, setBulkStockSaving] = useState(false);
   const [bulkDeleteSaving, setBulkDeleteSaving] = useState(false);
   const [bulkDeleteProcessedCount, setBulkDeleteProcessedCount] = useState(0);
@@ -426,6 +480,12 @@ export default function ProductsScreen() {
     locationList.forEach((location) => map.set(location.location_id, location));
     return map;
   }, [locationList]);
+
+  const categoryNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    categoryList.forEach((category) => map.set(category.category_id, category.name));
+    return map;
+  }, [categoryList]);
 
   const getLocationPath = useCallback((locationId?: string | null) => {
     if (!locationId) return '';
@@ -1397,10 +1457,35 @@ export default function ProductsScreen() {
     return () => task.cancel();
   }, [filtered, focusedProductId]);
 
+  const knownProducts = useMemo(() => {
+    const map = new Map<string, Product>();
+    [...(productList || []), ...(serverSearchResults || [])].forEach((product) => {
+      if (!product?.product_id || map.has(product.product_id)) return;
+      map.set(product.product_id, product);
+    });
+    return Array.from(map.values());
+  }, [productList, serverSearchResults]);
+
   const selectedProducts = useMemo(
-    () => filtered.filter((product) => selectedProductIds.has(product.product_id)),
-    [filtered, selectedProductIds],
+    () => Array.from(selectedProductIds)
+      .map((productId) => knownProducts.find((product) => product.product_id === productId))
+      .filter(Boolean) as Product[],
+    [knownProducts, selectedProductIds],
   );
+
+  const bulkEditVisibleProducts = useMemo(() => {
+    const query = bulkEditSearch.trim();
+    if (!query) return selectedProducts;
+    return selectedProducts.filter((product) => fuzzyMatch(
+      [
+        product.name,
+        product.sku,
+        categoryNameById.get(product.category_id || '') || '',
+        product.subcategory,
+      ].filter(Boolean).join(' '),
+      query,
+    ));
+  }, [bulkEditSearch, categoryNameById, selectedProducts]);
 
   const allVisibleProductsSelected = filtered.length > 0 && filtered.every((product) => selectedProductIds.has(product.product_id));
 
@@ -2564,14 +2649,17 @@ export default function ProductsScreen() {
 
   function openBulkEditModal() {
     if (selectedProducts.length === 0) return;
+    const initialNames: Record<string, string> = {};
     const initialPrices: Record<string, string> = {};
     const initialPurchases: Record<string, string> = {};
     const initialStocks: Record<string, string> = {};
     selectedProducts.forEach((product) => {
+      initialNames[product.product_id] = String(product.name ?? '');
       initialPrices[product.product_id] = String(product.selling_price ?? '');
       initialPurchases[product.product_id] = String(product.purchase_price ?? '');
       initialStocks[product.product_id] = String(product.quantity ?? '');
     });
+    setBulkNameValues(initialNames);
     setBulkPriceValues(initialPrices);
     setBulkPurchaseValues(initialPurchases);
     setBulkStockValues(initialStocks);
@@ -2580,15 +2668,122 @@ export default function ProductsScreen() {
 
   function closeBulkEditModal() {
     setShowBulkEditModal(false);
+    setBulkEditSearch('');
+    setBulkNameValues({});
     setBulkPriceValues({});
     setBulkPurchaseValues({});
     setBulkStockValues({});
+    setBulkQuickCreateName('');
+    setBulkQuickCreatePurchasePrice('');
+    setBulkQuickCreateSellingPrice('');
+    setBulkQuickCreateStock('');
+    setBulkQuickCreateSaving(false);
     setBulkPriceSaving(false);
   }
 
-  
+  function removeProductFromBulkEdit(productId: string) {
+    setBulkNameValues((prev) => {
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      next.delete(productId);
+      if (next.size === 0) {
+        setIsSelectionMode(false);
+        setShowBulkEditModal(false);
+      }
+      return next;
+    });
+    setBulkPriceValues((prev) => {
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+    setBulkPurchaseValues((prev) => {
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+    setBulkStockValues((prev) => {
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+  }
 
-  
+  async function handleQuickCreateBulkProduct() {
+    const trimmedName = bulkQuickCreateName.trim();
+    if (!trimmedName) {
+      Alert.alert(t('common.error'), t('products.quick_add_name_required', 'Ajoutez d’abord le nom du produit.'));
+      return;
+    }
+    if (!isConnected) {
+      Alert.alert(t('common.error'), t('products.quick_add_connection_required', 'Une connexion internet est nécessaire pour créer ce produit rapidement.'));
+      return;
+    }
+
+    const parseField = (value: string, fieldKey: string) => {
+      const normalized = value.replace(',', '.').trim();
+      if (!normalized) return 0;
+      const parsed = Number(normalized);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        throw new Error(t(fieldKey));
+      }
+      return parsed;
+    };
+
+    try {
+      setBulkQuickCreateSaving(true);
+      const purchasePrice = parseField(bulkQuickCreatePurchasePrice, 'products.quick_add_purchase_invalid');
+      const sellingPrice = parseField(bulkQuickCreateSellingPrice, 'products.quick_add_selling_invalid');
+      const quantity = parseField(bulkQuickCreateStock, 'products.quick_add_stock_invalid');
+      const measurement = normalizeProductMeasurement({
+        unit: 'piece',
+        display_unit: 'piece',
+        pricing_unit: 'piece',
+        measurement_type: inferMeasurementType('piece'),
+        allows_fractional_sale: false,
+        quantity_precision: 1,
+      });
+      const created = await productsApi.create({
+        name: trimmedName,
+        purchase_price: purchasePrice,
+        selling_price: sellingPrice,
+        quantity,
+        unit: measurement.unit,
+        measurement_type: measurement.measurement_type,
+        display_unit: measurement.display_unit,
+        pricing_unit: measurement.pricing_unit,
+        allows_fractional_sale: measurement.allows_fractional_sale,
+        quantity_precision: measurement.quantity_precision,
+        min_stock: 0,
+      });
+
+      setProductList((prev) => [created, ...prev.filter((product) => product.product_id !== created.product_id)]);
+      setServerSearchResults((prev) => prev ? [created, ...prev.filter((product) => product.product_id !== created.product_id)] : prev);
+      setProductsTotal((prev) => prev + 1);
+      setSelectedProductIds((prev) => {
+        const next = new Set(prev);
+        next.add(created.product_id);
+        return next;
+      });
+      setBulkPriceValues((prev) => ({ ...prev, [created.product_id]: String(created.selling_price ?? sellingPrice) }));
+      setBulkPurchaseValues((prev) => ({ ...prev, [created.product_id]: String(created.purchase_price ?? purchasePrice) }));
+      setBulkStockValues((prev) => ({ ...prev, [created.product_id]: String(created.quantity ?? quantity) }));
+      setBulkQuickCreateName('');
+      setBulkQuickCreatePurchasePrice('');
+      setBulkQuickCreateSellingPrice('');
+      setBulkQuickCreateStock('');
+      setBulkEditSearch(trimmedName);
+      Alert.alert(t('common.success'), t('products.quick_add_success', 'Produit ajouté à la sélection.'));
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error?.message || t('products.quick_add_error', 'Impossible de créer le produit.'));
+    } finally {
+      setBulkQuickCreateSaving(false);
+    }
+  }
 
   function updateLocalProductSellingPrices(updates: Array<{ product_id: string; selling_price: number }>) {
     if (updates.length === 0) return;
@@ -2600,6 +2795,24 @@ export default function ProductsScreen() {
         return {
           ...product,
           selling_price: nextSellingPrice,
+          updated_at: new Date().toISOString(),
+        };
+      });
+
+    setProductList((prev) => applyUpdates(prev));
+    setServerSearchResults((prev) => (prev ? applyUpdates(prev) : prev));
+  }
+
+  function updateLocalProductNames(updates: Array<{ product_id: string; name: string }>) {
+    if (updates.length === 0) return;
+    const updatesMap = new Map(updates.map((entry) => [entry.product_id, entry.name]));
+    const applyUpdates = (items: Product[]) =>
+      items.map((product) => {
+        const nextName = updatesMap.get(product.product_id);
+        if (!nextName) return product;
+        return {
+          ...product,
+          name: nextName,
           updated_at: new Date().toISOString(),
         };
       });
@@ -2829,6 +3042,161 @@ export default function ProductsScreen() {
         }
       ]
     );
+  }
+
+  async function handleBulkEditUpdateEnhanced() {
+    if (selectedProducts.length === 0) return;
+
+    const nameUpdates: Array<{ product_id: string; name: string }> = [];
+    const priceUpdates: Array<{ product_id: string; selling_price?: number; purchase_price?: number }> = [];
+    const stockMovements: Array<{ product_id: string; name: string; type: 'in' | 'out'; quantity: number }> = [];
+    const targetQuantities: Array<{ product_id: string; quantity: number }> = [];
+
+    for (const product of selectedProducts) {
+      const nextName = String(bulkNameValues[product.product_id] ?? product.name ?? '').trim();
+      if (!nextName) {
+        Alert.alert(
+          t('common.error'),
+          t('products.bulk_name_required', { name: product.name, defaultValue: 'Le nom du produit {{name}} ne peut pas être vide.' }),
+        );
+        return;
+      }
+      if (nextName !== product.name) {
+        nameUpdates.push({ product_id: product.product_id, name: nextName });
+      }
+
+      let hasPriceUpdate = false;
+      const updatePayload: { product_id: string; selling_price?: number; purchase_price?: number } = { product_id: product.product_id };
+
+      const rawSelling = bulkPriceValues[product.product_id];
+      if (rawSelling != null) {
+        const normSelling = rawSelling.replace(',', '.').trim();
+        if (normSelling) {
+          const parsedSelling = Number(normSelling);
+          if (!Number.isFinite(parsedSelling) || parsedSelling < 0) {
+            Alert.alert(t('common.error'), t('products.bulk_price_invalid_value', { name: product.name }));
+            return;
+          }
+          if (parsedSelling !== Number(product.selling_price ?? 0)) {
+            updatePayload.selling_price = parsedSelling;
+            hasPriceUpdate = true;
+          }
+        }
+      }
+
+      const rawPurchase = bulkPurchaseValues[product.product_id];
+      if (rawPurchase != null) {
+        const normPurchase = rawPurchase.replace(',', '.').trim();
+        if (normPurchase) {
+          const parsedPurchase = Number(normPurchase);
+          if (!Number.isFinite(parsedPurchase) || parsedPurchase < 0) {
+            Alert.alert(t('common.error'), t('products.bulk_price_invalid_value', { name: product.name }));
+            return;
+          }
+          if (parsedPurchase !== Number(product.purchase_price ?? 0)) {
+            updatePayload.purchase_price = parsedPurchase;
+            hasPriceUpdate = true;
+          }
+        }
+      }
+
+      if (hasPriceUpdate) {
+        priceUpdates.push(updatePayload);
+      }
+
+      const rawStock = bulkStockValues[product.product_id];
+      if (rawStock != null) {
+        const normStock = rawStock.replace(',', '.').trim();
+        if (normStock) {
+          const targetQuantity = Number(normStock);
+          if (!Number.isFinite(targetQuantity) || targetQuantity < 0) {
+            Alert.alert(t('common.error'), t('products.bulk_stock_invalid_value', { name: product.name }));
+            return;
+          }
+          const currentQuantity = Number(product.quantity ?? 0);
+          const delta = targetQuantity - currentQuantity;
+          if (Math.abs(delta) > 0.000001) {
+            stockMovements.push({
+              product_id: product.product_id,
+              name: nextName,
+              type: delta > 0 ? 'in' : 'out',
+              quantity: Math.abs(delta),
+            });
+            targetQuantities.push({ product_id: product.product_id, quantity: targetQuantity });
+          }
+        }
+      }
+    }
+
+    if (nameUpdates.length === 0 && priceUpdates.length === 0 && stockMovements.length === 0) {
+      Alert.alert(t('common.info'), t('products.bulk_no_changes', 'Aucune modification détectée.'));
+      return;
+    }
+
+    setBulkPriceSaving(true);
+    try {
+      if (nameUpdates.length > 0) {
+        for (const update of nameUpdates) {
+          await productsApi.update(update.product_id, { name: update.name });
+        }
+        updateLocalProductNames(nameUpdates);
+      }
+
+      if (priceUpdates.length > 0) {
+        if (isConnected) {
+          await productsApi.bulkUpdatePrices(priceUpdates as any);
+        } else {
+          await syncService.addToQueue({
+            entity: 'product',
+            type: 'update',
+            endpoint: '/products/bulk-update-prices',
+            method: 'POST',
+            payload: { updates: priceUpdates },
+          });
+        }
+
+        setProductList((prev) => prev.map((product) => {
+          const update = priceUpdates.find((entry) => entry.product_id === product.product_id);
+          if (update) {
+            return {
+              ...product,
+              ...(update.selling_price !== undefined && { selling_price: update.selling_price }),
+              ...(update.purchase_price !== undefined && { purchase_price: update.purchase_price }),
+            };
+          }
+          return product;
+        }));
+      }
+
+      if (stockMovements.length > 0) {
+        const successfulTargetQuantities: Array<{ product_id: string; quantity: number }> = [];
+        for (const movement of stockMovements) {
+          try {
+            await stockApi.createMovement({
+              product_id: movement.product_id,
+              type: movement.type,
+              quantity: movement.quantity,
+              reason: t('products.bulk_stock_reason'),
+            });
+            const target = targetQuantities.find((item) => item.product_id === movement.product_id);
+            if (target) successfulTargetQuantities.push(target);
+          } catch (error) {
+            console.error('Stock update error:', error);
+          }
+        }
+        updateLocalProductQuantities(successfulTargetQuantities);
+      }
+
+      closeBulkEditModal();
+      setSelectedProductIds(new Set());
+      setIsSelectionMode(false);
+      await loadData();
+      Alert.alert(t('common.success'), t('products.bulk_success', 'Mise à jour réussie'));
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error?.message || t('products.bulk_error', 'Erreur lors de la mise à jour'));
+    } finally {
+      setBulkPriceSaving(false);
+    }
   }
 
   async function handleBulkCategoryUpdate(catId: string) {
@@ -3980,14 +4348,105 @@ export default function ProductsScreen() {
               style={{ flex: 1 }}
               keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(8, insets.top / 2) : 0}
             >
+              <View style={styles.bulkEditSearchWrap}>
+                <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+                <TextInput
+                  style={styles.bulkEditSearchInput}
+                  value={bulkEditSearch}
+                  onChangeText={setBulkEditSearch}
+                  placeholder={t('products.bulk_edit_search_placeholder', 'Rechercher un produit sélectionné')}
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+              <View style={styles.bulkQuickCreateCard}>
+                <Text style={styles.bulkQuickCreateTitle}>{t('products.quick_add_title', 'Ajout rapide')}</Text>
+                <TextInput
+                  style={styles.bulkQuickCreateNameInput}
+                  value={bulkQuickCreateName}
+                  onChangeText={setBulkQuickCreateName}
+                  placeholder={t('products.quick_add_name_placeholder', 'Nom du produit')}
+                  placeholderTextColor={colors.textMuted}
+                />
+                <View style={styles.bulkQuickCreateGrid}>
+                  <View style={styles.bulkQuickCreateField}>
+                    <Text style={styles.bulkQuickCreateLabel}>{t('products.field_purchase_price')}</Text>
+                    <TextInput
+                      style={styles.bulkPriceInput}
+                      value={bulkQuickCreatePurchasePrice}
+                      onChangeText={setBulkQuickCreatePurchasePrice}
+                      keyboardType="decimal-pad"
+                      placeholder="0"
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </View>
+                  <View style={styles.bulkQuickCreateField}>
+                    <Text style={styles.bulkQuickCreateLabel}>{t('products.field_selling_price')}</Text>
+                    <TextInput
+                      style={styles.bulkPriceInput}
+                      value={bulkQuickCreateSellingPrice}
+                      onChangeText={setBulkQuickCreateSellingPrice}
+                      keyboardType="decimal-pad"
+                      placeholder="0"
+                      placeholderTextColor={colors.textMuted}
+                    />
+                  </View>
+                  {!isRestaurant && (
+                    <View style={styles.bulkQuickCreateField}>
+                      <Text style={styles.bulkQuickCreateLabel}>{t('products.field_quantity')}</Text>
+                      <TextInput
+                        style={styles.bulkPriceInput}
+                        value={bulkQuickCreateStock}
+                        onChangeText={setBulkQuickCreateStock}
+                        keyboardType="decimal-pad"
+                        placeholder="0"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={[styles.bulkQuickCreateButton, bulkQuickCreateSaving && styles.submitBtnDisabled]}
+                  onPress={handleQuickCreateBulkProduct}
+                  disabled={bulkQuickCreateSaving}
+                >
+                  {bulkQuickCreateSaving ? (
+                    <ActivityIndicator color={colors.text} />
+                  ) : (
+                    <>
+                      <Ionicons name="add-circle-outline" size={18} color={colors.text} />
+                      <Text style={styles.bulkQuickCreateButtonText}>{t('products.quick_add_cta', 'Créer et ajouter')}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
               <FlatList
-                data={selectedProducts}
+                data={bulkEditVisibleProducts}
                 keyExtractor={(item) => item.product_id}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: Spacing.sm }}
                 renderItem={({ item }) => (
                   <View style={[styles.bulkPriceRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
-                    <Text style={styles.bulkPriceName}>{item.name}</Text>
+                    <View style={styles.bulkPriceRowHeader}>
+                      <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+                        <TextInput
+                          style={styles.bulkNameInput}
+                          value={bulkNameValues[item.product_id] ?? item.name}
+                          onChangeText={(value) => setBulkNameValues((prev) => ({ ...prev, [item.product_id]: value }))}
+                          placeholder={t('products.quick_add_name_placeholder', 'Nom du produit')}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                        {!!categoryNameById.get(item.category_id || '') && (
+                          <Text style={styles.bulkPriceMeta}>{categoryNameById.get(item.category_id || '')}</Text>
+                        )}
+                      </View>
+                      <TouchableOpacity
+                        style={styles.bulkRowRemoveBtn}
+                        onPress={() => removeProductFromBulkEdit(item.product_id)}
+                        disabled={bulkPriceSaving}
+                      >
+                        <Ionicons name="close-circle-outline" size={22} color={colors.danger} />
+                      </TouchableOpacity>
+                    </View>
                     
                     <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
                       <View style={{ flex: 1 }}>
@@ -4030,12 +4489,21 @@ export default function ProductsScreen() {
                     </View>
                   </View>
                 )}
+                ListEmptyComponent={(
+                  <View style={styles.bulkEmptyState}>
+                    <Text style={styles.bulkEmptyStateText}>
+                      {selectedProducts.length === 0
+                        ? t('products.bulk_edit_empty_selection', 'Aucun produit sélectionné.')
+                        : t('products.bulk_edit_no_search_match', 'Aucun produit ne correspond à votre recherche.')}
+                    </Text>
+                  </View>
+                )}
               />
               <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.md, borderTopWidth: 1, borderTopColor: colors.glassBorder }}>
                 <TouchableOpacity
-                  style={[styles.submitBtn, bulkPriceSaving && styles.submitBtnDisabled, { marginBottom: 0 }]}
-                  onPress={handleBulkEditUpdate}
-                  disabled={bulkPriceSaving}
+                  style={[styles.submitBtn, (bulkPriceSaving || selectedProducts.length === 0) && styles.submitBtnDisabled, { marginBottom: 0 }]}
+                  onPress={handleBulkEditUpdateEnhanced}
+                  disabled={bulkPriceSaving || selectedProducts.length === 0}
                 >
                   {bulkPriceSaving ? (
                     <ActivityIndicator color={colors.text} />
@@ -6052,10 +6520,34 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '700',
   },
+  bulkNameInput: {
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.inputBg,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+  },
+  bulkPriceMeta: {
+    color: colors.textMuted,
+    fontSize: FontSize.xs,
+    marginTop: 3,
+  },
   bulkPriceCurrent: {
     color: colors.textMuted,
     fontSize: FontSize.sm,
     marginTop: 2,
+  },
+  bulkPriceRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  bulkRowRemoveBtn: {
+    paddingLeft: Spacing.xs,
+    paddingVertical: 2,
   },
   bulkPriceInput: {
     minWidth: 110,
@@ -6069,6 +6561,85 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '700',
     textAlign: 'right',
+  },
+  bulkEditSearchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.inputBg,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  bulkEditSearchInput: {
+    flex: 1,
+    color: colors.text,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    fontSize: FontSize.md,
+  },
+  bulkQuickCreateCard: {
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: colors.glass,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  bulkQuickCreateTitle: {
+    color: colors.text,
+    fontSize: FontSize.md,
+    fontWeight: '800',
+  },
+  bulkQuickCreateNameInput: {
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.inputBg,
+    color: colors.text,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
+  bulkQuickCreateGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  bulkQuickCreateField: {
+    flex: 1,
+  },
+  bulkQuickCreateLabel: {
+    color: colors.textMuted,
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  bulkQuickCreateButton: {
+    backgroundColor: colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  bulkQuickCreateButtonText: {
+    color: colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: '800',
+  },
+  bulkEmptyState: {
+    paddingVertical: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bulkEmptyStateText: {
+    color: colors.textMuted,
+    fontSize: FontSize.sm,
+    textAlign: 'center',
   },
   // Category row
   categoryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },

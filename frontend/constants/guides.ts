@@ -127,7 +127,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "checkbox-outline",
                 title: "Utiliser la sélection multiple",
-                description: "Utilisez la barre d'actions en bas pour modifier les prix ou les stocks des produits sélectionnés, exporter le catalogue ou envoyer des produits dans la corbeille. Le bouton Tout sélectionner prend en compte toute la liste visible, même si les produits se chargent en plusieurs pages. Pour le stock, saisissez le stock réel : Stockman enregistre seulement les écarts sous forme de mouvements."
+                description: "Utilisez la barre d'actions en bas pour modifier les prix ou les stocks des produits sélectionnés, exporter le catalogue ou envoyer des produits dans la corbeille. Dans la modale Prix et stock, vous pouvez rechercher rapidement les produits sélectionnés, corriger leur nom, en retirer et créer un nouveau produit avec son nom, ses prix et son stock. Le bouton Tout sélectionner prend en compte toute la liste visible, même si les produits se chargent en plusieurs pages. Pour le stock, saisissez le stock réel : Stockman enregistre seulement les écarts sous forme de mouvements."
             }
         ]
     },
