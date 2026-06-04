@@ -1084,7 +1084,7 @@
       },
       "q19": {
         "q": "How to bulk import my products?",
-        "a": "In Products, use CSV import (Excel/CSV file) or text import (copy-paste). AI parsing automatically detects names, prices, and quantities."
+        "a": "In Products, use CSV import (Excel/CSV file) or text import (copy-paste). AI parsing automatically detects names, prices, quantities, and units when they are present."
       },
       "q20": {
         "q": "How does the change calculator work?",
@@ -2187,8 +2187,8 @@
     "ai_price_error": "Could not suggest price",
     "ai_price_info": "Price suggestion is only available for existing products",
     "import_text_title": "Text Import (AI)",
-    "import_text_help": "Paste a list of products as free text. AI will analyze and automatically create products with prices and quantities.",
-    "import_text_placeholder": "E.g.:\n5 bags of rice 50kg at 18000\n10 bottles of oil 1L at 1200\n3 cartons of milk 12x1L at 6500",
+    "import_text_help": "Paste a list of products as free text. AI will analyze and automatically create products with prices, quantities, and units when they are present.",
+    "import_text_placeholder": "E.g.:\n30 kilos of rice at 18000\n10 bottles of oil 1L at 1200\n3 cartons of milk 12x1L at 6500",
     "import_text_btn": "Analyze & Create",
     "import_text_success": "{{count}} product(s) created successfully!",
     "import_text_error": "Unable to analyze text",

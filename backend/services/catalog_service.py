@@ -227,30 +227,68 @@ class CatalogService:
             {"catalog_id": {"$in": catalog_ids}}, {"_id": 0}
         ).to_list(len(catalog_ids))
 
-        created = 0
+        candidate_names = list({
+            str(cp.get("display_name") or "").strip()
+            for cp in catalog_products
+            if str(cp.get("display_name") or "").strip()
+        })
+        candidate_barcodes = list({
+            str((cp.get("barcodes") or [None])[0] or "").strip()
+            for cp in catalog_products
+            if str((cp.get("barcodes") or [None])[0] or "").strip()
+        })
+
+        existing_filters: List[Dict[str, Any]] = []
+        if candidate_names:
+            existing_filters.append({"name": {"$in": candidate_names}})
+        if candidate_barcodes:
+            existing_filters.extend([
+                {"sku": {"$in": candidate_barcodes}},
+                {"barcode": {"$in": candidate_barcodes}},
+            ])
+
+        existing_names = set()
+        existing_barcodes = set()
+        if existing_filters:
+            existing_products = await self.db.products.find(
+                {
+                    "user_id": user_id,
+                    "store_id": store_id,
+                    "is_active": {"$ne": False},
+                    "$or": existing_filters,
+                },
+                {"_id": 0, "name": 1, "sku": 1, "barcode": 1},
+            ).to_list(None)
+            existing_names = {
+                str(product.get("name") or "").strip().casefold()
+                for product in existing_products
+                if str(product.get("name") or "").strip()
+            }
+            existing_barcodes = {
+                str(value).strip()
+                for product in existing_products
+                for value in (product.get("sku"), product.get("barcode"))
+                if str(value or "").strip()
+            }
+
+        documents: List[Dict[str, Any]] = []
+        now = datetime.now(timezone.utc)
         for cp in catalog_products:
+            display_name = str(cp.get("display_name") or "").strip()
+            if not display_name:
+                continue
             raw_barcode = cp["barcodes"][0] if cp.get("barcodes") else None
             product_barcode = str(raw_barcode or "").strip() or None
-            existing_query = {
-                "user_id": user_id,
-                "store_id": store_id,
-                "is_active": {"$ne": False},
-                "$or": [{"name": cp["display_name"]}],
-            }
-            if product_barcode:
-                existing_query["$or"].extend([
-                    {"sku": product_barcode},
-                    {"barcode": product_barcode},
-                ])
-            existing = await self.db.products.find_one(existing_query)
-            if existing:
+            if display_name.casefold() in existing_names:
+                continue
+            if product_barcode and product_barcode in existing_barcodes:
                 continue
 
-            product = {
+            documents.append({
                 "product_id": str(uuid.uuid4()),
                 "user_id": user_id,
                 "store_id": store_id,
-                "name": cp["display_name"],
+                "name": display_name,
                 "barcode": product_barcode,
                 "sku": product_barcode,
                 "category": cp.get("category", ""),
@@ -261,11 +299,18 @@ class CatalogService:
                 "min_stock": 0,
                 "image_url": cp.get("image_url"),
                 "is_active": True,
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc),
-            }
-            await self.db.products.insert_one(product)
-            created += 1
+                "created_at": now,
+                "updated_at": now,
+            })
+            existing_names.add(display_name.casefold())
+            if product_barcode:
+                existing_barcodes.add(product_barcode)
+
+        created = len(documents)
+        if documents:
+            batch_size = 500
+            for start in range(0, created, batch_size):
+                await self.db.products.insert_many(documents[start:start + batch_size], ordered=False)
 
         return {"imported": created, "total_requested": len(catalog_ids)}
 

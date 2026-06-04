@@ -43,7 +43,9 @@ import random
 from measurement_utils import (
     build_sale_quantity_context,
     format_quantity,
+    infer_measurement_type,
     normalize_product_measurement_fields,
+    normalize_unit_label,
     round_quantity,
 )
 from enterprise_access import (
@@ -15481,6 +15483,68 @@ class TextImportRequest(BaseModel):
     text: str  # Texte brut collÃ© par l'utilisateur (WhatsApp, notes, etc.)
     auto_create: bool = False  # Si True, crÃ©e les produits directement
 
+
+TEXT_IMPORT_UNIT_PATTERNS = [
+    (re.compile(r"(?<!\w)(\d+(?:[.,]\d+)?)\s*(kg|kgs?|kilo(?:s)?|kilogramme(?:s)?)\b", re.IGNORECASE), "kg"),
+    (re.compile(r"(?<!\w)(\d+(?:[.,]\d+)?)\s*(g|gr|gramme(?:s)?)\b", re.IGNORECASE), "g"),
+    (re.compile(r"(?<!\w)(\d+(?:[.,]\d+)?)\s*(l|litre(?:s)?)\b", re.IGNORECASE), "L"),
+    (re.compile(r"(?<!\w)(\d+(?:[.,]\d+)?)\s*(cl|centilitre(?:s)?)\b", re.IGNORECASE), "cL"),
+    (re.compile(r"(?<!\w)(\d+(?:[.,]\d+)?)\s*(ml|millilitre(?:s)?)\b", re.IGNORECASE), "ml"),
+]
+
+
+def resolve_text_import_measurement_fields(product_data: Dict[str, Any]) -> Dict[str, Any]:
+    normalized_product = dict(product_data or {})
+    raw_quantity = normalized_product.get("quantity")
+    quantity_value: Optional[float] = None
+    try:
+        if raw_quantity not in (None, ""):
+            quantity_value = float(raw_quantity)
+    except (TypeError, ValueError):
+        quantity_value = None
+
+    explicit_unit = (
+        normalized_product.get("unit")
+        or normalized_product.get("display_unit")
+        or normalized_product.get("pricing_unit")
+    )
+    normalized_unit = normalize_unit_label(explicit_unit) if explicit_unit else ""
+    source_candidates = [
+        str(normalized_product.get("source_text") or "").strip(),
+        str(normalized_product.get("name") or "").strip(),
+    ]
+
+    if not normalized_unit:
+        for candidate in source_candidates:
+            if not candidate:
+                continue
+            for pattern, resolved_unit in TEXT_IMPORT_UNIT_PATTERNS:
+                match = pattern.search(candidate)
+                if not match:
+                    continue
+                normalized_unit = normalize_unit_label(resolved_unit)
+                if quantity_value in (None, 0):
+                    try:
+                        quantity_value = float(match.group(1).replace(",", "."))
+                    except (TypeError, ValueError):
+                        quantity_value = quantity_value
+                break
+            if normalized_unit:
+                break
+
+    if normalized_unit:
+        measurement_type = infer_measurement_type(normalized_unit, normalized_product.get("measurement_type"))
+        normalized_product["unit"] = normalized_unit
+        normalized_product["display_unit"] = normalize_unit_label(normalized_product.get("display_unit") or normalized_unit)
+        normalized_product["pricing_unit"] = normalize_unit_label(normalized_product.get("pricing_unit") or normalized_unit)
+        normalized_product["measurement_type"] = measurement_type
+        normalized_product["allows_fractional_sale"] = measurement_type in {"weight", "volume"} or bool(normalized_product.get("allows_fractional_sale"))
+
+    if quantity_value is not None:
+        normalized_product["quantity"] = quantity_value
+
+    return normalized_product
+
 @api_router.post("/products/import/text")
 @limiter.limit("10/minute")
 async def import_products_from_text(
@@ -15506,13 +15570,29 @@ async def import_products_from_text(
 L'utilisateur a collÃ© une liste de produits sous forme de texte brut (peut venir de WhatsApp, SMS, notes, facture...).
 Extrais chaque produit et retourne UNIQUEMENT un JSON valide (sans markdown) avec ce format :
 [
-  {{"name": "Nom du produit", "barcode": null, "category": "CatÃ©gorie si devinable", "purchase_price": 0, "selling_price": 0, "quantity": 0}},
+  {{
+    "name": "Nom du produit",
+    "barcode": null,
+    "category": "CatÃ©gorie si devinable",
+    "purchase_price": 0,
+    "selling_price": 0,
+    "quantity": 0,
+    "unit": "piÃ¨ce",
+    "measurement_type": "unit",
+    "display_unit": "piÃ¨ce",
+    "pricing_unit": "piÃ¨ce",
+    "allows_fractional_sale": false,
+    "source_text": "ligne brute utilisÃ©e"
+  }},
 ]
 
 RÃ¨gles :
 - Si un prix est mentionnÃ©, mets-le dans selling_price.
 - Si "prix achat" ou "PA" est mentionnÃ©, mets dans purchase_price.
 - Si une quantitÃ© est mentionnÃ©e, mets-la dans quantity.
+- Si une unitÃ© de vente ou de stock est mentionnÃ©e (kg, g, L, ml, cL, piÃ¨ce, bouteille, sac, carton, etc.), renseigne unit.
+- Si le produit est vendu au poids ou au volume, renseigne aussi measurement_type, display_unit, pricing_unit et allows_fractional_sale.
+- N'utilise pas "piÃ¨ce" par dÃ©faut quand le texte indique clairement un poids ou un volume. Par exemple, "30 kilos de riz" doit donner quantity=30 et unit=kg.
 - Si aucun prix/quantitÃ©, mets 0.
 - Devine la catÃ©gorie si possible (Boissons, Alimentaire, HygiÃ¨ne, etc.)
 - Ignore les lignes qui ne sont pas des produits (salutations, dates, etc.)
@@ -15542,10 +15622,11 @@ TEXTE Ã€ PARSER :
         created = 0
         owner_id = get_owner_id(user)
         for p in products:
-            name = str(p.get("name") or "").strip()
+            parsed_product = resolve_text_import_measurement_fields(p)
+            name = str(parsed_product.get("name") or "").strip()
             if not name:
                 continue
-            sku = normalize_product_sku(p.get("barcode"))
+            sku = normalize_product_sku(parsed_product.get("barcode"))
             if sku:
                 try:
                     await ensure_unique_product_sku(owner_id, user.active_store_id, sku)
@@ -15553,23 +15634,28 @@ TEXTE Ã€ PARSER :
                     if exc.status_code == 409:
                         continue
                     raise
-            product_doc = {
+            product_doc = normalize_product_measurement_fields({
                 "product_id": str(uuid.uuid4()),
                 "user_id": owner_id,
                 "store_id": user.active_store_id,
                 "name": name,
                 "barcode": sku,
                 "sku": sku,
-                "category": p.get("category", ""),
+                "category": parsed_product.get("category", ""),
                 "category_id": None,
-                "purchase_price": float(p.get("purchase_price", 0)),
-                "selling_price": float(p.get("selling_price", 0)),
-                "quantity": int(p.get("quantity", 0)),
+                "purchase_price": float(parsed_product.get("purchase_price", 0) or 0),
+                "selling_price": float(parsed_product.get("selling_price", 0) or 0),
+                "quantity": float(parsed_product.get("quantity", 0) or 0),
+                "unit": parsed_product.get("unit"),
+                "measurement_type": parsed_product.get("measurement_type"),
+                "display_unit": parsed_product.get("display_unit"),
+                "pricing_unit": parsed_product.get("pricing_unit"),
+                "allows_fractional_sale": parsed_product.get("allows_fractional_sale"),
                 "min_stock": 0,
                 "is_active": True,
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc),
-            }
+            })
             await db.products.insert_one(product_doc)
             created += 1
 
@@ -31899,7 +31985,7 @@ async def delete_product_variant(product_id: str, variant_id: str, user: User = 
 class ForecastProduct(BaseModel):
     product_id: str
     name: str
-    current_stock: int
+    current_stock: float
     velocity: float  # units/day
     days_of_stock: float  # how many days stock will last
     predicted_sales_7d: int

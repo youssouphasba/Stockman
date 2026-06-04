@@ -1281,7 +1281,7 @@
       },
       "q19": {
         "q": "Comment importer mes produits en masse ?",
-        "a": "Dans Produits, utilisez l'import CSV (fichier Excel/CSV) ou l'import texte (copier-coller). Le parsing IA dÃ©tecte automatiquement les noms, prix et quantitÃ©s."
+        "a": "Dans Produits, utilisez l'import CSV (fichier Excel/CSV) ou l'import texte (copier-coller). Le parsing IA détecte automatiquement les noms, prix, quantités et unités quand elles sont indiquées."
       },
       "q20": {
         "q": "Comment fonctionne le calculateur de monnaie ?",
@@ -2465,8 +2465,8 @@
     "ai_price_error": "Impossible de suggÃ©rer un prix",
     "ai_price_info": "La suggestion de prix est disponible uniquement pour les produits existants",
     "import_text_title": "Importation Texte (IA)",
-    "import_text_help": "Collez une liste de produits sous forme de texte libre. L'IA analysera et crÃ©era automatiquement les produits avec leurs prix et quantitÃ©s.",
-    "import_text_placeholder": "Ex:\n5 sacs de riz 50kg Ã  18000\n10 bouteilles d'huile 1L Ã  1200\n3 cartons de lait 12x1L Ã  6500",
+    "import_text_help": "Collez une liste de produits sous forme de texte libre. L'IA analysera et créera automatiquement les produits avec leurs prix, quantités et unités quand elles sont indiquées.",
+    "import_text_placeholder": "Ex:\n30 kilos de riz à 18000\n10 bouteilles d'huile 1L à 1200\n3 cartons de lait 12x1L à 6500",
     "import_text_btn": "Analyser et crÃ©er",
     "import_text_success": "{{count}} produit(s) crÃ©Ã©(s) avec succÃ¨s !",
     "import_text_error": "Impossible d'analyser le texte",

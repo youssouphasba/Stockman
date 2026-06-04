@@ -102,7 +102,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "cloud-upload-outline",
                 title: "Importer plusieurs produits d'un coup",
-                description: "L'import fichier sert à intégrer un CSV structuré. L'import texte sert quand vous avez une liste brute issue d'un message, d'un bon ou d'une note. Un même code-barres ne peut pas être utilisé par deux produits dans la même boutique. Vérifiez toujours le résultat avant de valider la création."
+                description: "L'import fichier sert à intégrer un CSV structuré. L'import texte sert quand vous avez une liste brute issue d'un message, d'un bon ou d'une note. Les unités comme kg, g, L ou ml peuvent être reprises automatiquement si elles sont bien indiquées. Un même code-barres ne peut pas être utilisé par deux produits dans la même boutique. Vérifiez toujours le résultat avant de valider la création."
             },
             {
                 icon: "scan-outline",
