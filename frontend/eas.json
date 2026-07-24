@@ -8,6 +8,9 @@
         "developmentClient": true,
         "distribution": "internal",
         "node": "20.19.4",
+            "android": {
+                "image": "sdk-55"
+            },
             "ios": {
                 "image": "latest"
             },
@@ -41,7 +44,7 @@
             },
             "android": {
                 "buildType": "apk",
-                "image": "ubuntu-22.04-jdk-17-ndk-r26b"
+                "image": "sdk-55"
             },
             "ios": {
                 "simulator": false,
@@ -52,6 +55,9 @@
         "production": {
             "environment": "production",
             "node": "20.19.4",
+            "android": {
+                "image": "sdk-55"
+            },
             "ios": {
                 "image": "latest"
             },
