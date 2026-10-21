@@ -56,6 +56,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import PremiumGate from '../../components/PremiumGate';
 import AccessDenied from '../../components/AccessDenied';
 import { useDrawer } from '../../contexts/DrawerContext';
+import { isStarterShopkeeper } from '../../utils/accountRouting';
 
 export default function OrdersScreen() {
   const { colors, glassStyle } = useTheme();
@@ -150,7 +151,7 @@ export default function OrdersScreen() {
   const [partialSaving, setPartialSaving] = useState(false);
 
   // Main tab: 'orders' | 'returns'
-  const [activeTab, setActiveTab] = useState<'orders' | 'returns' | 'web'>('orders');
+  const [selectedTab, setActiveTab] = useState<'orders' | 'returns' | 'web'>('orders');
 
   // Returns
   const [returnsList, setReturnsList] = useState<ReturnData[]>([]);
@@ -201,6 +202,9 @@ export default function OrdersScreen() {
     delivery_product_id?: string;
     delivery_link_token?: string;
   }>();
+
+  const ecommerceOnly = isStarterShopkeeper(user) && (tabParam === 'web' || sourceParam === 'ecommerce');
+  const activeTab = ecommerceOnly ? 'web' : selectedTab;
 
   const confirmDiscardChanges = (onConfirm: () => void) => {
     Alert.alert(
@@ -360,23 +364,34 @@ export default function OrdersScreen() {
   // Register drawer menu items
   useFocusEffect(
     useCallback(() => {
+      if (ecommerceOnly) {
+        setDrawerContent('Commandes en ligne', [
+          { label: t('common.refresh', 'Actualiser'), icon: 'refresh-outline', onPress: () => { void loadWebOrders(); } },
+        ]);
+        return;
+      }
       setDrawerContent(t('tabs.orders'), [
         { label: t('orders.new_order', 'Nouvelle commande'), icon: 'add-circle-outline', onPress: () => setShowCreateModal(true) },
         { label: t('orders.returns', 'Retours clients'), icon: 'arrow-undo-outline', onPress: () => setActiveTab('returns') },
         { label: t('orders.history', 'Historique'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
         { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
       ]);
-    }, [t])
+    }, [ecommerceOnly, loadWebOrders, router, setDrawerContent, t])
   );
 
   useFocusEffect(
     useCallback(() => {
+      if (ecommerceOnly) {
+        setAccessDenied(false);
+        void loadWebOrders().finally(() => { setLoading(false); setRefreshing(false); });
+        return;
+      }
       if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;
       loadData();
       loadSuppliers();
       loadReturns();
       loadWebOrders();
-    }, [loadData, loadSuppliers, loadReturns, loadWebOrders])
+    }, [ecommerceOnly, loadData, loadSuppliers, loadReturns, loadWebOrders, user?.user_id])
   );
 
   useEffect(() => {
@@ -440,6 +455,10 @@ export default function OrdersScreen() {
 
   function onRefresh() {
     setRefreshing(true);
+    if (ecommerceOnly) {
+      void loadWebOrders().finally(() => setRefreshing(false));
+      return;
+    }
     loadData();
   }
 
@@ -938,7 +957,7 @@ export default function OrdersScreen() {
         >
           <View style={[styles.headerRow, { paddingTop: insets.top }]}>
             <View>
-              <Text style={styles.pageTitle}>{t('orders.title')}</Text>
+              <Text style={styles.pageTitle}>{ecommerceOnly ? 'Commandes en ligne' : t('orders.title')}</Text>
               <Text style={styles.subtitle}>
                 {activeTab === 'orders'
                   ? t('orders.orders_count', { count: orderList.length })
@@ -948,7 +967,7 @@ export default function OrdersScreen() {
               </Text>
             </View>
             <View style={styles.headerActionsRow}>
-              <View style={styles.headerActionsGrid}>
+              {!ecommerceOnly && <View style={styles.headerActionsGrid}>
                 <TouchableOpacity
                   style={[styles.headerActionChip, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}
                   onPress={handleScanInvoice}
@@ -965,7 +984,7 @@ export default function OrdersScreen() {
                   <Ionicons name="document-text-outline" size={20} color={colors.text} />
                   <Text numberOfLines={1} style={styles.headerActionText}>Exporter</Text>
                 </TouchableOpacity>
-              </View>
+              </View>}
               <View style={styles.headerActionsGrid}>
                 <TouchableOpacity style={styles.headerActionChip} onPress={() => setShowGuide(true)}>
                   <Ionicons name="help-circle-outline" size={20} color={colors.text} />
@@ -986,7 +1005,7 @@ export default function OrdersScreen() {
                     openCreateReturn();
                   }}
                 >
-                  <Ionicons name="add" size={20} color="#fff" />
+                  <Ionicons name={ecommerceOnly ? 'refresh-outline' : 'add'} size={20} color="#fff" />
                   <Text numberOfLines={1} style={styles.headerPrimaryActionText}>
                     {activeTab === 'orders' ? 'Nouvelle commande' : activeTab === 'web' ? 'Actualiser' : 'Nouveau retour'}
                   </Text>
@@ -996,7 +1015,7 @@ export default function OrdersScreen() {
           </View>
 
           {/* Tab switcher */}
-          <View style={{ flexDirection: 'row', marginBottom: Spacing.md, gap: Spacing.sm }}>
+          {!ecommerceOnly && <View style={{ flexDirection: 'row', marginBottom: Spacing.md, gap: Spacing.sm }}>
             <TouchableOpacity
               style={[
                 styles.filterChip,
@@ -1037,7 +1056,7 @@ export default function OrdersScreen() {
                 </View>
               )}
             </TouchableOpacity>
-          </View>
+          </View>}
 
           <View
             style={[

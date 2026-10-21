@@ -539,6 +539,7 @@ export default function SettingsScreen() {
     try {
       const updated = await settingsApi.update({ modules: newModules });
       setSettingsData(updated);
+      DeviceEventEmitter.emit('settings:navigation-changed', updated);
       showFeedback('Modules mis à jour.');
     } catch {
       showFeedback('Impossible de mettre à jour les modules.', 'error');
@@ -1269,6 +1270,15 @@ export default function SettingsScreen() {
               thumbColor={ecommerceSite.enabled ? colors.primary : colors.textMuted}
             />
           </View>
+          <TouchableOpacity
+            style={[styles.settingRow, { marginBottom: Spacing.md }]}
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any)}
+          >
+            <Ionicons name="receipt-outline" size={22} color={colors.primary} />
+            <Text style={[styles.settingLabel, { flex: 1, marginHorizontal: Spacing.sm }]}>Commandes en ligne</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
           <Text style={styles.settingLabel}>Boutique liée</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
             {storeList.map((store) => (

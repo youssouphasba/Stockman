@@ -112,7 +112,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "time-outline",
                 title: "Relire l'historique d'un produit",
-                description: "Servez-vous de l'historique pour comprendre pourquoi une quantité a changé, qui a fait l'action et à quel moment. C'est le bon réflexe quand un stock semble incohérent."
+                description: "Servez-vous de l'historique pour comprendre pourquoi une quantité a changé, qui a fait l'action et à quel moment. Sur Starter, les fenêtres Historique et Statistiques du menu Produits reviennent à une rubrique autorisée à leur fermeture, y compris avec le retour arrière Android."
             },
             {
                 icon: "location-outline",

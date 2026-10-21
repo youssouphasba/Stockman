@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
+﻿import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,11 +9,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { alerts as alertsApi, demo as demoApi, ecommerce as ecommerceApi, settings as settingsApi, DemoSessionInfo, EcommerceStats, UserSettings } from '../../services/api';
 
 import StoreSelector from '../../components/StoreSelector';
-import { Alert, DeviceEventEmitter, Linking, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, DeviceEventEmitter, Linking, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
-import { useLocalSearchParams, useSegments } from 'expo-router';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
 import AiSupportModal from '../../components/AiSupportModal';
 import HelpCenter from '../../components/HelpCenter';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -23,7 +23,7 @@ import SyncWarningBanner from '../../components/SyncWarningBanner';
 import DrawerMenu from '../../components/DrawerMenu';
 import { DrawerProvider, useDrawer } from '../../contexts/DrawerContext';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
-import { getCommercialPlan } from '../../utils/accountRouting';
+import { getStarterNavigationRedirect, getStarterRoute, isStarterShopkeeper as usesStarterNavigation } from '../../utils/accountRouting';
 
 function TabLayoutInner() {
   const { t, i18n } = useTranslation();
@@ -34,7 +34,7 @@ function TabLayoutInner() {
   const { width } = useWindowDimensions();
   const drawer = useDrawer();
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
-  const settingsRequestKeyRef = useRef<string | null>(null);
+  const [settingsUserId, setSettingsUserId] = useState<string | null>(null);
   const [unreadAlertCount, setUnreadAlertCount] = useState(0);
   const [openingEcommerceSite, setOpeningEcommerceSite] = useState(false);
   const [ecommerceSite, setEcommerceSite] = useState<{ site_url: string; enabled: boolean } | null>(null);
@@ -60,18 +60,29 @@ function TabLayoutInner() {
 
   useEffect(() => {
     let cancelled = false;
+    let updatedLocally = false;
     const userId = user?.user_id || null;
-    settingsRequestKeyRef.current = userId;
     setUserSettings(null);
+    setSettingsUserId(null);
     if (!userId) return () => { cancelled = true; };
 
     settingsApi.get().then((settings) => {
-      if (!cancelled && settingsRequestKeyRef.current === userId) setUserSettings(settings);
+      if (cancelled || updatedLocally) return;
+      setUserSettings(settings);
+      setSettingsUserId(userId);
     }).catch(() => {
-      if (!cancelled && settingsRequestKeyRef.current === userId) setUserSettings(null);
+      if (cancelled || updatedLocally) return;
+      setUserSettings(null);
+      setSettingsUserId(userId);
     });
 
-    return () => { cancelled = true; };
+    const subscription = DeviceEventEmitter.addListener('settings:navigation-changed', (settings: UserSettings) => {
+      if (settings.user_id !== userId) return;
+      updatedLocally = true;
+      setUserSettings(settings);
+      setSettingsUserId(userId);
+    });
+    return () => { cancelled = true; subscription.remove(); };
   }, [user?.user_id]);
 
   const refreshEcommerceSite = useCallback(async () => {
@@ -106,7 +117,8 @@ function TabLayoutInner() {
     return () => { sub1.remove(); sub2.remove(); sub3.remove(); };
   }, [refreshAlertCount, refreshEcommerceSite]);
 
-  const modules = userSettings?.modules ?? {};
+  const settingsReady = settingsUserId === user?.user_id;
+  const modules = useMemo(() => settingsReady ? userSettings?.modules ?? {} : {}, [settingsReady, userSettings]);
   const billingOnly = isBillingAdmin && !hasOperationalAccess;
 
   const hideAlerts = isRestaurant || modules.alerts === false || !hasPermission('stock', 'read');
@@ -118,7 +130,7 @@ function TabLayoutInner() {
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
   const hideDashboard = !hasPermission('dashboard', 'read');
   const hasEnterprisePlan = (user?.effective_plan || user?.plan) === 'enterprise';
-  const isStarterShopkeeper = user?.role === 'shopkeeper' && getCommercialPlan(user) === 'starter';
+  const isStarterShopkeeper = usesStarterNavigation(user);
   const compactHeader = width <= 400;
   const veryCompactHeader = width < 360;
   const compactTabBar = width <= 400;
@@ -153,10 +165,9 @@ function TabLayoutInner() {
   );
 
   const segments = useSegments();
-  const { openModal } = useLocalSearchParams<{ openModal?: string }>();
-  const currentRoute = (segments[segments.length - 1] || 'index') as string;
-  const preserveIndexForModalRef = useRef(false);
-  const previousUserIdRef = useRef<string | null>(null);
+  const { openModal } = useGlobalSearchParams<{ openModal?: string }>();
+  const lastSegment = segments[segments.length - 1];
+  const currentRoute = !lastSegment || lastSegment === '(tabs)' ? 'index' : lastSegment as string;
   const [showGuide, setShowGuide] = useState(false);
   const autoGuideHandledRef = useRef(false);
   const { isFirstVisit, isReady, markSeen } = useFirstVisit('navigation');
@@ -170,14 +181,6 @@ function TabLayoutInner() {
   }, [isFirstVisit, isReady, markSeen]);
 
   useEffect(() => {
-    if (previousUserIdRef.current !== (user?.user_id || null)) {
-      previousUserIdRef.current = user?.user_id || null;
-      preserveIndexForModalRef.current = false;
-    }
-    if (currentRoute !== 'index') preserveIndexForModalRef.current = false;
-    if (currentRoute === 'index' && (openModal === 'statistics' || openModal === 'history')) {
-      preserveIndexForModalRef.current = true;
-    }
     if (user && user.can_access_app === false) {
       const target = user.required_verification === 'email' ? '/(auth)/verify-email' : '/(auth)/verify-phone';
       router.replace(target as any);
@@ -187,15 +190,17 @@ function TabLayoutInner() {
       router.replace('/subscription');
       return;
     }
-    if (user && currentRoute === 'index' && isStarterShopkeeper && !preserveIndexForModalRef.current && !billingOnly && !hideStock) {
-      router.replace('/products' as any);
+    if (user && isStarterShopkeeper) {
+      if (!settingsReady) return;
+      const target = getStarterNavigationRedirect(user, currentRoute, openModal, { modules, isRestaurant });
+      if (target) router.replace(target as any);
       return;
     }
-    if (user && hideDashboard && currentRoute === 'index' && !preserveIndexForModalRef.current) {
+    if (user && hideDashboard && currentRoute === 'index') {
       const firstTab = !hidePos ? '/pos' : !hideStock ? '/products' : !hideAccounting ? '/accounting' : !hideSuppliers ? '/suppliers' : !hideCrm ? '/crm' : '/settings';
       router.replace(firstTab as any);
     }
-  }, [billingOnly, hideDashboard, currentRoute, hideStock, isStarterShopkeeper, openModal, router, user]);
+  }, [billingOnly, hideDashboard, currentRoute, hidePos, hideStock, hideAccounting, hideSuppliers, hideCrm, isStarterShopkeeper, isRestaurant, modules, openModal, router, settingsReady, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -340,6 +345,10 @@ function TabLayoutInner() {
     }
   };
 
+  if (isStarterShopkeeper && !settingsReady) {
+    return <ActivityIndicator size="large" color={colors.primary} style={{ flex: 1, backgroundColor: colors.bgDark }} />;
+  }
+
   return (
     <>
       <TrialBanner />
@@ -469,6 +478,8 @@ function TabLayoutInner() {
         </View>
       </KeyboardAwareModal>
       <Tabs
+        initialRouteName={isStarterShopkeeper ? getStarterRoute(user, { modules, isRestaurant }).split('/').pop() : undefined}
+        backBehavior={isStarterShopkeeper ? 'initialRoute' : undefined}
         detachInactiveScreens={false}
         screenOptions={{
           headerShown: true,

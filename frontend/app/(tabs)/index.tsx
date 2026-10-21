@@ -69,6 +69,7 @@ import { useDrawer } from '../../contexts/DrawerContext';
 import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 import type { DrawerItem } from '../../components/DrawerMenu';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
+import { isStarterShopkeeper } from '../../utils/accountRouting';
 
 // screenWidth is now read via useWindowDimensions() inside the component
 
@@ -973,8 +974,16 @@ export default function DashboardScreen() {
       void openHistoryModal();
     }
 
-    router.replace('/(tabs)' as any);
-  }, [openModal, router]);
+    if (!isStarterShopkeeper(user)) router.replace('/(tabs)' as any);
+  }, [openModal, router, user?.user_id]);
+
+  function closeDashboardModal(modal: 'history' | 'statistics') {
+    if (modal === 'history') setShowHistoryModal(false);
+    else setShowStatsModal(false);
+    if (isStarterShopkeeper(user) && openModal === modal) {
+      router.setParams({ openModal: undefined });
+    }
+  }
 
   function openInventoryCountModal(task: InventoryTask) {
     setInventoryTaskToCount(task);
@@ -1846,7 +1855,7 @@ export default function DashboardScreen() {
       </KeyboardAwareModal>
 
       {/* History Modal */}
-      {showHistoryModal && <Modal visible={showHistoryModal} animationType="slide" transparent onRequestClose={() => setShowHistoryModal(false)}>
+      {showHistoryModal && <Modal visible={showHistoryModal} animationType="slide" transparent onRequestClose={() => closeDashboardModal('history')}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -1855,7 +1864,7 @@ export default function DashboardScreen() {
                 <TouchableOpacity onPress={exportHistory}>
                   <Ionicons name="download-outline" size={24} color={colors.primary} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
+                <TouchableOpacity onPress={() => closeDashboardModal('history')}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
@@ -1928,7 +1937,7 @@ export default function DashboardScreen() {
       </Modal>}
 
       {/* Statistics Modal */}
-      {showStatsModal && <Modal visible={showStatsModal} animationType="slide" transparent onRequestClose={() => setShowStatsModal(false)}>
+      {showStatsModal && <Modal visible={showStatsModal} animationType="slide" transparent onRequestClose={() => closeDashboardModal('statistics')}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: '90%' }]}>
             <View style={styles.header}>
@@ -1954,7 +1963,7 @@ export default function DashboardScreen() {
                 <TouchableOpacity onPress={exportStats}>
                   <Ionicons name="download-outline" size={24} color={colors.primary} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowStatsModal(false)}>
+                <TouchableOpacity onPress={() => closeDashboardModal('statistics')}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
