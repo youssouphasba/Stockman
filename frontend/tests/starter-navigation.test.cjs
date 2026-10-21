@@ -136,7 +136,7 @@ test('The Settings orders action works with an active or disabled public site', 
   while (parent && !(ts.isJsxExpression(parent) && parent.expression && ts.isBinaryExpression(parent.expression) && parent.expression.left.getText(settings).includes('isOrgAdmin'))) parent = parent.parent;
   assert.ok(parent);
   for (const enabled of [true, false]) {
-    assert.ok(evaluate('(' + parent.expression.left.getText(settings) + ')', { isOrgAdmin: true, currentStore: {}, ecommerceSite: { enabled } }));
+    assert.ok(evaluate('(' + parent.expression.left.getText(settings) + ')', { isOrgAdmin: true, isStarterSettings: true, currentStore: {}, ecommerceSite: { enabled } }));
     let destination;
     const element = evaluate('(' + link.getText(settings) + ')', {
       React, TouchableOpacity: 'button', Ionicons: 'icon', Text: 'span',

@@ -481,6 +481,17 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             }
         ]
     },
+    starterSettings: {
+        title: "Paramètres",
+        steps: [
+            { icon: "storefront-outline", title: "Ma boutique", description: "Modifiez le nom et l'adresse de la boutique active, les reçus et les factures. Plus d'options affiche les pieds de page, le préfixe et les conditions de paiement. Les réglages de TVA restent dans cette rubrique." },
+            { icon: "globe-outline", title: "Boutique en ligne", description: "Préparez le site, personnalisez son contenu et activez-le lorsque vous êtes prêt. Les commandes reçues restent accessibles quand le site est désactivé. Plus d'options ouvre les réglages du domaine et sa vérification." },
+            { icon: "person-outline", title: "Mon compte", description: "Retrouvez le mot de passe, le PIN, la biométrie, la langue, le thème, les comptes enregistrés et la déconnexion. Les accès à l'équipe déjà autorisés restent disponibles." },
+            { icon: "notifications-outline", title: "Notifications", description: "Activez ou désactivez les notifications. Plus d'options permet d'ajuster les préférences de réception existantes. Les réglages avancés déjà enregistrés sont conservés." },
+            { icon: "card-outline", title: "Mon abonnement", description: "Consultez votre formule, son statut et l'échéance disponible. Gérer le paiement et Changer d'offre ouvrent l'écran Abonnement existant, selon vos droits." },
+            { icon: "help-circle-outline", title: "Aide et informations", description: "Vérifiez la connexion et les données en attente, synchronisez, contactez le support, signalez un problème ou ouvrez les informations légales. L'export et la suppression du compte restent protégés par leurs parcours existants." },
+        ]
+    },
     settings: {
         title: "Paramètres",
         steps: [

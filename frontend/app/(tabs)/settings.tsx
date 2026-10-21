@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   TextInput,
   useWindowDimensions,
   DeviceEventEmitter,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,7 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
-import { ecommerce as ecommerceApi, notifications as notificationsApi, settings as settingsApi, UserSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
+import { ecommerce as ecommerceApi, notifications as notificationsApi, settings as settingsApi, subscription as subscriptionApi, SubscriptionData, UserSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import AiSupportModal from '../../components/AiSupportModal';
@@ -36,6 +37,10 @@ import DeleteAccountModal from '../../components/DeleteAccountModal';
 import { disputes } from '../../services/api';
 import LanguagePickerModal from '../../components/LanguagePickerModal';
 import AccountSwitcherModal from '../../components/AccountSwitcherModal';
+import StoreSelector from '../../components/StoreSelector';
+import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
+import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
+import { getCommercialPlan, isStarterShopkeeper } from '../../utils/accountRouting';
 
 // Sector selection removed - defined at registration
 
@@ -175,6 +180,7 @@ const SETTINGS_SECTION_KEYS = new Set<SettingsSectionKey>([
 ]);
 
 type SettingsAccordionSectionProps = {
+  sectionKey?: string;
   title: string;
   description: string;
   icon: string;
@@ -231,6 +237,20 @@ export default function SettingsScreen() {
   const compact = width < 390;
   const styles = getStyles(colors, glassStyle, compact);
   const { user, logout, isPinSet, isBiometricsEnabled, togglePin, toggleBiometrics, isRestaurant, isOrgAdmin, isBillingAdmin, hasPermission } = useAuth();
+  const isStarterSettings = Platform.OS !== 'web' && isStarterShopkeeper(user);
+  const [starterSection, setStarterSection] = useState<StarterSettingsGroup | null>(null);
+  const [showDocumentOptions, setShowDocumentOptions] = useState(false);
+  const [showEcommerceOptions, setShowEcommerceOptions] = useState(false);
+  const [showNotificationOptions, setShowNotificationOptions] = useState(false);
+  const [showBillingOptions, setShowBillingOptions] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const loadVersionRef = useRef(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const settingsContext = `${user?.user_id || ''}:${user?.active_store_id || ''}`;
+  const settingsContextRef = useRef(settingsContext);
+  settingsContextRef.current = settingsContext;
+  const [loadedSettingsContext, setLoadedSettingsContext] = useState<string | null>(null);
   const { isOnline, syncStatus, pendingCount, lastSyncLabel, processQueue, prefetchData } = useSync();
   const [settingsData, setSettingsData] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -337,13 +357,28 @@ export default function SettingsScreen() {
     const sectionParam = Array.isArray(params.section) ? params.section[0] : params.section;
     if (!sectionParam || !SETTINGS_SECTION_KEYS.has(sectionParam as SettingsSectionKey)) return;
     const section = sectionParam as SettingsSectionKey;
+    if (isStarterSettings) setStarterSection(getStarterSettingsGroup(section));
     const parent = SETTINGS_SECTION_PARENT[section];
     setExpandedSections((current) => ({
       ...current,
       ...(parent ? { [parent]: true } : {}),
       [section]: true,
     }));
-  }, [params.section]);
+  }, [params.section, isStarterSettings]);
+
+  const changeStarterSection = useCallback((section: StarterSettingsGroup | null) => {
+    setStarterSection(section);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, []);
+
+  useEffect(() => {
+    const sectionParam = Array.isArray(params.section) ? params.section[0] : params.section;
+    setStarterSection(getStarterSettingsGroup(sectionParam || ''));
+    setShowDocumentOptions(false);
+    setShowEcommerceOptions(false);
+    setShowNotificationOptions(false);
+    setShowBillingOptions(false);
+  }, [user?.user_id]);
 
   function showFeedback(message: string, tone: 'success' | 'error' = 'success') {
     setFeedback({ tone, message });
@@ -419,13 +454,19 @@ export default function SettingsScreen() {
   const canViewStoreGroup = canManageStoreSettings;
 
   const loadSettings = useCallback(async () => {
+    const version = ++loadVersionRef.current;
+    setLoadError(null);
     try {
-      const [result, _features, storesList, ecommerceResult] = await Promise.all([
+      const [result, _features, storesList, ecommerceResult, billingResult] = await Promise.all([
         settingsApi.get(),
         userFeatures.get().catch(() => null),
         storesApi.list().catch(() => []),
         ecommerceApi.getSite().catch(() => null),
+        isStarterSettings && isBillingAdmin ? subscriptionApi.getDetails().catch(() => null) : Promise.resolve(null),
       ]);
+      if (version !== loadVersionRef.current) return;
+      setLoadedSettingsContext(settingsContext);
+      setSubscriptionData(billingResult);
       setSettingsData(result);
       setBillingContactName(result?.billing_contact_name || '');
       setBillingContactEmail(result?.billing_contact_email || '');
@@ -438,38 +479,25 @@ export default function SettingsScreen() {
       setStoreName(activeStore?.name || '');
       setStoreAddress(activeStore?.address || '');
       setEcommerceSite(ecommerceResult);
-      setEcommerceDraft({
-        store_id: ecommerceResult?.store_id || activeStore?.store_id || '',
-        custom_domain: ecommerceResult?.custom_domain || '',
-        domain_mode: ecommerceResult?.domain_mode || (ecommerceResult?.custom_domain ? 'connect' : 'stockman'),
-        domain_requested_name: ecommerceResult?.domain_requested_name || '',
-        domain_request_notes: ecommerceResult?.domain_request_notes || '',
-        hero_title: ecommerceResult?.hero_title || '',
-        site_name: ecommerceResult?.site_name || '',
-        welcome_message: ecommerceResult?.welcome_message || '',
-        brand_color: ecommerceResult?.brand_color || '#2563EB',
-        contact_email: ecommerceResult?.contact_email || '',
-        contact_phone: ecommerceResult?.contact_phone || '',
-        contact_address: ecommerceResult?.contact_address || '',
-        delivery_info: ecommerceResult?.delivery_info || '',
-        whatsapp_phone: ecommerceResult?.whatsapp_phone || '',
-        payment_instructions: ecommerceResult?.payment_instructions || '',
-        show_out_of_stock_products: Boolean(ecommerceResult?.show_out_of_stock_products),
-      });
-      setReceiptName(activeStore?.receipt_business_name || result?.receipt_business_name || '');
-      setReceiptFooter(activeStore?.receipt_footer || result?.receipt_footer || '');
-      setInvoiceName(activeStore?.invoice_business_name || result?.invoice_business_name || '');
-      setInvoiceAddress(activeStore?.invoice_business_address || result?.invoice_business_address || '');
-      setInvoiceLabel(activeStore?.invoice_label || result?.invoice_label || 'Facture');
-      setInvoicePrefix(activeStore?.invoice_prefix || result?.invoice_prefix || 'FAC');
-      setInvoiceFooter(activeStore?.invoice_footer || result?.invoice_footer || '');
-      setInvoicePaymentTerms(activeStore?.invoice_payment_terms || result?.invoice_payment_terms || '');
+      setEcommerceDraft(createEcommerceDraft(ecommerceResult, activeStore?.store_id));
+      setReceiptName(activeStore?.receipt_business_name ?? result?.receipt_business_name ?? '');
+      setReceiptFooter(activeStore?.receipt_footer ?? result?.receipt_footer ?? '');
+      setInvoiceName(activeStore?.invoice_business_name ?? result?.invoice_business_name ?? '');
+      setInvoiceAddress(activeStore?.invoice_business_address ?? result?.invoice_business_address ?? '');
+      setInvoiceLabel(activeStore?.invoice_label ?? result?.invoice_label ?? 'Facture');
+      setInvoicePrefix(activeStore?.invoice_prefix ?? result?.invoice_prefix ?? 'FAC');
+      setInvoiceFooter(activeStore?.invoice_footer ?? result?.invoice_footer ?? '');
+      setInvoicePaymentTerms(activeStore?.invoice_payment_terms ?? result?.invoice_payment_terms ?? '');
     } catch {
-      // ignore
+      if (version === loadVersionRef.current) {
+        setLoadedSettingsContext(settingsContext);
+        setSettingsData(null);
+        setLoadError('Impossible de charger les paramètres. Réessayez lorsque la connexion est disponible.');
+      }
     } finally {
-      setLoading(false);
+      if (version === loadVersionRef.current) setLoading(false);
     }
-  }, [user?.active_store_id]);
+  }, [user?.user_id, user?.active_store_id, settingsContext, isStarterSettings, isBillingAdmin]);
 
   const handleSubmitDispute = async () => {
     if (!disputeSubject.trim() || !disputeDesc.trim()) {
@@ -490,12 +518,15 @@ export default function SettingsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadSettings();
+      setLoading(true);
+      void loadSettings();
+      return () => { loadVersionRef.current++; };
     }, [loadSettings])
   );
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('settings:open-ecommerce', () => {
+      if (isStarterSettings) changeStarterSection('online');
       setExpandedSections((current) => ({
         ...current,
         storeGroup: true,
@@ -503,7 +534,7 @@ export default function SettingsScreen() {
       }));
     });
     return () => subscription.remove();
-  }, []);
+  }, [isStarterSettings, changeStarterSection]);
 
   function toggleSection(section: SettingsSectionKey) {
     setExpandedSections((current) => {
@@ -637,6 +668,7 @@ export default function SettingsScreen() {
 
   async function saveActiveStoreSettings() {
     if (!currentStore) return;
+    const saveContext = settingsContext;
     try {
       const updatedStore = await storesApi.update(currentStore.store_id, {
         name: storeName,
@@ -650,6 +682,7 @@ export default function SettingsScreen() {
         invoice_footer: invoiceFooter,
         invoice_payment_terms: invoicePaymentTerms,
       });
+      if (saveContext !== settingsContextRef.current) return;
       setCurrentStore(updatedStore);
       setStoreName(updatedStore.name || '');
       setStoreAddress(updatedStore.address || '');
@@ -657,8 +690,8 @@ export default function SettingsScreen() {
       setReceiptFooter(updatedStore.receipt_footer || '');
       setInvoiceName(updatedStore.invoice_business_name || '');
       setInvoiceAddress(updatedStore.invoice_business_address || '');
-      setInvoiceLabel(updatedStore.invoice_label || 'Facture');
-      setInvoicePrefix(updatedStore.invoice_prefix || 'FAC');
+      setInvoiceLabel(updatedStore.invoice_label ?? 'Facture');
+      setInvoicePrefix(updatedStore.invoice_prefix ?? 'FAC');
       setInvoiceFooter(updatedStore.invoice_footer || '');
       setInvoicePaymentTerms(updatedStore.invoice_payment_terms || '');
       setSettingsData((prev) => prev ? ({
@@ -679,32 +712,18 @@ export default function SettingsScreen() {
   }
 
   async function saveEcommerceSettings(nextEnabled?: boolean) {
+    if (!ecommerceSite || !currentStore || !ecommerceDraft.store_id) {
+      showFeedback('Sélectionnez une boutique et chargez les réglages du site avant de les enregistrer.', 'error');
+      return;
+    }
+    const saveContext = settingsContext;
     setEcommerceSaving(true);
     try {
-      const updated = await ecommerceApi.updateSite({
-        enabled: typeof nextEnabled === 'boolean' ? nextEnabled : ecommerceSite?.enabled,
-        ...ecommerceDraft,
-      });
+      const updated = await ecommerceApi.updateSite(buildEcommerceSettingsUpdate(ecommerceSite, ecommerceDraft, nextEnabled));
+      if (saveContext !== settingsContextRef.current) return;
       setEcommerceSite(updated);
       DeviceEventEmitter.emit('ecommerce:changed');
-      setEcommerceDraft({
-        store_id: updated.store_id || '',
-        custom_domain: updated.custom_domain || '',
-        domain_mode: updated.domain_mode || (updated.custom_domain ? 'connect' : 'stockman'),
-        domain_requested_name: updated.domain_requested_name || '',
-        domain_request_notes: updated.domain_request_notes || '',
-        hero_title: updated.hero_title || '',
-        site_name: updated.site_name || '',
-        welcome_message: updated.welcome_message || '',
-        brand_color: updated.brand_color || '#2563EB',
-        contact_email: updated.contact_email || '',
-        contact_phone: updated.contact_phone || '',
-        contact_address: updated.contact_address || '',
-        delivery_info: updated.delivery_info || '',
-        whatsapp_phone: updated.whatsapp_phone || '',
-        payment_instructions: updated.payment_instructions || '',
-        show_out_of_stock_products: Boolean(updated.show_out_of_stock_products),
-      });
+      setEcommerceDraft(createEcommerceDraft(updated));
       showFeedback('Réglages e-commerce enregistrés.', 'success');
     } catch {
       showFeedback("Impossible d'enregistrer les réglages e-commerce.", 'error');
@@ -713,16 +732,27 @@ export default function SettingsScreen() {
     }
   }
 
+  async function openEcommercePreview() {
+    if (!ecommerceSite?.site_url) return;
+    try {
+      const separator = ecommerceSite.site_url.includes('?') ? '&' : '?';
+      await Linking.openURL(`${ecommerceSite.site_url}${separator}preview=1`);
+    } catch {
+      showFeedback("Impossible d'ouvrir le site pour le moment.", 'error');
+    }
+  }
+
   async function verifyEcommerceDomain() {
+    if (!ecommerceSite || !currentStore) return;
+    const saveContext = settingsContext;
     setEcommerceSaving(true);
     try {
-      const saved = await ecommerceApi.updateSite({
-        enabled: ecommerceSite?.enabled,
-        ...ecommerceDraft,
-      });
+      const saved = await ecommerceApi.updateSite(buildEcommerceSettingsUpdate(ecommerceSite, ecommerceDraft));
+      if (saveContext !== settingsContextRef.current) return;
       setEcommerceSite(saved);
       DeviceEventEmitter.emit('ecommerce:changed');
       const verified = await ecommerceApi.verifyDomain();
+      if (saveContext !== settingsContextRef.current) return;
       setEcommerceSite(verified);
       DeviceEventEmitter.emit('ecommerce:changed');
       setEcommerceDraft((draft: any) => ({
@@ -788,6 +818,7 @@ export default function SettingsScreen() {
         accentColor={colors.info}
         expanded={expandedSections.support}
         onToggle={() => toggleSection('support')}
+        sectionKey="support"
         styles={styles}
         colors={colors}
         variant="nested"
@@ -830,6 +861,7 @@ export default function SettingsScreen() {
         accentColor={colors.danger}
         expanded={expandedSections.incident}
         onToggle={() => toggleSection('incident')}
+        sectionKey="incident"
         styles={styles}
         colors={colors}
         variant="nested"
@@ -877,7 +909,7 @@ export default function SettingsScreen() {
     </SettingsAccordionSection>
   );
 
-  if (loading) {
+  if (loading || loadedSettingsContext !== settingsContext) {
     return (
       <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
         <View style={styles.loadingContainer}>
@@ -887,9 +919,20 @@ export default function SettingsScreen() {
     );
   }
 
+  if (loadError && !settingsData) {
+    return <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
+      <View style={[styles.content, { gap: 16 }]}>
+        <Text style={{ color: colors.danger }}>{loadError}</Text>
+        <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} onPress={() => { setLoading(true); void loadSettings(); }}>
+          <Text style={styles.outlineButtonText}>Réessayer</Text>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>;
+  }
+
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
-      <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}>
+      <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}>
         <View style={{ height: Spacing.sm }} />
         {feedback ? (
           <View
@@ -914,7 +957,14 @@ export default function SettingsScreen() {
           </View>
         ) : null}
 
-        {/* User info */}
+        {loadError && <View style={{ paddingVertical: 16, gap: 12 }}>
+          <Text style={{ color: colors.danger }}>{loadError}</Text>
+          <TouchableOpacity accessibilityRole="button" onPress={() => { setLoading(true); void loadSettings(); }} style={styles.outlineButton}>
+            <Text style={styles.outlineButtonText}>Réessayer</Text>
+          </TouchableOpacity>
+        </View>}
+        <StarterSettingsLayout enabled={isStarterSettings} activeSection={starterSection} onSectionChange={changeStarterSection} pendingCount={pendingCount}>
+        <SettingsSlot sectionKey="identity">
         <View style={styles.card}>
           <View style={styles.userSection}>
             <View style={styles.avatar}>
@@ -928,13 +978,14 @@ export default function SettingsScreen() {
               <TouchableOpacity onPress={() => setShowPasswordModal(true)}>
                 <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: '600' }}>
                   {user?.auth_type !== 'email' && !user?.password_set
-                    ? t('settings.set_password', 'Definir un mot de passe')
+                    ? t('settings.set_password', 'Définir un mot de passe')
                     : t('settings.change_password')}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
+        </SettingsSlot>
 
         {supportSettingsSection}
 
@@ -956,11 +1007,21 @@ export default function SettingsScreen() {
           accentColor={colors.warning}
           expanded={expandedSections.billing}
           onToggle={() => toggleSection('billing')}
+          sectionKey="billing"
           styles={styles}
           colors={colors}
           variant="nested"
         >
           <Text style={styles.sectionTitle}>{t('settings.subscription_title')}</Text>
+          {isStarterSettings && <View style={{ gap: 8, marginBottom: 16 }}>
+            <Text style={styles.settingLabel}>{t(`subscription.plan_${getCommercialPlan(user)}`)}</Text>
+            <Text style={styles.settingDesc}>
+              {({ active: 'Actif', expired: 'Expiré', cancelled: 'Résilié' } as Record<string, string>)[subscriptionData?.status || user?.effective_subscription_status || user?.subscription_status || ''] || 'Statut indisponible'}
+            </Text>
+            {subscriptionData?.subscription_end && Number.isFinite(Date.parse(subscriptionData.subscription_end)) && <Text style={styles.settingDesc}>
+              {t('subscription.renewal', { date: new Date(subscriptionData.subscription_end).toLocaleDateString(i18n.language) })}
+            </Text>}
+          </View>}
           <TouchableOpacity
             style={styles.supportRow}
             onPress={() => router.push('/(tabs)/subscription' as any)}
@@ -969,12 +1030,23 @@ export default function SettingsScreen() {
               <Ionicons name="card-outline" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>{t('settings.my_subscription')}</Text>
+              <Text style={styles.settingLabel}>{isStarterSettings ? 'Gérer le paiement' : t('settings.my_subscription')}</Text>
               <Text style={styles.settingDesc}>{t('settings.subscription_view_desc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
+          {isStarterSettings && <>
+            <TouchableOpacity accessibilityRole="button" style={styles.supportRow} onPress={() => router.push('/(tabs)/subscription' as any)}>
+              <Ionicons name="swap-horizontal-outline" size={22} color={colors.primary} />
+              <Text style={styles.settingLabel}>Changer d'offre</Text>
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showBillingOptions }} style={styles.supportRow} onPress={() => setShowBillingOptions((value) => !value)}>
+              <Text style={styles.settingLabel}>Coordonnées de facturation</Text>
+              <Ionicons name={showBillingOptions ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </>}
+          {(!isStarterSettings || showBillingOptions) && <>
           <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm, borderBottomWidth: 0, marginTop: Spacing.md }]}>
             <Text style={styles.settingLabel}>{t('settings.billing_contact')}</Text>
             <Text style={styles.settingDesc}>{t('settings.billing_contact_desc')}</Text>
@@ -1014,6 +1086,7 @@ export default function SettingsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          </>}
         </SettingsAccordionSection>
         )}
         <SettingsAccordionSection
@@ -1023,6 +1096,7 @@ export default function SettingsScreen() {
           accentColor={colors.primary}
           expanded={expandedSections.profile}
           onToggle={() => toggleSection('profile')}
+          sectionKey="profile"
           styles={styles}
           colors={colors}
           variant="nested"
@@ -1041,6 +1115,7 @@ export default function SettingsScreen() {
             />
           </View>
 
+          <SettingsSlot sectionKey="notificationsToggle" hidden={isStarterSettings}>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>{t('settings.notifications')}</Text>
@@ -1053,6 +1128,7 @@ export default function SettingsScreen() {
               thumbColor={settingsData?.push_notifications ? colors.primary : colors.textMuted}
             />
           </View>
+          </SettingsSlot>
 
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomWidth: 0 }]}
@@ -1074,6 +1150,7 @@ export default function SettingsScreen() {
           accentColor={colors.info}
           expanded={expandedSections.sync}
           onToggle={() => toggleSection('sync')}
+          sectionKey="sync"
           styles={styles}
           colors={colors}
           variant="nested"
@@ -1147,6 +1224,7 @@ export default function SettingsScreen() {
         >
         {/* Team link (direct, no sub-dropdown) */}
         {canViewTeam && (
+          <SettingsSlot sectionKey="team">
           <Link href="/(tabs)/users" asChild>
             <TouchableOpacity style={styles.supportRow}>
               <View style={[styles.supportIconWrapper, { backgroundColor: colors.info }]}>
@@ -1159,6 +1237,7 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           </Link>
+          </SettingsSlot>
         )}
 
         {/* Modules */}
@@ -1210,6 +1289,7 @@ export default function SettingsScreen() {
           accentColor={colors.info}
           expanded={expandedSections.storeIdentity}
           onToggle={() => toggleSection('storeIdentity')}
+          sectionKey="storeIdentity"
           styles={styles}
           colors={colors}
           variant="nested"
@@ -1245,7 +1325,7 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
         )}
 
-        {isOrgAdmin && currentStore && ecommerceSite && (
+        {isOrgAdmin && (isStarterSettings || (currentStore && ecommerceSite)) && (
         <SettingsAccordionSection
           title="Site e-commerce"
           description="Activez le site public de cette boutique uniquement quand vous êtes prêt à recevoir des commandes web."
@@ -1253,10 +1333,26 @@ export default function SettingsScreen() {
           accentColor={colors.info}
           expanded={expandedSections.storeEcommerce}
           onToggle={() => toggleSection('storeEcommerce')}
+          sectionKey="storeEcommerce"
           styles={styles}
           colors={colors}
           variant="nested"
         >
+          {isStarterSettings && !currentStore && <View style={{ gap: 12 }}>
+            <Text style={styles.settingDesc}>Sélectionnez une boutique pour configurer votre site et son catalogue.</Text>
+            <StoreSelector />
+          </View>}
+          {isStarterSettings && currentStore && !ecommerceSite && <View style={{ gap: 12 }}>
+            <Text style={styles.settingDesc}>Les réglages du site ne sont pas disponibles. Rechargez-les pour préparer votre boutique en ligne.</Text>
+            <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} onPress={() => { setLoading(true); void loadSettings(); }}>
+              <Text style={styles.outlineButtonText}>Charger ma boutique en ligne</Text>
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={styles.supportRow} onPress={() => router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any)}>
+              <Ionicons name="receipt-outline" size={22} color={colors.primary} />
+              <Text style={styles.settingLabel}>Commandes en ligne</Text>
+            </TouchableOpacity>
+          </View>}
+          {(!isStarterSettings || (currentStore && ecommerceSite)) && <>
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Activer le site public</Text>
@@ -1270,6 +1366,14 @@ export default function SettingsScreen() {
               thumbColor={ecommerceSite.enabled ? colors.primary : colors.textMuted}
             />
           </View>
+          {isStarterSettings && ecommerceSite?.site_url && <TouchableOpacity
+            accessibilityRole="button"
+            style={styles.supportRow}
+            onPress={() => { void openEcommercePreview(); }}
+          >
+            <Ionicons name="globe-outline" size={22} color={colors.primary} />
+            <Text style={styles.settingLabel}>Voir mon site</Text>
+          </TouchableOpacity>}
           <TouchableOpacity
             style={[styles.settingRow, { marginBottom: Spacing.md }]}
             accessibilityRole="button"
@@ -1391,6 +1495,12 @@ export default function SettingsScreen() {
             placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
           />
+          {isStarterSettings && <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showEcommerceOptions }} style={styles.supportRow} onPress={() => setShowEcommerceOptions((value) => !value)}>
+            <Ionicons name="options-outline" size={22} color={colors.primary} />
+            <Text style={[styles.settingLabel, { flex: 1 }]}>Plus d'options</Text>
+            <Ionicons name={showEcommerceOptions ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+          </TouchableOpacity>}
+          {(!isStarterSettings || showEcommerceOptions) && <>
           <Text style={styles.settingLabel}>Domaine du site</Text>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Le domaine Stockman reste toujours disponible. Si vous possédez déjà un domaine, connectez de préférence www.votredomaine.com. Sinon, préparez ce projet avec un fournisseur externe avant la connexion.</Text>
           <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
@@ -1530,6 +1640,7 @@ export default function SettingsScreen() {
               </Text>
             </TouchableOpacity>
           ) : null}
+          </>}
           <TextInput
             style={[styles.input, styles.textArea]}
             value={ecommerceDraft.payment_instructions || ''}
@@ -1548,6 +1659,7 @@ export default function SettingsScreen() {
               {ecommerceSaving ? 'Enregistrement...' : 'Enregistrer le site e-commerce'}
             </Text>
           </TouchableOpacity>
+          </>}
         </SettingsAccordionSection>
         )}
 
@@ -1559,6 +1671,7 @@ export default function SettingsScreen() {
           accentColor={colors.info}
           expanded={expandedSections.storeDocuments}
           onToggle={() => toggleSection('storeDocuments')}
+          sectionKey="storeDocuments"
           styles={styles}
           colors={colors}
           variant="nested"
@@ -1574,13 +1687,13 @@ export default function SettingsScreen() {
               placeholder={t('settings.receipt_name_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
-            <TextInput
+            {!isStarterSettings && <TextInput
               style={styles.input}
               value={receiptFooter}
               onChangeText={setReceiptFooter}
               placeholder={t('settings.receipt_footer_placeholder')}
               placeholderTextColor={colors.textMuted}
-            />
+            />}
           </View>
 
           <Text style={[styles.sectionTitle, { marginTop: Spacing.lg, marginBottom: Spacing.sm }]}>{t('settings.invoice_title_section')}</Text>
@@ -1599,6 +1712,19 @@ export default function SettingsScreen() {
               placeholder={t('settings.invoice_address_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
+            {isStarterSettings && <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showDocumentOptions }} style={styles.supportRow} onPress={() => setShowDocumentOptions((value) => !value)}>
+              <Ionicons name="options-outline" size={22} color={colors.primary} />
+              <Text style={[styles.settingLabel, { flex: 1 }]}>Plus d'options</Text>
+              <Ionicons name={showDocumentOptions ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+            </TouchableOpacity>}
+            {(!isStarterSettings || showDocumentOptions) && <>
+            {isStarterSettings && <TextInput
+              style={styles.input}
+              value={receiptFooter}
+              onChangeText={setReceiptFooter}
+              placeholder={t('settings.receipt_footer_placeholder')}
+              placeholderTextColor={colors.textMuted}
+            />}
             <TextInput
               style={styles.input}
               value={invoiceLabel}
@@ -1627,6 +1753,7 @@ export default function SettingsScreen() {
               placeholder={t('settings.invoice_footer_placeholder')}
               placeholderTextColor={colors.textMuted}
             />
+            </>}
           </View>
 
           <TouchableOpacity
@@ -1649,11 +1776,13 @@ export default function SettingsScreen() {
           accentColor={colors.info}
           expanded={expandedSections.storeEmpty}
           onToggle={() => toggleSection('storeEmpty')}
+          sectionKey="storeEmpty"
           styles={styles}
           colors={colors}
           variant="nested"
         >
           <Text style={styles.settingDesc}>{t('settings.no_active_store_docs', 'Aucune boutique active n\'est sélectionnée pour personnaliser les documents.')}</Text>
+          {isStarterSettings && <StoreSelector />}
         </SettingsAccordionSection>
         )}
 
@@ -1666,6 +1795,7 @@ export default function SettingsScreen() {
           accentColor={colors.warning}
           expanded={expandedSections.tax}
           onToggle={() => toggleSection('tax')}
+          sectionKey="tax"
           styles={styles}
           colors={colors}
           variant="nested"
@@ -1790,10 +1920,16 @@ export default function SettingsScreen() {
           accentColor={colors.info}
           expanded={expandedSections.notifications}
           onToggle={() => toggleSection('notifications')}
+          sectionKey="notifications"
           styles={styles}
           colors={colors}
           variant="nested"
         >
+          {isStarterSettings && <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showNotificationOptions }} style={styles.supportRow} onPress={() => setShowNotificationOptions((value) => !value)}>
+            <Text style={[styles.settingLabel, { flex: 1 }]}>Plus d'options</Text>
+            <Ionicons name={showNotificationOptions ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+          </TouchableOpacity>}
+          {(!isStarterSettings || showNotificationOptions) && <>
           <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>
             {t('settings.channels_intro')}
           </Text>
@@ -1828,6 +1964,7 @@ export default function SettingsScreen() {
             </View>
           ))}
 
+          {!isStarterSettings && <>
           <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
             <Text style={styles.settingLabel}>{t('settings.push_severity_label')}</Text>
             <Text style={[styles.settingDesc, { marginBottom: Spacing.xs }]}>{t('settings.push_severity_desc')}</Text>
@@ -1888,6 +2025,7 @@ export default function SettingsScreen() {
             </View>
           </View>
 
+          </>}
           <TouchableOpacity
             style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
             onPress={saveNotificationPreferences}
@@ -1912,6 +2050,7 @@ export default function SettingsScreen() {
               {testPushSending ? t('settings.test_push_sending') : t('settings.test_push_btn')}
             </Text>
           </TouchableOpacity>
+          </>}
         </SettingsAccordionSection>
 
         {/* ── 2. Destinataires e-mail du compte ── */}
@@ -2025,6 +2164,7 @@ export default function SettingsScreen() {
           accentColor={colors.warning}
           expanded={expandedSections.security}
           onToggle={() => toggleSection('security')}
+          sectionKey="security"
           styles={styles}
           colors={colors}
           variant="nested"
@@ -2061,6 +2201,7 @@ export default function SettingsScreen() {
           accentColor={colors.info}
           expanded={expandedSections.legal}
           onToggle={() => toggleSection('legal')}
+          sectionKey="legal"
           styles={styles}
           colors={colors}
           variant="nested"
@@ -2096,6 +2237,7 @@ export default function SettingsScreen() {
           accentColor={colors.danger}
           expanded={expandedSections.data}
           onToggle={() => toggleSection('data')}
+          sectionKey="data"
           styles={styles}
           colors={colors}
           variant="nested"
@@ -2126,6 +2268,7 @@ export default function SettingsScreen() {
         </SettingsAccordionSection>
 
         {/* Logout */}
+        <SettingsSlot sectionKey="accounts">
         <TouchableOpacity style={styles.card} onPress={() => setShowAccountSwitcher(true)}>
           <View style={styles.supportRow}>
             <View style={[styles.supportIconWrapper, { backgroundColor: colors.primary }]}>
@@ -2138,13 +2281,17 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </View>
         </TouchableOpacity>
+        </SettingsSlot>
 
+        <SettingsSlot sectionKey="logout">
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={colors.danger} />
           <Text style={styles.logoutText}>{t('settings.logout_btn')}</Text>
         </TouchableOpacity>
+        </SettingsSlot>
 
         <View style={{ height: Spacing.xxl }} />
+        </StarterSettingsLayout>
       </ScrollView>
 
       <HelpCenter
@@ -2154,7 +2301,7 @@ export default function SettingsScreen() {
         isRestaurant={isRestaurant}
         hasEnterprisePlan={hasEnterprisePlan}
         onLaunchGuide={(guideKey) => {
-          const guide = (GUIDES as any)[guideKey];
+          const guide = (GUIDES as any)[isStarterSettings && guideKey === 'settings' ? 'starterSettings' : guideKey];
           if (guide) {
             setHelpGuide(guide);
           }

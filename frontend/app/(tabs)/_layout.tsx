@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { alerts as alertsApi, demo as demoApi, ecommerce as ecommerceApi, settings as settingsApi, DemoSessionInfo, EcommerceStats, UserSettings } from '../../services/api';
 
 import StoreSelector from '../../components/StoreSelector';
-import { ActivityIndicator, Alert, DeviceEventEmitter, Linking, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, DeviceEventEmitter, Linking, Platform, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
@@ -262,7 +262,7 @@ function TabLayoutInner() {
       case 'alerts': return GUIDES.alerts;
       case 'activity': return GUIDES.activity;
       case 'users': return GUIDES.users;
-      case 'settings': return GUIDES.settings;
+      case 'settings': return isStarterShopkeeper && Platform.OS !== 'web' ? GUIDES.starterSettings : GUIDES.settings;
       case 'subscription': return GUIDES.subscription;
       case 'planner': return GUIDES.planner;
       case 'restaurant': return GUIDES.restaurantHub;
@@ -804,7 +804,7 @@ function TabLayoutInner() {
         isRestaurant={isRestaurant}
         hasEnterprisePlan={hasEnterprisePlan}
         onLaunchGuide={(guideKey) => {
-          const guide = GUIDES[guideKey];
+          const guide = GUIDES[isStarterShopkeeper && Platform.OS !== 'web' && guideKey === 'settings' ? 'starterSettings' : guideKey];
           if (guide) {
             setGuideOverride(guide);
             setShowGuide(true);
