@@ -27,7 +27,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "layers-outline",
                 title: "Vue simplifiée selon le plan",
-                description: "Sur mobile, un compte Starter démarre dans Produits et conserve les accès essentiels à la Caisse, à la Compta et aux Paramètres. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
+                description: "Sur mobile, un compte Starter démarre dans Produits et conserve les accès essentiels à la Caisse, à la Compta, à E-com et aux Paramètres. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
             },
             {
                 icon: "pie-chart-outline",
@@ -479,6 +479,15 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 title: "Corriger ou retirer un accès",
                 description: "Si une personne change de poste, quitte l'équipe ou reçoit trop d'accès, revenez dans sa fiche pour corriger les autorisations ou supprimer le compte. Faites cette vérification régulièrement."
             }
+        ]
+    },
+    ecommerce: {
+        title: "E-com",
+        steps: [
+            { icon: "receipt-outline", title: "Commandes en ligne", description: "Consultez les commandes récentes et filtrez par statut. Historique complet et Voir plus de commandes donnent accès aux commandes plus anciennes, sans limite de période." },
+            { icon: "checkmark-circle-outline", title: "Préparer et livrer", description: "Ouvrez une commande pour consulter ses articles et son destinataire. Les actions autorisées permettent de confirmer, marquer comme prête ou livrée, annuler ou ouvrir Denkma." },
+            { icon: "stats-chart-outline", title: "Suivre l'activité", description: "Dans la vue Statistiques, retrouvez les commandes et celles en attente, ainsi que le CA E-com, le panier moyen, les visites et la conversion sur la période indiquée. E-com s'ouvre d'abord sur la vue Commandes." },
+            { icon: "settings-outline", title: "Configurer le site", description: "Configurer ma boutique en ligne ouvre Paramètres > Boutique en ligne. L'activation, les couleurs, les coordonnées, le domaine, la livraison et les instructions de paiement restent dans les paramètres. Les commandes restent accessibles lorsque le site est désactivé." },
         ]
     },
     starterSettings: {

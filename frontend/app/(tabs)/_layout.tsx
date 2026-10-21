@@ -86,7 +86,7 @@ function TabLayoutInner() {
   }, [user?.user_id]);
 
   const refreshEcommerceSite = useCallback(async () => {
-    if (!user?.user_id || !hasOperationalAccess) {
+    if (!user?.user_id || !hasOperationalAccess || (Platform.OS !== 'web' && usesStarterNavigation(user))) {
       setEcommerceSite(null);
       return;
     }
@@ -96,7 +96,7 @@ function TabLayoutInner() {
     } catch {
       setEcommerceSite(null);
     }
-  }, [hasOperationalAccess, user?.user_id, user?.active_store_id]);
+  }, [hasOperationalAccess, user?.user_id, user?.active_store_id, user?.subscribed_plan, user?.subscription_plan, user?.plan, user?.role, user?.is_demo]);
 
   useEffect(() => {
     refreshEcommerceSite();
@@ -259,6 +259,7 @@ function TabLayoutInner() {
       case 'suppliers': return GUIDES.suppliers;
       case 'crm': return GUIDES.crm;
       case 'orders': return GUIDES.orders;
+      case 'ecommerce': return GUIDES.ecommerce;
       case 'alerts': return GUIDES.alerts;
       case 'activity': return GUIDES.activity;
       case 'users': return GUIDES.users;
@@ -502,7 +503,7 @@ function TabLayoutInner() {
           ) : undefined,
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: compactHeader ? 8 : 16, gap: compactHeader ? 6 : 12, maxWidth: width - (compactHeader ? 62 : 88) }}>
-              {hasOperationalAccess && ecommerceSite?.enabled && (
+              {hasOperationalAccess && !(isStarterShopkeeper && Platform.OS !== 'web') && ecommerceSite?.enabled && (
                 <TouchableOpacity
                   onPress={() => setShowEcommerceActions(true)}
                   disabled={openingEcommerceSite}
@@ -691,6 +692,17 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.alerts'),
             href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="ecommerce"
+          options={{
+            title: 'E-com',
+            tabBarLabel: renderTabLabel('E-com'),
+            href: isStarterShopkeeper && Platform.OS !== 'web' && hasOperationalAccess ? '/ecommerce' : null,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="storefront-outline" size={size} color={color} />
+            ),
           }}
         />
         <Tabs.Screen

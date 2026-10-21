@@ -4,6 +4,8 @@ La vue simplifiée concerne les propriétaires commerçants dont le plan souscri
 
 ## Accès
 
+La navigation mobile Starter comporte cinq onglets : Produits, Caisse, Compta, E-com, Paramètres. E-com sert au suivi quotidien des commandes et des statistiques ; la configuration reste dans la rubrique Boutique en ligne des Paramètres, qui conserve ses six rubriques.
+
 - Ma boutique : identité, adresse, reçus, factures et TVA. Les personnalisations des documents sont dans Plus d'options.
 - Boutique en ligne : activation, aperçu, coordonnées, présentation, couleur, livraison, WhatsApp, instructions de paiement et commandes reçues. Le domaine et sa vérification sont dans Plus d'options.
 - Mon compte : identité, mot de passe, PIN, biométrie, langue, thème, comptes enregistrés, accès autorisé à l'équipe et déconnexion.

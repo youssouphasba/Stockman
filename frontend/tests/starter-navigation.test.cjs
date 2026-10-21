@@ -164,10 +164,10 @@ test('Android back uses the authorized initial tab without returning to hidden H
     const scope = { isStarterShopkeeper: true, user: starter, modules, isRestaurant: false, getStarterRoute: routing.getStarterRoute };
     const initialRouteName = option('initialRouteName', scope);
     const router = TabRouter({ initialRouteName, backBehavior: option('backBehavior', scope) });
-    const config = { routeNames: ['index', 'products', 'pos', 'accounting', 'settings', 'orders'], routeParamList: {}, routeGetIdList: {} };
+    const config = { routeNames: ['index', 'products', 'pos', 'accounting', 'ecommerce', 'settings', 'orders'], routeParamList: {}, routeGetIdList: {} };
     let state = router.getInitialState(config);
     assert.equal(state.routes[state.index].name, initialRouteName);
-    for (const name of ['index', 'orders']) {
+    for (const name of ['index', 'orders', 'ecommerce']) {
       state = router.getStateForAction(state, TabActions.jumpTo(name, name === 'index' ? { openModal: 'history' } : { tab: 'web' }), config);
       state = router.getStateForAction(state, CommonActions.goBack(), config);
       assert.equal(state.routes[state.index].name, initialRouteName);
@@ -178,7 +178,7 @@ test('Android back uses the authorized initial tab without returning to hidden H
   assert.equal(option('backBehavior', { isStarterShopkeeper: false }), undefined);
 });
 
-test('Starter keeps four main tabs and Pro and Enterprise retain their existing tabs', () => {
+test('Starter keeps five main tabs and Pro and Enterprise retain their existing tabs', () => {
   const layout = readSource('app/(tabs)/_layout.tsx');
   const screens = [];
   function visit(node) {
@@ -186,7 +186,7 @@ test('Starter keeps four main tabs and Pro and Enterprise retain their existing 
     ts.forEachChild(node, visit);
   }
   visit(layout);
-  function visibleTabs(starterMode) {
+  function visibleTabs(starterMode, platform = 'android') {
     return screens.filter((screen) => {
       const options = screen.attributes.properties.find((attribute) => attribute.name?.text === 'options');
       const value = evaluate('(' + options.initializer.expression.getText(layout) + ')', {
@@ -195,11 +195,14 @@ test('Starter keeps four main tabs and Pro and Enterprise retain their existing 
         hideCrm: false, hideOrders: false, isRestaurant: false, hasOperationalAccess: true,
         isSuperAdmin: false, productsTabTitle: 'Produits', productsTabIcon: 'cube-outline',
         t: (key) => key, renderTabLabel: (label) => label,
+        Platform: { OS: platform },
       });
       return value.href !== null;
     }).map((screen) => screen.attributes.properties.find((attribute) => attribute.name?.text === 'name').initializer.text);
   }
-  assert.deepEqual(visibleTabs(true), ['products', 'pos', 'accounting', 'settings']);
+  assert.deepEqual(visibleTabs(true), ['products', 'pos', 'accounting', 'ecommerce', 'settings']);
+  assert.deepEqual(visibleTabs(true, 'ios'), ['products', 'pos', 'accounting', 'ecommerce', 'settings']);
+  assert.deepEqual(visibleTabs(true, 'web'), ['products', 'pos', 'accounting', 'settings']);
   assert.deepEqual(visibleTabs(false), ['index', 'products', 'pos', 'accounting', 'suppliers', 'crm', 'orders', 'settings']);
 });
 
@@ -246,6 +249,7 @@ test('Starter E-com loads its orders without depending on procurement permission
     const calls = [];
     const run = evaluate('(' + callback.getText(orders) + ')', {
       ecommerceOnly, lastLoadedAtRef: { current: 0 }, FOCUS_TTL_MS: 60000,
+      webOrdersRequestRef: { current: 0 },
       setAccessDenied: (value) => { assert.equal(value, false); },
       setLoading: () => {}, setRefreshing: () => {},
       loadWebOrders: async () => { calls.push('web'); },
@@ -266,6 +270,7 @@ test('E-com route parameters open the list or the notification order detail', ()
     const calls = [];
     const run = evaluate('(' + effect.arguments[0].getText(orders) + ')', {
       orderIdParam, tabParam: 'web', sourceParam: 'ecommerce', productIdParam: undefined,
+      ecommerceOnly: false,
       reminderTypeParam: undefined, handledReminderRef: { current: null },
       setActiveTab: (tab) => { calls.push(tab); },
       loadWebOrders: async () => { calls.push('list'); },

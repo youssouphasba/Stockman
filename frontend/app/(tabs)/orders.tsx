@@ -57,15 +57,16 @@ import PremiumGate from '../../components/PremiumGate';
 import AccessDenied from '../../components/AccessDenied';
 import { useDrawer } from '../../contexts/DrawerContext';
 import { isStarterShopkeeper } from '../../utils/accountRouting';
+import EcommerceOverview from '../../components/EcommerceOverview';
 
-export default function OrdersScreen() {
+export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerceWorkspace?: boolean } = {}) {
   const { colors, glassStyle } = useTheme();
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { user, isSuperAdmin } = useAuth();
   const { setDrawerContent } = useDrawer();
   const insets = useSafeAreaInsets();
-  const styles = getStyles(colors, glassStyle);
+  const styles = getStyles(colors, glassStyle, ecommerceWorkspace);
 
   const STATUS_CONFIG: Record<string, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
     pending: { label: t('orders.pending'), color: colors.warning, icon: 'time-outline' },
@@ -159,6 +160,14 @@ export default function OrdersScreen() {
   const [creditNotesList, setCreditNotesList] = useState<CreditNote[]>([]);
   const [webOrders, setWebOrders] = useState<any[]>([]);
   const [webOrdersLoading, setWebOrdersLoading] = useState(false);
+  const [webOrdersError, setWebOrdersError] = useState(false);
+  const [webStatus, setWebStatus] = useState('all');
+  const [webOrdersTotal, setWebOrdersTotal] = useState(0);
+  const [ecommerceRefreshKey, setEcommerceRefreshKey] = useState(0);
+  const [ecommerceView, setEcommerceView] = useState<'orders' | 'stats'>('orders');
+  const webOrdersRequestRef = useRef(0);
+  const webOrdersOffsetRef = useRef(0);
+  const webOrderDetailRequestRef = useRef(0);
   const [selectedWebOrder, setSelectedWebOrder] = useState<any | null>(null);
   const [showWebOrderDetailModal, setShowWebOrderDetailModal] = useState(false);
 
@@ -203,8 +212,17 @@ export default function OrdersScreen() {
     delivery_link_token?: string;
   }>();
 
-  const ecommerceOnly = isStarterShopkeeper(user) && (tabParam === 'web' || sourceParam === 'ecommerce');
+  const ecommerceOnly = ecommerceWorkspace || (isStarterShopkeeper(user) && (tabParam === 'web' || sourceParam === 'ecommerce'));
   const activeTab = ecommerceOnly ? 'web' : selectedTab;
+  const ordersGuide = ecommerceWorkspace ? GUIDES.ecommerce : GUIDES.orders;
+  const webStatusLabels: Record<string, string> = {
+    all: 'Historique complet', pending: 'En attente', confirmed: 'Confirmées',
+    preparing: 'En préparation', ready: 'Prêtes', delivered: 'Terminées', cancelled: 'Annulées',
+  };
+  const visibleWebOrders = ecommerceWorkspace && orderSearch.trim()
+    ? webOrders.filter((order) => [order.order_number, order.customer_name, order.customer_phone, order.customer_email]
+      .some((value) => String(value || '').toLocaleLowerCase().includes(orderSearch.trim().toLocaleLowerCase())))
+    : webOrders;
 
   const confirmDiscardChanges = (onConfirm: () => void) => {
     Alert.alert(
@@ -327,26 +345,43 @@ export default function OrdersScreen() {
     }
   }, []);
 
-  const loadWebOrders = useCallback(async () => {
+  const loadWebOrders = useCallback(async (append = false) => {
+    const request = ++webOrdersRequestRef.current;
+    const offset = ecommerceWorkspace && append ? webOrdersOffsetRef.current : 0;
     setWebOrdersLoading(true);
-    try {
-      const result = await ecommerceApi.listOrders();
-      setWebOrders(result.items || []);
-    } catch {
+    setWebOrdersError(false);
+    if (ecommerceWorkspace && !append) {
       setWebOrders([]);
-    } finally {
-      setWebOrdersLoading(false);
+      setWebOrdersTotal(0);
     }
-  }, []);
+    try {
+      const result = ecommerceWorkspace
+        ? await ecommerceApi.listOrders(webStatus, offset)
+        : await ecommerceApi.listOrders();
+      if (request !== webOrdersRequestRef.current) return;
+      const items = result.items || [];
+      webOrdersOffsetRef.current = offset + items.length;
+      setWebOrdersTotal(result.total);
+      setWebOrders((previous) => append ? [...previous, ...items] : items);
+    } catch {
+      if (request !== webOrdersRequestRef.current) return;
+      if (!append) setWebOrders([]);
+      setWebOrdersError(true);
+    } finally {
+      if (request === webOrdersRequestRef.current) setWebOrdersLoading(false);
+    }
+  }, [ecommerceWorkspace, webStatus]);
 
   async function openWebOrderDetail(orderId: string) {
+    const request = ++webOrderDetailRequestRef.current;
     setActiveTab('web');
     setShowWebOrderDetailModal(true);
-    setSelectedWebOrder(null);
+    setSelectedWebOrder(ecommerceWorkspace ? webOrders.find((order) => order.order_id === orderId) || null : null);
     try {
       const order = await ecommerceApi.getOrder(orderId);
-      setSelectedWebOrder(order);
+      if (request === webOrderDetailRequestRef.current) setSelectedWebOrder(order);
     } catch {
+      if (request !== webOrderDetailRequestRef.current) return;
       Alert.alert(t('common.error'), 'Impossible d’ouvrir la commande E-com.');
       setShowWebOrderDetailModal(false);
     }
@@ -356,6 +391,7 @@ export default function OrdersScreen() {
     try {
       await ecommerceApi.updateOrderStatus(orderId, status);
       await loadWebOrders();
+      if (ecommerceWorkspace) setEcommerceRefreshKey((value) => value + 1);
     } catch (err: any) {
       Alert.alert(t('common.error'), err?.message || 'Impossible de mettre à jour la commande E-com.');
     }
@@ -366,7 +402,8 @@ export default function OrdersScreen() {
     useCallback(() => {
       if (ecommerceOnly) {
         setDrawerContent('Commandes en ligne', [
-          { label: t('common.refresh', 'Actualiser'), icon: 'refresh-outline', onPress: () => { void loadWebOrders(); } },
+          { label: t('common.refresh', 'Actualiser'), icon: 'refresh-outline', onPress: onRefresh },
+          ...(ecommerceWorkspace ? [{ label: 'Configurer ma boutique en ligne', icon: 'settings-outline' as const, onPress: () => router.push({ pathname: '/(tabs)/settings', params: { section: 'storeEcommerce' } }) }] : []),
         ]);
         return;
       }
@@ -376,7 +413,7 @@ export default function OrdersScreen() {
         { label: t('orders.history', 'Historique'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
         { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
       ]);
-    }, [ecommerceOnly, loadWebOrders, router, setDrawerContent, t])
+    }, [ecommerceOnly, ecommerceWorkspace, loadWebOrders, router, setDrawerContent, t])
   );
 
   useFocusEffect(
@@ -384,7 +421,7 @@ export default function OrdersScreen() {
       if (ecommerceOnly) {
         setAccessDenied(false);
         void loadWebOrders().finally(() => { setLoading(false); setRefreshing(false); });
-        return;
+        return () => { webOrdersRequestRef.current += 1; };
       }
       if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;
       loadData();
@@ -404,7 +441,7 @@ export default function OrdersScreen() {
     if (!orderId && !productId) {
       if (tab === 'web' || source === 'ecommerce') {
         setActiveTab('web');
-        void loadWebOrders();
+        if (!ecommerceOnly) void loadWebOrders();
       }
       return;
     }
@@ -428,7 +465,7 @@ export default function OrdersScreen() {
       setPreSelectedProductId(productId);
       setShowCreateModal(true);
     }
-  }, [loadWebOrders, orderIdParam, productIdParam, reminderTypeParam, sourceParam, tabParam]);
+  }, [ecommerceOnly, loadWebOrders, orderIdParam, productIdParam, reminderTypeParam, sourceParam, tabParam]);
 
   useEffect(() => {
     const orderId = typeof deliveryOrderIdParam === 'string' ? deliveryOrderIdParam : undefined;
@@ -456,6 +493,7 @@ export default function OrdersScreen() {
   function onRefresh() {
     setRefreshing(true);
     if (ecommerceOnly) {
+      if (ecommerceWorkspace) setEcommerceRefreshKey((value) => value + 1);
       void loadWebOrders().finally(() => setRefreshing(false));
       return;
     }
@@ -933,8 +971,8 @@ export default function OrdersScreen() {
         <ScreenGuide
           visible={showGuide}
           onClose={() => { setShowGuide(false); markSeen(); }}
-          title={GUIDES.orders.title}
-          steps={GUIDES.orders.steps}
+          title={ordersGuide.title}
+          steps={ordersGuide.steps}
         />
       </LinearGradient>
     );
@@ -957,13 +995,13 @@ export default function OrdersScreen() {
         >
           <View style={[styles.headerRow, { paddingTop: insets.top }]}>
             <View>
-              <Text style={styles.pageTitle}>{ecommerceOnly ? 'Commandes en ligne' : t('orders.title')}</Text>
+              <Text style={styles.pageTitle}>{ecommerceWorkspace ? 'E-com' : ecommerceOnly ? 'Commandes en ligne' : t('orders.title')}</Text>
               <Text style={styles.subtitle}>
                 {activeTab === 'orders'
                   ? t('orders.orders_count', { count: orderList.length })
                   : activeTab === 'returns'
                   ? t('orders.returns_count', { count: returnsList.length })
-                  : `${webOrders.length} commande(s) E-com`}
+                  : `${ecommerceWorkspace ? webOrdersTotal : webOrders.length} commande(s) E-com`}
               </Text>
             </View>
             <View style={styles.headerActionsRow}>
@@ -999,7 +1037,8 @@ export default function OrdersScreen() {
                       return;
                     }
                     if (activeTab === 'web') {
-                      loadWebOrders();
+                      if (ecommerceWorkspace) onRefresh();
+                      else void loadWebOrders();
                       return;
                     }
                     openCreateReturn();
@@ -1058,7 +1097,41 @@ export default function OrdersScreen() {
             </TouchableOpacity>
           </View>}
 
-          <View
+          {ecommerceWorkspace && <>
+            <View accessibilityRole="tablist" style={{ flexDirection: 'row', marginBottom: Spacing.md, gap: Spacing.sm }}>
+              {([
+                ['orders', 'Commandes', 'receipt-outline'],
+                ['stats', 'Statistiques', 'stats-chart-outline'],
+              ] as const).map(([view, label, icon]) => <TouchableOpacity
+                key={view}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: ecommerceView === view }}
+                style={[styles.filterChip, { flex: 1, minHeight: 48, justifyContent: 'center', gap: 6 }, ecommerceView === view && styles.filterChipActive]}
+                onPress={() => setEcommerceView(view)}
+              >
+                <Ionicons name={icon} size={18} color={ecommerceView === view ? colors.primaryLight : colors.textMuted} />
+                <Text style={[styles.filterText, { flexShrink: 1 }, ecommerceView === view && styles.filterTextActive]}>{label}</Text>
+              </TouchableOpacity>)}
+            </View>
+            <EcommerceOverview refreshKey={ecommerceRefreshKey} showStats={ecommerceView === 'stats'} />
+          </>}
+
+          {ecommerceWorkspace && ecommerceView === 'orders' && <>
+            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: Spacing.sm }}>Commandes récentes</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingBottom: Spacing.md }}>
+              {Object.entries(webStatusLabels).map(([status, label]) => <TouchableOpacity
+                key={status}
+                accessibilityRole="button"
+                accessibilityState={{ selected: webStatus === status }}
+                style={[styles.filterChip, { minHeight: 48 }, webStatus === status && styles.filterChipActive]}
+                onPress={() => setWebStatus(status)}
+              >
+                <Text style={[styles.filterText, webStatus === status && styles.filterTextActive]}>{label}</Text>
+              </TouchableOpacity>)}
+            </ScrollView>
+          </>}
+
+          {(!ecommerceWorkspace || ecommerceView === 'orders') && <View
             style={[
               styles.formInput,
               {
@@ -1084,7 +1157,7 @@ export default function OrdersScreen() {
                 <Ionicons name="close-circle" size={18} color={colors.textMuted} />
               </TouchableOpacity>
             )}
-          </View>
+          </View>}
 
           {activeTab !== 'web' && <TouchableOpacity
             style={styles.sectionToggleCard}
@@ -1102,22 +1175,26 @@ export default function OrdersScreen() {
             />
           </TouchableOpacity>}
 
-          {activeTab === 'web' && (
+          {activeTab === 'web' && (!ecommerceWorkspace || ecommerceView === 'orders') && (
             <View style={{ gap: Spacing.md }}>
-              {webOrdersLoading ? (
+              {ecommerceWorkspace && webOrdersError ? <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>Impossible de charger les commandes</Text>
+                <TouchableOpacity style={[styles.actionBtn, { minHeight: 48 }]} onPress={() => { void loadWebOrders(); }}><Text style={[styles.actionText, { color: colors.primary }]}>Réessayer</Text></TouchableOpacity>
+              </View> : webOrdersLoading && (!ecommerceWorkspace || webOrders.length === 0) ? (
                 <ActivityIndicator color={colors.primary} style={{ marginTop: Spacing.xl }} />
-              ) : webOrders.length === 0 ? (
+              ) : visibleWebOrders.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="globe-outline" size={64} color={colors.textMuted} />
                   <Text style={styles.emptyTitle}>Aucune commande E-com</Text>
                   <Text style={styles.emptyText}>Les commandes envoyées depuis le site e-commerce apparaîtront ici.</Text>
                 </View>
-              ) : webOrders.map((order) => (
+              ) : visibleWebOrders.map((order) => (
                 <TouchableOpacity
                   key={order.order_id}
                   style={styles.orderCard}
                   activeOpacity={0.85}
                   onPress={() => {
+                    if (ecommerceWorkspace) { void openWebOrderDetail(order.order_id); return; }
                     setSelectedWebOrder(order);
                     setShowWebOrderDetailModal(true);
                   }}
@@ -1127,7 +1204,7 @@ export default function OrdersScreen() {
                       <Text style={styles.orderSupplier}>{order.order_number}</Text>
                       <Text style={styles.orderDate}>{order.customer_name} · {order.customer_phone || order.customer_email || 'Contact non renseigné'}</Text>
                     </View>
-                    <Text style={[styles.statusBadge, { color: colors.primary }]}>{order.status}</Text>
+                    <Text style={[styles.statusBadge, { color: colors.primary }]}>{ecommerceWorkspace ? webStatusLabels[order.status] || order.status : order.status}</Text>
                   </View>
                   <View style={styles.orderDetails}>
                     <View style={styles.orderDetail}>
@@ -1149,6 +1226,14 @@ export default function OrdersScreen() {
                   </View>
                 </TouchableOpacity>
               ))}
+              {ecommerceWorkspace && webOrders.length < webOrdersTotal && <TouchableOpacity
+                accessibilityRole="button"
+                disabled={webOrdersLoading}
+                onPress={() => { void loadWebOrders(true); }}
+                style={[styles.actionBtn, { minHeight: 48, alignSelf: 'center' }]}
+              >
+                {webOrdersLoading ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.actionText, { color: colors.primary }]}>Voir plus de commandes</Text>}
+              </TouchableOpacity>}
             </View>
           )}
 
@@ -1597,7 +1682,7 @@ export default function OrdersScreen() {
           autoLinkRequest={deliveryAutoLinkRequest}
         />
 
-        {showWebOrderDetailModal && selectedWebOrder && <Modal visible={showWebOrderDetailModal} animationType="slide" transparent>
+        {showWebOrderDetailModal && selectedWebOrder && <Modal visible={showWebOrderDetailModal} animationType="slide" transparent onRequestClose={() => setShowWebOrderDetailModal(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
@@ -1616,7 +1701,7 @@ export default function OrdersScreen() {
                     <Text style={styles.orderDate}>{selectedWebOrder.customer_phone || selectedWebOrder.customer_email || 'Contact non renseigné'}</Text>
                     {selectedWebOrder.customer_address ? <Text style={styles.orderDate}>{selectedWebOrder.customer_address}</Text> : null}
                   </View>
-                  <Text style={[styles.statusBadge, { color: colors.primary }]}>{selectedWebOrder.status}</Text>
+                  <Text style={[styles.statusBadge, { color: colors.primary }]}>{ecommerceWorkspace ? webStatusLabels[selectedWebOrder.status] || selectedWebOrder.status : selectedWebOrder.status}</Text>
                 </View>
                 <View style={{ marginTop: Spacing.md, gap: Spacing.sm }}>
                   {(selectedWebOrder.items || []).map((item: any, index: number) => (
@@ -2387,15 +2472,15 @@ export default function OrdersScreen() {
         <ScreenGuide
           visible={showGuide}
           onClose={() => { setShowGuide(false); markSeen(); }}
-          title={GUIDES.orders.title}
-          steps={GUIDES.orders.steps}
+          title={ordersGuide.title}
+          steps={ordersGuide.steps}
         />
       </LinearGradient >
     </PremiumGate>
   );
 }
 
-const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
+const getStyles = (colors: any, glassStyle: any, ecommerceWorkspace = false) => StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
   content: { padding: Spacing.md, paddingTop: Spacing.xxl },
@@ -2530,9 +2615,10 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
   orderNotes: { fontSize: FontSize.sm, color: colors.textSecondary, fontStyle: 'italic', marginBottom: Spacing.sm },
   orderActions: {
     flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.lg,
+    ...(ecommerceWorkspace ? { flexWrap: 'wrap' as const, gap: Spacing.sm } : {}),
     borderTopWidth: 1, borderTopColor: colors.divider + '20', paddingTop: Spacing.sm,
   },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, ...(ecommerceWorkspace ? { minHeight: 48, paddingHorizontal: 8 } : {}) },
   actionText: { fontSize: FontSize.xs, fontWeight: '600' },
   statusBadge: {
     flexDirection: 'row',
