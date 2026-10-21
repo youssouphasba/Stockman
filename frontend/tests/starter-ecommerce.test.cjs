@@ -104,6 +104,33 @@ test('Pro and Enterprise keep the original unfiltered API call', async () => {
   assert.deepEqual(h.state.calls, [[]]);
 });
 
+test('The reused detail preserves the full order, including customer, items and amounts', async () => {
+  const detail = find(orders, (node) => ts.isFunctionDeclaration(node) && node.name?.text === 'openWebOrderDetail');
+  const record = Object.freeze({ order_id: 'order', customer_name: '', customer_phone: '', customer_address: '', items: [], total_amount: 0 });
+  let selected;
+  const open = evaluate(detail.getText(orders) + '\nopenWebOrderDetail;', {
+    webOrderDetailRequestRef: { current: 0 }, ecommerceWorkspace: true, webOrders: [record],
+    setActiveTab: (value) => assert.equal(value, 'web'), setShowWebOrderDetailModal: (value) => assert.equal(value, true),
+    setSelectedWebOrder: (value) => { selected = value; },
+    ecommerceApi: { getOrder: async (id) => { assert.equal(id, record.order_id); return record; } },
+    Alert: { alert: () => assert.fail('Unexpected detail error') }, t: (key) => key,
+  });
+  await open(record.order_id);
+  assert.equal(selected, record);
+});
+
+test('The existing Denkma action forwards the selected order unchanged', async () => {
+  const button = find(orders, (node) => ts.isJsxElement(node) && node.openingElement.tagName.getText(orders) === 'TouchableOpacity' && node.getText(orders).includes('await openDenkmaForOrder(selectedWebOrder)'));
+  const onPress = button.openingElement.attributes.properties.find((node) => node.name?.text === 'onPress');
+  const selected = Object.freeze({ order_id: 'order' });
+  let forwarded;
+  await evaluate('(' + onPress.initializer.expression.getText(orders) + ')', {
+    selectedWebOrder: selected, openDenkmaForOrder: async (value) => { forwarded = value; },
+    Alert: { alert: () => assert.fail('Unexpected Denkma error') }, t: (key) => key,
+  })();
+  assert.equal(forwarded, selected);
+});
+
 test('Status changes reuse the current handler and refresh workspace statistics only', async () => {
   const node = find(orders, (node) => ts.isVariableDeclaration(node) && node.name.getText(orders) === 'updateWebOrderStatus');
   for (const workspace of [true, false]) {
@@ -156,9 +183,7 @@ function statsLoader(overrides = {}) {
   const scope = {
     setLoading: (value) => { values.loading = value; },
     setError: (value) => { values.error = value; },
-    setSiteError: (value) => { values.siteError = value; },
     setStats: (value) => { values.stats = value; },
-    setSite: (value) => { values.site = value; },
     ...overrides,
   };
   const start = evaluate('(' + node.arguments[0].arguments[0].getText(overview) + ')', scope);
@@ -166,27 +191,26 @@ function statsLoader(overrides = {}) {
 }
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
-test('Statistics also supply the site, with no duplicate getSite request', async () => {
+test('Statistics do not depend on site activation and never fetch its configuration', async () => {
   const h = statsLoader({ ecommerceApi: {
     getStats: async () => ({ site: { enabled: false } }),
     getSite: () => assert.fail('Duplicate site request'),
   } });
   h.start();
   await flush();
-  assert.equal(h.values.site.enabled, false);
+  assert.equal(h.values.stats.site.enabled, false);
   assert.equal(h.values.loading, false);
   assert.equal(h.values.error, false);
 });
 
-test('Statistics failure preserves independent access to site configuration', async () => {
+test('Statistics failure stays local and never falls back to site configuration', async () => {
   const h = statsLoader({ ecommerceApi: {
     getStats: async () => { throw new Error('offline'); },
-    getSite: async () => ({ enabled: false }),
+    getSite: () => assert.fail('Statistics must not load site configuration'),
   } });
   h.start();
   await flush();
   assert.equal(h.values.error, true);
-  assert.equal(h.values.site.enabled, false);
   assert.equal(h.values.stats, null);
 });
 
@@ -197,7 +221,7 @@ test('Leaving the statistics screen ignores the pending response', async () => {
   stop();
   resolve({ site: { enabled: true } });
   await flush();
-  assert.equal(h.values.site, undefined);
+  assert.equal(h.values.stats, undefined);
 });
 
 function renderOverview(values, props = {}) {
@@ -229,16 +253,13 @@ function renderOverview(values, props = {}) {
   return { nodes, calls, text: nodes.filter((node) => node.type === 'Text').map((node) => node.props.children).join(' ') };
 }
 
-test('Disabled and unconfigured sites retain the exact Settings destination without forms', () => {
+test('Disabled and unconfigured sites show no activation, configuration or site links in E-com', () => {
   for (const site of [null, { enabled: false, store_id: 'store' }, { enabled: true, site_url: 'https://stockman.pro' }]) {
-    const h = renderOverview({ loading: false, site });
-    const config = h.nodes.find((node) => node.type === 'Button' && React.Children.toArray(node.props.children).some((child) => child.props?.children === 'Configurer ma boutique en ligne'));
-    config.props.onPress();
-    assert.equal(h.calls[0].pathname, '/(tabs)/settings');
-    assert.equal(h.calls[0].params.section, 'storeEcommerce');
+    const h = renderOverview({ loading: false, stats: { site } });
     assert.ok(!h.nodes.some((node) => ['TextInput', 'Switch'].includes(node.type)));
-    assert.equal(h.text.includes('Voir mon site'), !!site?.enabled);
-    assert.ok(h.text.includes(site?.enabled ? 'Boutique en ligne active' : site?.store_id ? 'Votre boutique en ligne est désactivée.' : 'Configurez votre boutique pour commencer.'));
+    assert.ok(!h.nodes.some((node) => node.type === 'Button'));
+    assert.ok(!/configur|désactiv|active|mon site/i.test(h.text));
+    assert.equal(h.calls.length, 0);
   }
 });
 
@@ -251,13 +272,27 @@ test('Six metrics render real zero values and explicit API periods', () => {
   assert.ok(h.text.includes('0 %'));
 });
 
-test('The default Commands view keeps configuration access without the statistics grid', () => {
+test('The default Commands view does not mount statistics or depend on their result', () => {
   const state = find(orders, (node) => ts.isVariableDeclaration(node) && ts.isArrayBindingPattern(node.name) && node.name.elements[0].getText(orders) === 'ecommerceView');
   assert.equal(state.initializer.arguments[0].text, 'orders');
-  const h = renderOverview({ loading: false, site: { enabled: false, store_id: 'store' } }, { showStats: false });
-  assert.ok(h.text.includes('Configurer ma boutique en ligne'));
-  assert.ok(!h.text.includes('Statistiques indisponibles'));
-  assert.ok(!h.text.includes('Conversion'));
+  const element = find(orders, (node) => ts.isJsxSelfClosingElement(node) && node.tagName.getText(orders) === 'EcommerceOverview');
+  assert.ok(ts.isBinaryExpression(element.parent));
+  const condition = element.parent.left;
+  for (const ecommerceView of ['orders', 'stats']) {
+    assert.equal(evaluate('(' + condition.getText(orders) + ')', { ecommerceView }), ecommerceView === 'stats');
+  }
+});
+
+test('The E-com drawer contains only operational actions, not site configuration', () => {
+  const focus = find(orders, (node) => ts.isCallExpression(node) && node.expression.getText(orders) === 'useFocusEffect' && node.arguments[0]?.getText(orders).includes("setDrawerContent('Commandes en ligne'"));
+  let items;
+  const callback = evaluate('(' + focus.arguments[0].arguments[0].getText(orders) + ')', {
+    ecommerceOnly: true, setDrawerContent: (_title, value) => { items = value; },
+    onRefresh: () => {}, t: (_key, label) => label,
+  });
+  callback();
+  assert.equal(items.length, 1);
+  assert.equal(items[0].icon, 'refresh-outline');
 });
 
 test('Android back can close the reused web order modal', () => {

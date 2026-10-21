@@ -487,7 +487,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             { icon: "receipt-outline", title: "Commandes en ligne", description: "Consultez les commandes récentes et filtrez par statut. Historique complet et Voir plus de commandes donnent accès aux commandes plus anciennes, sans limite de période." },
             { icon: "checkmark-circle-outline", title: "Préparer et livrer", description: "Ouvrez une commande pour consulter ses articles et son destinataire. Les actions autorisées permettent de confirmer, marquer comme prête ou livrée, annuler ou ouvrir Denkma." },
             { icon: "stats-chart-outline", title: "Suivre l'activité", description: "Dans la vue Statistiques, retrouvez les commandes et celles en attente, ainsi que le CA E-com, le panier moyen, les visites et la conversion sur la période indiquée. E-com s'ouvre d'abord sur la vue Commandes." },
-            { icon: "settings-outline", title: "Configurer le site", description: "Configurer ma boutique en ligne ouvre Paramètres > Boutique en ligne. L'activation, les couleurs, les coordonnées, le domaine, la livraison et les instructions de paiement restent dans les paramètres. Les commandes restent accessibles lorsque le site est désactivé." },
+            { icon: "settings-outline", title: "Site public et paramètres", description: "E-com est votre espace de gestion des commandes et de suivi commercial. Pour configurer la vitrine publique, ouvrez Paramètres > Boutique en ligne. Le site peut rester désactivé ou non configuré sans bloquer les commandes déjà reçues." },
         ]
     },
     starterSettings: {

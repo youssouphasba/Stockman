@@ -403,7 +403,6 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
       if (ecommerceOnly) {
         setDrawerContent('Commandes en ligne', [
           { label: t('common.refresh', 'Actualiser'), icon: 'refresh-outline', onPress: onRefresh },
-          ...(ecommerceWorkspace ? [{ label: 'Configurer ma boutique en ligne', icon: 'settings-outline' as const, onPress: () => router.push({ pathname: '/(tabs)/settings', params: { section: 'storeEcommerce' } }) }] : []),
         ]);
         return;
       }
@@ -1113,7 +1112,7 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
                 <Text style={[styles.filterText, { flexShrink: 1 }, ecommerceView === view && styles.filterTextActive]}>{label}</Text>
               </TouchableOpacity>)}
             </View>
-            <EcommerceOverview refreshKey={ecommerceRefreshKey} showStats={ecommerceView === 'stats'} />
+            {ecommerceView === 'stats' && <EcommerceOverview refreshKey={ecommerceRefreshKey} />}
           </>}
 
           {ecommerceWorkspace && ecommerceView === 'orders' && <>
