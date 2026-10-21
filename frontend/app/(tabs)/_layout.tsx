@@ -13,7 +13,7 @@ import { Alert, DeviceEventEmitter, Linking, Text, TextInput, View, TouchableOpa
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
-import { useSegments } from 'expo-router';
+import { useLocalSearchParams, useSegments } from 'expo-router';
 import AiSupportModal from '../../components/AiSupportModal';
 import HelpCenter from '../../components/HelpCenter';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -23,6 +23,7 @@ import SyncWarningBanner from '../../components/SyncWarningBanner';
 import DrawerMenu from '../../components/DrawerMenu';
 import { DrawerProvider, useDrawer } from '../../contexts/DrawerContext';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
+import { getCommercialPlan } from '../../utils/accountRouting';
 
 function TabLayoutInner() {
   const { t, i18n } = useTranslation();
@@ -33,7 +34,7 @@ function TabLayoutInner() {
   const { width } = useWindowDimensions();
   const drawer = useDrawer();
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
-  const settingsLoadedRef = useRef(false);
+  const settingsRequestKeyRef = useRef<string | null>(null);
   const [unreadAlertCount, setUnreadAlertCount] = useState(0);
   const [openingEcommerceSite, setOpeningEcommerceSite] = useState(false);
   const [ecommerceSite, setEcommerceSite] = useState<{ site_url: string; enabled: boolean } | null>(null);
@@ -58,10 +59,19 @@ function TabLayoutInner() {
   useNotifications(user?.user_id, refreshAlertCount);
 
   useEffect(() => {
-    if (user && !settingsLoadedRef.current) {
-      settingsLoadedRef.current = true;
-      settingsApi.get().then(setUserSettings).catch(() => { });
-    }
+    let cancelled = false;
+    const userId = user?.user_id || null;
+    settingsRequestKeyRef.current = userId;
+    setUserSettings(null);
+    if (!userId) return () => { cancelled = true; };
+
+    settingsApi.get().then((settings) => {
+      if (!cancelled && settingsRequestKeyRef.current === userId) setUserSettings(settings);
+    }).catch(() => {
+      if (!cancelled && settingsRequestKeyRef.current === userId) setUserSettings(null);
+    });
+
+    return () => { cancelled = true; };
   }, [user?.user_id]);
 
   const refreshEcommerceSite = useCallback(async () => {
@@ -108,6 +118,7 @@ function TabLayoutInner() {
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
   const hideDashboard = !hasPermission('dashboard', 'read');
   const hasEnterprisePlan = (user?.effective_plan || user?.plan) === 'enterprise';
+  const isStarterShopkeeper = user?.role === 'shopkeeper' && getCommercialPlan(user) === 'starter';
   const compactHeader = width <= 400;
   const veryCompactHeader = width < 360;
   const compactTabBar = width <= 400;
@@ -142,7 +153,10 @@ function TabLayoutInner() {
   );
 
   const segments = useSegments();
+  const { openModal } = useLocalSearchParams<{ openModal?: string }>();
   const currentRoute = (segments[segments.length - 1] || 'index') as string;
+  const preserveIndexForModalRef = useRef(false);
+  const previousUserIdRef = useRef<string | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const autoGuideHandledRef = useRef(false);
   const { isFirstVisit, isReady, markSeen } = useFirstVisit('navigation');
@@ -156,6 +170,14 @@ function TabLayoutInner() {
   }, [isFirstVisit, isReady, markSeen]);
 
   useEffect(() => {
+    if (previousUserIdRef.current !== (user?.user_id || null)) {
+      previousUserIdRef.current = user?.user_id || null;
+      preserveIndexForModalRef.current = false;
+    }
+    if (currentRoute !== 'index') preserveIndexForModalRef.current = false;
+    if (currentRoute === 'index' && (openModal === 'statistics' || openModal === 'history')) {
+      preserveIndexForModalRef.current = true;
+    }
     if (user && user.can_access_app === false) {
       const target = user.required_verification === 'email' ? '/(auth)/verify-email' : '/(auth)/verify-phone';
       router.replace(target as any);
@@ -165,11 +187,15 @@ function TabLayoutInner() {
       router.replace('/subscription');
       return;
     }
-    if (user && hideDashboard && currentRoute === 'index') {
+    if (user && currentRoute === 'index' && isStarterShopkeeper && !preserveIndexForModalRef.current && !billingOnly && !hideStock) {
+      router.replace('/products' as any);
+      return;
+    }
+    if (user && hideDashboard && currentRoute === 'index' && !preserveIndexForModalRef.current) {
       const firstTab = !hidePos ? '/pos' : !hideStock ? '/products' : !hideAccounting ? '/accounting' : !hideSuppliers ? '/suppliers' : !hideCrm ? '/crm' : '/settings';
       router.replace(firstTab as any);
     }
-  }, [billingOnly, hideDashboard, currentRoute, router, user]);
+  }, [billingOnly, hideDashboard, currentRoute, hideStock, isStarterShopkeeper, openModal, router, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -301,6 +327,11 @@ function TabLayoutInner() {
     setTimeout(() => DeviceEventEmitter.emit('settings:open-ecommerce'), 250);
   };
 
+  const openEcommerceOrders = () => {
+    setShowEcommerceActions(false);
+    router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any);
+  };
+
   const formatEcommerceAmount = (value: number, currency = 'XOF') => {
     try {
       return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: currency === 'XOF' ? 0 : 2 }).format(value || 0);
@@ -327,6 +358,7 @@ function TabLayoutInner() {
           </View>
           {[
             { label: 'Voir le site', icon: 'globe-outline', action: () => { setShowEcommerceActions(false); openEcommerceSite(); } },
+            { label: 'Commandes en ligne', icon: 'receipt-outline', action: openEcommerceOrders },
             { label: 'Voir les statistiques E-com', icon: 'stats-chart-outline', action: openEcommerceStats },
             { label: 'Paramètres E-com', icon: 'settings-outline', action: openEcommerceSettings },
           ].map((item) => (
@@ -560,7 +592,7 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.home'),
             tabBarLabel: renderTabLabel(t('tabs.home')),
-            href: (billingOnly || hideDashboard) ? null : '/',
+            href: (isStarterShopkeeper || billingOnly || hideDashboard) ? null : '/',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
             ),
@@ -604,7 +636,7 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.suppliers'),
             tabBarLabel: renderTabLabel(t('tabs.suppliers')),
-            href: hideSuppliers ? null : '/suppliers',
+            href: isStarterShopkeeper ? null : (hideSuppliers ? null : '/suppliers'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="people-outline" size={size} color={color} />
             ),
@@ -615,7 +647,7 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.crm'),
             tabBarLabel: renderTabLabel(t('tabs.crm')),
-            href: hideCrm ? null : '/crm',
+            href: isStarterShopkeeper ? null : (hideCrm ? null : '/crm'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="person-add-outline" size={size} color={color} />
             ),
@@ -626,7 +658,7 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.orders'),
             tabBarLabel: renderTabLabel(t('tabs.orders')),
-            href: hideOrders ? null : '/orders',
+            href: isStarterShopkeeper ? null : (hideOrders ? null : '/orders'),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="receipt-outline" size={size} color={color} />
             ),
@@ -637,7 +669,7 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.restaurant', 'Service'),
             tabBarLabel: renderTabLabel(t('tabs.restaurant', 'Service')),
-            href: isRestaurant && hasOperationalAccess ? '/restaurant' : null,
+            href: isStarterShopkeeper ? null : (isRestaurant && hasOperationalAccess ? '/restaurant' : null),
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="restaurant-outline" size={size} color={color} />
             ),
@@ -679,7 +711,7 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.admin'),
             tabBarLabel: renderTabLabel(t('tabs.admin')),
-            href: (isSuperAdmin ? '/(admin)' : null) as any,
+            href: (isStarterShopkeeper ? null : (isSuperAdmin ? '/(admin)' : null)) as any,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="shield-checkmark-outline" size={size} color={color} />
             ),

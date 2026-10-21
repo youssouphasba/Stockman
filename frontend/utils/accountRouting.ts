@@ -1,8 +1,15 @@
 import { User } from '../services/api';
 import { hasModulePermission } from './access';
 
+export function getCommercialPlan(user: User | null): User['plan'] | undefined {
+  return user?.subscribed_plan || user?.subscription_plan || user?.plan;
+}
+
 export function getFirstAuthorizedShopkeeperRoute(user: User | null): string {
   if (!user) return '/(tabs)';
+  if (user.role === 'shopkeeper' && getCommercialPlan(user) === 'starter') {
+    if (hasModulePermission(user, 'stock', 'read')) return '/(tabs)/products';
+  }
   if (user.role === 'shopkeeper' || user.role === 'superadmin') return '/(tabs)';
 
   if (hasModulePermission(user, 'pos', 'read')) return '/(tabs)/pos';

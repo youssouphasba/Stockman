@@ -2165,6 +2165,7 @@ export type User = {
   plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
   effective_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
   subscription_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
+  subscribed_plan?: 'trial' | 'starter' | 'pro' | 'enterprise';
   subscription_status?: 'active' | 'expired' | 'cancelled';
   effective_subscription_status?: 'active' | 'expired' | 'cancelled';
   subscription_access_phase?: 'active' | 'grace' | 'restricted' | 'read_only';

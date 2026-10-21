@@ -27,7 +27,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "layers-outline",
                 title: "Vue simplifiée selon le plan",
-                description: "Sur mobile, les comptes Starter et Pro voient un tableau de bord plus simple. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
+                description: "Sur mobile, un compte Starter démarre dans Produits et conserve les accès essentiels à la Caisse, à la Compta et aux Paramètres. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
             },
             {
                 icon: "pie-chart-outline",

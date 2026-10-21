@@ -386,7 +386,13 @@ export default function OrdersScreen() {
     const productId = typeof productIdParam === 'string' ? productIdParam : undefined;
     const reminderType = typeof reminderTypeParam === 'string' ? reminderTypeParam : undefined;
 
-    if (!orderId && !productId) return;
+    if (!orderId && !productId) {
+      if (tab === 'web' || source === 'ecommerce') {
+        setActiveTab('web');
+        void loadWebOrders();
+      }
+      return;
+    }
 
     const reminderKey = `${orderId || ''}|${productId || ''}|${reminderType || ''}`;
     if (handledReminderRef.current === reminderKey) return;
@@ -407,7 +413,7 @@ export default function OrdersScreen() {
       setPreSelectedProductId(productId);
       setShowCreateModal(true);
     }
-  }, [orderIdParam, productIdParam, reminderTypeParam]);
+  }, [loadWebOrders, orderIdParam, productIdParam, reminderTypeParam, sourceParam, tabParam]);
 
   useEffect(() => {
     const orderId = typeof deliveryOrderIdParam === 'string' ? deliveryOrderIdParam : undefined;
