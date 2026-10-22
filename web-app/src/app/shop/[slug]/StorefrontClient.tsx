@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { resolveEcommerceModel } from '../../../lib/ecommerceThemes';
 import { Building2, Grid2X2, Heart, Mail, MapPin, Menu, MessageSquare, Minus, Phone, Plus, Search, Send, ShoppingBag, SlidersHorizontal, Trash2, X } from 'lucide-react';
 
 type PublicProduct = {
@@ -89,7 +90,7 @@ function getBrandOnColor(hex: string) {
   return luminance > 0.6 ? '#0f172a' : '#ffffff';
 }
 
-export default function StorefrontClient({ slug }: { slug: string }) {
+function StockmanBasicStorefront({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
   const [payload, setPayload] = useState<SitePayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -945,4 +946,12 @@ export default function StorefrontClient({ slug }: { slug: string }) {
       )}
     </main>
   );
+}
+
+const STOREFRONT_RENDERERS = { 'legacy-v1': StockmanBasicStorefront };
+
+export default function StorefrontClient({ slug, modelId }: { slug: string; modelId?: string | null }) {
+  const model = resolveEcommerceModel(modelId);
+  const Renderer = STOREFRONT_RENDERERS[model.id as keyof typeof STOREFRONT_RENDERERS];
+  return <Renderer slug={slug} />;
 }

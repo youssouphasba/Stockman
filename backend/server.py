@@ -80,6 +80,7 @@ from enterprise_access import (
     user_can_access_store,
     user_has_operational_access as shared_user_has_operational_access,
 )
+from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, legacy_theme_identity
 from services.pricing import (
     DEFAULT_COUNTRY_CODE,
     DEFAULT_CURRENCY,
@@ -1369,6 +1370,9 @@ class StoreUpdate(BaseModel):
 
 
 class EcommerceSiteInfo(BaseModel):
+    model_id: str = LEGACY_MODEL_ID
+    model_name: str = LEGACY_MODEL_NAME
+    theme_schema_version: int = THEME_SCHEMA_VERSION
     slug: str
     site_url: str
     stockman_site_url: Optional[str] = None
@@ -4017,6 +4021,7 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
     return {
         "slug": slug,
         "site_url": site_url,
+        **legacy_theme_identity(),
         "stockman_site_url": stockman_site_url,
         "custom_domain_url": custom_domain_url,
         "enabled": bool(account_doc.get("ecommerce_enabled") is True),
@@ -4113,6 +4118,7 @@ async def build_public_ecommerce_payload(account_doc: Dict[str, Any]) -> Dict[st
             "slug": account_doc.get("ecommerce_slug"),
             "store_id": store_id,
             "name": account_doc.get("ecommerce_site_name") or store_doc.get("receipt_business_name") or store_doc.get("name") or owner_doc.get("name"),
+            **legacy_theme_identity(),
             "logo_url": account_doc.get("ecommerce_logo_url"),
             "address": account_doc.get("ecommerce_contact_address") or store_doc.get("address"),
             "phone": account_doc.get("ecommerce_contact_phone") or owner_doc.get("phone"),

@@ -1750,6 +1750,9 @@ export const products = {
 };
 
 export type EcommerceSite = {
+    model_id?: string;
+    model_name?: string;
+    theme_schema_version?: number;
     slug: string;
     site_url: string;
     stockman_site_url?: string | null;
