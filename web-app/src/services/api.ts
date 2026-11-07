@@ -12,6 +12,7 @@ const WEB_ACCESS_MODE_KEY = 'stockman_web_access_mode';
 const AI_DUPLICATES_BLOCK_KEY = 'stockman_ai_detect_duplicates_blocked_until';
 const AI_DUPLICATES_BLOCK_MS = 12 * 60 * 60 * 1000;
 const NON_CACHEABLE_GET_PREFIXES = [
+    '/ecommerce/site/onboarding',
     '/auth/',
     '/demo/session',
     '/demo/session/',
@@ -373,6 +374,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
             403,
         );
     }
+
+    if (endpoint.startsWith('/ecommerce/site/onboarding')) return performRequest<T>(endpoint, options);
 
     if (method === 'GET') {
         if (!online) {
@@ -1817,6 +1820,10 @@ export type EcommerceStats = {
 };
 
 export const ecommerce = {
+    getSetup: () => request<import('../lib/ecommerceSetup').SetupStatus>('/ecommerce/site/onboarding'),
+    claimSetup: (data: import('../lib/ecommerceSetup').SetupToken) => request<import('../lib/ecommerceSetup').SetupClaim>('/ecommerce/site/onboarding/claim', { method: 'POST', body: data }),
+    respondSetup: (data: import('../lib/ecommerceSetup').SetupToken & { decision: 'configure' | 'later' }) => request('/ecommerce/site/onboarding/respond', { method: 'POST', body: data }),
+    releaseSetup: (data: import('../lib/ecommerceSetup').SetupToken) => request('/ecommerce/site/onboarding/release', { method: 'POST', body: data }),
     getSite: () =>
         request<EcommerceSite>('/ecommerce/site'),
     updateSite: (data: EcommerceSiteUpdate) =>

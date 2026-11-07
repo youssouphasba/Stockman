@@ -81,6 +81,7 @@ from enterprise_access import (
     user_has_operational_access as shared_user_has_operational_access,
 )
 from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, legacy_theme_identity
+from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
 from services.pricing import (
     DEFAULT_COUNTRY_CODE,
     DEFAULT_CURRENCY,
@@ -1425,6 +1426,16 @@ class EcommerceSiteUpdate(BaseModel):
     whatsapp_phone: Optional[str] = Field(default=None, max_length=40)
     payment_instructions: Optional[str] = Field(default=None, max_length=1200)
     show_out_of_stock_products: Optional[bool] = None
+
+
+class EcommerceSetupClaim(BaseModel):
+    site_slug: str = Field(min_length=2, max_length=80)
+    claim_id: Optional[str] = Field(default=None, min_length=32, max_length=128)
+
+
+class EcommerceSetupResponse(EcommerceSetupClaim):
+    claim_id: str = Field(min_length=32, max_length=128)
+    decision: Literal["configure", "later"]
 
 
 class PublicEcommerceOrderItem(BaseModel):
@@ -18325,9 +18336,10 @@ async def get_ecommerce_site(user: User = Depends(require_auth)):
 
 
 @api_router.put("/ecommerce/site", response_model=EcommerceSiteInfo)
-async def update_ecommerce_site(data: EcommerceSiteUpdate, user: User = Depends(require_auth)):
+async def update_ecommerce_site(data: EcommerceSiteUpdate, request: Request, user: User = Depends(require_auth)):
     if not is_org_admin_user(user):
         raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rationnels peuvent modifier le site e-commerce")
+    ensure_subscription_write_allowed(user, request=request)
     owner_id = get_owner_id(user)
     site = await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id)
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
@@ -18401,14 +18413,20 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, user: User = Depends(
     if data.show_out_of_stock_products is not None:
         updates["ecommerce_show_out_of_stock_products"] = bool(data.show_out_of_stock_products)
     if len(updates) > 1 and account_doc:
+        updates["ecommerce_configured_at"] = datetime.now(timezone.utc)
         await db.business_accounts.update_one({"account_id": account_doc["account_id"]}, {"$set": updates})
+        try:
+            await EcommerceOnboarding(db).configured(account_doc["account_id"], site["slug"])
+        except Exception:
+            logger.warning("E-commerce onboarding sync deferred for account %s", account_doc["account_id"])
     return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
 
 
 @api_router.post("/ecommerce/site/verify-domain", response_model=EcommerceSiteInfo)
-async def verify_ecommerce_site_domain(user: User = Depends(require_auth)):
+async def verify_ecommerce_site_domain(request: Request, user: User = Depends(require_auth)):
     if not is_org_admin_user(user):
         raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rationnels peuvent vÃ©rifier le domaine du site e-commerce")
+    ensure_subscription_write_allowed(user, request=request)
     owner_id = get_owner_id(user)
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": owner_id, "role": "shopkeeper"})
@@ -18428,6 +18446,76 @@ async def verify_ecommerce_site_domain(user: User = Depends(require_auth)):
         }},
     )
     return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
+
+
+async def get_ecommerce_setup_context(user: User, site_slug: Optional[str] = None):
+    if not is_org_admin_user(user) or user.is_demo:
+        raise HTTPException(status_code=403, detail="Configuration du site non autorisée")
+    owner_id = get_owner_id(user)
+    if user.active_store_id:
+        ensure_user_store_access(user, user.active_store_id)
+    site = await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id)
+    if site_slug is not None and site_slug != site["slug"]:
+        raise HTTPException(status_code=409, detail="Le contexte de la boutique a changé")
+    if not site.get("store_id"):
+        raise HTTPException(status_code=409, detail="Sélectionnez une boutique avant de configurer le site")
+    ensure_user_store_access(user, site["store_id"])
+    account = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0})
+    if not account:
+        raise HTTPException(status_code=404, detail="Compte commercial introuvable")
+    return account, site
+
+
+@api_router.get("/ecommerce/site/onboarding")
+async def get_ecommerce_onboarding(request: Request, user: User = Depends(require_auth)):
+    unavailable = {"state": "unavailable", "can_configure": False, "site_slug": None}
+    web_read_only = should_force_web_read_only(request, {
+        "role": user.role,
+        "plan": user.plan,
+        "effective_plan": user.effective_plan,
+        "subscription_plan": user.subscription_plan,
+    })
+    if not can_offer_setup(
+        is_org_admin=is_org_admin_user(user),
+        is_demo=bool(user.is_demo),
+        can_write_data=bool(user.can_write_data),
+        web_read_only=web_read_only,
+    ):
+        return unavailable
+    try:
+        account, site = await get_ecommerce_setup_context(user)
+    except HTTPException as exc:
+        # Sans boutique ou sans compte commercial, il n'y a rien à proposer : on ne relance pas en boucle.
+        if exc.status_code in (404, 409):
+            return unavailable
+        raise
+    return {"state": await EcommerceOnboarding(db).status(account, site["slug"]), "can_configure": True, "site_slug": site["slug"]}
+
+
+@api_router.post("/ecommerce/site/onboarding/claim")
+async def claim_ecommerce_onboarding(data: EcommerceSetupClaim, request: Request, user: User = Depends(require_auth)):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_setup_context(user, data.site_slug)
+    return {**await EcommerceOnboarding(db).claim(account, site["slug"], data.claim_id), "site_slug": site["slug"]}
+
+
+@api_router.post("/ecommerce/site/onboarding/respond")
+async def respond_ecommerce_onboarding(data: EcommerceSetupResponse, request: Request, user: User = Depends(require_auth)):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_setup_context(user, data.site_slug)
+    state = await EcommerceOnboarding(db).respond(account["account_id"], site["slug"], data.claim_id, data.decision)
+    if state is None:
+        raise HTTPException(status_code=409, detail="La proposition est actuellement ouverte sur un autre appareil")
+    return {"state": state}
+
+
+@api_router.post("/ecommerce/site/onboarding/release")
+async def release_ecommerce_onboarding(data: EcommerceSetupClaim, request: Request, user: User = Depends(require_auth)):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_setup_context(user, data.site_slug)
+    if data.claim_id:
+        await EcommerceOnboarding(db).release(account["account_id"], site["slug"], data.claim_id)
+    return {"released": True}
 
 
 @api_router.get("/ecommerce/stats")

@@ -493,6 +493,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     starterSettings: {
         title: "Paramètres",
         steps: [
+            { icon: "globe-outline", title: "Première configuration", description: "Stockman Basic conserve votre site actuel. Lors de la proposition initiale, Configurer mon site ouvre Boutique en ligne sans activer le site. Plus tard enregistre votre choix pour ce site, sur tous vos appareils. Vous pouvez toujours configurer le site ensuite depuis les Paramètres." },
             { icon: "storefront-outline", title: "Ma boutique", description: "Modifiez le nom et l'adresse de la boutique active, les reçus et les factures. Plus d'options affiche les pieds de page, le préfixe et les conditions de paiement. Les réglages de TVA restent dans cette rubrique." },
             { icon: "globe-outline", title: "Boutique en ligne", description: "Préparez le site, personnalisez son contenu et activez-le lorsque vous êtes prêt. Les commandes reçues restent accessibles quand le site est désactivé. Plus d'options ouvre les réglages du domaine et sa vérification." },
             { icon: "person-outline", title: "Mon compte", description: "Retrouvez le mot de passe, le PIN, la biométrie, la langue, le thème, les comptes enregistrés et la déconnexion. Les accès à l'équipe déjà autorisés restent disponibles." },
@@ -504,6 +505,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     settings: {
         title: "Paramètres",
         steps: [
+            { icon: "globe-outline", title: "Première configuration du site", description: "La proposition initiale est partagée avec E-com. Configurer mon site ouvre Boutique en ligne ; Plus tard n'active rien et permet de continuer normalement. Stockman Basic reste le modèle actuel. Starter et Pro configurent depuis le mobile et conservent la consultation web ; Enterprise peut aussi configurer depuis ses Paramètres web selon ses droits." },
             {
                 icon: "help-circle-outline",
                 title: "Support et incidents",

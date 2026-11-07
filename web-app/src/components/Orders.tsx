@@ -30,7 +30,7 @@ import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 const ORDER_STATUSES = ['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'] as const;
 
-export default function Orders() {
+export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: React.ReactNode } = {}) {
     const { t } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
 
@@ -383,6 +383,7 @@ export default function Orders() {
 
             {activeTab === 'web' ? (
                 <div className="space-y-4">
+                    {ecommerceSetup}
                     {webOrdersLoading ? (
                         <div className="flex justify-center py-16"><Loader2 className="animate-spin text-primary" /></div>
                     ) : webOrders.length === 0 ? (

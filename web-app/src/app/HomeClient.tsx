@@ -9,6 +9,7 @@ import Sidebar from "../components/Sidebar";
 import Dashboard from "../components/Dashboard";
 import ExecutiveDashboard from "../components/ExecutiveDashboard";
 import TrialBanner from "../components/TrialBanner";
+import EcommerceSetupInvitation, { canOfferEcommerceSetupOnWeb } from "../components/EcommerceSetupInvitation";
 
 // Lazy-loaded tabs: only fetched when the user opens that section.
 // Keeps the initial JS bundle small — first paint no longer ships
@@ -100,6 +101,12 @@ export default function Home() {
       return tab;
     });
   }, []);
+
+  const openEcommerceSettings = useCallback(() => {
+    window.sessionStorage.setItem('settings:target-section', 'ecommerce');
+    setActiveTab('settings');
+    window.setTimeout(() => window.dispatchEvent(new Event('settings:open-ecommerce')), 0);
+  }, [setActiveTab]);
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -1040,7 +1047,9 @@ export default function Home() {
                 {activeTab === 'pos' && <POS />}
                 {activeTab === 'inventory' && <Inventory />}
                 {activeTab === 'locations' && <Locations />}
-                {activeTab === 'orders' && <Orders />}
+                {activeTab === 'orders' && <Orders ecommerceSetup={canOfferEcommerceSetupOnWeb(user) ? (
+                  <EcommerceSetupInvitation key={`${user?.user_id}:${user?.active_store_id || ''}`} onConfigure={openEcommerceSettings} />
+                ) : null} />}
                 {activeTab === 'accounting' && <Accounting />}
                 {activeTab === 'reports' && <ReportsLibrary user={user} features={features} />}
                 {activeTab === 'crm' && <CRM user={user} />}

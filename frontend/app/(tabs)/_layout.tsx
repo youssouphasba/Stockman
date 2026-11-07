@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { alerts as alertsApi, demo as demoApi, ecommerce as ecommerceApi, settings as settingsApi, DemoSessionInfo, EcommerceStats, UserSettings } from '../../services/api';
 
 import StoreSelector from '../../components/StoreSelector';
+import EcommerceSetupInvitation from '../../components/EcommerceSetupInvitation';
 import { ActivityIndicator, Alert, DeviceEventEmitter, Linking, Platform, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
@@ -28,7 +29,7 @@ import { getStarterNavigationRedirect, getStarterRoute, isStarterShopkeeper as u
 function TabLayoutInner() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
-  const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant, hasOperationalAccess, isBillingAdmin } = useAuth();
+  const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant, hasOperationalAccess, isBillingAdmin, isOrgAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -165,9 +166,12 @@ function TabLayoutInner() {
   );
 
   const segments = useSegments();
-  const { openModal } = useGlobalSearchParams<{ openModal?: string }>();
+  const { openModal, tab, source } = useGlobalSearchParams<{ openModal?: string; tab?: string; source?: string }>();
   const lastSegment = segments[segments.length - 1];
   const currentRoute = !lastSegment || lastSegment === '(tabs)' ? 'index' : lastSegment as string;
+  // Première configuration du site : proposée une seule fois (état serveur partagé) dans E-com ou Paramètres.
+  const canOfferEcommerceSetup = Platform.OS !== 'web' && isOrgAdmin && !user?.is_demo && user?.can_write_data !== false;
+  const onEcommerceSetupScreen = currentRoute === 'settings' || currentRoute === 'ecommerce' || (currentRoute === 'orders' && (tab === 'web' || source === 'ecommerce'));
   const [showGuide, setShowGuide] = useState(false);
   const autoGuideHandledRef = useRef(false);
   const { isFirstVisit, isReady, markSeen } = useFirstVisit('navigation');
@@ -790,6 +794,17 @@ function TabLayoutInner() {
           }}
         />
       </Tabs>
+
+      <EcommerceSetupInvitation
+        key={`${user?.user_id}:${user?.active_store_id || ''}`}
+        active={canOfferEcommerceSetup && onEcommerceSetupScreen}
+        bottomOffset={(compactTabBar ? 74 : 72) + insets.bottom + 12}
+        onConfigure={() => {
+          // Le paramètre couvre un écran Paramètres pas encore monté, l'événement un écran déjà ouvert.
+          router.push({ pathname: '/(tabs)/settings', params: { section: 'storeEcommerce' } } as any);
+          setTimeout(() => DeviceEventEmitter.emit('settings:open-ecommerce'), 250);
+        }}
+      />
 
       {
         activeGuide && (

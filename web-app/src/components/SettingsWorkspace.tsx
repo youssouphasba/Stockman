@@ -25,6 +25,7 @@ import { auth as authApi, ecommerce as ecommerceApi, settings as settingsApi, st
 import type { NotificationContactMap, NotificationPreferences, User as AppUser } from '../services/api';
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
 import { getAccessContext } from '../utils/access';
+import EcommerceSetupInvitation, { canOfferEcommerceSetupOnWeb } from './EcommerceSetupInvitation';
 
 type SettingsWorkspaceProps = {
     user?: AppUser | null;
@@ -185,7 +186,9 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     const canManageOrgSettings = access.isOrgAdmin;
     const canManageBilling = access.isBillingAdmin;
 
-    const [activeTab, setActiveTab] = useState<TabId>('support');
+    const [activeTab, setActiveTab] = useState<TabId>(() => (
+        typeof window !== 'undefined' && window.sessionStorage.getItem('settings:target-section') === 'ecommerce' ? 'stores' : 'support'
+    ));
     const [loading, setLoading] = useState(true);
     const [banner, setBanner] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
     const [savingKey, setSavingKey] = useState('');
@@ -444,6 +447,10 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
 
     return (
         <div className="custom-scrollbar flex-1 overflow-y-auto bg-[#0F172A] p-8">
+            {canOfferEcommerceSetupOnWeb(user) && <EcommerceSetupInvitation
+                key={`${user?.user_id}:${user?.active_store_id || ''}`}
+                onConfigure={() => { setActiveTab('stores'); window.dispatchEvent(new Event('settings:open-ecommerce')); }}
+            />}
             <header className="mb-8 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                 <div className="max-w-3xl">
                     <h1 className="text-3xl font-black tracking-tight text-white">{t('settings_workspace.header.title')}</h1>

@@ -246,6 +246,7 @@ function buildOfflineMutationResponse<T>(endpoint: string, method: string, body:
 }
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  if (endpoint.startsWith('/ecommerce/site/onboarding')) return rawRequest<T>(endpoint, options);
   const { method = 'GET', body, headers = {} } = options;
   const online = isOnline();
 
@@ -892,6 +893,10 @@ export type EcommerceStats = {
 };
 
 export const ecommerce = {
+  getSetup: () => request<import('../utils/ecommerceSetup').SetupStatus>('/ecommerce/site/onboarding'),
+  claimSetup: (data: import('../utils/ecommerceSetup').SetupToken) => request<import('../utils/ecommerceSetup').SetupClaim>('/ecommerce/site/onboarding/claim', { method: 'POST', body: data }),
+  respondSetup: (data: import('../utils/ecommerceSetup').SetupToken & { decision: 'configure' | 'later' }) => request('/ecommerce/site/onboarding/respond', { method: 'POST', body: data }),
+  releaseSetup: (data: import('../utils/ecommerceSetup').SetupToken) => request('/ecommerce/site/onboarding/release', { method: 'POST', body: data }),
   getSite: () =>
     request<EcommerceSite>('/ecommerce/site'),
   updateSite: (data: EcommerceSiteUpdate) =>
