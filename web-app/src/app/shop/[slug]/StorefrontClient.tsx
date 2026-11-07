@@ -952,6 +952,7 @@ const STOREFRONT_RENDERERS = { 'legacy-v1': StockmanBasicStorefront };
 
 export default function StorefrontClient({ slug, modelId }: { slug: string; modelId?: string | null }) {
   const model = resolveEcommerceModel(modelId);
-  const Renderer = STOREFRONT_RENDERERS[model.id as keyof typeof STOREFRONT_RENDERERS];
+  // Un modèle du registre sans moteur de rendu livré revient à Stockman Basic, jamais à une page blanche.
+  const Renderer = STOREFRONT_RENDERERS[model.id as keyof typeof STOREFRONT_RENDERERS] || StockmanBasicStorefront;
   return <Renderer slug={slug} />;
 }

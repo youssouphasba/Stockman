@@ -17,11 +17,27 @@ test('Stockman Basic retains the exact historical render and commercial behavior
 
 test('Missing and unsupported model identifiers fall back to Basic', () => {
   const source = fs.readFileSync(path.join(root, 'web-app/src/lib/ecommerceThemes.ts'), 'utf8');
-  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;
   const exports = {};
-  vm.runInNewContext(compiled, { exports, Object });
-  for (const id of [undefined, null, 'legacy-v1', 'unsupported']) {
+  const requireContract = (request) => {
+    assert.equal(request, './ecommerceThemeContract.json');
+    return JSON.parse(fs.readFileSync(path.join(root, 'web-app/src/lib/ecommerceThemeContract.json'), 'utf8'));
+  };
+  vm.runInNewContext(compiled, { exports, Object, require: requireContract });
+  for (const id of [undefined, null, '', 'legacy-v1', 'unsupported', 'toString', '__proto__']) {
     assert.equal(exports.resolveEcommerceModel(id).id, 'legacy-v1');
     assert.equal(exports.resolveEcommerceModel(id).name, 'Stockman Basic');
   }
+});
+
+test('Unknown renderers fall back to Basic instead of a blank page', () => {
+  const source = fs.readFileSync(path.join(root, 'web-app/src/app/shop/[slug]/StorefrontClient.tsx'), 'utf8');
+  assert.match(source, /STOREFRONT_RENDERERS\[model\.id as keyof typeof STOREFRONT_RENDERERS\] \|\| StockmanBasicStorefront/);
+});
+
+test('The shared theme contract is identical on the server and the web', () => {
+  assert.equal(
+    fs.readFileSync(path.join(root, 'web-app/src/lib/ecommerceThemeContract.json'), 'utf8'),
+    fs.readFileSync(path.join(root, 'backend/ecommerce_theme_contract.json'), 'utf8'),
+  );
 });

@@ -4,6 +4,12 @@ Date : 21 octobre 2026. Statut : proposition à valider, sans code d'application
 
 Correction de conception du 22 octobre 2026 : la matrice d'accès web Starter/Pro/Enterprise ci-dessous reprend la décision produit validée. Les autres choix de conception non contradictoires restent inchangés ; aucun code ni prix n'est modifié.
 
+Corrections du 7 novembre 2026, issues des décisions produit définitives :
+
+- La bibliothèque de modèles est extensible. Les cinq modèles cités ci-dessous forment un premier objectif indicatif, pas une limite : plusieurs dizaines de modèles aux structures réellement différentes sont visées. Les droits par abonnement sont configurables côté serveur, sans quota commercial codé en dur.
+- E-com reste l'espace de gestion des commandes. Une seule exception est validée : la proposition facultative de première configuration, partagée avec Paramètres et affichée une seule fois par compte et par site. Une fois traitée, E-com reste entièrement opérationnel.
+- L'état d'implémentation est décrit en section 12.
+
 Lire d'abord l'[audit du socle et le rapport REA](AUDIT_REA_THEMES_ECOMMERCE_2026-10-21.md). Les noms techniques ci-dessous sont proposés ; ils n'existent pas encore sous cette forme dans Stockman.
 
 ## 1. Principes
@@ -391,3 +397,18 @@ Les tests doivent utiliser des cas techniques isolés et des données de test ex
 - Les versions sont des versions de présentation : elles ne restaurent jamais stocks, prix, commandes, paiements ou état DNS.
 
 Cette conception s'arrête avant l'implémentation. Aucun changement de code, de tarification ou de fonctionnalité existante n'est autorisé par la seule rédaction de ces documents.
+
+## 12. État d'implémentation (7 novembre 2026)
+
+| Élément | État | Fichiers |
+| --- | --- | --- |
+| Stockman Basic (`legacy-v1`) | Rendu public historique conservé à l'identique (empreinte testée), identifié par `model_id`, repli sur Basic pour tout modèle sans moteur de rendu | `web-app/src/app/shop/[slug]/StorefrontClient.tsx`, `web-app/src/lib/ecommerceThemes.ts` |
+| Première configuration | Livrée : état serveur par compte et site, réservation temporaire entre appareils, proposition mobile (tous abonnements) et web (Enterprise) dans E-com et Paramètres | `backend/ecommerce_onboarding.py`, `frontend/utils/ecommerceSetup.ts`, `web-app/src/lib/ecommerceSetup.ts`, composants `EcommerceSetupInvitation` |
+| Contrat partagé | Registre des modèles, sections, blocs, réglages globaux, chemins réservés et bornes techniques ; copie web identique vérifiée par les tests | `backend/ecommerce_theme_contract.json`, `web-app/src/lib/ecommerceThemeContract.json` |
+| Validation serveur | Document strict : propriétés inconnues, identifiants, doublons, chemins réservés, types et versions hors registre, taille, structure verrouillée des modèles non modifiables | `backend/ecommerce_themes.py` |
+| Capacités et contrôle des modifications | Calcul par abonnement, rôle, état d'écriture et canal ; restriction des canaux guidés aux points d'édition du modèle ; changement de modèle réservé à une opération dédiée | `backend/ecommerce_themes.py` |
+| Droits par modèle | Valeurs du registre, surchargées par le document serveur `ecommerce_theme_settings/catalog` (`model_plans`) ; Stockman Basic reste toujours disponible | `backend/ecommerce_themes.py` |
+| Versions | Révisions immuables, brouillon et publication distincts, `lock_version`, restauration en nouveau brouillon, isolation par compte et site | `backend/ecommerce_theme_store.py` |
+| Projection des anciens sites | Lecture seule des champs de présentation vers `legacy-v1`, sans correction silencieuse | `backend/ecommerce_themes.py` |
+
+Non livré à ce stade : API de thèmes, galerie, aperçu privé, médias, éditeur guidé mobile, éditeur visuel Enterprise et migration des sites. Les collections `ecommerce_theme_states` et `ecommerce_theme_revisions` ne sont alimentées par aucune route ; `ThemeRevisionStore.ensure_indexes()` devra être appelé au démarrage lorsque ces routes seront ajoutées. Le canal web est aujourd'hui déterminé côté serveur par `is_web_surface_request`, comme pour les autres restrictions Starter/Pro ; les futures routes de thèmes devront réutiliser ce point unique et ne jamais lire de capacité fournie par le client.

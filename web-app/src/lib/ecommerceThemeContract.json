@@ -1,0 +1,51 @@
+{
+  "contract_version": 1,
+  "schema_version": 1,
+  "limits": {
+    "max_document_bytes": 262144,
+    "max_pages": 60,
+    "max_sections_per_page": 60,
+    "max_blocks_per_section": 60,
+    "max_id_length": 64,
+    "max_path_length": 80
+  },
+  "reserved_paths": [
+    "_next", "__", "account", "admin", "api", "assets", "auth", "cart", "checkout",
+    "favicon.ico", "login", "logout", "orders", "panier", "preview", "register",
+    "robots.txt", "settings", "shop", "signup", "sitemap.xml", "static"
+  ],
+  "page_kinds": ["home", "catalog", "contact", "custom"],
+  "global_settings": {
+    "brand_color": { "type": "color", "nullable": true },
+    "logo_asset_id": { "type": "media_id", "nullable": true }
+  },
+  "sections": {
+    "legacy-storefront": {
+      "type_version": 1,
+      "settings": {
+        "site_name": { "type": "text", "max_length": 120, "nullable": true },
+        "hero_title": { "type": "text", "max_length": 120, "nullable": true },
+        "welcome_message": { "type": "text", "max_length": 600, "nullable": true, "multiline": true }
+      },
+      "blocks": {}
+    }
+  },
+  "models": {
+    "legacy-v1": {
+      "name": "Stockman Basic",
+      "version": "1.0.0",
+      "default_plans": ["starter", "pro", "enterprise"],
+      "always_available": true,
+      "structure_editable": false,
+      "custom_pages": false,
+      "pages": [
+        { "id": "home", "kind": "home", "sections": [{ "id": "storefront", "type": "legacy-storefront" }] }
+      ],
+      "guided_settings": {
+        "global": ["brand_color", "logo_asset_id"],
+        "sections": { "legacy-storefront": ["site_name", "hero_title", "welcome_message"] },
+        "blocks": {}
+      }
+    }
+  }
+}

@@ -4,7 +4,7 @@ Le site actuel porte le nom Stockman Basic et l'identifiant technique `legacy-v1
 
 La configuration du site reste dans Paramètres > Boutique en ligne. E-com reste consacré aux commandes et aux statistiques. Starter et Pro conservent la consultation du back-office web ; Enterprise conserve la gestion web selon ses permissions.
 
-Stockman Basic est le seul modèle actuellement livré. La bibliothèque de thèmes est conçue pour être extensible, sans limite commerciale codée en dur. Les modèles seront développés progressivement, selon leur qualité et la diversité de leurs structures. Les droits d'accès au catalogue seront configurables par abonnement ; aucun catalogue commercial supplémentaire ni éditeur visuel n'est encore annoncé comme disponible.
+Stockman Basic est le seul modèle actuellement livré. La bibliothèque de thèmes est conçue pour être extensible, sans limite commerciale codée en dur. Les modèles seront développés progressivement, selon leur qualité et la diversité de leurs structures. Les droits d'accès au catalogue seront configurables par abonnement ; aucun catalogue commercial supplémentaire ni éditeur visuel n'est encore annoncé comme disponible. Les fondations techniques du futur moteur (registre des modèles, validation des documents, versions et droits de modification) existent côté serveur, mais ne sont pas encore accessibles dans l'application : il n'y a pour l'instant ni galerie de modèles, ni brouillon, ni publication de thème, ni changement de design. Les commerçants personnalisent leur site avec les réglages existants de Paramètres > Boutique en ligne.
 
 ## Première configuration
 
