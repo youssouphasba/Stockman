@@ -284,21 +284,21 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
         const rootDomain = currentRootDomain || 'votredomaine.com';
         const targetValue = ecommerceSite?.domain_record_value || ecommerceSite?.domain_verification_target || 'app.stockman.pro';
         const commonTail = [
-            "Revenez ensuite dans Stockman pour lancer la vÃ©rification automatique.",
-            "Gardez l'adresse Stockman comme URL de secours tant que le statut n'est pas vÃ©rifiÃ©.",
+            "Revenez ensuite dans Stockman pour lancer la vérification automatique.",
+            "Gardez l'adresse Stockman comme URL de secours tant que le statut n'est pas vérifié.",
         ];
         if (ecommerceRegistrar === 'cloudflare') {
             return [
                 `Dans Cloudflare, ouvrez DNS puis supprimez tout ancien enregistrement sur www.${rootDomain}.`,
-                `CrÃ©ez un ${ecommerceSite?.domain_record_type || 'CNAME'} pour ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
-                `Laissez le proxy Cloudflare dÃ©sactivÃ© pour ce record le temps de la connexion, puis redirigez ${rootDomain} vers https://www.${rootDomain}.`,
+                `Créez un ${ecommerceSite?.domain_record_type || 'CNAME'} pour ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
+                `Laissez le proxy Cloudflare désactivé pour ce record le temps de la connexion, puis redirigez ${rootDomain} vers https://www.${rootDomain}.`,
                 ...commonTail,
             ];
         }
         if (ecommerceRegistrar === 'ovh') {
             return [
                 `Dans OVHcloud, ouvrez la Zone DNS et retirez les anciens A, AAAA ou CNAME sur www.${rootDomain}.`,
-                `Ajoutez un ${ecommerceSite?.domain_record_type || 'CNAME'} nommÃ© ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
+                `Ajoutez un ${ecommerceSite?.domain_record_type || 'CNAME'} nommé ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
                 `Configurez ensuite une redirection 301 de ${rootDomain} vers https://www.${rootDomain}.`,
                 ...commonTail,
             ];
@@ -1454,10 +1454,10 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
 
                         <SectionCard
                             icon={<FileText size={24} className="text-primary" />}
-                            title="Mentions lÃ©gales"
+                            title="Mentions légales"
                             scope={t('settings_workspace.scopes.user')}
-                            description="Consultez les conditions gÃ©nÃ©rales d'utilisation et la politique de confidentialitÃ© de Stockman."
-                            actionHint="Ces documents sont mis Ã  jour rÃ©guliÃ¨rement."
+                            description="Consultez les conditions générales d'utilisation et la politique de confidentialité de Stockman."
+                            actionHint="Ces documents sont mis à jour régulièrement."
                         >
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <a
@@ -1470,7 +1470,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <FileText size={18} className="text-primary" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-black text-white">Conditions GÃ©nÃ©rales</p>
+                                        <p className="text-sm font-black text-white">Conditions Générales</p>
                                         <p className="mt-0.5 text-xs text-slate-500">CGU &mdash; Lire le document</p>
                                     </div>
                                     <ChevronRight size={16} className="ml-auto text-slate-500" />
@@ -1485,8 +1485,8 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <Eye size={18} className="text-primary" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-black text-white">Politique de ConfidentialitÃ©</p>
-                                        <p className="mt-0.5 text-xs text-slate-500">Vie privÃ©e &mdash; Lire le document</p>
+                                        <p className="text-sm font-black text-white">Politique de Confidentialité</p>
+                                        <p className="mt-0.5 text-xs text-slate-500">Vie privée &mdash; Lire le document</p>
                                     </div>
                                     <ChevronRight size={16} className="ml-auto text-slate-500" />
                                 </a>
