@@ -38,6 +38,7 @@ import { disputes } from '../../services/api';
 import LanguagePickerModal from '../../components/LanguagePickerModal';
 import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 import StoreSelector from '../../components/StoreSelector';
+import EcommerceAppearanceEditor from '../../components/EcommerceAppearanceEditor';
 import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
 import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
 import { getCommercialPlan, isStarterShopkeeper } from '../../utils/accountRouting';
@@ -70,15 +71,6 @@ const NOTIFICATION_CONTACT_FIELDS: { key: keyof typeof DEFAULT_NOTIFICATION_CONT
   { key: 'crm', labelKey: 'settings.email_channel_crm', placeholder: 'crm@entreprise.com', requiredModule: 'crm' },
   { key: 'operations', labelKey: 'settings.email_channel_operations', placeholder: 'ops@entreprise.com' },
   { key: 'billing', labelKey: 'settings.email_channel_billing', placeholder: 'billing@entreprise.com' },
-];
-
-const ECOMMERCE_COLOR_SWATCHES = [
-  { label: 'Émeraude', value: '#047857' },
-  { label: 'Bleu', value: '#2563EB' },
-  { label: 'Noir premium', value: '#111827' },
-  { label: 'Rose', value: '#DB2777' },
-  { label: 'Orange', value: '#EA580C' },
-  { label: 'Violet', value: '#7C3AED' },
 ];
 
 type DomainRegistrarKey = 'cloudflare' | 'ovh' | 'godaddy';
@@ -1413,27 +1405,18 @@ export default function SettingsScreen() {
               thumbColor={ecommerceDraft.show_out_of_stock_products ? colors.primary : colors.textMuted}
             />
           </View>
-          <TextInput
-            style={styles.input}
-            value={ecommerceDraft.site_name || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, site_name: value }))}
-            placeholder="Nom du site web"
-            placeholderTextColor={colors.textMuted}
-          />
-          <TextInput
-            style={styles.input}
-            value={ecommerceDraft.hero_title || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, hero_title: value }))}
-            placeholder="Titre d'accueil"
-            placeholderTextColor={colors.textMuted}
-          />
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={ecommerceDraft.welcome_message || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, welcome_message: value }))}
-            placeholder="Message d'accueil"
-            placeholderTextColor={colors.textMuted}
-            multiline
+          <EcommerceAppearanceEditor
+            key={`${ecommerceSite.slug}:${settingsContext}`}
+            styles={styles}
+            onPublished={() => {
+              ecommerceApi.getSite()
+                .then((updated) => {
+                  if (settingsContextRef.current !== settingsContext) return;
+                  setEcommerceSite(updated);
+                  DeviceEventEmitter.emit('ecommerce:changed');
+                })
+                .catch(() => undefined);
+            }}
           />
           <TextInput
             style={styles.input}
@@ -1459,26 +1442,6 @@ export default function SettingsScreen() {
             placeholder="Adresse de contact"
             placeholderTextColor={colors.textMuted}
           />
-          <Text style={styles.settingLabel}>Couleur de marque</Text>
-          <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Cette couleur pilote les boutons principaux, les badges, les filtres actifs et les accents visuels du site e-commerce.</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md }}>
-            {ECOMMERCE_COLOR_SWATCHES.map((swatch) => {
-              const active = (ecommerceDraft.brand_color || '#2563EB').toLowerCase() === swatch.value.toLowerCase();
-              return (
-                <TouchableOpacity
-                  key={swatch.value}
-                  onPress={() => setEcommerceDraft((draft: any) => ({ ...draft, brand_color: swatch.value }))}
-                  style={[
-                    styles.chip,
-                    active && { backgroundColor: colors.primary + '20', borderColor: colors.primary },
-                  ]}
-                >
-                  <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: swatch.value, marginRight: 6 }} />
-                  <Text style={[styles.chipText, active && { color: colors.primary }]}>{swatch.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={ecommerceDraft.delivery_info || ''}

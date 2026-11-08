@@ -13,6 +13,7 @@ const AI_DUPLICATES_BLOCK_KEY = 'stockman_ai_detect_duplicates_blocked_until';
 const AI_DUPLICATES_BLOCK_MS = 12 * 60 * 60 * 1000;
 const NON_CACHEABLE_GET_PREFIXES = [
     '/ecommerce/site/onboarding',
+    '/ecommerce/site/theme',
     '/auth/',
     '/demo/session',
     '/demo/session/',
@@ -376,6 +377,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
 
     if (endpoint.startsWith('/ecommerce/site/onboarding')) return performRequest<T>(endpoint, options);
+    // Apparence du site : jamais de cache ni de file hors ligne pour un brouillon ou une publication.
+    if (endpoint.startsWith('/ecommerce/site/theme')) return performRequest<T>(endpoint, options);
 
     if (method === 'GET') {
         if (!online) {
@@ -1824,6 +1827,18 @@ export const ecommerce = {
     claimSetup: (data: import('../lib/ecommerceSetup').SetupToken) => request<import('../lib/ecommerceSetup').SetupClaim>('/ecommerce/site/onboarding/claim', { method: 'POST', body: data }),
     respondSetup: (data: import('../lib/ecommerceSetup').SetupToken & { decision: 'configure' | 'later' }) => request('/ecommerce/site/onboarding/respond', { method: 'POST', body: data }),
     releaseSetup: (data: import('../lib/ecommerceSetup').SetupToken) => request('/ecommerce/site/onboarding/release', { method: 'POST', body: data }),
+    getTheme: () => request<import('../lib/ecommerceAppearance').ThemeState>('/ecommerce/site/theme'),
+    saveThemeDraft: (data: { site_slug: string; lock_version: number; document: import('../lib/ecommerceAppearance').ThemeDocument }) =>
+        request<import('../lib/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/draft', { method: 'PUT', body: data }),
+    discardThemeDraft: (data: { site_slug: string; lock_version: number }) =>
+        request<import('../lib/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/draft/discard', { method: 'POST', body: data }),
+    publishTheme: (data: { site_slug: string; lock_version: number; revision_id: string; published_fingerprint: string }) =>
+        request<import('../lib/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/publish', { method: 'POST', body: data }),
+    listThemeRevisions: () => request<{ revisions: import('../lib/ecommerceAppearance').ThemeRevisionItem[] }>('/ecommerce/site/theme/revisions'),
+    restoreThemeRevision: (revisionId: string, data: { site_slug: string; lock_version: number }) =>
+        request<import('../lib/ecommerceAppearance').ThemeState>(`/ecommerce/site/theme/revisions/${encodeURIComponent(revisionId)}/restore`, { method: 'POST', body: data }),
+    createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' }) =>
+        request<import('../lib/ecommerceAppearance').ThemePreview>('/ecommerce/site/theme/preview', { method: 'POST', body: data }),
     getSite: () =>
         request<EcommerceSite>('/ecommerce/site'),
     updateSite: (data: EcommerceSiteUpdate) =>

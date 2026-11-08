@@ -26,6 +26,7 @@ import type { NotificationContactMap, NotificationPreferences, User as AppUser }
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
 import { getAccessContext } from '../utils/access';
 import EcommerceSetupInvitation, { canOfferEcommerceSetupOnWeb } from './EcommerceSetupInvitation';
+import EcommerceAppearancePanel from './EcommerceAppearancePanel';
 
 type SettingsWorkspaceProps = {
     user?: AppUser | null;
@@ -90,15 +91,6 @@ const MODULE_OPTIONS = [
     { key: 'accounting', showFor: 'all' },
     { key: 'reservations', showFor: 'restaurant' },
     { key: 'kitchen', showFor: 'restaurant' },
-];
-
-const ECOMMERCE_COLOR_SWATCHES = [
-    { label: 'Emeraude', value: '#047857' },
-    { label: 'Bleu', value: '#2563EB' },
-    { label: 'Noir premium', value: '#111827' },
-    { label: 'Rose', value: '#DB2777' },
-    { label: 'Orange', value: '#EA580C' },
-    { label: 'Violet', value: '#7C3AED' },
 ];
 
 type DomainRegistrarKey = 'cloudflare' | 'ovh' | 'godaddy';
@@ -185,6 +177,11 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     const access = getAccessContext(user);
     const canManageOrgSettings = access.isOrgAdmin;
     const canManageBilling = access.isBillingAdmin;
+    // Même règle que l'accès web en consultation : Starter et Pro personnalisent l'apparence depuis le mobile.
+    const webConsultationOnly = user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'supplier' && (user?.effective_plan || user?.plan) !== 'enterprise';
+    const appearanceReadOnlyMessage = webConsultationOnly
+        ? "Personnalisez l'apparence depuis l'application mobile Stockman. L'édition web, l'aperçu web et l'historique des versions sont disponibles avec Enterprise."
+        : "L'apparence ne peut pas être modifiée pour le moment : votre accès est en lecture seule.";
 
     const [activeTab, setActiveTab] = useState<TabId>(() => (
         typeof window !== 'undefined' && window.sessionStorage.getItem('settings:target-section') === 'ecommerce' ? 'stores' : 'support'
@@ -423,10 +420,6 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
             domain_mode: next?.domain_mode || (next?.custom_domain ? 'connect' : 'stockman'),
             domain_requested_name: next?.domain_requested_name || '',
             domain_request_notes: next?.domain_request_notes || '',
-            hero_title: next?.hero_title || '',
-            site_name: next?.site_name || '',
-            welcome_message: next?.welcome_message || '',
-            brand_color: next?.brand_color || '#2563EB',
             contact_email: next?.contact_email || '',
             contact_phone: next?.contact_phone || '',
             contact_address: next?.contact_address || '',
@@ -810,18 +803,18 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         </span>
                                     </label>
 
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <Field label="Nom du site" hint="Nom affiché dans l'en-tête et dans la section de contact publique.">
-                                            <input value={ecommerceDraft.site_name || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, site_name: event.target.value }))} className={inputClass} />
-                                        </Field>
-                                        <Field label="Titre d'accueil" hint="Message principal visible dans la vitrine.">
-                                            <input value={ecommerceDraft.hero_title || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, hero_title: event.target.value }))} className={inputClass} />
-                                        </Field>
-                                    </div>
-
-                                    <Field label="Message d'accueil" hint="Présentez brièvement la boutique, le service ou la promesse de livraison.">
-                                        <textarea value={ecommerceDraft.welcome_message || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, welcome_message: event.target.value }))} rows={3} className={textareaClass} />
-                                    </Field>
+                                    <EcommerceAppearancePanel
+                                        key={`${ecommerceSite.slug}:${user?.user_id || ''}`}
+                                        readOnlyMessage={appearanceReadOnlyMessage}
+                                        onPublished={() => {
+                                            ecommerceApi.getSite()
+                                                .then((updated) => {
+                                                    syncEcommerceState(updated);
+                                                    window.dispatchEvent(new Event('ecommerce:changed'));
+                                                })
+                                                .catch(() => null);
+                                        }}
+                                    />
 
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <Field label="E-mail de contact" hint="Affiché dans Contactez-nous et utilisé comme destinataire prioritaire des formulaires.">
@@ -836,29 +829,9 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <input value={ecommerceDraft.contact_address || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, contact_address: event.target.value }))} className={inputClass} />
                                     </Field>
 
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <Field label="WhatsApp" hint="Numéro utilisé par le bouton WhatsApp du site public.">
-                                            <input value={ecommerceDraft.whatsapp_phone || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, whatsapp_phone: event.target.value }))} className={inputClass} />
-                                        </Field>
-                                        <Field label="Couleur de marque" hint="Cette couleur pilote les boutons, badges, filtres actifs et accents du site e-commerce.">
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {ECOMMERCE_COLOR_SWATCHES.map((color) => {
-                                                    const active = (ecommerceDraft.brand_color || '#2563EB').toLowerCase() === color.value.toLowerCase();
-                                                    return (
-                                                        <button
-                                                            key={color.value}
-                                                            type="button"
-                                                            onClick={() => setEcommerceDraft((draft: any) => ({ ...draft, brand_color: color.value }))}
-                                                            className={`flex items-center gap-2 rounded-2xl border px-3 py-3 text-left text-sm font-bold transition ${active ? 'border-primary bg-primary/10 text-white' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}
-                                                        >
-                                                            <span className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color.value }} />
-                                                            {color.label}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </Field>
-                                    </div>
+                                    <Field label="WhatsApp" hint="Numéro utilisé par le bouton WhatsApp du site public.">
+                                        <input value={ecommerceDraft.whatsapp_phone || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, whatsapp_phone: event.target.value }))} className={inputClass} />
+                                    </Field>
 
                                     <Field label="Livraison" hint="Zones desservies, retrait, délais, frais ou consignes utiles.">
                                         <textarea value={ecommerceDraft.delivery_info || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, delivery_info: event.target.value }))} rows={3} className={textareaClass} />

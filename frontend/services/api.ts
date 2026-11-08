@@ -247,6 +247,8 @@ function buildOfflineMutationResponse<T>(endpoint: string, method: string, body:
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   if (endpoint.startsWith('/ecommerce/site/onboarding')) return rawRequest<T>(endpoint, options);
+  // Apparence du site : jamais de cache ni de file hors ligne pour un brouillon ou une publication.
+  if (endpoint.startsWith('/ecommerce/site/theme')) return rawRequest<T>(endpoint, options);
   const { method = 'GET', body, headers = {} } = options;
   const online = isOnline();
 
@@ -897,6 +899,15 @@ export const ecommerce = {
   claimSetup: (data: import('../utils/ecommerceSetup').SetupToken) => request<import('../utils/ecommerceSetup').SetupClaim>('/ecommerce/site/onboarding/claim', { method: 'POST', body: data }),
   respondSetup: (data: import('../utils/ecommerceSetup').SetupToken & { decision: 'configure' | 'later' }) => request('/ecommerce/site/onboarding/respond', { method: 'POST', body: data }),
   releaseSetup: (data: import('../utils/ecommerceSetup').SetupToken) => request('/ecommerce/site/onboarding/release', { method: 'POST', body: data }),
+  getTheme: () => request<import('../utils/ecommerceAppearance').ThemeState>('/ecommerce/site/theme'),
+  saveThemeDraft: (data: { site_slug: string; lock_version: number; document: import('../utils/ecommerceAppearance').ThemeDocument }) =>
+    request<import('../utils/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/draft', { method: 'PUT', body: data }),
+  discardThemeDraft: (data: { site_slug: string; lock_version: number }) =>
+    request<import('../utils/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/draft/discard', { method: 'POST', body: data }),
+  publishTheme: (data: { site_slug: string; lock_version: number; revision_id: string; published_fingerprint: string }) =>
+    request<import('../utils/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/publish', { method: 'POST', body: data }),
+  createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' }) =>
+    request<import('../utils/ecommerceAppearance').ThemePreview>('/ecommerce/site/theme/preview', { method: 'POST', body: data }),
   getSite: () =>
     request<EcommerceSite>('/ecommerce/site'),
   updateSite: (data: EcommerceSiteUpdate) =>

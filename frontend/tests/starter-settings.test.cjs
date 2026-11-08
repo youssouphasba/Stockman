@@ -66,7 +66,10 @@ test('Saving site text does not resend or reset a verified domain', async () => 
   const helper = h.load('utils/starterSettings.ts');
   const draft = helper.createEcommerceDraft(site);
   assert.deepEqual(JSON.parse(JSON.stringify(helper.buildEcommerceSettingsUpdate(site, draft))), {});
-  assert.deepEqual(JSON.parse(JSON.stringify(helper.buildEcommerceSettingsUpdate(site, { ...draft, welcome_message: 'new-description' }))), { welcome_message: 'new-description' });
+  assert.deepEqual(JSON.parse(JSON.stringify(helper.buildEcommerceSettingsUpdate(site, { ...draft, delivery_info: 'new-delivery' }))), { delivery_info: 'new-delivery' });
+  // L'apparence passe par le brouillon du thème : une ancienne valeur restée dans le formulaire ne doit jamais écraser une publication.
+  assert.deepEqual(JSON.parse(JSON.stringify(helper.buildEcommerceSettingsUpdate(site, { ...draft, welcome_message: 'stale', site_name: 'stale', hero_title: 'stale', brand_color: '#000000' }))), {});
+  for (const key of ['site_name', 'hero_title', 'welcome_message', 'brand_color']) assert.equal(key in draft, false);
   assert.deepEqual(JSON.parse(JSON.stringify(helper.buildEcommerceSettingsUpdate(site, draft, true))), { enabled: true });
   assert.equal('store_id' in helper.buildEcommerceSettingsUpdate(site, { store_id: '' }), false);
 });
