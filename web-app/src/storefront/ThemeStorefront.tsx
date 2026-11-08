@@ -10,6 +10,10 @@ import { renderSection, type SectionContext } from './sections';
 import { buildTokens, FONT_PAIRINGS } from './tokens';
 import { enumSetting, type StorefrontPageKind, type StorefrontPayload, type StorefrontProduct } from './types';
 import { useStorefrontCommerce } from './useStorefrontCommerce';
+import { LIVE_PREVIEW_READY, LIVE_PREVIEW_SELECT, readLivePreviewMessage } from './livePreview';
+import { THEME_CONTRACT } from '../lib/ecommerceThemes';
+
+const SECTION_LABELS = Object.fromEntries(Object.entries(THEME_CONTRACT.sections).map(([type, spec]) => [type, (spec as { label?: string }).label || type]));
 
 const PREVIEW_UNAVAILABLE = "Cet aperçu a expiré ou n'existe pas. Créez-en un nouveau depuis Stockman.";
 const PAGE_HASHES: Record<StorefrontPageKind, string> = { home: '', catalog: '#catalogue', contact: '#contact' };
@@ -42,6 +46,9 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
     const [payload, setPayload] = useState<StorefrontPayload | null>(initialPayload || null);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState<StorefrontPageKind>('home');
+    // Aperçu intégré à l'éditeur visuel : section mise en évidence et sélection directe.
+    const [embedded, setEmbedded] = useState(false);
+    const [highlighted, setHighlighted] = useState<string | null>(null);
     const [catalogFilter, setCatalogFilter] = useState<{ query: string; category: string | null }>({ query: '', category: null });
     const [product, setProduct] = useState<StorefrontProduct | null>(null);
     const [cartOpen, setCartOpen] = useState(false);
@@ -73,6 +80,33 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
         window.addEventListener('hashchange', sync);
         return () => window.removeEventListener('hashchange', sync);
     }, [preview]);
+
+    useEffect(() => {
+        if (!preview || window.parent === window) return;
+        setEmbedded(true);
+        const receive = (event: MessageEvent) => {
+            const message = readLivePreviewMessage(event, window.location.origin, window.parent);
+            if (!message) return;
+            setPayload((current) => current && ({
+                ...current,
+                theme: { model_id: message.document.model_id, document: message.document, media: { ...(current.theme?.media || {}), ...message.media } },
+            }));
+            setPage(message.page);
+            setHighlighted(message.selected);
+        };
+        window.addEventListener('message', receive);
+        return () => window.removeEventListener('message', receive);
+    }, [preview]);
+
+    // L'éditeur attend ce signal pour envoyer le document en cours, une fois la boutique chargée.
+    useEffect(() => {
+        if (embedded && payload) window.parent.postMessage({ type: LIVE_PREVIEW_READY }, window.location.origin);
+    }, [embedded, payload !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (!embedded || !highlighted) return;
+        document.querySelector(`[data-sf-section="${CSS.escape(highlighted)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [embedded, highlighted, page]);
 
     const goTo = useCallback((target: StorefrontPageKind) => {
         setPage(target);
@@ -142,7 +176,18 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
             <Header settings={settings} site={payload.site} logoUrl={logoUrl} page={page} cartCount={commerce.count} onNavigate={navigate} onSearch={search} onOpenCart={() => setCartOpen(true)} />
             <main id="sf-main">
                 {!HEADING_SECTIONS.includes(firstType || '') && <h1 className="sr-only">{name}</h1>}
-                {currentPage?.sections.map((section, index) => renderSection(section, context, index === 0))}
+                {currentPage?.sections.map((section, index) => embedded ? (
+                    <div key={section.id} data-sf-section={section.id} className={`group/sf relative ${highlighted === section.id ? 'outline outline-2 -outline-offset-2 outline-[#10B981]' : 'hover:outline hover:outline-1 hover:-outline-offset-1 hover:outline-[#10B981]'}`}>
+                        <button
+                            type="button"
+                            onClick={() => { setHighlighted(section.id); window.parent.postMessage({ type: LIVE_PREVIEW_SELECT, section: section.id }, window.location.origin); }}
+                            className={`absolute left-2 top-2 z-30 rounded-full bg-[#10B981] px-3 py-1 text-xs font-semibold text-[#052e16] shadow ${highlighted === section.id ? '' : 'opacity-0 group-hover/sf:opacity-100 focus:opacity-100'}`}
+                        >
+                            Modifier : {SECTION_LABELS[section.type] || section.type}
+                        </button>
+                        {renderSection(section, context, index === 0)}
+                    </div>
+                ) : renderSection(section, context, index === 0))}
             </main>
             <Footer settings={settings} site={payload.site} onNavigate={navigate} />
             {product && (

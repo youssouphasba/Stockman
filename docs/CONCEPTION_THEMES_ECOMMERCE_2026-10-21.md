@@ -421,4 +421,6 @@ Cette conception s'arrête avant l'implémentation. Aucun changement de code, de
 
 | Éditeur visuel Enterprise | Web Enterprise, modèles à structure modifiable : sections ajoutées, déplacées et supprimées (sauf indispensables), réglages complets, éléments de section, annulation et rétablissement, aperçu privé intégré en largeur mobile, tablette ou ordinateur. Seule `/preview` accepte d'être intégrée, par le même domaine (`frame-ancestors 'self'`) ; les autres pages gardent `DENY` | `web-app/src/components/EcommerceThemeEditor.tsx`, `web-app/src/lib/themeStructure.ts`, `web-app/next.config.ts` |
 
-Non livré à ce stade : pages personnalisées, sélection directe d'une section dans l'aperçu, modèles supplémentaires et migration des sites vers une révision initiale. Le canal web reste déterminé côté serveur par `is_web_surface_request`, comme pour les autres restrictions Starter/Pro ; aucune capacité fournie par le client n'est lue.
+Aperçu en direct : l'éditeur envoie le document en cours par `postMessage` à l'aperçu intégré, qui n'accepte que la fenêtre parente de même origine et un schéma vérifié ; sélection directe d'une section depuis l'aperçu.
+
+Non livré à ce stade : pages personnalisées, modèles supplémentaires et migration des sites vers une révision initiale. Le canal web reste déterminé côté serveur par `is_web_surface_request`, comme pour les autres restrictions Starter/Pro ; aucune capacité fournie par le client n'est lue.

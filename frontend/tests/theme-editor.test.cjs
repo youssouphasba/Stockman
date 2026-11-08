@@ -80,5 +80,36 @@ test('The visual editor is offered only for structural editing and is server-che
   const editor = read('web-app/src/components/EcommerceThemeEditor.tsx');
   assert.match(editor, /ecommerceApi\.saveThemeDraft\(\{ site_slug: server\.site_slug, lock_version: server\.lock_version, document \}\)/);
   assert.match(editor, /disabled=\{required\}/);
-  assert.match(editor, /<iframe key=\{previewUrl\} src=\{previewUrl\}/);
+  assert.match(editor, /<iframe ref=\{frame\} key=\{previewUrl\} src=\{previewUrl\}/);
+});
+
+function loadLive() {
+  const exports = {};
+  const compiled = ts.transpileModule(read('web-app/src/storefront/livePreview.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  vm.runInNewContext(compiled, { exports, Array });
+  return exports;
+}
+
+test('Live preview accepts only same-origin messages from the parent editor', () => {
+  const live = loadLive();
+  const parent = {};
+  const document = { model_id: 'marche', global_settings: {}, pages: [{ kind: 'home', sections: [] }] };
+  const valid = { origin: 'https://app.stockman.pro', source: parent, data: { source: live.LIVE_PREVIEW_SOURCE, document, media: {}, page: 'catalog', selected: 'hero' } };
+  const message = live.readLivePreviewMessage(valid, 'https://app.stockman.pro', parent);
+  assert.equal(message.page, 'catalog');
+  assert.equal(message.selected, 'hero');
+  assert.equal(live.readLivePreviewMessage({ ...valid, origin: 'https://exemple.test' }, 'https://app.stockman.pro', parent), null);
+  assert.equal(live.readLivePreviewMessage({ ...valid, source: {} }, 'https://app.stockman.pro', parent), null);
+  assert.equal(live.readLivePreviewMessage({ ...valid, data: { ...valid.data, source: 'autre' } }, 'https://app.stockman.pro', parent), null);
+  assert.equal(live.readLivePreviewMessage({ ...valid, data: { ...valid.data, document: { model_id: 'x', pages: 'non' } } }, 'https://app.stockman.pro', parent), null);
+  assert.equal(live.readLivePreviewMessage({ ...valid, data: { ...valid.data, page: '../admin' } }, 'https://app.stockman.pro', parent).page, 'home');
+});
+
+test('The editor streams its working document and the preview never applies it outside an embedded preview', () => {
+  const editor = read('web-app/src/components/EcommerceThemeEditor.tsx');
+  assert.match(editor, /target\.postMessage\(\{ source: LIVE_PREVIEW_SOURCE, document, media: liveMedia, page: page\?\.kind \|\| 'home', selected \}, previewOrigin\)/);
+  assert.match(editor, /event\.origin !== previewOrigin \|\| event\.source !== frame\.current\?\.contentWindow/);
+  const storefront = read('web-app/src/storefront/ThemeStorefront.tsx');
+  assert.match(storefront, /if \(!preview \|\| window\.parent === window\) return;/);
+  assert.match(storefront, /readLivePreviewMessage\(event, window\.location\.origin, window\.parent\)/);
 });

@@ -32,6 +32,7 @@ import {
     sectionFields,
     sectionLabel,
 } from '../lib/themeStructure';
+import { LIVE_PREVIEW_READY, LIVE_PREVIEW_SELECT, LIVE_PREVIEW_SOURCE } from '../storefront/livePreview';
 
 type Device = 'mobile' | 'tablet' | 'desktop';
 const DEVICES: Array<{ id: Device; label: string; width: string; icon: React.ReactNode }> = [
@@ -61,6 +62,7 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
     const [pickerField, setPickerField] = useState<ThemeField | null>(null);
     const [mediaCache, setMediaCache] = useState<Record<string, ThemeMediaItem>>({});
     const lastField = useRef<string | null>(null);
+    const frame = useRef<HTMLIFrameElement>(null);
 
     const dirty = JSON.stringify(document) !== saved;
     const page = document.pages.find((item) => item.id === pageId) || document.pages[0];
@@ -127,21 +129,46 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
         }
     }
 
-    async function refreshPreview() {
-        let state: ThemeState | null = server;
-        if (dirty) state = await save();
-        if (!state) return;
+    // L'aperçu reçoit ensuite le document en cours à chaque modification, sans enregistrement.
+    const openPreview = useCallback(async () => {
         setBusy('preview');
         setError(null);
         try {
-            const result = await ecommerceApi.createThemePreview({ site_slug: state.site_slug, source: state.draft ? 'draft' : 'published' });
+            const result = await ecommerceApi.createThemePreview({ site_slug: server.site_slug, source: server.draft ? 'draft' : 'published' });
             setPreviewUrl(result.preview_url);
         } catch (err) {
             setError(parseThemeError(err, "Impossible de préparer l'aperçu.").message);
         } finally {
             setBusy(null);
         }
-    }
+    }, [server.draft, server.site_slug]);
+
+    useEffect(() => {
+        void openPreview();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const previewOrigin = previewUrl ? new URL(previewUrl).origin : null;
+    const sendLive = useCallback(() => {
+        const target = frame.current?.contentWindow;
+        if (!target || !previewOrigin) return;
+        const liveMedia = Object.fromEntries(Object.entries({ ...server.media, ...mediaCache }).map(([id, item]) => [id, { alt: item.alt, width: item.width, height: item.height, urls: item.urls }]));
+        target.postMessage({ source: LIVE_PREVIEW_SOURCE, document, media: liveMedia, page: page?.kind || 'home', selected }, previewOrigin);
+    }, [document, mediaCache, page?.kind, previewOrigin, selected, server.media]);
+
+    useEffect(() => {
+        const timer = window.setTimeout(sendLive, 120);
+        return () => window.clearTimeout(timer);
+    }, [sendLive]);
+
+    useEffect(() => {
+        const receive = (event: MessageEvent) => {
+            if (!previewOrigin || event.origin !== previewOrigin || event.source !== frame.current?.contentWindow) return;
+            if (event.data?.type === LIVE_PREVIEW_READY) sendLive();
+            if (event.data?.type === LIVE_PREVIEW_SELECT && typeof event.data.section === 'string') setSelected(event.data.section);
+        };
+        window.addEventListener('message', receive);
+        return () => window.removeEventListener('message', receive);
+    }, [previewOrigin, sendLive]);
 
     function close() {
         if (dirty && !window.confirm("Fermer l'éditeur ? Les modifications non enregistrées seront perdues.")) return;
@@ -183,9 +210,9 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                         <button key={item.id} type="button" aria-pressed={device === item.id} onClick={() => setDevice(item.id)} className={`${button} ${device === item.id ? 'border-primary bg-primary/20' : ''}`}>{item.icon}<span className="hidden xl:inline">{item.label}</span></button>
                     ))}
                 </div>
-                <span className="text-xs font-bold text-slate-400" aria-live="polite">{dirty ? 'Modifications non enregistrées' : 'Brouillon à jour'}</span>
+                <span className="text-xs font-bold text-slate-400" aria-live="polite">Aperçu en direct · {dirty ? 'modifications non enregistrées' : 'brouillon à jour'}</span>
                 <div className="ml-auto flex gap-2">
-                    <button type="button" className={button} disabled={busy !== null} onClick={() => void refreshPreview()}><Eye size={16} />{busy === 'preview' ? 'Préparation...' : "Actualiser l'aperçu"}</button>
+                    <button type="button" className={button} disabled={busy !== null} onClick={() => void openPreview()} title="Recharge aussi les produits et les informations de la boutique"><Eye size={16} />{busy === 'preview' ? 'Préparation...' : "Recharger l'aperçu"}</button>
                     <button type="button" className={button} disabled={busy !== null || !dirty} onClick={() => void save()}><Save size={16} />{busy === 'save' ? 'Enregistrement...' : 'Enregistrer le brouillon'}</button>
                     <button type="button" className={iconButton} onClick={close} aria-label="Fermer l'éditeur"><X size={16} /></button>
                 </div>
@@ -225,10 +252,10 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                 </aside>
                 <main className="flex min-h-0 items-start justify-center overflow-auto bg-[#060B14] p-4" aria-label="Aperçu">
                     {previewUrl ? (
-                        <iframe key={previewUrl} src={previewUrl} title="Aperçu privé du site" style={{ width: deviceWidth }} className="h-full min-h-[600px] max-w-full rounded-xl border border-white/10 bg-white transition-[width]" />
+                        <iframe ref={frame} key={previewUrl} src={previewUrl} title="Aperçu privé du site" style={{ width: deviceWidth }} className="h-full min-h-[600px] max-w-full rounded-xl border border-white/10 bg-white transition-[width]" />
                     ) : (
                         <div className="mt-20 max-w-sm text-center text-sm leading-6 text-slate-400">
-                            L'aperçu montre le brouillon avec vos vrais produits. Cliquez sur « Actualiser l'aperçu » après vos modifications.
+                            {busy === 'preview' ? "Préparation de l'aperçu..." : "L'aperçu n'a pas pu être préparé. Utilisez « Recharger l'aperçu »."}
                         </div>
                     )}
                 </main>
