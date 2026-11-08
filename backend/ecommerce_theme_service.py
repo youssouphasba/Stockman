@@ -65,6 +65,8 @@ PUBLISHED_FIELDS = LEGACY_ACCOUNT_FIELDS + (LEGACY_LOGO_FIELD,)
 PUBLISHED_THEME_FIELD = "ecommerce_theme_published"
 _POINTER_PATH = f"{PUBLISHED_THEME_FIELD}.revision_id"
 PAGE_LABELS = {"home": "Accueil", "catalog": "Catalogue", "contact": "Contact"}
+# Auteur des versions d'origine enregistrées par Stockman : aucun utilisateur ne porte cet identifiant.
+ORIGIN_AUTHOR = "system:origin"
 # Correspondance des anciens réglages du site vers un modèle du moteur de sections.
 LEGACY_SETTINGS_TO_THEME = {
     "ecommerce_site_name": ("global", "site_name"),
@@ -517,7 +519,7 @@ class EcommerceThemeService:
                 "revision_id": revision["_id"],
                 "created_at": _iso(revision.get("created_at")),
                 "author": names.get(revision.get("author_id")) or None,
-                "kind": kind if kind in ("draft", "restore", "model", "settings") else "draft",
+                "kind": kind if kind in ("draft", "restore", "model", "settings", "initial") else "draft",
                 "restored_from": origin if kind == "restore" else None,
                 "model_id": revision.get("model_id"),
                 "model_name": self.contract["models"].get(revision.get("model_id"), {}).get("name"),
@@ -525,6 +527,54 @@ class EcommerceThemeService:
                 "is_published": revision["_id"] == live_revision_id,
             })
         return {"revisions": items}
+
+    @staticmethod
+    def _origin_provenance(account_doc: Mapping[str, Any]) -> Dict[str, Any]:
+        return {"source": "legacy_account_fields", "fields": sorted(field for field in PUBLISHED_FIELDS if field in account_doc)}
+
+    async def _record_origin(self, account_id: str, slug: str, state: Mapping[str, Any], live: Mapping[str, Any], live_document: Mapping[str, Any]) -> None:
+        """Juste avant la toute première publication d'un site Stockman Basic, son apparence d'origine
+        rejoint l'historique : il reste possible d'y revenir. Une valeur historique incompatible
+        empêche seulement cet enregistrement, jamais la publication."""
+        if state.get("published_revision_id") or _pointer(live) or live_document.get("model_id") != LEGACY_MODEL_ID:
+            return
+        if await self.store.has_initial(account_id, slug):
+            return
+        try:
+            await self.store.create_revision(
+                account_id, slug, live_document, author_id=ORIGIN_AUTHOR, reason="initial", extra={"provenance": self._origin_provenance(live)},
+            )
+        except ThemeValidationError:
+            logger.warning("Origin version not recorded for %s:%s", account_id, slug)
+
+    async def record_initial_revision(self, account_doc: Mapping[str, Any], *, apply: bool, author_id: str = ORIGIN_AUTHOR) -> Dict[str, Any]:
+        """Version d'origine d'un site Stockman Basic, pour la migration.
+
+        Projection des champs historiques du compte, enregistrée une seule fois et signalée comme
+        version en ligne : l'historique permet ensuite de revenir au site d'origine. Le rendu
+        public, les domaines et les données commerciales ne sont ni lus ni modifiés ; en simulation,
+        rien n'est écrit."""
+        account_id, slug = account_doc.get("account_id"), account_doc.get("ecommerce_slug")
+        if not account_id or not isinstance(slug, str) or not slug.strip():
+            return {"status": "skipped", "reason": "no_site"}
+        if _pointer(account_doc):
+            # Un modèle à sections publié a déjà ses versions.
+            return {"status": "skipped", "reason": "section_model"}
+        if ((await self.store.get_state(account_id, slug)) or {}).get("published_revision_id"):
+            return {"status": "skipped", "reason": "already_recorded"}
+        document = build_legacy_theme_document(account_doc)
+        try:
+            validate_theme_document(document, self.contract)
+        except ThemeValidationError as exc:
+            # Valeur historique incompatible : signalée, jamais corrigée.
+            return {"status": "invalid", "reason": exc.code, "path": exc.path}
+        provenance = self._origin_provenance(account_doc)
+        if not apply:
+            return {"status": "would_record", "fields": provenance["fields"]}
+        revision = await self.store.record_initial(account_id, slug, document, author_id=author_id, provenance=provenance)
+        if not revision:
+            return {"status": "skipped", "reason": "concurrent_change"}
+        return {"status": "recorded", "revision_id": revision["_id"], "fields": provenance["fields"]}
 
     async def public_theme(self, account_doc: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
         """Thème publié d'un modèle à sections pour le site public, ou None pour Stockman Basic."""
@@ -656,6 +706,7 @@ class EcommerceThemeService:
         # Les droits sont réévalués à la publication contre la version publique de référence :
         # un brouillon plus riche ne peut pas être publié par un canal limité à l'édition guidée.
         document = await self._authorize(account_id, slug, capabilities, live_document, revision["document"])
+        await self._record_origin(account_id, slug, state, live, live_document)
         await self._publish_document(
             account_id, slug, live, document, revision_id,
             expected_lock_version=expected_lock_version, author_id=author_id, clear_draft=True,

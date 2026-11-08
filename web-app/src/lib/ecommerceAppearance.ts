@@ -93,7 +93,7 @@ export type ThemeRevisionItem = {
   revision_id: string;
   created_at: string | null;
   author: string | null;
-  kind: 'draft' | 'restore' | 'model' | 'settings';
+  kind: 'draft' | 'restore' | 'model' | 'settings' | 'initial';
   restored_from: string | null;
   model_id: string;
   model_name?: string | null;

@@ -29,7 +29,7 @@ const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 
 const primaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:opacity-50';
 const INITIAL_VIEW: AppearanceView = { status: 'loading', state: null, base: {}, values: {}, busy: null, error: null, conflict: false, notice: null };
 
-const KIND_LABELS: Record<string, string> = { restore: 'Restauration', model: 'Changement de modèle', settings: 'Modification depuis les réglages', draft: 'Brouillon' };
+const KIND_LABELS: Record<string, string> = { restore: 'Restauration', model: 'Changement de modèle', settings: 'Modification depuis les réglages', initial: "Version d'origine", draft: 'Brouillon' };
 
 function revisionLabel(item: ThemeRevisionItem) {
     const date = formatThemeDate(item.created_at);

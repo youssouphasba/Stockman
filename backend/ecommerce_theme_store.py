@@ -81,8 +81,12 @@ class ThemeRevisionStore:
             return None
         return (await self.get_revision(account_id, slug, state["published_revision_id"]))["document"]
 
-    async def _create_revision(self, account_id: str, slug: str, document: Dict[str, Any], *, parent_id: Optional[str], author_id: str, reason: str) -> Dict[str, Any]:
+    async def _create_revision(
+        self, account_id: str, slug: str, document: Dict[str, Any], *, parent_id: Optional[str], author_id: str, reason: str,
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         revision = {
+            **(extra or {}),
             "_id": f"threv_{uuid.uuid4().hex}",
             "account_id": account_id,
             "site_slug": slug,
@@ -124,10 +128,16 @@ class ThemeRevisionStore:
             raise ThemeConflictError((current or {}).get("lock_version", 0))
         return state
 
-    async def create_revision(self, account_id: str, slug: str, document: Any, *, author_id: str, reason: str, parent_id: Optional[str] = None) -> Dict[str, Any]:
+    async def create_revision(
+        self, account_id: str, slug: str, document: Any, *, author_id: str, reason: str, parent_id: Optional[str] = None,
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """Révision immuable sans déplacement de pointeur : la publication est décidée par l'appelant."""
         validated = validate_theme_document(document, self.contract)
-        return await self._create_revision(account_id, slug, validated, parent_id=parent_id, author_id=author_id, reason=reason)
+        return await self._create_revision(account_id, slug, validated, parent_id=parent_id, author_id=author_id, reason=reason, extra=extra)
+
+    async def has_initial(self, account_id: str, slug: str) -> bool:
+        return await self.revisions.find_one({"account_id": account_id, "site_slug": slug, "reason": "initial"}, {"_id": 1}) is not None
 
     async def save_draft(self, account_id: str, slug: str, document: Any, *, author_id: str, expected_lock_version: int, reason: str = "draft") -> Dict[str, Any]:
         validated = validate_theme_document(document, self.contract)
@@ -158,6 +168,25 @@ class ThemeRevisionStore:
             # Le brouillon publié n'est plus un travail en attente.
             updates["draft_revision_id"] = None
         return await self._move_pointers(account_id, slug, expected_lock_version, updates)
+
+    async def record_initial(self, account_id: str, slug: str, document: Any, *, author_id: str, provenance: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Version d'origine d'un site, enregistrée une seule fois comme version en ligne.
+
+        Le brouillon éventuel n'est pas touché. Retourne None si le site a déjà une version
+        publiée ou si une autre opération est passée entre-temps : rien n'est alors conservé."""
+        validated = validate_theme_document(document, self.contract)
+        state = await self.get_state(account_id, slug)
+        if (state or {}).get("published_revision_id"):
+            return None
+        revision = await self._create_revision(
+            account_id, slug, validated, parent_id=None, author_id=author_id, reason="initial", extra={"provenance": provenance},
+        )
+        try:
+            await self._move_pointers(account_id, slug, (state or {}).get("lock_version", 0), {"published_revision_id": revision["_id"], "published_at": None, "published_by": author_id})
+        except ThemeConflictError:
+            await self.revisions.delete_one({"_id": revision["_id"]})
+            return None
+        return revision
 
     async def discard_draft(self, account_id: str, slug: str, *, expected_lock_version: int) -> Dict[str, Any]:
         """Abandonne le brouillon courant : la révision reste dans l'historique, seul le pointeur est retiré."""
