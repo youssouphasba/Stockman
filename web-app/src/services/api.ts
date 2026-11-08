@@ -14,6 +14,7 @@ const AI_DUPLICATES_BLOCK_MS = 12 * 60 * 60 * 1000;
 const NON_CACHEABLE_GET_PREFIXES = [
     '/ecommerce/site/onboarding',
     '/ecommerce/site/theme',
+    '/ecommerce/site/media',
     '/auth/',
     '/demo/session',
     '/demo/session/',
@@ -378,7 +379,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
     if (endpoint.startsWith('/ecommerce/site/onboarding')) return performRequest<T>(endpoint, options);
     // Apparence du site : jamais de cache ni de file hors ligne pour un brouillon ou une publication.
-    if (endpoint.startsWith('/ecommerce/site/theme')) return performRequest<T>(endpoint, options);
+    if (endpoint.startsWith('/ecommerce/site/theme') || endpoint.startsWith('/ecommerce/site/media')) return performRequest<T>(endpoint, options);
 
     if (method === 'GET') {
         if (!online) {
@@ -1839,6 +1840,13 @@ export const ecommerce = {
         request<import('../lib/ecommerceAppearance').ThemeState>(`/ecommerce/site/theme/revisions/${encodeURIComponent(revisionId)}/restore`, { method: 'POST', body: data }),
     createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' }) =>
         request<import('../lib/ecommerceAppearance').ThemePreview>('/ecommerce/site/theme/preview', { method: 'POST', body: data }),
+    listMedia: (kind?: 'logo' | 'image') => request<{ media: import('../lib/ecommerceAppearance').ThemeMediaItem[]; total: number; limit: number }>(`/ecommerce/site/media${kind ? `?kind=${kind}` : ''}`),
+    uploadMedia: (data: { site_slug: string; kind: 'logo' | 'image'; data: string; alt?: string }) =>
+        request<import('../lib/ecommerceAppearance').ThemeMediaItem>('/ecommerce/site/media', { method: 'POST', body: data }),
+    updateMediaAlt: (mediaId: string, data: { site_slug: string; alt: string }) =>
+        request<import('../lib/ecommerceAppearance').ThemeMediaItem>(`/ecommerce/site/media/${encodeURIComponent(mediaId)}/alt`, { method: 'POST', body: data }),
+    deleteMedia: (mediaId: string, data: { site_slug: string }) =>
+        request<{ deleted: boolean }>(`/ecommerce/site/media/${encodeURIComponent(mediaId)}/delete`, { method: 'POST', body: data }),
     getSite: () =>
         request<EcommerceSite>('/ecommerce/site'),
     updateSite: (data: EcommerceSiteUpdate) =>

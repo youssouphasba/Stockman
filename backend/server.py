@@ -83,6 +83,7 @@ from enterprise_access import (
 from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, compute_theme_capabilities, legacy_theme_identity
 from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
 from ecommerce_theme_service import EcommerceThemeService, theme_error_response
+from ecommerce_media import EcommerceMediaLibrary
 from services.pricing import (
     DEFAULT_COUNTRY_CODE,
     DEFAULT_CURRENCY,
@@ -165,7 +166,9 @@ db = client[os.environ.get('DB_NAME', 'stock_management')]
 
 import_service = ImportService(db)
 catalog_service = CatalogService(db)
-ecommerce_theme_service = EcommerceThemeService(db)
+# Les URL publiques des médias suivent le domaine de l'application web (résolu à l'appel).
+ecommerce_media_library = EcommerceMediaLibrary(db, base_url=lambda: get_web_app_base_url())
+ecommerce_theme_service = EcommerceThemeService(db, media=ecommerce_media_library)
 notification_service = NotificationService()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
@@ -1467,6 +1470,21 @@ class PublicEcommercePreviewRequest(BaseModel):
     token: str = Field(min_length=1, max_length=256)
 
 
+class EcommerceMediaSiteRequest(BaseModel):
+    site_slug: str = Field(min_length=2, max_length=80)
+
+
+class EcommerceMediaUpload(EcommerceMediaSiteRequest):
+    kind: Literal["logo", "image"]
+    # Image de 8 Mo au plus, encodée en base64 (environ 11 Mo de texte).
+    data: str = Field(min_length=1, max_length=12_000_000)
+    alt: Optional[str] = Field(default=None, max_length=200)
+
+
+class EcommerceMediaAltUpdate(EcommerceMediaSiteRequest):
+    alt: str = Field(default="", max_length=200)
+
+
 class PublicEcommerceOrderItem(BaseModel):
     product_id: str
     quantity: float = Field(..., gt=0)
@@ -1639,6 +1657,29 @@ async def get_public_ecommerce_preview(data: PublicEcommercePreviewRequest, resp
         raise HTTPException(status_code=mapped[0], detail=mapped[1], headers=PRIVATE_PREVIEW_HEADERS)
     payload["preview"] = preview
     return payload
+
+
+PUBLIC_MEDIA_HEADERS = {
+    # Une URL de média désigne un contenu qui ne change jamais.
+    "Cache-Control": "public, max-age=31536000, immutable",
+    "X-Content-Type-Options": "nosniff",
+    "Cross-Origin-Resource-Policy": "cross-origin",
+}
+
+
+@app.get("/api/public/ecommerce/media/{media_id}/{filename}")
+async def get_public_ecommerce_media(
+    media_id: str = Path(..., pattern="^med_[0-9a-f]{24}$"),
+    filename: str = Path(..., pattern="^[0-9]{2,4}[.]webp$"),
+):
+    stored = await ecommerce_media_library.read_file(media_id, int(filename.split(".")[0]))
+    if not stored:
+        raise HTTPException(status_code=404, detail="Image introuvable")
+    return Response(
+        content=bytes(stored["data"]),
+        media_type="image/webp",
+        headers={**PUBLIC_MEDIA_HEADERS, "ETag": f'"{media_id}-{filename}"'},
+    )
 
 
 @app.post("/api/public/ecommerce/{slug}/events")
@@ -18689,6 +18730,56 @@ async def create_ecommerce_site_theme_preview(data: EcommerceThemePreviewRequest
     ))
     # Le jeton est placé dans le fragment : il n'est transmis ni au serveur web, ni aux statistiques.
     return {"preview_url": f"{get_web_app_base_url()}/preview#{token}", "expires_at": expires_at.isoformat()}
+
+
+@api_router.get("/ecommerce/site/media")
+async def list_ecommerce_site_media(
+    request: Request,
+    kind: Optional[str] = Query(None, pattern="^(logo|image)$"),
+    user: User = Depends(require_auth),
+):
+    account, site = await get_ecommerce_theme_context(user)
+    return await run_ecommerce_theme_operation(
+        ecommerce_theme_service.list_media(account, site["slug"], ecommerce_theme_capabilities(user, request), kind=kind)
+    )
+
+
+@api_router.post("/ecommerce/site/media")
+async def upload_ecommerce_site_media(data: EcommerceMediaUpload, request: Request, user: User = Depends(require_auth)):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_theme_context(user, data.site_slug)
+    return await run_ecommerce_theme_operation(ecommerce_theme_service.upload_media(
+        account, site["slug"], data=data.data, kind=data.kind, alt=data.alt,
+        capabilities=ecommerce_theme_capabilities(user, request), author_id=user.user_id,
+    ))
+
+
+@api_router.post("/ecommerce/site/media/{media_id}/alt")
+async def update_ecommerce_site_media_alt(
+    data: EcommerceMediaAltUpdate,
+    request: Request,
+    media_id: str = Path(..., pattern="^med_[0-9a-f]{24}$"),
+    user: User = Depends(require_auth),
+):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_theme_context(user, data.site_slug)
+    return await run_ecommerce_theme_operation(ecommerce_theme_service.update_media_alt(
+        account, site["slug"], media_id, alt=data.alt, capabilities=ecommerce_theme_capabilities(user, request),
+    ))
+
+
+@api_router.post("/ecommerce/site/media/{media_id}/delete")
+async def delete_ecommerce_site_media(
+    data: EcommerceMediaSiteRequest,
+    request: Request,
+    media_id: str = Path(..., pattern="^med_[0-9a-f]{24}$"),
+    user: User = Depends(require_auth),
+):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_theme_context(user, data.site_slug)
+    return await run_ecommerce_theme_operation(ecommerce_theme_service.delete_media(
+        account, site["slug"], media_id, capabilities=ecommerce_theme_capabilities(user, request),
+    ))
 
 
 @api_router.get("/ecommerce/stats")

@@ -152,6 +152,16 @@ class FakeCollection:
         self.docs.append(doc)
         return SimpleNamespace(inserted_id=doc.get("_id"))
 
+    async def count_documents(self, query):
+        return sum(1 for doc in self.docs if matches(doc, query))
+
+    async def delete_one(self, query):
+        index = self._find_index(query)
+        if index is None:
+            return SimpleNamespace(deleted_count=0)
+        del self.docs[index]
+        return SimpleNamespace(deleted_count=1)
+
     async def find_one(self, query, projection=None):
         index = self._find_index(query)
         return _project(self.docs[index], projection) if index is not None else None

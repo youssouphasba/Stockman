@@ -2,7 +2,7 @@
 // et web-app/src/lib/ecommerceAppearance.ts (web). Le test ecommerce-appearance.test.cjs vérifie leur parité.
 // Le serveur reste l'autorité : ce module prépare l'affichage et le document envoyé, sans décider des droits.
 
-export type ThemeFieldType = 'text' | 'color';
+export type ThemeFieldType = 'text' | 'color' | 'media_id';
 
 export type ThemeField = {
   id: string;
@@ -16,6 +16,20 @@ export type ThemeField = {
   max_length?: number;
   multiline?: boolean;
   nullable?: boolean;
+  media_kind?: 'logo' | 'image';
+};
+
+export type ThemeMediaItem = {
+  media_id: string;
+  kind: 'logo' | 'image';
+  alt: string;
+  width: number;
+  height: number;
+  has_alpha: boolean;
+  urls: Record<string, string>;
+  thumbnail_url: string | null;
+  created_at: string | null;
+  in_use: boolean;
 };
 
 export type ThemeSectionDocument = { id: string; type: string; type_version: number; settings: Record<string, unknown>; blocks: unknown[] };
@@ -54,6 +68,7 @@ export type ThemeState = {
     issues: Array<{ code: string; path: string; message: string }>;
   };
   draft: null | { revision_id: string; document: ThemeDocument; updated_at: string | null; updated_by: string | null };
+  media: Record<string, ThemeMediaItem>;
 };
 
 export type ThemeRevisionItem = {
@@ -141,6 +156,9 @@ export function normalizeThemeValue(field: ThemeField, value: string): string | 
   return field.type === 'color' ? text.toUpperCase() : text;
 }
 
+// Message d'erreur affiché si l'envoi d'une image échoue sans explication du serveur.
+export const MEDIA_UPLOAD_ERROR = "Impossible d'importer cette image. Vérifiez votre connexion puis réessayez.";
+
 // Seuls les champs réellement modifiés changent : une valeur équivalente garde sa forme d'origine.
 export function writeThemeValues(document: ThemeDocument, fields: ThemeField[], values: ThemeValues): ThemeDocument {
   const next: ThemeDocument = JSON.parse(JSON.stringify(document));
@@ -170,6 +188,10 @@ function quote(value: string): string {
 }
 
 export function describeThemeChange(change: ThemeChange): string {
+  if (change.field.type === 'media_id') {
+    const action = !change.before ? 'nouvelle image' : !change.after ? 'image retirée' : 'image remplacée';
+    return `${change.field.label} : ${action}`;
+  }
   return `${change.field.label} : ${quote(change.before)} → ${quote(change.after)}`;
 }
 

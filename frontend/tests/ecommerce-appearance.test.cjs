@@ -111,6 +111,20 @@ test('Changes are listed in French and local edits survive a reload after a conf
   assert.equal(rebased['home.storefront.site_name'], 'Maison Awa');
 });
 
+test('Image fields store a library identifier and describe changes without exposing it', () => {
+  const helper = loadHelper();
+  const logo = { id: 'global.logo_asset_id', scope: 'global', key: 'logo_asset_id', type: 'media_id', media_kind: 'logo', label: 'Logo', nullable: true };
+  const original = documentWith({}, { logo_asset_id: null });
+  const withLogo = helper.writeThemeValues(original, [logo], { 'global.logo_asset_id': 'med_0123456789abcdef01234567' });
+  assert.equal(withLogo.global_settings.logo_asset_id, 'med_0123456789abcdef01234567');
+  assert.equal(helper.writeThemeValues(withLogo, [logo], { 'global.logo_asset_id': '' }).global_settings.logo_asset_id, null);
+  const describe = (before, after) => helper.themeChanges([logo], { 'global.logo_asset_id': before }, { 'global.logo_asset_id': after }).map(helper.describeThemeChange);
+  assert.deepEqual(describe('', 'med_a'), ['Logo : nouvelle image']);
+  assert.deepEqual(describe('med_a', ''), ['Logo : image retirée']);
+  assert.deepEqual(describe('med_a', 'med_b'), ['Logo : image remplacée']);
+  assert.deepEqual(describe('med_a', 'med_a'), []);
+});
+
 test('Server errors are read from their structured detail', () => {
   const helper = loadHelper();
   const conflict = helper.parseThemeError({ status: 409, message: JSON.stringify({ code: 'published_changed', message: 'Le site publié a été modifié entre-temps.' }) }, 'Erreur');
@@ -223,13 +237,30 @@ test('A disposed editor ignores late answers', async () => {
   assert.equal(h.views.some((view) => view.status === 'ready'), false);
 });
 
-test('Appearance calls bypass the offline queue and the web cache', () => {
+test('Appearance and media calls bypass the offline queue and the web cache', () => {
   const mobile = read('frontend/services/api.ts');
   const requestBody = mobile.slice(mobile.indexOf('async function request<T>')).split('\n');
-  assert.match(requestBody[3], /startsWith\('\/ecommerce\/site\/theme'\)\) return rawRequest/);
+  assert.match(requestBody[3], /startsWith\('\/ecommerce\/site\/theme'\) \|\| endpoint\.startsWith\('\/ecommerce\/site\/media'\)\) return rawRequest/);
   const web = read('web-app/src/services/api.ts');
-  assert.match(web, /NON_CACHEABLE_GET_PREFIXES = \[\s*'\/ecommerce\/site\/onboarding',\s*'\/ecommerce\/site\/theme'/);
-  assert.match(web, /startsWith\('\/ecommerce\/site\/theme'\)\) return performRequest/);
+  assert.match(web, /NON_CACHEABLE_GET_PREFIXES = \[\s*'\/ecommerce\/site\/onboarding',\s*'\/ecommerce\/site\/theme',\s*'\/ecommerce\/site\/media'/);
+  assert.match(web, /startsWith\('\/ecommerce\/site\/theme'\) \|\| endpoint\.startsWith\('\/ecommerce\/site\/media'\)\) return performRequest/);
+});
+
+test('Image pickers open only on demand and keep editing rights server driven', () => {
+  for (const file of ['frontend/components/EcommerceAppearanceEditor.tsx', 'web-app/src/components/EcommerceAppearancePanel.tsx']) {
+    // Rendu conditionnel : obligatoire pour les fenêtres modales sur iOS, et aucun appel réseau tant qu'elles sont fermées.
+    assert.match(read(file), /\{pickerField && state && \(/, file);
+    assert.match(read(file), /kind=\{pickerField\.media_kind \|\| 'image'\}/, file);
+  }
+  const mobilePicker = read('frontend/components/EcommerceMediaPicker.tsx');
+  assert.match(mobilePicker, /<Modal visible animationType="slide"/);
+  assert.match(mobilePicker, /UIImagePickerPreferredAssetRepresentationMode\.Compatible/);
+  for (const file of ['frontend/components/EcommerceMediaPicker.tsx', 'web-app/src/components/EcommerceMediaPicker.tsx']) {
+    const source = read(file);
+    assert.match(source, /canEdit && \(/, file);
+    assert.match(source, /canEdit && !item\.in_use && \(/, file);
+  }
+  assert.match(read('web-app/src/components/EcommerceMediaPicker.tsx'), /file\.size > MAX_UPLOAD_BYTES/);
 });
 
 test('Settings no longer edit appearance fields directly and show actions only when allowed', () => {

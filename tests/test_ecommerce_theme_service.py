@@ -126,16 +126,18 @@ class ViewTests(ThemeServiceTestCase):
         self.assertEqual(self.db.ecommerce_theme_states.docs, [])
         self.assertEqual(self.db.ecommerce_theme_revisions.docs, [])
 
-    def test_fields_describe_guided_points_and_exclude_media_until_a_library_exists(self):
+    def test_fields_describe_guided_points_including_the_logo_media(self):
         fields = self.view()["fields"]
         self.assertEqual([field["id"] for field in fields], [
-            "global.brand_color", "home.storefront.site_name", "home.storefront.hero_title", "home.storefront.welcome_message",
+            "global.brand_color", "global.logo_asset_id",
+            "home.storefront.site_name", "home.storefront.hero_title", "home.storefront.welcome_message",
         ])
         labels = {field["key"]: field["label"] for field in fields}
         self.assertEqual(labels["hero_title"], "Titre d'accueil")
         welcome = next(field for field in fields if field["key"] == "welcome_message")
         self.assertEqual((welcome["max_length"], welcome["multiline"]), (600, True))
-        self.assertNotIn("logo_asset_id", labels)
+        logo = next(field for field in fields if field["key"] == "logo_asset_id")
+        self.assertEqual((logo["type"], logo["media_kind"], logo["label"]), ("media_id", "logo", "Logo"))
 
     def test_incompatible_live_values_are_reported_not_corrected(self):
         self.account()["ecommerce_hero_title"] = "Ligne 1\nLigne 2"
@@ -176,11 +178,11 @@ class DraftTests(ThemeServiceTestCase):
         other_model = copy.deepcopy(base["published"]["document"]) | {"model_id": "unknown"}
         expect(self, ThemeValidationError, "unknown_model", self.service.save_draft(ACCOUNT, SLUG, document=other_model, expected_lock_version=0, capabilities=ENTERPRISE_WEB, author_id="owner_a"))
 
-    def test_media_references_are_refused_until_ownership_can_be_verified(self):
+    def test_unknown_media_references_are_refused(self):
         base = self.view()
         document = copy.deepcopy(base["published"]["document"])
-        document["global_settings"]["logo_asset_id"] = "media_123"
-        error = expect(self, ThemeValidationError, "media_unavailable", self.service.save_draft(ACCOUNT, SLUG, document=document, expected_lock_version=0, capabilities=MOBILE, author_id="owner_a"))
+        document["global_settings"]["logo_asset_id"] = "med_0123456789abcdef01234567"
+        error = expect(self, ThemeValidationError, "media_not_found", self.service.save_draft(ACCOUNT, SLUG, document=document, expected_lock_version=0, capabilities=MOBILE, author_id="owner_a"))
         self.assertEqual(error.path, "$.global_settings.logo_asset_id")
 
     def test_stale_lock_versions_conflict(self):
@@ -398,6 +400,9 @@ class RouteGuardTests(unittest.TestCase):
             ("post", "/ecommerce/site/theme/publish"),
             ("post", "/ecommerce/site/theme/revisions/{revision_id}/restore"),
             ("post", "/ecommerce/site/theme/preview"),
+            ("post", "/ecommerce/site/media"),
+            ("post", "/ecommerce/site/media/{media_id}/alt"),
+            ("post", "/ecommerce/site/media/{media_id}/delete"),
         ]:
             body = self.route_body(method, path)
             self.assertIn("ensure_subscription_write_allowed(user, request=request)", body, path)
@@ -406,7 +411,7 @@ class RouteGuardTests(unittest.TestCase):
             self.assertNotIn("data.capabilities", body, path)
 
     def test_reads_never_write_and_the_public_preview_is_never_cached(self):
-        for path in ("/ecommerce/site/theme", "/ecommerce/site/theme/revisions"):
+        for path in ("/ecommerce/site/theme", "/ecommerce/site/theme/revisions", "/ecommerce/site/media"):
             body = self.route_body("get", path)
             self.assertNotIn("save_draft", body)
             self.assertNotIn("publish(", body)

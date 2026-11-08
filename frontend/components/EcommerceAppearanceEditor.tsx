@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Linking, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { ecommerce } from '../services/api';
+import EcommerceMediaPicker from './EcommerceMediaPicker';
 import {
   THEME_COLOR_SWATCHES,
   createAppearanceController,
@@ -11,6 +12,7 @@ import {
   describeThemeChange,
   type AppearanceView,
   type ThemeField,
+  type ThemeMediaItem,
 } from '../utils/ecommerceAppearance';
 
 type Props = {
@@ -25,6 +27,9 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
   const { colors, isDark } = useTheme();
   const [view, setView] = useState<AppearanceView>(INITIAL_VIEW);
   const controller = useRef<ReturnType<typeof createAppearanceController> | null>(null);
+  const [pickerField, setPickerField] = useState<ThemeField | null>(null);
+  // Images importées pendant la session, affichées avant même l'enregistrement du brouillon.
+  const [mediaCache, setMediaCache] = useState<Record<string, ThemeMediaItem>>({});
   const publishedRef = useRef(onPublished);
   publishedRef.current = onPublished;
 
@@ -90,6 +95,43 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
   function renderField(field: ThemeField) {
     const value = view.values[field.id] || '';
     const disabled = !canEdit || busy;
+    if (field.type === 'media_id') {
+      const item = value ? mediaCache[value] || state?.media?.[value] : null;
+      return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: Spacing.sm }}>
+          <View style={{ width: 64, height: 64, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.divider, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card }}>
+            {item?.thumbnail_url ? (
+              <Image source={{ uri: item.thumbnail_url }} style={{ width: 64, height: 64 }} resizeMode="cover" accessibilityLabel={item.alt || field.label} />
+            ) : (
+              <Ionicons name="image-outline" size={24} color={colors.textMuted} accessibilityLabel={value ? 'Image indisponible' : 'Aucune image'} />
+            )}
+          </View>
+          {canEdit && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityState={{ disabled }}
+              disabled={disabled}
+              onPress={() => setPickerField(field)}
+              style={[styles.outlineButton, { minHeight: 44 }, disabled && { opacity: 0.5 }]}
+            >
+              <Ionicons name="images-outline" size={18} color={colors.primary} />
+              <Text style={styles.outlineButtonText}>{value ? "Changer l'image" : 'Choisir une image'}</Text>
+            </TouchableOpacity>
+          )}
+          {canEdit && !!value && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityState={{ disabled }}
+              disabled={disabled}
+              onPress={() => controller.current?.setValue(field.id, '')}
+              style={[styles.outlineButton, { minHeight: 44 }, disabled && { opacity: 0.5 }]}
+            >
+              <Text style={styles.outlineButtonText}>Retirer</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
     if (field.type === 'color') {
       const current = value.toUpperCase();
       const custom = !!current && !THEME_COLOR_SWATCHES.some((swatch) => swatch.value === current);
@@ -248,6 +290,23 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
             </View>
           )}
         </View>
+      )}
+
+      {pickerField && state && (
+        <EcommerceMediaPicker
+          kind={pickerField.media_kind || 'image'}
+          siteSlug={state.site_slug}
+          title={pickerField.label}
+          selectedId={view.values[pickerField.id] || null}
+          canEdit={canEdit}
+          styles={styles}
+          onSelect={(item) => {
+            setMediaCache((current) => ({ ...current, [item.media_id]: item }));
+            controller.current?.setValue(pickerField.id, item.media_id);
+            setPickerField(null);
+          }}
+          onClose={() => setPickerField(null)}
+        />
       )}
     </View>
   );

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Eye, History, Palette, RefreshCw, RotateCcw, Save, Send, Trash2 } from 'lucide-react';
+import { Eye, History, ImageIcon, Images, Palette, RefreshCw, RotateCcw, Save, Send, Trash2 } from 'lucide-react';
 import { ecommerce as ecommerceApi } from '../services/api';
+import EcommerceMediaPicker from './EcommerceMediaPicker';
 import {
     THEME_COLOR_SWATCHES,
     createAppearanceController,
@@ -13,6 +14,7 @@ import {
     type AppearanceView,
     type ThemeChange,
     type ThemeField,
+    type ThemeMediaItem,
     type ThemeRevisionItem,
 } from '../lib/ecommerceAppearance';
 
@@ -20,7 +22,37 @@ const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py
 const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white transition-colors hover:bg-white/10 disabled:opacity-50';
 const INITIAL_VIEW: AppearanceView = { status: 'loading', state: null, base: {}, values: {}, busy: null, error: null, conflict: false, notice: null };
 
-function FieldInput({ field, value, disabled, onChange }: { field: ThemeField; value: string; disabled: boolean; onChange: (value: string) => void }) {
+function FieldInput({ field, value, disabled, media, onChange, onPick }: {
+    field: ThemeField;
+    value: string;
+    disabled: boolean;
+    media?: ThemeMediaItem | null;
+    onChange: (value: string) => void;
+    onPick?: () => void;
+}) {
+    if (field.type === 'media_id') {
+        return (
+            <div className="flex flex-wrap items-center gap-3">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                    {media?.thumbnail_url ? (
+                        // Les médias sont déjà optimisés en WebP par le serveur.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={media.thumbnail_url} alt={media.alt || field.label} width={64} height={64} className="h-16 w-16 object-cover" />
+                    ) : (
+                        <ImageIcon size={22} className="text-slate-500" aria-label={value ? 'Image indisponible' : 'Aucune image'} />
+                    )}
+                </div>
+                {!disabled && onPick && (
+                    <button type="button" className={secondaryButton} onClick={onPick}>
+                        <Images size={16} />{value ? "Changer l'image" : 'Choisir une image'}
+                    </button>
+                )}
+                {!disabled && value && (
+                    <button type="button" className={secondaryButton} onClick={() => onChange('')}>Retirer</button>
+                )}
+            </div>
+        );
+    }
     if (field.type === 'color') {
         const current = value.toUpperCase();
         const custom = current && !THEME_COLOR_SWATCHES.some((swatch) => swatch.value === current);
@@ -82,6 +114,9 @@ export default function EcommerceAppearancePanel({
     const [history, setHistory] = useState<ThemeRevisionItem[] | null>(null);
     const [historyBusy, setHistoryBusy] = useState<string | null>(null);
     const [historyError, setHistoryError] = useState<string | null>(null);
+    const [pickerField, setPickerField] = useState<ThemeField | null>(null);
+    // Images importées pendant la session, affichées avant même l'enregistrement du brouillon.
+    const [mediaCache, setMediaCache] = useState<Record<string, ThemeMediaItem>>({});
 
     useEffect(() => {
         const current = createAppearanceController(ecommerceApi, setView);
@@ -199,14 +234,16 @@ export default function EcommerceAppearancePanel({
 
                     <div className="grid gap-4 md:grid-cols-2">
                         {state.fields.map((field) => (
-                            <div key={field.id} className={field.multiline || field.type === 'color' ? 'flex flex-col gap-2 md:col-span-2' : 'flex flex-col gap-2'}>
+                            <div key={field.id} className={field.multiline || field.type !== 'text' ? 'flex flex-col gap-2 md:col-span-2' : 'flex flex-col gap-2'}>
                                 <span className="text-sm font-semibold text-white">{field.label}</span>
                                 {field.hint && <span className="text-xs leading-5 text-slate-500">{field.hint}</span>}
                                 <FieldInput
                                     field={field}
                                     value={view.values[field.id] || ''}
                                     disabled={!canEdit || busy}
+                                    media={view.values[field.id] ? mediaCache[view.values[field.id]] || state.media?.[view.values[field.id]] : null}
                                     onChange={(value) => controller.current?.setValue(field.id, value)}
+                                    onPick={() => setPickerField(field)}
                                 />
                             </div>
                         ))}
@@ -298,6 +335,22 @@ export default function EcommerceAppearancePanel({
                         </div>
                     )}
                 </div>
+            )}
+
+            {pickerField && state && (
+                <EcommerceMediaPicker
+                    kind={pickerField.media_kind || 'image'}
+                    siteSlug={state.site_slug}
+                    title={pickerField.label}
+                    selectedId={view.values[pickerField.id] || null}
+                    canEdit={canEdit}
+                    onSelect={(item) => {
+                        setMediaCache((current) => ({ ...current, [item.media_id]: item }));
+                        controller.current?.setValue(pickerField.id, item.media_id);
+                        setPickerField(null);
+                    }}
+                    onClose={() => setPickerField(null)}
+                />
             )}
         </div>
     );

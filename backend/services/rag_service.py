@@ -16,7 +16,7 @@ class RAGService:
     def __init__(self, api_key: str, root_dir: Path):
         self.api_key = api_key
         self.root_dir = root_dir
-        self.index_version = 14
+        self.index_version = 15
         self.index_path = root_dir / "vector_index.json"
         self.docs_dir = root_dir / "docs"
         self.web_guides_dir = self.docs_dir / "web-guides"

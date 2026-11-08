@@ -4,7 +4,7 @@ Le site actuel porte le nom Stockman Basic et l'identifiant technique `legacy-v1
 
 La configuration du site reste dans Paramètres > Boutique en ligne. E-com reste consacré aux commandes et aux statistiques. Starter et Pro conservent la consultation du back-office web ; Enterprise conserve la gestion web selon ses permissions.
 
-Stockman Basic est le seul modèle actuellement livré. La bibliothèque de thèmes est conçue pour être extensible, sans limite commerciale codée en dur. Les modèles seront développés progressivement, selon leur qualité et la diversité de leurs structures. Les droits d'accès au catalogue seront configurables par abonnement ; aucun catalogue commercial supplémentaire ni éditeur visuel n'est encore annoncé comme disponible. Il n'y a pour l'instant ni galerie de modèles, ni changement de design, ni bibliothèque de médias. L'apparence de Stockman Basic se prépare en brouillon, se vérifie dans un aperçu privé et se publie depuis Paramètres > Boutique en ligne, comme décrit ci-dessous.
+Stockman Basic est le seul modèle actuellement livré. La bibliothèque de thèmes est conçue pour être extensible, sans limite commerciale codée en dur. Les modèles seront développés progressivement, selon leur qualité et la diversité de leurs structures. Les droits d'accès au catalogue seront configurables par abonnement ; aucun catalogue commercial supplémentaire ni éditeur visuel n'est encore annoncé comme disponible. Il n'y a pour l'instant ni galerie de modèles ni changement de design. L'apparence de Stockman Basic, logo compris, se prépare en brouillon, se vérifie dans un aperçu privé et se publie depuis Paramètres > Boutique en ligne, comme décrit ci-dessous.
 
 ## Première configuration
 
@@ -18,7 +18,7 @@ Si deux appareils sont ouverts en même temps, un seul affiche la proposition. Q
 
 ## Apparence du site : brouillon, aperçu et publication
 
-Le bloc « Apparence du site » se trouve dans Paramètres > Boutique en ligne. Il regroupe le nom du site, le titre d'accueil, le message d'accueil et la couleur de marque. Les autres réglages du site (activation, boutique liée, produits en rupture, coordonnées, livraison, WhatsApp, paiement manuel et domaine) restent dans le formulaire du site et s'enregistrent avec « Enregistrer le site e-commerce ».
+Le bloc « Apparence du site » se trouve dans Paramètres > Boutique en ligne. Il regroupe le logo, le nom du site, le titre d'accueil, le message d'accueil et la couleur de marque. Les autres réglages du site (activation, boutique liée, produits en rupture, coordonnées, livraison, WhatsApp, paiement manuel et domaine) restent dans le formulaire du site et s'enregistrent avec « Enregistrer le site e-commerce ».
 
 - « Enregistrer le brouillon » conserve les modifications sans changer le site public. Il existe un seul brouillon par site, partagé par tous les appareils et par tous les administrateurs opérationnels du compte.
 - « Prévisualiser » ouvre un aperçu privé du brouillon, ou de la version publiée s'il n'y a pas de brouillon. Le lien reste valable 30 minutes, fonctionne même si le site est désactivé et n'est pas indexé par les moteurs de recherche. Dans l'aperçu, les commandes, les messages de contact et les statistiques de visite sont désactivés. Abandonner le brouillon rend ses aperçus inaccessibles. Le lien est personnel : il ne doit pas être partagé.
@@ -31,5 +31,17 @@ Sur mobile, les administrateurs opérationnels Starter, Pro et Enterprise peuven
 
 Enterprise dispose aussi, dans les Paramètres web, de l'historique des versions enregistrées : la version en ligne et le brouillon en cours y sont signalés. « Restaurer comme brouillon » crée un nouveau brouillon à partir d'une ancienne version, sans rien publier ; la mise en ligne demande une nouvelle publication.
 
-Le logo n'est pas encore modifiable depuis l'apparence : il le sera avec la bibliothèque de médias, dont l'hébergement reste à décider. Les anciennes versions de l'application continuent d'enregistrer les textes et la couleur avec les réglages du site ; ces valeurs restent celles du site public et sont reprises par l'apparence.
+Les anciennes versions de l'application continuent d'enregistrer les textes et la couleur avec les réglages du site ; ces valeurs restent celles du site public et sont reprises par l'apparence.
+
+## Logo et bibliothèque d'images
+
+Dans « Apparence du site », le champ Logo propose « Choisir une image », « Changer l'image » et « Retirer ». La bibliothèque d'images du site s'ouvre alors : elle permet d'importer une image depuis le téléphone ou l'ordinateur, de réutiliser une image déjà importée, de décrire chaque image pour l'accessibilité et de supprimer une image inutilisée.
+
+- Formats acceptés : JPEG, PNG et WebP, 8 Mo au maximum, 32 pixels minimum de côté. Les images animées, les SVG et les fichiers illisibles sont refusés. Sur iPhone, les photos sont converties dans un format compatible avant l'envoi.
+- Chaque image est vérifiée par son contenu réel, redressée selon son orientation, puis réencodée : les métadonnées de l'appareil photo (position GPS comprise) sont supprimées et la transparence d'un logo est conservée. Plusieurs tailles optimisées sont produites automatiquement pour un affichage net et rapide.
+- Sur mobile, le logo est recadré en carré au moment de l'import, car il s'affiche dans un cadre carré sur Stockman Basic.
+- Le logo choisi n'apparaît sur le site public qu'après la publication ; l'aperçu privé le montre avant. Retirer le logo puis publier le fait disparaître du site. Un ancien logo défini autrement que par la bibliothèque reste affiché tant qu'aucun logo de la bibliothèque ne le remplace.
+- Une image utilisée par le site publié ou par le brouillon ne peut pas être supprimée : il faut d'abord la retirer et publier ou abandonner le brouillon. Une version de l'historique qui utilise une image supprimée depuis ne peut plus être restaurée.
+- La bibliothèque contient au plus 60 images par site. Importer deux fois le même fichier réutilise l'image existante.
+- Les droits sont ceux de l'apparence : sur mobile pour Starter, Pro et Enterprise ; sur le web pour Enterprise. Le serveur vérifie que chaque image appartient bien au compte et au site, et qu'elle convient au champ choisi.
 

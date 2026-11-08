@@ -8,6 +8,9 @@
   sans double source d'autorité.
 - L'aperçu privé repose sur un jeton aléatoire dont seule l'empreinte est conservée. Il
   expire, peut afficher un site désactivé et n'autorise aucune opération commerciale.
+- Toute référence de média doit appartenir au compte et au site, et correspondre au type
+  attendu par le champ ; une image utilisée par le site publié ou le brouillon ne peut pas être
+  supprimée.
 - Rien ici ne modifie l'activation du site, son domaine, ses produits, ses prix, ses
   stocks, ses commandes ou ses paiements.
 """
@@ -19,11 +22,13 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
+from ecommerce_media import MAX_MEDIA_PER_SITE as MEDIA_LIMIT, MEDIA_KINDS, EcommerceMediaLibrary, MediaServiceError, parse_media_url
 from ecommerce_onboarding import EcommerceOnboarding
 from ecommerce_theme_store import ThemeConflictError, ThemeRevisionNotFound, ThemeRevisionStore, document_fingerprint
 from ecommerce_themes import (
     CONTRACT,
     LEGACY_ACCOUNT_FIELDS,
+    LEGACY_LOGO_FIELD,
     LEGACY_MODEL_ID,
     ThemeValidationError,
     authorize_theme_change,
@@ -39,9 +44,11 @@ logger = logging.getLogger(__name__)
 PREVIEW_TTL = timedelta(minutes=30)
 HISTORY_LIMIT = 50
 PREVIEW_SOURCES = ("draft", "published")
-# Les champs média attendent la bibliothèque de médias : ils ne sont pas proposés à l'édition.
-EDITABLE_FIELD_TYPES = ("text", "color")
-_PUBLIC_SPEC_KEYS = ("type", "label", "hint", "max_length", "multiline", "nullable")
+EDITABLE_FIELD_TYPES = ("text", "color", "media_id")
+_PUBLIC_SPEC_KEYS = ("type", "label", "hint", "max_length", "multiline", "nullable", "media_kind")
+# Largeur minimale du logo publié pour Stockman Basic : net jusqu'à trois fois la taille affichée.
+LOGO_DISPLAY_WIDTH = 192
+PUBLISHED_FIELDS = LEGACY_ACCOUNT_FIELDS + (LEGACY_LOGO_FIELD,)
 _TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{32,128}$")
 
 FORBIDDEN_MESSAGES = {
@@ -72,7 +79,7 @@ class ThemeServiceError(Exception):
 
 def theme_error_response(exc: Exception) -> Optional[Tuple[int, Dict[str, Any]]]:
     """Traduit une erreur du moteur de thèmes en réponse HTTP, ou None si elle est inconnue."""
-    if isinstance(exc, ThemeServiceError):
+    if isinstance(exc, (ThemeServiceError, MediaServiceError)):
         return exc.status, exc.as_dict()
     if isinstance(exc, ThemeConflictError):
         return 409, {"code": "conflict", "message": CONFLICT_MESSAGE, "lock_version": exc.current_lock_version}
@@ -135,14 +142,6 @@ def _public_spec(spec: Mapping[str, Any]) -> Dict[str, Any]:
     return {key: spec[key] for key in _PUBLIC_SPEC_KEYS if key in spec}
 
 
-def assert_no_unverified_media(document: Mapping[str, Any], contract: Mapping[str, Any] = CONTRACT) -> None:
-    """Sans bibliothèque de médias, aucune référence ne peut être rattachée après vérification
-    de propriété : toute valeur non nulle est refusée."""
-    for path, value in iter_media_values(document, contract):
-        if value is not None:
-            raise ThemeValidationError("media_unavailable", path, "La bibliothèque de médias n'est pas encore disponible : retirez ce média.")
-
-
 def _cas_condition(values: Mapping[str, Any], field: str) -> Any:
     """Condition Mongo exacte : valeur présente, présente à null, ou absente."""
     if field not in values:
@@ -153,28 +152,44 @@ def _cas_condition(values: Mapping[str, Any], field: str) -> Any:
 
 
 def _legacy_update(values: Mapping[str, Any], extra_set: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
-    update: Dict[str, Any] = {"$set": {**{field: values[field] for field in LEGACY_ACCOUNT_FIELDS if field in values}, **(extra_set or {})}}
-    removed = {field: "" for field in LEGACY_ACCOUNT_FIELDS if field not in values}
+    update: Dict[str, Any] = {"$set": {**{field: values[field] for field in PUBLISHED_FIELDS if field in values}, **(extra_set or {})}}
+    removed = {field: "" for field in PUBLISHED_FIELDS if field not in values}
     if removed:
         update["$unset"] = removed
     return update
 
 
 def _current_legacy_values(account: Mapping[str, Any]) -> Dict[str, Any]:
-    return {field: account[field] for field in LEGACY_ACCOUNT_FIELDS if field in account}
+    return {field: account[field] for field in PUBLISHED_FIELDS if field in account}
+
+
+def _document_media_ids(*documents: Optional[Mapping[str, Any]]) -> set:
+    ids = set()
+    for document in documents:
+        if document:
+            ids.update(value for _path, value, _spec in iter_media_values(document) if isinstance(value, str))
+    return ids
 
 
 class EcommerceThemeService:
-    def __init__(self, db, clock: Optional[Callable[[], datetime]] = None, contract: Mapping[str, Any] = CONTRACT):
+    def __init__(
+        self,
+        db,
+        clock: Optional[Callable[[], datetime]] = None,
+        contract: Mapping[str, Any] = CONTRACT,
+        media: Optional[EcommerceMediaLibrary] = None,
+    ):
         self.db = db
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.contract = contract
         self.store = ThemeRevisionStore(db, clock=self.clock, contract=contract)
+        self.media = media or EcommerceMediaLibrary(db, base_url=lambda: "https://app.stockman.pro", clock=self.clock)
         self.accounts = db.business_accounts
         self.previews = db.ecommerce_theme_previews
 
     async def ensure_indexes(self) -> None:
         await self.store.ensure_indexes()
+        await self.media.ensure_indexes()
         # Les sessions expirées sont supprimées automatiquement ; leur expiration est aussi vérifiée à la lecture.
         await self.previews.create_index("expires_at", expireAfterSeconds=0)
         await self.previews.create_index([("account_id", 1), ("site_slug", 1), ("revision_id", 1)])
@@ -215,10 +230,45 @@ class EcommerceThemeService:
         document = revision.get("document") or {}
         if document.get("model_id") != LEGACY_MODEL_ID:
             return False
-        return legacy_account_values(document) == _current_legacy_values(live)
+        texts = {field: live[field] for field in LEGACY_ACCOUNT_FIELDS if field in live}
+        if legacy_account_values(document) != texts:
+            return False
+        return (document["global_settings"].get("logo_asset_id") or None) == parse_media_url(live.get(LEGACY_LOGO_FIELD))
+
+    async def _assert_media(self, account_id: str, slug: str, document: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Chaque média référencé appartient au compte et au site, et convient au champ."""
+        references = [(path, value, spec) for path, value, spec in iter_media_values(document, self.contract) if value is not None]
+        found = await self.media.get_many(account_id, slug, [value for _path, value, _spec in references])
+        for path, value, spec in references:
+            doc = found.get(value)
+            if not doc:
+                raise ThemeValidationError("media_not_found", path, "Cette image n'existe plus dans la bibliothèque.")
+            if spec.get("media_kind") and doc.get("kind") != spec["media_kind"]:
+                raise ThemeValidationError("media_kind_mismatch", path, "Cette image n'est pas adaptée à ce champ.")
+        return found
+
+    def _published_values(self, document: Mapping[str, Any], live: Mapping[str, Any], media: Mapping[str, Mapping[str, Any]]) -> Dict[str, Any]:
+        """Valeurs historiques qu'une publication du document doit produire."""
+        values = legacy_account_values(document)
+        logo_id = document["global_settings"].get("logo_asset_id")
+        if logo_id:
+            values[LEGACY_LOGO_FIELD] = self.media.display_url(media[logo_id], LOGO_DISPLAY_WIDTH)
+        elif LEGACY_LOGO_FIELD in live and parse_media_url(live[LEGACY_LOGO_FIELD]) is None:
+            # Logo externe historique : conservé tel quel, jamais effacé par une publication.
+            values[LEGACY_LOGO_FIELD] = live[LEGACY_LOGO_FIELD]
+        return values
+
+    async def _media_map(self, account_id: str, slug: str, *documents: Optional[Mapping[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        docs = await self.media.get_many(account_id, slug, _document_media_ids(*documents))
+        return {media_id: self.media.public_item(doc) for media_id, doc in docs.items()}
+
+    async def media_in_use(self, account_id: str, slug: str) -> set:
+        live = await self._load_account(account_id, slug)
+        state = await self.store.get_state(account_id, slug) or {}
+        draft = await self._pointed_revision(account_id, slug, state, "draft_revision_id")
+        return _document_media_ids(build_legacy_theme_document(live), (draft or {}).get("document"))
 
     def _check_publishable(self, document: Mapping[str, Any]) -> None:
-        assert_no_unverified_media(document, self.contract)
         if document["model_id"] != LEGACY_MODEL_ID:
             # Seul Stockman Basic dispose aujourd'hui d'un moteur de rendu public.
             raise ThemeServiceError(409, "renderer_unavailable", "Ce modèle n'est pas encore disponible pour la publication.")
@@ -260,6 +310,7 @@ class EcommerceThemeService:
 
         edited = draft["document"] if draft else published_document
         model = resolve_model(edited.get("model_id"), self.contract)
+        media = await self._media_map(account_id, slug, published_document, draft["document"] if draft else None)
         return {
             "site_slug": slug,
             "site_enabled": live.get("ecommerce_enabled") is True,
@@ -275,6 +326,7 @@ class EcommerceThemeService:
                 "issues": issues,
             },
             "draft": draft,
+            "media": media,
         }
 
     async def history(self, account: Mapping[str, Any], slug: str, capabilities: Mapping[str, bool]) -> Dict[str, Any]:
@@ -309,7 +361,7 @@ class EcommerceThemeService:
         live = await self._load_account(account_id, slug)
         # La référence est toujours la version publique actuelle, pas le dernier brouillon.
         validated = authorize_theme_change(capabilities, build_legacy_theme_document(live), document, self.contract)
-        assert_no_unverified_media(validated, self.contract)
+        await self._assert_media(account_id, slug, validated)
         await self.store.save_draft(account_id, slug, validated, author_id=author_id, expected_lock_version=expected_lock_version)
         return await self.view(account, slug, capabilities)
 
@@ -360,12 +412,13 @@ class EcommerceThemeService:
         # un brouillon plus riche ne peut pas être publié par un canal limité à l'édition guidée.
         document = authorize_theme_change(capabilities, live_document, revision["document"], self.contract)
         self._check_publishable(document)
+        media = await self._assert_media(account_id, slug, document)
 
         previous = _current_legacy_values(live)
-        published = legacy_account_values(document)
+        published = self._published_values(document, live, media)
         now = self.clock()
         result = await self.accounts.update_one(
-            {"account_id": account_id, "ecommerce_slug": slug, **{field: _cas_condition(previous, field) for field in LEGACY_ACCOUNT_FIELDS}},
+            {"account_id": account_id, "ecommerce_slug": slug, **{field: _cas_condition(previous, field) for field in PUBLISHED_FIELDS}},
             _legacy_update(published, {"ecommerce_configured_at": now, "updated_at": now}),
         )
         if not result.matched_count:
@@ -380,7 +433,7 @@ class EcommerceThemeService:
             # Une autre opération a déplacé les pointeurs : les valeurs publiques précédentes sont
             # rétablies, uniquement si personne ne les a modifiées depuis.
             await self.accounts.update_one(
-                {"account_id": account_id, "ecommerce_slug": slug, **{field: _cas_condition(published, field) for field in LEGACY_ACCOUNT_FIELDS}},
+                {"account_id": account_id, "ecommerce_slug": slug, **{field: _cas_condition(published, field) for field in PUBLISHED_FIELDS}},
                 _legacy_update(previous),
             )
             raise
@@ -397,7 +450,8 @@ class EcommerceThemeService:
         source = await self.store.get_revision(account_id, slug, revision_id)
         live = await self._load_account(account_id, slug)
         validated = authorize_theme_change(capabilities, build_legacy_theme_document(live), source["document"], self.contract)
-        assert_no_unverified_media(validated, self.contract)
+        # Une version qui désigne une image supprimée depuis ne peut pas redevenir un brouillon.
+        await self._assert_media(account_id, slug, validated)
         await self.store.restore(account_id, slug, revision_id=revision_id, author_id=author_id, expected_lock_version=expected_lock_version)
         return await self.view(account, slug, capabilities)
 
@@ -449,11 +503,49 @@ class EcommerceThemeService:
                 raise ThemeServiceError(404, "preview_not_found", PREVIEW_UNAVAILABLE_MESSAGE)
             if document["model_id"] != LEGACY_MODEL_ID:
                 raise ThemeServiceError(404, "preview_not_found", PREVIEW_UNAVAILABLE_MESSAGE)
-            for field in LEGACY_ACCOUNT_FIELDS:
+            media = await self.media.get_many(session["account_id"], session["site_slug"], _document_media_ids(document))
+            if any(media_id not in media for media_id in _document_media_ids(document)):
+                raise ThemeServiceError(404, "preview_not_found", PREVIEW_UNAVAILABLE_MESSAGE)
+            values = self._published_values(document, account, media)
+            for field in PUBLISHED_FIELDS:
                 effective.pop(field, None)
-            effective.update(legacy_account_values(document))
+            effective.update(values)
         return effective, {
             "expires_at": _iso(session.get("expires_at")),
             "source": "draft" if session.get("revision_id") else "published",
             "site_enabled": account.get("ecommerce_enabled") is True,
         }
+
+
+    # --- Bibliothèque de médias ----------------------------------------------
+
+    async def list_media(self, account, slug: str, capabilities, kind: Optional[str] = None) -> Dict[str, Any]:
+        self._require(capabilities, "view", "view")
+        if kind is not None and kind not in MEDIA_KINDS:
+            raise MediaServiceError(422, "media_kind", "Type de média inconnu.")
+        account_id = account["account_id"]
+        in_use = await self.media_in_use(account_id, slug)
+        items = await self.media.list(account_id, slug, in_use=in_use, kind=kind)
+        # La limite technique porte sur toute la bibliothèque du site, tous types confondus.
+        return {"media": items, "total": await self.media.count(account_id, slug), "limit": MEDIA_LIMIT}
+
+    async def upload_media(self, account, slug: str, *, data: Any, kind: str, alt: Any, capabilities, author_id: str) -> Dict[str, Any]:
+        self._require(capabilities, "edit", "guided_edit", "structure_edit")
+        account_id = account["account_id"]
+        await self._load_account(account_id, slug)
+        doc = await self.media.upload(account_id, slug, data=data, kind=kind, alt=alt, author_id=author_id)
+        in_use = await self.media_in_use(account_id, slug)
+        return self.media.public_item(doc, in_use=doc["_id"] in in_use)
+
+    async def update_media_alt(self, account, slug: str, media_id: str, *, alt: Any, capabilities) -> Dict[str, Any]:
+        self._require(capabilities, "edit", "guided_edit", "structure_edit")
+        account_id = account["account_id"]
+        doc = await self.media.update_alt(account_id, slug, media_id, alt)
+        in_use = await self.media_in_use(account_id, slug)
+        return self.media.public_item(doc, in_use=media_id in in_use)
+
+    async def delete_media(self, account, slug: str, media_id: str, *, capabilities) -> Dict[str, Any]:
+        self._require(capabilities, "edit", "guided_edit", "structure_edit")
+        account_id = account["account_id"]
+        await self.media.delete(account_id, slug, media_id, in_use=await self.media_in_use(account_id, slug))
+        return {"deleted": True}

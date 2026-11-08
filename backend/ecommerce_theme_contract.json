@@ -17,7 +17,7 @@
   "page_kinds": ["home", "catalog", "contact", "custom"],
   "global_settings": {
     "brand_color": { "type": "color", "nullable": true, "label": "Couleur de marque", "hint": "Couleur des boutons principaux, des badges, des filtres actifs et des accents du site." },
-    "logo_asset_id": { "type": "media_id", "nullable": true, "label": "Logo", "hint": "Image affichée dans l'en-tête du site." }
+    "logo_asset_id": { "type": "media_id", "nullable": true, "media_kind": "logo", "label": "Logo", "hint": "Image affichée dans l'en-tête du site. Une image carrée donne le meilleur rendu." }
   },
   "sections": {
     "legacy-storefront": {

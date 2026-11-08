@@ -14,6 +14,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
+from ecommerce_media import parse_media_url
 from enterprise_access import normalize_plan
 
 CONTRACT_PATH = Path(__file__).resolve().parent / "ecommerce_theme_contract.json"
@@ -434,6 +435,7 @@ LEGACY_SECTION_FIELDS = {
     "welcome_message": "ecommerce_welcome_message",
 }
 LEGACY_ACCOUNT_FIELDS = tuple(LEGACY_GLOBAL_FIELDS.values()) + tuple(LEGACY_SECTION_FIELDS.values())
+LEGACY_LOGO_FIELD = "ecommerce_logo_url"
 
 
 def build_legacy_theme_document(account_doc: Mapping[str, Any]) -> Dict[str, Any]:
@@ -447,7 +449,9 @@ def build_legacy_theme_document(account_doc: Mapping[str, Any]) -> Dict[str, Any
     template_page = model["pages"][0]
     template_section = template_page["sections"][0]
     settings = {key: account_doc[field] for key, field in LEGACY_SECTION_FIELDS.items() if field in account_doc}
-    global_settings: Dict[str, Any] = {"logo_asset_id": None}
+    # Seul un logo de la bibliothèque Stockman est représenté ; une adresse externe historique reste
+    # affichée par le site, sans être reprise ni effacée par le document.
+    global_settings: Dict[str, Any] = {"logo_asset_id": parse_media_url(account_doc.get(LEGACY_LOGO_FIELD))}
     for key, field in LEGACY_GLOBAL_FIELDS.items():
         if field in account_doc:
             global_settings[key] = account_doc[field]
@@ -486,19 +490,19 @@ def legacy_account_values(document: Mapping[str, Any]) -> Dict[str, Any]:
 
 
 def iter_media_values(document: Mapping[str, Any], contract: Mapping[str, Any] = CONTRACT):
-    """Parcourt les réglages de type média d'un document validé : (chemin, valeur)."""
+    """Parcourt les réglages de type média d'un document validé : (chemin, valeur, spécification)."""
     for key, spec in contract["global_settings"].items():
         if spec["type"] == "media_id" and key in document.get("global_settings", {}):
-            yield f"$.global_settings.{key}", document["global_settings"][key]
+            yield f"$.global_settings.{key}", document["global_settings"][key], spec
     for page_index, page in enumerate(document.get("pages", [])):
         for section_index, section in enumerate(page.get("sections", [])):
             section_spec = contract["sections"].get(section.get("type"), {})
             section_path = f"$.pages[{page_index}].sections[{section_index}]"
             for key, spec in section_spec.get("settings", {}).items():
                 if spec["type"] == "media_id" and key in section.get("settings", {}):
-                    yield f"{section_path}.settings.{key}", section["settings"][key]
+                    yield f"{section_path}.settings.{key}", section["settings"][key], spec
             for block_index, block in enumerate(section.get("blocks", [])):
                 block_spec = section_spec.get("blocks", {}).get(block.get("type"), {})
                 for key, spec in block_spec.get("settings", {}).items():
                     if spec["type"] == "media_id" and key in block.get("settings", {}):
-                        yield f"{section_path}.blocks[{block_index}].settings.{key}", block["settings"][key]
+                        yield f"{section_path}.blocks[{block_index}].settings.{key}", block["settings"][key], spec

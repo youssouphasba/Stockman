@@ -248,7 +248,7 @@ function buildOfflineMutationResponse<T>(endpoint: string, method: string, body:
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   if (endpoint.startsWith('/ecommerce/site/onboarding')) return rawRequest<T>(endpoint, options);
   // Apparence du site : jamais de cache ni de file hors ligne pour un brouillon ou une publication.
-  if (endpoint.startsWith('/ecommerce/site/theme')) return rawRequest<T>(endpoint, options);
+  if (endpoint.startsWith('/ecommerce/site/theme') || endpoint.startsWith('/ecommerce/site/media')) return rawRequest<T>(endpoint, options);
   const { method = 'GET', body, headers = {} } = options;
   const online = isOnline();
 
@@ -908,6 +908,13 @@ export const ecommerce = {
     request<import('../utils/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/publish', { method: 'POST', body: data }),
   createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' }) =>
     request<import('../utils/ecommerceAppearance').ThemePreview>('/ecommerce/site/theme/preview', { method: 'POST', body: data }),
+  listMedia: (kind?: 'logo' | 'image') => request<{ media: import('../utils/ecommerceAppearance').ThemeMediaItem[]; total: number; limit: number }>(`/ecommerce/site/media${kind ? `?kind=${kind}` : ''}`),
+  uploadMedia: (data: { site_slug: string; kind: 'logo' | 'image'; data: string; alt?: string }) =>
+    request<import('../utils/ecommerceAppearance').ThemeMediaItem>('/ecommerce/site/media', { method: 'POST', body: data }),
+  updateMediaAlt: (mediaId: string, data: { site_slug: string; alt: string }) =>
+    request<import('../utils/ecommerceAppearance').ThemeMediaItem>(`/ecommerce/site/media/${encodeURIComponent(mediaId)}/alt`, { method: 'POST', body: data }),
+  deleteMedia: (mediaId: string, data: { site_slug: string }) =>
+    request<{ deleted: boolean }>(`/ecommerce/site/media/${encodeURIComponent(mediaId)}/delete`, { method: 'POST', body: data }),
   getSite: () =>
     request<EcommerceSite>('/ecommerce/site'),
   updateSite: (data: EcommerceSiteUpdate) =>
