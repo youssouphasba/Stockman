@@ -16,7 +16,7 @@ function isCustomStorefrontHost(host: string) {
 
 async function fetchPublicShopByDomain(host: string) {
   const response = await fetch(`${API_BASE_URL}/api/public/ecommerce/by-domain?domain=${encodeURIComponent(host)}`, {
-    next: { revalidate: 300 },
+    next: { revalidate: 60 },
   });
   if (!response.ok) return null;
   return response.json();
@@ -90,7 +90,7 @@ export default async function Page() {
     const payload = await fetchPublicShopByDomain(host).catch(() => null);
     const slug = payload?.site?.slug;
     if (slug) {
-      return <StorefrontClient slug={slug} />;
+      return <StorefrontClient slug={slug} modelId={payload?.site?.model_id} />;
     }
   }
   return <HomeClient />;

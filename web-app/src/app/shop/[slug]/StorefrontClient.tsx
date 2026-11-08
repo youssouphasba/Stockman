@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { resolveEcommerceModel } from '../../../lib/ecommerceThemes';
+import ThemeStorefront from '../../../storefront/ThemeStorefront';
 import { Building2, Grid2X2, Heart, Mail, MapPin, Menu, MessageSquare, Minus, Phone, Plus, Search, Send, ShoppingBag, SlidersHorizontal, Trash2, X } from 'lucide-react';
 
 type PublicProduct = {
@@ -979,7 +980,17 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
   );
 }
 
-const STOREFRONT_RENDERERS = { 'legacy-v1': StockmanBasicStorefront };
+// Modèles à sections : moteur commun ; Basic sert de repli si le site revient à Stockman Basic.
+function SectionStorefront({ slug, previewToken }: { slug: string; previewToken?: string | null }) {
+  return <ThemeStorefront slug={slug} previewToken={previewToken} fallback={<StockmanBasicStorefront slug={slug} previewToken={previewToken} />} />;
+}
+
+const STOREFRONT_RENDERERS = {
+  'legacy-v1': StockmanBasicStorefront,
+  atelier: SectionStorefront,
+  marche: SectionStorefront,
+  vitrine: SectionStorefront,
+};
 
 export default function StorefrontClient({ slug, modelId, previewToken }: { slug: string; modelId?: string | null; previewToken?: string | null }) {
   const model = resolveEcommerceModel(modelId);

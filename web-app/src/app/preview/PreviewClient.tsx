@@ -2,6 +2,8 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import StorefrontClient from '../shop/[slug]/StorefrontClient';
+import ThemeStorefront from '../../storefront/ThemeStorefront';
+import type { StorefrontPayload } from '../../storefront/types';
 
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 
@@ -16,6 +18,25 @@ function PreviewMessage({ title, text }: { title: string; text?: string }) {
       </div>
     </main>
   );
+}
+
+function PreviewRenderer({ token }: { token: string }) {
+  const [payload, setPayload] = useState<StorefrontPayload | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPayload(undefined);
+    fetch('/api/public/ecommerce/preview', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => { if (!cancelled) setPayload(data); })
+      .catch(() => { if (!cancelled) setPayload(null); });
+    return () => { cancelled = true; };
+  }, [token]);
+
+  if (payload === undefined) return <PreviewMessage title="Chargement de l'aperçu..." />;
+  if (payload?.theme) return <ThemeStorefront slug="" previewToken={token} initialPayload={payload} />;
+  // Stockman Basic, ou aperçu expiré : le rendu Basic affiche lui-même le message adapté.
+  return <StorefrontClient key={token} slug="" previewToken={token} />;
 }
 
 export default function PreviewClient() {
@@ -36,7 +57,7 @@ export default function PreviewClient() {
   if (!token) return <PreviewMessage title="Lien d'aperçu incomplet" text="Ouvrez de nouveau l'aperçu depuis Stockman pour obtenir un lien valide." />;
   return (
     <Suspense fallback={<PreviewMessage title="Chargement de l'aperçu..." />}>
-      <StorefrontClient key={token} slug="" previewToken={token} />
+      <PreviewRenderer key={token} token={token} />
     </Suspense>
   );
 }

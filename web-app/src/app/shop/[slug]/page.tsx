@@ -6,8 +6,9 @@ type PageProps = {
 
 async function fetchPublicShop(slug: string) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://stockman-production-149d.up.railway.app';
+  // Une minute de cache : un changement de modèle publié apparaît rapidement, sans surcharger l'API.
   const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/public/ecommerce/${slug}`, {
-    next: { revalidate: 300 },
+    next: { revalidate: 60 },
   });
   if (!response.ok) return null;
   return response.json();
@@ -41,5 +42,6 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function ShopPage({ params }: PageProps) {
   const { slug } = await params;
-  return <StorefrontClient slug={slug} />;
+  const payload = await fetchPublicShop(slug).catch(() => null);
+  return <StorefrontClient slug={slug} modelId={payload?.site?.model_id} />;
 }
