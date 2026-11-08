@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -27,6 +27,7 @@ export default function Modal({
     children,
     maxWidth = 'md'
 }: ModalProps) {
+    const titleId = useId();
     // Close on ESC key
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
@@ -62,14 +63,21 @@ export default function Modal({
             />
 
             {/* Modal Content */}
-            <div className={cn(
-                "relative glass-card w-full shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden flex flex-col",
-                maxWidthClasses[maxWidth]
-            )}>
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                className={cn(
+                    "relative glass-card w-full shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden flex flex-col",
+                    maxWidthClasses[maxWidth]
+                )}
+            >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5">
-                    <h2 className="text-xl font-bold text-white">{title}</h2>
+                    <h2 id={titleId} className="text-xl font-bold text-white">{title}</h2>
                     <button
+                        type="button"
+                        aria-label="Fermer"
                         onClick={onClose}
                         className="p-2 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors"
                     >
