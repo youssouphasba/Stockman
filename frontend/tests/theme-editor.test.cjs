@@ -103,11 +103,13 @@ test('Live preview accepts only same-origin messages from the parent editor', ()
   assert.equal(live.readLivePreviewMessage({ ...valid, data: { ...valid.data, source: 'autre' } }, 'https://app.stockman.pro', parent), null);
   assert.equal(live.readLivePreviewMessage({ ...valid, data: { ...valid.data, document: { model_id: 'x', pages: 'non' } } }, 'https://app.stockman.pro', parent), null);
   assert.equal(live.readLivePreviewMessage({ ...valid, data: { ...valid.data, page: '../admin' } }, 'https://app.stockman.pro', parent).page, 'home');
+  // Une page personnalisée est désignée par son identifiant.
+  assert.equal(live.readLivePreviewMessage({ ...valid, data: { ...valid.data, page: 'page-1' } }, 'https://app.stockman.pro', parent).page, 'page-1');
 });
 
 test('The editor streams its working document and the preview never applies it outside an embedded preview', () => {
   const editor = read('web-app/src/components/EcommerceThemeEditor.tsx');
-  assert.match(editor, /target\.postMessage\(\{ source: LIVE_PREVIEW_SOURCE, document, media: liveMedia, page: page\?\.kind \|\| 'home', selected \}, previewOrigin\)/);
+  assert.match(editor, /target\.postMessage\(\{ source: LIVE_PREVIEW_SOURCE, document, media: liveMedia, page: page\?\.id \|\| 'home', selected \}, previewOrigin\)/);
   assert.match(editor, /event\.origin !== previewOrigin \|\| event\.source !== frame\.current\?\.contentWindow/);
   const storefront = read('web-app/src/storefront/ThemeStorefront.tsx');
   assert.match(storefront, /if \(!preview \|\| window\.parent === window\) return;/);
@@ -148,4 +150,58 @@ test('Site settings, section descriptions and category choices come from the reg
   const doc = s.addSection(marcheDocument(), 'home', 'featured-collection').document;
   const category = s.sectionFields(doc, 'home', 'featured-collection-1').find((field) => field.key === 'category');
   assert.equal(category.source, 'categories');
+});
+
+test('Custom pages get a readable address, a title and a bounded menu placement', () => {
+  const s = loadStructure();
+  let doc = marcheDocument();
+  assert.equal(s.canAddCustomPage(doc), true);
+  assert.equal(s.slugifyPath('À propos de nous !'), 'a-propos-de-nous');
+  assert.equal(s.slugifyPath('Œuvres / Été'), 'oeuvres/ete');
+  assert.equal(s.slugifyPath('  --Livraison--  '), 'livraison');
+  assert.equal(s.slugifyPath('Livraison-', false), 'livraison-');
+  assert.equal(s.slugifyPath('x'.repeat(200)).length, contract.limits.max_path_length);
+  const created = s.addCustomPage(doc, '  Livraison et retours ');
+  doc = created.document;
+  const page = doc.pages.find((item) => item.id === created.id);
+  assert.deepEqual(plain({ kind: page.kind, path: page.path, title: page.title, menu: page.menu }), { kind: 'custom', path: 'livraison-et-retours', title: 'Livraison et retours', menu: 'footer' });
+  // Seul le titre saisi est repris : aucun texte n'est inventé.
+  assert.deepEqual(plain(page.sections.map((section) => [section.type, section.settings])), [['rich-text', { heading: 'Livraison et retours' }]]);
+  assert.equal(s.addCustomPage(doc, 'Livraison et retours').document.pages.at(-1).path, 'livraison-et-retours-2');
+  assert.equal(s.addCustomPage(doc, 'Contact').document.pages.at(-1).path, 'page-contact');
+  assert.throws(() => s.addCustomPage(doc, '   '), /titre/);
+  assert.equal(s.pageLabel(page), 'Livraison et retours');
+  assert.equal(s.pageLabel(doc.pages[0]), 'Accueil');
+  assert.equal(s.pathProblem(doc, created.id, 'livraison-et-retours'), null);
+  assert.match(s.pathProblem(doc, created.id, 'checkout'), /réservée/);
+  assert.match(s.pathProblem(doc, created.id, 'Livraison'), /minuscules/);
+  assert.match(s.pathProblem(doc, created.id, ''), /Indiquez/);
+  doc = s.addCustomPage(doc, 'Aide').document;
+  const help = doc.pages.at(-1);
+  assert.match(s.pathProblem(doc, help.id, 'livraison-et-retours'), /déjà/);
+  doc = s.updateCustomPage(doc, created.id, { title: 'Livraison\nexpress', menu: 'header' });
+  assert.equal(doc.pages.find((item) => item.id === created.id).title, 'Livraison express');
+  assert.equal(s.customPageProblem(doc), null);
+  assert.equal(s.customPageProblem(s.updateCustomPage(doc, help.id, { title: ' ' })).pageId, help.id);
+  // Le menu principal accueille trois pages personnalisées au plus.
+  for (const title of ['Une', 'Deux']) {
+    doc = s.addCustomPage(doc, title).document;
+    doc = s.updateCustomPage(doc, doc.pages.at(-1).id, { menu: 'header' });
+  }
+  assert.equal(s.canUseHeaderMenu(doc, help.id), false);
+  assert.equal(s.canUseHeaderMenu(doc, created.id), true);
+  assert.match(s.customPageProblem(s.updateCustomPage(doc, help.id, { menu: 'header' })).message, /au plus 3/);
+  // Les pages du modèle ne sont ni renommées ni supprimées par ces opérations.
+  assert.equal(s.removeCustomPage(doc, 'home'), doc);
+  assert.equal(s.updateCustomPage(doc, 'home', { title: 'x' }), doc);
+  assert.equal(s.removeCustomPage(doc, created.id).pages.some((item) => item.id === created.id), false);
+  assert.equal(s.canAddCustomPage({ ...doc, model_id: 'legacy-v1' }), false);
+  // Les sections d'une page personnalisée se règlent comme les autres.
+  assert.ok(s.sectionFields(doc, created.id, page.sections[0].id).some((field) => field.key === 'text'));
+  assert.equal(s.isRequiredSection(doc, created.id, page.sections[0].id), false);
+
+  const editor = read('web-app/src/components/EcommerceThemeEditor.tsx');
+  assert.match(editor, /\{canManagePages && canAddCustomPage\(document\) && \(/);
+  assert.match(editor, /const canManagePages = !!server\.capabilities\?\.custom_pages;/);
+  assert.match(editor, /const problem = customPageProblem\(document\);\n\s+if \(problem\) \{/);
 });

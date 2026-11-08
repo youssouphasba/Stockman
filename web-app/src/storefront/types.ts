@@ -40,7 +40,7 @@ export type StorefrontMedia = {
 export type ThemeSettings = Record<string, unknown>;
 export type ThemeBlockData = { id: string; type: string; settings: ThemeSettings };
 export type ThemeSectionData = { id: string; type: string; settings: ThemeSettings; blocks: ThemeBlockData[] };
-export type ThemePageData = { id: string; kind: string; title?: string | null; path?: string; sections: ThemeSectionData[] };
+export type ThemePageData = { id: string; kind: string; title?: string | null; path?: string; menu?: string; sections: ThemeSectionData[] };
 export type ThemeDocumentData = {
     model_id: string;
     model_version: string;
@@ -56,6 +56,9 @@ export type StorefrontPayload = {
 };
 
 export type StorefrontPageKind = 'home' | 'catalog' | 'contact';
+// Page ouverte : une page du modèle, une page personnalisée par son chemin (« /a-propos »), ou une
+// page désignée par son identifiant dans l'aperçu de l'éditeur (« id:page-1 »).
+export type StorefrontRoute = StorefrontPageKind | `/${string}` | `id:${string}`;
 
 export function textSetting(settings: ThemeSettings, key: string): string {
     const value = settings[key];

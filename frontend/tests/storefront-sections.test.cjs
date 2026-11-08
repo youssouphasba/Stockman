@@ -7,6 +7,7 @@ const { test } = require('node:test');
 
 const root = path.resolve(__dirname, '../..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+const plain = (value) => JSON.parse(JSON.stringify(value));
 
 function loadTokens() {
   const exports = {};
@@ -47,7 +48,7 @@ test('The engine keeps commercial calls on the existing public routes and disabl
   assert.match(commerce, /quantity: Math\.min\(previous \+ wanted, Math\.max\(0, product\.quantity\)\)/);
   const storefront = read('web-app/src/storefront/ThemeStorefront.tsx');
   // Dans l'aperçu, le fragment de l'adresse porte le jeton : la navigation ne le remplace jamais.
-  assert.match(storefront, /if \(!preview\) \{\n\s+const hash = PAGE_HASHES\[target\];/);
+  assert.match(storefront, /if \(!preview\) \{\n\s+const hash = hashForRoute\(target\);/);
   assert.match(storefront, /body: JSON\.stringify\(\{ token: previewToken \}\)/);
   assert.doesNotMatch(storefront, /[?&]token=|preview\/\$\{previewToken\}/);
 });
@@ -110,4 +111,55 @@ test('Texts are editable in place only inside the embedded editor preview', () =
   // Les avis affichés sont uniquement ceux saisis par le commerçant.
   const contract = JSON.parse(read('backend/ecommerce_theme_contract.json'));
   assert.match(contract.sections.testimonials.blocks.testimonial.settings.quote.hint, /avis réel/);
+});
+
+function loadRoutes() {
+  const exports = {};
+  const compiled = ts.transpileModule(read('web-app/src/storefront/routes.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  vm.runInNewContext(compiled, { exports });
+  return exports;
+}
+
+test('Custom pages open with #/ and their address, and appear where the merchant placed them', () => {
+  const routes = loadRoutes();
+  // Document technique de test : identifiants et titres neutres, jamais affichés par l'application.
+  const doc = { model_id: 'atelier', model_version: '1.0.0', global_settings: {}, pages: [
+    { id: 'home', kind: 'home', sections: [] }, { id: 'catalog', kind: 'catalog', sections: [] }, { id: 'contact', kind: 'contact', sections: [] },
+    { id: 'page-1', kind: 'custom', path: 'livraison', title: 'Livraison', menu: 'header', sections: [] },
+    { id: 'page-2', kind: 'custom', path: 'aide/retours', title: 'Retours', sections: [] },
+    { id: 'page-3', kind: 'custom', path: 'offre', title: 'Offre', menu: 'hidden', sections: [] },
+  ] };
+  assert.equal(routes.routeFromHash(''), 'home');
+  assert.equal(routes.routeFromHash('#catalogue'), 'catalog');
+  assert.equal(routes.routeFromHash('#contact'), 'contact');
+  assert.equal(routes.routeFromHash('#/aide/retours/'), '/aide/retours');
+  assert.equal(routes.routeFromHash('#/%E0%A4%A'), '/%E0%A4%A');
+  // Le lien « Aller au contenu » ne change pas de page.
+  assert.equal(routes.routeFromHash('#sf-main', '/livraison'), '/livraison');
+  assert.equal(routes.routeFromHash('#sf-main'), 'home');
+  assert.equal(routes.hashForRoute('/livraison'), '#/livraison');
+  assert.equal(routes.hashForRoute('catalog'), '#catalogue');
+  assert.equal(routes.hashForRoute('home'), '');
+  assert.equal(routes.hashForRoute('id:page-1'), '');
+  assert.equal(routes.resolvePage(doc, '/aide/retours').id, 'page-2');
+  assert.equal(routes.resolvePage(doc, '/inconnue'), null);
+  assert.equal(routes.resolvePage(doc, 'id:page-3').id, 'page-3');
+  assert.equal(routes.resolvePage(doc, 'contact').id, 'contact');
+  const nav = routes.siteNavigation(doc);
+  assert.deepEqual(plain(nav.header.map((item) => item.label)), ['Accueil', 'Catalogue', 'Contact', 'Livraison']);
+  assert.deepEqual(plain(nav.footer.map((item) => item.route)), ['home', 'catalog', 'contact', '/livraison', '/aide/retours']);
+  assert.equal(nav.header[3].pageId, 'page-1');
+  assert.equal(routes.documentTitle(doc.pages[3], 'Boutique'), 'Livraison · Boutique');
+  assert.equal(routes.documentTitle(doc.pages[0], 'Boutique'), null);
+  // Même si un document en annonçait davantage, l'en-tête n'affiche que trois pages personnalisées.
+  const crowded = { ...doc, pages: [...doc.pages, ...[4, 5, 6].map((index) => ({ id: `page-${index}`, kind: 'custom', path: `p${index}`, title: `P${index}`, menu: 'header', sections: [] }))] };
+  assert.equal(routes.siteNavigation(crowded).header.length, 3 + routes.MAX_HEADER_PAGES);
+  assert.equal(routes.MAX_HEADER_PAGES, JSON.parse(read('backend/ecommerce_theme_contract.json')).limits.max_header_pages);
+
+  const storefront = read('web-app/src/storefront/ThemeStorefront.tsx');
+  assert.match(storefront, /setRoute\(`id:\$\{message\.page\}`\)/);
+  assert.match(storefront, /Page introuvable/);
+  const layout = read('web-app/src/storefront/layout.tsx');
+  assert.match(layout, /\{items\.map\(\(item\) => \(/);
+  assert.doesNotMatch(layout, /NAVIGATION/);
 });

@@ -1,7 +1,8 @@
 'use client';
 
-// Éditeur visuel Enterprise : structure des pages, réglages complets des sections et des blocs,
-// aperçu privé intégré. Le serveur revalide chaque enregistrement et les droits Enterprise web.
+// Éditeur visuel Enterprise : structure des pages, pages personnalisées, réglages complets des
+// sections et des blocs, aperçu privé intégré. Le serveur revalide chaque enregistrement et les
+// droits Enterprise web.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Eye, Monitor, Paintbrush, Plus, Redo2, Save, Smartphone, Tablet, Trash2, Undo2, X } from 'lucide-react';
 import { ecommerce as ecommerceApi } from '../services/api';
@@ -21,20 +22,35 @@ import {
     type ThemeState,
 } from '../lib/ecommerceAppearance';
 import {
-    PAGE_LABELS,
+    MAX_HEADER_PAGES,
+    MAX_PATH_LENGTH,
+    PAGE_MENUS,
+    PAGE_TITLE_MAX_LENGTH,
     addBlock,
+    addCustomPage,
     addSection,
     addableSections,
     blockTypes,
+    canAddCustomPage,
     canAddSection,
+    canUseHeaderMenu,
+    customPageProblem,
     globalFields,
     isRequiredSection,
     moveBlock,
     moveSection,
+    pageLabel,
+    pageMenu,
+    pathProblem,
+    proposedPath,
     removeBlock,
+    removeCustomPage,
     removeSection,
     sectionFields,
     sectionLabel,
+    slugifyPath,
+    updateCustomPage,
+    type PageMenu,
 } from '../lib/themeStructure';
 import { LIVE_PREVIEW_READY, LIVE_PREVIEW_SELECT, LIVE_PREVIEW_SOURCE, cleanInlineText, readLivePreviewEdit } from '../storefront/livePreview';
 
@@ -58,6 +74,8 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
     const [pageId, setPageId] = useState(() => document.pages.find((page) => page.kind === 'home')?.id || document.pages[0]?.id);
     const [selected, setSelected] = useState<string | null>(null);
     const [adding, setAdding] = useState(false);
+    // Création d'une page personnalisée : seul le titre est demandé, l'adresse en découle.
+    const [newPageTitle, setNewPageTitle] = useState<string | null>(null);
     const [device, setDevice] = useState<Device>('desktop');
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [busy, setBusy] = useState<null | 'save' | 'preview'>(null);
@@ -118,6 +136,14 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
     }, [redo, undo]);
 
     async function save(): Promise<ThemeState | null> {
+        // Mêmes règles que le serveur : le problème est montré sur la page concernée.
+        const problem = customPageProblem(document);
+        if (problem) {
+            setPageId(problem.pageId);
+            setSelected(null);
+            setError(problem.message);
+            return null;
+        }
         setBusy('save');
         setError(null);
         try {
@@ -160,8 +186,8 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
         const target = frame.current?.contentWindow;
         if (!target || !previewOrigin) return;
         const liveMedia = Object.fromEntries(Object.entries({ ...server.media, ...mediaCache }).map(([id, item]) => [id, { alt: item.alt, width: item.width, height: item.height, urls: item.urls }]));
-        target.postMessage({ source: LIVE_PREVIEW_SOURCE, document, media: liveMedia, page: page?.kind || 'home', selected }, previewOrigin);
-    }, [document, mediaCache, page?.kind, previewOrigin, selected, server.media]);
+        target.postMessage({ source: LIVE_PREVIEW_SOURCE, document, media: liveMedia, page: page?.id || 'home', selected }, previewOrigin);
+    }, [document, mediaCache, page?.id, previewOrigin, selected, server.media]);
 
     useEffect(() => {
         const timer = window.setTimeout(sendLive, 120);
@@ -217,6 +243,32 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
         setAdding(false);
     }
 
+    function createPage(event: React.FormEvent) {
+        event.preventDefault();
+        try {
+            const result = addCustomPage(document, newPageTitle || '');
+            apply(result.document);
+            setPageId(result.id);
+            setSelected(null);
+            setNewPageTitle(null);
+            setError(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Impossible d'ajouter la page.");
+        }
+    }
+
+    function editPage(patch: { title?: string; path?: string; menu?: PageMenu }, field: string) {
+        if (page?.kind === 'custom') apply(updateCustomPage(document, page.id, patch), `page:${page.id}:${field}`);
+    }
+
+    function deletePage() {
+        if (page?.kind !== 'custom') return;
+        if (!window.confirm(`Supprimer la page « ${pageLabel(page)} » et ses sections ? Elle peut être rétablie avec « Annuler la dernière action » (Ctrl+Z) tant que l'éditeur reste ouvert.`)) return;
+        apply(removeCustomPage(document, page.id));
+        setPageId(document.pages.find((item) => item.kind === 'home')?.id || document.pages[0]?.id);
+        setSelected(null);
+    }
+
     function applyPreset(presetId: string) {
         const preset = server.presets?.find((item) => item.id === presetId);
         if (!preset) return;
@@ -227,17 +279,27 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
     const media = { ...server.media, ...mediaCache };
     const groups = groupThemeFields(fields);
     const deviceWidth = DEVICES.find((item) => item.id === device)?.width || '100%';
+    const canManagePages = !!server.capabilities?.custom_pages;
+    const pathError = page?.kind === 'custom' ? pathProblem(document, page.id, page.path || '') : null;
+    const headerAvailable = page?.kind === 'custom' ? canUseHeaderMenu(document, page.id) : false;
+    // Lien toujours valable du site sur le domaine de l'application ; un domaine connecté accepte le même #/.
+    const pageLink = page?.kind === 'custom' && page.path && typeof window !== 'undefined' ? `${window.location.origin}/shop/${server.site_slug}#/${page.path}` : null;
 
     return (
         <div className="fixed inset-0 z-50 flex flex-col bg-[#0B1220] text-white" role="dialog" aria-modal="true" aria-label="Éditeur visuel du site">
             <header className="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-3">
                 <p className="text-sm font-black">Éditeur visuel · {server.model.name}</p>
-                <nav aria-label="Pages du site" className="flex gap-1">
+                <nav aria-label="Pages du site" className="flex min-w-0 max-w-full gap-1 overflow-x-auto">
                     {document.pages.map((item) => (
-                        <button key={item.id} type="button" aria-current={item.id === page?.id ? 'page' : undefined} onClick={() => { setPageId(item.id); setSelected(null); }} className={`rounded-xl px-3 py-2 text-sm font-bold ${item.id === page?.id ? 'bg-primary/20 text-white' : 'text-slate-400 hover:text-white'}`}>
-                            {PAGE_LABELS[item.kind] || item.title || 'Page'}
+                        <button key={item.id} type="button" aria-current={item.id === page?.id ? 'page' : undefined} title={pageLabel(item)} onClick={() => { setPageId(item.id); setSelected(null); }} className={`max-w-[12rem] shrink-0 truncate rounded-xl px-3 py-2 text-sm font-bold ${item.id === page?.id ? 'bg-primary/20 text-white' : 'text-slate-400 hover:text-white'}`}>
+                            {pageLabel(item)}
                         </button>
                     ))}
+                    {canManagePages && canAddCustomPage(document) && (
+                        <button type="button" className={`${button} shrink-0`} aria-expanded={newPageTitle !== null} aria-label="Ajouter une page personnalisée" title="Ajouter une page personnalisée" onClick={() => setNewPageTitle((value) => (value === null ? '' : null))}>
+                            <Plus size={16} />Page
+                        </button>
+                    )}
                 </nav>
                 <div className="flex gap-1">
                     <button type="button" className={iconButton} onClick={undo} disabled={!past.length} aria-label="Annuler la dernière action" title="Annuler (Ctrl+Z)"><Undo2 size={16} /></button>
@@ -255,11 +317,80 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                     <button type="button" className={iconButton} onClick={close} aria-label="Fermer l'éditeur"><X size={16} /></button>
                 </div>
             </header>
+            {newPageTitle !== null && (
+                <form onSubmit={createPage} aria-label="Nouvelle page" className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-white/[0.03] px-4 py-3">
+                    <label htmlFor="editor-new-page" className="text-sm font-bold">Titre de la nouvelle page</label>
+                    <input
+                        id="editor-new-page"
+                        autoFocus
+                        value={newPageTitle}
+                        maxLength={PAGE_TITLE_MAX_LENGTH}
+                        onChange={(event) => setNewPageTitle(event.target.value)}
+                        placeholder="Titre affiché dans la navigation"
+                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#0F172A] px-3 py-2 text-sm text-white outline-none focus:border-primary/50 sm:max-w-sm"
+                    />
+                    <span className="text-xs text-slate-400">Adresse : #/{newPageTitle.trim() ? proposedPath(document, newPageTitle) : '...'}</span>
+                    <button type="submit" className={button} disabled={!newPageTitle.trim()}>Créer la page</button>
+                    <button type="button" className={button} onClick={() => setNewPageTitle(null)}>Annuler</button>
+                </form>
+            )}
             {(error || notice) && (
                 <p role={error ? 'alert' : 'status'} className={`px-4 py-2 text-sm font-bold ${error ? 'bg-rose-500/10 text-rose-300' : 'bg-emerald-500/10 text-white'}`}>{error || notice}</p>
             )}
             <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[280px_1fr_360px]">
                 <aside className="min-h-0 overflow-y-auto border-r border-white/10 p-4" aria-label="Sections de la page">
+                    {page?.kind === 'custom' && (
+                        <fieldset className="mb-4 space-y-3 rounded-xl border border-white/10 p-3" disabled={!canManagePages}>
+                            <legend className="px-1 text-sm font-black">Page personnalisée</legend>
+                            <label className="flex flex-col gap-1 text-xs font-bold text-slate-400">
+                                Titre
+                                <input
+                                    value={page.title || ''}
+                                    maxLength={PAGE_TITLE_MAX_LENGTH}
+                                    onChange={(event) => editPage({ title: event.target.value }, 'title')}
+                                    className="rounded-xl border border-white/10 bg-[#0F172A] px-3 py-2 text-sm font-normal text-white outline-none focus:border-primary/50"
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1 text-xs font-bold text-slate-400">
+                                Adresse
+                                <span className="flex items-center rounded-xl border border-white/10 bg-[#0F172A] focus-within:border-primary/50">
+                                    <span className="pl-3 text-sm font-normal text-slate-500" aria-hidden="true">#/</span>
+                                    <input
+                                        value={page.path || ''}
+                                        maxLength={MAX_PATH_LENGTH}
+                                        spellCheck={false}
+                                        aria-invalid={!!pathError}
+                                        aria-describedby="editor-page-path-help"
+                                        onChange={(event) => editPage({ path: slugifyPath(event.target.value, false) }, 'path')}
+                                        onBlur={() => {
+                                            const strict = slugifyPath(page.path || '');
+                                            if (strict !== page.path) editPage({ path: strict }, 'path');
+                                        }}
+                                        className="min-w-0 flex-1 bg-transparent px-1 py-2 font-mono text-sm font-normal text-white outline-none"
+                                    />
+                                </span>
+                            </label>
+                            <p id="editor-page-path-help" className={`text-xs leading-5 [overflow-wrap:anywhere] ${pathError ? 'text-rose-300' : 'text-slate-500'}`}>
+                                {pathError || (pageLink ? `Lien de la page : ${pageLink}. Sur un domaine connecté, ajoutez #/${page.path} à son adresse.` : null)}
+                            </p>
+                            <label className="flex flex-col gap-1 text-xs font-bold text-slate-400">
+                                Navigation
+                                <select
+                                    value={pageMenu(page)}
+                                    onChange={(event) => editPage({ menu: event.target.value as PageMenu }, 'menu')}
+                                    className="rounded-xl border border-white/10 bg-[#0F172A] px-3 py-2 text-sm font-normal text-white"
+                                >
+                                    {PAGE_MENUS.map((option) => (
+                                        <option key={option.value} value={option.value} disabled={option.value === 'header' && !headerAvailable && pageMenu(page) !== 'header'}>{option.label}</option>
+                                    ))}
+                                </select>
+                            </label>
+                            {!headerAvailable && pageMenu(page) !== 'header' && (
+                                <p className="text-xs leading-5 text-slate-500">Le menu principal accueille déjà {MAX_HEADER_PAGES} pages personnalisées.</p>
+                            )}
+                            <button type="button" className={`${button} w-full`} onClick={deletePage}><Trash2 size={16} />Supprimer la page</button>
+                        </fieldset>
+                    )}
                     <button type="button" onClick={() => setSelected(null)} aria-pressed={!section} className={`mb-4 flex w-full items-center gap-2 rounded-xl border p-3 text-left text-sm font-bold ${!section ? 'border-primary bg-primary/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}>
                         <Paintbrush size={16} aria-hidden="true" />Réglages du site
                         <span className="ml-auto text-xs font-normal text-slate-400">Styles, couleurs, en-tête</span>

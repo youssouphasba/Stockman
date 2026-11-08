@@ -1,5 +1,5 @@
 {
-  "contract_version": 3,
+  "contract_version": 4,
   "schema_version": 1,
   "limits": {
     "max_document_bytes": 262144,
@@ -7,14 +7,17 @@
     "max_sections_per_page": 60,
     "max_blocks_per_section": 60,
     "max_id_length": 64,
-    "max_path_length": 80
+    "max_path_length": 80,
+    "max_header_pages": 3
   },
   "reserved_paths": [
-    "_next", "__", "account", "admin", "api", "assets", "auth", "cart", "checkout",
-    "favicon.ico", "login", "logout", "orders", "panier", "preview", "register",
-    "robots.txt", "settings", "shop", "signup", "sitemap.xml", "static"
+    "_next", "__", "account", "admin", "api", "assets", "auth", "cart", "catalog",
+    "catalogue", "checkout", "contact", "favicon.ico", "features", "login", "logout",
+    "orders", "panier", "pay", "preview", "pricing", "privacy", "register",
+    "robots.txt", "settings", "shop", "signup", "sitemap.xml", "static", "terms"
   ],
   "page_kinds": ["home", "catalog", "contact", "custom"],
+  "page_menus": ["header", "footer", "hidden"],
   "global_groups": {
     "identity": "Identité",
     "style": "Style",

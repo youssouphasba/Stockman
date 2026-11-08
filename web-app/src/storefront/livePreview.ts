@@ -1,6 +1,6 @@
 // Aperçu en direct de l'éditeur visuel : l'éditeur (même origine, fenêtre parente) envoie le
 // document en cours de modification ; l'aperçu l'affiche sans rien enregistrer ni publier.
-import type { StorefrontMedia, StorefrontPageKind, ThemeDocumentData } from './types';
+import type { StorefrontMedia, ThemeDocumentData } from './types';
 
 export const LIVE_PREVIEW_SOURCE = 'stockman-theme-editor';
 export const LIVE_PREVIEW_READY = 'stockman-preview-ready';
@@ -12,11 +12,12 @@ export type LivePreviewMessage = {
     source: typeof LIVE_PREVIEW_SOURCE;
     document: ThemeDocumentData;
     media: Record<string, StorefrontMedia>;
-    page: StorefrontPageKind;
+    // Identifiant de la page ouverte dans l'éditeur (pages du modèle et pages personnalisées).
+    page: string;
     selected: string | null;
 };
 
-const PAGES: StorefrontPageKind[] = ['home', 'catalog', 'contact'];
+const PAGE_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
 // Seuls des messages de la fenêtre parente, de la même origine et au schéma attendu sont acceptés.
 export function readLivePreviewMessage(event: MessageEvent, expectedOrigin: string, parent: Window | null): LivePreviewMessage | null {
@@ -30,7 +31,7 @@ export function readLivePreviewMessage(event: MessageEvent, expectedOrigin: stri
         source: LIVE_PREVIEW_SOURCE,
         document,
         media: data.media && typeof data.media === 'object' ? data.media : {},
-        page: PAGES.includes(data.page as StorefrontPageKind) ? (data.page as StorefrontPageKind) : 'home',
+        page: typeof data.page === 'string' && PAGE_ID.test(data.page) ? data.page : 'home',
         selected: typeof data.selected === 'string' ? data.selected : null,
     };
 }

@@ -47,7 +47,7 @@ export type ThemeMediaItem = {
 };
 
 export type ThemeSectionDocument = { id: string; type: string; type_version: number; settings: Record<string, unknown>; blocks: unknown[] };
-export type ThemePageDocument = { id: string; kind: string; path?: string; title?: string | null; sections: ThemeSectionDocument[] };
+export type ThemePageDocument = { id: string; kind: string; path?: string; title?: string | null; menu?: string; sections: ThemeSectionDocument[] };
 export type ThemeDocument = {
   schema_version: number;
   model_id: string;

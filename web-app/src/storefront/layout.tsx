@@ -3,13 +3,8 @@
 /* eslint-disable @next/next/no-img-element -- les médias sont déjà optimisés par Stockman. */
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronRight, Mail, MapPin, Menu, Phone, Search, ShoppingBag, X } from 'lucide-react';
-import { booleanSetting, enumSetting, textSetting, type StorefrontPageKind, type StorefrontSite, type ThemeSettings } from './types';
-
-export const NAVIGATION: Array<{ page: StorefrontPageKind; label: string }> = [
-    { page: 'home', label: 'Accueil' },
-    { page: 'catalog', label: 'Catalogue' },
-    { page: 'contact', label: 'Contact' },
-];
+import type { NavigationItem } from './routes';
+import { booleanSetting, enumSetting, textSetting, type StorefrontPageKind, type StorefrontRoute, type StorefrontSite, type ThemeSettings } from './types';
 
 export function siteDisplayName(settings: ThemeSettings, site: StorefrontSite) {
     return textSetting(settings, 'site_name') || site.name;
@@ -68,13 +63,15 @@ function useHeaderScroll() {
     return state;
 }
 
-export function Header({ settings, site, logoUrl, page, cartCount, onNavigate, onSearch, onOpenCart }: {
+export function Header({ settings, site, logoUrl, items, currentPageId, cartCount, onNavigate, onSearch, onOpenCart }: {
     settings: ThemeSettings;
     site: StorefrontSite;
     logoUrl?: string | null;
-    page: StorefrontPageKind;
+    // Pages du modèle puis pages personnalisées placées dans le menu principal.
+    items: NavigationItem[];
+    currentPageId: string | null;
     cartCount: number;
-    onNavigate: (page: StorefrontPageKind) => void;
+    onNavigate: (route: StorefrontRoute) => void;
     onSearch: (query: string) => void;
     onOpenCart: () => void;
 }) {
@@ -97,16 +94,18 @@ export function Header({ settings, site, logoUrl, page, cartCount, onNavigate, o
     const centered = enumSetting(settings, 'header_layout', ['logo-left', 'logo-center'] as const, 'logo-left') === 'logo-center';
     const showSearch = booleanSetting(settings, 'show_search', true);
     const name = siteDisplayName(settings, site);
-    const navigate = (target: StorefrontPageKind) => { setMenuOpen(false); onNavigate(target); };
+    const navigate = (target: StorefrontRoute) => { setMenuOpen(false); onNavigate(target); };
+    const isCurrent = (item: NavigationItem) => item.pageId !== null && item.pageId === currentPageId;
     const nav = (
-        <nav aria-label="Navigation principale" className="hidden items-center gap-1 lg:flex">
-            {NAVIGATION.map((item) => (
+        <nav aria-label="Navigation principale" className="hidden min-w-0 items-center gap-1 lg:flex">
+            {items.map((item) => (
                 <button
-                    key={item.page}
+                    key={item.pageId ?? item.route}
                     type="button"
-                    onClick={() => navigate(item.page)}
-                    aria-current={page === item.page ? 'page' : undefined}
-                    className={`rounded-[var(--sf-radius-pill)] px-4 py-2 text-sm font-medium transition ${page === item.page ? 'bg-[var(--sf-surface)] text-[var(--sf-text)]' : 'text-[var(--sf-muted)] hover:text-[var(--sf-text)]'}`}
+                    onClick={() => navigate(item.route)}
+                    aria-current={isCurrent(item) ? 'page' : undefined}
+                    title={item.label}
+                    className={`max-w-[11rem] truncate rounded-[var(--sf-radius-pill)] px-4 py-2 text-sm font-medium transition ${isCurrent(item) ? 'bg-[var(--sf-surface)] text-[var(--sf-text)]' : 'text-[var(--sf-muted)] hover:text-[var(--sf-text)]'}`}
                 >
                     {item.label}
                 </button>
@@ -170,10 +169,10 @@ export function Header({ settings, site, logoUrl, page, cartCount, onNavigate, o
                             </form>
                         )}
                         <nav aria-label="Navigation mobile" className="flex flex-col px-3 pt-4">
-                            {NAVIGATION.map((item) => (
-                                <button key={item.page} type="button" onClick={() => navigate(item.page)} aria-current={page === item.page ? 'page' : undefined} className={`flex min-h-14 items-center justify-between rounded-[var(--sf-radius)] px-3 text-left text-xl font-semibold [font-family:var(--sf-font-heading)] ${page === item.page ? 'bg-[var(--sf-surface)]' : 'hover:bg-[var(--sf-surface)]'}`}>
-                                    {item.label}
-                                    <ChevronRight className="h-5 w-5 text-[var(--sf-muted)]" aria-hidden="true" />
+                            {items.map((item) => (
+                                <button key={item.pageId ?? item.route} type="button" onClick={() => navigate(item.route)} aria-current={isCurrent(item) ? 'page' : undefined} className={`flex min-h-14 items-center justify-between gap-3 rounded-[var(--sf-radius)] px-3 text-left text-xl font-semibold [font-family:var(--sf-font-heading)] ${isCurrent(item) ? 'bg-[var(--sf-surface)]' : 'hover:bg-[var(--sf-surface)]'}`}>
+                                    <span className="min-w-0 break-words">{item.label}</span>
+                                    <ChevronRight className="h-5 w-5 shrink-0 text-[var(--sf-muted)]" aria-hidden="true" />
                                 </button>
                             ))}
                         </nav>
@@ -191,7 +190,7 @@ export function Header({ settings, site, logoUrl, page, cartCount, onNavigate, o
     );
 }
 
-export function Footer({ settings, site, onNavigate }: { settings: ThemeSettings; site: StorefrontSite; onNavigate: (page: StorefrontPageKind) => void }) {
+export function Footer({ settings, site, items, onNavigate }: { settings: ThemeSettings; site: StorefrontSite; items: NavigationItem[]; onNavigate: (route: StorefrontRoute) => void }) {
     const text = textSetting(settings, 'footer_text');
     const name = siteDisplayName(settings, site);
     return (
@@ -204,8 +203,8 @@ export function Footer({ settings, site, onNavigate }: { settings: ThemeSettings
                 <nav aria-label="Pied de page">
                     <p className="text-sm font-semibold">Navigation</p>
                     <ul className="mt-3 space-y-2">
-                        {NAVIGATION.map((item) => (
-                            <li key={item.page}><button type="button" onClick={() => onNavigate(item.page)} className="text-sm text-[var(--sf-muted)] hover:text-[var(--sf-text)]">{item.label}</button></li>
+                        {items.map((item) => (
+                            <li key={item.pageId ?? item.route}><button type="button" onClick={() => onNavigate(item.route)} className="break-words text-left text-sm text-[var(--sf-muted)] hover:text-[var(--sf-text)]">{item.label}</button></li>
                         ))}
                     </ul>
                 </nav>

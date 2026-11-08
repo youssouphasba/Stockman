@@ -4,27 +4,21 @@
 // les pages et leurs sections ; le catalogue, le panier et les commandes restent ceux de Stockman.
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './storefront.css';
-import { CartDrawer, CartToast, ProductDialog } from './commerce-ui';
+import { CartDrawer, CartToast, ProductDialog, accentButtonClass } from './commerce-ui';
 import type { InlineEdit } from './editable';
 import { FONT_VARIABLES, fontStyle } from './fonts';
 import { AnnouncementBar, Footer, Header, PreviewBanner, siteDisplayName } from './layout';
 import { renderSection, sectionLabel, type MotionStyle, type SectionContext } from './sections';
 import { buildTokens, FONT_PAIRINGS } from './tokens';
-import { enumSetting, type StorefrontPageKind, type StorefrontPayload, type StorefrontProduct } from './types';
+import { enumSetting, type StorefrontPayload, type StorefrontProduct, type StorefrontRoute } from './types';
 import { useStorefrontCommerce } from './useStorefrontCommerce';
 import { LIVE_PREVIEW_EDIT, LIVE_PREVIEW_READY, LIVE_PREVIEW_SELECT, readLivePreviewMessage } from './livePreview';
+import { documentTitle, hashForRoute, resolvePage, routeFromHash, siteNavigation } from './routes';
 
 const PREVIEW_UNAVAILABLE = "Cet aperçu a expiré ou n'existe pas. Créez-en un nouveau depuis Stockman.";
-const PAGE_HASHES: Record<StorefrontPageKind, string> = { home: '', catalog: '#catalogue', contact: '#contact' };
 const HEADING_SECTIONS = ['hero', 'catalog', 'contact'];
 const MOTION_STYLES = ['none', 'subtle', 'expressive'] as const;
 const TOAST_DURATION = 4000;
-
-function pageFromHash(hash: string): StorefrontPageKind {
-    if (hash.startsWith('#catalogue')) return 'catalog';
-    if (hash.startsWith('#contact')) return 'contact';
-    return 'home';
-}
 
 function StatusScreen({ title, text }: { title: string; text?: string }) {
     return (
@@ -76,7 +70,7 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
     const preview = Boolean(previewToken);
     const [payload, setPayload] = useState<StorefrontPayload | null>(initialPayload || null);
     const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState<StorefrontPageKind>('home');
+    const [route, setRoute] = useState<StorefrontRoute>('home');
     // Aperçu intégré à l'éditeur visuel : section mise en évidence, sélection et textes modifiés sur place.
     const [embedded, setEmbedded] = useState(false);
     const [highlighted, setHighlighted] = useState<string | null>(null);
@@ -109,10 +103,14 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
     // le fragment de l'adresse contient le jeton : la navigation reste en mémoire.
     useEffect(() => {
         if (preview) return;
-        const sync = () => setPage(pageFromHash(window.location.hash));
-        sync();
+        const sync = () => setRoute((current) => routeFromHash(window.location.hash, current));
+        setRoute(routeFromHash(window.location.hash));
         window.addEventListener('hashchange', sync);
-        return () => window.removeEventListener('hashchange', sync);
+        window.addEventListener('popstate', sync);
+        return () => {
+            window.removeEventListener('hashchange', sync);
+            window.removeEventListener('popstate', sync);
+        };
     }, [preview]);
 
     useEffect(() => {
@@ -125,7 +123,7 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
                 ...current,
                 theme: { model_id: message.document.model_id, document: message.document, media: { ...(current.theme?.media || {}), ...message.media } },
             }));
-            setPage(message.page);
+            setRoute(`id:${message.page}`);
             if (message.selected !== localSelection.current) localSelection.current = null;
             setHighlighted(message.selected);
         };
@@ -142,7 +140,7 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
     useEffect(() => {
         if (!embedded || !highlighted || localSelection.current === highlighted) return;
         document.querySelector(`[data-sf-section="${CSS.escape(highlighted)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, [embedded, highlighted, page]);
+    }, [embedded, highlighted, route]);
 
     const selectSection = useCallback((id: string) => {
         localSelection.current = id;
@@ -154,16 +152,16 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
         onEdit: (field: string, value: string) => window.parent.postMessage({ type: LIVE_PREVIEW_EDIT, field, value }, window.location.origin),
     } : null), [embedded]);
 
-    const goTo = useCallback((target: StorefrontPageKind) => {
-        setPage(target);
+    const goTo = useCallback((target: StorefrontRoute) => {
+        setRoute(target);
         if (!preview) {
-            const hash = PAGE_HASHES[target];
+            const hash = hashForRoute(target);
             window.history.pushState(null, '', hash || `${window.location.pathname}${window.location.search}`);
         }
         window.scrollTo({ top: 0 });
     }, [preview]);
 
-    const navigate = useCallback((target: StorefrontPageKind, category?: string | null) => {
+    const navigate = useCallback((target: StorefrontRoute, category?: string | null) => {
         if (target === 'catalog') setCatalogFilter({ query: '', category: category ?? null });
         goTo(target);
     }, [goTo]);
@@ -200,6 +198,15 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
         };
     }, [schemeBackground]);
 
+    // Une page personnalisée donne son titre à l'onglet du navigateur.
+    const tabTitle = payload?.theme ? documentTitle(resolvePage(payload.theme.document, route), siteDisplayName(payload.theme.document.global_settings, payload.site)) : null;
+    useEffect(() => {
+        if (!tabTitle) return undefined;
+        const previous = document.title;
+        document.title = tabTitle;
+        return () => { document.title = previous; };
+    }, [tabTitle]);
+
     // Les sites publiés avant le réglage des animations gardent un rendu immobile tant que rien n'est choisi.
     const motion: MotionStyle = payload?.theme ? enumSetting(payload.theme.document.global_settings, 'animation_style', MOTION_STYLES, 'none') : 'none';
     const revealing = useScrollReveal(root, motion !== 'none');
@@ -215,7 +222,10 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
     const fonts = fontStyle(enumSetting(settings, 'font_pairing', FONT_PAIRINGS, 'modern'));
     const logo = typeof settings.logo_asset_id === 'string' ? media[settings.logo_asset_id] : undefined;
     const logoUrl = logo ? (logo.urls['192'] || Object.values(logo.urls).pop()) : payload.site.logo_url;
-    const currentPage = themeDocument.pages.find((item) => item.kind === page) || themeDocument.pages.find((item) => item.kind === 'home') || themeDocument.pages[0];
+    // Une page personnalisée inconnue (lien ancien ou mal saisi) affiche « Page introuvable ».
+    const currentPage = resolvePage(themeDocument, route)
+        || (route.startsWith('/') ? null : themeDocument.pages.find((item) => item.kind === 'home') || themeDocument.pages[0] || null);
+    const navigation = siteNavigation(themeDocument);
     const context: SectionContext = {
         site: payload.site,
         products: payload.products,
@@ -233,6 +243,7 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
     };
     const name = siteDisplayName(settings, payload.site);
     const firstType = currentPage?.sections[0]?.type;
+    const customTitle = currentPage?.kind === 'custom' && typeof currentPage.title === 'string' ? currentPage.title.trim() : '';
 
     return (
         <div
@@ -244,10 +255,17 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
             <a href="#sf-main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-[var(--sf-bg)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold">Aller au contenu</a>
             {preview && <PreviewBanner expiresAt={payload.preview?.expires_at} siteEnabled={payload.preview?.site_enabled} />}
             <AnnouncementBar settings={settings} onNavigate={navigate} />
-            <Header settings={settings} site={payload.site} logoUrl={logoUrl} page={page} cartCount={commerce.count} onNavigate={navigate} onSearch={search} onOpenCart={() => setCartOpen(true)} />
+            <Header settings={settings} site={payload.site} logoUrl={logoUrl} items={navigation.header} currentPageId={currentPage?.id ?? null} cartCount={commerce.count} onNavigate={navigate} onSearch={search} onOpenCart={() => setCartOpen(true)} />
             <main id="sf-main">
                 <div key={currentPage?.id || 'page'} className="sf-page">
-                    {!HEADING_SECTIONS.includes(firstType || '') && <h1 className="sr-only">{name}</h1>}
+                    {!currentPage && (
+                        <section className="mx-auto max-w-2xl px-4 py-24 text-center sm:px-6">
+                            <h1 className="text-2xl font-semibold tracking-tight [font-family:var(--sf-font-heading)] sm:text-3xl">Page introuvable</h1>
+                            <p className="mt-3 text-sm leading-6 text-[var(--sf-muted)]">Cette page n'existe pas ou n'est plus disponible.</p>
+                            <button type="button" onClick={() => navigate('home')} className={`mt-8 ${accentButtonClass(tokens.accentNeedsOutline)}`}>Retour à l'accueil</button>
+                        </section>
+                    )}
+                    {currentPage && !HEADING_SECTIONS.includes(firstType || '') && <h1 className="sr-only">{customTitle || name}</h1>}
                     {currentPage?.sections.map((section, index) => embedded ? (
                         <div
                             key={section.id}
@@ -267,7 +285,7 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
                     ) : renderSection(section, context, index === 0))}
                 </div>
             </main>
-            <Footer settings={settings} site={payload.site} onNavigate={navigate} />
+            <Footer settings={settings} site={payload.site} items={navigation.footer} onNavigate={navigate} />
             {product && (
                 <ProductDialog
                     product={product}

@@ -8,14 +8,27 @@ type SectionSpec = { type_version: number; label?: string; settings: Record<stri
 type BlockDocument = { id: string; type: string; type_version: number; settings: Record<string, unknown> };
 
 const REGISTRY = contract as unknown as {
-    limits: { max_sections_per_page: number; max_blocks_per_section: number; max_id_length: number };
+    limits: { max_pages: number; max_sections_per_page: number; max_blocks_per_section: number; max_id_length: number; max_path_length: number; max_header_pages: number };
+    reserved_paths: string[];
     global_groups: Record<string, string>;
     global_settings: Record<string, Spec>;
     sections: Record<string, SectionSpec>;
-    models: Record<string, { structure_editable?: boolean; pages: Array<{ kind: string; sections: Array<{ type: string; required?: boolean }> }> }>;
+    models: Record<string, { structure_editable?: boolean; custom_pages?: boolean; pages: Array<{ kind: string; sections: Array<{ type: string; required?: boolean }> }> }>;
 };
 
 export const PAGE_LABELS: Record<string, string> = { home: 'Accueil', catalog: 'Catalogue', contact: 'Contact' };
+// Même borne que le serveur pour le titre d'une page.
+export const PAGE_TITLE_MAX_LENGTH = 120;
+export const MAX_PATH_LENGTH = REGISTRY.limits.max_path_length;
+export const MAX_HEADER_PAGES = REGISTRY.limits.max_header_pages;
+
+export type PageMenu = 'header' | 'footer' | 'hidden';
+export const PAGE_MENUS: Array<{ value: PageMenu; label: string }> = [
+    { value: 'header', label: 'Menu principal et pied de page' },
+    { value: 'footer', label: 'Pied de page uniquement' },
+    { value: 'hidden', label: 'Lien direct uniquement' },
+];
+const PATH_SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 // Description courte de chaque section, affichée dans la liste « Ajouter une section ».
 export const SECTION_DESCRIPTIONS: Record<string, string> = {
@@ -82,6 +95,112 @@ function findPage(document: ThemeDocument, pageId: string): ThemePageDocument {
     const page = document.pages.find((item) => item.id === pageId);
     if (!page) throw new Error(`Page inconnue : ${pageId}`);
     return page;
+}
+
+// --- Pages personnalisées ---------------------------------------------------
+
+export function pageLabel(page: ThemePageDocument) {
+    return PAGE_LABELS[page.kind] || page.title?.trim() || 'Page sans titre';
+}
+
+export function pageMenu(page: ThemePageDocument): PageMenu {
+    return page.menu === 'header' || page.menu === 'hidden' ? page.menu : 'footer';
+}
+
+export function canAddCustomPage(document: ThemeDocument) {
+    return !!REGISTRY.models[document.model_id]?.custom_pages && document.pages.length < REGISTRY.limits.max_pages;
+}
+
+// Adresse lisible tirée d'un texte : minuscules sans accents, mots séparés par des tirets.
+// Pendant la saisie (« strict » à false), un tiret ou une barre finale reste possible.
+export function slugifyPath(text: string, strict = true): string {
+    let value = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+        .replace(/œ/g, 'oe').replace(/æ/g, 'ae').replace(/ß/g, 'ss')
+        .replace(/[^a-z0-9/]+/g, '-').replace(/-{2,}/g, '-').replace(/\/{2,}/g, '/')
+        .replace(/(^|\/)-+/g, '$1').replace(/^\/+/, '');
+    if (strict) value = value.split('/').map((segment) => segment.replace(/-+$/, '')).filter(Boolean).join('/');
+    value = value.slice(0, MAX_PATH_LENGTH);
+    return strict ? value.replace(/[-/]+$/, '') : value;
+}
+
+// Mêmes règles que le serveur ; le message explique comment corriger l'adresse.
+export function pathProblem(document: ThemeDocument, pageId: string, path: string): string | null {
+    if (!path) return 'Indiquez une adresse pour la page.';
+    if (path.length > MAX_PATH_LENGTH) return `L'adresse est limitée à ${MAX_PATH_LENGTH} caractères.`;
+    const segments = path.split('/');
+    if (!segments.every((segment) => PATH_SEGMENT.test(segment))) return 'Utilisez des lettres minuscules sans accent, des chiffres et des tirets.';
+    if (REGISTRY.reserved_paths.includes(segments[0])) return 'Cette adresse est réservée par Stockman. Choisissez-en une autre.';
+    if (document.pages.some((item) => item.id !== pageId && item.kind === 'custom' && item.path === path)) return 'Une autre page utilise déjà cette adresse.';
+    return null;
+}
+
+// Premier problème qui empêcherait l'enregistrement des pages personnalisées, s'il y en a un.
+export function customPageProblem(document: ThemeDocument): { pageId: string; message: string } | null {
+    const custom = document.pages.filter((page) => page.kind === 'custom');
+    for (const page of custom) {
+        if (!page.title?.trim()) return { pageId: page.id, message: 'Donnez un titre à chaque page personnalisée.' };
+        const problem = pathProblem(document, page.id, page.path || '');
+        if (problem) return { pageId: page.id, message: `${page.title.trim()} : ${problem}` };
+    }
+    const header = custom.filter((page) => page.menu === 'header');
+    if (header.length > MAX_HEADER_PAGES) return { pageId: header[MAX_HEADER_PAGES].id, message: `Le menu principal accueille au plus ${MAX_HEADER_PAGES} pages personnalisées.` };
+    return null;
+}
+
+// Le menu principal peut-il encore accueillir cette page ?
+export function canUseHeaderMenu(document: ThemeDocument, pageId: string) {
+    const others = document.pages.filter((page) => page.kind === 'custom' && page.id !== pageId && page.menu === 'header').length;
+    return others < MAX_HEADER_PAGES;
+}
+
+// Adresse qui sera donnée à une nouvelle page portant ce titre : libre et non réservée.
+export function proposedPath(document: ThemeDocument, title: string) {
+    return freePath(document, slugifyPath(title));
+}
+
+function freePath(document: ThemeDocument, wanted: string) {
+    let base = wanted || 'page';
+    if (REGISTRY.reserved_paths.includes(base.split('/')[0])) base = `page-${base}`;
+    let candidate = base.slice(0, MAX_PATH_LENGTH);
+    for (let index = 2; document.pages.some((page) => page.kind === 'custom' && page.path === candidate); index += 1) {
+        const suffix = `-${index}`;
+        candidate = `${base.slice(0, MAX_PATH_LENGTH - suffix.length).replace(/[-/]+$/, '')}${suffix}`;
+    }
+    return candidate;
+}
+
+// Nouvelle page : son adresse vient du titre et un bloc de texte reprend ce titre, rien d'autre.
+export function addCustomPage(document: ThemeDocument, title: string): { document: ThemeDocument; id: string } {
+    const clean = title.replace(/\s+/g, ' ').trim().slice(0, PAGE_TITLE_MAX_LENGTH);
+    if (!clean) throw new Error('Donnez un titre à la page.');
+    if (!canAddCustomPage(document)) throw new Error('Le site compte déjà le nombre maximal de pages.');
+    const next = clone(document);
+    const id = uniqueId(next, 'page');
+    const page: ThemePageDocument = { id, kind: 'custom', path: proposedPath(next, clean), title: clean, menu: 'footer', sections: [] };
+    next.pages.push(page);
+    const spec = REGISTRY.sections['rich-text'];
+    if (spec) {
+        page.sections.push({ id: uniqueId(next, 'rich-text'), type: 'rich-text', type_version: spec.type_version, settings: { heading: clean.slice(0, spec.settings.heading?.max_length || clean.length) }, blocks: [] });
+    }
+    return { document: next, id };
+}
+
+export function updateCustomPage(document: ThemeDocument, pageId: string, patch: { title?: string; path?: string; menu?: PageMenu }): ThemeDocument {
+    const current = findPage(document, pageId);
+    if (current.kind !== 'custom') return document;
+    const next = clone(document);
+    const page = findPage(next, pageId);
+    if (patch.title !== undefined) page.title = patch.title.replace(/[\r\n]+/g, ' ').slice(0, PAGE_TITLE_MAX_LENGTH);
+    if (patch.path !== undefined) page.path = patch.path.slice(0, MAX_PATH_LENGTH);
+    if (patch.menu !== undefined) page.menu = patch.menu;
+    return next;
+}
+
+export function removeCustomPage(document: ThemeDocument, pageId: string): ThemeDocument {
+    if (document.pages.find((page) => page.id === pageId)?.kind !== 'custom') return document;
+    const next = clone(document);
+    next.pages = next.pages.filter((page) => page.id !== pageId);
+    return next;
 }
 
 // Une section indispensable du modèle (catalogue, contact) ne peut pas disparaître de sa page.

@@ -239,6 +239,33 @@ class ValidatorTests(unittest.TestCase):
         expect_error(self, "invalid_value", validate_theme_document, with_block, contract)
 
 
+    def test_custom_pages_need_a_title_and_a_bounded_menu(self):
+        contract = technical_contract()
+        custom = {"id": "about", "kind": "custom", "path": "a-propos", "title": "À propos", "sections": []}
+
+        def with_pages(*pages):
+            document = editable_document()
+            document["pages"].extend(copy.deepcopy(list(pages)))
+            return document
+
+        validate_theme_document(with_pages(custom | {"menu": "hidden"}), contract)
+        for title in (None, "", "   "):
+            expect_error(self, "missing_title", validate_theme_document, with_pages(custom | {"title": title}), contract)
+        expect_error(self, "missing_title", validate_theme_document, with_pages({key: value for key, value in custom.items() if key != "title"}), contract)
+        expect_error(self, "invalid_value", validate_theme_document, with_pages(custom | {"menu": "sidebar"}), contract)
+        expect_error(self, "invalid_value", validate_theme_document, with_pages(custom | {"menu": None}), contract)
+        home_with_menu = editable_document()
+        home_with_menu["pages"][0]["menu"] = "header"
+        expect_error(self, "unexpected_menu", validate_theme_document, home_with_menu, contract)
+        limit = contract["limits"]["max_header_pages"]
+        header_pages = [custom | {"id": f"page-{index}", "path": f"page-{index}", "menu": "header"} for index in range(limit + 1)]
+        validate_theme_document(with_pages(*header_pages[:limit]), contract)
+        expect_error(self, "too_many_header_pages", validate_theme_document, with_pages(*header_pages), contract)
+        # Aucune page personnalisée n'imite une page du modèle ou une page de l'application.
+        for path in ("contact", "catalogue", "pricing"):
+            expect_error(self, "reserved_path", validate_theme_document, with_pages(custom | {"path": path}), contract)
+
+
 class ChangeControlTests(unittest.TestCase):
     def test_guided_channel_only_changes_guided_points(self):
         base = build_legacy_theme_document({"ecommerce_hero_title": "Avant"})
@@ -266,7 +293,7 @@ class ChangeControlTests(unittest.TestCase):
         contract = technical_contract()
         base = editable_document()
         structural = copy.deepcopy(base)
-        structural["pages"].append({"id": "about", "kind": "custom", "path": "a-propos", "sections": []})
+        structural["pages"].append({"id": "about", "kind": "custom", "path": "a-propos", "title": "À propos", "sections": []})
         pro_mobile = compute_theme_capabilities(plan="pro", is_org_admin=True, is_demo=False, can_write_data=True, surface="mobile")
         pro_web = compute_theme_capabilities(plan="pro", is_org_admin=True, is_demo=False, can_write_data=True, surface="web")
         enterprise_web = compute_theme_capabilities(plan="enterprise", is_org_admin=True, is_demo=False, can_write_data=True, surface="web")
@@ -277,6 +304,34 @@ class ChangeControlTests(unittest.TestCase):
         # Premier document : un canal guidé doit partir de la structure du modèle.
         self.assertEqual(authorize_theme_change(pro_mobile, None, base, contract), base)
         expect_error(self, "guided_change_forbidden", authorize_theme_change, pro_mobile, None, structural, contract)
+
+    def test_custom_pages_need_their_own_capability_while_their_texts_stay_guided(self):
+        contract = technical_contract()
+        base = editable_document()
+        base["pages"].append({"id": "about", "kind": "custom", "path": "a-propos", "title": "À propos", "menu": "footer", "sections": [
+            {"id": "about-text", "type": "test-text", "type_version": 1, "settings": {"heading": "Histoire", "align": "left"}, "blocks": []},
+        ]})
+        pro_mobile = compute_theme_capabilities(plan="pro", is_org_admin=True, is_demo=False, can_write_data=True, surface="mobile")
+        enterprise_web = compute_theme_capabilities(plan="enterprise", is_org_admin=True, is_demo=False, can_write_data=True, surface="web")
+        # Après un passage à Pro, les textes d'une page personnalisée restent modifiables depuis le mobile.
+        texts = copy.deepcopy(base)
+        texts["pages"][1]["sections"][0]["settings"]["heading"] = "Depuis 1998"
+        self.assertEqual(authorize_theme_change(pro_mobile, base, texts, contract), texts)
+        for key, value in (("title", "Qui sommes-nous"), ("menu", "header")):
+            changed = copy.deepcopy(base)
+            changed["pages"][1][key] = value
+            error = expect_error(self, "guided_change_forbidden", authorize_theme_change, pro_mobile, base, changed, contract)
+            self.assertEqual(error.path, f"$.pages[1].{key}")
+            self.assertEqual(authorize_theme_change(enterprise_web, base, changed, contract), changed)
+        # Une capacité structurelle sans les pages personnalisées ne permet pas de les gérer.
+        structure_only = enterprise_web | {"custom_pages": False}
+        removed = copy.deepcopy(base)
+        removed["pages"].pop()
+        expect_error(self, "custom_pages_forbidden", authorize_theme_change, structure_only, base, removed, contract)
+        expect_error(self, "custom_pages_forbidden", authorize_theme_change, structure_only, None, base, contract)
+        reordered = copy.deepcopy(base)
+        reordered["pages"][0]["sections"].reverse()
+        self.assertEqual(authorize_theme_change(structure_only, base, reordered, contract), reordered)
 
 
 class Clock:

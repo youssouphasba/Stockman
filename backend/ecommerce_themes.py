@@ -10,12 +10,15 @@ commerciale (produits, prix, stocks, commandes, paiements).
 
 import copy
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 from ecommerce_media import parse_media_url
 from enterprise_access import normalize_plan
+
+logger = logging.getLogger(__name__)
 
 CONTRACT_PATH = Path(__file__).resolve().parent / "ecommerce_theme_contract.json"
 CONTRACT: Dict[str, Any] = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
@@ -27,7 +30,7 @@ THEME_SCHEMA_VERSION = CONTRACT["schema_version"]
 KNOWN_PLANS = ("starter", "pro", "enterprise")
 SURFACES = ("mobile", "web")
 DOCUMENT_KEYS = {"schema_version", "model_id", "model_version", "global_settings", "pages"}
-PAGE_KEYS = {"id", "kind", "path", "title", "sections"}
+PAGE_KEYS = {"id", "kind", "path", "title", "menu", "sections"}
 SECTION_KEYS = {"id", "type", "type_version", "settings", "blocks"}
 BLOCK_KEYS = {"id", "type", "type_version", "settings"}
 PAGE_TITLE_MAX_LENGTH = 120
@@ -268,6 +271,7 @@ def validate_theme_document(document: Any, contract: Mapping[str, Any] = CONTRAC
         allowed_kinds.add("custom")
     reserved = set(contract["reserved_paths"])
     seen_ids, seen_paths, seen_kinds = set(), set(), set()
+    header_pages = 0
 
     for page_index, page in enumerate(pages):
         page_path = f"$.pages[{page_index}]"
@@ -291,6 +295,16 @@ def validate_theme_document(document: Any, contract: Mapping[str, Any] = CONTRAC
             seen_paths.add(custom_path)
         if "title" in page and page["title"] is not None:
             _check_field({"type": "text", "max_length": PAGE_TITLE_MAX_LENGTH}, page["title"], f"{page_path}.title")
+        if page["kind"] == "custom":
+            # Le titre d'une page personnalisée sert de lien dans la navigation : il est obligatoire.
+            if not isinstance(page.get("title"), str) or not page["title"].strip():
+                _fail("missing_title", f"{page_path}.title", "Donnez un titre à la page")
+            menu = page.get("menu", "footer")
+            if menu not in contract["page_menus"]:
+                _fail("invalid_value", f"{page_path}.menu", "Emplacement de navigation non autorisé")
+            header_pages += menu == "header"
+        elif "menu" in page:
+            _fail("unexpected_menu", f"{page_path}.menu", "Seules les pages personnalisées ont un emplacement de navigation")
 
         sections = page["sections"]
         if not isinstance(sections, list) or len(sections) > limits["max_sections_per_page"]:
@@ -330,6 +344,9 @@ def validate_theme_document(document: Any, contract: Mapping[str, Any] = CONTRAC
                     _fail("unsupported_block_version", f"{block_path}.type_version", "Version de bloc non prise en charge")
                 _check_settings(block_spec["settings"], block["settings"], f"{block_path}.settings")
 
+    # Borne technique de mise en page (en-tête lisible), identique pour tous les abonnements.
+    if header_pages > limits["max_header_pages"]:
+        _fail("too_many_header_pages", "$.pages", f"Le menu principal accueille au plus {limits['max_header_pages']} pages personnalisées")
     if not model.get("structure_editable") and _structure(pages) != _template_structure(model):
         _fail("structure_locked", "$.pages", "La structure de ce modèle n'est pas modifiable")
     for kind, template in template_pages.items():
@@ -363,6 +380,15 @@ def _template_structure(model: Mapping[str, Any]) -> list:
     ]
 
 
+def _custom_pages_outline(pages: Iterable[Mapping[str, Any]]) -> list:
+    """Pages personnalisées : adresse, titre, navigation et structure, sans les contenus des sections."""
+    custom = [page for page in pages if page.get("kind") == "custom"]
+    return [
+        (page.get("id"), page.get("path"), page.get("title"), page.get("menu"), _structure([page])[0][3])
+        for page in custom
+    ]
+
+
 # --- Contrôle des modifications --------------------------------------------
 
 _ABSENT = object()
@@ -391,6 +417,8 @@ def assert_guided_changes_only(base: Mapping[str, Any], candidate: Mapping[str, 
         page_path = f"$.pages[{page_index}]"
         if before_page.get("title") != after_page.get("title"):
             _fail("guided_change_forbidden", f"{page_path}.title", "Titre de page non modifiable depuis ce canal")
+        if before_page.get("menu") != after_page.get("menu"):
+            _fail("guided_change_forbidden", f"{page_path}.menu", "Navigation de la page non modifiable depuis ce canal")
         for section_index, (before_section, after_section) in enumerate(zip(before_page["sections"], after_page["sections"])):
             section_path = f"{page_path}.sections[{section_index}]"
             if before_section["type_version"] != after_section["type_version"]:
@@ -420,11 +448,15 @@ def authorize_theme_change(
     if base is None:
         if not capabilities.get("structure_edit") and _structure(document["pages"]) != _template_structure(contract["models"][document["model_id"]]):
             _fail("guided_change_forbidden", "$.pages", "La structure initiale doit suivre le modèle")
-        return document
-    if base["model_id"] != document["model_id"]:
-        _fail("model_change_requires_dedicated_operation", "$.model_id", "Le changement de modèle est une opération dédiée")
-    if not capabilities.get("structure_edit"):
-        assert_guided_changes_only(base, document, contract)
+    else:
+        if base["model_id"] != document["model_id"]:
+            _fail("model_change_requires_dedicated_operation", "$.model_id", "Le changement de modèle est une opération dédiée")
+        if not capabilities.get("structure_edit"):
+            assert_guided_changes_only(base, document, contract)
+    # Créer, déplacer, renommer ou supprimer une page personnalisée demande sa propre capacité ;
+    # les textes de ses sections restent modifiables par l'édition guidée.
+    if not capabilities.get("custom_pages") and _custom_pages_outline(document["pages"]) != _custom_pages_outline(base["pages"] if base is not None else []):
+        _fail("custom_pages_forbidden", "$.pages", "Les pages personnalisées se gèrent depuis l'éditeur visuel web Enterprise")
     return document
 
 
@@ -633,6 +665,48 @@ def instantiate_model(model_id: str, identity: Mapping[str, Any], contract: Mapp
         "pages": pages,
     }
     return validate_theme_document(document, contract)
+
+
+def _free_id(value: str, taken: set, limit: int) -> str:
+    candidate, index = value, 2
+    while candidate in taken:
+        suffix = f"-{index}"
+        candidate = f"{value[:limit - len(suffix)]}{suffix}"
+        index += 1
+    taken.add(candidate)
+    return candidate
+
+
+def carry_custom_pages(document: Mapping[str, Any], source: Optional[Mapping[str, Any]], contract: Mapping[str, Any] = CONTRACT) -> Dict[str, Any]:
+    """Reprend les pages personnalisées du site dans un nouveau modèle qui les accepte.
+
+    Leurs sections viennent du registre commun : elles restent identiques. Un identifiant déjà
+    pris par le nouveau modèle est renommé. Si le résultat n'est pas valide, le modèle est
+    proposé sans elles : elles restent disponibles dans l'historique des versions."""
+    result = copy.deepcopy(dict(document))
+    model = contract["models"].get(result.get("model_id"), {})
+    pages = [page for page in (source or {}).get("pages", []) if isinstance(page, Mapping) and page.get("kind") == "custom"]
+    if not pages or not model.get("custom_pages"):
+        return result
+    limit = contract["limits"]["max_id_length"]
+    taken = {
+        item["id"]
+        for page in result["pages"]
+        for item in [page, *page["sections"], *(block for section in page["sections"] for block in section["blocks"])]
+    }
+    try:
+        for source_page in pages:
+            page = copy.deepcopy(dict(source_page))
+            page["id"] = _free_id(str(page.get("id", "page")), taken, limit)
+            for section in page.get("sections", []):
+                section["id"] = _free_id(str(section.get("id", "section")), taken, limit)
+                for block in section.get("blocks", []):
+                    block["id"] = _free_id(str(block.get("id", "bloc")), taken, limit)
+            result["pages"].append(page)
+        return validate_theme_document(result, contract)
+    except (ThemeValidationError, TypeError, AttributeError, KeyError) as exc:
+        logger.warning("Custom pages not carried to model %s: %s", result.get("model_id"), getattr(exc, "code", type(exc).__name__))
+        return copy.deepcopy(dict(document))
 
 
 def compatible_legacy_values(document: Mapping[str, Any]) -> Dict[str, Any]:

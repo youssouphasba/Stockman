@@ -19,6 +19,7 @@ from ecommerce_themes import (  # noqa: E402
     CONTRACT,
     ThemeValidationError,
     build_legacy_theme_document,
+    carry_custom_pages,
     compatible_legacy_values,
     compute_theme_capabilities,
     instantiate_model,
@@ -161,6 +162,28 @@ class InstantiationTests(unittest.TestCase):
         self.assertEqual(block_title["block_id"], "feature-delivery")
         columns = next(field for field in fields if field["id"] == "home.selection.columns")
         self.assertEqual((columns["type"], columns["min"], columns["max"]), ("integer", 2, 5))
+
+
+    def test_custom_pages_follow_the_site_into_a_model_that_accepts_them(self):
+        source = instantiate_model("atelier", {"site_name": "Maison Awa"})
+        source["pages"].append({"id": "a-propos", "kind": "custom", "path": "a-propos", "title": "À propos", "menu": "header", "sections": [
+            {"id": "infos", "type": "rich-text", "type_version": 1, "settings": {"heading": "Notre histoire"}, "blocks": []},
+        ]})
+        validate_theme_document(source)
+        carried = carry_custom_pages(instantiate_model("vitrine", {"site_name": "Maison Awa"}), source)["pages"][-1]
+        self.assertEqual(carried, source["pages"][-1])
+        # « infos » existe déjà dans Prestige : la section reprise reçoit un identifiant libre, rien n'est écrasé.
+        renamed = carry_custom_pages(instantiate_model("prestige", {}), source)
+        self.assertEqual(renamed["pages"][-1]["sections"][0]["id"], "infos-2")
+        template_infos = next(item for item in CONTRACT["models"]["prestige"]["pages"][0]["sections"] if item["id"] == "infos")
+        self.assertEqual(section(renamed, "infos")["type"], template_infos["type"])
+        self.assertEqual(renamed["pages"][-1]["sections"][0]["settings"], {"heading": "Notre histoire"})
+        # Stockman Basic n'accepte pas de page personnalisée : elles restent dans l'historique.
+        self.assertEqual([page["kind"] for page in carry_custom_pages(instantiate_model("legacy-v1", {}), source)["pages"]], ["home"])
+        # Un résultat invalide propose le modèle sans les pages plutôt que de le refuser.
+        broken = copy.deepcopy(source)
+        broken["pages"][-1]["path"] = "checkout"
+        self.assertFalse(any(page["kind"] == "custom" for page in carry_custom_pages(instantiate_model("vitrine", {}), broken)["pages"]))
 
 
 class ModelLifecycleTests(unittest.TestCase):
@@ -313,6 +336,26 @@ class ModelLifecycleTests(unittest.TestCase):
         self.assertEqual(state["categories"], ["Épicerie", "Boissons"])
         category_field = next(field for field in state["fields"] if field["key"] == "category" and field.get("section_id") == "collection")
         self.assertEqual(category_field["source"], "categories")
+
+    def test_custom_pages_are_managed_on_the_web_and_kept_when_the_model_changes(self):
+        state = self.publish(self.change("atelier", self.view(ENTERPRISE_WEB), ENTERPRISE_WEB, plan="enterprise"), ENTERPRISE_WEB)
+        document = copy.deepcopy(state["published"]["document"])
+        document["pages"].append({"id": "livraison", "kind": "custom", "path": "livraison", "title": "Livraison", "menu": "footer", "sections": [
+            {"id": "livraison-texte", "type": "rich-text", "type_version": 1, "settings": {"heading": "Livraison", "text": "Livraison en 24 h."}, "blocks": []},
+        ]})
+        with self.assertRaises(ThemeValidationError) as ctx:
+            run(self.service.save_draft(ACCOUNT, SLUG, document=document, expected_lock_version=state["lock_version"], capabilities=MOBILE, author_id="owner_a"))
+        self.assertEqual(ctx.exception.code, "guided_change_forbidden")
+        state = self.publish(run(self.service.save_draft(ACCOUNT, SLUG, document=document, expected_lock_version=state["lock_version"], capabilities=ENTERPRISE_WEB, author_id="owner_a")), ENTERPRISE_WEB)
+        labels = {field["group_label"] for field in state["fields"] if field.get("page_id") == "livraison"}
+        self.assertEqual(labels, {"Livraison · Texte"})
+        # Après un passage à Starter, un changement de modèle depuis le mobile garde la page.
+        state = self.change("eclat", self.view(MOBILE), MOBILE)
+        custom = [page for page in state["draft"]["document"]["pages"] if page["kind"] == "custom"]
+        self.assertEqual([(page["path"], page["title"]) for page in custom], [("livraison", "Livraison")])
+        state = self.publish(state, MOBILE)
+        public = run(self.service.public_theme(self.account()))
+        self.assertEqual(section(public["document"], "livraison-texte", "livraison")["settings"]["text"], "Livraison en 24 h.")
 
     def test_history_names_model_changes(self):
         self.change("atelier", self.view())

@@ -37,6 +37,7 @@ from ecommerce_themes import (
     ThemeValidationError,
     authorize_theme_change,
     build_legacy_theme_document,
+    carry_custom_pages,
     compatible_legacy_values,
     instantiate_model,
     is_model_available,
@@ -386,11 +387,15 @@ class EcommerceThemeService:
             reference = draft["document"]
         return authorize_theme_change(capabilities, reference, candidate, self.contract)
 
-    async def _identity(self, account_id: str, slug: str, live: Mapping[str, Any], live_document: Mapping[str, Any]) -> Dict[str, Any]:
-        """Valeurs du commerçant reprises par un nouveau modèle : brouillon en cours, sinon version publique."""
+    async def _working_document(self, account_id: str, slug: str, live_document: Mapping[str, Any]) -> Mapping[str, Any]:
+        """Travail en cours du commerçant : brouillon s'il existe, sinon version publique."""
         state = await self.store.get_state(account_id, slug) or {}
         draft = await self._pointed_revision(account_id, slug, state, "draft_revision_id")
-        identity = theme_identity((draft or {}).get("document") or live_document, live)
+        return (draft or {}).get("document") or live_document
+
+    async def _identity(self, account_id: str, slug: str, live: Mapping[str, Any], live_document: Mapping[str, Any]) -> Dict[str, Any]:
+        """Valeurs du commerçant reprises par un nouveau modèle : brouillon en cours, sinon version publique."""
+        identity = theme_identity(await self._working_document(account_id, slug, live_document), live)
         if identity.get("logo_asset_id") and not await self.media.get(account_id, slug, identity["logo_asset_id"]):
             identity.pop("logo_asset_id")
         top_category = await self._top_category(live)
@@ -557,6 +562,8 @@ class EcommerceThemeService:
         live = await self._load_account(account_id, slug)
         live_document, _ = await self._live_document(account_id, slug, live)
         document = instantiate_model(model_id, await self._identity(account_id, slug, live, live_document), self.contract)
+        # Les pages personnalisées suivent le site dans un modèle qui les accepte.
+        document = carry_custom_pages(document, await self._working_document(account_id, slug, live_document), self.contract)
         await self.store.save_draft(account_id, slug, document, author_id=author_id, expected_lock_version=expected_lock_version, reason=f"model:{model_id}")
         return await self.view(account, slug, capabilities, plan)
 
