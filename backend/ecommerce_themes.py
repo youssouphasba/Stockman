@@ -338,6 +338,9 @@ def validate_theme_document(document: Any, contract: Mapping[str, Any] = CONTRAC
             _fail("missing_page", "$.pages", f"Page obligatoire manquante : {kind}")
         present = [section["type"] for section in page["sections"]]
         for required in template["sections"]:
+            # Une structure modifiable ne protège que les sections indispensables au parcours commercial.
+            if model.get("structure_editable") and not required.get("required"):
+                continue
             if required["type"] not in present:
                 _fail("missing_section", "$.pages", f"Section indispensable manquante : {required['type']}")
     return copy.deepcopy(document)
@@ -506,3 +509,140 @@ def iter_media_values(document: Mapping[str, Any], contract: Mapping[str, Any] =
                 for key, spec in block_spec.get("settings", {}).items():
                     if spec["type"] == "media_id" and key in block.get("settings", {}):
                         yield f"{section_path}.blocks[{block_index}].settings.{key}", block["settings"][key], spec
+
+
+# --- Changement de modèle ---------------------------------------------------
+
+def _fits(spec: Mapping[str, Any], value: Any) -> bool:
+    try:
+        _check_field(spec, value, "$")
+    except ThemeValidationError:
+        return False
+    return True
+
+
+def _put(target: Dict[str, Any], specs: Mapping[str, Any], key: str, value: Any) -> None:
+    # Une valeur reprise qui ne respecte pas le nouveau champ est laissée de côté, jamais tronquée.
+    if value not in (None, "") and key in specs and _fits(specs[key], value):
+        target[key] = value
+
+
+def _home_section(document: Mapping[str, Any], section_type: str) -> Optional[Mapping[str, Any]]:
+    for page in document.get("pages", []):
+        if page.get("kind") != "home":
+            continue
+        for section in page.get("sections", []):
+            if section.get("type") == section_type:
+                return section
+    return None
+
+
+def theme_identity(document: Mapping[str, Any], account_doc: Mapping[str, Any]) -> Dict[str, Any]:
+    """Valeurs réelles du commerçant reprises lors d'un changement de modèle : aucun contenu inventé."""
+    identity: Dict[str, Any] = {}
+    global_settings = document.get("global_settings", {})
+    for key in ("site_name", "brand_color", "logo_asset_id"):
+        if global_settings.get(key):
+            identity[key] = global_settings[key]
+    legacy = _home_section(document, "legacy-storefront")
+    if legacy:
+        settings = legacy.get("settings", {})
+        for key in ("site_name", "hero_title", "welcome_message"):
+            if settings.get(key):
+                identity.setdefault(key, settings[key])
+    hero = _home_section(document, "hero")
+    if hero:
+        settings = hero.get("settings", {})
+        if settings.get("heading"):
+            identity.setdefault("hero_title", settings["heading"])
+        if settings.get("subheading"):
+            identity.setdefault("welcome_message", settings["subheading"])
+    for key, field in (
+        ("delivery_info", "ecommerce_delivery_info"),
+        ("payment_instructions", "ecommerce_payment_instructions"),
+        ("whatsapp_phone", "ecommerce_whatsapp_phone"),
+        ("contact_phone", "ecommerce_contact_phone"),
+    ):
+        if isinstance(account_doc.get(field), str) and account_doc[field].strip():
+            identity[key] = account_doc[field].strip()
+    return identity
+
+
+def _identity_features(identity: Mapping[str, Any], section_spec: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    block_spec = section_spec["blocks"]["feature"]
+    phone = identity.get("whatsapp_phone") or identity.get("contact_phone")
+    candidates = [
+        ("feature-delivery", "truck", "Livraison", identity.get("delivery_info")),
+        ("feature-payment", "card", "Paiement", identity.get("payment_instructions")),
+        ("feature-contact", "chat", "Une question ?", f"Joignez-nous au {phone}." if phone else None),
+    ]
+    blocks = []
+    for block_id, icon, title, text in candidates:
+        # Seules les informations réellement renseignées par le commerçant deviennent des points forts.
+        if text and _fits(block_spec["settings"]["text"], text):
+            blocks.append({"id": block_id, "type": "feature", "type_version": block_spec["type_version"], "settings": {"icon": icon, "title": title, "text": text}})
+    return blocks
+
+
+def instantiate_model(model_id: str, identity: Mapping[str, Any], contract: Mapping[str, Any] = CONTRACT) -> Dict[str, Any]:
+    """Document initial d'un modèle : structure approuvée par Stockman, contenus du commerçant."""
+    model = contract["models"].get(model_id)
+    if not model:
+        _fail("unknown_model", "$.model_id", "Modèle inconnu")
+    if model_id == LEGACY_MODEL_ID:
+        legacy_fields = {
+            field: identity[key]
+            for key, field in (("site_name", "ecommerce_site_name"), ("hero_title", "ecommerce_hero_title"), ("welcome_message", "ecommerce_welcome_message"), ("brand_color", "ecommerce_brand_color"))
+            if identity.get(key) and _fits(
+                contract["global_settings"]["brand_color"] if key == "brand_color" else contract["sections"]["legacy-storefront"]["settings"][key],
+                identity[key],
+            )
+        }
+        document = build_legacy_theme_document(legacy_fields)
+        document["global_settings"]["logo_asset_id"] = identity.get("logo_asset_id")
+        return validate_theme_document(document, contract)
+
+    global_settings: Dict[str, Any] = copy.deepcopy(model.get("global_defaults", {}))
+    for key in ("site_name", "brand_color", "logo_asset_id"):
+        _put(global_settings, contract["global_settings"], key, identity.get(key))
+    pages = []
+    for page in model["pages"]:
+        sections = []
+        for template in page["sections"]:
+            spec = contract["sections"][template["type"]]
+            settings = copy.deepcopy(template.get("settings", {}))
+            blocks: List[Dict[str, Any]] = []
+            if template["type"] == "hero":
+                _put(settings, spec["settings"], "heading", identity.get("hero_title") or identity.get("site_name"))
+                _put(settings, spec["settings"], "subheading", identity.get("welcome_message"))
+            elif template["type"] == "features":
+                blocks = _identity_features(identity, spec)
+            sections.append({"id": template["id"], "type": template["type"], "type_version": spec["type_version"], "settings": settings, "blocks": blocks})
+        pages.append({"id": page["id"], "kind": page["kind"], "sections": sections})
+    document = {
+        "schema_version": contract["schema_version"],
+        "model_id": model_id,
+        "model_version": model["version"],
+        "global_settings": global_settings,
+        "pages": pages,
+    }
+    return validate_theme_document(document, contract)
+
+
+def compatible_legacy_values(document: Mapping[str, Any]) -> Dict[str, Any]:
+    """Champs historiques qu'un document d'un autre modèle renseigne (métadonnées, notifications,
+    retour éventuel à Stockman Basic). Une valeur absente du document retire le champ."""
+    global_settings = document.get("global_settings", {})
+    values: Dict[str, Any] = {}
+    if global_settings.get("site_name") is not None:
+        values["ecommerce_site_name"] = global_settings["site_name"]
+    if global_settings.get("brand_color") is not None:
+        values["ecommerce_brand_color"] = global_settings["brand_color"]
+    hero = _home_section(document, "hero")
+    if hero:
+        if hero["settings"].get("heading") is not None:
+            values["ecommerce_hero_title"] = hero["settings"]["heading"]
+        if hero["settings"].get("subheading") is not None:
+            values["ecommerce_welcome_message"] = hero["settings"]["subheading"]
+    return values
+

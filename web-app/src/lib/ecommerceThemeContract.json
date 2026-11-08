@@ -1,5 +1,5 @@
 {
-  "contract_version": 1,
+  "contract_version": 2,
   "schema_version": 1,
   "limits": {
     "max_document_bytes": 262144,
@@ -15,17 +15,150 @@
     "robots.txt", "settings", "shop", "signup", "sitemap.xml", "static"
   ],
   "page_kinds": ["home", "catalog", "contact", "custom"],
+  "global_groups": {
+    "identity": "Identité",
+    "style": "Style",
+    "header": "En-tête",
+    "footer": "Pied de page"
+  },
   "global_settings": {
-    "brand_color": { "type": "color", "nullable": true, "label": "Couleur de marque", "hint": "Couleur des boutons principaux, des badges, des filtres actifs et des accents du site." },
-    "logo_asset_id": { "type": "media_id", "nullable": true, "media_kind": "logo", "label": "Logo", "hint": "Image affichée dans l'en-tête du site. Une image carrée donne le meilleur rendu." }
+    "site_name": { "type": "text", "max_length": 120, "nullable": true, "group": "identity", "label": "Nom du site", "hint": "Nom affiché dans l'en-tête, le pied de page et les résultats de recherche." },
+    "brand_color": { "type": "color", "nullable": true, "group": "identity", "label": "Couleur de marque", "hint": "Couleur des boutons principaux, des badges, des filtres actifs et des accents du site." },
+    "logo_asset_id": { "type": "media_id", "nullable": true, "media_kind": "logo", "group": "identity", "label": "Logo", "hint": "Image affichée dans l'en-tête du site. Une image carrée donne le meilleur rendu." },
+    "color_scheme": { "type": "enum", "values": ["light", "cream", "dark"], "labels": { "light": "Clair", "cream": "Crème", "dark": "Sombre" }, "nullable": true, "group": "style", "label": "Ambiance", "hint": "Couleurs de fond et de texte du site. Les boutons gardent votre couleur de marque." },
+    "font_pairing": { "type": "enum", "values": ["modern", "editorial", "friendly", "technical"], "labels": { "modern": "Moderne", "editorial": "Éditorial", "friendly": "Chaleureux", "technical": "Technique" }, "nullable": true, "group": "style", "label": "Typographie", "hint": "Polices des titres et des textes, choisies pour leur lisibilité." },
+    "corner_style": { "type": "enum", "values": ["rounded", "square"], "labels": { "rounded": "Arrondis", "square": "Angles nets" }, "nullable": true, "group": "style", "label": "Forme des éléments" },
+    "header_layout": { "type": "enum", "values": ["logo-left", "logo-center"], "labels": { "logo-left": "Logo à gauche", "logo-center": "Logo centré" }, "nullable": true, "group": "header", "label": "Disposition de l'en-tête" },
+    "show_search": { "type": "boolean", "nullable": true, "group": "header", "label": "Recherche dans l'en-tête" },
+    "announcement_text": { "type": "text", "max_length": 120, "nullable": true, "group": "header", "label": "Bandeau d'annonce", "hint": "Une information utile tout en haut du site, par exemple vos délais de livraison. Laissez vide pour le masquer." },
+    "announcement_link": { "type": "enum", "values": ["none", "catalog", "contact"], "labels": { "none": "Aucun lien", "catalog": "Vers le catalogue", "contact": "Vers le contact" }, "nullable": true, "group": "header", "label": "Lien du bandeau" },
+    "footer_text": { "type": "text", "max_length": 300, "nullable": true, "multiline": true, "group": "footer", "label": "Texte du pied de page", "hint": "Présentez la boutique en quelques mots. Laissez vide pour le masquer." }
   },
   "sections": {
     "legacy-storefront": {
       "type_version": 1,
+      "label": "Accueil",
       "settings": {
         "site_name": { "type": "text", "max_length": 120, "nullable": true, "label": "Nom du site", "hint": "Nom affiché dans l'en-tête et dans la section de contact." },
         "hero_title": { "type": "text", "max_length": 120, "nullable": true, "label": "Titre d'accueil", "hint": "Message principal affiché en haut de la vitrine." },
         "welcome_message": { "type": "text", "max_length": 600, "nullable": true, "multiline": true, "label": "Message d'accueil", "hint": "Présentez brièvement la boutique, le service ou la livraison." }
+      },
+      "blocks": {}
+    },
+    "hero": {
+      "type_version": 1,
+      "label": "Bannière d'accueil",
+      "settings": {
+        "heading": { "type": "text", "max_length": 120, "nullable": true, "label": "Titre" },
+        "subheading": { "type": "text", "max_length": 600, "nullable": true, "multiline": true, "label": "Texte" },
+        "image_asset_id": { "type": "media_id", "nullable": true, "media_kind": "image", "label": "Image", "hint": "Photo large, au format paysage. Sans image, la bannière s'affiche en texte seul." },
+        "button_label": { "type": "text", "max_length": 32, "nullable": true, "label": "Texte du bouton", "hint": "Laissez vide pour masquer le bouton." },
+        "button_target": { "type": "enum", "values": ["catalog", "contact"], "labels": { "catalog": "Catalogue", "contact": "Contact" }, "nullable": true, "label": "Destination du bouton" },
+        "layout": { "type": "enum", "values": ["overlay", "split", "text"], "labels": { "overlay": "Texte sur l'image", "split": "Image à côté du texte", "text": "Texte seul" }, "nullable": true, "label": "Disposition" },
+        "height": { "type": "enum", "values": ["compact", "medium", "tall"], "labels": { "compact": "Compacte", "medium": "Moyenne", "tall": "Haute" }, "nullable": true, "label": "Hauteur" },
+        "alignment": { "type": "enum", "values": ["left", "center"], "labels": { "left": "À gauche", "center": "Centré" }, "nullable": true, "label": "Alignement du texte" }
+      },
+      "blocks": {}
+    },
+    "category-list": {
+      "type_version": 1,
+      "label": "Catégories",
+      "settings": {
+        "heading": { "type": "text", "max_length": 80, "nullable": true, "label": "Titre" },
+        "style": { "type": "enum", "values": ["tiles", "chips"], "labels": { "tiles": "Vignettes illustrées", "chips": "Pastilles" }, "nullable": true, "label": "Présentation" },
+        "max_items": { "type": "integer", "min": 3, "max": 12, "nullable": true, "label": "Nombre maximal de catégories" }
+      },
+      "blocks": {}
+    },
+    "product-grid": {
+      "type_version": 1,
+      "label": "Sélection de produits",
+      "settings": {
+        "heading": { "type": "text", "max_length": 80, "nullable": true, "label": "Titre" },
+        "sort": { "type": "enum", "values": ["name", "price_asc", "price_desc"], "labels": { "name": "Ordre alphabétique", "price_asc": "Prix croissant", "price_desc": "Prix décroissant" }, "nullable": true, "label": "Ordre des produits" },
+        "max_items": { "type": "integer", "min": 4, "max": 48, "nullable": true, "label": "Nombre de produits" },
+        "columns": { "type": "integer", "min": 2, "max": 5, "nullable": true, "label": "Colonnes sur ordinateur" },
+        "card_style": { "type": "enum", "values": ["minimal", "bordered", "portrait"], "labels": { "minimal": "Épurée", "bordered": "Encadrée", "portrait": "Portrait" }, "nullable": true, "label": "Style des fiches" }
+      },
+      "blocks": {}
+    },
+    "image-with-text": {
+      "type_version": 1,
+      "label": "Image et texte",
+      "settings": {
+        "image_asset_id": { "type": "media_id", "nullable": true, "media_kind": "image", "label": "Image" },
+        "heading": { "type": "text", "max_length": 120, "nullable": true, "label": "Titre" },
+        "text": { "type": "text", "max_length": 600, "nullable": true, "multiline": true, "label": "Texte" },
+        "button_label": { "type": "text", "max_length": 32, "nullable": true, "label": "Texte du bouton", "hint": "Laissez vide pour masquer le bouton." },
+        "button_target": { "type": "enum", "values": ["catalog", "contact"], "labels": { "catalog": "Catalogue", "contact": "Contact" }, "nullable": true, "label": "Destination du bouton" },
+        "image_position": { "type": "enum", "values": ["left", "right"], "labels": { "left": "Image à gauche", "right": "Image à droite" }, "nullable": true, "label": "Position de l'image" }
+      },
+      "blocks": {}
+    },
+    "rich-text": {
+      "type_version": 1,
+      "label": "Texte",
+      "settings": {
+        "heading": { "type": "text", "max_length": 120, "nullable": true, "label": "Titre" },
+        "text": { "type": "text", "max_length": 1200, "nullable": true, "multiline": true, "label": "Texte" },
+        "alignment": { "type": "enum", "values": ["left", "center"], "labels": { "left": "À gauche", "center": "Centré" }, "nullable": true, "label": "Alignement" }
+      },
+      "blocks": {}
+    },
+    "features": {
+      "type_version": 1,
+      "label": "Points forts",
+      "settings": {
+        "heading": { "type": "text", "max_length": 80, "nullable": true, "label": "Titre" }
+      },
+      "blocks": {
+        "feature": {
+          "type_version": 1,
+          "label": "Point fort",
+          "settings": {
+            "icon": { "type": "enum", "values": ["truck", "map", "card", "chat", "phone", "clock", "shield", "star", "leaf", "gift"], "labels": { "truck": "Livraison", "map": "Retrait", "card": "Paiement", "chat": "Conseil", "phone": "Téléphone", "clock": "Horaires", "shield": "Garantie", "star": "Qualité", "leaf": "Naturel", "gift": "Cadeau" }, "nullable": true, "label": "Icône" },
+            "title": { "type": "text", "max_length": 40, "nullable": true, "label": "Titre" },
+            "text": { "type": "text", "max_length": 160, "nullable": true, "multiline": true, "label": "Texte" }
+          }
+        }
+      }
+    },
+    "faq": {
+      "type_version": 1,
+      "label": "Questions fréquentes",
+      "settings": {
+        "heading": { "type": "text", "max_length": 80, "nullable": true, "label": "Titre" }
+      },
+      "blocks": {
+        "question": {
+          "type_version": 1,
+          "label": "Question",
+          "settings": {
+            "question": { "type": "text", "max_length": 140, "nullable": true, "label": "Question" },
+            "answer": { "type": "text", "max_length": 600, "nullable": true, "multiline": true, "label": "Réponse" }
+          }
+        }
+      }
+    },
+    "contact": {
+      "type_version": 1,
+      "label": "Contact",
+      "settings": {
+        "heading": { "type": "text", "max_length": 80, "nullable": true, "label": "Titre" },
+        "text": { "type": "text", "max_length": 300, "nullable": true, "multiline": true, "label": "Texte" },
+        "show_form": { "type": "boolean", "nullable": true, "label": "Formulaire de contact" },
+        "show_whatsapp": { "type": "boolean", "nullable": true, "label": "Bouton WhatsApp", "hint": "Affiché seulement si un numéro WhatsApp est enregistré dans les réglages du site." }
+      },
+      "blocks": {}
+    },
+    "catalog": {
+      "type_version": 1,
+      "label": "Catalogue complet",
+      "settings": {
+        "heading": { "type": "text", "max_length": 80, "nullable": true, "label": "Titre" },
+        "show_filters": { "type": "boolean", "nullable": true, "label": "Filtres par catégorie" },
+        "columns": { "type": "integer", "min": 2, "max": 5, "nullable": true, "label": "Colonnes sur ordinateur" },
+        "card_style": { "type": "enum", "values": ["minimal", "bordered", "portrait"], "labels": { "minimal": "Épurée", "bordered": "Encadrée", "portrait": "Portrait" }, "nullable": true, "label": "Style des fiches" }
       },
       "blocks": {}
     }
@@ -33,6 +166,7 @@
   "models": {
     "legacy-v1": {
       "name": "Stockman Basic",
+      "description": "Le site Stockman d'origine : sobre, éprouvé et rapide à mettre en place.",
       "version": "1.0.0",
       "default_plans": ["starter", "pro", "enterprise"],
       "always_available": true,
@@ -45,6 +179,120 @@
         "global": ["brand_color", "logo_asset_id"],
         "sections": { "legacy-storefront": ["site_name", "hero_title", "welcome_message"] },
         "blocks": {}
+      }
+    },
+    "atelier": {
+      "name": "Atelier",
+      "description": "Mode, accessoires et créations : grandes images, typographie élégante et produits mis en scène en format portrait.",
+      "version": "1.0.0",
+      "default_plans": ["starter", "pro", "enterprise"],
+      "structure_editable": true,
+      "custom_pages": true,
+      "global_defaults": { "color_scheme": "cream", "font_pairing": "editorial", "corner_style": "square", "header_layout": "logo-center", "show_search": false, "announcement_link": "none" },
+      "pages": [
+        { "id": "home", "kind": "home", "sections": [
+          { "id": "hero", "type": "hero", "settings": { "button_label": "Découvrir la collection", "button_target": "catalog", "layout": "overlay", "height": "tall", "alignment": "center" } },
+          { "id": "categories", "type": "category-list", "settings": { "heading": "Nos univers", "style": "tiles", "max_items": 6 } },
+          { "id": "selection", "type": "product-grid", "settings": { "heading": "La sélection", "sort": "name", "max_items": 8, "columns": 4, "card_style": "portrait" } },
+          { "id": "story", "type": "image-with-text", "settings": { "button_target": "contact", "image_position": "left" } }
+        ] },
+        { "id": "catalog", "kind": "catalog", "sections": [
+          { "id": "catalog-main", "type": "catalog", "required": true, "settings": { "heading": "Toute la collection", "show_filters": true, "columns": 3, "card_style": "portrait" } }
+        ] },
+        { "id": "contact", "kind": "contact", "sections": [
+          { "id": "contact-main", "type": "contact", "required": true, "settings": { "heading": "Nous écrire", "show_form": true, "show_whatsapp": true } }
+        ] }
+      ],
+      "guided_settings": {
+        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
+        "sections": {
+          "hero": ["heading", "subheading", "image_asset_id", "button_label", "button_target", "layout", "height", "alignment"],
+          "category-list": ["heading", "style", "max_items"],
+          "product-grid": ["heading", "sort", "max_items", "columns", "card_style"],
+          "image-with-text": ["image_asset_id", "heading", "text", "button_label", "button_target", "image_position"],
+          "rich-text": ["heading", "text", "alignment"],
+          "features": ["heading"],
+          "faq": ["heading"],
+          "contact": ["heading", "text", "show_form", "show_whatsapp"],
+          "catalog": ["heading", "show_filters", "columns", "card_style"]
+        },
+        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"] }
+      }
+    },
+    "marche": {
+      "name": "Marché",
+      "description": "Alimentation et produits du quotidien : catégories visibles d'emblée, grille dense, prix, unités et disponibilité très lisibles.",
+      "version": "1.0.0",
+      "default_plans": ["starter", "pro", "enterprise"],
+      "structure_editable": true,
+      "custom_pages": true,
+      "global_defaults": { "color_scheme": "light", "font_pairing": "friendly", "corner_style": "rounded", "header_layout": "logo-left", "show_search": true, "announcement_link": "contact" },
+      "pages": [
+        { "id": "home", "kind": "home", "sections": [
+          { "id": "hero", "type": "hero", "settings": { "button_label": "Faire mes courses", "button_target": "catalog", "layout": "split", "height": "compact", "alignment": "left" } },
+          { "id": "categories", "type": "category-list", "settings": { "heading": "Rayons", "style": "chips", "max_items": 12 } },
+          { "id": "selection", "type": "product-grid", "settings": { "heading": "Nos produits", "sort": "name", "max_items": 20, "columns": 5, "card_style": "bordered" } },
+          { "id": "services", "type": "features", "settings": { "heading": "Comment ça marche" } }
+        ] },
+        { "id": "catalog", "kind": "catalog", "sections": [
+          { "id": "catalog-main", "type": "catalog", "required": true, "settings": { "heading": "Tous les rayons", "show_filters": true, "columns": 4, "card_style": "bordered" } }
+        ] },
+        { "id": "contact", "kind": "contact", "sections": [
+          { "id": "contact-main", "type": "contact", "required": true, "settings": { "heading": "Une question ?", "show_form": true, "show_whatsapp": true } }
+        ] }
+      ],
+      "guided_settings": {
+        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
+        "sections": {
+          "hero": ["heading", "subheading", "image_asset_id", "button_label", "button_target", "layout", "height", "alignment"],
+          "category-list": ["heading", "style", "max_items"],
+          "product-grid": ["heading", "sort", "max_items", "columns", "card_style"],
+          "image-with-text": ["image_asset_id", "heading", "text", "button_label", "button_target", "image_position"],
+          "rich-text": ["heading", "text", "alignment"],
+          "features": ["heading"],
+          "faq": ["heading"],
+          "contact": ["heading", "text", "show_form", "show_whatsapp"],
+          "catalog": ["heading", "show_filters", "columns", "card_style"]
+        },
+        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"] }
+      }
+    },
+    "vitrine": {
+      "name": "Vitrine",
+      "description": "Boutique généraliste : présentation sobre, recherche mise en avant et navigation claire, parfaite même avec peu de photos.",
+      "version": "1.0.0",
+      "default_plans": ["starter", "pro", "enterprise"],
+      "structure_editable": true,
+      "custom_pages": true,
+      "global_defaults": { "color_scheme": "light", "font_pairing": "modern", "corner_style": "rounded", "header_layout": "logo-left", "show_search": true, "announcement_link": "none" },
+      "pages": [
+        { "id": "home", "kind": "home", "sections": [
+          { "id": "hero", "type": "hero", "settings": { "button_label": "Voir le catalogue", "button_target": "catalog", "layout": "text", "height": "medium", "alignment": "left" } },
+          { "id": "selection", "type": "product-grid", "settings": { "heading": "Notre sélection", "sort": "name", "max_items": 12, "columns": 4, "card_style": "minimal" } },
+          { "id": "about", "type": "rich-text", "settings": { "heading": "À propos de la boutique", "alignment": "left" } },
+          { "id": "services", "type": "features", "settings": { "heading": "Nos services" } }
+        ] },
+        { "id": "catalog", "kind": "catalog", "sections": [
+          { "id": "catalog-main", "type": "catalog", "required": true, "settings": { "heading": "Catalogue", "show_filters": true, "columns": 4, "card_style": "minimal" } }
+        ] },
+        { "id": "contact", "kind": "contact", "sections": [
+          { "id": "contact-main", "type": "contact", "required": true, "settings": { "heading": "Contact", "show_form": true, "show_whatsapp": true } }
+        ] }
+      ],
+      "guided_settings": {
+        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
+        "sections": {
+          "hero": ["heading", "subheading", "image_asset_id", "button_label", "button_target", "layout", "height", "alignment"],
+          "category-list": ["heading", "style", "max_items"],
+          "product-grid": ["heading", "sort", "max_items", "columns", "card_style"],
+          "image-with-text": ["image_asset_id", "heading", "text", "button_label", "button_target", "image_position"],
+          "rich-text": ["heading", "text", "alignment"],
+          "features": ["heading"],
+          "faq": ["heading"],
+          "contact": ["heading", "text", "show_form", "show_whatsapp"],
+          "catalog": ["heading", "show_filters", "columns", "card_style"]
+        },
+        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"] }
       }
     }
   }

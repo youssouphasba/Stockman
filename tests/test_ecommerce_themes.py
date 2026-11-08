@@ -48,7 +48,7 @@ def technical_contract():
         "default_plans": ["enterprise"],
         "structure_editable": True,
         "custom_pages": True,
-        "pages": [{"id": "home", "kind": "home", "sections": [{"id": "intro", "type": "test-text"}]}],
+        "pages": [{"id": "home", "kind": "home", "sections": [{"id": "intro", "type": "test-text", "required": True}, {"id": "extra", "type": "test-text"}]}],
         "guided_settings": {"global": ["brand_color"], "sections": {"test-text": ["heading"]}, "blocks": {}},
     }
     return contract
@@ -60,6 +60,7 @@ def editable_document():
         "global_settings": {"brand_color": "#112233"},
         "pages": [{"id": "home", "kind": "home", "sections": [
             {"id": "intro", "type": "test-text", "type_version": 1, "settings": {"heading": "A", "align": "left"}, "blocks": []},
+            {"id": "extra", "type": "test-text", "type_version": 1, "settings": {"heading": None, "align": "center"}, "blocks": []},
         ]}],
     }
 
@@ -105,7 +106,9 @@ class EntitlementTests(unittest.TestCase):
         self.assertEqual(overrides, {"test-editable": ["pro"]})
         self.assertTrue(is_model_available("test-editable", "pro", overrides, contract))
         self.assertFalse(is_model_available("test-editable", "enterprise", overrides, contract))
-        self.assertEqual([model["id"] for model in available_models("pro", overrides, contract)], ["legacy-v1", "test-editable"])
+        expected = [model_id for model_id, model in contract["models"].items() if model_id != "test-editable" and "pro" in model["default_plans"]] + ["test-editable"]
+        self.assertEqual([model["id"] for model in available_models("pro", overrides, contract)], expected)
+        self.assertNotIn("test-editable", [model["id"] for model in available_models("enterprise", overrides, contract)])
         self.assertEqual(normalize_catalog_overrides(["not", "a", "mapping"]), {})
 
 
@@ -222,6 +225,10 @@ class ValidatorTests(unittest.TestCase):
         missing = editable_document()
         missing["pages"][0]["sections"] = []
         expect_error(self, "missing_section", validate_theme_document, missing, contract)
+        # Une section non indispensable d'un modèle modifiable peut être retirée.
+        optional_removed = editable_document()
+        optional_removed["pages"][0]["sections"] = optional_removed["pages"][0]["sections"][:1]
+        validate_theme_document(optional_removed, contract)
         bad_enum = editable_document()
         bad_enum["pages"][0]["sections"][0]["settings"]["align"] = "justify"
         expect_error(self, "invalid_value", validate_theme_document, bad_enum, contract)

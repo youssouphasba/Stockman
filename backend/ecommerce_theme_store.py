@@ -124,6 +124,11 @@ class ThemeRevisionStore:
             raise ThemeConflictError((current or {}).get("lock_version", 0))
         return state
 
+    async def create_revision(self, account_id: str, slug: str, document: Any, *, author_id: str, reason: str, parent_id: Optional[str] = None) -> Dict[str, Any]:
+        """Révision immuable sans déplacement de pointeur : la publication est décidée par l'appelant."""
+        validated = validate_theme_document(document, self.contract)
+        return await self._create_revision(account_id, slug, validated, parent_id=parent_id, author_id=author_id, reason=reason)
+
     async def save_draft(self, account_id: str, slug: str, document: Any, *, author_id: str, expected_lock_version: int, reason: str = "draft") -> Dict[str, Any]:
         validated = validate_theme_document(document, self.contract)
         state = await self.get_state(account_id, slug)

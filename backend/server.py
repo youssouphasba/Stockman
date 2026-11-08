@@ -80,9 +80,9 @@ from enterprise_access import (
     user_can_access_store,
     user_has_operational_access as shared_user_has_operational_access,
 )
-from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, compute_theme_capabilities, legacy_theme_identity
+from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, compute_theme_capabilities, legacy_theme_identity, resolve_model
 from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
-from ecommerce_theme_service import EcommerceThemeService, theme_error_response
+from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
 from ecommerce_media import EcommerceMediaLibrary
 from services.pricing import (
     DEFAULT_COUNTRY_CODE,
@@ -1463,7 +1463,12 @@ class EcommerceThemePublishRequest(EcommerceThemeLockRequest):
 
 class EcommerceThemePreviewRequest(BaseModel):
     site_slug: str = Field(min_length=2, max_length=80)
-    source: Literal["draft", "published"]
+    source: Literal["draft", "published", "model"]
+    model_id: Optional[str] = Field(default=None, min_length=2, max_length=64)
+
+
+class EcommerceThemeModelRequest(EcommerceThemeLockRequest):
+    model_id: str = Field(min_length=2, max_length=64)
 
 
 class PublicEcommercePreviewRequest(BaseModel):
@@ -1646,8 +1651,8 @@ async def get_public_ecommerce_preview(data: PublicEcommercePreviewRequest, resp
     for key, value in PRIVATE_PREVIEW_HEADERS.items():
         response.headers[key] = value
     try:
-        account_doc, preview = await ecommerce_theme_service.resolve_preview(data.token)
-        payload = await build_public_ecommerce_payload(account_doc)
+        account_doc, preview, theme = await ecommerce_theme_service.resolve_preview(data.token)
+        payload = await build_public_ecommerce_payload(account_doc, theme=theme)
     except HTTPException as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail, headers=PRIVATE_PREVIEW_HEADERS)
     except Exception as exc:
@@ -4163,7 +4168,10 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
     }
 
 
-async def build_public_ecommerce_payload(account_doc: Dict[str, Any]) -> Dict[str, Any]:
+_PUBLISHED_THEME = object()
+
+
+async def build_public_ecommerce_payload(account_doc: Dict[str, Any], theme: Any = _PUBLISHED_THEME) -> Dict[str, Any]:
     owner_id = account_doc.get("owner_user_id")
     store_id = account_doc.get("ecommerce_default_store_id")
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "name": 1, "phone": 1, "email": 1, "currency": 1})
@@ -4221,7 +4229,7 @@ async def build_public_ecommerce_payload(account_doc: Dict[str, Any]) -> Dict[st
             "available": float(product.get("quantity") or 0) > 0,
         })
 
-    return {
+    payload = {
         "site": {
             "slug": account_doc.get("ecommerce_slug"),
             "store_id": store_id,
@@ -4243,6 +4251,14 @@ async def build_public_ecommerce_payload(account_doc: Dict[str, Any]) -> Dict[st
         },
         "products": public_products,
     }
+    # Un aperçu fournit son propre thème ; sinon le thème publié d'un modèle à sections est servi.
+    if theme is _PUBLISHED_THEME:
+        theme = await ecommerce_theme_service.public_theme(account_doc)
+    if theme:
+        payload["theme"] = theme
+        payload["site"]["model_id"] = theme["model_id"]
+        payload["site"]["model_name"] = resolve_model(theme["model_id"])["name"]
+    return payload
 
 
 async def get_public_ecommerce_account_by_slug(slug: str) -> Dict[str, Any]:
@@ -18510,6 +18526,12 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, request: Request, use
     if data.show_out_of_stock_products is not None:
         updates["ecommerce_show_out_of_stock_products"] = bool(data.show_out_of_stock_products)
     if len(updates) > 1 and account_doc:
+        presentation = {field: updates[field] for field in LEGACY_SETTINGS_TO_THEME if field in updates}
+        if presentation:
+            # Anciennes applications : sur un modèle à sections, la présentation est traduite puis publiée.
+            await run_ecommerce_theme_operation(ecommerce_theme_service.apply_legacy_settings(
+                account_doc["account_id"], site["slug"], presentation, author_id=user.user_id,
+            ))
         updates["ecommerce_configured_at"] = datetime.now(timezone.utc)
         await db.business_accounts.update_one({"account_id": account_doc["account_id"]}, {"$set": updates})
         try:
@@ -18615,6 +18637,10 @@ async def release_ecommerce_onboarding(data: EcommerceSetupClaim, request: Reque
     return {"released": True}
 
 
+def ecommerce_theme_plan(user: User) -> Optional[str]:
+    return user.effective_plan or user.subscription_plan or user.plan
+
+
 def ecommerce_theme_capabilities(user: User, request: Request) -> Dict[str, bool]:
     """Capacités recalculées à chaque requête, à partir du compte et du canal déterminé par le serveur."""
     capabilities = compute_theme_capabilities(
@@ -18662,8 +18688,18 @@ async def run_ecommerce_theme_operation(operation):
 async def get_ecommerce_site_theme(request: Request, user: User = Depends(require_auth)):
     account, site = await get_ecommerce_theme_context(user)
     return await run_ecommerce_theme_operation(
-        ecommerce_theme_service.view(account, site["slug"], ecommerce_theme_capabilities(user, request))
+        ecommerce_theme_service.view(account, site["slug"], ecommerce_theme_capabilities(user, request), plan=ecommerce_theme_plan(user))
     )
+
+
+@api_router.post("/ecommerce/site/theme/model")
+async def change_ecommerce_site_theme_model(data: EcommerceThemeModelRequest, request: Request, user: User = Depends(require_auth)):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_theme_context(user, data.site_slug)
+    return await run_ecommerce_theme_operation(ecommerce_theme_service.change_model(
+        account, site["slug"], model_id=data.model_id, expected_lock_version=data.lock_version,
+        capabilities=ecommerce_theme_capabilities(user, request), plan=ecommerce_theme_plan(user), author_id=user.user_id,
+    ))
 
 
 @api_router.put("/ecommerce/site/theme/draft")
@@ -18725,7 +18761,7 @@ async def create_ecommerce_site_theme_preview(data: EcommerceThemePreviewRequest
     ensure_subscription_write_allowed(user, request=request)
     account, site = await get_ecommerce_theme_context(user, data.site_slug)
     token, expires_at = await run_ecommerce_theme_operation(ecommerce_theme_service.create_preview(
-        account, site["slug"], source=data.source,
+        account, site["slug"], source=data.source, model_id=data.model_id, plan=ecommerce_theme_plan(user),
         capabilities=ecommerce_theme_capabilities(user, request), author_id=user.user_id,
     ))
     # Le jeton est placé dans le fragment : il n'est transmis ni au serveur web, ni aux statistiques.

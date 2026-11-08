@@ -326,7 +326,7 @@ class PreviewTests(ThemeServiceTestCase):
         stored = self.db.ecommerce_theme_previews.docs[0]
         self.assertEqual(stored["_id"], hash_preview_token(token))
         self.assertNotIn(token, repr(stored))
-        effective, info = run(self.service.resolve_preview(token))
+        effective, info, _theme = run(self.service.resolve_preview(token))
         self.assertEqual((effective["ecommerce_hero_title"], effective["ecommerce_brand_color"]), ("Aperçu", "#7C3AED"))
         self.assertEqual(effective["ecommerce_contact_email"], "contact@exemple.test")
         self.assertEqual(info["source"], "draft")
@@ -335,7 +335,7 @@ class PreviewTests(ThemeServiceTestCase):
 
     def test_published_preview_shows_live_values(self):
         token, _ = run(self.service.create_preview(ACCOUNT, SLUG, source="published", capabilities=MOBILE, author_id="owner_a"))
-        effective, info = run(self.service.resolve_preview(token))
+        effective, info, _theme = run(self.service.resolve_preview(token))
         self.assertEqual(effective["ecommerce_hero_title"], "Bienvenue")
         self.assertEqual(info["source"], "published")
 
@@ -400,6 +400,7 @@ class RouteGuardTests(unittest.TestCase):
             ("post", "/ecommerce/site/theme/publish"),
             ("post", "/ecommerce/site/theme/revisions/{revision_id}/restore"),
             ("post", "/ecommerce/site/theme/preview"),
+            ("post", "/ecommerce/site/theme/model"),
             ("post", "/ecommerce/site/media"),
             ("post", "/ecommerce/site/media/{media_id}/alt"),
             ("post", "/ecommerce/site/media/{media_id}/delete"),
@@ -418,6 +419,9 @@ class RouteGuardTests(unittest.TestCase):
         self.assertIn('"Cache-Control": "no-store, max-age=0"', self.source)
         self.assertIn('@app.post("/api/public/ecommerce/preview")', self.source)
         self.assertIn('/preview#{token}', self.source)
+        # Le thème d'un aperçu n'est jamais remplacé par le thème publié.
+        self.assertIn("payload = await build_public_ecommerce_payload(account_doc, theme=theme)", self.source)
+        self.assertIn("if theme is _PUBLISHED_THEME:", self.source)
 
 
 if __name__ == "__main__":

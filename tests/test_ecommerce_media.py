@@ -216,7 +216,7 @@ class ThemeMediaTests(unittest.TestCase):
         state = self.save(self.with_logo(state, logo["media_id"]), state)
         self.assertEqual(state["media"][logo["media_id"]]["thumbnail_url"], logo["thumbnail_url"])
         token, _ = run(self.service.create_preview(ACCOUNT, SLUG, source="draft", capabilities=MOBILE, author_id="owner_a"))
-        effective, _ = run(self.service.resolve_preview(token))
+        effective, _info, _theme = run(self.service.resolve_preview(token))
         expected_url = f"https://app.stockman.pro/api/public/ecommerce/media/{logo['media_id']}/192.webp"
         self.assertEqual(effective["ecommerce_logo_url"], expected_url)
         self.assertNotIn("ecommerce_logo_url", self.account())
