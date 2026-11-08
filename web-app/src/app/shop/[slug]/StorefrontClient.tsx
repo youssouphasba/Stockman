@@ -990,6 +990,9 @@ const STOREFRONT_RENDERERS = {
   atelier: SectionStorefront,
   marche: SectionStorefront,
   vitrine: SectionStorefront,
+  eclat: SectionStorefront,
+  prestige: SectionStorefront,
+  bazar: SectionStorefront,
 };
 
 export default function StorefrontClient({ slug, modelId, previewToken }: { slug: string; modelId?: string | null; previewToken?: string | null }) {

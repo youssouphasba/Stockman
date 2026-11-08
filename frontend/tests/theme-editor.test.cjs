@@ -42,7 +42,7 @@ test('Sections can be added, moved and removed, except the indispensable ones', 
   assert.equal(s.isRequiredSection(doc, 'catalog', 'catalog-main'), true);
   assert.equal(s.removeSection(doc, 'catalog', 'catalog-main'), doc);
   assert.throws(() => s.addSection(doc, 'home', 'legacy-storefront'));
-  assert.equal(marcheDocument().pages[0].sections.length, 4);
+  assert.equal(marcheDocument().pages[0].sections.length, contract.models.marche.pages[0].sections.length);
 });
 
 test('Blocks get unique ids and every setting of a section is editable', () => {

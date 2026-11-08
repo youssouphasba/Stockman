@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element -- les images des produits et des médias sont déjà optimisées par Stockman. */
 import React, { useEffect, useRef, useState } from 'react';
-import { Minus, Plus, Send, ShoppingBag, Trash2, X } from 'lucide-react';
+import { Check, Minus, Plus, Send, ShoppingBag, Trash2, X } from 'lucide-react';
 import { formatAmount, type OrderForm, type StorefrontCommerce } from './useStorefrontCommerce';
 import type { StorefrontProduct, StorefrontSite } from './types';
 
@@ -49,10 +49,10 @@ export function ProductCard({ product, cardStyle, currency, outline, onOpen, onA
     const portrait = cardStyle === 'portrait';
     const bordered = cardStyle === 'bordered';
     return (
-        <article className={`group flex h-full flex-col ${bordered ? 'rounded-[var(--sf-radius)] border border-[var(--sf-border)] bg-[var(--sf-bg)] p-3' : ''}`}>
+        <article className={`sf-card group flex h-full flex-col ${bordered ? 'rounded-[var(--sf-radius)] border border-[var(--sf-border)] bg-[var(--sf-bg)] p-3' : ''}`}>
             <button type="button" onClick={() => onOpen(product)} className="text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--sf-accent)]" aria-label={`Voir ${product.name}`}>
                 <div className={`relative overflow-hidden rounded-[var(--sf-radius)] bg-[var(--sf-surface)] ${portrait ? 'aspect-[3/4]' : 'aspect-square'}`}>
-                    <ProductImage product={product} className="transition duration-500 group-hover:scale-[1.03]" />
+                    <ProductImage product={product} className="transition duration-700 group-hover:scale-105" />
                     {!product.available && (
                         <span className="absolute left-3 top-3 rounded-[var(--sf-radius-pill)] bg-[var(--sf-bg)] px-3 py-1 text-xs font-semibold text-[var(--sf-text)] shadow-sm">Indisponible</span>
                     )}
@@ -99,44 +99,93 @@ function useEscape(onClose: () => void) {
     }, [onClose]);
 }
 
-export function ProductDialog({ product, currency, outline, onClose, onAdd }: {
+export function ProductDialog({ product, currency, outline, inCart, onClose, onAdd }: {
     product: StorefrontProduct;
     currency: string;
     outline: boolean;
+    inCart: number;
     onClose: () => void;
-    onAdd: (product: StorefrontProduct) => void;
+    onAdd: (product: StorefrontProduct, quantity: number) => void;
 }) {
     const closeRef = useRef<HTMLButtonElement>(null);
+    const [quantity, setQuantity] = useState(1);
     useEscape(onClose);
     useEffect(() => { closeRef.current?.focus(); }, []);
     const unit = unitLabel(product.unit);
+    // Le stock publié borne la quantité, en tenant compte de ce qui est déjà au panier.
+    const remaining = Math.max(0, Math.floor(product.quantity) - inCart);
+    const canAdd = product.available && remaining > 0;
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
-            <div className="absolute inset-0 bg-[var(--sf-overlay)]" onClick={onClose} aria-hidden="true" />
-            <div role="dialog" aria-modal="true" aria-labelledby="sf-product-title" className="relative grid max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-t-[var(--sf-radius-lg)] bg-[var(--sf-bg)] text-[var(--sf-text)] shadow-2xl sm:grid-cols-2 sm:rounded-[var(--sf-radius-lg)]">
-                <div className="aspect-square bg-[var(--sf-surface)] sm:aspect-auto sm:min-h-[420px]">
+            <div className="sf-overlay absolute inset-0 bg-[var(--sf-overlay)]" onClick={onClose} aria-hidden="true" />
+            <div role="dialog" aria-modal="true" aria-labelledby="sf-product-title" className="sf-sheet relative grid max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-t-[var(--sf-radius-lg)] bg-[var(--sf-bg)] text-[var(--sf-text)] shadow-2xl sm:grid-cols-2 sm:rounded-[var(--sf-radius-lg)]">
+                {/* Un seul bouton de fermeture : sur la photo au téléphone, en haut à droite sur ordinateur. */}
+                <button ref={closeRef} type="button" onClick={onClose} aria-label="Fermer" className="absolute right-3 top-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--sf-bg)] text-[var(--sf-text)] shadow-md hover:bg-[var(--sf-surface)]">
+                    <X className="h-5 w-5" aria-hidden="true" />
+                </button>
+                <div className="relative aspect-square overflow-hidden bg-[var(--sf-surface)] sm:aspect-auto sm:min-h-[460px]">
                     <ProductImage product={product} />
                 </div>
-                <div className="flex flex-col p-6 sm:p-8">
-                    <button ref={closeRef} type="button" onClick={onClose} aria-label="Fermer" className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--sf-muted)] hover:bg-[var(--sf-surface)]">
-                        <X className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                    {product.category && <p className="text-xs font-medium uppercase tracking-wide text-[var(--sf-muted)]">{product.category}</p>}
-                    <h2 id="sf-product-title" className="mt-2 text-2xl font-semibold leading-tight [font-family:var(--sf-font-heading)]">{product.name}</h2>
+                <div className="flex flex-col p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:p-8 sm:pt-16">
+                    {product.category && <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--sf-muted)]">{product.category}</p>}
+                    <h2 id="sf-product-title" className="mt-2 text-2xl font-semibold leading-tight [font-family:var(--sf-font-heading)] sm:text-3xl">{product.name}</h2>
                     <p className="mt-3 text-xl font-semibold">
                         {formatAmount(product.selling_price, currency)}
                         {unit !== 'pièce' && <span className="text-base font-normal text-[var(--sf-muted)]"> / {unit}</span>}
                     </p>
-                    <p className="mt-2 text-sm text-[var(--sf-muted)]">{product.available ? 'Disponible' : 'Rupture de stock : ce produit ne peut pas être commandé pour le moment.'}</p>
+                    <p className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--sf-muted)]">
+                        <span aria-hidden="true" className={`h-2 w-2 rounded-full ${product.available ? 'bg-[#16A34A]' : 'bg-[var(--sf-muted)]'}`} />
+                        {product.available ? 'Disponible' : 'Rupture de stock : ce produit ne peut pas être commandé pour le moment.'}
+                    </p>
                     {product.description && <p className="mt-5 whitespace-pre-line text-sm leading-7 text-[var(--sf-text)]">{product.description}</p>}
-                    <div className="mt-auto pt-8">
-                        <button type="button" onClick={() => onAdd(product)} disabled={!product.available} className={`${accentButtonClass(outline)} w-full`}>
+                    <div className="mt-auto flex items-center gap-3 pt-8">
+                        {canAdd && (
+                            <div className="inline-flex h-12 shrink-0 items-center rounded-[var(--sf-radius-pill)] border border-[var(--sf-border)]" role="group" aria-label="Quantité">
+                                <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity <= 1} aria-label="Diminuer la quantité" className="inline-flex h-12 w-11 items-center justify-center disabled:opacity-40"><Minus className="h-4 w-4" aria-hidden="true" /></button>
+                                <span className="min-w-8 text-center text-sm font-semibold" aria-live="polite">{quantity}</span>
+                                <button type="button" onClick={() => setQuantity((value) => Math.min(remaining, value + 1))} disabled={quantity >= remaining} aria-label="Augmenter la quantité" className="inline-flex h-12 w-11 items-center justify-center disabled:opacity-40"><Plus className="h-4 w-4" aria-hidden="true" /></button>
+                            </div>
+                        )}
+                        <button type="button" onClick={() => onAdd(product, Math.min(quantity, remaining))} disabled={!canAdd} className={`${accentButtonClass(outline)} min-h-12 flex-1`}>
                             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-                            Ajouter au panier
+                            {product.available && remaining === 0 ? 'Quantité maximale au panier' : 'Ajouter au panier'}
                         </button>
                     </div>
                 </div>
             </div>
+        </div>
+    );
+}
+
+// Confirmation d'ajout : en bas de l'écran sur téléphone, en haut à droite sur ordinateur.
+export function CartToast({ product, currency, count, outline, onOpenCart, onClose }: {
+    product: StorefrontProduct;
+    currency: string;
+    count: number;
+    outline: boolean;
+    onOpenCart: () => void;
+    onClose: () => void;
+}) {
+    return (
+        <div className="sf-pop fixed inset-x-3 bottom-3 z-[45] mx-auto max-w-md rounded-[var(--sf-radius-lg)] border border-[var(--sf-border)] bg-[var(--sf-bg)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-[var(--sf-text)] shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-24 sm:w-96 sm:pb-4">
+            <div className="flex items-center justify-between gap-3">
+                <p className="inline-flex items-center gap-2 text-sm font-semibold">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--sf-accent)] text-[var(--sf-on-accent)]"><Check className="h-3.5 w-3.5" aria-hidden="true" /></span>
+                    Ajouté au panier
+                </p>
+                <button type="button" onClick={onClose} aria-label="Fermer la confirmation" className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--sf-muted)] hover:bg-[var(--sf-surface)]"><X className="h-4 w-4" aria-hidden="true" /></button>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[var(--sf-radius)] bg-[var(--sf-surface)]"><ProductImage product={product} /></div>
+                <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{product.name}</p>
+                    <p className="text-sm text-[var(--sf-muted)]">{formatAmount(product.selling_price, currency)}</p>
+                </div>
+            </div>
+            <button type="button" onClick={onOpenCart} className={`${accentButtonClass(outline)} mt-4 w-full`}>
+                <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+                Voir le panier ({count})
+            </button>
         </div>
     );
 }
@@ -161,15 +210,15 @@ export function CartDrawer({ commerce, site, preview, outline, onClose }: {
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
-            <div className="absolute inset-0 bg-[var(--sf-overlay)]" onClick={onClose} aria-hidden="true" />
-            <aside role="dialog" aria-modal="true" aria-labelledby="sf-cart-title" className="relative flex h-full w-full max-w-md flex-col bg-[var(--sf-bg)] text-[var(--sf-text)] shadow-2xl">
+            <div className="sf-overlay absolute inset-0 bg-[var(--sf-overlay)]" onClick={onClose} aria-hidden="true" />
+            <aside role="dialog" aria-modal="true" aria-labelledby="sf-cart-title" className="sf-drawer relative flex h-full w-full max-w-md flex-col bg-[var(--sf-bg)] text-[var(--sf-text)] shadow-2xl">
                 <div className="flex items-center justify-between border-b border-[var(--sf-border)] px-6 py-5">
                     <h2 id="sf-cart-title" className="text-lg font-semibold [font-family:var(--sf-font-heading)]">Votre panier</h2>
                     <button ref={closeRef} type="button" onClick={onClose} aria-label="Fermer le panier" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--sf-muted)] hover:bg-[var(--sf-surface)]">
                         <X className="h-5 w-5" aria-hidden="true" />
                     </button>
                 </div>
-                <div className="flex-1 overflow-y-auto px-6 py-5">
+                <div className="flex-1 overflow-y-auto px-6 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
                     {commerce.order.success && <p role="status" className="mb-5 rounded-[var(--sf-radius)] bg-[var(--sf-accent-soft)] p-4 text-sm font-medium">{commerce.order.success}</p>}
                     {commerce.lines.length === 0 ? (
                         <p className="text-sm text-[var(--sf-muted)]">Votre panier est vide.</p>

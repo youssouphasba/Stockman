@@ -49,15 +49,17 @@ export function useStorefrontCommerce(payload: StorefrontPayload | null, preview
         postJson(`/api/public/ecommerce/${slug}/events`, { event_type: 'site_view' }).catch(() => null);
     }, [payload, preview, slug]);
 
-    const addToCart = useCallback((product: StorefrontProduct) => {
+    // La quantité ajoutée ne dépasse jamais le stock disponible publié.
+    const addToCart = useCallback((product: StorefrontProduct, quantity = 1) => {
+        const wanted = Math.max(1, Math.floor(quantity));
         if (!product.available || product.quantity <= 0) return;
         setCart((current) => {
             const previous = current[product.product_id]?.quantity || 0;
-            return { ...current, [product.product_id]: { product, quantity: Math.min(previous + 1, Math.max(0, product.quantity)) } };
+            return { ...current, [product.product_id]: { product, quantity: Math.min(previous + wanted, Math.max(0, product.quantity)) } };
         });
         setOrder((state) => (state.success ? IDLE : state));
         if (!preview && slug) {
-            postJson(`/api/public/ecommerce/${slug}/events`, { event_type: 'add_to_cart', product_id: product.product_id, quantity: 1 }).catch(() => null);
+            postJson(`/api/public/ecommerce/${slug}/events`, { event_type: 'add_to_cart', product_id: product.product_id, quantity: wanted }).catch(() => null);
         }
     }, [preview, slug]);
 

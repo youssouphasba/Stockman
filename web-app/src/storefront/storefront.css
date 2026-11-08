@@ -1,0 +1,211 @@
+/* Animations des boutiques à sections : limitées à .sf-root, jamais appliquées au back-office.
+   « Discrètes » et « Expressives » se règlent dans le style du site ; tout mouvement est coupé
+   pour les visiteurs qui demandent moins d'animations (prefers-reduced-motion). */
+
+/* Textes modifiables sur place, uniquement dans l'aperçu de l'éditeur visuel. */
+.sf-root .sf-editable {
+  outline: 1px dashed transparent;
+  outline-offset: 4px;
+  border-radius: 4px;
+  cursor: text;
+  transition: outline-color 0.15s ease;
+}
+.sf-root .sf-editable:hover,
+.sf-root .sf-editable:focus {
+  outline-color: #10b981;
+}
+.sf-root .sf-editable:focus {
+  outline-style: solid;
+}
+.sf-root .sf-editable:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Bandeau défilant : deux moitiés identiques ; la seconde n'est lue par aucun lecteur d'écran. */
+.sf-root .sf-marquee-track[data-static='true'] {
+  width: 100%;
+  justify-content: center;
+}
+.sf-root .sf-marquee-track[data-static='true'] .sf-marquee-group {
+  flex-shrink: 1;
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 0.5rem;
+  padding-right: 0;
+}
+.sf-root .sf-marquee-track[data-static='true'] [data-duplicate] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Apparition au défilement : le contenu reste visible tant que le script n'a pas pris la main. */
+  .sf-root.sf-js[data-motion='subtle'] [data-sf-reveal]:not([data-sf-shown]) {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  .sf-root.sf-js[data-motion='expressive'] [data-sf-reveal]:not([data-sf-shown]) {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0) scale(0.97);
+  }
+  .sf-root[data-motion='subtle'] [data-sf-reveal] {
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    transition-delay: var(--sf-delay, 0ms);
+  }
+  .sf-root[data-motion='expressive'] [data-sf-reveal] {
+    transition: opacity 0.95s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.95s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: var(--sf-delay, 0ms);
+  }
+
+  /* Bannière : entrée échelonnée du texte et lent zoom de l'image. */
+  .sf-root:not([data-motion='none']) .sf-hero-in > * {
+    animation: sf-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .sf-root:not([data-motion='none']) .sf-hero-in > *:nth-child(2) { animation-delay: 0.12s; }
+  .sf-root:not([data-motion='none']) .sf-hero-in > *:nth-child(3) { animation-delay: 0.24s; }
+  .sf-root:not([data-motion='none']) .sf-hero-in > *:nth-child(4) { animation-delay: 0.36s; }
+  .sf-root[data-motion='expressive'] .sf-kenburns {
+    animation: sf-kenburns 16s ease-out both;
+  }
+  /* Une image plus bas dans la page attend d'être visible pour commencer son zoom. */
+  .sf-root.sf-js[data-motion='expressive'] [data-sf-reveal]:not([data-sf-shown]) .sf-kenburns {
+    animation: none;
+  }
+
+  /* Fiches produits, vignettes et cartes : élévation au survol. */
+  .sf-root:not([data-motion='none']) .sf-card {
+    transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
+  }
+  .sf-root[data-motion='expressive'] .sf-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.35);
+  }
+  .sf-root[data-motion='subtle'] .sf-card:hover {
+    transform: translateY(-2px);
+  }
+  .sf-root:not([data-motion='none']) .sf-arrow {
+    transition: transform 0.25s ease;
+  }
+  .sf-root:not([data-motion='none']) button:hover .sf-arrow,
+  .sf-root:not([data-motion='none']) a:hover .sf-arrow {
+    transform: translateX(4px);
+  }
+
+  /* Bandeau défilant continu, en pause au survol ou avec son bouton. */
+  .sf-root:not([data-motion='none']) .sf-marquee-track:not([data-static='true']) {
+    animation: sf-marquee var(--sf-marquee-duration, 32s) linear infinite;
+  }
+  .sf-root .sf-marquee:hover .sf-marquee-track,
+  .sf-root .sf-marquee-track[data-paused='true'] {
+    animation-play-state: paused;
+  }
+
+  /* Changement de page, panier, menu et fiche produit. */
+  .sf-root:not([data-motion='none']) .sf-page {
+    animation: sf-fade 0.45s ease both;
+  }
+  .sf-root:not([data-motion='none']) .sf-drawer {
+    animation: sf-slide-in 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .sf-root:not([data-motion='none']) .sf-drawer-left {
+    animation: sf-slide-in-left 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .sf-root:not([data-motion='none']) .sf-pop {
+    animation: sf-pop 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  /* Fiche produit : feuille qui monte du bas sur téléphone, fenêtre qui apparaît sur ordinateur. */
+  .sf-root:not([data-motion='none']) .sf-sheet {
+    animation: sf-sheet-up 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .sf-root:not([data-motion='none']) .sf-overlay {
+    animation: sf-fade 0.25s ease both;
+  }
+  .sf-root:not([data-motion='none']) header[data-scrolled='true'] {
+    box-shadow: 0 10px 30px -20px rgba(0, 0, 0, 0.35);
+  }
+  /* En-tête masqué en descendant, réaffiché en remontant : plus de place pour les produits. */
+  .sf-root:not([data-motion='none']) header {
+    transition: box-shadow 0.3s ease, transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .sf-root:not([data-motion='none']) header[data-hidden='true']:not(:focus-within) {
+    transform: translate3d(0, -100%, 0);
+  }
+  /* Décor de la bannière sans image : lente respiration de la couleur de marque. */
+  .sf-root[data-motion='expressive'] .sf-float {
+    animation: sf-float 14s ease-in-out infinite alternate;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (min-width: 640px) {
+  .sf-root:not([data-motion='none']) .sf-sheet {
+    animation: sf-pop 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+/* Rangées qui défilent au doigt sur téléphone : barre de défilement masquée, glissement fluide. */
+.sf-root .sf-scroller {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.sf-root .sf-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-root .sf-marquee-track {
+    width: 100%;
+    justify-content: center;
+  }
+  .sf-root .sf-marquee-group {
+    flex-shrink: 1;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 0.5rem;
+    padding-right: 0;
+  }
+  .sf-root .sf-marquee-track [data-duplicate],
+  .sf-root .sf-marquee-toggle {
+    display: none;
+  }
+}
+
+@keyframes sf-rise {
+  from { opacity: 0; transform: translate3d(0, 24px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sf-kenburns {
+  from { transform: scale(1.12); }
+  to { transform: scale(1); }
+}
+@keyframes sf-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes sf-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sf-slide-in {
+  from { transform: translate3d(100%, 0, 0); }
+  to { transform: none; }
+}
+@keyframes sf-slide-in-left {
+  from { transform: translate3d(-100%, 0, 0); }
+  to { transform: none; }
+}
+@keyframes sf-sheet-up {
+  from { transform: translate3d(0, 100%, 0); }
+  to { transform: none; }
+}
+@keyframes sf-float {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-40px, 30px, 0) scale(1.15); }
+}
+@keyframes sf-pop {
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}

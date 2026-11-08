@@ -1,8 +1,8 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element -- les médias sont déjà optimisés par Stockman. */
-import React, { useState } from 'react';
-import { Mail, MapPin, Menu, Phone, Search, ShoppingBag, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChevronRight, Mail, MapPin, Menu, Phone, Search, ShoppingBag, X } from 'lucide-react';
 import { booleanSetting, enumSetting, textSetting, type StorefrontPageKind, type StorefrontSite, type ThemeSettings } from './types';
 
 export const NAVIGATION: Array<{ page: StorefrontPageKind; label: string }> = [
@@ -33,11 +33,39 @@ export function AnnouncementBar({ settings, onNavigate }: { settings: ThemeSetti
 
 function Brand({ name, logoUrl }: { name: string; logoUrl?: string | null }) {
     return (
-        <span className="flex min-w-0 items-center gap-3">
-            {logoUrl && <img src={logoUrl} alt="" width={44} height={44} className="h-11 w-11 shrink-0 rounded-[var(--sf-radius)] object-cover" />}
-            <span className="truncate text-lg font-semibold tracking-tight text-[var(--sf-text)] [font-family:var(--sf-font-heading)] sm:text-xl">{name}</span>
+        <span className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+            {logoUrl && <img src={logoUrl} alt="" width={44} height={44} className="h-9 w-9 shrink-0 rounded-[var(--sf-radius)] object-cover sm:h-11 sm:w-11" />}
+            <span className="truncate text-base font-semibold tracking-tight text-[var(--sf-text)] [font-family:var(--sf-font-heading)] sm:text-xl">{name}</span>
         </span>
     );
+}
+
+// En-tête : ombre dès que la page défile, masqué en descendant et réaffiché en remontant.
+function useHeaderScroll() {
+    const [state, setState] = useState({ scrolled: false, hidden: false });
+    useEffect(() => {
+        let last = window.scrollY;
+        let frame = 0;
+        const update = () => {
+            frame = 0;
+            const y = Math.max(0, window.scrollY);
+            const delta = y - last;
+            setState((current) => {
+                const scrolled = y > 8;
+                const hidden = y < 140 ? false : delta > 8 ? true : delta < -8 ? false : current.hidden;
+                return scrolled === current.scrolled && hidden === current.hidden ? current : { scrolled, hidden };
+            });
+            if (y < 140 || Math.abs(delta) > 8) last = y;
+        };
+        const onScroll = () => { if (!frame) frame = window.requestAnimationFrame(update); };
+        update();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            if (frame) window.cancelAnimationFrame(frame);
+        };
+    }, []);
+    return state;
 }
 
 export function Header({ settings, site, logoUrl, page, cartCount, onNavigate, onSearch, onOpenCart }: {
@@ -52,6 +80,20 @@ export function Header({ settings, site, logoUrl, page, cartCount, onNavigate, o
 }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [query, setQuery] = useState('');
+    const scroll = useHeaderScroll();
+    const closeMenuRef = useRef<HTMLButtonElement>(null);
+    useEffect(() => {
+        if (!menuOpen) return undefined;
+        closeMenuRef.current?.focus();
+        const handle = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false); };
+        window.addEventListener('keydown', handle);
+        const previous = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            window.removeEventListener('keydown', handle);
+            document.body.style.overflow = previous;
+        };
+    }, [menuOpen]);
     const centered = enumSetting(settings, 'header_layout', ['logo-left', 'logo-center'] as const, 'logo-left') === 'logo-center';
     const showSearch = booleanSetting(settings, 'show_search', true);
     const name = siteDisplayName(settings, site);
@@ -87,9 +129,13 @@ export function Header({ settings, site, logoUrl, page, cartCount, onNavigate, o
         </button>
     );
     return (
-        <header className="sticky top-0 z-40 border-b border-[var(--sf-border)] bg-[var(--sf-bg)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--sf-bg)]/85">
-            <div className="mx-auto flex h-20 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-                <button type="button" onClick={() => setMenuOpen(true)} aria-label="Ouvrir le menu" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--sf-text)] hover:bg-[var(--sf-surface)] lg:hidden">
+        <header
+            data-scrolled={scroll.scrolled ? 'true' : undefined}
+            data-hidden={scroll.hidden && !menuOpen ? 'true' : undefined}
+            className="sticky top-0 z-40 border-b border-[var(--sf-border)] bg-[var(--sf-bg)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--sf-bg)]/85"
+        >
+            <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-3 sm:h-20 sm:gap-4 sm:px-6 lg:px-8">
+                <button type="button" onClick={() => setMenuOpen(true)} aria-label="Ouvrir le menu" aria-expanded={menuOpen} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--sf-text)] hover:bg-[var(--sf-surface)] lg:hidden">
                     <Menu className="h-5 w-5" aria-hidden="true" />
                 </button>
                 {centered ? (
@@ -108,25 +154,36 @@ export function Header({ settings, site, logoUrl, page, cartCount, onNavigate, o
             </div>
             {menuOpen && (
                 <div className="fixed inset-0 z-50 lg:hidden">
-                    <div className="absolute inset-0 bg-[var(--sf-overlay)]" onClick={() => setMenuOpen(false)} aria-hidden="true" />
-                    <div role="dialog" aria-modal="true" aria-label="Menu" className="relative h-full w-80 max-w-[85vw] bg-[var(--sf-bg)] p-6 text-[var(--sf-text)] shadow-2xl">
-                        <div className="flex items-center justify-between">
+                    <div className="sf-overlay absolute inset-0 bg-[var(--sf-overlay)]" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+                    <div role="dialog" aria-modal="true" aria-label="Menu" className="sf-drawer-left relative flex h-full w-[86vw] max-w-sm flex-col overflow-y-auto bg-[var(--sf-bg)] text-[var(--sf-text)] shadow-2xl">
+                        <div className="flex items-center justify-between gap-3 border-b border-[var(--sf-border)] px-5 py-4">
                             <Brand name={name} logoUrl={logoUrl} />
-                            <button type="button" onClick={() => setMenuOpen(false)} aria-label="Fermer le menu" className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-[var(--sf-surface)]"><X className="h-5 w-5" aria-hidden="true" /></button>
+                            <button ref={closeMenuRef} type="button" onClick={() => setMenuOpen(false)} aria-label="Fermer le menu" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-[var(--sf-surface)]"><X className="h-5 w-5" aria-hidden="true" /></button>
                         </div>
                         {showSearch && (
-                            <form role="search" className="mt-6" onSubmit={(event) => { event.preventDefault(); setMenuOpen(false); onSearch(query); }}>
+                            <form role="search" className="px-5 pt-5" onSubmit={(event) => { event.preventDefault(); setMenuOpen(false); onSearch(query); }}>
                                 <label htmlFor="sf-search-mobile" className="sr-only">Rechercher un produit</label>
-                                <input id="sf-search-mobile" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un produit" className="h-12 w-full rounded-[var(--sf-radius-pill)] border border-[var(--sf-border)] bg-[var(--sf-bg)] px-4 text-sm outline-none placeholder:text-[var(--sf-muted)]" />
+                                <div className="flex items-center gap-2 rounded-[var(--sf-radius-pill)] border border-[var(--sf-border)] bg-[var(--sf-bg)] px-4 focus-within:border-[var(--sf-text)]">
+                                    <Search className="h-4 w-4 text-[var(--sf-muted)]" aria-hidden="true" />
+                                    <input id="sf-search-mobile" type="search" enterKeyHint="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un produit" className="h-12 w-full bg-transparent text-base outline-none placeholder:text-[var(--sf-muted)]" />
+                                </div>
                             </form>
                         )}
-                        <nav aria-label="Navigation mobile" className="mt-6 flex flex-col gap-1">
+                        <nav aria-label="Navigation mobile" className="flex flex-col px-3 pt-4">
                             {NAVIGATION.map((item) => (
-                                <button key={item.page} type="button" onClick={() => navigate(item.page)} aria-current={page === item.page ? 'page' : undefined} className={`rounded-[var(--sf-radius)] px-4 py-3 text-left text-base font-medium ${page === item.page ? 'bg-[var(--sf-surface)]' : ''}`}>
+                                <button key={item.page} type="button" onClick={() => navigate(item.page)} aria-current={page === item.page ? 'page' : undefined} className={`flex min-h-14 items-center justify-between rounded-[var(--sf-radius)] px-3 text-left text-xl font-semibold [font-family:var(--sf-font-heading)] ${page === item.page ? 'bg-[var(--sf-surface)]' : 'hover:bg-[var(--sf-surface)]'}`}>
                                     {item.label}
+                                    <ChevronRight className="h-5 w-5 text-[var(--sf-muted)]" aria-hidden="true" />
                                 </button>
                             ))}
                         </nav>
+                        {(site.phone || site.email || site.address) && (
+                            <div className="mt-auto space-y-3 border-t border-[var(--sf-border)] px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-sm text-[var(--sf-muted)]">
+                                {site.phone && <a href={`tel:${site.phone.replace(/\s+/g, '')}`} className="flex items-center gap-3 hover:text-[var(--sf-text)]"><Phone className="h-4 w-4 shrink-0" aria-hidden="true" />{site.phone}</a>}
+                                {site.email && <a href={`mailto:${site.email}`} className="flex items-center gap-3 break-all hover:text-[var(--sf-text)]"><Mail className="h-4 w-4 shrink-0" aria-hidden="true" />{site.email}</a>}
+                                {site.address && <p className="flex items-start gap-3"><MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{site.address}</p>}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

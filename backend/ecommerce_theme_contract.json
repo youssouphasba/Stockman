@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "schema_version": 1,
   "limits": {
     "max_document_bytes": 262144,
@@ -28,6 +28,7 @@
     "color_scheme": { "type": "enum", "values": ["light", "cream", "dark"], "labels": { "light": "Clair", "cream": "Crème", "dark": "Sombre" }, "nullable": true, "group": "style", "label": "Ambiance", "hint": "Couleurs de fond et de texte du site. Les boutons gardent votre couleur de marque." },
     "font_pairing": { "type": "enum", "values": ["modern", "editorial", "friendly", "technical"], "labels": { "modern": "Moderne", "editorial": "Éditorial", "friendly": "Chaleureux", "technical": "Technique" }, "nullable": true, "group": "style", "label": "Typographie", "hint": "Polices des titres et des textes, choisies pour leur lisibilité." },
     "corner_style": { "type": "enum", "values": ["rounded", "square"], "labels": { "rounded": "Arrondis", "square": "Angles nets" }, "nullable": true, "group": "style", "label": "Forme des éléments" },
+    "animation_style": { "type": "enum", "values": ["none", "subtle", "expressive"], "labels": { "none": "Aucune", "subtle": "Discrètes", "expressive": "Expressives" }, "nullable": true, "group": "style", "label": "Animations", "hint": "Apparitions au défilement, effets au survol et transitions. Elles sont coupées pour les visiteurs qui ont demandé moins de mouvement." },
     "header_layout": { "type": "enum", "values": ["logo-left", "logo-center"], "labels": { "logo-left": "Logo à gauche", "logo-center": "Logo centré" }, "nullable": true, "group": "header", "label": "Disposition de l'en-tête" },
     "show_search": { "type": "boolean", "nullable": true, "group": "header", "label": "Recherche dans l'en-tête" },
     "announcement_text": { "type": "text", "max_length": 120, "nullable": true, "group": "header", "label": "Bandeau d'annonce", "hint": "Une information utile tout en haut du site, par exemple vos délais de livraison. Laissez vide pour le masquer." },
@@ -78,7 +79,8 @@
         "sort": { "type": "enum", "values": ["name", "price_asc", "price_desc"], "labels": { "name": "Ordre alphabétique", "price_asc": "Prix croissant", "price_desc": "Prix décroissant" }, "nullable": true, "label": "Ordre des produits" },
         "max_items": { "type": "integer", "min": 4, "max": 48, "nullable": true, "label": "Nombre de produits" },
         "columns": { "type": "integer", "min": 2, "max": 5, "nullable": true, "label": "Colonnes sur ordinateur" },
-        "card_style": { "type": "enum", "values": ["minimal", "bordered", "portrait"], "labels": { "minimal": "Épurée", "bordered": "Encadrée", "portrait": "Portrait" }, "nullable": true, "label": "Style des fiches" }
+        "card_style": { "type": "enum", "values": ["minimal", "bordered", "portrait"], "labels": { "minimal": "Épurée", "bordered": "Encadrée", "portrait": "Portrait" }, "nullable": true, "label": "Style des fiches" },
+        "mobile_layout": { "type": "enum", "values": ["grid", "carousel"], "labels": { "grid": "Grille de deux colonnes", "carousel": "Défilement au doigt" }, "nullable": true, "label": "Présentation sur téléphone", "hint": "Laissé vide : grille de deux colonnes." }
       },
       "blocks": {}
     },
@@ -151,6 +153,86 @@
       },
       "blocks": {}
     },
+    "marquee": {
+      "type_version": 1,
+      "label": "Bandeau défilant",
+      "settings": {
+        "speed": { "type": "enum", "values": ["slow", "normal", "fast"], "labels": { "slow": "Lente", "normal": "Normale", "fast": "Rapide" }, "nullable": true, "label": "Vitesse" },
+        "style": { "type": "enum", "values": ["accent", "outline"], "labels": { "accent": "Couleur de marque", "outline": "Discret" }, "nullable": true, "label": "Présentation" }
+      },
+      "blocks": {
+        "marquee-item": {
+          "type_version": 1,
+          "label": "Message",
+          "settings": {
+            "text": { "type": "text", "max_length": 60, "nullable": true, "label": "Texte", "hint": "Message court, par exemple un service ou une information pratique." }
+          }
+        }
+      }
+    },
+    "image-banner": {
+      "type_version": 1,
+      "label": "Bannière promotionnelle",
+      "settings": {
+        "image_asset_id": { "type": "media_id", "nullable": true, "media_kind": "image", "label": "Image", "hint": "Photo large au format paysage. Sans image, la bannière reste masquée." },
+        "heading": { "type": "text", "max_length": 120, "nullable": true, "label": "Titre" },
+        "text": { "type": "text", "max_length": 300, "nullable": true, "multiline": true, "label": "Texte" },
+        "button_label": { "type": "text", "max_length": 32, "nullable": true, "label": "Texte du bouton", "hint": "Laissez vide pour masquer le bouton." },
+        "button_target": { "type": "enum", "values": ["catalog", "contact"], "labels": { "catalog": "Catalogue", "contact": "Contact" }, "nullable": true, "label": "Destination du bouton" },
+        "height": { "type": "enum", "values": ["compact", "medium", "tall"], "labels": { "compact": "Compacte", "medium": "Moyenne", "tall": "Haute" }, "nullable": true, "label": "Hauteur" },
+        "alignment": { "type": "enum", "values": ["left", "center"], "labels": { "left": "À gauche", "center": "Centré" }, "nullable": true, "label": "Alignement du texte" }
+      },
+      "blocks": {}
+    },
+    "featured-collection": {
+      "type_version": 1,
+      "label": "Collection mise en avant",
+      "settings": {
+        "heading": { "type": "text", "max_length": 80, "nullable": true, "label": "Titre", "hint": "Laissé vide, le nom de la catégorie est affiché." },
+        "category": { "type": "text", "max_length": 120, "nullable": true, "source": "categories", "label": "Catégorie", "hint": "Catégorie de votre catalogue dont les produits sont mis en avant." },
+        "max_items": { "type": "integer", "min": 4, "max": 24, "nullable": true, "label": "Nombre de produits" },
+        "columns": { "type": "integer", "min": 2, "max": 5, "nullable": true, "label": "Colonnes sur ordinateur" },
+        "card_style": { "type": "enum", "values": ["minimal", "bordered", "portrait"], "labels": { "minimal": "Épurée", "bordered": "Encadrée", "portrait": "Portrait" }, "nullable": true, "label": "Style des fiches" },
+        "mobile_layout": { "type": "enum", "values": ["grid", "carousel"], "labels": { "grid": "Grille de deux colonnes", "carousel": "Défilement au doigt" }, "nullable": true, "label": "Présentation sur téléphone", "hint": "Laissé vide : défilement au doigt." }
+      },
+      "blocks": {}
+    },
+    "image-gallery": {
+      "type_version": 1,
+      "label": "Galerie d'images",
+      "settings": {
+        "heading": { "type": "text", "max_length": 80, "nullable": true, "label": "Titre" },
+        "layout": { "type": "enum", "values": ["grid", "mosaic"], "labels": { "grid": "Grille régulière", "mosaic": "Mosaïque" }, "nullable": true, "label": "Disposition" }
+      },
+      "blocks": {
+        "gallery-image": {
+          "type_version": 1,
+          "label": "Image",
+          "settings": {
+            "image_asset_id": { "type": "media_id", "nullable": true, "media_kind": "image", "label": "Image" },
+            "caption": { "type": "text", "max_length": 80, "nullable": true, "label": "Légende" }
+          }
+        }
+      }
+    },
+    "testimonials": {
+      "type_version": 1,
+      "label": "Avis clients",
+      "settings": {
+        "heading": { "type": "text", "max_length": 80, "nullable": true, "label": "Titre" }
+      },
+      "blocks": {
+        "testimonial": {
+          "type_version": 1,
+          "label": "Avis",
+          "settings": {
+            "quote": { "type": "text", "max_length": 400, "nullable": true, "multiline": true, "label": "Avis", "hint": "Uniquement l'avis réel d'un de vos clients, avec son accord." },
+            "author": { "type": "text", "max_length": 60, "nullable": true, "label": "Nom du client" },
+            "detail": { "type": "text", "max_length": 60, "nullable": true, "label": "Précision", "hint": "Par exemple la ville ou le produit acheté." }
+          }
+        }
+      }
+    },
     "catalog": {
       "type_version": 1,
       "label": "Catalogue complet",
@@ -188,13 +270,22 @@
       "default_plans": ["starter", "pro", "enterprise"],
       "structure_editable": true,
       "custom_pages": true,
-      "global_defaults": { "color_scheme": "cream", "font_pairing": "editorial", "corner_style": "square", "header_layout": "logo-center", "show_search": false, "announcement_link": "none" },
+      "global_defaults": { "color_scheme": "cream", "font_pairing": "editorial", "corner_style": "square", "animation_style": "expressive", "header_layout": "logo-center", "show_search": false, "announcement_link": "none" },
+      "presets": [
+        { "id": "ivoire", "label": "Ivoire", "settings": { "color_scheme": "cream", "font_pairing": "editorial", "corner_style": "square", "animation_style": "expressive" } },
+        { "id": "nuit", "label": "Nuit", "settings": { "color_scheme": "dark", "font_pairing": "editorial", "corner_style": "square", "animation_style": "expressive" } },
+        { "id": "galerie", "label": "Galerie", "settings": { "color_scheme": "light", "font_pairing": "modern", "corner_style": "square", "animation_style": "subtle" } }
+      ],
       "pages": [
         { "id": "home", "kind": "home", "sections": [
           { "id": "hero", "type": "hero", "settings": { "button_label": "Découvrir la collection", "button_target": "catalog", "layout": "overlay", "height": "tall", "alignment": "center" } },
           { "id": "categories", "type": "category-list", "settings": { "heading": "Nos univers", "style": "tiles", "max_items": 6 } },
+          { "id": "collection", "type": "featured-collection", "settings": { "max_items": 4, "columns": 4, "card_style": "portrait" } },
+          { "id": "promo", "type": "image-banner", "settings": { "button_label": "Découvrir", "button_target": "catalog", "height": "tall", "alignment": "center" } },
           { "id": "selection", "type": "product-grid", "settings": { "heading": "La sélection", "sort": "name", "max_items": 8, "columns": 4, "card_style": "portrait" } },
-          { "id": "story", "type": "image-with-text", "settings": { "button_target": "contact", "image_position": "left" } }
+          { "id": "lookbook", "type": "image-gallery", "settings": { "heading": "En images", "layout": "mosaic" }, "blocks": [{ "id": "galerie-1", "type": "gallery-image" }, { "id": "galerie-2", "type": "gallery-image" }, { "id": "galerie-3", "type": "gallery-image" }, { "id": "galerie-4", "type": "gallery-image" }, { "id": "galerie-5", "type": "gallery-image" }] },
+          { "id": "story", "type": "image-with-text", "settings": { "button_target": "contact", "image_position": "left" } },
+          { "id": "reviews", "type": "testimonials", "settings": { "heading": "Ils nous ont fait confiance" }, "blocks": [{ "id": "avis-1", "type": "testimonial" }, { "id": "avis-2", "type": "testimonial" }, { "id": "avis-3", "type": "testimonial" }] }
         ] },
         { "id": "catalog", "kind": "catalog", "sections": [
           { "id": "catalog-main", "type": "catalog", "required": true, "settings": { "heading": "Toute la collection", "show_filters": true, "columns": 3, "card_style": "portrait" } }
@@ -204,19 +295,24 @@
         ] }
       ],
       "guided_settings": {
-        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
+        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "animation_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
         "sections": {
           "hero": ["heading", "subheading", "image_asset_id", "button_label", "button_target", "layout", "height", "alignment"],
           "category-list": ["heading", "style", "max_items"],
-          "product-grid": ["heading", "sort", "max_items", "columns", "card_style"],
+          "product-grid": ["heading", "sort", "max_items", "columns", "card_style", "mobile_layout"],
           "image-with-text": ["image_asset_id", "heading", "text", "button_label", "button_target", "image_position"],
           "rich-text": ["heading", "text", "alignment"],
           "features": ["heading"],
           "faq": ["heading"],
           "contact": ["heading", "text", "show_form", "show_whatsapp"],
-          "catalog": ["heading", "show_filters", "columns", "card_style"]
+          "catalog": ["heading", "show_filters", "columns", "card_style"],
+          "marquee": ["speed", "style"],
+          "image-banner": ["image_asset_id", "heading", "text", "button_label", "button_target", "height", "alignment"],
+          "featured-collection": ["heading", "category", "max_items", "columns", "card_style", "mobile_layout"],
+          "image-gallery": ["heading", "layout"],
+          "testimonials": ["heading"]
         },
-        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"] }
+        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"], "marquee-item": ["text"], "gallery-image": ["image_asset_id", "caption"], "testimonial": ["quote", "author", "detail"] }
       }
     },
     "marche": {
@@ -226,13 +322,23 @@
       "default_plans": ["starter", "pro", "enterprise"],
       "structure_editable": true,
       "custom_pages": true,
-      "global_defaults": { "color_scheme": "light", "font_pairing": "friendly", "corner_style": "rounded", "header_layout": "logo-left", "show_search": true, "announcement_link": "contact" },
+      "global_defaults": { "color_scheme": "light", "font_pairing": "friendly", "corner_style": "rounded", "animation_style": "subtle", "header_layout": "logo-left", "show_search": true, "announcement_link": "contact" },
+      "presets": [
+        { "id": "frais", "label": "Frais", "settings": { "color_scheme": "light", "font_pairing": "friendly", "corner_style": "rounded", "animation_style": "subtle" } },
+        { "id": "terroir", "label": "Terroir", "settings": { "color_scheme": "cream", "font_pairing": "friendly", "corner_style": "rounded", "animation_style": "subtle" } },
+        { "id": "epicerie-fine", "label": "Épicerie fine", "settings": { "color_scheme": "dark", "font_pairing": "editorial", "corner_style": "square", "animation_style": "expressive" } }
+      ],
       "pages": [
         { "id": "home", "kind": "home", "sections": [
+          { "id": "infos", "type": "marquee", "settings": { "speed": "normal", "style": "accent" }, "blocks": [{ "id": "defile-1", "type": "marquee-item" }, { "id": "defile-2", "type": "marquee-item" }, { "id": "defile-3", "type": "marquee-item" }] },
           { "id": "hero", "type": "hero", "settings": { "button_label": "Faire mes courses", "button_target": "catalog", "layout": "split", "height": "compact", "alignment": "left" } },
           { "id": "categories", "type": "category-list", "settings": { "heading": "Rayons", "style": "chips", "max_items": 12 } },
+          { "id": "collection", "type": "featured-collection", "settings": { "max_items": 10, "columns": 5, "card_style": "bordered" } },
           { "id": "selection", "type": "product-grid", "settings": { "heading": "Nos produits", "sort": "name", "max_items": 20, "columns": 5, "card_style": "bordered" } },
-          { "id": "services", "type": "features", "settings": { "heading": "Comment ça marche" } }
+          { "id": "promo", "type": "image-banner", "settings": { "button_label": "J'en profite", "button_target": "catalog", "height": "compact", "alignment": "left" } },
+          { "id": "services", "type": "features", "settings": { "heading": "Comment ça marche" } },
+          { "id": "questions", "type": "faq", "settings": { "heading": "Questions fréquentes" }, "blocks": [{ "id": "question-1", "type": "question" }, { "id": "question-2", "type": "question" }, { "id": "question-3", "type": "question" }, { "id": "question-4", "type": "question" }] },
+          { "id": "reviews", "type": "testimonials", "settings": { "heading": "Avis de nos clients" }, "blocks": [{ "id": "avis-1", "type": "testimonial" }, { "id": "avis-2", "type": "testimonial" }, { "id": "avis-3", "type": "testimonial" }] }
         ] },
         { "id": "catalog", "kind": "catalog", "sections": [
           { "id": "catalog-main", "type": "catalog", "required": true, "settings": { "heading": "Tous les rayons", "show_filters": true, "columns": 4, "card_style": "bordered" } }
@@ -242,19 +348,24 @@
         ] }
       ],
       "guided_settings": {
-        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
+        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "animation_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
         "sections": {
           "hero": ["heading", "subheading", "image_asset_id", "button_label", "button_target", "layout", "height", "alignment"],
           "category-list": ["heading", "style", "max_items"],
-          "product-grid": ["heading", "sort", "max_items", "columns", "card_style"],
+          "product-grid": ["heading", "sort", "max_items", "columns", "card_style", "mobile_layout"],
           "image-with-text": ["image_asset_id", "heading", "text", "button_label", "button_target", "image_position"],
           "rich-text": ["heading", "text", "alignment"],
           "features": ["heading"],
           "faq": ["heading"],
           "contact": ["heading", "text", "show_form", "show_whatsapp"],
-          "catalog": ["heading", "show_filters", "columns", "card_style"]
+          "catalog": ["heading", "show_filters", "columns", "card_style"],
+          "marquee": ["speed", "style"],
+          "image-banner": ["image_asset_id", "heading", "text", "button_label", "button_target", "height", "alignment"],
+          "featured-collection": ["heading", "category", "max_items", "columns", "card_style", "mobile_layout"],
+          "image-gallery": ["heading", "layout"],
+          "testimonials": ["heading"]
         },
-        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"] }
+        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"], "marquee-item": ["text"], "gallery-image": ["image_asset_id", "caption"], "testimonial": ["quote", "author", "detail"] }
       }
     },
     "vitrine": {
@@ -264,13 +375,22 @@
       "default_plans": ["starter", "pro", "enterprise"],
       "structure_editable": true,
       "custom_pages": true,
-      "global_defaults": { "color_scheme": "light", "font_pairing": "modern", "corner_style": "rounded", "header_layout": "logo-left", "show_search": true, "announcement_link": "none" },
+      "global_defaults": { "color_scheme": "light", "font_pairing": "modern", "corner_style": "rounded", "animation_style": "subtle", "header_layout": "logo-left", "show_search": true, "announcement_link": "none" },
+      "presets": [
+        { "id": "clair", "label": "Clair", "settings": { "color_scheme": "light", "font_pairing": "modern", "corner_style": "rounded", "animation_style": "subtle" } },
+        { "id": "technique", "label": "Technique", "settings": { "color_scheme": "dark", "font_pairing": "technical", "corner_style": "square", "animation_style": "expressive" } },
+        { "id": "douceur", "label": "Douceur", "settings": { "color_scheme": "cream", "font_pairing": "friendly", "corner_style": "rounded", "animation_style": "subtle" } }
+      ],
       "pages": [
         { "id": "home", "kind": "home", "sections": [
           { "id": "hero", "type": "hero", "settings": { "button_label": "Voir le catalogue", "button_target": "catalog", "layout": "text", "height": "medium", "alignment": "left" } },
           { "id": "selection", "type": "product-grid", "settings": { "heading": "Notre sélection", "sort": "name", "max_items": 12, "columns": 4, "card_style": "minimal" } },
+          { "id": "collection", "type": "featured-collection", "settings": { "max_items": 8, "columns": 4, "card_style": "minimal" } },
+          { "id": "promo", "type": "image-banner", "settings": { "button_label": "Voir les produits", "button_target": "catalog", "height": "medium", "alignment": "left" } },
           { "id": "about", "type": "rich-text", "settings": { "heading": "À propos de la boutique", "alignment": "left" } },
-          { "id": "services", "type": "features", "settings": { "heading": "Nos services" } }
+          { "id": "services", "type": "features", "settings": { "heading": "Nos services" } },
+          { "id": "reviews", "type": "testimonials", "settings": { "heading": "Avis de nos clients" }, "blocks": [{ "id": "avis-1", "type": "testimonial" }, { "id": "avis-2", "type": "testimonial" }, { "id": "avis-3", "type": "testimonial" }] },
+          { "id": "questions", "type": "faq", "settings": { "heading": "Questions fréquentes" }, "blocks": [{ "id": "question-1", "type": "question" }, { "id": "question-2", "type": "question" }, { "id": "question-3", "type": "question" }, { "id": "question-4", "type": "question" }] }
         ] },
         { "id": "catalog", "kind": "catalog", "sections": [
           { "id": "catalog-main", "type": "catalog", "required": true, "settings": { "heading": "Catalogue", "show_filters": true, "columns": 4, "card_style": "minimal" } }
@@ -280,19 +400,181 @@
         ] }
       ],
       "guided_settings": {
-        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
+        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "animation_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
         "sections": {
           "hero": ["heading", "subheading", "image_asset_id", "button_label", "button_target", "layout", "height", "alignment"],
           "category-list": ["heading", "style", "max_items"],
-          "product-grid": ["heading", "sort", "max_items", "columns", "card_style"],
+          "product-grid": ["heading", "sort", "max_items", "columns", "card_style", "mobile_layout"],
           "image-with-text": ["image_asset_id", "heading", "text", "button_label", "button_target", "image_position"],
           "rich-text": ["heading", "text", "alignment"],
           "features": ["heading"],
           "faq": ["heading"],
           "contact": ["heading", "text", "show_form", "show_whatsapp"],
-          "catalog": ["heading", "show_filters", "columns", "card_style"]
+          "catalog": ["heading", "show_filters", "columns", "card_style"],
+          "marquee": ["speed", "style"],
+          "image-banner": ["image_asset_id", "heading", "text", "button_label", "button_target", "height", "alignment"],
+          "featured-collection": ["heading", "category", "max_items", "columns", "card_style", "mobile_layout"],
+          "image-gallery": ["heading", "layout"],
+          "testimonials": ["heading"]
         },
-        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"] }
+        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"], "marquee-item": ["text"], "gallery-image": ["image_asset_id", "caption"], "testimonial": ["quote", "author", "detail"] }
+      }
+    },
+    "eclat": {
+      "name": "Éclat",
+      "description": "Beauté, cosmétiques et bien-être : ambiance douce et lumineuse, gammes mises en valeur et conseils à portée de main.",
+      "version": "1.0.0",
+      "default_plans": ["starter", "pro", "enterprise"],
+      "structure_editable": true,
+      "custom_pages": true,
+      "global_defaults": { "color_scheme": "cream", "font_pairing": "editorial", "corner_style": "rounded", "animation_style": "expressive", "header_layout": "logo-center", "show_search": true, "announcement_link": "catalog" },
+      "presets": [
+        { "id": "nacre", "label": "Nacre", "settings": { "color_scheme": "cream", "font_pairing": "editorial", "corner_style": "rounded", "animation_style": "expressive" } },
+        { "id": "lumiere", "label": "Lumière", "settings": { "color_scheme": "light", "font_pairing": "modern", "corner_style": "rounded", "animation_style": "subtle" } },
+        { "id": "ambre", "label": "Ambre", "settings": { "color_scheme": "dark", "font_pairing": "editorial", "corner_style": "rounded", "animation_style": "expressive" } }
+      ],
+      "pages": [
+        { "id": "home", "kind": "home", "sections": [
+          { "id": "infos", "type": "marquee", "settings": { "speed": "slow", "style": "accent" }, "blocks": [{ "id": "defile-1", "type": "marquee-item" }, { "id": "defile-2", "type": "marquee-item" }, { "id": "defile-3", "type": "marquee-item" }] },
+          { "id": "hero", "type": "hero", "settings": { "button_label": "Découvrir", "button_target": "catalog", "layout": "split", "height": "tall", "alignment": "left" } },
+          { "id": "categories", "type": "category-list", "settings": { "heading": "Nos gammes", "style": "tiles", "max_items": 6 } },
+          { "id": "collection", "type": "featured-collection", "settings": { "max_items": 8, "columns": 4, "card_style": "portrait", "mobile_layout": "carousel" } },
+          { "id": "story", "type": "image-with-text", "settings": { "button_target": "contact", "image_position": "right" } },
+          { "id": "services", "type": "features", "settings": { "heading": "Nos engagements" } },
+          { "id": "reviews", "type": "testimonials", "settings": { "heading": "Avis de nos clients" }, "blocks": [{ "id": "avis-1", "type": "testimonial" }, { "id": "avis-2", "type": "testimonial" }, { "id": "avis-3", "type": "testimonial" }] },
+          { "id": "lookbook", "type": "image-gallery", "settings": { "heading": "En images", "layout": "grid" }, "blocks": [{ "id": "galerie-1", "type": "gallery-image" }, { "id": "galerie-2", "type": "gallery-image" }, { "id": "galerie-3", "type": "gallery-image" }, { "id": "galerie-4", "type": "gallery-image" }, { "id": "galerie-5", "type": "gallery-image" }, { "id": "galerie-6", "type": "gallery-image" }] },
+          { "id": "questions", "type": "faq", "settings": { "heading": "Vos questions" }, "blocks": [{ "id": "question-1", "type": "question" }, { "id": "question-2", "type": "question" }, { "id": "question-3", "type": "question" }, { "id": "question-4", "type": "question" }] }
+        ] },
+        { "id": "catalog", "kind": "catalog", "sections": [
+          { "id": "catalog-main", "type": "catalog", "required": true, "settings": { "heading": "Toute la boutique", "show_filters": true, "columns": 4, "card_style": "portrait" } }
+        ] },
+        { "id": "contact", "kind": "contact", "sections": [
+          { "id": "contact-main", "type": "contact", "required": true, "settings": { "heading": "Besoin d'un conseil ?", "show_form": true, "show_whatsapp": true } }
+        ] }
+      ],
+      "guided_settings": {
+        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "animation_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
+        "sections": {
+          "hero": ["heading", "subheading", "image_asset_id", "button_label", "button_target", "layout", "height", "alignment"],
+          "category-list": ["heading", "style", "max_items"],
+          "product-grid": ["heading", "sort", "max_items", "columns", "card_style", "mobile_layout"],
+          "image-with-text": ["image_asset_id", "heading", "text", "button_label", "button_target", "image_position"],
+          "rich-text": ["heading", "text", "alignment"],
+          "features": ["heading"],
+          "faq": ["heading"],
+          "contact": ["heading", "text", "show_form", "show_whatsapp"],
+          "catalog": ["heading", "show_filters", "columns", "card_style"],
+          "marquee": ["speed", "style"],
+          "image-banner": ["image_asset_id", "heading", "text", "button_label", "button_target", "height", "alignment"],
+          "featured-collection": ["heading", "category", "max_items", "columns", "card_style", "mobile_layout"],
+          "image-gallery": ["heading", "layout"],
+          "testimonials": ["heading"]
+        },
+        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"], "marquee-item": ["text"], "gallery-image": ["image_asset_id", "caption"], "testimonial": ["quote", "author", "detail"] }
+      }
+    },
+    "prestige": {
+      "name": "Prestige",
+      "description": "Bijoux, parfums, montres et mode haut de gamme : ambiance sombre, grandes images et pièces présentées comme en galerie.",
+      "version": "1.0.0",
+      "default_plans": ["starter", "pro", "enterprise"],
+      "structure_editable": true,
+      "custom_pages": true,
+      "global_defaults": { "color_scheme": "dark", "font_pairing": "editorial", "corner_style": "square", "animation_style": "expressive", "header_layout": "logo-center", "show_search": false, "announcement_link": "none" },
+      "presets": [
+        { "id": "onyx", "label": "Onyx", "settings": { "color_scheme": "dark", "font_pairing": "editorial", "corner_style": "square", "animation_style": "expressive" } },
+        { "id": "perle", "label": "Perle", "settings": { "color_scheme": "light", "font_pairing": "editorial", "corner_style": "square", "animation_style": "expressive" } },
+        { "id": "sable", "label": "Sable", "settings": { "color_scheme": "cream", "font_pairing": "editorial", "corner_style": "square", "animation_style": "subtle" } }
+      ],
+      "pages": [
+        { "id": "home", "kind": "home", "sections": [
+          { "id": "hero", "type": "hero", "settings": { "button_label": "Explorer la collection", "button_target": "catalog", "layout": "overlay", "height": "tall", "alignment": "left" } },
+          { "id": "infos", "type": "marquee", "settings": { "speed": "slow", "style": "outline" }, "blocks": [{ "id": "defile-1", "type": "marquee-item" }, { "id": "defile-2", "type": "marquee-item" }, { "id": "defile-3", "type": "marquee-item" }] },
+          { "id": "collection", "type": "featured-collection", "settings": { "max_items": 6, "columns": 3, "card_style": "portrait", "mobile_layout": "carousel" } },
+          { "id": "story", "type": "image-with-text", "settings": { "button_target": "contact", "image_position": "left" } },
+          { "id": "promo", "type": "image-banner", "settings": { "button_label": "Découvrir", "button_target": "catalog", "height": "tall", "alignment": "center" } },
+          { "id": "selection", "type": "product-grid", "settings": { "heading": "Nos pièces", "sort": "price_desc", "max_items": 6, "columns": 3, "card_style": "portrait", "mobile_layout": "carousel" } },
+          { "id": "about", "type": "rich-text", "settings": { "heading": "À propos", "alignment": "center" } },
+          { "id": "reviews", "type": "testimonials", "settings": { "heading": "Ils nous font confiance" }, "blocks": [{ "id": "avis-1", "type": "testimonial" }, { "id": "avis-2", "type": "testimonial" }, { "id": "avis-3", "type": "testimonial" }] }
+        ] },
+        { "id": "catalog", "kind": "catalog", "sections": [
+          { "id": "catalog-main", "type": "catalog", "required": true, "settings": { "heading": "La collection", "show_filters": true, "columns": 3, "card_style": "portrait" } }
+        ] },
+        { "id": "contact", "kind": "contact", "sections": [
+          { "id": "contact-main", "type": "contact", "required": true, "settings": { "heading": "Nous contacter", "show_form": true, "show_whatsapp": true } }
+        ] }
+      ],
+      "guided_settings": {
+        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "animation_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
+        "sections": {
+          "hero": ["heading", "subheading", "image_asset_id", "button_label", "button_target", "layout", "height", "alignment"],
+          "category-list": ["heading", "style", "max_items"],
+          "product-grid": ["heading", "sort", "max_items", "columns", "card_style", "mobile_layout"],
+          "image-with-text": ["image_asset_id", "heading", "text", "button_label", "button_target", "image_position"],
+          "rich-text": ["heading", "text", "alignment"],
+          "features": ["heading"],
+          "faq": ["heading"],
+          "contact": ["heading", "text", "show_form", "show_whatsapp"],
+          "catalog": ["heading", "show_filters", "columns", "card_style"],
+          "marquee": ["speed", "style"],
+          "image-banner": ["image_asset_id", "heading", "text", "button_label", "button_target", "height", "alignment"],
+          "featured-collection": ["heading", "category", "max_items", "columns", "card_style", "mobile_layout"],
+          "image-gallery": ["heading", "layout"],
+          "testimonials": ["heading"]
+        },
+        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"], "marquee-item": ["text"], "gallery-image": ["image_asset_id", "caption"], "testimonial": ["quote", "author", "detail"] }
+      }
+    },
+    "bazar": {
+      "name": "Bazar",
+      "description": "Quincaillerie, électronique et matériel : rayons d'abord, catalogue dense, disponibilité visible et informations pratiques en évidence.",
+      "version": "1.0.0",
+      "default_plans": ["starter", "pro", "enterprise"],
+      "structure_editable": true,
+      "custom_pages": true,
+      "global_defaults": { "color_scheme": "light", "font_pairing": "technical", "corner_style": "square", "animation_style": "subtle", "header_layout": "logo-left", "show_search": true, "announcement_link": "catalog" },
+      "presets": [
+        { "id": "acier", "label": "Acier", "settings": { "color_scheme": "light", "font_pairing": "technical", "corner_style": "square", "animation_style": "subtle" } },
+        { "id": "graphite", "label": "Graphite", "settings": { "color_scheme": "dark", "font_pairing": "technical", "corner_style": "square", "animation_style": "subtle" } },
+        { "id": "essentiel", "label": "Essentiel", "settings": { "color_scheme": "light", "font_pairing": "modern", "corner_style": "rounded", "animation_style": "none" } }
+      ],
+      "pages": [
+        { "id": "home", "kind": "home", "sections": [
+          { "id": "hero", "type": "hero", "settings": { "button_label": "Parcourir le catalogue", "button_target": "catalog", "layout": "text", "height": "compact", "alignment": "left" } },
+          { "id": "categories", "type": "category-list", "settings": { "heading": "Nos rayons", "style": "tiles", "max_items": 12 } },
+          { "id": "services", "type": "features", "settings": { "heading": "Pourquoi nous choisir" } },
+          { "id": "selection", "type": "product-grid", "settings": { "heading": "Nos produits", "sort": "name", "max_items": 15, "columns": 5, "card_style": "bordered", "mobile_layout": "grid" } },
+          { "id": "collection", "type": "featured-collection", "settings": { "max_items": 10, "columns": 5, "card_style": "bordered", "mobile_layout": "carousel" } },
+          { "id": "promo", "type": "image-banner", "settings": { "button_label": "Voir le catalogue", "button_target": "catalog", "height": "compact", "alignment": "left" } },
+          { "id": "questions", "type": "faq", "settings": { "heading": "Questions fréquentes" }, "blocks": [{ "id": "question-1", "type": "question" }, { "id": "question-2", "type": "question" }, { "id": "question-3", "type": "question" }, { "id": "question-4", "type": "question" }] },
+          { "id": "about", "type": "rich-text", "settings": { "heading": "À propos du magasin", "alignment": "left" } }
+        ] },
+        { "id": "catalog", "kind": "catalog", "sections": [
+          { "id": "catalog-main", "type": "catalog", "required": true, "settings": { "heading": "Tous les produits", "show_filters": true, "columns": 5, "card_style": "bordered" } }
+        ] },
+        { "id": "contact", "kind": "contact", "sections": [
+          { "id": "contact-main", "type": "contact", "required": true, "settings": { "heading": "Nous trouver", "show_form": true, "show_whatsapp": true } }
+        ] }
+      ],
+      "guided_settings": {
+        "global": ["site_name", "brand_color", "logo_asset_id", "color_scheme", "font_pairing", "corner_style", "animation_style", "header_layout", "show_search", "announcement_text", "announcement_link", "footer_text"],
+        "sections": {
+          "hero": ["heading", "subheading", "image_asset_id", "button_label", "button_target", "layout", "height", "alignment"],
+          "category-list": ["heading", "style", "max_items"],
+          "product-grid": ["heading", "sort", "max_items", "columns", "card_style", "mobile_layout"],
+          "image-with-text": ["image_asset_id", "heading", "text", "button_label", "button_target", "image_position"],
+          "rich-text": ["heading", "text", "alignment"],
+          "features": ["heading"],
+          "faq": ["heading"],
+          "contact": ["heading", "text", "show_form", "show_whatsapp"],
+          "catalog": ["heading", "show_filters", "columns", "card_style"],
+          "marquee": ["speed", "style"],
+          "image-banner": ["image_asset_id", "heading", "text", "button_label", "button_target", "height", "alignment"],
+          "featured-collection": ["heading", "category", "max_items", "columns", "card_style", "mobile_layout"],
+          "image-gallery": ["heading", "layout"],
+          "testimonials": ["heading"]
+        },
+        "blocks": { "feature": ["icon", "title", "text"], "question": ["question", "answer"], "marquee-item": ["text"], "gallery-image": ["image_asset_id", "caption"], "testimonial": ["quote", "author", "detail"] }
       }
     }
   }

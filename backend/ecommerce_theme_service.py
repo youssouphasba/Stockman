@@ -53,8 +53,11 @@ logger = logging.getLogger(__name__)
 PREVIEW_TTL = timedelta(minutes=30)
 HISTORY_LIMIT = 50
 PREVIEW_SOURCES = ("draft", "published", "model")
+# Catégories proposées dans les réglages : longueur alignée sur le champ « Catégorie » du registre.
+MAX_CATEGORIES = 100
+MAX_CATEGORY_LENGTH = 120
 EDITABLE_FIELD_TYPES = ("text", "color", "media_id", "enum", "boolean", "integer")
-_PUBLIC_SPEC_KEYS = ("type", "label", "hint", "max_length", "multiline", "nullable", "media_kind", "min", "max")
+_PUBLIC_SPEC_KEYS = ("type", "label", "hint", "max_length", "multiline", "nullable", "media_kind", "min", "max", "source")
 # Largeur minimale du logo publié : net jusqu'à trois fois la taille affichée.
 LOGO_DISPLAY_WIDTH = 192
 PUBLISHED_FIELDS = LEGACY_ACCOUNT_FIELDS + (LEGACY_LOGO_FIELD,)
@@ -390,7 +393,42 @@ class EcommerceThemeService:
         identity = theme_identity((draft or {}).get("document") or live_document, live)
         if identity.get("logo_asset_id") and not await self.media.get(account_id, slug, identity["logo_asset_id"]):
             identity.pop("logo_asset_id")
+        top_category = await self._top_category(live)
+        if top_category:
+            identity["top_category"] = top_category
         return identity
+
+    async def _categories(self, live: Mapping[str, Any]) -> List[str]:
+        """Catégories réelles de la boutique liée, de la plus fournie à la moins fournie."""
+        try:
+            query: Dict[str, Any] = {"user_id": live.get("owner_user_id"), "is_active": {"$ne": False}}
+            if live.get("ecommerce_default_store_id"):
+                query["store_id"] = live["ecommerce_default_store_id"]
+            products = await self.db.products.find(query, {"_id": 0, "category_id": 1}).limit(2000).to_list(2000)
+            counts: Dict[str, int] = {}
+            for product in products:
+                if product.get("category_id"):
+                    counts[product["category_id"]] = counts.get(product["category_id"], 0) + 1
+            if not counts:
+                return []
+            categories = await self.db.categories.find(
+                {"category_id": {"$in": list(counts)}, "user_id": live.get("owner_user_id")}, {"_id": 0, "category_id": 1, "name": 1}
+            ).to_list(len(counts))
+            totals: Dict[str, int] = {}
+            for category in categories:
+                name = category.get("name")
+                if isinstance(name, str) and name.strip():
+                    label = name.strip()[:MAX_CATEGORY_LENGTH]
+                    totals[label] = totals.get(label, 0) + counts.get(category.get("category_id"), 0)
+            return [name for name, _count in sorted(totals.items(), key=lambda item: (-item[1], item[0].casefold()))][:MAX_CATEGORIES]
+        except Exception:
+            logger.warning("Categories unavailable for %s", live.get("account_id"))
+            return []
+
+    async def _top_category(self, live: Mapping[str, Any]) -> Optional[str]:
+        """Catégorie réelle la plus fournie de la boutique liée, pour la collection mise en avant."""
+        categories = await self._categories(live)
+        return categories[0] if categories else None
 
     # --- Lecture -------------------------------------------------------------
 
@@ -439,6 +477,10 @@ class EcommerceThemeService:
             "model": {"id": model["id"], "name": model["name"], "version": model["version"]},
             "models": await self._available_models(plan, published_document["model_id"], draft["document"]["model_id"] if draft else None),
             "fields": guided_field_descriptors(edited, self.contract),
+            # Styles prêts à l'emploi du modèle : ils ne touchent jamais à la couleur de marque.
+            "presets": copy.deepcopy(model.get("presets", [])),
+            # Catégories réelles du catalogue, proposées pour la collection mise en avant.
+            "categories": await self._categories(live),
             "published": {
                 "model_id": published_document["model_id"],
                 "document": published_document,

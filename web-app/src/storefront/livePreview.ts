@@ -5,6 +5,8 @@ import type { StorefrontMedia, StorefrontPageKind, ThemeDocumentData } from './t
 export const LIVE_PREVIEW_SOURCE = 'stockman-theme-editor';
 export const LIVE_PREVIEW_READY = 'stockman-preview-ready';
 export const LIVE_PREVIEW_SELECT = 'stockman-preview-select';
+// Texte modifié directement dans l'aperçu : l'éditeur vérifie le champ puis met à jour son document.
+export const LIVE_PREVIEW_EDIT = 'stockman-preview-edit';
 
 export type LivePreviewMessage = {
     source: typeof LIVE_PREVIEW_SOURCE;
@@ -31,4 +33,24 @@ export function readLivePreviewMessage(event: MessageEvent, expectedOrigin: stri
         page: PAGES.includes(data.page as StorefrontPageKind) ? (data.page as StorefrontPageKind) : 'home',
         selected: typeof data.selected === 'string' ? data.selected : null,
     };
+}
+
+export type LivePreviewEdit = { field: string; value: string };
+
+// Côté éditeur : seul l'aperçu intégré (même origine, cadre attendu) peut proposer un texte, et
+// uniquement pour un champ au format « page.section.réglage » ou « page.section.bloc.réglage ».
+export function readLivePreviewEdit(event: MessageEvent, expectedOrigin: string, frame: Window | null | undefined): LivePreviewEdit | null {
+    if (event.origin !== expectedOrigin || !frame || event.source !== frame) return null;
+    const data = event.data as { type?: unknown; field?: unknown; value?: unknown } | null;
+    if (!data || data.type !== LIVE_PREVIEW_EDIT || typeof data.field !== 'string' || typeof data.value !== 'string') return null;
+    if (!/^[a-z0-9][a-z0-9_-]*(\.[a-z0-9][a-z0-9_-]*){2,3}$/.test(data.field) || data.value.length > 5000) return null;
+    return { field: data.field, value: data.value };
+}
+
+// Mêmes règles que le serveur : pas de caractère de contrôle, pas de retour à la ligne dans un
+// texte d'une seule ligne, et des espaces ordinaires à la place des espaces insécables de saisie.
+export function cleanInlineText(raw: string, multiline: boolean, maxLength?: number) {
+    let text = raw.replace(/\u00a0/g, ' ').replace(/\r\n?/g, '\n');
+    text = multiline ? text.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '') : text.replace(/\s*\n\s*/g, ' ').replace(/[\u0000-\u001f\u007f]/g, '');
+    return maxLength ? text.slice(0, maxLength) : text;
 }

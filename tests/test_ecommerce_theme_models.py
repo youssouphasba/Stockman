@@ -27,7 +27,8 @@ from ecommerce_themes import (  # noqa: E402
 )
 from fake_mongo import FakeDatabase  # noqa: E402
 
-SECTION_MODELS = ("atelier", "marche", "vitrine")
+# Tous les modèles à sections du registre : chaque nouveau modèle passe automatiquement les mêmes contrôles.
+SECTION_MODELS = tuple(model_id for model_id in CONTRACT["models"] if model_id != "legacy-v1")
 
 
 def run(coro):
@@ -78,8 +79,12 @@ class InstantiationTests(unittest.TestCase):
             for page in document["pages"]:
                 for item in page["sections"]:
                     for block in item["blocks"]:
-                        # Un point fort n'existe que s'il reprend une information du commerçant.
-                        self.assertIn(block["settings"]["text"], ("Livraison en 24 h à Dakar.",))
+                        if item["type"] == "features":
+                            # Un point fort n'existe que s'il reprend une information du commerçant.
+                            self.assertIn(block["settings"]["text"], ("Livraison en 24 h à Dakar.",))
+                        else:
+                            # Les autres blocs du modèle sont vides : aucun avis, image ou message inventé.
+                            self.assertEqual(block["settings"], {}, (model_id, item["id"], block["id"]))
         self.assertEqual(section(instantiate_model("marche", {}), "services")["blocks"], [])
 
     def test_carried_values_that_do_not_fit_are_left_empty_not_truncated(self):
@@ -112,6 +117,32 @@ class InstantiationTests(unittest.TestCase):
         optional = instantiate_model("marche", {})
         next(page for page in optional["pages"] if page["kind"] == "home")["sections"].pop(0)
         validate_theme_document(optional)
+
+    def test_presets_and_compositions_stay_consistent_with_the_registry(self):
+        for model_id in SECTION_MODELS:
+            model = CONTRACT["models"][model_id]
+            self.assertGreaterEqual(len(model["presets"]), 3)
+            for preset in model["presets"]:
+                for key, value in preset["settings"].items():
+                    spec = CONTRACT["global_settings"][key]
+                    self.assertIn(value, spec["values"], (model_id, preset["id"], key))
+                    self.assertNotEqual(key, "brand_color")
+            document = instantiate_model(model_id, {"top_category": "Tissus"})
+            collection = next(item for page in document["pages"] for item in page["sections"] if item["type"] == "featured-collection")
+            self.assertEqual(collection["settings"]["category"], "Tissus")
+            self.assertEqual(document["global_settings"]["animation_style"], model["global_defaults"]["animation_style"])
+
+    def test_models_differ_by_composition_and_style(self):
+        # Une bibliothèque de modèles réellement différents : pas deux modèles avec la même page
+        # d'accueil et le même style par défaut.
+        signatures = set()
+        for model_id in SECTION_MODELS:
+            model = CONTRACT["models"][model_id]
+            home = next(page for page in model["pages"] if page["kind"] == "home")
+            signature = (tuple(item["type"] for item in home["sections"]), tuple(sorted(model["global_defaults"].items())))
+            self.assertNotIn(signature, signatures, model_id)
+            signatures.add(signature)
+            self.assertEqual(len({preset["id"] for preset in model["presets"]}), len(model["presets"]))
 
     def test_descriptors_group_fields_and_describe_enums_and_blocks(self):
         document = instantiate_model("marche", {"delivery_info": "Livraison le jour même.", "payment_instructions": "Paiement à la livraison."})
@@ -205,29 +236,30 @@ class ModelLifecycleTests(unittest.TestCase):
         self.assertEqual(section(state["draft"]["document"], "hero")["settings"]["heading"], "Courses livrées chez vous")
 
         structural = copy.deepcopy(state["draft"]["document"])
+        home_count = len(next(page for page in structural["pages"] if page["kind"] == "home")["sections"])
         next(page for page in structural["pages"] if page["kind"] == "home")["sections"].pop()
         with self.assertRaises(ThemeValidationError) as ctx:
             run(self.service.save_draft(ACCOUNT, SLUG, document=structural, expected_lock_version=state["lock_version"], capabilities=MOBILE, author_id="owner_a"))
         self.assertEqual(ctx.exception.code, "guided_change_forbidden")
         # Enterprise sur le web peut retirer une section non indispensable.
         enterprise_state = run(self.service.save_draft(ACCOUNT, SLUG, document=structural, expected_lock_version=state["lock_version"], capabilities=ENTERPRISE_WEB, author_id="owner_a"))
-        self.assertEqual(len(next(page for page in enterprise_state["draft"]["document"]["pages"] if page["kind"] == "home")["sections"]), 3)
+        self.assertEqual(len(next(page for page in enterprise_state["draft"]["document"]["pages"] if page["kind"] == "home")["sections"]), home_count - 1)
 
     def test_enterprise_web_adds_sections_and_blocks_guided_channels_cannot(self):
         state = self.publish(self.change("vitrine", self.view()))
         document = copy.deepcopy(state["published"]["document"])
         home = next(page for page in document["pages"] if page["kind"] == "home")
-        home["sections"].insert(1, {"id": "faq-1", "type": "faq", "type_version": 1, "settings": {"heading": "Questions"}, "blocks": [
-            {"id": "question-1", "type": "question", "type_version": 1, "settings": {"question": "Livrez-vous ?", "answer": "Oui, sous 48 h."}},
+        home["sections"].insert(1, {"id": "faq-extra", "type": "faq", "type_version": 1, "settings": {"heading": "Questions"}, "blocks": [
+            {"id": "extra-question", "type": "question", "type_version": 1, "settings": {"question": "Livrez-vous ?", "answer": "Oui, sous 48 h."}},
         ]})
         with self.assertRaises(ThemeValidationError):
             run(self.service.save_draft(ACCOUNT, SLUG, document=document, expected_lock_version=state["lock_version"], capabilities=MOBILE, author_id="owner_a"))
         saved = run(self.service.save_draft(ACCOUNT, SLUG, document=document, expected_lock_version=state["lock_version"], capabilities=ENTERPRISE_WEB, author_id="owner_a"))
-        self.assertEqual(section(saved["draft"]["document"], "faq-1")["blocks"][0]["id"], "question-1")
+        self.assertEqual(section(saved["draft"]["document"], "faq-extra")["blocks"][0]["id"], "extra-question")
         published = self.publish(saved, ENTERPRISE_WEB)
-        self.assertEqual(section(published["published"]["document"], "faq-1")["settings"]["heading"], "Questions")
+        self.assertEqual(section(published["published"]["document"], "faq-extra")["settings"]["heading"], "Questions")
         bad = copy.deepcopy(published["published"]["document"])
-        section(bad, "faq-1")["blocks"].append({"id": "x", "type": "feature", "type_version": 1, "settings": {}})
+        section(bad, "faq-extra")["blocks"].append({"id": "x", "type": "feature", "type_version": 1, "settings": {}})
         with self.assertRaises(ThemeValidationError) as ctx:
             run(self.service.save_draft(ACCOUNT, SLUG, document=bad, expected_lock_version=published["lock_version"], capabilities=ENTERPRISE_WEB, author_id="owner_a"))
         self.assertEqual(ctx.exception.code, "block_not_allowed")
@@ -263,6 +295,24 @@ class ModelLifecycleTests(unittest.TestCase):
         history = run(self.service.history(ACCOUNT, SLUG, ENTERPRISE_WEB))["revisions"]
         self.assertEqual(history[0]["kind"], "settings")
         self.assertTrue(history[0]["is_published"])
+
+    def test_featured_collection_uses_the_largest_real_category(self):
+        self.account()["owner_user_id"] = "owner_a"
+        for index, category in enumerate(["cat_a", "cat_b", "cat_b"]):
+            run(self.db.products.insert_one({"product_id": f"p{index}", "user_id": "owner_a", "category_id": category, "is_active": True}))
+        run(self.db.products.insert_one({"product_id": "p9", "user_id": "owner_a", "category_id": "cat_a", "is_active": False}))
+        run(self.db.categories.insert_one({"category_id": "cat_a", "user_id": "owner_a", "name": "Boissons"}))
+        run(self.db.categories.insert_one({"category_id": "cat_b", "user_id": "owner_a", "name": "Épicerie"}))
+        state = self.change("marche", self.view())
+        collection = section(state["draft"]["document"], "collection")
+        self.assertEqual(collection["settings"]["category"], "Épicerie")
+        self.assertEqual([preset["id"] for preset in state["presets"]], ["frais", "terroir", "epicerie-fine"])
+        heading_field = next(field for field in state["fields"] if field["key"] == "heading" and field.get("section_id") == "collection")
+        self.assertEqual(heading_field["group_label"], "Accueil · Collection mise en avant")
+        # Les catégories proposées sont celles du catalogue réel, de la plus fournie à la moins fournie.
+        self.assertEqual(state["categories"], ["Épicerie", "Boissons"])
+        category_field = next(field for field in state["fields"] if field["key"] == "category" and field.get("section_id") == "collection")
+        self.assertEqual(category_field["source"], "categories")
 
     def test_history_names_model_changes(self):
         self.change("atelier", self.view())

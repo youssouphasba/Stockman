@@ -611,12 +611,18 @@ def instantiate_model(model_id: str, identity: Mapping[str, Any], contract: Mapp
         for template in page["sections"]:
             spec = contract["sections"][template["type"]]
             settings = copy.deepcopy(template.get("settings", {}))
-            blocks: List[Dict[str, Any]] = []
+            # Blocs prévus par le modèle, vides : la section reste masquée tant que le commerçant ne les remplit pas.
+            blocks: List[Dict[str, Any]] = [
+                {"id": block["id"], "type": block["type"], "type_version": spec["blocks"][block["type"]]["type_version"], "settings": copy.deepcopy(block.get("settings", {}))}
+                for block in template.get("blocks", [])
+            ]
             if template["type"] == "hero":
                 _put(settings, spec["settings"], "heading", identity.get("hero_title") or identity.get("site_name"))
                 _put(settings, spec["settings"], "subheading", identity.get("welcome_message"))
             elif template["type"] == "features":
                 blocks = _identity_features(identity, spec)
+            elif template["type"] == "featured-collection":
+                _put(settings, spec["settings"], "category", identity.get("top_category"))
             sections.append({"id": template["id"], "type": template["type"], "type_version": spec["type_version"], "settings": settings, "blocks": blocks})
         pages.append({"id": page["id"], "kind": page["kind"], "sections": sections})
     document = {
