@@ -4,7 +4,7 @@ Le site actuel porte le nom Stockman Basic et l'identifiant technique `legacy-v1
 
 La configuration du site reste dans Paramètres > Boutique en ligne. E-com reste consacré aux commandes et aux statistiques. Starter et Pro conservent la consultation du back-office web ; Enterprise conserve la gestion web selon ses permissions.
 
-Quatre modèles sont disponibles pour Starter, Pro et Enterprise : Stockman Basic, Atelier, Marché et Vitrine. La bibliothèque est conçue pour s'enrichir progressivement, sans limite commerciale codée en dur ; les droits par modèle et par abonnement se règlent côté serveur. L'éditeur visuel complet Enterprise (ajout, suppression et déplacement libres des sections, pages personnalisées) n'est pas encore disponible.
+Quatre modèles sont disponibles pour Starter, Pro et Enterprise : Stockman Basic, Atelier, Marché et Vitrine. La bibliothèque est conçue pour s'enrichir progressivement, sans limite commerciale codée en dur ; les droits par modèle et par abonnement se règlent côté serveur. Enterprise dispose sur le web d'un éditeur visuel pour les modèles Atelier, Marché et Vitrine ; les pages personnalisées ne sont pas encore disponibles.
 
 ## Première configuration
 
@@ -61,4 +61,16 @@ Les modèles Atelier, Marché et Vitrine proposent des rubriques : Identité (no
 Sur le site public, une section vide reste masquée ; dans l'aperçu privé, elle apparaît comme un cadre « Section à compléter ». Les catégories et les produits affichés viennent toujours du catalogue réel ; une photo absente est remplacée par les initiales du produit. Le catalogue propose la recherche, le tri, les filtres par catégorie et la pagination. Le panier, les commandes, le formulaire de contact et les statistiques fonctionnent comme sur Stockman Basic. Les polices sont hébergées avec le site, sans appel à un service tiers.
 
 Les anciennes versions de l'application continuent d'enregistrer le nom, la couleur, le titre et le message d'accueil : sur un modèle à sections, ces changements sont repris dans le modèle publié.
+
+## Éditeur visuel Enterprise
+
+Sur le web, avec un abonnement Enterprise, le bouton « Ouvrir l'éditeur visuel » apparaît dans « Apparence du site » pour les modèles Atelier, Marché et Vitrine (Stockman Basic garde une structure fixe). Il s'ouvre quand aucune modification n'est en attente dans le formulaire.
+
+- Les onglets Accueil, Catalogue et Contact affichent les sections de chaque page. Chaque section peut être montée, descendue ou supprimée ; « Ajouter une section » propose bannière, catégories, sélection de produits, image et texte, texte, points forts, questions fréquentes, contact et catalogue complet. Le catalogue de la page Catalogue et le contact de la page Contact sont indispensables au parcours commercial : ils ne peuvent pas être supprimés.
+- Une section choisie montre tous ses réglages, y compris ceux réservés à Enterprise, ainsi que ses éléments (points forts, questions) : ajout, déplacement et suppression.
+- « Annuler » et « Rétablir » (Ctrl+Z, Ctrl+Maj+Z) reviennent sur les dernières actions.
+- « Actualiser l'aperçu » enregistre le brouillon puis affiche l'aperçu privé dans l'éditeur ; les boutons Mobile, Tablette et Ordinateur changent la largeur de l'aperçu. Les commandes et les messages restent désactivés dans l'aperçu.
+- « Enregistrer le brouillon » conserve le travail sans changer le site public. La publication se fait ensuite depuis « Apparence du site », avec la liste des changements.
+
+Le serveur vérifie chaque enregistrement : droits Enterprise sur le web, types de sections et d'éléments autorisés, sections indispensables, limites techniques. Seule la page d'aperçu peut être affichée dans l'éditeur, et uniquement depuis le domaine de l'application.
 

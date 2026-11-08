@@ -1,5 +1,19 @@
 import type { NextConfig } from "next";
 
+// Seule la page d'aperçu peut être intégrée, et uniquement par l'éditeur visuel du même domaine.
+const contentSecurityPolicy = (frameAncestors: string) => [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.firebaseapp.com https://*.googleapis.com https://www.gstatic.com",
+  "script-src-elem 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://*.firebaseapp.com https://*.googleapis.com https://www.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://www.gstatic.com",
+  "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://www.gstatic.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: https:",
+  "connect-src 'self' https://stockman-production-149d.up.railway.app https://*.googleapis.com https://*.firebaseio.com https://accounts.google.com wss://*.firebaseio.com",
+  "frame-src 'self' https://stockman.pro https://accounts.google.com https://*.firebaseapp.com",
+  `frame-ancestors ${frameAncestors}`,
+].join('; ');
+
 const nextConfig: NextConfig = {
   experimental: {
     externalDir: true,
@@ -35,21 +49,16 @@ const nextConfig: NextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.firebaseapp.com https://*.googleapis.com https://www.gstatic.com",
-              "script-src-elem 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://*.firebaseapp.com https://*.googleapis.com https://www.gstatic.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://www.gstatic.com",
-              "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://www.gstatic.com",
-              "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: https:",
-              "connect-src 'self' https://stockman-production-149d.up.railway.app https://*.googleapis.com https://*.firebaseio.com https://accounts.google.com wss://*.firebaseio.com",
-              "frame-src 'self' https://stockman.pro https://accounts.google.com https://*.firebaseapp.com",
-              "frame-ancestors 'none'",
-            ].join('; '),
-          },
+          { key: 'Content-Security-Policy', value: contentSecurityPolicy("'none'") },
+        ],
+      },
+      {
+        source: '/preview',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Content-Security-Policy', value: contentSecurityPolicy("'self'") },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+          { key: 'Cache-Control', value: 'no-store' },
         ],
       },
     ];

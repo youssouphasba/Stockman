@@ -213,6 +213,25 @@ class ModelLifecycleTests(unittest.TestCase):
         enterprise_state = run(self.service.save_draft(ACCOUNT, SLUG, document=structural, expected_lock_version=state["lock_version"], capabilities=ENTERPRISE_WEB, author_id="owner_a"))
         self.assertEqual(len(next(page for page in enterprise_state["draft"]["document"]["pages"] if page["kind"] == "home")["sections"]), 3)
 
+    def test_enterprise_web_adds_sections_and_blocks_guided_channels_cannot(self):
+        state = self.publish(self.change("vitrine", self.view()))
+        document = copy.deepcopy(state["published"]["document"])
+        home = next(page for page in document["pages"] if page["kind"] == "home")
+        home["sections"].insert(1, {"id": "faq-1", "type": "faq", "type_version": 1, "settings": {"heading": "Questions"}, "blocks": [
+            {"id": "question-1", "type": "question", "type_version": 1, "settings": {"question": "Livrez-vous ?", "answer": "Oui, sous 48 h."}},
+        ]})
+        with self.assertRaises(ThemeValidationError):
+            run(self.service.save_draft(ACCOUNT, SLUG, document=document, expected_lock_version=state["lock_version"], capabilities=MOBILE, author_id="owner_a"))
+        saved = run(self.service.save_draft(ACCOUNT, SLUG, document=document, expected_lock_version=state["lock_version"], capabilities=ENTERPRISE_WEB, author_id="owner_a"))
+        self.assertEqual(section(saved["draft"]["document"], "faq-1")["blocks"][0]["id"], "question-1")
+        published = self.publish(saved, ENTERPRISE_WEB)
+        self.assertEqual(section(published["published"]["document"], "faq-1")["settings"]["heading"], "Questions")
+        bad = copy.deepcopy(published["published"]["document"])
+        section(bad, "faq-1")["blocks"].append({"id": "x", "type": "feature", "type_version": 1, "settings": {}})
+        with self.assertRaises(ThemeValidationError) as ctx:
+            run(self.service.save_draft(ACCOUNT, SLUG, document=bad, expected_lock_version=published["lock_version"], capabilities=ENTERPRISE_WEB, author_id="owner_a"))
+        self.assertEqual(ctx.exception.code, "block_not_allowed")
+
     def test_model_change_requires_the_dedicated_capability(self):
         candidate = instantiate_model("vitrine", {})
         with self.assertRaises(ThemeServiceError) as ctx:
