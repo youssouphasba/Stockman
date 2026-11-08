@@ -7,11 +7,13 @@ import { ecommerce } from '../services/api';
 import EcommerceMediaPicker from './EcommerceMediaPicker';
 import {
   THEME_COLOR_SWATCHES,
+  activeThemePreset,
   brandContrastWarning,
   createAppearanceController,
   describeAppearanceStatus,
   describeThemeChange,
   groupThemeFields,
+  normalizeHexColor,
   type AppearanceView,
   type ThemeField,
   type ThemeMediaItem,
@@ -34,6 +36,8 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
   // Images importées pendant la session, affichées avant même l'enregistrement du brouillon.
   const [mediaCache, setMediaCache] = useState<Record<string, ThemeMediaItem>>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  // Saisie en cours d'une couleur personnalisée, appliquée dès qu'elle forme un code valide.
+  const [hexDrafts, setHexDrafts] = useState<Record<string, string>>({});
   const publishedRef = useRef(onPublished);
   publishedRef.current = onPublished;
 
@@ -59,6 +63,16 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
   const errorText = isDark ? '#FCA5A5' : colors.danger;
   const groups = state ? groupThemeFields(state.fields) : [];
   const contrastWarning = state ? brandContrastWarning(view.values) : null;
+  const presets = state?.presets || [];
+  const activePreset = state ? activeThemePreset(state.fields, view.values, presets) : null;
+
+  // Résumé lisible d'un style prêt à l'emploi, à partir des libellés du registre.
+  function describePreset(settings: Record<string, string>) {
+    return Object.entries(settings)
+      .map(([key, value]) => state?.fields.find((field) => field.scope === 'global' && field.key === key)?.options?.find((option) => option.value === value)?.label)
+      .filter(Boolean)
+      .join(' · ');
+  }
 
   async function openUrl(url: string | null | undefined) {
     if (!url) return;
@@ -169,6 +183,58 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
               <Text style={styles.chipText}>Couleur actuelle {current}</Text>
             </View>
           )}
+          {field.type === 'color' && canEdit && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, width: '100%' }}>
+              <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: colors.divider, backgroundColor: normalizeHexColor(hexDrafts[field.id] ?? current) || 'transparent' }} />
+              <TextInput
+                style={[styles.input, { flex: 1, marginBottom: 0 }, disabled && { opacity: 0.6 }]}
+                value={hexDrafts[field.id] ?? current}
+                editable={!disabled}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={7}
+                placeholder="Couleur personnalisée, par exemple #0E7490"
+                placeholderTextColor={colors.textMuted}
+                accessibilityLabel={`${field.label} : couleur personnalisée au format #RRGGBB`}
+                onChangeText={(text) => {
+                  setHexDrafts((drafts) => ({ ...drafts, [field.id]: text }));
+                  const color = normalizeHexColor(text);
+                  if (color) setValue(color);
+                }}
+                onEndEditing={() => setHexDrafts((drafts) => {
+                  const next = { ...drafts };
+                  delete next[field.id];
+                  return next;
+                })}
+              />
+            </View>
+          )}
+        </View>
+      );
+    }
+    if (field.source === 'categories') {
+      const categories = state?.categories || [];
+      const missing = !!value && !categories.includes(value);
+      if (!categories.length && !value) {
+        return <Text style={styles.settingDesc}>Aucune catégorie dans votre catalogue pour le moment : classez vos produits pour utiliser cette section.</Text>;
+      }
+      return (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel={field.label}>
+          {[...(missing ? [value] : []), ...categories].map((category) => {
+            const active = value === category;
+            return (
+              <TouchableOpacity
+                key={category}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: active, disabled }}
+                disabled={disabled}
+                onPress={() => setValue(category)}
+                style={[styles.chip, { marginRight: 0, minHeight: 44, justifyContent: 'center' }, active && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              >
+                <Text style={[styles.chipText, active && { color: colors.primary }]}>{category}{missing && category === value ? ' (introuvable)' : ''}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       );
     }
@@ -292,6 +358,35 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
             </Text>
           )}
           {contrastWarning && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '600' }}>{contrastWarning}</Text>}
+
+          {canEdit && presets.length > 0 && (
+            <View style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.sm, gap: Spacing.sm }}>
+              <Text style={[styles.settingLabel, { fontWeight: '700' }]}>Styles prêts à l'emploi</Text>
+              <Text style={styles.settingDesc}>Un geste change l'ambiance, la typographie, la forme et les animations. Vos textes, vos images et votre couleur de marque restent les mêmes.</Text>
+              <View style={{ gap: Spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel="Styles prêts à l'emploi">
+                {presets.map((preset) => {
+                  const active = activePreset === preset.id;
+                  return (
+                    <TouchableOpacity
+                      key={preset.id}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: active, disabled: busy }}
+                      accessibilityLabel={`Style ${preset.label}`}
+                      disabled={busy}
+                      onPress={() => controller.current?.applyPreset(preset.id)}
+                      style={{ minHeight: 48, borderWidth: 1, borderColor: active ? colors.primary : colors.divider, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, backgroundColor: active ? colors.primary + '14' : 'transparent', flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}
+                    >
+                      <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={active ? colors.primary : colors.textMuted} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: colors.text, fontSize: FontSize.md, fontWeight: '700' }}>{preset.label}</Text>
+                        <Text style={styles.settingDesc}>{describePreset(preset.settings)}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {groups.map((group, index) => {
             const open = openGroups[group.id] ?? index === 0;

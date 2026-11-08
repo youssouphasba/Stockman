@@ -1,18 +1,54 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ImageIcon, Images, Minus, Plus } from 'lucide-react';
-import { THEME_COLOR_SWATCHES, type ThemeField, type ThemeMediaItem } from '../lib/ecommerceAppearance';
+import { THEME_COLOR_SWATCHES, normalizeHexColor, type ThemeField, type ThemeMediaItem } from '../lib/ecommerceAppearance';
 
 const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-primary/50 disabled:opacity-60';
 const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white transition-colors hover:bg-white/10 disabled:opacity-50';
 
+// Couleur libre : sélecteur du navigateur et code hexadécimal, appliqués dès qu'ils sont valides.
+function CustomColor({ label, value, disabled, onChange }: { label: string; value: string; disabled: boolean; onChange: (value: string) => void }) {
+    const [draft, setDraft] = useState<string | null>(null);
+    const current = normalizeHexColor(value) || '#000000';
+    return (
+        <div className="col-span-2 flex items-center gap-2 md:col-span-3">
+            <input
+                type="color"
+                value={current.toLowerCase()}
+                disabled={disabled}
+                onChange={(event) => onChange(event.target.value.toUpperCase())}
+                aria-label={`${label} : choisir une couleur personnalisée`}
+                className="h-11 w-14 shrink-0 cursor-pointer rounded-xl border border-white/10 bg-white/5 p-1 disabled:opacity-60"
+            />
+            <input
+                value={draft ?? (normalizeHexColor(value) || '')}
+                disabled={disabled}
+                maxLength={7}
+                spellCheck={false}
+                placeholder="#RRGGBB"
+                aria-label={`${label} : code de la couleur personnalisée`}
+                onChange={(event) => {
+                    setDraft(event.target.value);
+                    const color = normalizeHexColor(event.target.value);
+                    if (color) onChange(color);
+                }}
+                onBlur={() => setDraft(null)}
+                className={`${inputClass} max-w-40 font-mono uppercase`}
+            />
+            <span className="text-xs text-slate-500">Couleur personnalisée</span>
+        </div>
+    );
+}
+
 // Champ de réglage commun au panneau d'apparence et à l'éditeur visuel, généré depuis le registre.
-export default function ThemeFieldInput({ field, value, disabled, media, onChange, onPick }: {
+export default function ThemeFieldInput({ field, value, disabled, media, categories, onChange, onPick }: {
     field: ThemeField;
     value: string;
     disabled: boolean;
     media?: ThemeMediaItem | null;
+    // Catégories réelles du catalogue, pour les champs qui les proposent.
+    categories?: string[];
     onChange: (value: string) => void;
     onPick?: () => void;
 }) {
@@ -66,7 +102,22 @@ export default function ThemeFieldInput({ field, value, disabled, media, onChang
                         Couleur actuelle {current}
                     </span>
                 )}
+                {field.type === 'color' && <CustomColor label={field.label} value={value} disabled={disabled} onChange={onChange} />}
             </div>
+        );
+    }
+    if (field.source === 'categories') {
+        const list = categories || [];
+        const missing = !!value && !list.includes(value);
+        if (!list.length && !value) {
+            return <p className="text-sm leading-6 text-slate-400">Aucune catégorie dans votre catalogue pour le moment : classez vos produits pour utiliser cette section.</p>;
+        }
+        return (
+            <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} aria-label={field.label} className={`${inputClass} bg-[#0F172A]`}>
+                <option value="">Choisir une catégorie</option>
+                {missing && <option value={value}>{value} (introuvable dans le catalogue)</option>}
+                {list.map((category) => <option key={category} value={category}>{category}</option>)}
+            </select>
         );
     }
     if (field.type === 'boolean') {

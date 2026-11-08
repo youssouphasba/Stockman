@@ -113,3 +113,39 @@ test('The editor streams its working document and the preview never applies it o
   assert.match(storefront, /if \(!preview \|\| window\.parent === window\) return;/);
   assert.match(storefront, /readLivePreviewMessage\(event, window\.location\.origin, window\.parent\)/);
 });
+
+test('Texts typed in the preview are accepted only from the embedded preview and cleaned like on the server', () => {
+  const live = loadLive();
+  const frame = {};
+  const valid = { origin: 'https://app.stockman.pro', source: frame, data: { type: live.LIVE_PREVIEW_EDIT, field: 'home.hero.heading', value: 'Bienvenue' } };
+  assert.deepEqual(plain(live.readLivePreviewEdit(valid, 'https://app.stockman.pro', frame)), { field: 'home.hero.heading', value: 'Bienvenue' });
+  assert.equal(plain(live.readLivePreviewEdit({ ...valid, data: { ...valid.data, field: 'home.faq.question-1.answer' } }, 'https://app.stockman.pro', frame)).field, 'home.faq.question-1.answer');
+  assert.equal(live.readLivePreviewEdit({ ...valid, origin: 'https://exemple.test' }, 'https://app.stockman.pro', frame), null);
+  assert.equal(live.readLivePreviewEdit({ ...valid, source: {} }, 'https://app.stockman.pro', frame), null);
+  assert.equal(live.readLivePreviewEdit(valid, 'https://app.stockman.pro', null), null);
+  for (const field of ['global.brand_color', 'home.hero', '__proto__.x.y', 'home.hero.heading.x.y', 'Home.hero.heading']) {
+    assert.equal(live.readLivePreviewEdit({ ...valid, data: { ...valid.data, field } }, 'https://app.stockman.pro', frame), null, field);
+  }
+  assert.equal(live.readLivePreviewEdit({ ...valid, data: { ...valid.data, value: 'x'.repeat(5001) } }, 'https://app.stockman.pro', frame), null);
+  assert.equal(live.cleanInlineText('Bonjour\n  tout le monde\u0007', false, 120), 'Bonjour tout le monde');
+  assert.equal(live.cleanInlineText('Ligne 1\r\nLigne 2\u0001', true), 'Ligne 1\nLigne 2');
+  assert.equal(live.cleanInlineText('abcdef', false, 4), 'abcd');
+  const editor = read('web-app/src/components/EcommerceThemeEditor.tsx');
+  // L'éditeur n'accepte qu'un champ texte existant de la section visée.
+  assert.match(editor, /const field = candidates\.find\(\(item\) => item\.id === fieldId && item\.type === 'text'\);/);
+  assert.match(editor, /setField\(field, cleanInlineText\(raw, !!field\.multiline, field\.max_length\)\);/);
+});
+
+test('Site settings, section descriptions and category choices come from the registry', () => {
+  const s = loadStructure();
+  const fields = s.globalFields();
+  assert.deepEqual(plain(fields.map((field) => field.key)), Object.keys(contract.global_settings));
+  assert.ok(fields.every((field) => field.id === `global.${field.key}` && field.scope === 'global' && field.group_label));
+  assert.equal(fields.find((field) => field.key === 'animation_style').options.map((option) => option.label).join(', '), 'Aucune, Discrètes, Expressives');
+  const sections = s.addableSections();
+  assert.ok(sections.length >= 13);
+  for (const item of sections) assert.ok(item.description, item.type);
+  const doc = s.addSection(marcheDocument(), 'home', 'featured-collection').document;
+  const category = s.sectionFields(doc, 'home', 'featured-collection-1').find((field) => field.key === 'category');
+  assert.equal(category.source, 'categories');
+});

@@ -23,7 +23,12 @@ export type ThemeField = {
   options?: Array<{ value: string; label: string }>;
   min?: number;
   max?: number;
+  // « categories » : la valeur se choisit parmi les catégories réelles du catalogue.
+  source?: string;
 };
+
+// Style prêt à l'emploi : ambiance, typographie, forme et animations, jamais la couleur de marque.
+export type ThemePreset = { id: string; label: string; settings: Record<string, string> };
 
 export type ThemeModelSummary = { id: string; name: string; description: string; published: boolean; draft: boolean };
 export type ThemeFieldGroup = { id: string; label: string; fields: ThemeField[] };
@@ -70,6 +75,8 @@ export type ThemeState = {
   model: { id: string; name: string; version: string };
   models: ThemeModelSummary[];
   fields: ThemeField[];
+  presets?: ThemePreset[];
+  categories?: string[];
   published: {
     model_id: string;
     document: ThemeDocument;
@@ -224,6 +231,36 @@ export function groupThemeFields(fields: ThemeField[]): ThemeFieldGroup[] {
     group.fields.push(field);
   }
   return groups;
+}
+
+// Applique un style prêt à l'emploi aux réglages globaux présents dans le formulaire. Les textes,
+// les images et la couleur de marque ne changent jamais.
+export function applyThemePreset(fields: ThemeField[], values: ThemeValues, preset: ThemePreset): ThemeValues {
+  const next = { ...values };
+  for (const [key, value] of Object.entries(preset.settings || {})) {
+    const field = fields.find((item) => item.scope === 'global' && item.key === key);
+    if (!field || key === 'brand_color' || typeof value !== 'string') continue;
+    if (field.type === 'enum' && !field.options?.some((option) => option.value === value)) continue;
+    next[field.id] = value;
+  }
+  return next;
+}
+
+// Style prêt à l'emploi correspondant exactement aux réglages actuels, s'il y en a un.
+export function activeThemePreset(fields: ThemeField[], values: ThemeValues, presets: ThemePreset[] | undefined): string | null {
+  for (const preset of presets || []) {
+    const entries = Object.entries(preset.settings || {}).filter(([key]) => key !== 'brand_color' && fields.some((field) => field.scope === 'global' && field.key === key));
+    if (entries.length && entries.every(([key, value]) => values[`global.${key}`] === value)) return preset.id;
+  }
+  return null;
+}
+
+// Couleur personnalisée saisie librement : « 1a2b3c », « #1A2B3C » ou « #abc » deviennent « #1A2B3C ».
+export function normalizeHexColor(input: string): string | null {
+  const raw = (input || '').trim().replace(/^#/, '');
+  if (/^[0-9a-f]{3}$/i.test(raw)) return `#${raw.split('').map((char) => char + char).join('')}`.toUpperCase();
+  if (/^[0-9a-f]{6}$/i.test(raw)) return `#${raw}`.toUpperCase();
+  return null;
 }
 
 const SCHEME_BACKGROUNDS: Record<string, string> = { light: '#FFFFFF', cream: '#FBF8F3', dark: '#0F1217' };
@@ -388,6 +425,13 @@ export function createAppearanceController(api: AppearanceApi, update: (view: Ap
     emit({ values: { ...view.values, [id]: value }, notice: null, error: view.conflict ? view.error : null });
   }
 
+  function applyPreset(presetId: string) {
+    const state = view.state;
+    const preset = state?.presets?.find((item) => item.id === presetId);
+    if (!state || !preset) return;
+    emit({ values: applyThemePreset(state.fields, view.values, preset), notice: null, error: view.conflict ? view.error : null });
+  }
+
   async function saveDraft() {
     if (view.busy || !view.state) return;
     emit({ busy: 'save', error: null, notice: null });
@@ -497,6 +541,7 @@ export function createAppearanceController(api: AppearanceApi, update: (view: Ap
     load,
     reload,
     setValue,
+    applyPreset,
     saveDraft,
     preview,
     publish,

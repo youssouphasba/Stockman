@@ -6,8 +6,10 @@ import { ecommerce as ecommerceApi } from '../services/api';
 import EcommerceMediaPicker from './EcommerceMediaPicker';
 import EcommerceThemeEditor from './EcommerceThemeEditor';
 import ThemeFieldInput from './ThemeFieldInput';
+import ThemePresetPicker from './ThemePresetPicker';
 import { isStructureEditable } from '../lib/themeStructure';
 import {
+    activeThemePreset,
     brandContrastWarning,
     createAppearanceController,
     describeAppearanceStatus,
@@ -224,6 +226,23 @@ export default function EcommerceAppearancePanel({
                     )}
                     {contrastWarning && <p className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm leading-6 text-amber-200">{contrastWarning}</p>}
 
+                    {canEdit && !!state.presets?.length && (
+                        <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4" aria-labelledby="appearance-presets-title">
+                            <div>
+                                <p id="appearance-presets-title" className="text-sm font-black text-white">Styles prêts à l'emploi</p>
+                                <p className="mt-1 text-xs leading-5 text-slate-400">Un clic change l'ambiance, la typographie, la forme et les animations. Vos textes, vos images et votre couleur de marque restent les mêmes.</p>
+                            </div>
+                            <ThemePresetPicker
+                                presets={state.presets}
+                                fields={state.fields}
+                                active={activeThemePreset(state.fields, view.values, state.presets)}
+                                brandColor={view.values['global.brand_color']}
+                                disabled={busy}
+                                onApply={(preset) => controller.current?.applyPreset(preset.id)}
+                            />
+                        </section>
+                    )}
+
                     {groups.map((group, index) => (
                         <details key={group.id} open={index === 0} className="group rounded-2xl border border-white/10 bg-white/[0.02]">
                             <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black text-white [&::-webkit-details-marker]:hidden">
@@ -240,6 +259,7 @@ export default function EcommerceAppearancePanel({
                                             value={view.values[field.id] || ''}
                                             disabled={!canEdit || busy}
                                             media={view.values[field.id] ? mediaCache[view.values[field.id]] || state.media?.[view.values[field.id]] : null}
+                                            categories={state.categories}
                                             onChange={(value) => controller.current?.setValue(field.id, value)}
                                             onPick={() => setPickerField(field)}
                                         />

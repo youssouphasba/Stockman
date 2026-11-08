@@ -3,17 +3,37 @@
 import contract from './ecommerceThemeContract.json';
 import type { ThemeDocument, ThemeField, ThemePageDocument, ThemeSectionDocument } from './ecommerceAppearance';
 
-type Spec = { type: string; label?: string; hint?: string; max_length?: number; multiline?: boolean; nullable?: boolean; media_kind?: 'logo' | 'image'; values?: string[]; labels?: Record<string, string>; min?: number; max?: number };
+type Spec = { type: string; label?: string; hint?: string; max_length?: number; multiline?: boolean; nullable?: boolean; media_kind?: 'logo' | 'image'; values?: string[]; labels?: Record<string, string>; min?: number; max?: number; source?: string; group?: string };
 type SectionSpec = { type_version: number; label?: string; settings: Record<string, Spec>; blocks: Record<string, { type_version: number; label?: string; settings: Record<string, Spec> }> };
 type BlockDocument = { id: string; type: string; type_version: number; settings: Record<string, unknown> };
 
 const REGISTRY = contract as unknown as {
     limits: { max_sections_per_page: number; max_blocks_per_section: number; max_id_length: number };
+    global_groups: Record<string, string>;
+    global_settings: Record<string, Spec>;
     sections: Record<string, SectionSpec>;
     models: Record<string, { structure_editable?: boolean; pages: Array<{ kind: string; sections: Array<{ type: string; required?: boolean }> }> }>;
 };
 
 export const PAGE_LABELS: Record<string, string> = { home: 'Accueil', catalog: 'Catalogue', contact: 'Contact' };
+
+// Description courte de chaque section, affichée dans la liste « Ajouter une section ».
+export const SECTION_DESCRIPTIONS: Record<string, string> = {
+    hero: "Grand titre d'accueil, avec ou sans photo, et un bouton.",
+    'category-list': 'Vos catégories en vignettes illustrées ou en pastilles.',
+    'product-grid': 'Une sélection de vos produits, triée comme vous le souhaitez.',
+    'featured-collection': "Les produits d'une catégorie choisie, avec un lien vers elle.",
+    'image-banner': 'Une grande image avec un message et un bouton.',
+    'image-with-text': 'Une image à côté de votre texte : histoire, savoir-faire, service.',
+    'rich-text': 'Un texte libre : présentation, engagement, informations.',
+    features: 'Vos points forts en quelques cartes avec icônes.',
+    faq: 'Les réponses aux questions que vos clients posent souvent.',
+    marquee: 'Un bandeau de messages courts qui défile.',
+    'image-gallery': 'Plusieurs photos en grille ou en mosaïque.',
+    testimonials: "Les avis réels de vos clients, avec leur accord.",
+    contact: 'Vos coordonnées et un formulaire de contact.',
+    catalog: 'Le catalogue complet avec recherche et filtres.',
+};
 
 function clone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value));
@@ -31,7 +51,7 @@ export function sectionLabel(type: string) {
 export function addableSections() {
     return Object.entries(REGISTRY.sections)
         .filter(([type]) => type !== 'legacy-storefront')
-        .map(([type, spec]) => ({ type, label: spec.label || type }));
+        .map(([type, spec]) => ({ type, label: spec.label || type, description: SECTION_DESCRIPTIONS[type] || '' }));
 }
 
 export function blockTypes(sectionType: string) {
@@ -155,8 +175,17 @@ function toField(spec: Spec, base: Omit<ThemeField, 'type' | 'label'>): ThemeFie
         media_kind: spec.media_kind,
         min: spec.min,
         max: spec.max,
+        source: spec.source,
         options: spec.values?.map((value) => ({ value, label: spec.labels?.[value] || value })),
     };
+}
+
+// Réglages communs à tout le site (identité, style, en-tête, pied de page), dans l'ordre du registre.
+export function globalFields(): ThemeField[] {
+    return Object.entries(REGISTRY.global_settings).map(([key, spec]) => {
+        const group = spec.group || 'style';
+        return { ...toField(spec, { id: `global.${key}`, scope: 'global', key }), group, group_label: REGISTRY.global_groups[group] || 'Réglages' };
+    });
 }
 
 // Enterprise règle tous les paramètres d'une section, pas seulement les points guidés.

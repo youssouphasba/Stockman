@@ -327,3 +327,32 @@ test('Settings no longer edit appearance fields directly and show actions only w
   assert.match(read('web-app/src/components/EcommerceAppearancePanel.tsx'), /capabilities\?\.manage_history && \(/);
   assert.equal(read('frontend/components/EcommerceAppearanceEditor.tsx').includes('listThemeRevisions'), false);
 });
+
+test('Ready-made styles change only the global style fields and never the brand colour', async () => {
+  const helper = loadHelper();
+  const fields = [
+    { id: 'global.brand_color', scope: 'global', key: 'brand_color', type: 'color', label: 'Couleur de marque' },
+    { id: 'global.color_scheme', scope: 'global', key: 'color_scheme', type: 'enum', label: 'Ambiance', options: [{ value: 'light', label: 'Clair' }, { value: 'dark', label: 'Sombre' }] },
+    { id: 'global.animation_style', scope: 'global', key: 'animation_style', type: 'enum', label: 'Animations', options: [{ value: 'none', label: 'Aucune' }, { value: 'expressive', label: 'Expressives' }] },
+  ];
+  const values = { 'global.brand_color': '#047857', 'global.color_scheme': 'light', 'global.animation_style': 'none' };
+  const nuit = { id: 'nuit', label: 'Nuit', settings: { color_scheme: 'dark', animation_style: 'expressive', brand_color: '#FFFFFF', font_pairing: 'editorial' } };
+  const applied = plain(helper.applyThemePreset(fields, values, nuit));
+  assert.deepEqual(applied, { 'global.brand_color': '#047857', 'global.color_scheme': 'dark', 'global.animation_style': 'expressive' });
+  assert.equal(helper.activeThemePreset(fields, applied, [nuit]), 'nuit');
+  assert.equal(helper.activeThemePreset(fields, values, [nuit]), null);
+  assert.deepEqual(plain(helper.applyThemePreset(fields, values, { id: 'x', label: 'X', settings: { color_scheme: 'neon' } })), values);
+  assert.equal(helper.normalizeHexColor('0e7490'), '#0E7490');
+  assert.equal(helper.normalizeHexColor('#abc'), '#AABBCC');
+  assert.equal(helper.normalizeHexColor('#12345'), null);
+  assert.equal(helper.normalizeHexColor('rouge'), null);
+
+  const state = { ...themeState(), fields, presets: [nuit], published: { ...themeState().published, document: documentWith({}, { brand_color: '#047857', color_scheme: 'light', animation_style: 'none' }) } };
+  const h = harness(state);
+  await h.controller.load();
+  h.controller.applyPreset('nuit');
+  assert.equal(h.last().values['global.color_scheme'], 'dark');
+  assert.equal(h.last().values['global.brand_color'], '#047857');
+  h.controller.applyPreset('inconnu');
+  assert.equal(h.last().values['global.animation_style'], 'expressive');
+});

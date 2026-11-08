@@ -3,11 +3,14 @@
 // Éditeur visuel Enterprise : structure des pages, réglages complets des sections et des blocs,
 // aperçu privé intégré. Le serveur revalide chaque enregistrement et les droits Enterprise web.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, Eye, Monitor, Plus, Redo2, Save, Smartphone, Tablet, Trash2, Undo2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Eye, Monitor, Paintbrush, Plus, Redo2, Save, Smartphone, Tablet, Trash2, Undo2, X } from 'lucide-react';
 import { ecommerce as ecommerceApi } from '../services/api';
 import FieldInput from './ThemeFieldInput';
+import ThemePresetPicker from './ThemePresetPicker';
 import EcommerceMediaPicker from './EcommerceMediaPicker';
 import {
+    activeThemePreset,
+    applyThemePreset,
     groupThemeFields,
     parseThemeError,
     readThemeValues,
@@ -24,6 +27,7 @@ import {
     addableSections,
     blockTypes,
     canAddSection,
+    globalFields,
     isRequiredSection,
     moveBlock,
     moveSection,
@@ -32,7 +36,7 @@ import {
     sectionFields,
     sectionLabel,
 } from '../lib/themeStructure';
-import { LIVE_PREVIEW_READY, LIVE_PREVIEW_SELECT, LIVE_PREVIEW_SOURCE } from '../storefront/livePreview';
+import { LIVE_PREVIEW_READY, LIVE_PREVIEW_SELECT, LIVE_PREVIEW_SOURCE, cleanInlineText, readLivePreviewEdit } from '../storefront/livePreview';
 
 type Device = 'mobile' | 'tablet' | 'desktop';
 const DEVICES: Array<{ id: Device; label: string; width: string; icon: React.ReactNode }> = [
@@ -41,6 +45,7 @@ const DEVICES: Array<{ id: Device; label: string; width: string; icon: React.Rea
     { id: 'desktop', label: 'Ordinateur', width: '100%', icon: <Monitor size={16} /> },
 ];
 const HISTORY_LIMIT = 60;
+const SITE_FIELDS = globalFields();
 const iconButton = 'inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10 disabled:opacity-40';
 const button = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-sm font-bold text-white transition-colors hover:bg-white/10 disabled:opacity-50';
 
@@ -52,7 +57,7 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
     const [future, setFuture] = useState<ThemeDocument[]>([]);
     const [pageId, setPageId] = useState(() => document.pages.find((page) => page.kind === 'home')?.id || document.pages[0]?.id);
     const [selected, setSelected] = useState<string | null>(null);
-    const [newType, setNewType] = useState(addableSections()[0]?.type || '');
+    const [adding, setAdding] = useState(false);
     const [device, setDevice] = useState<Device>('desktop');
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [busy, setBusy] = useState<null | 'save' | 'preview'>(null);
@@ -63,11 +68,14 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
     const [mediaCache, setMediaCache] = useState<Record<string, ThemeMediaItem>>({});
     const lastField = useRef<string | null>(null);
     const frame = useRef<HTMLIFrameElement>(null);
+    // Dernière version du traitement des textes tapés dans l'aperçu, pour l'écouteur de messages.
+    const inlineEdit = useRef<(field: string, value: string) => void>(() => undefined);
 
     const dirty = JSON.stringify(document) !== saved;
     const page = document.pages.find((item) => item.id === pageId) || document.pages[0];
     const section = page?.sections.find((item) => item.id === selected) || null;
-    const fields = useMemo(() => (section && page ? sectionFields(document, page.id, section.id) : []), [document, page, section]);
+    // Sans section choisie, le panneau de droite règle le site entier (identité, style, en-tête, pied de page).
+    const fields = useMemo(() => (section && page ? sectionFields(document, page.id, section.id) : SITE_FIELDS), [document, page, section]);
     const values = useMemo(() => readThemeValues(document, fields), [document, fields]);
 
     // Chaque action structurelle est annulable ; la saisie continue d'un même champ compte pour une étape.
@@ -165,6 +173,8 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
             if (!previewOrigin || event.origin !== previewOrigin || event.source !== frame.current?.contentWindow) return;
             if (event.data?.type === LIVE_PREVIEW_READY) sendLive();
             if (event.data?.type === LIVE_PREVIEW_SELECT && typeof event.data.section === 'string') setSelected(event.data.section);
+            const inline = readLivePreviewEdit(event, previewOrigin, frame.current?.contentWindow);
+            if (inline) inlineEdit.current(inline.field, inline.value);
         };
         window.addEventListener('message', receive);
         return () => window.removeEventListener('message', receive);
@@ -179,11 +189,39 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
         apply(writeThemeValues(document, [field], { [field.id]: value }), field.id);
     }
 
-    function addNewSection() {
-        if (!page || !newType) return;
-        const result = addSection(document, page.id, newType);
+    // Texte tapé directement dans l'aperçu : seul un champ texte existant de la section est accepté,
+    // nettoyé selon les règles du registre, puis traité comme une saisie dans le panneau.
+    function applyInlineEdit(fieldId: string, raw: string) {
+        const [pageKey, sectionKey] = fieldId.split('.');
+        let candidates: ThemeField[] = [];
+        try {
+            candidates = sectionFields(document, pageKey, sectionKey);
+        } catch {
+            return;
+        }
+        const field = candidates.find((item) => item.id === fieldId && item.type === 'text');
+        if (!field) return;
+        if (selected !== sectionKey) setSelected(sectionKey);
+        setField(field, cleanInlineText(raw, !!field.multiline, field.max_length));
+    }
+
+    useEffect(() => { inlineEdit.current = applyInlineEdit; });
+
+    function addNewSection(type: string) {
+        if (!page) return;
+        // La nouvelle section se place sous la section choisie, sinon en fin de page.
+        const after = page.sections.findIndex((item) => item.id === selected);
+        const result = addSection(document, page.id, type, after >= 0 ? after + 1 : undefined);
         apply(result.document);
         setSelected(result.id);
+        setAdding(false);
+    }
+
+    function applyPreset(presetId: string) {
+        const preset = server.presets?.find((item) => item.id === presetId);
+        if (!preset) return;
+        const current = readThemeValues(document, SITE_FIELDS);
+        apply(writeThemeValues(document, SITE_FIELDS, applyThemePreset(SITE_FIELDS, current, preset)));
     }
 
     const media = { ...server.media, ...mediaCache };
@@ -222,6 +260,10 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
             )}
             <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[280px_1fr_360px]">
                 <aside className="min-h-0 overflow-y-auto border-r border-white/10 p-4" aria-label="Sections de la page">
+                    <button type="button" onClick={() => setSelected(null)} aria-pressed={!section} className={`mb-4 flex w-full items-center gap-2 rounded-xl border p-3 text-left text-sm font-bold ${!section ? 'border-primary bg-primary/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}>
+                        <Paintbrush size={16} aria-hidden="true" />Réglages du site
+                        <span className="ml-auto text-xs font-normal text-slate-400">Styles, couleurs, en-tête</span>
+                    </button>
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Sections</p>
                     <ol className="mt-3 space-y-2">
                         {page?.sections.map((item, index) => {
@@ -242,11 +284,21 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                     </ol>
                     {page && canAddSection(document, page.id) && (
                         <div className="mt-4 space-y-2">
-                            <label htmlFor="editor-new-section" className="block text-xs font-bold text-slate-400">Ajouter une section</label>
-                            <select id="editor-new-section" value={newType} onChange={(event) => setNewType(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#0F172A] px-3 py-2 text-sm text-white">
-                                {addableSections().map((item) => <option key={item.type} value={item.type}>{item.label}</option>)}
-                            </select>
-                            <button type="button" className={`${button} w-full`} onClick={addNewSection}><Plus size={16} />Ajouter</button>
+                            <button type="button" className={`${button} w-full`} aria-expanded={adding} onClick={() => setAdding((value) => !value)}>
+                                <Plus size={16} />{adding ? 'Fermer la liste' : section ? 'Ajouter une section ici' : 'Ajouter une section'}
+                            </button>
+                            {adding && (
+                                <ul className="space-y-2" aria-label="Sections disponibles">
+                                    {addableSections().map((item) => (
+                                        <li key={item.type}>
+                                            <button type="button" onClick={() => addNewSection(item.type)} className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-colors hover:border-primary/60 hover:bg-primary/10">
+                                                <span className="block text-sm font-bold text-white">{item.label}</span>
+                                                {item.description && <span className="mt-1 block text-xs leading-5 text-slate-400">{item.description}</span>}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
                     )}
                 </aside>
@@ -259,9 +311,46 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                         </div>
                     )}
                 </main>
-                <aside className="min-h-0 overflow-y-auto border-l border-white/10 p-4" aria-label="Réglages de la section">
+                <aside className="min-h-0 overflow-y-auto border-l border-white/10 p-4" aria-label={section ? 'Réglages de la section' : 'Réglages du site'}>
                     {!section ? (
-                        <p className="text-sm text-slate-400">Choisissez une section pour la régler.</p>
+                        <div className="space-y-5">
+                            <div>
+                                <p className="text-base font-black">Réglages du site</p>
+                                <p className="mt-1 text-xs leading-5 text-slate-400">Cliquez sur une section ou sur un texte de l'aperçu pour le modifier directement.</p>
+                            </div>
+                            {!!server.presets?.length && (
+                                <section className="space-y-3" aria-labelledby="editor-presets-title">
+                                    <p id="editor-presets-title" className="text-sm font-black">Styles prêts à l'emploi</p>
+                                    <ThemePresetPicker
+                                        presets={server.presets}
+                                        fields={SITE_FIELDS}
+                                        active={activeThemePreset(SITE_FIELDS, values, server.presets)}
+                                        brandColor={values['global.brand_color']}
+                                        disabled={busy !== null}
+                                        onApply={(preset) => applyPreset(preset.id)}
+                                    />
+                                </section>
+                            )}
+                            {groups.map((group) => (
+                                <fieldset key={group.id} className="space-y-3 rounded-xl border border-white/10 p-3">
+                                    <legend className="px-1 text-sm font-black">{group.label}</legend>
+                                    {group.fields.map((field) => (
+                                        <div key={field.id} className="flex flex-col gap-2">
+                                            <span className="text-sm font-semibold">{field.label}</span>
+                                            {field.hint && <span className="text-xs leading-5 text-slate-500">{field.hint}</span>}
+                                            <FieldInput
+                                                field={field}
+                                                value={values[field.id] || ''}
+                                                disabled={busy !== null}
+                                                media={values[field.id] ? media[values[field.id]] : null}
+                                                onChange={(value) => setField(field, value)}
+                                                onPick={() => setPickerField(field)}
+                                            />
+                                        </div>
+                                    ))}
+                                </fieldset>
+                            ))}
+                        </div>
                     ) : (
                         <div className="space-y-5">
                             <p className="text-base font-black">{sectionLabel(section.type)}</p>
@@ -287,6 +376,7 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                                                     value={values[field.id] || ''}
                                                     disabled={busy !== null}
                                                     media={values[field.id] ? media[values[field.id]] : null}
+                                                    categories={server.categories}
                                                     onChange={(value) => setField(field, value)}
                                                     onPick={() => setPickerField(field)}
                                                 />
