@@ -4,7 +4,7 @@ Le site actuel porte le nom Stockman Basic et l'identifiant technique `legacy-v1
 
 La configuration du site reste dans Paramètres > Boutique en ligne. E-com reste consacré aux commandes et aux statistiques. Starter et Pro conservent la consultation du back-office web ; Enterprise conserve la gestion web selon ses permissions.
 
-Quatre modèles sont disponibles pour Starter, Pro et Enterprise : Stockman Basic, Atelier, Marché et Vitrine. La bibliothèque est conçue pour s'enrichir progressivement, sans limite commerciale codée en dur ; les droits par modèle et par abonnement se règlent côté serveur. Enterprise dispose sur le web d'un éditeur visuel pour les modèles Atelier, Marché et Vitrine ; les pages personnalisées ne sont pas encore disponibles.
+Sept modèles sont disponibles pour Starter, Pro et Enterprise : Stockman Basic, Atelier, Marché, Vitrine, Éclat, Prestige et Bazar. La bibliothèque est conçue pour s'enrichir progressivement, sans limite commerciale codée en dur ; les droits par modèle et par abonnement se règlent côté serveur. Enterprise dispose sur le web d'un éditeur visuel pour tous les modèles à sections (tous sauf Stockman Basic) ; les pages personnalisées ne sont pas encore disponibles.
 
 ## Première configuration
 
@@ -53,10 +53,29 @@ Le bloc « Apparence du site » présente les modèles disponibles :
 - Atelier : mode, accessoires et créations ; grandes images, typographie élégante, produits en format portrait.
 - Marché : alimentation et produits du quotidien ; rayons visibles d'emblée, grille dense, prix, unités et disponibilité très lisibles.
 - Vitrine : boutique généraliste sobre, recherche mise en avant, parfaite même avec peu de photos.
+- Éclat : beauté, cosmétiques et bien-être ; ambiance douce et lumineuse, gammes mises en valeur, avis et questions fréquentes.
+- Prestige : bijoux, parfums, montres et mode haut de gamme ; ambiance sombre, grandes images et pièces présentées comme en galerie.
+- Bazar : quincaillerie, électronique et matériel ; rayons d'abord, catalogue dense, disponibilité visible et informations pratiques en évidence.
 
 « Aperçu » montre un modèle avec les vrais produits et les vraies informations de la boutique, sans rien enregistrer. « Choisir ce modèle » crée un brouillon : il reprend le nom du site, le titre et le message d'accueil, la couleur et le logo. Les points forts (livraison, paiement, contact) ne sont créés qu'à partir des informations réellement renseignées dans les réglages du site. Aucun produit, avis ou texte commercial n'est inventé. Une valeur trop longue pour le nouveau modèle est laissée vide plutôt que tronquée. Le site public ne change qu'à la publication ; revenir à Stockman Basic se fait de la même manière.
 
-Les modèles Atelier, Marché et Vitrine proposent des rubriques : Identité (nom, couleur, logo), Style (ambiance claire, crème ou sombre, typographie, forme des éléments), En-tête (disposition, recherche, bandeau d'annonce), Pied de page, puis chaque section de l'accueil, du catalogue et de la page de contact (bannière, catégories, sélection de produits, image et texte, texte, points forts, questions fréquentes, contact). Sur mobile, Starter, Pro et Enterprise modifient les textes, images, couleurs, polices et variantes proposées ; l'ordre et le nombre des sections suivent le modèle. Une alerte apparaît si la couleur de marque se distingue mal de l'ambiance choisie : les boutons reçoivent alors un contour, sans que la couleur soit remplacée.
+Les modèles à sections proposent des rubriques : Identité (nom, couleur, logo), Style (ambiance claire, crème ou sombre, typographie, forme des éléments, animations), En-tête (disposition, recherche, bandeau d'annonce), Pied de page, puis chaque section de l'accueil, du catalogue et de la page de contact. Sections disponibles : bannière d'accueil, bandeau défilant, catégories, sélection de produits, collection mise en avant, bannière promotionnelle, image et texte, texte, points forts, galerie d'images, avis clients, questions fréquentes, contact et catalogue complet. Sur mobile, Starter, Pro et Enterprise modifient les textes, images, couleurs, polices et variantes proposées ; l'ordre et le nombre des sections suivent le modèle. Une alerte apparaît si la couleur de marque se distingue mal de l'ambiance choisie : les boutons reçoivent alors un contour, sans que la couleur soit remplacée.
+
+- Couleur de marque : en plus des couleurs proposées, une couleur personnalisée se saisit avec son code (par exemple #0E7490) ; sur le web, un sélecteur de couleur est aussi disponible.
+- Collection mise en avant : elle montre les produits d'une catégorie choisie parmi les catégories réelles du catalogue. À la création du brouillon, la catégorie la plus fournie est proposée. Sans produit dans la catégorie, la section reste masquée sur le site public.
+- Avis clients : uniquement les avis réels de vos clients, avec leur accord. Aucun avis ni aucune note n'est généré. Sans avis saisi, la section reste masquée.
+- Bandeau défilant : quelques messages courts (services, informations pratiques). Le défilement se met en pause au survol et avec son bouton pause ; il s'arrête si les animations sont coupées.
+- Galerie d'images : des photos de la bibliothèque, en grille régulière ou en mosaïque, avec une légende facultative.
+
+### Styles prêts à l'emploi et animations
+
+Chaque modèle à sections propose trois styles prêts à l'emploi (par exemple Ivoire, Nuit et Galerie pour Atelier). Un style change en un geste l'ambiance, la typographie, la forme des éléments et les animations ; les textes, les images et la couleur de marque restent les mêmes. Comme toute modification, il s'enregistre en brouillon et ne change le site public qu'à la publication.
+
+Le réglage « Animations » propose Aucune, Discrètes ou Expressives : apparition des éléments au défilement, entrée animée de la bannière, zoom lent des grandes images (Expressives), élévation des fiches au survol, transitions entre les pages, panier et menu qui glissent. Les animations sont toujours coupées pour les visiteurs qui ont demandé moins de mouvement dans les réglages de leur appareil. Un site publié avant l'arrivée de ce réglage reste sans animation tant qu'aucun choix n'est fait.
+
+### Rendu sur téléphone
+
+Les sites sont conçus d'abord pour le téléphone : les catégories, la collection mise en avant et les avis défilent au doigt en une rangée ; la sélection de produits s'affiche en grille de deux colonnes. Le réglage « Présentation sur téléphone » permet de choisir, pour la sélection de produits et la collection mise en avant, entre une grille de deux colonnes et un défilement au doigt. L'en-tête se masque quand le visiteur descend et réapparaît dès qu'il remonte. Après un ajout au panier, une confirmation « Ajouté au panier » propose d'ouvrir le panier. La fiche produit monte du bas de l'écran et permet de choisir la quantité, dans la limite du stock publié. Le menu mobile regroupe la recherche, les pages et les coordonnées de la boutique.
 
 Sur le site public, une section vide reste masquée ; dans l'aperçu privé, elle apparaît comme un cadre « Section à compléter ». Les catégories et les produits affichés viennent toujours du catalogue réel ; une photo absente est remplacée par les initiales du produit. Le catalogue propose la recherche, le tri, les filtres par catégorie et la pagination. Le panier, les commandes, le formulaire de contact et les statistiques fonctionnent comme sur Stockman Basic. Les polices sont hébergées avec le site, sans appel à un service tiers.
 
@@ -64,10 +83,12 @@ Les anciennes versions de l'application continuent d'enregistrer le nom, la coul
 
 ## Éditeur visuel Enterprise
 
-Sur le web, avec un abonnement Enterprise, le bouton « Ouvrir l'éditeur visuel » apparaît dans « Apparence du site » pour les modèles Atelier, Marché et Vitrine (Stockman Basic garde une structure fixe). Il s'ouvre quand aucune modification n'est en attente dans le formulaire.
+Sur le web, avec un abonnement Enterprise, le bouton « Ouvrir l'éditeur visuel » apparaît dans « Apparence du site » pour tous les modèles à sections (Stockman Basic garde une structure fixe). Il s'ouvre quand aucune modification n'est en attente dans le formulaire.
 
-- Les onglets Accueil, Catalogue et Contact affichent les sections de chaque page. Chaque section peut être montée, descendue ou supprimée ; « Ajouter une section » propose bannière, catégories, sélection de produits, image et texte, texte, points forts, questions fréquentes, contact et catalogue complet. Le catalogue de la page Catalogue et le contact de la page Contact sont indispensables au parcours commercial : ils ne peuvent pas être supprimés.
-- Une section choisie montre tous ses réglages, y compris ceux réservés à Enterprise, ainsi que ses éléments (points forts, questions) : ajout, déplacement et suppression.
+- « Réglages du site » regroupe les styles prêts à l'emploi et les réglages communs à tout le site : identité, style (ambiance, typographie, forme, animations), en-tête et pied de page.
+- Les onglets Accueil, Catalogue et Contact affichent les sections de chaque page. Chaque section peut être montée, descendue ou supprimée. « Ajouter une section » présente chaque section avec une courte description ; la nouvelle section se place sous la section choisie, ou en fin de page. Le catalogue de la page Catalogue et le contact de la page Contact sont indispensables au parcours commercial : ils ne peuvent pas être supprimés.
+- Une section choisie montre tous ses réglages, y compris ceux réservés à Enterprise, ainsi que ses éléments (points forts, questions, messages, images, avis) : ajout, déplacement et suppression.
+- Les textes se modifient aussi directement dans l'aperçu : cliquer sur un titre, un texte ou un bouton permet de le taper sur place, et la section correspondante s'ouvre dans le panneau. Les images, les couleurs et les autres réglages se choisissent dans le panneau. Les limites de longueur et les caractères autorisés sont les mêmes que dans le panneau.
 - « Annuler » et « Rétablir » (Ctrl+Z, Ctrl+Maj+Z) reviennent sur les dernières actions.
 - L'aperçu privé s'ouvre dans l'éditeur et se met à jour en direct à chaque modification, sans rien enregistrer : il suit la page ouverte et met en évidence la section choisie. Survoler une section dans l'aperçu fait apparaître « Modifier : … », qui la sélectionne. « Recharger l'aperçu » met aussi à jour les produits et les informations de la boutique. Les boutons Mobile, Tablette et Ordinateur changent la largeur de l'aperçu ; les commandes et les messages y restent désactivés.
 - « Enregistrer le brouillon » conserve le travail sans changer le site public. La publication se fait ensuite depuis « Apparence du site », avec la liste des changements.
