@@ -80,8 +80,9 @@ from enterprise_access import (
     user_can_access_store,
     user_has_operational_access as shared_user_has_operational_access,
 )
-from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, legacy_theme_identity
+from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, compute_theme_capabilities, legacy_theme_identity
 from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
+from ecommerce_theme_service import EcommerceThemeService, theme_error_response
 from services.pricing import (
     DEFAULT_COUNTRY_CODE,
     DEFAULT_CURRENCY,
@@ -164,6 +165,7 @@ db = client[os.environ.get('DB_NAME', 'stock_management')]
 
 import_service = ImportService(db)
 catalog_service = CatalogService(db)
+ecommerce_theme_service = EcommerceThemeService(db)
 notification_service = NotificationService()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
@@ -952,6 +954,10 @@ async def create_indexes_and_init():
                 await db.ecommerce_orders.create_index([("site_slug", 1), ("created_at", -1)])
                 await db.ecommerce_events.create_index([("user_id", 1), ("site_slug", 1), ("event_type", 1), ("created_at", -1)])
                 await db.ecommerce_events.create_index([("site_slug", 1), ("created_at", -1)])
+                try:
+                    await ecommerce_theme_service.ensure_indexes()
+                except Exception as exc:
+                    logger.warning(f"E-commerce theme indexes deferred: {exc}")
                 await db.sales.create_index([("store_id", 1), ("created_at", -1)])
                 await db.alert_rules.create_index([("user_id", 1), ("type", 1), ("scope", 1), ("store_id", 1)])
 
@@ -1438,6 +1444,29 @@ class EcommerceSetupResponse(EcommerceSetupClaim):
     decision: Literal["configure", "later"]
 
 
+class EcommerceThemeLockRequest(BaseModel):
+    site_slug: str = Field(min_length=2, max_length=80)
+    lock_version: int = Field(ge=0)
+
+
+class EcommerceThemeDraftSave(EcommerceThemeLockRequest):
+    document: Dict[str, Any]
+
+
+class EcommerceThemePublishRequest(EcommerceThemeLockRequest):
+    revision_id: str = Field(min_length=6, max_length=80)
+    published_fingerprint: str = Field(min_length=64, max_length=64)
+
+
+class EcommerceThemePreviewRequest(BaseModel):
+    site_slug: str = Field(min_length=2, max_length=80)
+    source: Literal["draft", "published"]
+
+
+class PublicEcommercePreviewRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=256)
+
+
 class PublicEcommerceOrderItem(BaseModel):
     product_id: str
     quantity: float = Field(..., gt=0)
@@ -1583,6 +1612,33 @@ async def get_public_ecommerce_site_by_domain(
 async def get_public_ecommerce_site(slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$")):
     account_doc = await get_public_ecommerce_account_by_slug(slug)
     return await build_public_ecommerce_payload(account_doc)
+
+
+PRIVATE_PREVIEW_HEADERS = {
+    "Cache-Control": "no-store, max-age=0",
+    "X-Robots-Tag": "noindex, nofollow, noarchive",
+    "Referrer-Policy": "no-referrer",
+}
+
+
+@app.post("/api/public/ecommerce/preview")
+async def get_public_ecommerce_preview(data: PublicEcommercePreviewRequest, response: Response):
+    """Aperçu privé : le jeton circule dans le corps de la requête, jamais dans une URL journalisée.
+    Il permet seulement de lire une révision ; commandes, contacts et événements restent refusés."""
+    for key, value in PRIVATE_PREVIEW_HEADERS.items():
+        response.headers[key] = value
+    try:
+        account_doc, preview = await ecommerce_theme_service.resolve_preview(data.token)
+        payload = await build_public_ecommerce_payload(account_doc)
+    except HTTPException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail, headers=PRIVATE_PREVIEW_HEADERS)
+    except Exception as exc:
+        mapped = theme_error_response(exc)
+        if mapped is None:
+            raise
+        raise HTTPException(status_code=mapped[0], detail=mapped[1], headers=PRIVATE_PREVIEW_HEADERS)
+    payload["preview"] = preview
+    return payload
 
 
 @app.post("/api/public/ecommerce/{slug}/events")
@@ -18516,6 +18572,123 @@ async def release_ecommerce_onboarding(data: EcommerceSetupClaim, request: Reque
     if data.claim_id:
         await EcommerceOnboarding(db).release(account["account_id"], site["slug"], data.claim_id)
     return {"released": True}
+
+
+def ecommerce_theme_capabilities(user: User, request: Request) -> Dict[str, bool]:
+    """Capacités recalculées à chaque requête, à partir du compte et du canal déterminé par le serveur."""
+    capabilities = compute_theme_capabilities(
+        plan=user.effective_plan or user.subscription_plan or user.plan,
+        is_org_admin=is_org_admin_user(user),
+        is_demo=bool(user.is_demo),
+        can_write_data=bool(user.can_write_data),
+        surface="web" if is_web_surface_request(request) else "mobile",
+        role=user.role,
+    )
+    capabilities["preview"] = bool(capabilities["guided_edit"] or capabilities["structure_edit"])
+    return capabilities
+
+
+async def get_ecommerce_theme_context(user: User, site_slug: Optional[str] = None):
+    if not is_org_admin_user(user):
+        raise HTTPException(status_code=403, detail={"code": "forbidden", "message": "Seuls les administrateurs opérationnels peuvent gérer l'apparence du site."})
+    owner_id = get_owner_id(user)
+    if user.active_store_id:
+        ensure_user_store_access(user, user.active_store_id, detail="Accès refusé pour cette boutique.")
+    site = await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id)
+    if site_slug is not None and site_slug != site["slug"]:
+        raise HTTPException(status_code=409, detail={"code": "site_changed", "message": "La boutique active a changé. Rechargez l'apparence du site."})
+    if site.get("store_id"):
+        ensure_user_store_access(user, site["store_id"], detail="Accès refusé pour cette boutique.")
+    account = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0, "account_id": 1})
+    if not account:
+        raise HTTPException(status_code=404, detail={"code": "site_not_found", "message": "Compte commercial introuvable."})
+    return account, site
+
+
+async def run_ecommerce_theme_operation(operation):
+    try:
+        return await operation
+    except HTTPException:
+        raise
+    except Exception as exc:
+        mapped = theme_error_response(exc)
+        if mapped is None:
+            raise
+        raise HTTPException(status_code=mapped[0], detail=mapped[1])
+
+
+@api_router.get("/ecommerce/site/theme")
+async def get_ecommerce_site_theme(request: Request, user: User = Depends(require_auth)):
+    account, site = await get_ecommerce_theme_context(user)
+    return await run_ecommerce_theme_operation(
+        ecommerce_theme_service.view(account, site["slug"], ecommerce_theme_capabilities(user, request))
+    )
+
+
+@api_router.put("/ecommerce/site/theme/draft")
+async def save_ecommerce_site_theme_draft(data: EcommerceThemeDraftSave, request: Request, user: User = Depends(require_auth)):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_theme_context(user, data.site_slug)
+    return await run_ecommerce_theme_operation(ecommerce_theme_service.save_draft(
+        account, site["slug"], document=data.document, expected_lock_version=data.lock_version,
+        capabilities=ecommerce_theme_capabilities(user, request), author_id=user.user_id,
+    ))
+
+
+@api_router.post("/ecommerce/site/theme/draft/discard")
+async def discard_ecommerce_site_theme_draft(data: EcommerceThemeLockRequest, request: Request, user: User = Depends(require_auth)):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_theme_context(user, data.site_slug)
+    return await run_ecommerce_theme_operation(ecommerce_theme_service.discard_draft(
+        account, site["slug"], expected_lock_version=data.lock_version,
+        capabilities=ecommerce_theme_capabilities(user, request), author_id=user.user_id,
+    ))
+
+
+@api_router.post("/ecommerce/site/theme/publish")
+async def publish_ecommerce_site_theme(data: EcommerceThemePublishRequest, request: Request, user: User = Depends(require_auth)):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_theme_context(user, data.site_slug)
+    return await run_ecommerce_theme_operation(ecommerce_theme_service.publish(
+        account, site["slug"], revision_id=data.revision_id, expected_lock_version=data.lock_version,
+        expected_published_fingerprint=data.published_fingerprint,
+        capabilities=ecommerce_theme_capabilities(user, request), author_id=user.user_id,
+    ))
+
+
+@api_router.get("/ecommerce/site/theme/revisions")
+async def list_ecommerce_site_theme_revisions(request: Request, user: User = Depends(require_auth)):
+    account, site = await get_ecommerce_theme_context(user)
+    return await run_ecommerce_theme_operation(
+        ecommerce_theme_service.history(account, site["slug"], ecommerce_theme_capabilities(user, request))
+    )
+
+
+@api_router.post("/ecommerce/site/theme/revisions/{revision_id}/restore")
+async def restore_ecommerce_site_theme_revision(
+    data: EcommerceThemeLockRequest,
+    request: Request,
+    revision_id: str = Path(..., min_length=6, max_length=80),
+    user: User = Depends(require_auth),
+):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_theme_context(user, data.site_slug)
+    return await run_ecommerce_theme_operation(ecommerce_theme_service.restore(
+        account, site["slug"], revision_id=revision_id, expected_lock_version=data.lock_version,
+        capabilities=ecommerce_theme_capabilities(user, request), author_id=user.user_id,
+    ))
+
+
+@api_router.post("/ecommerce/site/theme/preview")
+async def create_ecommerce_site_theme_preview(data: EcommerceThemePreviewRequest, request: Request, user: User = Depends(require_auth)):
+    ensure_subscription_write_allowed(user, request=request)
+    account, site = await get_ecommerce_theme_context(user, data.site_slug)
+    token, expires_at = await run_ecommerce_theme_operation(ecommerce_theme_service.create_preview(
+        account, site["slug"], source=data.source,
+        capabilities=ecommerce_theme_capabilities(user, request), author_id=user.user_id,
+    ))
+    # Le jeton est placé dans le fragment : il n'est transmis ni au serveur web, ni aux statistiques.
+    return {"preview_url": f"{get_web_app_base_url()}/preview#{token}", "expires_at": expires_at.isoformat()}
 
 
 @api_router.get("/ecommerce/stats")

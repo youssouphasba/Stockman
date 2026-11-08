@@ -16,16 +16,16 @@
   ],
   "page_kinds": ["home", "catalog", "contact", "custom"],
   "global_settings": {
-    "brand_color": { "type": "color", "nullable": true },
-    "logo_asset_id": { "type": "media_id", "nullable": true }
+    "brand_color": { "type": "color", "nullable": true, "label": "Couleur de marque", "hint": "Couleur des boutons principaux, des badges, des filtres actifs et des accents du site." },
+    "logo_asset_id": { "type": "media_id", "nullable": true, "label": "Logo", "hint": "Image affichée dans l'en-tête du site." }
   },
   "sections": {
     "legacy-storefront": {
       "type_version": 1,
       "settings": {
-        "site_name": { "type": "text", "max_length": 120, "nullable": true },
-        "hero_title": { "type": "text", "max_length": 120, "nullable": true },
-        "welcome_message": { "type": "text", "max_length": 600, "nullable": true, "multiline": true }
+        "site_name": { "type": "text", "max_length": 120, "nullable": true, "label": "Nom du site", "hint": "Nom affiché dans l'en-tête et dans la section de contact." },
+        "hero_title": { "type": "text", "max_length": 120, "nullable": true, "label": "Titre d'accueil", "hint": "Message principal affiché en haut de la vitrine." },
+        "welcome_message": { "type": "text", "max_length": 600, "nullable": true, "multiline": true, "label": "Message d'accueil", "hint": "Présentez brièvement la boutique, le service ou la livraison." }
       },
       "blocks": {}
     }

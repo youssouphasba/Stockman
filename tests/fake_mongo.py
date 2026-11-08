@@ -176,6 +176,19 @@ class FakeCollection:
         self.docs[index] = candidate
         return SimpleNamespace(matched_count=1, modified_count=int(candidate != before), upserted_id=None)
 
+    async def update_many(self, query, update):
+        matched = modified = 0
+        for index, doc in enumerate(self.docs):
+            if not matches(doc, query):
+                continue
+            candidate = copy.deepcopy(doc)
+            _apply_update(candidate, update, inserting=False)
+            self._check_unique(candidate, ignore=doc)
+            matched += 1
+            modified += int(candidate != doc)
+            self.docs[index] = candidate
+        return SimpleNamespace(matched_count=matched, modified_count=modified)
+
     async def find_one_and_update(self, query, update, return_document=ReturnDocument.BEFORE, projection=None):
         index = self._find_index(query)
         if index is None:

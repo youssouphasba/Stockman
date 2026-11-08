@@ -426,11 +426,14 @@ def authorize_theme_change(
 
 # --- Projection du site actuel ---------------------------------------------
 
-_LEGACY_SECTION_FIELDS = {
+# Correspondance entre le document ``legacy-v1`` et les champs historiques du compte.
+LEGACY_GLOBAL_FIELDS = {"brand_color": "ecommerce_brand_color"}
+LEGACY_SECTION_FIELDS = {
     "site_name": "ecommerce_site_name",
     "hero_title": "ecommerce_hero_title",
     "welcome_message": "ecommerce_welcome_message",
 }
+LEGACY_ACCOUNT_FIELDS = tuple(LEGACY_GLOBAL_FIELDS.values()) + tuple(LEGACY_SECTION_FIELDS.values())
 
 
 def build_legacy_theme_document(account_doc: Mapping[str, Any]) -> Dict[str, Any]:
@@ -443,10 +446,11 @@ def build_legacy_theme_document(account_doc: Mapping[str, Any]) -> Dict[str, Any
     model = CONTRACT["models"][LEGACY_MODEL_ID]
     template_page = model["pages"][0]
     template_section = template_page["sections"][0]
-    settings = {key: account_doc[field] for key, field in _LEGACY_SECTION_FIELDS.items() if field in account_doc}
+    settings = {key: account_doc[field] for key, field in LEGACY_SECTION_FIELDS.items() if field in account_doc}
     global_settings: Dict[str, Any] = {"logo_asset_id": None}
-    if "ecommerce_brand_color" in account_doc:
-        global_settings["brand_color"] = account_doc["ecommerce_brand_color"]
+    for key, field in LEGACY_GLOBAL_FIELDS.items():
+        if field in account_doc:
+            global_settings[key] = account_doc[field]
     return {
         "schema_version": THEME_SCHEMA_VERSION,
         "model_id": LEGACY_MODEL_ID,
@@ -464,3 +468,37 @@ def build_legacy_theme_document(account_doc: Mapping[str, Any]) -> Dict[str, Any
             }],
         }],
     }
+
+
+def legacy_account_values(document: Mapping[str, Any]) -> Dict[str, Any]:
+    """Inverse de ``build_legacy_theme_document`` pour un document ``legacy-v1`` déjà validé.
+
+    Une clé absente du document est absente du résultat : le champ historique correspondant
+    doit alors être retiré, afin que la projection relue reproduise exactement le document."""
+    if document.get("model_id") != LEGACY_MODEL_ID:
+        raise ValueError("Only legacy-v1 documents map to historical fields")
+    section = next(
+        item for page in document["pages"] for item in page["sections"] if item["type"] == "legacy-storefront"
+    )
+    values = {field: document["global_settings"][key] for key, field in LEGACY_GLOBAL_FIELDS.items() if key in document["global_settings"]}
+    values.update({field: section["settings"][key] for key, field in LEGACY_SECTION_FIELDS.items() if key in section["settings"]})
+    return values
+
+
+def iter_media_values(document: Mapping[str, Any], contract: Mapping[str, Any] = CONTRACT):
+    """Parcourt les réglages de type média d'un document validé : (chemin, valeur)."""
+    for key, spec in contract["global_settings"].items():
+        if spec["type"] == "media_id" and key in document.get("global_settings", {}):
+            yield f"$.global_settings.{key}", document["global_settings"][key]
+    for page_index, page in enumerate(document.get("pages", [])):
+        for section_index, section in enumerate(page.get("sections", [])):
+            section_spec = contract["sections"].get(section.get("type"), {})
+            section_path = f"$.pages[{page_index}].sections[{section_index}]"
+            for key, spec in section_spec.get("settings", {}).items():
+                if spec["type"] == "media_id" and key in section.get("settings", {}):
+                    yield f"{section_path}.settings.{key}", section["settings"][key]
+            for block_index, block in enumerate(section.get("blocks", [])):
+                block_spec = section_spec.get("blocks", {}).get(block.get("type"), {})
+                for key, spec in block_spec.get("settings", {}).items():
+                    if spec["type"] == "media_id" and key in block.get("settings", {}):
+                        yield f"{section_path}.blocks[{block_index}].settings.{key}", block["settings"][key]

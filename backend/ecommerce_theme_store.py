@@ -6,6 +6,7 @@
 - Publier ne modifie ni l'activation du site, ni son domaine, ni aucune donnée commerciale.
 - Restaurer crée un nouveau brouillon à partir d'une ancienne révision, sans réécrire
   l'historique ; la mise en ligne exige une nouvelle publication.
+- Abandonner un brouillon retire seulement le pointeur : la révision reste consultable.
 
 Les autorisations (capacités et points guidés) sont vérifiées par l'appelant avec
 ``ecommerce_themes.authorize_theme_change`` avant toute écriture.
@@ -139,15 +140,23 @@ class ThemeRevisionStore:
         # En cas de conflit, la révision créée reste orpheline et n'est jamais publiée.
         return await self._move_pointers(account_id, slug, expected_lock_version, {"draft_revision_id": revision["_id"], "draft_updated_by": author_id})
 
-    async def publish(self, account_id: str, slug: str, *, revision_id: str, author_id: str, expected_lock_version: int) -> Dict[str, Any]:
+    async def publish(self, account_id: str, slug: str, *, revision_id: str, author_id: str, expected_lock_version: int, clear_draft: bool = False) -> Dict[str, Any]:
         revision = await self.get_revision(account_id, slug, revision_id)
         # Le registre a pu évoluer depuis l'enregistrement : la révision est revalidée avant publication.
         validate_theme_document(revision["document"], self.contract)
-        return await self._move_pointers(account_id, slug, expected_lock_version, {
+        updates: Dict[str, Any] = {
             "published_revision_id": revision_id,
             "published_at": self.clock(),
             "published_by": author_id,
-        })
+        }
+        if clear_draft:
+            # Le brouillon publié n'est plus un travail en attente.
+            updates["draft_revision_id"] = None
+        return await self._move_pointers(account_id, slug, expected_lock_version, updates)
+
+    async def discard_draft(self, account_id: str, slug: str, *, expected_lock_version: int) -> Dict[str, Any]:
+        """Abandonne le brouillon courant : la révision reste dans l'historique, seul le pointeur est retiré."""
+        return await self._move_pointers(account_id, slug, expected_lock_version, {"draft_revision_id": None, "draft_updated_by": None})
 
     async def restore(self, account_id: str, slug: str, *, revision_id: str, author_id: str, expected_lock_version: int) -> Dict[str, Any]:
         source = await self.get_revision(account_id, slug, revision_id)

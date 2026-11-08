@@ -38,6 +38,7 @@ type PublicSite = {
 type SitePayload = {
   site: PublicSite;
   products: PublicProduct[];
+  preview?: { expires_at?: string | null; source?: string; site_enabled?: boolean };
 };
 
 type CartLine = {
@@ -46,6 +47,16 @@ type CartLine = {
 };
 
 const PRODUCTS_PER_PAGE = 50;
+const PREVIEW_UNAVAILABLE = "Cet aperçu a expiré ou n'existe pas. Créez-en un nouveau depuis Stockman.";
+const PREVIEW_ORDER_DISABLED = 'Aperçu privé : les commandes sont désactivées.';
+const PREVIEW_CONTACT_DISABLED = "Aperçu privé : l'envoi de messages est désactivé.";
+
+function formatPreviewExpiry(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
 
 function formatAmount(value: number, currency: string) {
   try {
@@ -90,7 +101,7 @@ function getBrandOnColor(hex: string) {
   return luminance > 0.6 ? '#0f172a' : '#ffffff';
 }
 
-function StockmanBasicStorefront({ slug }: { slug: string }) {
+function StockmanBasicStorefront({ slug, previewToken }: { slug: string; previewToken?: string | null }) {
   const searchParams = useSearchParams();
   const [payload, setPayload] = useState<SitePayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -124,10 +135,14 @@ function StockmanBasicStorefront({ slug }: { slug: string }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/public/ecommerce/${slug}`, { cache: 'no-store' })
+    // L'aperçu privé lit une révision grâce au jeton transmis dans le corps ; le site public garde sa lecture par adresse.
+    const request = previewToken
+      ? fetch('/api/public/ecommerce/preview', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: previewToken }) })
+      : fetch(`/api/public/ecommerce/${slug}`, { cache: 'no-store' });
+    request
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error('Boutique en ligne introuvable.');
+          throw new Error(previewToken ? PREVIEW_UNAVAILABLE : 'Boutique en ligne introuvable.');
         }
         return response.json();
       })
@@ -146,7 +161,7 @@ function StockmanBasicStorefront({ slug }: { slug: string }) {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, previewToken]);
 
   useEffect(() => {
     try {
@@ -191,7 +206,9 @@ function StockmanBasicStorefront({ slug }: { slug: string }) {
   const brandSurface = withAlpha(brandColor, 0.14);
   const brandBorder = withAlpha(brandColor, 0.24);
   const brandOnColor = getBrandOnColor(brandColor);
-  const isPreview = searchParams.get('preview') === '1';
+  const privatePreview = Boolean(previewToken);
+  const isPreview = privatePreview || searchParams.get('preview') === '1';
+  const previewExpiry = formatPreviewExpiry(payload?.preview?.expires_at);
   const siteMark = (payload?.site.name || 'SM')
     .split(/\s+/)
     .filter(Boolean)
@@ -267,6 +284,10 @@ function StockmanBasicStorefront({ slug }: { slug: string }) {
   };
 
   const submitOrder = async () => {
+    if (privatePreview) {
+      setError(PREVIEW_ORDER_DISABLED);
+      return;
+    }
     if (!customerName.trim() || cartLines.length === 0) return;
     setSubmitting(true);
     setOrderNumber(null);
@@ -302,6 +323,10 @@ function StockmanBasicStorefront({ slug }: { slug: string }) {
   };
 
   const submitContactRequest = async () => {
+    if (privatePreview) {
+      setContactError(PREVIEW_CONTACT_DISABLED);
+      return;
+    }
     if (!contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim()) return;
     setContactSubmitting(true);
     setContactSuccess(null);
@@ -425,12 +450,12 @@ function StockmanBasicStorefront({ slug }: { slug: string }) {
       <button
         type="button"
         onClick={submitOrder}
-        disabled={submitting || !customerName.trim() || cartLines.length === 0}
+        disabled={privatePreview || submitting || !customerName.trim() || cartLines.length === 0}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-4 text-sm font-black transition disabled:bg-slate-300 disabled:text-slate-500"
-        style={{ backgroundColor: submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandColor, color: submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandOnColor }}
+        style={{ backgroundColor: privatePreview || submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandColor, color: privatePreview || submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandOnColor }}
       >
         <Send className="h-4 w-4" />
-        {submitting ? 'Envoi...' : 'Envoyer la commande'}
+        {privatePreview ? "Commandes désactivées dans l'aperçu" : submitting ? 'Envoi...' : 'Envoyer la commande'}
       </button>
     </aside>
   );
@@ -463,6 +488,12 @@ function StockmanBasicStorefront({ slug }: { slug: string }) {
 
   return (
     <main className="min-h-screen bg-[#f8f8f5] text-slate-950">
+      {privatePreview && (
+        <div role="status" className="border-b border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm font-semibold leading-6 text-amber-950">
+          Aperçu privé : ce rendu n'est visible qu'avec ce lien{previewExpiry ? `, jusqu'à ${previewExpiry}` : ''}. Les commandes et les messages sont désactivés.
+          {payload?.preview?.site_enabled === false ? ' Le site public est actuellement désactivé.' : ''}
+        </div>
+      )}
       <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur" style={{ borderColor: brandBorder }}>
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <button type="button" onClick={() => setMenuOpen(true)} className="rounded-full border border-slate-200 p-3 text-slate-950 lg:hidden" aria-label="Ouvrir le menu">
@@ -776,12 +807,12 @@ function StockmanBasicStorefront({ slug }: { slug: string }) {
               <button
                 type="button"
                 onClick={submitContactRequest}
-                disabled={contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim()}
+                disabled={privatePreview || contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim()}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black transition disabled:bg-slate-300 disabled:text-slate-500"
-                style={{ backgroundColor: contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim() ? undefined : brandColor, color: contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim() ? undefined : brandOnColor }}
+                style={{ backgroundColor: privatePreview || contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim() ? undefined : brandColor, color: privatePreview || contactSubmitting || !contactName.trim() || !contactEmail.trim() || !contactSubject.trim() || !contactMessage.trim() ? undefined : brandOnColor }}
               >
                 <Send className="h-4 w-4" />
-                {contactSubmitting ? 'Envoi...' : 'Envoyer le message'}
+                {privatePreview ? "Messages désactivés dans l'aperçu" : contactSubmitting ? 'Envoi...' : 'Envoyer le message'}
               </button>
             </div>
 
@@ -950,9 +981,9 @@ function StockmanBasicStorefront({ slug }: { slug: string }) {
 
 const STOREFRONT_RENDERERS = { 'legacy-v1': StockmanBasicStorefront };
 
-export default function StorefrontClient({ slug, modelId }: { slug: string; modelId?: string | null }) {
+export default function StorefrontClient({ slug, modelId, previewToken }: { slug: string; modelId?: string | null; previewToken?: string | null }) {
   const model = resolveEcommerceModel(modelId);
   // Un modèle du registre sans moteur de rendu livré revient à Stockman Basic, jamais à une page blanche.
   const Renderer = STOREFRONT_RENDERERS[model.id as keyof typeof STOREFRONT_RENDERERS] || StockmanBasicStorefront;
-  return <Renderer slug={slug} />;
+  return <Renderer slug={slug} previewToken={previewToken} />;
 }

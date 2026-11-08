@@ -12,6 +12,8 @@ export type ThemeFieldSpec = {
   values?: string[];
   min?: number;
   max?: number;
+  label?: string;
+  hint?: string;
 };
 
 export type ThemeBlock = { id: string; type: string; type_version: number; settings: Record<string, unknown> };
