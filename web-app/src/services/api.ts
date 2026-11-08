@@ -1835,10 +1835,12 @@ export const ecommerce = {
         request<import('../lib/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/draft/discard', { method: 'POST', body: data }),
     publishTheme: (data: { site_slug: string; lock_version: number; revision_id: string; published_fingerprint: string }) =>
         request<import('../lib/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/publish', { method: 'POST', body: data }),
+    changeThemeModel: (data: { site_slug: string; lock_version: number; model_id: string }) =>
+        request<import('../lib/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/model', { method: 'POST', body: data }),
     listThemeRevisions: () => request<{ revisions: import('../lib/ecommerceAppearance').ThemeRevisionItem[] }>('/ecommerce/site/theme/revisions'),
     restoreThemeRevision: (revisionId: string, data: { site_slug: string; lock_version: number }) =>
         request<import('../lib/ecommerceAppearance').ThemeState>(`/ecommerce/site/theme/revisions/${encodeURIComponent(revisionId)}/restore`, { method: 'POST', body: data }),
-    createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' }) =>
+    createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' | 'model'; model_id?: string }) =>
         request<import('../lib/ecommerceAppearance').ThemePreview>('/ecommerce/site/theme/preview', { method: 'POST', body: data }),
     listMedia: (kind?: 'logo' | 'image') => request<{ media: import('../lib/ecommerceAppearance').ThemeMediaItem[]; total: number; limit: number }>(`/ecommerce/site/media${kind ? `?kind=${kind}` : ''}`),
     uploadMedia: (data: { site_slug: string; kind: 'logo' | 'image'; data: string; alt?: string }) =>

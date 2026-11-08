@@ -4,7 +4,7 @@ Le site actuel porte le nom Stockman Basic et l'identifiant technique `legacy-v1
 
 La configuration du site reste dans Paramètres > Boutique en ligne. E-com reste consacré aux commandes et aux statistiques. Starter et Pro conservent la consultation du back-office web ; Enterprise conserve la gestion web selon ses permissions.
 
-Stockman Basic est le seul modèle actuellement livré. La bibliothèque de thèmes est conçue pour être extensible, sans limite commerciale codée en dur. Les modèles seront développés progressivement, selon leur qualité et la diversité de leurs structures. Les droits d'accès au catalogue seront configurables par abonnement ; aucun catalogue commercial supplémentaire ni éditeur visuel n'est encore annoncé comme disponible. Il n'y a pour l'instant ni galerie de modèles ni changement de design. L'apparence de Stockman Basic, logo compris, se prépare en brouillon, se vérifie dans un aperçu privé et se publie depuis Paramètres > Boutique en ligne, comme décrit ci-dessous.
+Quatre modèles sont disponibles pour Starter, Pro et Enterprise : Stockman Basic, Atelier, Marché et Vitrine. La bibliothèque est conçue pour s'enrichir progressivement, sans limite commerciale codée en dur ; les droits par modèle et par abonnement se règlent côté serveur. L'éditeur visuel complet Enterprise (ajout, suppression et déplacement libres des sections, pages personnalisées) n'est pas encore disponible.
 
 ## Première configuration
 
@@ -44,4 +44,21 @@ Dans « Apparence du site », le champ Logo propose « Choisir une image », « 
 - Une image utilisée par le site publié ou par le brouillon ne peut pas être supprimée : il faut d'abord la retirer et publier ou abandonner le brouillon. Une version de l'historique qui utilise une image supprimée depuis ne peut plus être restaurée.
 - La bibliothèque contient au plus 60 images par site. Importer deux fois le même fichier réutilise l'image existante.
 - Les droits sont ceux de l'apparence : sur mobile pour Starter, Pro et Enterprise ; sur le web pour Enterprise. Le serveur vérifie que chaque image appartient bien au compte et au site, et qu'elle convient au champ choisi.
+
+## Modèles de site
+
+Le bloc « Apparence du site » présente les modèles disponibles :
+
+- Stockman Basic : le site d'origine, sobre et éprouvé.
+- Atelier : mode, accessoires et créations ; grandes images, typographie élégante, produits en format portrait.
+- Marché : alimentation et produits du quotidien ; rayons visibles d'emblée, grille dense, prix, unités et disponibilité très lisibles.
+- Vitrine : boutique généraliste sobre, recherche mise en avant, parfaite même avec peu de photos.
+
+« Aperçu » montre un modèle avec les vrais produits et les vraies informations de la boutique, sans rien enregistrer. « Choisir ce modèle » crée un brouillon : il reprend le nom du site, le titre et le message d'accueil, la couleur et le logo. Les points forts (livraison, paiement, contact) ne sont créés qu'à partir des informations réellement renseignées dans les réglages du site. Aucun produit, avis ou texte commercial n'est inventé. Une valeur trop longue pour le nouveau modèle est laissée vide plutôt que tronquée. Le site public ne change qu'à la publication ; revenir à Stockman Basic se fait de la même manière.
+
+Les modèles Atelier, Marché et Vitrine proposent des rubriques : Identité (nom, couleur, logo), Style (ambiance claire, crème ou sombre, typographie, forme des éléments), En-tête (disposition, recherche, bandeau d'annonce), Pied de page, puis chaque section de l'accueil, du catalogue et de la page de contact (bannière, catégories, sélection de produits, image et texte, texte, points forts, questions fréquentes, contact). Sur mobile, Starter, Pro et Enterprise modifient les textes, images, couleurs, polices et variantes proposées ; l'ordre et le nombre des sections suivent le modèle. Une alerte apparaît si la couleur de marque se distingue mal de l'ambiance choisie : les boutons reçoivent alors un contour, sans que la couleur soit remplacée.
+
+Sur le site public, une section vide reste masquée ; dans l'aperçu privé, elle apparaît comme un cadre « Section à compléter ». Les catégories et les produits affichés viennent toujours du catalogue réel ; une photo absente est remplacée par les initiales du produit. Le catalogue propose la recherche, le tri, les filtres par catégorie et la pagination. Le panier, les commandes, le formulaire de contact et les statistiques fonctionnent comme sur Stockman Basic. Les polices sont hébergées avec le site, sans appel à un service tiers.
+
+Les anciennes versions de l'application continuent d'enregistrer le nom, la couleur, le titre et le message d'accueil : sur un modèle à sections, ces changements sont repris dans le modèle publié.
 

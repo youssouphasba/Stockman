@@ -125,6 +125,49 @@ test('Image fields store a library identifier and describe changes without expos
   assert.deepEqual(describe('med_a', 'med_a'), []);
 });
 
+test('Typed fields, groups and contrast warnings follow the server descriptors', () => {
+  const helper = loadHelper();
+  const scheme = { id: 'global.color_scheme', scope: 'global', key: 'color_scheme', type: 'enum', label: 'Ambiance', group: 'global:style', group_label: 'Style', options: [{ value: 'light', label: 'Clair' }, { value: 'dark', label: 'Sombre' }] };
+  const search = { id: 'global.show_search', scope: 'global', key: 'show_search', type: 'boolean', label: 'Recherche', group: 'global:header', group_label: 'En-tête' };
+  const count = { id: 'home.grid.max_items', scope: 'section', page_id: 'home', section_id: 'grid', key: 'max_items', type: 'integer', min: 4, max: 48, label: 'Nombre de produits', group: 'section:home.grid', group_label: 'Accueil · Produits' };
+  const title = { id: 'home.grid.feature-1.title', scope: 'block', page_id: 'home', section_id: 'grid', block_id: 'feature-1', key: 'title', type: 'text', label: 'Point fort 1 · Titre', group: 'section:home.grid', group_label: 'Accueil · Produits' };
+  const document = { schema_version: 1, model_id: 'marche', model_version: '1.0.0', global_settings: { color_scheme: 'light', show_search: true }, pages: [{ id: 'home', kind: 'home', sections: [{ id: 'grid', type: 'product-grid', type_version: 1, settings: { max_items: 20 }, blocks: [{ id: 'feature-1', type: 'feature', type_version: 1, settings: { title: 'Livraison' } }] }] }] };
+  const fields = [scheme, search, count, title];
+  const values = helper.readThemeValues(document, fields);
+  assert.deepEqual(plain(values), { 'global.color_scheme': 'light', 'global.show_search': 'true', 'home.grid.max_items': '20', 'home.grid.feature-1.title': 'Livraison' });
+  const next = helper.writeThemeValues(document, fields, { ...values, 'global.color_scheme': 'dark', 'global.show_search': 'false', 'home.grid.max_items': '24', 'home.grid.feature-1.title': 'Retrait' });
+  assert.equal(next.global_settings.color_scheme, 'dark');
+  assert.equal(next.global_settings.show_search, false);
+  assert.equal(next.pages[0].sections[0].settings.max_items, 24);
+  assert.equal(next.pages[0].sections[0].blocks[0].settings.title, 'Retrait');
+  assert.equal(helper.writeThemeValues(document, fields, { ...values, 'global.color_scheme': 'inconnu' }).global_settings.color_scheme, null);
+  const lines = helper.themeChanges(fields, values, { ...values, 'global.color_scheme': 'dark', 'global.show_search': 'false' }).map(helper.describeThemeChange);
+  assert.deepEqual(lines, ['Ambiance : Clair → Sombre', 'Recherche : désactivé']);
+  assert.deepEqual(plain(helper.groupThemeFields(fields).map((group) => [group.label, group.fields.length])), [['Style', 1], ['En-tête', 1], ['Accueil · Produits', 2]]);
+  assert.match(helper.brandContrastWarning({ 'global.brand_color': '#111827', 'global.color_scheme': 'dark' }), /se distingue peu/);
+  assert.equal(helper.brandContrastWarning({ 'global.brand_color': '#7C3AED', 'global.color_scheme': 'light' }), null);
+});
+
+test('Choosing and previewing a model go through dedicated calls', async () => {
+  const h = harness();
+  const calls = [];
+  const api = {
+    getTheme: async () => themeState(),
+    saveThemeDraft: async () => themeState(),
+    discardThemeDraft: async () => themeState(),
+    publishTheme: async () => themeState(),
+    createThemePreview: async (data) => { calls.push(['preview', plain(data)]); return { preview_url: 'https://app.stockman.pro/preview#jeton', expires_at: '' }; },
+    changeThemeModel: async (data) => { calls.push(['model', plain(data)]); return { ...themeState({ lock: 1, draft: documentWith({}) }), models: [{ id: 'atelier', name: 'Atelier', description: '', published: false, draft: true }] }; },
+  };
+  const views = [];
+  const controller = h.helper.createAppearanceController(api, (view) => views.push(plain(view)));
+  await controller.load();
+  assert.equal(await controller.previewModel('atelier'), 'https://app.stockman.pro/preview#jeton');
+  assert.equal(await controller.changeModel('atelier'), true);
+  assert.deepEqual(calls, [['preview', { site_slug: 'boutique-a', source: 'model', model_id: 'atelier' }], ['model', { site_slug: 'boutique-a', lock_version: 0, model_id: 'atelier' }]]);
+  assert.equal(views[views.length - 1].notice, "Brouillon créé avec le modèle Atelier. Vérifiez-le dans l'aperçu avant de le publier.");
+});
+
 test('Server errors are read from their structured detail', () => {
   const helper = loadHelper();
   const conflict = helper.parseThemeError({ status: 409, message: JSON.stringify({ code: 'published_changed', message: 'Le site publié a été modifié entre-temps.' }) }, 'Erreur');
@@ -277,6 +320,8 @@ test('Settings no longer edit appearance fields directly and show actions only w
     const source = read(file);
     assert.match(source, /capabilities\?\.publish && \(/, file);
     assert.match(source, /capabilities\?\.preview && \(/, file);
+    assert.match(source, /groupThemeFields\(state\.fields\)/, file);
+    assert.match(source, /capabilities\?\.change_model && state\.models\.length > 1/, file);
     assert.match(source, /canEdit && /, file);
   }
   assert.match(read('web-app/src/components/EcommerceAppearancePanel.tsx'), /capabilities\?\.manage_history && \(/);

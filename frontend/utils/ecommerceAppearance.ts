@@ -2,14 +2,17 @@
 // et web-app/src/lib/ecommerceAppearance.ts (web). Le test ecommerce-appearance.test.cjs vérifie leur parité.
 // Le serveur reste l'autorité : ce module prépare l'affichage et le document envoyé, sans décider des droits.
 
-export type ThemeFieldType = 'text' | 'color' | 'media_id';
+export type ThemeFieldType = 'text' | 'color' | 'media_id' | 'enum' | 'boolean' | 'integer';
 
 export type ThemeField = {
   id: string;
-  scope: 'global' | 'section';
+  scope: 'global' | 'section' | 'block';
   key: string;
   page_id?: string;
   section_id?: string;
+  block_id?: string;
+  group?: string;
+  group_label?: string;
   type: ThemeFieldType;
   label: string;
   hint?: string;
@@ -17,7 +20,13 @@ export type ThemeField = {
   multiline?: boolean;
   nullable?: boolean;
   media_kind?: 'logo' | 'image';
+  options?: Array<{ value: string; label: string }>;
+  min?: number;
+  max?: number;
 };
+
+export type ThemeModelSummary = { id: string; name: string; description: string; published: boolean; draft: boolean };
+export type ThemeFieldGroup = { id: string; label: string; fields: ThemeField[] };
 
 export type ThemeMediaItem = {
   media_id: string;
@@ -59,8 +68,10 @@ export type ThemeState = {
   lock_version: number;
   capabilities: ThemeCapabilitySet;
   model: { id: string; name: string; version: string };
+  models: ThemeModelSummary[];
   fields: ThemeField[];
   published: {
+    model_id: string;
     document: ThemeDocument;
     fingerprint: string;
     revision_id: string | null;
@@ -75,9 +86,10 @@ export type ThemeRevisionItem = {
   revision_id: string;
   created_at: string | null;
   author: string | null;
-  kind: 'draft' | 'restore';
+  kind: 'draft' | 'restore' | 'model' | 'settings';
   restored_from: string | null;
   model_id: string;
+  model_name?: string | null;
   is_draft: boolean;
   is_published: boolean;
 };
@@ -92,7 +104,8 @@ export type AppearanceApi = {
   saveThemeDraft: (data: { site_slug: string; lock_version: number; document: ThemeDocument }) => Promise<ThemeState>;
   discardThemeDraft: (data: { site_slug: string; lock_version: number }) => Promise<ThemeState>;
   publishTheme: (data: { site_slug: string; lock_version: number; revision_id: string; published_fingerprint: string }) => Promise<ThemeState>;
-  createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' }) => Promise<ThemePreview>;
+  createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' | 'model'; model_id?: string }) => Promise<ThemePreview>;
+  changeThemeModel: (data: { site_slug: string; lock_version: number; model_id: string }) => Promise<ThemeState>;
 };
 
 export type AppearanceView = {
@@ -100,7 +113,7 @@ export type AppearanceView = {
   state: ThemeState | null;
   base: ThemeValues;
   values: ThemeValues;
-  busy: null | 'load' | 'save' | 'preview' | 'publish' | 'discard';
+  busy: null | 'load' | 'save' | 'preview' | 'publish' | 'discard' | 'model';
   error: ThemeErrorInfo | null;
   conflict: boolean;
   notice: string | null;
@@ -127,6 +140,7 @@ export const APPEARANCE_MESSAGES = {
   draftDiscarded: "Brouillon abandonné. Le site public n'a pas changé.",
   changesCancelled: 'Modifications annulées.',
   nothingToPublish: 'Aucune modification à publier.',
+  modelError: "Impossible de changer de modèle. Vérifiez votre connexion puis réessayez.",
 };
 
 const CONFLICT_CODES = ['conflict', 'published_changed', 'draft_changed', 'site_changed'];
@@ -137,23 +151,39 @@ function findSection(document: ThemeDocument, field: ThemeField): ThemeSectionDo
 }
 
 function fieldSource(document: ThemeDocument, field: ThemeField): Record<string, unknown> | null {
-  return field.scope === 'global' ? document.global_settings : findSection(document, field)?.settings || null;
+  if (field.scope === 'global') return document.global_settings;
+  const section = findSection(document, field);
+  if (field.scope === 'block') {
+    const block = (section?.blocks as Array<{ id?: string; settings?: Record<string, unknown> }> | undefined)?.find((item) => item?.id === field.block_id);
+    return block?.settings || null;
+  }
+  return section?.settings || null;
 }
 
-// Une valeur absente, nulle ou vide s'affiche comme un champ vide.
+// Les valeurs du formulaire sont des textes ; une valeur absente ou nulle s'affiche comme un champ vide.
 export function readThemeValues(document: ThemeDocument, fields: ThemeField[]): ThemeValues {
   const values: ThemeValues = {};
   for (const field of fields) {
     const value = fieldSource(document, field)?.[field.key];
-    values[field.id] = typeof value === 'string' ? value : '';
+    values[field.id] = typeof value === 'string' ? value : typeof value === 'boolean' || typeof value === 'number' ? String(value) : '';
   }
   return values;
 }
 
-export function normalizeThemeValue(field: ThemeField, value: string): string | null {
+export type ThemeTypedValue = string | number | boolean | null;
+
+export function normalizeThemeValue(field: ThemeField, value: string): ThemeTypedValue {
   const text = (value || '').replace(/\r\n/g, '\n').trim();
   if (!text) return null;
-  return field.type === 'color' ? text.toUpperCase() : text;
+  if (field.type === 'color') return text.toUpperCase();
+  if (field.type === 'boolean') return text === 'true' ? true : text === 'false' ? false : null;
+  if (field.type === 'integer') {
+    const number = Number(text);
+    if (!Number.isInteger(number)) return null;
+    return Math.min(field.max ?? number, Math.max(field.min ?? number, number));
+  }
+  if (field.type === 'enum') return field.options?.some((option) => option.value === text) ? text : null;
+  return text;
 }
 
 // Message d'erreur affiché si l'envoi d'une image échoue sans explication du serveur.
@@ -172,13 +202,54 @@ export function writeThemeValues(document: ThemeDocument, fields: ThemeField[], 
 }
 
 export function themeChanges(fields: ThemeField[], before: ThemeValues, after: ThemeValues): ThemeChange[] {
+  const display = (field: ThemeField, value: string) => {
+    const normalized = normalizeThemeValue(field, value || '');
+    return normalized === null ? '' : String(normalized);
+  };
   return fields
-    .map((field) => ({
-      field,
-      before: normalizeThemeValue(field, before[field.id] || '') || '',
-      after: normalizeThemeValue(field, after[field.id] || '') || '',
-    }))
+    .map((field) => ({ field, before: display(field, before[field.id] || ''), after: display(field, after[field.id] || '') }))
     .filter((change) => change.before !== change.after);
+}
+
+// Les rubriques suivent l'ordre du serveur : identité, style, en-tête, pied de page, puis les sections.
+export function groupThemeFields(fields: ThemeField[]): ThemeFieldGroup[] {
+  const groups: ThemeFieldGroup[] = [];
+  for (const field of fields) {
+    const id = field.group || 'fields';
+    let group = groups.find((item) => item.id === id);
+    if (!group) {
+      group = { id, label: field.group_label || 'Réglages', fields: [] };
+      groups.push(group);
+    }
+    group.fields.push(field);
+  }
+  return groups;
+}
+
+const SCHEME_BACKGROUNDS: Record<string, string> = { light: '#FFFFFF', cream: '#FBF8F3', dark: '#0F1217' };
+
+function channel(value: number) {
+  const normalized = value / 255;
+  return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+}
+
+function luminance(hex: string) {
+  const value = parseInt(hex.slice(1), 16);
+  return 0.2126 * channel((value >> 16) & 255) + 0.7152 * channel((value >> 8) & 255) + 0.0722 * channel(value & 255);
+}
+
+export function contrastRatio(first: string, second: string) {
+  const [light, dark] = [luminance(first), luminance(second)].sort((a, b) => b - a);
+  return (light + 0.05) / (dark + 0.05);
+}
+
+// Correction proposée, jamais imposée : la couleur de marque enregistrée n'est pas remplacée.
+export function brandContrastWarning(values: ThemeValues): string | null {
+  const color = (values['global.brand_color'] || '').toUpperCase();
+  const scheme = values['global.color_scheme'] || 'light';
+  const background = SCHEME_BACKGROUNDS[scheme];
+  if (!/^#[0-9A-F]{6}$/.test(color) || !background || contrastRatio(color, background) >= 3) return null;
+  return "Votre couleur de marque se distingue peu du fond de cette ambiance. Les boutons recevront un contour pour rester visibles ; vous pouvez aussi choisir une couleur plus contrastée.";
 }
 
 function quote(value: string): string {
@@ -188,11 +259,20 @@ function quote(value: string): string {
 }
 
 export function describeThemeChange(change: ThemeChange): string {
-  if (change.field.type === 'media_id') {
+  const field = change.field;
+  if (field.type === 'media_id') {
     const action = !change.before ? 'nouvelle image' : !change.after ? 'image retirée' : 'image remplacée';
-    return `${change.field.label} : ${action}`;
+    return `${field.label} : ${action}`;
   }
-  return `${change.field.label} : ${quote(change.before)} → ${quote(change.after)}`;
+  if (field.type === 'boolean') {
+    return `${field.label} : ${change.after === 'true' ? 'activé' : change.after === 'false' ? 'désactivé' : 'valeur par défaut'}`;
+  }
+  if (field.type === 'enum') {
+    const label = (value: string) => field.options?.find((option) => option.value === value)?.label || value;
+    return `${field.label} : ${change.before ? label(change.before) : '(par défaut)'} → ${change.after ? label(change.after) : '(par défaut)'}`;
+  }
+  if (field.type === 'integer') return `${field.label} : ${change.before || '(par défaut)'} → ${change.after || '(par défaut)'}`;
+  return `${field.label} : ${quote(change.before)} → ${quote(change.after)}`;
 }
 
 // Après un conflit, la dernière version du serveur devient la base et les saisies locales sont conservées.
@@ -366,6 +446,36 @@ export function createAppearanceController(api: AppearanceApi, update: (view: Ap
     }
   }
 
+  async function changeModel(modelId: string): Promise<boolean> {
+    const state = view.state;
+    if (view.busy || !state) return false;
+    emit({ busy: 'model', error: null, notice: null });
+    try {
+      const next = await api.changeThemeModel({ site_slug: state.site_slug, lock_version: state.lock_version, model_id: modelId });
+      accept(next);
+      const name = next.models.find((model) => model.id === modelId)?.name || next.model.name;
+      emit({ busy: null, notice: `Brouillon créé avec le modèle ${name}. Vérifiez-le dans l'aperçu avant de le publier.` });
+      return !disposed;
+    } catch (error) {
+      fail(error, APPEARANCE_MESSAGES.modelError);
+      return false;
+    }
+  }
+
+  async function previewModel(modelId: string): Promise<string | null> {
+    const state = view.state;
+    if (view.busy || !state) return null;
+    emit({ busy: 'preview', error: null, notice: null });
+    try {
+      const result = await api.createThemePreview({ site_slug: state.site_slug, source: 'model', model_id: modelId });
+      emit({ busy: null });
+      return disposed ? null : result.preview_url;
+    } catch (error) {
+      fail(error, APPEARANCE_MESSAGES.previewError);
+      return null;
+    }
+  }
+
   async function discard() {
     const state = view.state;
     if (view.busy || !state) return;
@@ -391,6 +501,8 @@ export function createAppearanceController(api: AppearanceApi, update: (view: Ap
     preview,
     publish,
     discard,
+    changeModel,
+    previewModel,
     pendingChanges,
     isDirty,
     applyServerState: (state: ThemeState) => accept(state),

@@ -904,9 +904,11 @@ export const ecommerce = {
     request<import('../utils/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/draft', { method: 'PUT', body: data }),
   discardThemeDraft: (data: { site_slug: string; lock_version: number }) =>
     request<import('../utils/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/draft/discard', { method: 'POST', body: data }),
+  changeThemeModel: (data: { site_slug: string; lock_version: number; model_id: string }) =>
+    request<import('../utils/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/model', { method: 'POST', body: data }),
   publishTheme: (data: { site_slug: string; lock_version: number; revision_id: string; published_fingerprint: string }) =>
     request<import('../utils/ecommerceAppearance').ThemeState>('/ecommerce/site/theme/publish', { method: 'POST', body: data }),
-  createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' }) =>
+  createThemePreview: (data: { site_slug: string; source: 'draft' | 'published' | 'model'; model_id?: string }) =>
     request<import('../utils/ecommerceAppearance').ThemePreview>('/ecommerce/site/theme/preview', { method: 'POST', body: data }),
   listMedia: (kind?: 'logo' | 'image') => request<{ media: import('../utils/ecommerceAppearance').ThemeMediaItem[]; total: number; limit: number }>(`/ecommerce/site/media${kind ? `?kind=${kind}` : ''}`),
   uploadMedia: (data: { site_slug: string; kind: 'logo' | 'image'; data: string; alt?: string }) =>

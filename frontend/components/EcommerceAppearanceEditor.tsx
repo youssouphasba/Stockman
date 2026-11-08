@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Image, Linking, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Linking, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
@@ -7,12 +7,15 @@ import { ecommerce } from '../services/api';
 import EcommerceMediaPicker from './EcommerceMediaPicker';
 import {
   THEME_COLOR_SWATCHES,
+  brandContrastWarning,
   createAppearanceController,
   describeAppearanceStatus,
   describeThemeChange,
+  groupThemeFields,
   type AppearanceView,
   type ThemeField,
   type ThemeMediaItem,
+  type ThemeModelSummary,
 } from '../utils/ecommerceAppearance';
 
 type Props = {
@@ -30,6 +33,7 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
   const [pickerField, setPickerField] = useState<ThemeField | null>(null);
   // Images importées pendant la session, affichées avant même l'enregistrement du brouillon.
   const [mediaCache, setMediaCache] = useState<Record<string, ThemeMediaItem>>({});
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const publishedRef = useRef(onPublished);
   publishedRef.current = onPublished;
 
@@ -53,9 +57,10 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
   const actionBackground = isDark ? colors.primary : colors.primaryDark;
   const actionText = isDark ? '#0F172A' : '#FFFFFF';
   const errorText = isDark ? '#FCA5A5' : colors.danger;
+  const groups = state ? groupThemeFields(state.fields) : [];
+  const contrastWarning = state ? brandContrastWarning(view.values) : null;
 
-  async function openPreview() {
-    const url = await controller.current?.preview();
+  async function openUrl(url: string | null | undefined) {
     if (!url) return;
     try {
       await Linking.openURL(url);
@@ -66,9 +71,12 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
 
   function confirmPublish() {
     const changes = controller.current?.pendingChanges() || [];
-    const details = changes.length ? changes.map(describeThemeChange).join('\n') : 'Le brouillon enregistré sera publié.';
+    const modelChange = state && state.draft && state.draft.document.model_id !== state.published.model_id
+      ? `Nouveau modèle : ${state.model.name}.\n` : '';
+    const details = changes.length ? changes.slice(0, 12).map(describeThemeChange).join('\n') : 'Le brouillon enregistré sera publié.';
+    const more = changes.length > 12 ? `\n… et ${changes.length - 12} autre${changes.length - 12 > 1 ? 's' : ''} modification${changes.length - 12 > 1 ? 's' : ''}.` : '';
     const disabledNote = state?.site_enabled ? '' : "\n\nLe site est désactivé : la publication n'active pas le site.";
-    Alert.alert('Publier ces changements ?', `${details}${disabledNote}`, [
+    Alert.alert('Publier ces changements ?', `${modelChange}${details}${more}${disabledNote}`, [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Publier',
@@ -92,9 +100,22 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
     );
   }
 
+  function confirmModel(model: ThemeModelSummary) {
+    const replaceNote = hasDraft || dirty ? '\n\nLe brouillon en cours et vos modifications non enregistrées seront remplacés.' : '';
+    Alert.alert(
+      `Choisir le modèle ${model.name} ?`,
+      `Un brouillon est créé avec vos textes, votre logo et votre couleur. Le site public ne change qu'à la publication.${replaceNote}`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Choisir', onPress: () => { void controller.current?.changeModel(model.id); } },
+      ],
+    );
+  }
+
   function renderField(field: ThemeField) {
     const value = view.values[field.id] || '';
     const disabled = !canEdit || busy;
+    const setValue = (next: string) => controller.current?.setValue(field.id, next);
     if (field.type === 'media_id') {
       const item = value ? mediaCache[value] || state?.media?.[value] : null;
       return (
@@ -107,49 +128,38 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
             )}
           </View>
           {canEdit && (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityState={{ disabled }}
-              disabled={disabled}
-              onPress={() => setPickerField(field)}
-              style={[styles.outlineButton, { minHeight: 44 }, disabled && { opacity: 0.5 }]}
-            >
+            <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={() => setPickerField(field)} style={[styles.outlineButton, { minHeight: 44 }, disabled && { opacity: 0.5 }]}>
               <Ionicons name="images-outline" size={18} color={colors.primary} />
               <Text style={styles.outlineButtonText}>{value ? "Changer l'image" : 'Choisir une image'}</Text>
             </TouchableOpacity>
           )}
           {canEdit && !!value && (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityState={{ disabled }}
-              disabled={disabled}
-              onPress={() => controller.current?.setValue(field.id, '')}
-              style={[styles.outlineButton, { minHeight: 44 }, disabled && { opacity: 0.5 }]}
-            >
+            <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={() => setValue('')} style={[styles.outlineButton, { minHeight: 44 }, disabled && { opacity: 0.5 }]}>
               <Text style={styles.outlineButtonText}>Retirer</Text>
             </TouchableOpacity>
           )}
         </View>
       );
     }
-    if (field.type === 'color') {
-      const current = value.toUpperCase();
-      const custom = !!current && !THEME_COLOR_SWATCHES.some((swatch) => swatch.value === current);
+    if (field.type === 'color' || field.type === 'enum') {
+      const options = field.type === 'color' ? THEME_COLOR_SWATCHES.map((swatch) => ({ value: swatch.value, label: swatch.label })) : field.options || [];
+      const current = field.type === 'color' ? value.toUpperCase() : value;
+      const custom = field.type === 'color' && !!current && !options.some((option) => option.value === current);
       return (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel={field.label}>
-          {THEME_COLOR_SWATCHES.map((swatch) => {
-            const active = current === swatch.value;
+          {options.map((option) => {
+            const active = current === option.value;
             return (
               <TouchableOpacity
-                key={swatch.value}
+                key={option.value}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: active, disabled }}
                 disabled={disabled}
-                onPress={() => controller.current?.setValue(field.id, swatch.value)}
+                onPress={() => setValue(option.value)}
                 style={[styles.chip, { flexDirection: 'row', alignItems: 'center', marginRight: 0, minHeight: 44 }, active && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
               >
-                <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: swatch.value, marginRight: 6 }} />
-                <Text style={[styles.chipText, active && { color: colors.primary }]}>{swatch.label}</Text>
+                {field.type === 'color' && <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: option.value, marginRight: 6 }} />}
+                <Text style={[styles.chipText, active && { color: colors.primary }]}>{option.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -162,6 +172,40 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
         </View>
       );
     }
+    if (field.type === 'boolean') {
+      const checked = value === 'true';
+      return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={styles.settingDesc}>{checked ? 'Activé' : 'Désactivé'}</Text>
+          <Switch
+            value={checked}
+            disabled={disabled}
+            onValueChange={(next) => setValue(next ? 'true' : 'false')}
+            trackColor={{ false: colors.divider, true: colors.primary + '66' }}
+            thumbColor={checked ? colors.primary : colors.textMuted}
+            accessibilityLabel={field.label}
+          />
+        </View>
+      );
+    }
+    if (field.type === 'integer') {
+      const min = field.min ?? 0;
+      const max = field.max ?? 99;
+      const number = value ? Number(value) : min;
+      const step = (delta: number) => setValue(String(Math.min(max, Math.max(min, number + delta))));
+      return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Diminuer : ${field.label}`} disabled={disabled || number <= min} onPress={() => step(-1)} style={[styles.outlineButton, { minHeight: 44, minWidth: 44 }, (disabled || number <= min) && { opacity: 0.4 }]}>
+            <Ionicons name="remove" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={{ color: colors.text, fontSize: FontSize.md, fontWeight: '700', minWidth: 32, textAlign: 'center' }} accessibilityLiveRegion="polite">{number}</Text>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Augmenter : ${field.label}`} disabled={disabled || number >= max} onPress={() => step(1)} style={[styles.outlineButton, { minHeight: 44, minWidth: 44 }, (disabled || number >= max) && { opacity: 0.4 }]}>
+            <Ionicons name="add" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.settingDesc}>de {min} à {max}</Text>
+        </View>
+      );
+    }
     return (
       <TextInput
         style={[styles.input, field.multiline && styles.textArea, disabled && { opacity: 0.6 }]}
@@ -169,7 +213,7 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
         editable={!disabled}
         maxLength={field.max_length}
         multiline={!!field.multiline}
-        onChangeText={(text) => controller.current?.setValue(field.id, text)}
+        onChangeText={setValue}
         placeholder={field.label}
         placeholderTextColor={colors.textMuted}
         accessibilityLabel={field.label}
@@ -177,19 +221,18 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
     );
   }
 
+  const currentModel = state?.model.id;
+  const showGallery = !!state && !!capabilities?.change_model && state.models.length > 1;
+
   return (
     <View style={{ borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.md, padding: Spacing.md, gap: Spacing.sm, marginBottom: Spacing.md }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
         <Ionicons name="color-palette-outline" size={20} color={colors.primary} />
         <Text style={[styles.settingLabel, { flex: 1, fontWeight: '700' }]} accessibilityRole="header">Apparence du site</Text>
-        {state && (
-          <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>
-            {hasDraft ? 'Brouillon non publié' : 'Version publiée'}
-          </Text>
-        )}
+        {state && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>{hasDraft ? 'Brouillon non publié' : 'Version publiée'}</Text>}
       </View>
       <Text style={styles.settingDesc}>
-        Préparez vos changements en brouillon, vérifiez-les dans un aperçu privé, puis publiez-les. Le site public ne change qu'à la publication.
+        Choisissez un modèle, préparez vos changements en brouillon, vérifiez-les dans un aperçu privé, puis publiez-les. Le site public ne change qu'à la publication.
       </Text>
 
       {view.status === 'loading' && <Text style={styles.settingDesc}>Chargement de l'apparence du site...</Text>}
@@ -206,23 +249,73 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
 
       {state && (
         <View style={{ gap: Spacing.sm }}>
-          <Text style={styles.settingDesc}>Modèle : {state.model.name}</Text>
-          {!canEdit && (
-            <Text style={styles.settingDesc}>L'apparence ne peut pas être modifiée pour le moment : votre accès est en lecture seule.</Text>
+          {showGallery && (
+            <View style={{ gap: Spacing.sm }}>
+              <Text style={[styles.settingLabel, { fontSize: FontSize.sm, fontWeight: '700' }]}>Modèles</Text>
+              {state.models.map((model) => {
+                const current = model.id === currentModel;
+                return (
+                  <View key={model.id} style={{ borderWidth: 1, borderColor: current ? colors.primary : colors.divider, borderRadius: BorderRadius.md, padding: Spacing.sm, gap: 6, backgroundColor: current ? colors.primary + '12' : 'transparent' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                      <Text style={{ color: colors.text, fontSize: FontSize.md, fontWeight: '800' }}>{model.name}</Text>
+                      {model.published && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>· En ligne</Text>}
+                      {model.draft && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>· Brouillon</Text>}
+                    </View>
+                    <Text style={styles.settingDesc}>{model.description}</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }}>
+                      {capabilities?.preview && (
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Aperçu du modèle ${model.name}`} disabled={busy} onPress={() => { void controller.current?.previewModel(model.id).then(openUrl); }} style={[styles.outlineButton, { minHeight: 40 }, busy && { opacity: 0.5 }]}>
+                          <Ionicons name="eye-outline" size={16} color={colors.primary} />
+                          <Text style={styles.outlineButtonText}>Aperçu</Text>
+                        </TouchableOpacity>
+                      )}
+                      {current ? (
+                        <Text style={[styles.settingDesc, { alignSelf: 'center', fontWeight: '700' }]}>Modèle en cours</Text>
+                      ) : (
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Choisir le modèle ${model.name}`} disabled={busy} onPress={() => confirmModel(model)} style={[styles.outlineButton, { minHeight: 40 }, busy && { opacity: 0.5 }]}>
+                          <Ionicons name="swap-horizontal-outline" size={16} color={colors.primary} />
+                          <Text style={styles.outlineButtonText}>{view.busy === 'model' ? 'Préparation...' : 'Choisir ce modèle'}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
           )}
+
+          <Text style={styles.settingDesc}>Modèle {hasDraft ? 'du brouillon' : 'publié'} : {state.model.name}</Text>
+          {!canEdit && <Text style={styles.settingDesc}>L'apparence ne peut pas être modifiée pour le moment : votre accès est en lecture seule.</Text>}
           {state.published.issues.length > 0 && (
             <Text style={{ color: errorText, fontSize: FontSize.xs, fontWeight: '600' }}>
               Une valeur publiée n'est pas compatible avec le format actuel : {state.published.issues[0].message}. Corrigez le champ concerné avant d'enregistrer.
             </Text>
           )}
+          {contrastWarning && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '600' }}>{contrastWarning}</Text>}
 
-          {state.fields.map((field) => (
-            <View key={field.id} style={{ gap: 4 }}>
-              <Text style={[styles.settingLabel, { fontSize: FontSize.sm, fontWeight: '600' }]}>{field.label}</Text>
-              {field.hint ? <Text style={styles.settingDesc}>{field.hint}</Text> : null}
-              {renderField(field)}
-            </View>
-          ))}
+          {groups.map((group, index) => {
+            const open = openGroups[group.id] ?? index === 0;
+            return (
+              <View key={group.id} style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.sm, gap: Spacing.sm }}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: open }}
+                  onPress={() => setOpenGroups((current) => ({ ...current, [group.id]: !open }))}
+                  style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44 }}
+                >
+                  <Text style={[styles.settingLabel, { flex: 1, fontWeight: '700' }]}>{group.label}</Text>
+                  <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
+                </TouchableOpacity>
+                {open && group.fields.map((field) => (
+                  <View key={field.id} style={{ gap: 4 }}>
+                    <Text style={[styles.settingLabel, { fontSize: FontSize.sm, fontWeight: '600' }]}>{field.label}</Text>
+                    {field.hint ? <Text style={styles.settingDesc}>{field.hint}</Text> : null}
+                    {renderField(field)}
+                  </View>
+                ))}
+              </View>
+            );
+          })}
 
           {canEdit && <Text style={[styles.settingDesc, { fontWeight: '600' }]} accessibilityLiveRegion="polite">{describeAppearanceStatus(view)}</Text>}
 
@@ -241,24 +334,12 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
 
           {canEdit && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }}>
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityState={{ disabled: busy || !dirty }}
-                style={[styles.outlineButton, { minHeight: 44 }, (busy || !dirty) && { opacity: 0.5 }]}
-                disabled={busy || !dirty}
-                onPress={() => { void controller.current?.saveDraft(); }}
-              >
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: busy || !dirty }} style={[styles.outlineButton, { minHeight: 44 }, (busy || !dirty) && { opacity: 0.5 }]} disabled={busy || !dirty} onPress={() => { void controller.current?.saveDraft(); }}>
                 <Ionicons name="save-outline" size={18} color={colors.primary} />
                 <Text style={styles.outlineButtonText}>{view.busy === 'save' ? 'Enregistrement...' : 'Enregistrer le brouillon'}</Text>
               </TouchableOpacity>
               {capabilities?.preview && (
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: busy }}
-                  style={[styles.outlineButton, { minHeight: 44 }, busy && { opacity: 0.5 }]}
-                  disabled={busy}
-                  onPress={() => { void openPreview(); }}
-                >
+                <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: busy }} style={[styles.outlineButton, { minHeight: 44 }, busy && { opacity: 0.5 }]} disabled={busy} onPress={() => { void controller.current?.preview().then(openUrl); }}>
                   <Ionicons name="eye-outline" size={18} color={colors.primary} />
                   <Text style={styles.outlineButtonText}>{view.busy === 'preview' ? "Préparation de l'aperçu..." : 'Prévisualiser'}</Text>
                 </TouchableOpacity>
@@ -276,13 +357,7 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
                 </TouchableOpacity>
               )}
               {(hasDraft || dirty) && (
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: busy }}
-                  style={[styles.outlineButton, { minHeight: 44 }, busy && { opacity: 0.5 }]}
-                  disabled={busy}
-                  onPress={confirmDiscard}
-                >
+                <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: busy }} style={[styles.outlineButton, { minHeight: 44 }, busy && { opacity: 0.5 }]} disabled={busy} onPress={confirmDiscard}>
                   <Ionicons name="trash-outline" size={18} color={colors.primary} />
                   <Text style={styles.outlineButtonText}>{hasDraft ? 'Abandonner le brouillon' : 'Annuler les modifications'}</Text>
                 </TouchableOpacity>

@@ -1,25 +1,29 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Eye, History, ImageIcon, Images, Palette, RefreshCw, RotateCcw, Save, Send, Trash2 } from 'lucide-react';
+import { ChevronDown, Eye, History, ImageIcon, Images, Minus, Palette, Plus, RefreshCw, RotateCcw, Save, Send, Shuffle, Trash2 } from 'lucide-react';
 import { ecommerce as ecommerceApi } from '../services/api';
 import EcommerceMediaPicker from './EcommerceMediaPicker';
 import {
     THEME_COLOR_SWATCHES,
+    brandContrastWarning,
     createAppearanceController,
     describeAppearanceStatus,
     describeThemeChange,
     formatThemeDate,
+    groupThemeFields,
     parseThemeError,
     type AppearanceView,
     type ThemeChange,
     type ThemeField,
     type ThemeMediaItem,
+    type ThemeModelSummary,
     type ThemeRevisionItem,
 } from '../lib/ecommerceAppearance';
 
 const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-primary/50 disabled:opacity-60';
 const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white transition-colors hover:bg-white/10 disabled:opacity-50';
+const primaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:opacity-50';
 const INITIAL_VIEW: AppearanceView = { status: 'loading', state: null, base: {}, values: {}, busy: null, error: null, conflict: false, notice: null };
 
 function FieldInput({ field, value, disabled, media, onChange, onPick }: {
@@ -47,31 +51,30 @@ function FieldInput({ field, value, disabled, media, onChange, onPick }: {
                         <Images size={16} />{value ? "Changer l'image" : 'Choisir une image'}
                     </button>
                 )}
-                {!disabled && value && (
-                    <button type="button" className={secondaryButton} onClick={() => onChange('')}>Retirer</button>
-                )}
+                {!disabled && value && <button type="button" className={secondaryButton} onClick={() => onChange('')}>Retirer</button>}
             </div>
         );
     }
-    if (field.type === 'color') {
-        const current = value.toUpperCase();
-        const custom = current && !THEME_COLOR_SWATCHES.some((swatch) => swatch.value === current);
+    if (field.type === 'color' || field.type === 'enum') {
+        const options = field.type === 'color' ? THEME_COLOR_SWATCHES.map((swatch) => ({ value: swatch.value, label: swatch.label })) : field.options || [];
+        const current = field.type === 'color' ? value.toUpperCase() : value;
+        const custom = field.type === 'color' && current && !options.some((option) => option.value === current);
         return (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3" role="radiogroup" aria-label={field.label}>
-                {THEME_COLOR_SWATCHES.map((swatch) => {
-                    const active = current === swatch.value;
+                {options.map((option) => {
+                    const active = current === option.value;
                     return (
                         <button
-                            key={swatch.value}
+                            key={option.value}
                             type="button"
                             role="radio"
                             aria-checked={active}
                             disabled={disabled}
-                            onClick={() => onChange(swatch.value)}
+                            onClick={() => onChange(option.value)}
                             className={`flex min-h-11 items-center gap-2 rounded-2xl border px-3 text-left text-sm font-bold transition disabled:opacity-60 ${active ? 'border-primary bg-primary/10 text-white' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}
                         >
-                            <span className="h-5 w-5 shrink-0 rounded-full border border-white/20" style={{ backgroundColor: swatch.value }} />
-                            {swatch.label}
+                            {field.type === 'color' && <span className="h-5 w-5 shrink-0 rounded-full border border-white/20" style={{ backgroundColor: option.value }} />}
+                            {option.label}
                         </button>
                     );
                 })}
@@ -81,6 +84,29 @@ function FieldInput({ field, value, disabled, media, onChange, onPick }: {
                         Couleur actuelle {current}
                     </span>
                 )}
+            </div>
+        );
+    }
+    if (field.type === 'boolean') {
+        const checked = value === 'true';
+        return (
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-3 text-sm font-bold text-white">
+                <input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked ? 'true' : 'false')} className="h-5 w-5 accent-[#10B981]" />
+                {checked ? 'Activé' : 'Désactivé'}
+            </label>
+        );
+    }
+    if (field.type === 'integer') {
+        const min = field.min ?? 0;
+        const max = field.max ?? 99;
+        const number = value ? Number(value) : min;
+        const step = (delta: number) => onChange(String(Math.min(max, Math.max(min, number + delta))));
+        return (
+            <div className="flex items-center gap-3">
+                <button type="button" aria-label={`Diminuer : ${field.label}`} className={secondaryButton} disabled={disabled || number <= min} onClick={() => step(-1)}><Minus size={16} /></button>
+                <span className="min-w-10 text-center text-base font-black text-white" aria-live="polite">{number}</span>
+                <button type="button" aria-label={`Augmenter : ${field.label}`} className={secondaryButton} disabled={disabled || number >= max} onClick={() => step(1)}><Plus size={16} /></button>
+                <span className="text-xs text-slate-500">de {min} à {max}</span>
             </div>
         );
     }
@@ -95,10 +121,13 @@ function FieldInput({ field, value, disabled, media, onChange, onPick }: {
     return field.multiline ? <textarea rows={3} {...common} /> : <input {...common} />;
 }
 
+const KIND_LABELS: Record<string, string> = { restore: 'Restauration', model: 'Changement de modèle', settings: 'Modification depuis les réglages', draft: 'Brouillon' };
+
 function revisionLabel(item: ThemeRevisionItem) {
     const date = formatThemeDate(item.created_at);
     const author = item.author ? ` par ${item.author}` : '';
-    return `${item.kind === 'restore' ? 'Restauration' : 'Brouillon'}${date ? ` du ${date}` : ''}${author}`;
+    const model = item.model_name ? ` · ${item.model_name}` : '';
+    return `${KIND_LABELS[item.kind] || 'Brouillon'}${date ? ` du ${date}` : ''}${author}${model}`;
 }
 
 export default function EcommerceAppearancePanel({
@@ -131,11 +160,14 @@ export default function EcommerceAppearancePanel({
     const dirty = controller.current?.isDirty() || false;
     const hasDraft = !!state?.draft;
     const busy = view.busy !== null;
+    const groups = state ? groupThemeFields(state.fields) : [];
+    const contrastWarning = state ? brandContrastWarning(view.values) : null;
+    const modelChanged = !!state?.draft && state.draft.document.model_id !== state.published.model_id;
 
-    async function openPreview() {
-        // La fenêtre est ouverte pendant le clic pour ne pas être bloquée, puis dirigée vers l'aperçu.
+    // La fenêtre est ouverte pendant le clic pour ne pas être bloquée, puis dirigée vers l'aperçu.
+    async function openPreview(load: () => Promise<string | null | undefined>) {
         const tab = window.open('about:blank', '_blank');
-        const url = await controller.current?.preview();
+        const url = await load();
         if (!url) {
             tab?.close();
             return;
@@ -155,6 +187,14 @@ export default function EcommerceAppearancePanel({
             setHistory(null);
             onPublished?.();
         }
+    }
+
+    async function chooseModel(model: ThemeModelSummary) {
+        const replaceNote = hasDraft || dirty ? '\n\nLe brouillon en cours et vos modifications non enregistrées seront remplacés.' : '';
+        if (!window.confirm(`Choisir le modèle ${model.name} ? Un brouillon est créé avec vos textes, votre logo et votre couleur. Le site public ne change qu'à la publication.${replaceNote}`)) return;
+        setPendingChanges(null);
+        await controller.current?.changeModel(model.id);
+        setHistory(null);
     }
 
     async function discard() {
@@ -200,7 +240,7 @@ export default function EcommerceAppearancePanel({
                 <div>
                     <p className="flex items-center gap-2 text-sm font-black text-white"><Palette size={18} className="text-primary" />Apparence du site</p>
                     <p className="mt-1 text-sm leading-6 text-slate-400">
-                        Préparez vos changements en brouillon, vérifiez-les dans un aperçu privé, puis publiez-les. Le site public ne change qu'à la publication.
+                        Choisissez un modèle, préparez vos changements en brouillon, vérifiez-les dans un aperçu privé, puis publiez-les. Le site public ne change qu'à la publication.
                     </p>
                 </div>
                 {state && (
@@ -222,7 +262,42 @@ export default function EcommerceAppearancePanel({
 
             {state && (
                 <div className="mt-5 space-y-5">
-                    <p className="text-sm text-slate-300">Modèle : <span className="font-black text-white">{state.model.name}</span></p>
+                    {capabilities?.change_model && state.models.length > 1 && (
+                        <div>
+                            <p className="text-sm font-black text-white">Modèles</p>
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                {state.models.map((model) => {
+                                    const current = model.id === state.model.id;
+                                    return (
+                                        <div key={model.id} className={`flex flex-col rounded-2xl border p-4 ${current ? 'border-primary bg-primary/10' : 'border-white/10 bg-white/5'}`}>
+                                            <p className="flex flex-wrap items-center gap-2 text-base font-black text-white">
+                                                {model.name}
+                                                {model.published && <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-white">En ligne</span>}
+                                                {model.draft && <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-bold text-white">Brouillon</span>}
+                                            </p>
+                                            <p className="mt-1 flex-1 text-sm leading-6 text-slate-400">{model.description}</p>
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {capabilities.preview && (
+                                                    <button type="button" className={secondaryButton} disabled={busy} onClick={() => void openPreview(() => controller.current?.previewModel(model.id) || Promise.resolve(null))}>
+                                                        <Eye size={16} />Aperçu
+                                                    </button>
+                                                )}
+                                                {current ? (
+                                                    <span className="self-center text-xs font-bold text-slate-300">Modèle en cours</span>
+                                                ) : (
+                                                    <button type="button" className={secondaryButton} disabled={busy} onClick={() => void chooseModel(model)}>
+                                                        <Shuffle size={16} />{view.busy === 'model' ? 'Préparation...' : 'Choisir ce modèle'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    <p className="text-sm text-slate-300">Modèle {hasDraft ? 'du brouillon' : 'publié'} : <span className="font-black text-white">{state.model.name}</span></p>
 
                     {!canEdit && <p className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-300">{readOnlyMessage}</p>}
 
@@ -231,23 +306,32 @@ export default function EcommerceAppearancePanel({
                             Une valeur publiée n'est pas compatible avec le format actuel : {state.published.issues[0].message}. Corrigez le champ concerné avant d'enregistrer.
                         </p>
                     )}
+                    {contrastWarning && <p className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm leading-6 text-amber-200">{contrastWarning}</p>}
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {state.fields.map((field) => (
-                            <div key={field.id} className={field.multiline || field.type !== 'text' ? 'flex flex-col gap-2 md:col-span-2' : 'flex flex-col gap-2'}>
-                                <span className="text-sm font-semibold text-white">{field.label}</span>
-                                {field.hint && <span className="text-xs leading-5 text-slate-500">{field.hint}</span>}
-                                <FieldInput
-                                    field={field}
-                                    value={view.values[field.id] || ''}
-                                    disabled={!canEdit || busy}
-                                    media={view.values[field.id] ? mediaCache[view.values[field.id]] || state.media?.[view.values[field.id]] : null}
-                                    onChange={(value) => controller.current?.setValue(field.id, value)}
-                                    onPick={() => setPickerField(field)}
-                                />
+                    {groups.map((group, index) => (
+                        <details key={group.id} open={index === 0} className="group rounded-2xl border border-white/10 bg-white/[0.02]">
+                            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black text-white [&::-webkit-details-marker]:hidden">
+                                {group.label}
+                                <ChevronDown size={16} className="text-slate-400 transition group-open:rotate-180" aria-hidden="true" />
+                            </summary>
+                            <div className="grid gap-4 px-4 pb-4 md:grid-cols-2">
+                                {group.fields.map((field) => (
+                                    <div key={field.id} className={field.multiline || (field.type !== 'text' && field.type !== 'boolean' && field.type !== 'integer') ? 'flex flex-col gap-2 md:col-span-2' : 'flex flex-col gap-2'}>
+                                        <span className="text-sm font-semibold text-white">{field.label}</span>
+                                        {field.hint && <span className="text-xs leading-5 text-slate-500">{field.hint}</span>}
+                                        <FieldInput
+                                            field={field}
+                                            value={view.values[field.id] || ''}
+                                            disabled={!canEdit || busy}
+                                            media={view.values[field.id] ? mediaCache[view.values[field.id]] || state.media?.[view.values[field.id]] : null}
+                                            onChange={(value) => controller.current?.setValue(field.id, value)}
+                                            onPick={() => setPickerField(field)}
+                                        />
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        </details>
+                    ))}
 
                     {canEdit && <p className="text-xs font-bold text-slate-400" aria-live="polite">{describeAppearanceStatus(view)}</p>}
 
@@ -266,12 +350,13 @@ export default function EcommerceAppearancePanel({
                     {pendingChanges && (
                         <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
                             <p className="text-sm font-black text-white">Publier ces changements ?</p>
-                            <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-300">
+                            {modelChanged && <p className="mt-2 text-sm font-bold text-white">Nouveau modèle : {state.model.name}.</p>}
+                            <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto text-sm leading-6 text-slate-300">
                                 {pendingChanges.map((change) => <li key={change.field.id}>{describeThemeChange(change)}</li>)}
                             </ul>
                             {!state.site_enabled && <p className="mt-2 text-xs leading-5 text-slate-400">Le site est désactivé : la publication n'active pas le site.</p>}
                             <div className="mt-4 flex flex-wrap gap-3">
-                                <button type="button" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-black text-white disabled:opacity-50" disabled={busy} onClick={() => void confirmPublication()}>
+                                <button type="button" className={primaryButton} disabled={busy} onClick={() => void confirmPublication()}>
                                     <Send size={16} />Confirmer la publication
                                 </button>
                                 <button type="button" className={secondaryButton} onClick={() => setPendingChanges(null)}>Annuler</button>
@@ -285,17 +370,12 @@ export default function EcommerceAppearancePanel({
                                 <Save size={16} />{view.busy === 'save' ? 'Enregistrement...' : 'Enregistrer le brouillon'}
                             </button>
                             {capabilities?.preview && (
-                                <button type="button" className={secondaryButton} disabled={busy} onClick={() => void openPreview()}>
+                                <button type="button" className={secondaryButton} disabled={busy} onClick={() => void openPreview(() => controller.current?.preview() || Promise.resolve(null))}>
                                     <Eye size={16} />{view.busy === 'preview' ? "Préparation de l'aperçu..." : 'Prévisualiser'}
                                 </button>
                             )}
                             {capabilities?.publish && (
-                                <button
-                                    type="button"
-                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                                    disabled={busy || (!dirty && !hasDraft)}
-                                    onClick={() => setPendingChanges(controller.current?.pendingChanges() || [])}
-                                >
+                                <button type="button" className={primaryButton} disabled={busy || (!dirty && !hasDraft)} onClick={() => setPendingChanges(controller.current?.pendingChanges() || [])}>
                                     <Send size={16} />{view.busy === 'publish' ? 'Publication...' : 'Publier'}
                                 </button>
                             )}
