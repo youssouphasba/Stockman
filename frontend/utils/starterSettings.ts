@@ -26,13 +26,10 @@ export function getStarterSettingsGroup(section: string): StarterSettingsGroup |
 // l'apparence : ils ne sont jamais envoyés avec les réglages du site, pour ne pas écraser une publication.
 export const ECOMMERCE_PRESENTATION_FIELDS = ['site_name', 'hero_title', 'welcome_message', 'brand_color'] as const;
 
+// Le domaine se connecte et se retire depuis sa propre carte : il n'est jamais renvoyé avec ce formulaire.
 export function createEcommerceDraft(site: EcommerceSite | null, storeId?: string): EcommerceSiteUpdate {
   return {
     store_id: site?.store_id ?? storeId ?? '',
-    custom_domain: site?.custom_domain ?? '',
-    domain_mode: site?.domain_mode ?? (site?.custom_domain ? 'connect' : 'stockman'),
-    domain_requested_name: site?.domain_requested_name ?? '',
-    domain_request_notes: site?.domain_request_notes ?? '',
     contact_email: site?.contact_email ?? '', contact_phone: site?.contact_phone ?? '',
     contact_address: site?.contact_address ?? '', delivery_info: site?.delivery_info ?? '',
     whatsapp_phone: site?.whatsapp_phone ?? '', payment_instructions: site?.payment_instructions ?? '',

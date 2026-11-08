@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Bell,
@@ -27,6 +27,7 @@ import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSett
 import { getAccessContext } from '../utils/access';
 import EcommerceSetupInvitation, { canOfferEcommerceSetupOnWeb } from './EcommerceSetupInvitation';
 import EcommerceAppearancePanel from './EcommerceAppearancePanel';
+import EcommerceDomainPanel from './EcommerceDomainPanel';
 
 type SettingsWorkspaceProps = {
     user?: AppUser | null;
@@ -91,14 +92,6 @@ const MODULE_OPTIONS = [
     { key: 'accounting', showFor: 'all' },
     { key: 'reservations', showFor: 'restaurant' },
     { key: 'kitchen', showFor: 'restaurant' },
-];
-
-type DomainRegistrarKey = 'cloudflare' | 'ovh' | 'godaddy';
-
-const DOMAIN_REGISTRAR_OPTIONS: Array<{ key: DomainRegistrarKey; label: string; hint: string }> = [
-    { key: 'cloudflare', label: 'Cloudflare', hint: 'Passez le DNS en mode non proxifie, puis relancez la verification dans Stockman.' },
-    { key: 'ovh', label: 'OVHcloud', hint: 'Mettez a jour la zone DNS, retirez les anciens enregistrements, puis verifiez le domaine.' },
-    { key: 'godaddy', label: 'GoDaddy', hint: 'Modifiez les enregistrements DNS et redirigez le domaine racine vers www apres le CNAME.' },
 ];
 
 const TABS: { id: TabId }[] = [
@@ -195,7 +188,6 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     const [editingStore, setEditingStore] = useState<any>(null);
     const [ecommerceSite, setEcommerceSite] = useState<any>(null);
     const [ecommerceDraft, setEcommerceDraft] = useState<any>({});
-    const [ecommerceRegistrar, setEcommerceRegistrar] = useState<DomainRegistrarKey>('cloudflare');
     const [sector, setSector] = useState('');
 
     const [profileName, setProfileName] = useState('');
@@ -275,38 +267,6 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     ] as const;
     const activeStore = storeList.find((store) => store.store_id === user?.active_store_id) || null;
     const visibleModules = MODULE_OPTIONS.filter((item) => item.showFor === 'all' || ['restaurant', 'traiteur'].includes(sector));
-    const currentDomain = (ecommerceDraft.custom_domain || ecommerceSite?.custom_domain || '').trim();
-    const currentRootDomain = currentDomain.startsWith('www.') ? currentDomain.slice(4) : currentDomain;
-    const domainSetupChecklist = useMemo(() => {
-        const rootDomain = currentRootDomain || 'votredomaine.com';
-        const targetValue = ecommerceSite?.domain_record_value || ecommerceSite?.domain_verification_target || 'app.stockman.pro';
-        const commonTail = [
-            "Revenez ensuite dans Stockman pour lancer la vérification automatique.",
-            "Gardez l'adresse Stockman comme URL de secours tant que le statut n'est pas vérifié.",
-        ];
-        if (ecommerceRegistrar === 'cloudflare') {
-            return [
-                `Dans Cloudflare, ouvrez DNS puis supprimez tout ancien enregistrement sur www.${rootDomain}.`,
-                `Créez un ${ecommerceSite?.domain_record_type || 'CNAME'} pour ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
-                `Laissez le proxy Cloudflare désactivé pour ce record le temps de la connexion, puis redirigez ${rootDomain} vers https://www.${rootDomain}.`,
-                ...commonTail,
-            ];
-        }
-        if (ecommerceRegistrar === 'ovh') {
-            return [
-                `Dans OVHcloud, ouvrez la Zone DNS et retirez les anciens A, AAAA ou CNAME sur www.${rootDomain}.`,
-                `Ajoutez un ${ecommerceSite?.domain_record_type || 'CNAME'} nommé ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
-                `Configurez ensuite une redirection 301 de ${rootDomain} vers https://www.${rootDomain}.`,
-                ...commonTail,
-            ];
-        }
-        return [
-            `Dans GoDaddy, ouvrez Manage DNS et supprimez les anciens enregistrements sur www.${rootDomain}.`,
-            `Ajoutez un ${ecommerceSite?.domain_record_type || 'CNAME'} sur ${ecommerceSite?.domain_record_name || 'www'} avec la valeur ${targetValue}.`,
-            `Ajoutez ensuite une redirection du domaine racine ${rootDomain} vers https://www.${rootDomain}.`,
-            ...commonTail,
-        ];
-    }, [currentRootDomain, ecommerceRegistrar, ecommerceSite?.domain_record_name, ecommerceSite?.domain_record_type, ecommerceSite?.domain_record_value, ecommerceSite?.domain_verification_target]);
 
     useEffect(() => {
         void loadSettings();
@@ -416,10 +376,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
         setEcommerceSite(next);
         setEcommerceDraft({
             store_id: next?.store_id || '',
-            custom_domain: next?.custom_domain || '',
-            domain_mode: next?.domain_mode || (next?.custom_domain ? 'connect' : 'stockman'),
-            domain_requested_name: next?.domain_requested_name || '',
-            domain_request_notes: next?.domain_request_notes || '',
+            // Le domaine se gère dans EcommerceDomainPanel : il n'est jamais renvoyé avec ce formulaire.
             contact_email: next?.contact_email || '',
             contact_phone: next?.contact_phone || '',
             contact_address: next?.contact_address || '',
@@ -841,178 +798,18 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <textarea value={ecommerceDraft.payment_instructions || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, payment_instructions: event.target.value }))} rows={4} className={textareaClass} />
                                     </Field>
 
-                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                                        <div className="mb-4">
-                                            <p className="text-sm font-black text-white">Domaine du site</p>
-                                            <p className="mt-1 text-sm leading-6 text-slate-400">Comme chez un registrar, l'objectif est simple : garder l'URL Stockman active, connecter www.votredomaine.com proprement, puis vérifier que le trafic arrive bien sur votre boutique Stockman.</p>
-                                        </div>
-
-                                        <div className="mb-5 grid gap-3 md:grid-cols-3">
-                                            <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Adresse Stockman</p>
-                                                <p className="mt-2 break-all text-sm font-black text-white">{ecommerceSite.stockman_site_url || ecommerceSite.site_url}</p>
-                                            </div>
-                                            <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Domaine personnalisé</p>
-                                                <p className="mt-2 break-all text-sm font-black text-white">{ecommerceSite.custom_domain_url || 'Non connecté'}</p>
-                                            </div>
-                                            <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Statut</p>
-                                                <div className="mt-2 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-primary">
-                                                    {ecommerceSite.domain_status === 'verified' ? 'Domaine vérifié' : ecommerceSite.custom_domain ? 'DNS en attente' : 'Domaine Stockman actif'}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="mb-5 grid gap-3 md:grid-cols-3">
-                                            {[
-                                                { label: '1. Stockman actif', done: true, text: 'La boutique reste toujours accessible sur le domaine Stockman.', tone: 'emerald' },
-                                                { label: '2. DNS à connecter', done: Boolean(currentDomain), text: currentDomain ? `Le domaine saisi est ${currentDomain}.` : "Saisissez d'abord www.votredomaine.com.", tone: 'sky' },
-                                                { label: '3. Vérification finale', done: ecommerceSite.domain_status === 'verified', text: ecommerceSite.domain_status === 'verified' ? 'Le domaine répond bien vers votre boutique Stockman.' : 'Relancez la vérification après la propagation DNS.', tone: 'amber' },
-                                            ].map((step) => {
-                                                const activeClass = step.tone === 'emerald'
-                                                    ? 'border-emerald-300/50 bg-emerald-500/14 shadow-[0_16px_40px_rgba(16,185,129,0.14)]'
-                                                    : step.tone === 'sky'
-                                                        ? 'border-sky-300/50 bg-sky-500/14 shadow-[0_16px_40px_rgba(14,165,233,0.14)]'
-                                                        : 'border-amber-300/50 bg-amber-500/14 shadow-[0_16px_40px_rgba(245,158,11,0.14)]';
-                                                const idleClass = 'border-slate-500/40 bg-slate-700';
-                                                const titleClass = step.done
-                                                    ? step.tone === 'emerald'
-                                                        ? 'text-emerald-950'
-                                                        : step.tone === 'sky'
-                                                            ? 'text-sky-950'
-                                                            : 'text-amber-950'
-                                                    : 'text-white';
-                                                return (
-                                                <div key={step.label} className={`rounded-2xl border p-4 backdrop-blur-sm ${step.done ? activeClass : idleClass}`}>
-                                                    <p className={`text-[11px] font-black uppercase tracking-[0.18em] ${titleClass}`}>{step.label}</p>
-                                                    <p className="mt-2 text-sm leading-6 text-white">{step.text}</p>
-                                                </div>
-                                            )})}
-                                        </div>
-
-                                        <div className="grid gap-3 md:grid-cols-2">
-                                            {[
-                                                { key: 'stockman', title: "Domaine Stockman", desc: "Utiliser l'adresse Stockman prête à l'emploi." },
-                                                { key: 'connect', title: "J'ai déjà un domaine", desc: 'Connecter www.votredomaine.com avec les réglages DNS.' },
-                                            ].map((option) => {
-                                                const active = (ecommerceDraft.domain_mode || 'stockman') === option.key;
-                                                return (
-                                                    <button
-                                                        key={option.key}
-                                                        type="button"
-                                                        onClick={() => setEcommerceDraft((draft: any) => ({
-                                                            ...draft,
-                                                            domain_mode: option.key,
-                                                            custom_domain: option.key === 'stockman' ? '' : draft.custom_domain,
-                                                        }))}
-                                                        className={`rounded-2xl border p-4 text-left transition ${active ? 'border-primary bg-primary/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
-                                                    >
-                                                        <span className="block text-sm font-black text-white">{option.title}</span>
-                                                        <span className="mt-1 block text-xs leading-5 text-slate-400">{option.desc}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {(ecommerceDraft.domain_mode || 'stockman') === 'stockman' ? (
-                                            <div className="mt-4 rounded-2xl border border-primary/20 bg-slate-950/80 p-4 text-sm leading-6 text-slate-200">
-                                                <span className="font-semibold text-slate-100">Adresse actuelle :</span>{' '}
-                                                <span className="break-all font-black text-white">{ecommerceSite.stockman_site_url || ecommerceSite.site_url}</span>
-                                            </div>
-                                        ) : null}
-
-                                        {ecommerceDraft.domain_mode === 'connect' ? (
-                                            <div className="mt-4 space-y-4">
-                                                <Field label="Domaine à connecter" hint="Saisissez votre domaine existant sans https://, au format recommandé www.votredomaine.com.">
-                                                    <input value={ecommerceDraft.custom_domain || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, custom_domain: event.target.value }))} placeholder="www.votredomaine.com" className={inputClass} />
-                                                </Field>
-
-                                                <div className="grid gap-3 md:grid-cols-3">
-                                                    {DOMAIN_REGISTRAR_OPTIONS.map((provider) => {
-                                                        const active = ecommerceRegistrar === provider.key;
-                                                        return (
-                                                            <button
-                                                                key={provider.key}
-                                                                type="button"
-                                                                onClick={() => setEcommerceRegistrar(provider.key)}
-                                                                className={`rounded-2xl border p-4 text-left transition ${active ? 'border-primary bg-primary/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
-                                                            >
-                                                                <span className="block text-sm font-black text-white">{provider.label}</span>
-                                                                <span className="mt-1 block text-xs leading-5 text-slate-400">{provider.hint}</span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-
-                                                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-slate-300">
-                                                    <div className="flex flex-wrap items-start justify-between gap-3">
-                                                        <div>
-                                                            <p className="font-black text-white">Enregistrements à créer</p>
-                                                            <p className="mt-1 text-xs leading-5 text-slate-400">Connectez d'abord www, puis redirigez le domaine racine vers cette adresse.</p>
-                                                        </div>
-                                                        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-primary">
-                                                            {ecommerceSite.domain_status === 'verified' ? 'Vérifié' : 'À configurer'}
-                                                        </div>
-                                                    </div>
-                                                    <div className="mt-3 grid gap-3 md:grid-cols-3">
-                                                        <div className="rounded-xl bg-slate-950 px-3 py-3">
-                                                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Type</p>
-                                                            <p className="mt-1 text-sm font-black text-primary">{ecommerceSite.domain_record_type || 'CNAME'}</p>
-                                                        </div>
-                                                        <div className="rounded-xl bg-slate-950 px-3 py-3">
-                                                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Nom</p>
-                                                            <p className="mt-1 break-all font-mono text-xs text-white">{ecommerceSite.domain_record_name || 'www'}</p>
-                                                        </div>
-                                                        <div className="rounded-xl bg-slate-950 px-3 py-3">
-                                                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Valeur cible</p>
-                                                            <p className="mt-1 break-all font-mono text-xs text-primary">{ecommerceSite.domain_record_value || ecommerceSite.domain_verification_target || 'app.stockman.pro'}</p>
-                                                        </div>
-                                                    </div>
-                                                    {ecommerceSite.domain_connection_warning ? (
-                                                        <p className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-100">{ecommerceSite.domain_connection_warning}</p>
-                                                    ) : null}
-                                                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                                                        <div className="space-y-2">
-                                                            <p className="text-sm font-black text-white">Guide {DOMAIN_REGISTRAR_OPTIONS.find((provider) => provider.key === ecommerceRegistrar)?.label}</p>
-                                                            {domainSetupChecklist.map((step, index) => (
-                                                                <div key={`${ecommerceRegistrar}-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
-                                                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-black text-primary">{index + 1}</span>
-                                                                    <p className="text-sm leading-6 text-slate-300">{step}</p>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <p className="text-sm font-black text-white">Contrôles Stockman</p>
-                                                            {(ecommerceSite.domain_connection_steps || []).map((step: string, index: number) => (
-                                                                <div key={`stockman-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
-                                                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-xs font-black text-sky-300">{index + 1}</span>
-                                                                    <p className="text-sm leading-6 text-slate-300">{step}</p>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void runSave('ecommerce-domain', async () => {
-                                                        const saved = await ecommerceApi.updateSite({ ...ecommerceDraft, enabled: ecommerceSite.enabled });
-                                                        syncEcommerceState(saved);
-                                                        window.dispatchEvent(new Event('ecommerce:changed'));
-                                                        const verified = await ecommerceApi.verifyDomain();
-                                                        syncEcommerceState(verified);
-                                                        window.dispatchEvent(new Event('ecommerce:changed'));
-                                                    }, 'Vérification du domaine lancée.')}
-                                                    disabled={savingKey === 'ecommerce-domain' || !ecommerceDraft.custom_domain}
-                                                    className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-white/15 disabled:opacity-50"
-                                                >
-                                                    <Globe size={18} />
-                                                    Vérifier le domaine
-                                                </button>
-                                            </div>
-                                        ) : null}
-                                    </div>
+                                    <EcommerceDomainPanel
+                                        site={ecommerceSite}
+                                        canEdit={canManageOrgSettings && !webConsultationOnly}
+                                        readOnlyMessage={webConsultationOnly
+                                            ? "Starter et Pro connectent leur domaine depuis l'application mobile Stockman. La gestion web du domaine est disponible avec Enterprise."
+                                            : "Votre accès ne permet pas de modifier le domaine du site."}
+                                        onSiteChange={(next) => {
+                                            setEcommerceSite(next);
+                                            window.dispatchEvent(new Event('ecommerce:changed'));
+                                        }}
+                                        onNotice={(tone, message) => setBanner({ tone, message })}
+                                    />
 
                                     <button
                                         type="button"

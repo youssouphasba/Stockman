@@ -852,6 +852,12 @@ export type EcommerceSite = {
   domain_dns_mode?: string | null;
   domain_connection_steps?: string[];
   domain_connection_warning?: string | null;
+  domain_state?: string | null;
+  domain_records?: Array<{ type: string; name: string; host?: string; value: string; purpose: string }>;
+  domain_redirect_from?: string | null;
+  domain_redirect_ready?: boolean | null;
+  domain_checked_at?: string | null;
+  domain_automatic?: boolean;
   hero_title?: string | null;
   site_name?: string | null;
   welcome_message?: string | null;
@@ -921,8 +927,13 @@ export const ecommerce = {
     request<EcommerceSite>('/ecommerce/site'),
   updateSite: (data: EcommerceSiteUpdate) =>
     request<EcommerceSite>('/ecommerce/site', { method: 'PUT', body: data }),
-  verifyDomain: () =>
-    request<EcommerceSite>('/ecommerce/site/verify-domain', { method: 'POST' }),
+  // Domaine du site : connexion, vérification et retrait passent par des opérations dédiées.
+  connectDomain: (domain: string) =>
+    request<EcommerceSite>('/ecommerce/site/domain', { method: 'POST', body: { domain } }),
+  checkDomain: () =>
+    request<EcommerceSite>('/ecommerce/site/domain/check', { method: 'POST' }),
+  disconnectDomain: () =>
+    request<EcommerceSite>('/ecommerce/site/domain', { method: 'DELETE' }),
   getStats: () =>
     request<EcommerceStats>('/ecommerce/stats'),
   listOrders: (status?: string, skip = 0, limit = 50) => {

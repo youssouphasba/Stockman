@@ -88,10 +88,8 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 
 ### Site e-commerce automatique
 - Le nom du site web est personnalisable dans les paramètres e-commerce et s'affiche dans l'en-tête de la vitrine publique.
-- Le domaine du site se règle dans un parcours dédié : garder le domaine Stockman, ou connecter de préférence `www.votredomaine.com` avec un CNAME puis rediriger `votredomaine.com` vers ce sous-domaine.
-- Tant que le domaine personnalisé n'est pas vérifié, Stockman continue d'ouvrir l'URL Stockman du site pour éviter d'envoyer le commerçant vers un ancien hébergement encore actif sur ce domaine.
-- Les réglages E-com affichent maintenant les consignes DNS utiles : type d'enregistrement, nom, valeur cible, suppression des anciens enregistrements, cas du sous-domaine et cas du domaine racine.
-- Un guide plus assisté aide le commerçant selon son fournisseur DNS habituel, avec des étapes concrètes pour Cloudflare, OVHcloud et GoDaddy avant la vérification finale.
+- Le domaine du site se connecte depuis la carte « Domaine du site » (Paramètres > Boutique en ligne) : voir `ecommerce-domain.md` pour le parcours complet.
+- Tant que le domaine personnalisé n'est pas prêt (DNS, propriété du domaine et certificat HTTPS), Stockman continue d'ouvrir l'adresse Stockman du site, pour ne jamais envoyer les visiteurs vers un ancien hébergement encore actif sur ce domaine.
 - Les couleurs du site se choisissent avec des pastilles visuelles dans les paramètres E-com, sans saisie obligatoire de code couleur.
 - Quand le client renseigne au moins une coordonnée utile, Stockman crée ou met à jour automatiquement sa fiche dans le CRM avec la source e-commerce.
 - Chaque compte commerçant dispose d'un site e-commerce public généré par Stockman avec un slug unique, par exemple `/shop/ma-boutique`.

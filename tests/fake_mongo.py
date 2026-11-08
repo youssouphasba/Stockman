@@ -41,7 +41,8 @@ def _matches_condition(value, condition):
                 if value is _MISSING or value is None or not value <= expected:
                     return False
             elif op == "$in":
-                if value is _MISSING or value not in expected:
+                # Comme MongoDB : un champ tableau correspond si l'un de ses éléments est listé.
+                if value is _MISSING or (value not in expected and not (isinstance(value, list) and any(item in expected for item in value))):
                     return False
             elif op == "$ne":
                 if value is not _MISSING and value == expected:
@@ -49,6 +50,8 @@ def _matches_condition(value, condition):
             else:
                 raise NotImplementedError(op)
         return True
+    if isinstance(value, list) and not isinstance(condition, list):
+        return condition in value
     return value is not _MISSING and value == condition
 
 

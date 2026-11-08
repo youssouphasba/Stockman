@@ -85,6 +85,18 @@ test('Site activation uses the existing API and keeps hidden fields unchanged', 
   assert.deepEqual(JSON.parse(JSON.stringify(call[1])), { enabled: true });
 });
 
+test('The site domain has its own card, behind More options for Starter, and never travels with the form', () => {
+  const hidden = content(createHarness({ states: { starterSection: 'online', ecommerceSite: site } }));
+  assert.equal(hidden.nodes.some((node) => node.type === 'EcommerceDomainCard'), false);
+  const shown = content(createHarness({ states: { starterSection: 'online', ecommerceSite: site, showEcommerceOptions: true } }));
+  const card = shown.nodes.find((node) => node.type === 'EcommerceDomainCard');
+  assert.ok(card);
+  assert.equal(card.props.site, site);
+  assert.equal(card.props.canEdit, true);
+  const draft = createHarness().load('utils/starterSettings.ts').createEcommerceDraft(site);
+  for (const key of ['custom_domain', 'domain_mode', 'domain_requested_name', 'domain_request_notes']) assert.equal(key in draft, false, key);
+});
+
 test('Online settings remain reachable without a site or without an active store', () => {
   for (const currentStore of [null, { store_id: 'store' }]) {
     const h = createHarness({ states: { starterSection: 'online', currentStore, ecommerceSite: null } });

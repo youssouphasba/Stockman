@@ -12,7 +12,7 @@ import hmac
 import google.generativeai as genai
 from pathlib import Path as PathLib
 from pydantic import BaseModel, Field, EmailStr
-from typing import Any, Dict, List, Literal, Optional, Set
+from typing import Any, Dict, List, Literal, Optional, Set, Tuple
 import uuid
 import secrets
 from datetime import datetime, timezone, timedelta
@@ -26,7 +26,6 @@ import html
 import asyncio
 import base64
 import re
-import socket
 from urllib.parse import quote, urlparse
 from decimal import Decimal, InvalidOperation
 from PIL import Image
@@ -84,6 +83,8 @@ from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VE
 from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
 from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
 from ecommerce_media import EcommerceMediaLibrary
+from ecommerce_addresses import DomainInputError, normalize_ecommerce_slug, parse_domain_input
+from ecommerce_domains import MARKER_SERVICE, DomainServiceError, EcommerceDomainService, VercelDomains
 from services.pricing import (
     DEFAULT_COUNTRY_CODE,
     DEFAULT_CURRENCY,
@@ -1404,6 +1405,12 @@ class EcommerceSiteInfo(BaseModel):
     domain_dns_mode: Optional[str] = None
     domain_connection_steps: List[str] = Field(default_factory=list)
     domain_connection_warning: Optional[str] = None
+    domain_state: str = "not_connected"
+    domain_records: List[Dict[str, Any]] = Field(default_factory=list)
+    domain_redirect_from: Optional[str] = None
+    domain_redirect_ready: Optional[bool] = None
+    domain_checked_at: Optional[datetime] = None
+    domain_automatic: bool = False
     hero_title: Optional[str] = None
     site_name: Optional[str] = None
     welcome_message: Optional[str] = None
@@ -1435,6 +1442,10 @@ class EcommerceSiteUpdate(BaseModel):
     whatsapp_phone: Optional[str] = Field(default=None, max_length=40)
     payment_instructions: Optional[str] = Field(default=None, max_length=1200)
     show_out_of_stock_products: Optional[bool] = None
+
+
+class EcommerceDomainRequest(BaseModel):
+    domain: str = Field(min_length=1, max_length=255)
 
 
 class EcommerceSetupClaim(BaseModel):
@@ -1620,6 +1631,12 @@ async def get_public_receipt(public_token: str):
         store_address=store_address,
         receipt_footer=receipt_footer
     )
+
+@app.get("/api/public/ecommerce/_domain-check")
+async def ecommerce_domain_check_marker():
+    # Réponse fixe : la vérification d'un domaine connecté prouve qu'il ouvre bien le site Stockman.
+    return {"service": MARKER_SERVICE}
+
 
 @app.get("/api/public/ecommerce/by-domain")
 async def get_public_ecommerce_site_by_domain(
@@ -3879,22 +3896,6 @@ def get_web_app_base_url() -> str:
     ).rstrip("/")
 
 
-def normalize_ecommerce_slug(value: Optional[str]) -> str:
-    normalized = (value or "").strip().lower()
-    replacements = {
-        "Ã©": "e", "Ã¨": "e", "Ãª": "e", "Ã«": "e",
-        "Ã ": "a", "Ã¢": "a", "Ã¤": "a",
-        "Ã®": "i", "Ã¯": "i",
-        "Ã´": "o", "Ã¶": "o",
-        "Ã¹": "u", "Ã»": "u", "Ã¼": "u",
-        "Ã§": "c", "Ã±": "n",
-    }
-    for source, target in replacements.items():
-        normalized = normalized.replace(source, target)
-    normalized = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
-    return normalized[:50] or "boutique"
-
-
 def normalize_ecommerce_domain(value: Optional[str]) -> Optional[str]:
     raw = (value or "").strip().lower()
     if not raw:
@@ -3919,14 +3920,14 @@ def normalize_ecommerce_color(value: Optional[str]) -> Optional[str]:
     return raw.upper()
 
 
-def is_preferred_ecommerce_connect_domain(domain: Optional[str]) -> bool:
-    normalized_domain = (domain or "").strip().lower()
-    return bool(normalized_domain) and normalized_domain.startswith("www.") and len(normalized_domain.split(".")) >= 3
-
-
 def get_ecommerce_domain_target() -> str:
     parsed = urlparse(get_web_app_base_url())
     return parsed.netloc or parsed.path.replace("https://", "").replace("http://", "").split("/")[0]
+
+
+# Domaines des commerçants : enregistrés automatiquement chez Vercel, qui sert le site public,
+# quand VERCEL_API_TOKEN et VERCEL_PROJECT_ID (et VERCEL_TEAM_ID pour une équipe) sont configurés.
+ecommerce_domain_service = EcommerceDomainService(db, hosting=VercelDomains.from_env(), legacy_target=get_ecommerce_domain_target())
 
 
 def get_normalized_request_host(request: Optional[Request]) -> Optional[str]:
@@ -3954,98 +3955,6 @@ def is_primary_stockman_host(host: Optional[str]) -> bool:
         "127.0.0.1",
     }
     return normalized_host in reserved_hosts or normalized_host.endswith(".vercel.app")
-
-
-def build_ecommerce_domain_dns_config(custom_domain: Optional[str]) -> Dict[str, Any]:
-    target_host = get_ecommerce_domain_target()
-    domain = normalize_ecommerce_domain(custom_domain) if custom_domain else None
-    if not domain:
-        return {
-            "record_type": "CNAME",
-            "record_name": None,
-            "record_value": target_host,
-            "dns_mode": "subdomain",
-            "warning": None,
-            "steps": [],
-        }
-
-    if is_preferred_ecommerce_connect_domain(domain):
-        apex_domain = domain[4:]
-        return {
-            "record_type": "CNAME",
-            "record_name": "www",
-            "record_value": target_host,
-            "dns_mode": "preferred_www",
-            "warning": f"Ne laissez pas l'ancien site actif sur www.{apex_domain} et redirigez {apex_domain} vers https://www.{apex_domain}.",
-            "steps": [
-                f"Entrez et connectez www.{apex_domain} comme domaine principal de votre boutique.",
-                f"Chez votre hÃ©bergeur DNS, supprimez tout ancien enregistrement A, AAAA ou CNAME sur www.{apex_domain}.",
-                f"CrÃ©ez un CNAME sur www qui pointe vers {target_host}.",
-                f"CrÃ©ez ensuite une redirection 301 de {apex_domain} vers https://www.{apex_domain}.",
-                "AprÃ¨s propagation DNS, lancez la vÃ©rification depuis Stockman.",
-            ],
-        }
-
-    labels = domain.split(".")
-    root_domain = ".".join(labels[-2:]) if len(labels) >= 2 else domain
-    is_root_domain = len(labels) == 2
-    if is_root_domain:
-        return {
-            "record_type": "ALIAS / ANAME",
-            "record_name": "@",
-            "record_value": target_host,
-            "dns_mode": "apex",
-            "warning": "N'utilisez pas un ancien A, AAAA ou CNAME qui continue d'envoyer le trafic vers votre ancien site.",
-            "steps": [
-                f"Chez votre hÃ©bergeur DNS, supprimez tout ancien enregistrement A, AAAA, CNAME ou redirection Web encore actif sur {domain}.",
-                f"Si votre fournisseur DNS accepte ALIAS, ANAME ou CNAME flattening sur le domaine racine, crÃ©ez ce pointage sur @ vers {target_host}.",
-                f"Si votre fournisseur ne gÃ¨re pas ALIAS ou ANAME sur {domain}, crÃ©ez plutÃ´t un sous-domaine www en CNAME vers {target_host}, puis redirigez {domain} vers www.{domain}.",
-                "AprÃ¨s propagation DNS, lancez la vÃ©rification depuis Stockman.",
-            ],
-        }
-
-    record_name = domain[: -(len(root_domain) + 1)]
-    return {
-        "record_type": "CNAME",
-        "record_name": record_name,
-        "record_value": target_host,
-        "dns_mode": "subdomain",
-        "warning": "Supprimez tout ancien A, AAAA ou CNAME sur ce mÃªme sous-domaine pour Ã©viter que l'ancien site continue de s'ouvrir.",
-        "steps": [
-            f"Chez votre hÃ©bergeur DNS, supprimez tout ancien enregistrement A, AAAA ou CNAME encore actif sur {domain}.",
-            f"CrÃ©ez un CNAME sur {record_name} qui pointe vers {target_host}.",
-            "Ne laissez pas de redirection Web ou de proxy actif vers votre ancien site sur ce mÃªme nom.",
-            "AprÃ¨s propagation DNS, lancez la vÃ©rification depuis Stockman.",
-        ],
-    }
-
-
-async def resolve_host_ip_set(host: Optional[str]) -> set[str]:
-    if not host:
-        return set()
-    loop = asyncio.get_running_loop()
-    try:
-        addrinfo = await loop.run_in_executor(None, socket.getaddrinfo, host, 443, socket.AF_UNSPEC, socket.SOCK_STREAM)
-    except Exception:
-        return set()
-    resolved_ips: set[str] = set()
-    for entry in addrinfo:
-        sockaddr = entry[4]
-        if sockaddr and sockaddr[0]:
-            resolved_ips.add(str(sockaddr[0]))
-    return resolved_ips
-
-
-async def verify_ecommerce_domain_resolution(domain: Optional[str]) -> bool:
-    if not domain:
-        return False
-    domain_ips = await resolve_host_ip_set(domain)
-    if not domain_ips:
-        return False
-    target_ips = await resolve_host_ip_set(get_ecommerce_domain_target())
-    if not target_ips:
-        return False
-    return bool(domain_ips.intersection(target_ips))
 
 
 async def build_unique_ecommerce_slug(seed: Optional[str], owner_id: str) -> str:
@@ -4127,7 +4036,6 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
     domain_mode = account_doc.get("ecommerce_domain_mode")
     if domain_mode not in {"stockman", "connect", "help"}:
         domain_mode = "connect" if custom_domain else ("help" if account_doc.get("ecommerce_domain_requested_name") else "stockman")
-    dns_config = build_ecommerce_domain_dns_config(custom_domain)
     contact_email = (account_doc.get("ecommerce_contact_email") or owner_doc.get("email") or "").strip().lower() or None
     contact_phone = (account_doc.get("ecommerce_contact_phone") or owner_doc.get("phone") or "").strip() or None
     contact_address = (account_doc.get("ecommerce_contact_address") or (store_doc or {}).get("address") or "").strip() or None
@@ -4147,13 +4055,7 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         "domain_request_notes": account_doc.get("ecommerce_domain_request_notes"),
         "domain_status": domain_status,
         "domain_verified_at": account_doc.get("ecommerce_domain_verified_at"),
-        "domain_verification_target": get_ecommerce_domain_target(),
-        "domain_record_type": dns_config["record_type"],
-        "domain_record_name": dns_config["record_name"],
-        "domain_record_value": dns_config["record_value"],
-        "domain_dns_mode": dns_config["dns_mode"],
-        "domain_connection_steps": dns_config["steps"],
-        "domain_connection_warning": dns_config["warning"],
+        **ecommerce_domain_service.describe(account_doc),
         "hero_title": account_doc.get("ecommerce_hero_title"),
         "site_name": account_doc.get("ecommerce_site_name"),
         "welcome_message": account_doc.get("ecommerce_welcome_message"),
@@ -4273,8 +4175,9 @@ async def get_public_ecommerce_account_by_slug(slug: str) -> Dict[str, Any]:
 
 async def get_public_ecommerce_account_by_domain(domain: Optional[str]) -> Dict[str, Any]:
     normalized_domain = normalize_ecommerce_domain(domain)
+    # Le domaine nu redirigé (senlab.com pour www.senlab.com) ouvre aussi la boutique.
     account_doc = await db.business_accounts.find_one(
-        {"ecommerce_custom_domain": normalized_domain, "ecommerce_enabled": True},
+        {"$or": [{"ecommerce_custom_domain": normalized_domain}, {"ecommerce_domain_aliases": normalized_domain}], "ecommerce_enabled": True},
         {"_id": 0},
     )
     if not account_doc:
@@ -18468,34 +18371,20 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, request: Request, use
         if not store_doc:
             raise HTTPException(status_code=404, detail="Boutique introuvable")
         updates["ecommerce_default_store_id"] = store_id
-    if data.domain_mode is not None:
-        updates["ecommerce_domain_mode"] = data.domain_mode
-        if data.domain_mode == "stockman":
-            updates["ecommerce_custom_domain"] = None
-            updates["ecommerce_domain_status"] = "not_configured"
-            updates["ecommerce_domain_verified_at"] = None
-    if data.custom_domain is not None:
-        custom_domain = normalize_ecommerce_domain(data.custom_domain)
-        if custom_domain:
-            if not is_preferred_ecommerce_connect_domain(custom_domain):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Utilisez le format recommande www.votredomaine.com. Redirigez ensuite votredomaine.com vers ce sous-domaine chez votre hebergeur.",
-                )
-            existing = await db.business_accounts.find_one(
-                {"ecommerce_custom_domain": custom_domain, "account_id": {"$ne": account_doc.get("account_id")}},
-                {"_id": 0, "account_id": 1},
-            )
-            if existing:
-                raise HTTPException(status_code=409, detail="Ce nom de domaine est dÃ©jÃ  utilisÃ©")
-            updates["ecommerce_custom_domain"] = custom_domain
-            updates["ecommerce_domain_mode"] = "connect"
-            updates["ecommerce_domain_status"] = "pending_verification"
-            updates["ecommerce_domain_verified_at"] = None
-        else:
-            updates["ecommerce_custom_domain"] = None
-            updates["ecommerce_domain_status"] = "not_configured"
-            updates["ecommerce_domain_verified_at"] = None
+    # Le domaine se connecte, se vérifie et se retire par des opérations dédiées. Les anciennes
+    # versions de l'application l'envoient encore avec les réglages : leur demande est traduite.
+    legacy_domain = None
+    if data.domain_mode == "stockman" or (data.custom_domain is not None and not data.custom_domain.strip()):
+        legacy_domain = ("disconnect", None)
+    elif data.custom_domain is not None:
+        try:
+            wanted_domain = parse_domain_input(data.custom_domain)
+        except DomainInputError as exc:
+            raise HTTPException(status_code=400, detail=exc.message)
+        if wanted_domain.host != account_doc.get("ecommerce_custom_domain"):
+            legacy_domain = ("connect", data.custom_domain)
+    elif data.domain_mode == "help":
+        updates["ecommerce_domain_mode"] = "help"
     if data.domain_requested_name is not None:
         requested_domain = normalize_ecommerce_domain(data.domain_requested_name)
         updates["ecommerce_domain_requested_name"] = requested_domain
@@ -18538,32 +18427,55 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, request: Request, use
             await EcommerceOnboarding(db).configured(account_doc["account_id"], site["slug"])
         except Exception:
             logger.warning("E-commerce onboarding sync deferred for account %s", account_doc["account_id"])
+    if legacy_domain and legacy_domain[0] == "connect":
+        await run_ecommerce_domain_operation(ecommerce_domain_service.connect(account_doc, legacy_domain[1]))
+    elif legacy_domain and account_doc.get("ecommerce_custom_domain"):
+        await run_ecommerce_domain_operation(ecommerce_domain_service.disconnect(account_doc))
     return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
 
 
-@api_router.post("/ecommerce/site/verify-domain", response_model=EcommerceSiteInfo)
-async def verify_ecommerce_site_domain(request: Request, user: User = Depends(require_auth)):
-    if not is_org_admin_user(user):
-        raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rationnels peuvent vÃ©rifier le domaine du site e-commerce")
+async def run_ecommerce_domain_operation(operation):
+    try:
+        return await operation
+    except DomainServiceError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message)
+
+
+async def get_ecommerce_domain_context(user: User, request: Request) -> Tuple[str, Dict[str, Any]]:
+    if not is_org_admin_user(user) or user.is_demo:
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs de la boutique peuvent gérer le domaine du site.")
     ensure_subscription_write_allowed(user, request=request)
     owner_id = get_owner_id(user)
+    await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id)
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": owner_id, "role": "shopkeeper"})
     if not account_doc:
         raise HTTPException(status_code=400, detail="Site e-commerce indisponible pour ce compte")
-    domain = account_doc.get("ecommerce_custom_domain")
-    if not domain:
-        raise HTTPException(status_code=400, detail="Ajoutez d'abord un nom de domaine")
-    verified = await verify_ecommerce_domain_resolution(domain)
-    now = datetime.now(timezone.utc)
-    await db.business_accounts.update_one(
-        {"account_id": account_doc["account_id"]},
-        {"$set": {
-            "ecommerce_domain_status": "verified" if verified else "pending_verification",
-            "ecommerce_domain_verified_at": now if verified else None,
-            "updated_at": now,
-        }},
-    )
+    fresh = await db.business_accounts.find_one({"account_id": account_doc["account_id"]}, {"_id": 0})
+    return owner_id, fresh or account_doc
+
+
+@api_router.post("/ecommerce/site/domain", response_model=EcommerceSiteInfo)
+async def connect_ecommerce_site_domain(data: EcommerceDomainRequest, request: Request, user: User = Depends(require_auth)):
+    owner_id, account_doc = await get_ecommerce_domain_context(user, request)
+    await run_ecommerce_domain_operation(ecommerce_domain_service.connect(account_doc, data.domain))
+    return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
+
+
+@api_router.post("/ecommerce/site/domain/check", response_model=EcommerceSiteInfo)
+@api_router.post("/ecommerce/site/verify-domain", response_model=EcommerceSiteInfo)
+async def check_ecommerce_site_domain(request: Request, user: User = Depends(require_auth)):
+    owner_id, account_doc = await get_ecommerce_domain_context(user, request)
+    if not account_doc.get("ecommerce_custom_domain"):
+        raise HTTPException(status_code=400, detail="Connectez d'abord un nom de domaine.")
+    await run_ecommerce_domain_operation(ecommerce_domain_service.check(account_doc))
+    return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
+
+
+@api_router.delete("/ecommerce/site/domain", response_model=EcommerceSiteInfo)
+async def disconnect_ecommerce_site_domain(request: Request, user: User = Depends(require_auth)):
+    owner_id, account_doc = await get_ecommerce_domain_context(user, request)
+    await run_ecommerce_domain_operation(ecommerce_domain_service.disconnect(account_doc))
     return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
 
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
-import { ecommerce as ecommerceApi, notifications as notificationsApi, settings as settingsApi, subscription as subscriptionApi, SubscriptionData, UserSettings, profile, userFeatures, stores as storesApi, Store } from '../../services/api';
+import { ecommerce as ecommerceApi, notifications as notificationsApi, settings as settingsApi, subscription as subscriptionApi, SubscriptionData, UserSettings, profile, userFeatures, stores as storesApi, Store, type EcommerceSite } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import AiSupportModal from '../../components/AiSupportModal';
@@ -39,6 +39,7 @@ import LanguagePickerModal from '../../components/LanguagePickerModal';
 import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 import StoreSelector from '../../components/StoreSelector';
 import EcommerceAppearanceEditor from '../../components/EcommerceAppearanceEditor';
+import EcommerceDomainCard from '../../components/EcommerceDomainCard';
 import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
 import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
 import { getCommercialPlan, isStarterShopkeeper } from '../../utils/accountRouting';
@@ -71,14 +72,6 @@ const NOTIFICATION_CONTACT_FIELDS: { key: keyof typeof DEFAULT_NOTIFICATION_CONT
   { key: 'crm', labelKey: 'settings.email_channel_crm', placeholder: 'crm@entreprise.com', requiredModule: 'crm' },
   { key: 'operations', labelKey: 'settings.email_channel_operations', placeholder: 'ops@entreprise.com' },
   { key: 'billing', labelKey: 'settings.email_channel_billing', placeholder: 'billing@entreprise.com' },
-];
-
-type DomainRegistrarKey = 'cloudflare' | 'ovh' | 'godaddy';
-
-const DOMAIN_REGISTRAR_OPTIONS: Array<{ key: DomainRegistrarKey; label: string; hint: string }> = [
-  { key: 'cloudflare', label: 'Cloudflare', hint: 'DNS only, puis vérification dans Stockman.' },
-  { key: 'ovh', label: 'OVHcloud', hint: 'Zone DNS, suppression des anciens records, puis vérification.' },
-  { key: 'godaddy', label: 'GoDaddy', hint: 'Manage DNS, puis redirection du domaine racine vers www.' },
 ];
 
 type SettingsSectionKey =
@@ -293,7 +286,6 @@ export default function SettingsScreen() {
   const [storeAddress, setStoreAddress] = useState('');
   const [ecommerceSite, setEcommerceSite] = useState<any | null>(null);
   const [ecommerceDraft, setEcommerceDraft] = useState<any>({});
-  const [ecommerceRegistrar, setEcommerceRegistrar] = useState<DomainRegistrarKey>('cloudflare');
   const [ecommerceSaving, setEcommerceSaving] = useState(false);
   const [receiptName, setReceiptName] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('');
@@ -306,38 +298,11 @@ export default function SettingsScreen() {
   const [helpGuide, setHelpGuide] = useState<{ title: string; steps: any[] } | null>(null);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   // Sector state removed - sector is set at registration
-  const currentDomain = (ecommerceDraft.custom_domain || ecommerceSite?.custom_domain || '').trim();
-  const currentRootDomain = currentDomain.startsWith('www.') ? currentDomain.slice(4) : currentDomain;
-  const domainSetupChecklist = useMemo(() => {
-    const rootDomain = currentRootDomain || 'votredomaine.com';
-    const targetValue = ecommerceSite?.domain_record_value || ecommerceSite?.domain_verification_target || 'app.stockman.pro';
-    const commonTail = [
-      "Revenez ensuite dans Stockman pour lancer la vérification automatique.",
-      "Gardez l'adresse Stockman comme URL de secours tant que le statut n'est pas vérifié.",
-    ];
-    if (ecommerceRegistrar === 'cloudflare') {
-      return [
-        `Dans Cloudflare, ouvrez DNS puis supprimez tout ancien enregistrement sur www.${rootDomain}.`,
-        `Créez un ${ecommerceSite?.domain_record_type || 'CNAME'} pour ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
-        `Laissez le proxy désactivé pour ce record le temps de la connexion, puis redirigez ${rootDomain} vers https://www.${rootDomain}.`,
-        ...commonTail,
-      ];
-    }
-    if (ecommerceRegistrar === 'ovh') {
-      return [
-        `Dans OVHcloud, ouvrez la zone DNS et retirez les anciens A, AAAA ou CNAME sur www.${rootDomain}.`,
-        `Ajoutez un ${ecommerceSite?.domain_record_type || 'CNAME'} nommé ${ecommerceSite?.domain_record_name || 'www'} vers ${targetValue}.`,
-        `Configurez ensuite une redirection 301 de ${rootDomain} vers https://www.${rootDomain}.`,
-        ...commonTail,
-      ];
-    }
-    return [
-      `Dans GoDaddy, ouvrez Manage DNS et retirez les anciens enregistrements sur www.${rootDomain}.`,
-      `Ajoutez un ${ecommerceSite?.domain_record_type || 'CNAME'} sur ${ecommerceSite?.domain_record_name || 'www'} avec la valeur ${targetValue}.`,
-      `Ajoutez ensuite une redirection du domaine racine ${rootDomain} vers https://www.${rootDomain}.`,
-      ...commonTail,
-    ];
-  }, [currentRootDomain, ecommerceRegistrar, ecommerceSite?.domain_record_name, ecommerceSite?.domain_record_type, ecommerceSite?.domain_record_value, ecommerceSite?.domain_verification_target]);
+  // Le domaine du site se gère dans EcommerceDomainCard, avec ses propres opérations.
+  const handleDomainChange = useCallback((next: EcommerceSite) => {
+    setEcommerceSite(next);
+    DeviceEventEmitter.emit('ecommerce:changed');
+  }, []);
 
   useEffect(() => {
     if (!feedback) return;
@@ -731,32 +696,6 @@ export default function SettingsScreen() {
       await Linking.openURL(`${ecommerceSite.site_url}${separator}preview=1`);
     } catch {
       showFeedback("Impossible d'ouvrir le site pour le moment.", 'error');
-    }
-  }
-
-  async function verifyEcommerceDomain() {
-    if (!ecommerceSite || !currentStore) return;
-    const saveContext = settingsContext;
-    setEcommerceSaving(true);
-    try {
-      const saved = await ecommerceApi.updateSite(buildEcommerceSettingsUpdate(ecommerceSite, ecommerceDraft));
-      if (saveContext !== settingsContextRef.current) return;
-      setEcommerceSite(saved);
-      DeviceEventEmitter.emit('ecommerce:changed');
-      const verified = await ecommerceApi.verifyDomain();
-      if (saveContext !== settingsContextRef.current) return;
-      setEcommerceSite(verified);
-      DeviceEventEmitter.emit('ecommerce:changed');
-      setEcommerceDraft((draft: any) => ({
-        ...draft,
-        custom_domain: verified.custom_domain || '',
-        domain_mode: verified.domain_mode || (verified.custom_domain ? 'connect' : 'stockman'),
-      }));
-      showFeedback('Vérification du domaine lancée.', 'success');
-    } catch {
-      showFeedback('Impossible de vérifier le domaine.', 'error');
-    } finally {
-      setEcommerceSaving(false);
     }
   }
 
@@ -1465,144 +1404,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>}
           {(!isStarterSettings || showEcommerceOptions) && <>
           <Text style={styles.settingLabel}>Domaine du site</Text>
-          <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>Le domaine Stockman reste toujours disponible. Si vous possédez déjà un domaine, connectez de préférence www.votredomaine.com. Sinon, préparez ce projet avec un fournisseur externe avant la connexion.</Text>
-          <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricLabel}>Adresse Stockman</Text>
-              <Text style={styles.metricValue}>{ecommerceSite.stockman_site_url || ecommerceSite.site_url}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-              <View style={[styles.metricCard, { flex: 1 }]}>
-                <Text style={styles.metricLabel}>Domaine personnalisé</Text>
-                <Text style={[styles.metricValue, { fontSize: FontSize.xs }]}>{ecommerceSite.custom_domain_url || 'Non connecté'}</Text>
-              </View>
-              <View style={[styles.metricCard, { flex: 1 }]}>
-                <Text style={styles.metricLabel}>Statut</Text>
-                <Text style={[styles.metricValue, { fontSize: FontSize.xs }]}>
-                  {ecommerceSite.domain_status === 'verified' ? 'Domaine vérifié' : ecommerceSite.custom_domain ? 'En attente' : 'Stockman actif'}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
-            {[
-              { key: 'stockman', label: 'Domaine Stockman', desc: 'Utiliser l’adresse Stockman prête à l’emploi.' },
-              { key: 'connect', label: 'J’ai déjà un domaine', desc: 'Connecter www.votredomaine.com avec les réglages DNS.' },
-            ].map((option) => {
-              const active = (ecommerceDraft.domain_mode || 'stockman') === option.key;
-              return (
-                <TouchableOpacity
-                  key={option.key}
-                  onPress={() => setEcommerceDraft((draft: any) => ({
-                    ...draft,
-                    domain_mode: option.key,
-                    custom_domain: option.key === 'stockman' ? '' : draft.custom_domain,
-                  }))}
-                  style={[
-                    styles.settingRow,
-                    active && { borderColor: colors.primary, backgroundColor: colors.primary + '12' },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.settingLabel}>{option.label}</Text>
-                    <Text style={styles.settingDesc}>{option.desc}</Text>
-                  </View>
-                  <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? colors.primary : colors.textMuted} />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {(ecommerceDraft.domain_mode || 'stockman') === 'stockman' ? (
-            <Text style={[styles.settingDesc, { marginBottom: Spacing.md }]}>Adresse actuelle : {ecommerceSite.site_url}</Text>
-          ) : null}
-          {ecommerceDraft.domain_mode === 'connect' ? (
-            <>
-              <TextInput
-                style={styles.input}
-                value={ecommerceDraft.custom_domain || ''}
-                onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, custom_domain: value }))}
-                placeholder="www.votredomaine.com"
-                placeholderTextColor={colors.textMuted}
-                autoCapitalize="none"
-              />
-              <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
-                {DOMAIN_REGISTRAR_OPTIONS.map((provider) => {
-                  const active = ecommerceRegistrar === provider.key;
-                  return (
-                    <TouchableOpacity
-                      key={provider.key}
-                      onPress={() => setEcommerceRegistrar(provider.key)}
-                      style={[
-                        styles.settingRow,
-                        active && { borderColor: colors.primary, backgroundColor: colors.primary + '12' },
-                      ]}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.settingLabel}>{provider.label}</Text>
-                        <Text style={styles.settingDesc}>{provider.hint}</Text>
-                      </View>
-                      <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? colors.primary : colors.textMuted} />
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-              <View style={[styles.card, { gap: Spacing.sm, marginBottom: Spacing.sm }]}>
-                <Text style={styles.sectionTitle}>Instructions détaillées</Text>
-                <Text style={styles.settingDesc}>Utilisez d’abord le sous-domaine www, puis redirigez le domaine racine vers cette adresse.</Text>
-                <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-                  <View style={[styles.metricCard, { flex: 1 }]}>
-                    <Text style={styles.metricLabel}>Type</Text>
-                    <Text style={styles.metricValue}>{ecommerceSite.domain_record_type || 'CNAME'}</Text>
-                  </View>
-                  <View style={[styles.metricCard, { flex: 1 }]}>
-                    <Text style={styles.metricLabel}>Nom</Text>
-                    <Text style={[styles.metricValue, { fontSize: FontSize.xs }]}>{ecommerceSite.domain_record_name || '@'}</Text>
-                  </View>
-                </View>
-                <View style={styles.metricCard}>
-                  <Text style={styles.metricLabel}>Valeur cible</Text>
-                  <Text style={[styles.metricValue, { fontSize: FontSize.xs }]}>{ecommerceSite.domain_record_value || ecommerceSite.domain_verification_target || 'app.stockman.pro'}</Text>
-                </View>
-                {ecommerceSite.domain_connection_warning ? (
-                  <Text style={[styles.settingDesc, { color: colors.warning }]}>{ecommerceSite.domain_connection_warning}</Text>
-                ) : null}
-                {ecommerceSite.domain_connection_steps?.map((step: string, index: number) => (
-                  <View key={`${index}-${step}`} style={{ flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' }}>
-                    <View style={[styles.badge, { backgroundColor: colors.primary + '20' }]}>
-                      <Text style={{ color: colors.primary, fontWeight: '700', fontSize: FontSize.xs }}>{index + 1}</Text>
-                    </View>
-                    <Text style={[styles.settingDesc, { flex: 1 }]}>{step}</Text>
-                  </View>
-                ))}
-                <View style={{ gap: Spacing.sm, marginTop: Spacing.sm }}>
-                  <Text style={styles.sectionTitle}>Guide {DOMAIN_REGISTRAR_OPTIONS.find((provider) => provider.key === ecommerceRegistrar)?.label}</Text>
-                  {domainSetupChecklist.map((step, index) => (
-                    <View key={`${ecommerceRegistrar}-${index}`} style={{ flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' }}>
-                      <View style={[styles.badge, { backgroundColor: colors.info + '20' }]}>
-                        <Text style={{ color: colors.info, fontWeight: '700', fontSize: FontSize.xs }}>{index + 1}</Text>
-                      </View>
-                      <Text style={[styles.settingDesc, { flex: 1 }]}>{step}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-              <Text style={[styles.settingDesc, { marginBottom: Spacing.sm }]}>
-                Format recommandé : www.votredomaine.com. Pointez www vers Stockman, puis redirigez votredomaine.com vers ce sous-domaine.
-              </Text>
-            </>
-          ) : null}
-          {ecommerceDraft.domain_mode === 'connect' && ecommerceDraft.custom_domain ? (
-            <TouchableOpacity
-              style={[styles.syncButton, { backgroundColor: colors.info + '15', borderColor: colors.info + '30', alignSelf: 'stretch', marginBottom: Spacing.md }]}
-              onPress={verifyEcommerceDomain}
-              disabled={ecommerceSaving}
-            >
-              <Ionicons name="globe-outline" size={18} color={colors.info} />
-              <Text style={{ color: colors.info, fontSize: FontSize.sm, fontWeight: '600' }}>
-                {ecommerceSite.domain_status === 'verified' ? 'Domaine vérifié' : `Vérifier le domaine vers ${ecommerceSite.domain_verification_target || 'Stockman'}`}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+          <EcommerceDomainCard site={ecommerceSite} canEdit={canManageStoreSettings} styles={styles} onSiteChange={handleDomainChange} onFeedback={showFeedback} />
           </>}
           <TextInput
             style={[styles.input, styles.textArea]}
