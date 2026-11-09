@@ -236,6 +236,27 @@ class DenkmaServiceTests(unittest.TestCase):
         self.assertEqual((delivery["denkma_status"], delivery["tracking_code"], delivery["error"]), ("dispatched", "DK-12345", None))
         self.assertEqual(self.api.calls[-4:], ["payment_confirmed", "photo", "prepared", "dispatch"])
 
+    def test_validating_the_order_ships_it_without_another_tap(self):
+        self.prepare_order()
+        waiting = run(self.service.validated(self.account(), self.order()))
+        self.assertEqual((waiting["denkma_status"], waiting["waiting_for"], waiting["error"]), ("funded", "photo", None))
+        self.assertNotIn("dispatch", self.api.calls)
+        self.api.photo_ready = True
+        shipped = run(self.service.validated(self.account(), self.order()))
+        self.assertEqual((shipped["denkma_status"], shipped["tracking_code"], shipped["waiting_for"]), ("dispatched", "DK-12345", None))
+        self.assertEqual(self.api.calls[-3:], ["payment_confirmed", "prepared", "dispatch"])
+        calls = len(self.api.calls)
+        run(self.service.validated(self.account(), self.order()))
+        self.assertEqual(len(self.api.calls), calls)
+
+    def test_a_refused_validation_is_shown_on_the_order_without_failing(self):
+        self.prepare_order()
+        self.api.payment_status = "awaiting_funding"
+        delivery = run(self.service.validated(self.account(), self.order()))
+        self.assertTrue(delivery["error"])
+        self.assertEqual(self.order()["delivery"]["error"], delivery["error"])
+        self.assertEqual(run(self.service.validated(self.account(), {**self.order(), "delivery": None})), {})
+
     def test_an_expired_price_is_requoted_and_missing_funds_are_explained(self):
         self.prepare_order()
         self.api.payment_status = "ready_for_quote"

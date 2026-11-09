@@ -11,6 +11,7 @@ export type DenkmaOrderDelivery = {
   parcel_status?: string | null;
   tracking_code?: string | null;
   error?: string | null;
+  waiting_for?: string | null;
   shipped_at?: string | null;
   delivered_at?: string | null;
 };
@@ -66,6 +67,7 @@ export function denkmaState(delivery: DenkmaOrderDelivery): { label: string; ton
     const tone = delivery.parcel_status === 'delivered' ? 'success' : ['delivery_failed', 'cancelled', 'returned', 'disputed', 'incident_reported', 'expired', 'suspended'].includes(delivery.parcel_status) ? 'warning' : 'progress';
     return { label, tone };
   }
+  if (delivery.waiting_for === 'photo') return { label: "Transport réservé : ajoutez la photo du colis pour lancer l'enlèvement", tone: 'warning' };
   if (delivery.status === 'sync_failed') return { label: "À reprendre au moment de l'expédition", tone: 'warning' };
   const label = ORDER_STATES[delivery.denkma_status || ''] || 'Prête à expédier';
   const tone = delivery.denkma_status === 'awaiting_funding' || delivery.denkma_status === 'cancelled' ? 'warning' : delivery.denkma_status && SHIPPED.includes(delivery.denkma_status) ? 'progress' : 'neutral';
