@@ -18,7 +18,7 @@ Stockman est une boutique partenaire de l'API Denkma Pro (`/api/integrations/v1`
 
 `DENKMA_API_URL` (facultatif, défaut `https://api.denkma.com`). `JWT_SECRET` doit être défini. Côté Denkma, les intégrations Denkma Pro doivent être ouvertes pour le commerce.
 
-Création de compte depuis Stockman : `DENKMA_PARTNER_KEY` sur Railway (clé partagée avec Denkma). Sans elle, `signup_available` vaut `false` et seule la connexion d'un compte existant est proposée. Côté Denkma, `DENKMA_PARTNER_PLATFORMS` contient le condensat SHA-256 de cette clé, le domaine `app.stockman.pro` et le projet Firebase `stockman-8a6aa`. Après validation du commerce, l'administrateur Denkma accorde le transport et les intégrations depuis la fiche du commerce.
+Création de compte depuis Stockman : `DENKMA_PARTNER_KEY` sur Railway (clé partagée avec Denkma). Sans elle, `signup_available` vaut `false` et seule la connexion d'un compte existant est proposée. Côté Denkma, `DENKMA_PARTNER_PLATFORMS` contient le condensat SHA-256 de cette clé, le domaine `app.stockman.pro` et le projet Firebase `stockman-8a6aa`. Côté Denkma, l'administrateur approuve le commerce dans Denkma Pro > Commerces : « Approuver » ouvre d'un coup la préparation des commandes, les livraisons réelles et la connexion de boutique. La fiche du commerce liste ce qui manque encore avant que la vitrine propose Denkma (services fermés dans Denkma Pro > Réglages, compte transport sans crédit) ; tant que Wave n'est pas configuré, « Créditer le compte » y alimente le compte transport (ajustement pour un compte de test).
 
 ## Code
 
