@@ -210,7 +210,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
 
             <View style={section}>
               <Text style={heading}>3. Code PIN Denkma</Text>
-              <Text style={muted}>De 4 à 12 chiffres. Avec votre numéro, il vous connecte à l'application Denkma Pro pour recharger votre compte transport et suivre vos colis.</Text>
+              <Text style={muted}>De 4 à 12 chiffres. Avec votre numéro, il vous connecte à l'application Denkma pour recharger votre compte transport et suivre vos colis.</Text>
               <TextInput style={input} value={pin} onChangeText={(value) => setPin(value.replace(/\D/g, ''))} placeholder="Code PIN" placeholderTextColor={colors.textMuted} accessibilityLabel="Code PIN Denkma" keyboardType="number-pad" secureTextEntry maxLength={12} />
               <TextInput style={input} value={pinConfirmation} onChangeText={(value) => setPinConfirmation(value.replace(/\D/g, ''))} placeholder="Confirmez le code PIN" placeholderTextColor={colors.textMuted} accessibilityLabel="Confirmation du code PIN" keyboardType="number-pad" secureTextEntry maxLength={12} />
             </View>

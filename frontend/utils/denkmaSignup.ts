@@ -1,6 +1,16 @@
 // Création d'un compte Denkma Pro depuis Stockman : mêmes règles que Denkma, vérifiées avant
 // d'envoyer le SMS, pour que le commerçant corrige tout en une fois.
 
+// Après la création du compte, le commerçant gère ses livraisons dans l'application Denkma (espace
+// Pro, connexion avec son numéro et son code PIN) ou dans Denkma Pro sur le web.
+export const DENKMA_ANDROID_URL = 'https://play.google.com/store/apps/details?id=com.denkma.app';
+export const DENKMA_IOS_URL = 'https://apps.apple.com/fr/app/denkma/id6760837156';
+export const DENKMA_PRO_WEB_URL = 'https://api.denkma.com/pro/';
+
+export function denkmaAppUrl(os: string): string {
+  return os === 'ios' ? DENKMA_IOS_URL : DENKMA_ANDROID_URL;
+}
+
 // Précision maximale acceptée par Denkma pour un point de collecte localisé par GPS.
 export const MAX_PICKUP_ACCURACY_M = 60;
 

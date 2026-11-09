@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, AppState, Linking, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, AppState, Linking, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { ecommerce, type DenkmaConnection } from '../services/api';
 import DenkmaSignupModal from './DenkmaSignupModal';
+import { DENKMA_PRO_WEB_URL, denkmaAppUrl } from '../utils/denkmaSignup';
 
 type Props = {
   canEdit: boolean;
@@ -59,6 +60,14 @@ export default function DenkmaSettingsCard({ canEdit, styles, onFeedback }: Prop
     }
   }
 
+  async function openLink(url: string) {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      onFeedback("Impossible d'ouvrir ce lien pour le moment.", 'error');
+    }
+  }
+
   async function save() {
     const value = Number(weight.replace(',', '.'));
     if (!Number.isFinite(value) || value <= 0 || value > 1000) {
@@ -98,7 +107,7 @@ export default function DenkmaSettingsCard({ canEdit, styles, onFeedback }: Prop
   function created(next: DenkmaConnection) {
     setSigningUp(false);
     setState(next);
-    onFeedback('Votre compte Denkma Pro est créé. Denkma vérifie votre commerce : la livraison s\'ouvrira dès la validation.', 'success');
+    onFeedback("Votre compte Denkma Pro est créé. Denkma vérifie votre commerce. Installez maintenant l'application Denkma : vous y rechargerez votre compte transport.", 'success');
   }
 
   const text = { color: colors.text, fontSize: FontSize.sm, lineHeight: 20 };
@@ -144,6 +153,17 @@ export default function DenkmaSettingsCard({ canEdit, styles, onFeedback }: Prop
           <View style={{ borderLeftWidth: 4, borderLeftColor: tone, backgroundColor: tone + '14', borderRadius: BorderRadius.md, padding: Spacing.md, gap: 4 }}>
             <Text style={[text, { fontWeight: '700' }]}>{state.validation_pending ? 'Compte Denkma Pro en attente de validation' : `Denkma est connecté${state.key_hint ? ` (clé …${state.key_hint})` : ''}`}</Text>
             <Text style={muted}>{state.problem || (state.transport_open === false ? 'Le service de livraison Denkma Pro est fermé pour votre commerce.' : 'Vos clients choisissent leur position ou un point relais Denkma au moment de commander.')}</Text>
+          </View>
+          <View style={{ borderWidth: 1, borderColor: '#2563EB40', backgroundColor: '#2563EB0D', borderRadius: BorderRadius.md, padding: Spacing.md, gap: Spacing.sm }}>
+            <Text style={[text, { fontWeight: '700' }]}>Gérez vos livraisons dans l'application Denkma</Text>
+            <Text style={muted}>Connectez-vous avec le numéro et le code PIN de votre compte Denkma Pro. Vous y rechargez votre compte transport, sans lequel aucune expédition ne part, et vous suivez vos colis. Les expéditions se lancent ici, depuis chaque commande, avec « Livrer avec Denkma ».</Text>
+            <TouchableOpacity accessibilityRole="link" onPress={() => void openLink(denkmaAppUrl(Platform.OS))} style={[styles.syncButton, { flex: 0, minHeight: 48, backgroundColor: '#2563EB', borderColor: '#2563EB' }]}>
+              <Ionicons name="download-outline" size={18} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontSize: FontSize.sm, fontWeight: '700' }}>Télécharger l'application Denkma</Text>
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="link" onPress={() => void openLink(DENKMA_PRO_WEB_URL)} style={{ alignSelf: 'center', minHeight: 40, justifyContent: 'center' }}>
+              <Text style={{ color: '#2563EB', fontSize: FontSize.sm, fontWeight: '600' }}>Ou ouvrir Denkma Pro sur le web</Text>
+            </TouchableOpacity>
           </View>
           {canEdit && (
             <>

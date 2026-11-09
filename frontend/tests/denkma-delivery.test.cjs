@@ -88,3 +88,14 @@ test('The signup screen is mounted only when open and offers the existing-accoun
   assert.match(card, /J'ai déjà un compte Denkma Pro/);
   assert.match(read('frontend/components/DenkmaSignupModal.tsx'), /source: 'gps'/);
 });
+
+test('Once linked, the card sends the merchant to the Denkma app to top up and track parcels', () => {
+  const s = loadSignup();
+  assert.equal(s.denkmaAppUrl('android'), 'https://play.google.com/store/apps/details?id=com.denkma.app');
+  assert.equal(s.denkmaAppUrl('ios'), 'https://apps.apple.com/fr/app/denkma/id6760837156');
+  const card = read('frontend/components/DenkmaSettingsCard.tsx');
+  assert.match(card, /denkmaAppUrl\(Platform\.OS\)/);
+  assert.match(card, /Télécharger l'application Denkma/);
+  const panel = read('web-app/src/components/DenkmaSettingsPanel.tsx');
+  for (const url of [s.DENKMA_ANDROID_URL, s.DENKMA_IOS_URL, s.DENKMA_PRO_WEB_URL]) assert.ok(panel.includes(url), url);
+});

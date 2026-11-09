@@ -6,17 +6,26 @@ Denkma livre au Sénégal à partir de positions GPS et de points relais, pas d'
 
 La carte « Livraison Denkma » se trouve dans Paramètres > Site e-commerce (sur mobile Starter, dans la rubrique Boutique en ligne).
 
-**Pas encore de compte Denkma Pro** : « Créer mon compte Denkma Pro » ouvre un formulaire dans l'application mobile Stockman, sans installer Denkma :
+**Pas encore de compte Denkma Pro** : « Créer mon compte Denkma Pro » ouvre un formulaire dans l'application mobile Stockman :
 
 1. le commerce : commerçant ou entreprise, nom du commerce, nom du responsable et numéro de téléphone (Sénégal ou France) ;
 2. le point de collecte : le commerçant se place à l'endroit où le livreur récupérera les colis et touche « Utiliser ma position actuelle » ; la précision doit être de 60 m au plus (sinon, se placer à l'extérieur ou près d'une fenêtre et relocaliser). Il décrit le lieu (rue, repère), le quartier et la ville ;
-3. un code PIN Denkma de 4 à 12 chiffres, saisi deux fois : avec son numéro, il permet de se connecter à l'application Denkma Pro pour recharger le compte transport et suivre les colis ;
+3. un code PIN Denkma de 4 à 12 chiffres, saisi deux fois : avec son numéro, il permet de se connecter à l'application Denkma pour recharger le compte transport et suivre les colis ;
 4. l'acceptation des conditions et de la politique de confidentialité de Denkma ;
 5. « Recevoir le code par SMS », puis la saisie du code à 6 chiffres et « Créer mon compte Denkma Pro ».
 
-Le compte est créé chez Denkma et relié aussitôt à la boutique. Il reste « en attente de validation » : Denkma vérifie le commerce, puis ouvre les livraisons. En attendant, la carte l'indique et les clients écrivent leur adresse comme avant. Une fois le compte validé, il faut recharger le compte transport (par Wave, dans l'application Denkma Pro) pour que les modes de livraison soient proposés. Sur le web, la carte invite à créer le compte depuis l'application mobile, qui localise le point de collecte et reçoit le SMS.
+Le compte est créé chez Denkma et relié aussitôt à la boutique. Il reste « en attente de validation » : Denkma vérifie le commerce, puis ouvre les livraisons. En attendant, la carte l'indique et les clients écrivent leur adresse comme avant. Une fois le compte validé, il faut recharger le compte transport dans l'application Denkma pour que les modes de livraison soient proposés (voir ci-dessous). Sur le web, la carte invite à créer le compte depuis l'application mobile, qui localise le point de collecte et reçoit le SMS.
 
 **Déjà un compte Denkma Pro** : « J'ai déjà un compte Denkma Pro » (ou « Connecter Denkma Pro ») ouvre Denkma Pro ; le commerçant y autorise Stockman, puis revient dans Stockman : la connexion est faite. Il faut un compte Denkma Pro approuvé, avec le point de collecte confirmé et le compte transport rechargé. Si le numéro saisi dans le formulaire de création a déjà un compte Denkma, Stockman le signale : il faut alors connecter ce compte existant.
+
+## Gérer ses livraisons dans l'application Denkma
+
+Après la création du compte, le commerçant installe l'application Denkma (Google Play ou App Store) et s'y connecte avec le numéro et le code PIN choisis dans Stockman ; il arrive dans son espace Pro. Il peut aussi utiliser Denkma Pro sur le web (https://api.denkma.com/pro/), avec les mêmes identifiants. Une fois Denkma relié, la carte « Livraison Denkma » affiche « Gérez vos livraisons dans l'application Denkma », avec « Télécharger l'application Denkma » (la boutique du téléphone) et « Ou ouvrir Denkma Pro sur le web » ; sur le web, les liens Google Play, App Store et Denkma Pro sur le web.
+
+Le partage des rôles :
+
+- dans Denkma : recharger le compte transport (sans solde, aucun mode de livraison n'est proposé aux clients et aucune expédition ne part), suivre les colis ;
+- dans Stockman : recevoir les commandes, lancer chaque expédition avec « Livrer avec Denkma » et voir le suivi dans la commande.
 
 La carte permet aussi d'indiquer le colis habituel (petit ou gros colis, poids en kilos), qui sert au calcul du prix, et de déconnecter Denkma. Tous les abonnements la gèrent depuis l'application mobile ; sur le web, la gestion est réservée à Enterprise.
 
@@ -40,7 +49,7 @@ Stockman confirme alors le paiement à Denkma, réserve le transport sur le comp
 
 ## Messages fréquents
 
-- « Solde transport Denkma insuffisant » : rechargez le compte Denkma Pro ; l'expédition pourra ensuite partir.
+- « Solde transport Denkma insuffisant » : rechargez le compte transport dans l'application Denkma (ou Denkma Pro sur le web) ; l'expédition pourra ensuite partir.
 - « La position du client ou le point relais n'est pas confirmé chez Denkma » : le choix du client n'a pas pu être enregistré à temps ; contactez-le, puis créez la livraison dans Denkma Pro.
 - « La connexion à Denkma n'est plus valable » : reconnectez Denkma dans Paramètres > Site e-commerce.
 - « Compte Denkma Pro en attente de validation » : Denkma vérifie le commerce ; la livraison Denkma s'ouvrira dans la boutique dès la validation.

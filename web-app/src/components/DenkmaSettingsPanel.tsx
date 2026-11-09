@@ -6,6 +6,14 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Bike } from 'lucide-react';
 import { ecommerce as ecommerceApi, type DenkmaConnection } from '../services/api';
 
+// Après la création du compte, le commerçant recharge son compte transport et suit ses colis dans
+// l'application Denkma (espace Pro) ou dans Denkma Pro sur le web.
+const DENKMA_LINKS: Array<{ href: string; label: string }> = [
+    { href: 'https://play.google.com/store/apps/details?id=com.denkma.app', label: 'Google Play' },
+    { href: 'https://apps.apple.com/fr/app/denkma/id6760837156', label: 'App Store' },
+    { href: 'https://api.denkma.com/pro/', label: 'Denkma Pro sur le web' },
+];
+
 const CATEGORIES: Array<{ value: 'small' | 'large'; label: string }> = [
     { value: 'small', label: 'Petit colis' },
     { value: 'large', label: 'Gros colis' },
@@ -110,6 +118,15 @@ export default function DenkmaSettingsPanel({ canEdit, readOnlyMessage, onNotice
                     <div role="status" className={`rounded-2xl border-l-4 border p-4 ${state.validation_pending || state.problem || state.transport_open === false ? 'border-amber-400/40 bg-amber-500/10' : 'border-emerald-400/40 bg-emerald-500/10'}`}>
                         <p className="text-sm font-black text-white">{state.validation_pending ? 'Compte Denkma Pro en attente de validation' : `Denkma est connecté${state.key_hint ? ` (clé …${state.key_hint})` : ''}`}</p>
                         <p className="mt-1 text-sm text-slate-300">{state.problem || (state.transport_open === false ? 'Le service de livraison Denkma Pro est fermé pour votre commerce.' : 'Vos clients choisissent leur position ou un point relais Denkma au moment de commander.')}</p>
+                    </div>
+                    <div className="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-4">
+                        <p className="text-sm font-black text-white">Gérez vos livraisons dans l&apos;application Denkma</p>
+                        <p className="mt-1 text-sm leading-6 text-slate-300">Connectez-vous avec le numéro et le code PIN de votre compte Denkma Pro. Vous y rechargez votre compte transport, sans lequel aucune expédition ne part, et vous suivez vos colis. Les expéditions se lancent dans Stockman, depuis chaque commande, avec « Livrer avec Denkma ».</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {DENKMA_LINKS.map((link) => (
+                                <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white hover:bg-white/10">{link.label}</a>
+                            ))}
+                        </div>
                     </div>
                     {canEdit ? (
                         <form onSubmit={(event) => void save(event)} className="space-y-3">

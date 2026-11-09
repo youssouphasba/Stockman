@@ -104,7 +104,7 @@ def _refusal(status: int, detail: Optional[str]) -> DenkmaError:
     if status == 401:
         return DenkmaError(401, "denkma_disconnected", "La connexion à Denkma n'est plus valable. Reconnectez Denkma dans Paramètres > Site e-commerce.")
     if status == 402:
-        return DenkmaError(402, "denkma_funds", "Solde transport Denkma insuffisant. Rechargez votre compte Denkma Pro : l'expédition pourra ensuite partir.")
+        return DenkmaError(402, "denkma_funds", "Solde transport Denkma insuffisant. Rechargez votre compte transport dans l'application Denkma ou dans Denkma Pro sur le web : l'expédition pourra ensuite partir.")
     if status == 403:
         return DenkmaError(403, "denkma_forbidden", detail or "Denkma Pro n'est pas ouvert pour ce commerce, ou la connexion n'a pas cette permission.")
     if status == 404:
