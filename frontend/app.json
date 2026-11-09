@@ -2,11 +2,11 @@
   "expo": {
     "name": "Stockman",
     "slug": "stockman",
-    "version": "1.0.21",
+    "version": "1.0.22",
     "orientation": "default",
     "android": {
       "package": "com.youssouphasba.stockman",
-      "versionCode": 21,
+      "versionCode": 22,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -124,7 +124,7 @@
     "updates": {
       "url": "https://u.expo.dev/83fa27c4-f1c0-45aa-9256-096ec479ced6"
     },
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "1.0.22",
     "experiments": {
       "typedRoutes": true
     },
