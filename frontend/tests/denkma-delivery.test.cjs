@@ -1,0 +1,58 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const ts = require('typescript');
+const { test } = require('node:test');
+
+const root = path.resolve(__dirname, '../..');
+const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+
+function loadShipping() {
+  const exports = {};
+  const compiled = ts.transpileModule(read('frontend/utils/denkmaShipping.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  vm.runInNewContext(compiled, { exports });
+  return exports;
+}
+
+// Commandes techniques de test : valeurs neutres, jamais affichées par l'application.
+const order = { status: 'confirmed', total_amount: 10000, delivery_fee: 1750, amount_due: 11750, delivery: { provider: 'denkma', mode: 'home_to_relay', relay_name: 'Relais Test', fee: 1750, status: 'registered', denkma_status: 'ready_for_quote' } };
+
+test('Mobile and web share the same Denkma shipping rules', () => {
+  assert.equal(read('frontend/utils/denkmaShipping.ts'), read('web-app/src/lib/denkmaShipping.ts'));
+});
+
+test('A Denkma order shows its destination, state and amount due, and ships only once', () => {
+  const s = loadShipping();
+  assert.equal(s.denkmaDestination(order.delivery), 'Point relais : Relais Test');
+  assert.equal(s.denkmaDestination({ mode: 'home_to_home' }), 'À domicile : position confirmée par le client');
+  assert.equal(s.denkmaState(order.delivery).label, 'Prête à expédier');
+  assert.equal(s.denkmaState({ ...order.delivery, denkma_status: 'awaiting_funding' }).tone, 'warning');
+  assert.deepEqual({ ...s.denkmaState({ ...order.delivery, parcel_status: 'delivered' }) }, { label: 'Livré', tone: 'success' });
+  assert.equal(s.denkmaState({ ...order.delivery, status: 'sync_failed' }).tone, 'warning');
+  assert.equal(s.canShipWithDenkma(order), true);
+  for (const variant of [{ ...order, status: 'delivered' }, { ...order, delivery: { ...order.delivery, denkma_status: 'dispatched' } }, { ...order, delivery: { ...order.delivery, parcel_status: 'created' } }, { ...order, delivery: null }]) {
+    assert.equal(s.canShipWithDenkma(variant), false);
+  }
+  assert.equal(s.amountDue(order), 11750);
+  assert.equal(s.amountDue({ total_amount: 10000, delivery: { provider: 'denkma', fee: 500 } }), 10500);
+});
+
+test('The storefront replaces the written address by the Denkma choice and sends only the session', () => {
+  const picker = read('web-app/src/storefront/DenkmaDelivery.tsx');
+  assert.match(picker, /body: JSON\.stringify\(\{ mode, page_origin: window\.location\.origin \}\)/);
+  assert.match(picker, /event\.origin === origin && event\.data\?\.type === 'denkma-destination'/);
+  assert.match(picker, /allow="geolocation"/);
+  const cart = read('web-app/src/storefront/commerce-ui.tsx');
+  assert.match(cart, /denkma\.available \|\| denkma\.loading \? \(/);
+  assert.match(cart, /commerce\.submitOrder\(form, denkma\.choice \? \{ destination_session_id: denkma\.choice\.sessionId \} : null\)/);
+  const config = read('web-app/next.config.ts');
+  assert.match(config, /frame-src [^"]*https:\/\/api\.denkma\.com/);
+  assert.match(config, /geolocation=\("https:\/\/api\.denkma\.com"\)/);
+  for (const file of ['frontend/app/(tabs)/orders.tsx', 'web-app/src/components/Orders.tsx']) assert.doesNotMatch(read(file), /utils\/denkma'/);
+  for (const file of ['frontend/components/DenkmaShipModal.tsx', 'web-app/src/components/DenkmaShipDialog.tsx']) {
+    const source = read(file);
+    assert.match(source, /form\.append\('customer_paid', 'true'\)/);
+    assert.match(source, /shipWithDenkma\(order\.order_id, form\)/);
+  }
+});

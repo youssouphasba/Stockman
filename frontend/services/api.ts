@@ -871,6 +871,16 @@ export type EcommerceSite = {
   show_out_of_stock_products?: boolean;
 };
 
+export type DenkmaConnection = {
+  connected: boolean;
+  key_hint?: string | null;
+  connected_at?: string | null;
+  weight_kg: number;
+  parcel_category: 'small' | 'large';
+  transport_open?: boolean | null;
+  problem?: string | null;
+};
+
 export type EcommerceSiteUpdate = Partial<Pick<EcommerceSite,
   'enabled' | 'store_id' | 'custom_domain' | 'domain_mode' | 'domain_requested_name' | 'domain_request_notes' | 'hero_title' | 'site_name' | 'welcome_message' | 'brand_color' | 'contact_email' | 'contact_phone' | 'contact_address' | 'delivery_info' | 'whatsapp_phone' | 'payment_instructions' | 'show_out_of_stock_products'
 >>;
@@ -934,6 +944,19 @@ export const ecommerce = {
     request<EcommerceSite>('/ecommerce/site/domain/check', { method: 'POST' }),
   disconnectDomain: () =>
     request<EcommerceSite>('/ecommerce/site/domain', { method: 'DELETE' }),
+  // Livraison Denkma Pro : connexion de la boutique, puis expédition des commandes en un geste.
+  getDenkma: () =>
+    request<DenkmaConnection>('/ecommerce/denkma'),
+  connectDenkma: () =>
+    request<{ url: string }>('/ecommerce/denkma/connect', { method: 'POST' }),
+  updateDenkmaSettings: (data: { weight_kg: number; parcel_category: 'small' | 'large' }) =>
+    request<DenkmaConnection>('/ecommerce/denkma/settings', { method: 'PUT', body: data }),
+  disconnectDenkma: () =>
+    request<{ connected: boolean }>('/ecommerce/denkma', { method: 'DELETE' }),
+  shipWithDenkma: (orderId: string, data: FormData) =>
+    request<any>(`/ecommerce/orders/${encodeURIComponent(orderId)}/denkma/ship`, { method: 'POST', body: data }),
+  refreshDenkma: (orderId: string) =>
+    request<any>(`/ecommerce/orders/${encodeURIComponent(orderId)}/denkma/refresh`, { method: 'POST' }),
   getStats: () =>
     request<EcommerceStats>('/ecommerce/stats'),
   listOrders: (status?: string, skip = 0, limit = 50) => {

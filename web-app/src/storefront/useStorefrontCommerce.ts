@@ -80,7 +80,7 @@ export function useStorefrontCommerce(payload: StorefrontPayload | null, preview
     const total = useMemo(() => lines.reduce((sum, line) => sum + line.product.selling_price * line.quantity, 0), [lines]);
     const count = useMemo(() => lines.reduce((sum, line) => sum + line.quantity, 0), [lines]);
 
-    const submitOrder = useCallback(async (form: OrderForm) => {
+    const submitOrder = useCallback(async (form: OrderForm, delivery?: { destination_session_id: string } | null) => {
         if (preview) {
             setOrder({ ...IDLE, error: PREVIEW_ORDER_DISABLED });
             return false;
@@ -95,17 +95,19 @@ export function useStorefrontCommerce(payload: StorefrontPayload | null, preview
                 customer_address: form.address.trim() || null,
                 notes: form.notes.trim() || null,
                 items: lines.map((line) => ({ product_id: line.product.product_id, quantity: line.quantity })),
+                ...(delivery ? { delivery: { provider: 'denkma', destination_session_id: delivery.destination_session_id } } : {}),
             });
             if (!response.ok) throw new Error(await readError(response, "Impossible d'envoyer la commande."));
             const data = await response.json();
             setCart({});
-            setOrder({ ...IDLE, success: `Commande envoyée : ${data.order_number}. La boutique vous recontactera pour confirmer.` });
+            const due = delivery && typeof data.amount_due === 'number' ? ` Montant à régler, livraison comprise : ${formatAmount(data.amount_due, payload?.site.currency || 'XOF')}.` : '';
+            setOrder({ ...IDLE, success: `Commande envoyée : ${data.order_number}.${due} La boutique vous recontactera pour confirmer.` });
             return true;
         } catch (error) {
             setOrder({ ...IDLE, error: error instanceof Error && error.message ? error.message : "Impossible d'envoyer la commande." });
             return false;
         }
-    }, [lines, preview, slug]);
+    }, [lines, payload?.site.currency, preview, slug]);
 
     const submitContact = useCallback(async (form: ContactForm) => {
         if (preview) {

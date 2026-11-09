@@ -6,7 +6,7 @@ Sur Android et iOS, le propriétaire commerçant Starter dispose des onglets Pro
 
 E-com est un espace de gestion opérationnelle, distinct du site public de vente. Il réutilise l'écran Commandes en mode e-commerce, sans les actions d'approvisionnement. La vue Commandes s'affiche par défaut ; le sélecteur Statistiques ouvre les indicateurs commerciaux. Aucun statut d'activation ni formulaire de configuration du site n'est affiché dans cet espace. Seule exception : lors de la première visite, une proposition facultative « Bienvenue dans votre boutique en ligne ! » peut s'afficher une seule fois, dans une fenêtre non bloquante. « Configurer mon site » ouvre Paramètres > Boutique en ligne ; « Plus tard » enregistre ce choix pour le compte et le site, sur tous les appareils. E-com reste ensuite entièrement opérationnel. Les commandes récentes sont classées par date décroissante. Les filtres correspondent aux statuts existants : en attente, confirmées, en préparation, prêtes, terminées et annulées. Historique complet ne limite pas les résultats à une période ; Voir plus de commandes charge la suite via la pagination existante. La recherche porte sur les commandes chargées.
 
-Le détail, les changements de statut et l'accès à Denkma réutilisent les traitements existants. Les liens de notification vers `orders?tab=web&source=ecommerce&order_id=…` restent valables. Le retour Android ferme le détail avant de quitter l'onglet.
+Le détail et les changements de statut réutilisent les traitements existants. La livraison Denkma est décrite dans `backend/docs/ecommerce-denkma.md`. Les liens de notification vers `orders?tab=web&source=ecommerce&order_id=…` restent valables. Le retour Android ferme le détail avant de quitter l'onglet.
 
 ## Indicateurs
 

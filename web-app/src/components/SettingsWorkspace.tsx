@@ -28,6 +28,7 @@ import { getAccessContext } from '../utils/access';
 import EcommerceSetupInvitation, { canOfferEcommerceSetupOnWeb } from './EcommerceSetupInvitation';
 import EcommerceAppearancePanel from './EcommerceAppearancePanel';
 import EcommerceDomainPanel from './EcommerceDomainPanel';
+import DenkmaSettingsPanel from './DenkmaSettingsPanel';
 
 type SettingsWorkspaceProps = {
     user?: AppUser | null;
@@ -797,6 +798,12 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                     <Field label="Instructions de paiement manuel" hint="Exemple : paiement à la livraison, Wave, Orange Money, virement ou confirmation par WhatsApp.">
                                         <textarea value={ecommerceDraft.payment_instructions || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, payment_instructions: event.target.value }))} rows={4} className={textareaClass} />
                                     </Field>
+
+                                    <DenkmaSettingsPanel
+                                        canEdit={canManageOrgSettings && !webConsultationOnly}
+                                        readOnlyMessage={webConsultationOnly ? "Starter et Pro connectent Denkma depuis l'application mobile Stockman. La gestion web est disponible avec Enterprise." : "Votre accès ne permet pas de modifier la livraison Denkma."}
+                                        onNotice={(tone, message) => setBanner({ tone, message })}
+                                    />
 
                                     <EcommerceDomainPanel
                                         site={ecommerceSite}

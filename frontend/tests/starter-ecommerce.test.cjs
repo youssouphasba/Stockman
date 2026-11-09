@@ -119,16 +119,16 @@ test('The reused detail preserves the full order, including customer, items and 
   assert.equal(selected, record);
 });
 
-test('The existing Denkma action forwards the selected order unchanged', async () => {
-  const button = find(orders, (node) => ts.isJsxElement(node) && node.openingElement.tagName.getText(orders) === 'TouchableOpacity' && node.getText(orders).includes('await openDenkmaForOrder(selectedWebOrder)'));
+test('Livrer avec Denkma opens the shipping window for the selected order', async () => {
+  const button = find(orders, (node) => ts.isJsxElement(node) && node.openingElement.tagName.getText(orders) === 'TouchableOpacity' && node.getText(orders).includes('setDenkmaShipOrder(selectedWebOrder)'));
   const onPress = button.openingElement.attributes.properties.find((node) => node.name?.text === 'onPress');
   const selected = Object.freeze({ order_id: 'order' });
-  let forwarded;
-  await evaluate('(' + onPress.initializer.expression.getText(orders) + ')', {
-    selectedWebOrder: selected, openDenkmaForOrder: async (value) => { forwarded = value; },
-    Alert: { alert: () => assert.fail('Unexpected Denkma error') }, t: (key) => key,
-  })();
-  assert.equal(forwarded, selected);
+  let opened;
+  evaluate('(' + onPress.initializer.getText(orders).slice(1, -1) + ')', { selectedWebOrder: selected, setDenkmaShipOrder: (value) => { opened = value; } })();
+  assert.equal(opened, selected);
+  const source = orders.getText();
+  assert.match(source, /\{canShipWithDenkma\(selectedWebOrder\) && \(/);
+  assert.doesNotMatch(source, /openDenkmaForOrder/);
 });
 
 test('Status changes reuse the current handler and refresh workspace statistics only', async () => {

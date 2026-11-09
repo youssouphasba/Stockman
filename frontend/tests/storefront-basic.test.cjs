@@ -20,7 +20,7 @@ function basicBody() {
 
 test('Stockman Basic keeps its exact render; the private preview only adds isolated branches', () => {
   const { text } = basicBody();
-  assert.equal(sha256(text), '901ba310a745d45e0a57bcb248fe119262d07ea04d8bea2fdf6484244b889c9e');
+  assert.equal(sha256(text), 'bc747b18d85e8307616a30d0b1f02a54c616eb4ff72af299a0a31e6fb9017d23');
   // En retirant les seules branches de l'aperçu privé, on retrouve octet pour octet le rendu public historique.
   const removals = [
     [`    // L'aperçu privé lit une révision grâce au jeton transmis dans le corps ; le site public garde sa lecture par adresse.
@@ -47,6 +47,22 @@ test('Stockman Basic keeps its exact render; the private preview only adds isola
   historical = historical.slice(0, banner) + historical.slice(historical.indexOf('      )}\n', banner) + '      )}\n'.length);
   historical = historical.split('privatePreview || ').join('');
   assert.equal(historical.includes('privatePreview'), false);
+  // La livraison Denkma n'ajoute, elle aussi, que des branches isolées : sans elles, le rendu public historique reste identique.
+  const denkmaBranches = [
+    ["  const denkma = useDenkmaDelivery(slug, Boolean(payload?.site.denkma_delivery), isPreview);\n", ""],
+    ["    if (denkma.available && (!denkma.choice || !customerPhone.trim())) {\n      setError(denkma.choice ? 'Indiquez votre téléphone : le livreur Denkma en a besoin.' : 'Choisissez votre position ou votre point relais Denkma.');\n      return;\n    }\n", ""],
+    ["          ...(denkma.choice ? { delivery: { provider: 'denkma', destination_session_id: denkma.choice.sessionId } } : {}),\n", ""],
+    ["      denkma.reset();\n", ""],
+    ["      {denkma.choice && <p className=\"mt-5 flex items-center justify-between text-sm font-semibold text-slate-600\"><span>Livraison Denkma</span><span>{formatAmount(denkma.fee, currency)}</span></p>}\n", ""],
+    ["        <span className=\"text-2xl font-black\">{formatAmount(cartTotal + denkma.fee, currency)}</span>\n", "        <span className=\"text-2xl font-black\">{formatAmount(cartTotal, currency)}</span>\n"],
+    ["        <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder={denkma.available ? 'Téléphone (obligatoire pour le livreur)' : 'Téléphone'} type=\"tel\" className=\"w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500\" />\n", "        <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder=\"Téléphone\" type=\"tel\" className=\"w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500\" />\n"],
+    ["        {denkma.available || denkma.loading ? <DenkmaDeliveryPicker delivery={denkma} variant=\"basic\" format={(amount) => formatAmount(amount, currency)} /> : <textarea value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} placeholder=\"Adresse de livraison\" rows={3} className=\"w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500\" />}\n", "        <textarea value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} placeholder=\"Adresse de livraison\" rows={3} className=\"w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500\" />\n"],
+  ];
+  for (const [branch, original] of denkmaBranches) {
+    assert.equal(historical.split(branch).length - 1, 1, branch.slice(0, 60));
+    historical = historical.replace(branch, original);
+  }
+  assert.equal(historical.includes('denkma'), false);
   assert.equal(sha256(historical), HISTORICAL_BASIC_FINGERPRINT);
 });
 

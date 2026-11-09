@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { resolveEcommerceModel } from '../../../lib/ecommerceThemes';
 import ThemeStorefront from '../../../storefront/ThemeStorefront';
+import DenkmaDeliveryPicker, { useDenkmaDelivery } from '../../../storefront/DenkmaDelivery';
 import { Building2, Grid2X2, Heart, Mail, MapPin, Menu, MessageSquare, Minus, Phone, Plus, Search, Send, ShoppingBag, SlidersHorizontal, Trash2, X } from 'lucide-react';
 
 type PublicProduct = {
@@ -34,6 +35,7 @@ type PublicSite = {
   whatsapp_phone?: string | null;
   payment_instructions?: string | null;
   show_out_of_stock_products?: boolean;
+  denkma_delivery?: boolean;
 };
 
 type SitePayload = {
@@ -210,6 +212,7 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
   const privatePreview = Boolean(previewToken);
   const isPreview = privatePreview || searchParams.get('preview') === '1';
   const previewExpiry = formatPreviewExpiry(payload?.preview?.expires_at);
+  const denkma = useDenkmaDelivery(slug, Boolean(payload?.site.denkma_delivery), isPreview);
   const siteMark = (payload?.site.name || 'SM')
     .split(/\s+/)
     .filter(Boolean)
@@ -290,6 +293,10 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
       return;
     }
     if (!customerName.trim() || cartLines.length === 0) return;
+    if (denkma.available && (!denkma.choice || !customerPhone.trim())) {
+      setError(denkma.choice ? 'Indiquez votre téléphone : le livreur Denkma en a besoin.' : 'Choisissez votre position ou votre point relais Denkma.');
+      return;
+    }
     setSubmitting(true);
     setOrderNumber(null);
     try {
@@ -303,6 +310,7 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
           customer_address: customerAddress.trim() || null,
           notes: notes.trim() || null,
           items: cartLines.map((line) => ({ product_id: line.product.product_id, quantity: line.quantity })),
+          ...(denkma.choice ? { delivery: { provider: 'denkma', destination_session_id: denkma.choice.sessionId } } : {}),
         }),
       });
       const data = await response.json();
@@ -316,6 +324,7 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
       setCustomerEmail('');
       setCustomerAddress('');
       setNotes('');
+      denkma.reset();
     } catch (err: any) {
       setError(err?.message || "Impossible d'envoyer la commande.");
     } finally {
@@ -410,9 +419,10 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
         )}
       </div>
 
+      {denkma.choice && <p className="mt-5 flex items-center justify-between text-sm font-semibold text-slate-600"><span>Livraison Denkma</span><span>{formatAmount(denkma.fee, currency)}</span></p>}
       <div className="my-5 flex items-center justify-between border-t border-slate-200 pt-4">
         <span className="text-sm font-bold text-slate-600">Total</span>
-        <span className="text-2xl font-black">{formatAmount(cartTotal, currency)}</span>
+        <span className="text-2xl font-black">{formatAmount(cartTotal + denkma.fee, currency)}</span>
       </div>
 
       {orderNumber && (
@@ -428,9 +438,9 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
 
       <div className="space-y-3">
         <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Nom complet" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
-        <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="Téléphone" type="tel" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
+        <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder={denkma.available ? 'Téléphone (obligatoire pour le livreur)' : 'Téléphone'} type="tel" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
         <input value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} placeholder="Email" type="email" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
-        <textarea value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} placeholder="Adresse de livraison" rows={3} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
+        {denkma.available || denkma.loading ? <DenkmaDeliveryPicker delivery={denkma} variant="basic" format={(amount) => formatAmount(amount, currency)} /> : <textarea value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} placeholder="Adresse de livraison" rows={3} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />}
         <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Note pour la boutique" rows={3} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
       </div>
 

@@ -4,6 +4,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Minus, Plus, Send, ShoppingBag, Trash2, X } from 'lucide-react';
 import { formatAmount, type OrderForm, type StorefrontCommerce } from './useStorefrontCommerce';
+import DenkmaDeliveryPicker, { useDenkmaDelivery } from './DenkmaDelivery';
 import type { StorefrontProduct, StorefrontSite } from './types';
 
 export type CardStyle = 'minimal' | 'bordered' | 'portrait';
@@ -205,7 +206,10 @@ export function CartDrawer({ commerce, site, preview, outline, onClose }: {
     useEscape(onClose);
     useEffect(() => { closeRef.current?.focus(); }, []);
     const currency = site.currency || 'XOF';
-    const canSubmit = !preview && !commerce.order.submitting && form.name.trim() && commerce.lines.length > 0;
+    const denkma = useDenkmaDelivery(site.slug, Boolean(site.denkma_delivery), preview);
+    // Avec Denkma, le lieu de livraison et un téléphone joignable par le livreur sont indispensables.
+    const deliveryReady = !denkma.available || Boolean(denkma.choice && form.phone.trim());
+    const canSubmit = !preview && !commerce.order.submitting && form.name.trim() && commerce.lines.length > 0 && !denkma.loading && deliveryReady;
     const update = (key: keyof OrderForm) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
     return (
@@ -242,19 +246,31 @@ export function CartDrawer({ commerce, site, preview, outline, onClose }: {
                         </ul>
                     )}
                     {commerce.lines.length > 0 && (
-                        <form className="mt-6 space-y-3 border-t border-[var(--sf-border)] pt-6" onSubmit={(event) => { event.preventDefault(); void commerce.submitOrder(form).then((ok) => { if (ok) setForm(EMPTY_ORDER); }); }}>
+                        <form className="mt-6 space-y-3 border-t border-[var(--sf-border)] pt-6" onSubmit={(event) => { event.preventDefault(); void commerce.submitOrder(form, denkma.choice ? { destination_session_id: denkma.choice.sessionId } : null).then((ok) => { if (ok) { setForm(EMPTY_ORDER); denkma.reset(); } }); }}>
+                            {denkma.choice && (
+                                <>
+                                    <div className="flex items-baseline justify-between text-sm text-[var(--sf-muted)]"><span>Articles</span><span>{formatAmount(commerce.total, currency)}</span></div>
+                                    <div className="flex items-baseline justify-between text-sm text-[var(--sf-muted)]"><span>Livraison Denkma</span><span>{formatAmount(denkma.fee, currency)}</span></div>
+                                </>
+                            )}
                             <div className="flex items-baseline justify-between">
                                 <span className="text-sm text-[var(--sf-muted)]">Total</span>
-                                <span className="text-xl font-semibold">{formatAmount(commerce.total, currency)}</span>
+                                <span className="text-xl font-semibold">{formatAmount(commerce.total + denkma.fee, currency)}</span>
                             </div>
                             <label className="block text-sm font-medium" htmlFor="sf-order-name">Nom complet <span aria-hidden="true">*</span></label>
                             <input id="sf-order-name" required value={form.name} onChange={update('name')} autoComplete="name" className={fieldClass} />
-                            <label className="block text-sm font-medium" htmlFor="sf-order-phone">Téléphone</label>
-                            <input id="sf-order-phone" type="tel" value={form.phone} onChange={update('phone')} autoComplete="tel" className={fieldClass} />
+                            <label className="block text-sm font-medium" htmlFor="sf-order-phone">Téléphone{denkma.available && <> <span aria-hidden="true">*</span> <span className="font-normal text-[var(--sf-muted)]">(pour le livreur)</span></>}</label>
+                            <input id="sf-order-phone" type="tel" required={denkma.available} value={form.phone} onChange={update('phone')} autoComplete="tel" className={fieldClass} />
                             <label className="block text-sm font-medium" htmlFor="sf-order-email">E-mail</label>
                             <input id="sf-order-email" type="email" value={form.email} onChange={update('email')} autoComplete="email" className={fieldClass} />
-                            <label className="block text-sm font-medium" htmlFor="sf-order-address">Adresse de livraison</label>
-                            <textarea id="sf-order-address" rows={2} value={form.address} onChange={update('address')} autoComplete="street-address" className={`${fieldClass} resize-none`} />
+                            {denkma.available || denkma.loading ? (
+                                <DenkmaDeliveryPicker delivery={denkma} variant="theme" format={(amount) => formatAmount(amount, currency)} />
+                            ) : (
+                                <>
+                                    <label className="block text-sm font-medium" htmlFor="sf-order-address">Adresse de livraison</label>
+                                    <textarea id="sf-order-address" rows={2} value={form.address} onChange={update('address')} autoComplete="street-address" className={`${fieldClass} resize-none`} />
+                                </>
+                            )}
                             <label className="block text-sm font-medium" htmlFor="sf-order-notes">Note pour la boutique</label>
                             <textarea id="sf-order-notes" rows={2} value={form.notes} onChange={update('notes')} className={`${fieldClass} resize-none`} />
                             {site.payment_instructions && (

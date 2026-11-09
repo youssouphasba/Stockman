@@ -40,6 +40,7 @@ import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 import StoreSelector from '../../components/StoreSelector';
 import EcommerceAppearanceEditor from '../../components/EcommerceAppearanceEditor';
 import EcommerceDomainCard from '../../components/EcommerceDomainCard';
+import DenkmaSettingsCard from '../../components/DenkmaSettingsCard';
 import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
 import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
 import { getCommercialPlan, isStarterShopkeeper } from '../../utils/accountRouting';
@@ -1397,6 +1398,7 @@ export default function SettingsScreen() {
             placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
           />
+          <DenkmaSettingsCard canEdit={canManageStoreSettings} styles={styles} onFeedback={showFeedback} />
           {isStarterSettings && <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showEcommerceOptions }} style={styles.supportRow} onPress={() => setShowEcommerceOptions((value) => !value)}>
             <Ionicons name="options-outline" size={22} color={colors.primary} />
             <Text style={[styles.settingLabel, { flex: 1 }]}>Plus d'options</Text>

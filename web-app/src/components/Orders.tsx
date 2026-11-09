@@ -25,7 +25,8 @@ import Modal from './Modal';
 import OrderReturnModal from './OrderReturnModal';
 import DeliveryConfirmationModal from './DeliveryConfirmationModal';
 import { exportOrders } from '../utils/ExportService';
-import { openDenkmaForOrder } from '../utils/denkma';
+import DenkmaShipDialog from './DenkmaShipDialog';
+import { amountDue, canShipWithDenkma, denkmaDelivery, denkmaDestination, denkmaState } from '../lib/denkmaShipping';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 const ORDER_STATUSES = ['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'] as const;
@@ -33,6 +34,8 @@ const ORDER_STATUSES = ['all', 'pending', 'confirmed', 'shipped', 'partially_del
 export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: React.ReactNode } = {}) {
     const { t } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
+    // Commande en cours d'expédition avec Denkma (fenêtre « Livrer avec Denkma »).
+    const [denkmaShipOrder, setDenkmaShipOrder] = useState<any | null>(null);
 
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -400,7 +403,8 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                     {order.customer_address && <p className="mt-1 text-sm text-slate-500">{order.customer_address}</p>}
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-xl font-black text-primary">{formatCurrency(order.total_amount || 0)}</p>
+                                    <p className="text-xl font-black text-primary">{formatCurrency(amountDue(order))}</p>
+                                    {denkmaDelivery(order) && <p className="text-xs text-slate-400">dont livraison {formatCurrency(order.delivery_fee || denkmaDelivery(order)?.fee || 0)}</p>}
                                     <p className="text-xs text-slate-500">{formatDate(order.created_at)}</p>
                                 </div>
                             </div>
@@ -412,8 +416,31 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                     </div>
                                 ))}
                             </div>
+                            {denkmaDelivery(order) && (
+                                <div className="mt-4 flex flex-col gap-1 rounded-2xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="font-bold text-white">Livraison Denkma · {denkmaDestination(denkmaDelivery(order)!)}</p>
+                                        <p className="text-blue-200">{denkmaState(denkmaDelivery(order)!).label}{order.delivery.tracking_code ? ` · Suivi ${order.delivery.tracking_code}` : ''}</p>
+                                        {order.delivery.error && <p className="text-rose-300">{order.delivery.error}</p>}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="self-start rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/10 sm:self-center"
+                                        onClick={async () => {
+                                            try {
+                                                const updated = await ecommerceApi.refreshDenkma(order.order_id);
+                                                setWebOrders((current) => current.map((item) => (item.order_id === updated.order_id ? updated : item)));
+                                            } catch (err: any) {
+                                                window.alert(err?.message || 'Le suivi Denkma est indisponible pour le moment.');
+                                            }
+                                        }}
+                                    >
+                                        Actualiser le suivi
+                                    </button>
+                                </div>
+                            )}
                             <div className="mt-4 flex flex-wrap gap-2">
-                                {['pending', 'confirmed', 'preparing', 'ready'].includes(order.status) && <button onClick={() => openDenkmaForOrder(order)} className="rounded-xl bg-blue-500/15 px-4 py-2 text-sm font-bold text-blue-300">Livrer avec Denkma</button>}
+                                {canShipWithDenkma(order) && <button onClick={() => setDenkmaShipOrder(order)} className="rounded-xl bg-blue-500/15 px-4 py-2 text-sm font-bold text-blue-300">Livrer avec Denkma</button>}
                                 {order.status === 'pending' && <button onClick={() => updateWebOrderStatus(order.order_id, 'confirmed')} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">Confirmer</button>}
                                 {['pending', 'confirmed', 'preparing'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'preparing')} className="rounded-xl bg-blue-500/15 px-4 py-2 text-sm font-bold text-blue-300">Préparer</button>}
                                 {['confirmed', 'preparing'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'ready')} className="rounded-xl bg-amber-500/15 px-4 py-2 text-sm font-bold text-amber-300">Prête</button>}
@@ -810,6 +837,17 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                 ) : null}
             </Modal>
 
+            {denkmaShipOrder && (
+                <DenkmaShipDialog
+                    order={denkmaShipOrder}
+                    formatAmount={(amount) => formatCurrency(amount)}
+                    onClose={() => setDenkmaShipOrder(null)}
+                    onShipped={(updated) => {
+                        setDenkmaShipOrder(null);
+                        setWebOrders((current) => current.map((item) => (item.order_id === updated.order_id ? updated : item)));
+                    }}
+                />
+            )}
             <DeliveryConfirmationModal
                 isOpen={Boolean(deliveryOrderId)}
                 orderId={deliveryOrderId}

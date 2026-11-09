@@ -28,6 +28,8 @@ export type StorefrontSite = {
     delivery_info?: string | null;
     whatsapp_phone?: string | null;
     payment_instructions?: string | null;
+    // Livraison Denkma : position ou point relais choisi sur la carte Denkma, sans adresse écrite.
+    denkma_delivery?: boolean;
 };
 
 export type StorefrontMedia = {

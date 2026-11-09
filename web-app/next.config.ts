@@ -10,7 +10,8 @@ const contentSecurityPolicy = (frameAncestors: string) => [
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
   "connect-src 'self' https://stockman-production-149d.up.railway.app https://*.googleapis.com https://*.firebaseio.com https://accounts.google.com wss://*.firebaseio.com",
-  "frame-src 'self' https://stockman.pro https://accounts.google.com https://*.firebaseapp.com",
+  // La carte Denkma (choix de la position ou du point relais) s'affiche dans la vitrine.
+  "frame-src 'self' https://stockman.pro https://accounts.google.com https://*.firebaseapp.com https://api.denkma.com",
   `frame-ancestors ${frameAncestors}`,
 ].join('; ');
 
@@ -47,7 +48,8 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
+          // Seule la carte Denkma intégrée peut demander la position, après accord du visiteur.
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=("https://api.denkma.com")' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'Content-Security-Policy', value: contentSecurityPolicy("'none'") },
         ],

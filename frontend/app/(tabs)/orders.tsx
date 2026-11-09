@@ -51,7 +51,8 @@ import DeliveryConfirmationModal from '../../components/DeliveryConfirmationModa
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
 import { generateAndSharePdf, generatePurchaseOrderPdf } from '../../utils/pdfReports';
 import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
-import { openDenkmaForOrder } from '../../utils/denkma';
+import DenkmaShipModal from '../../components/DenkmaShipModal';
+import { amountDue, canShipWithDenkma, denkmaDelivery, denkmaDestination, denkmaState } from '../../utils/denkmaShipping';
 import { useAuth } from '../../contexts/AuthContext';
 import PremiumGate from '../../components/PremiumGate';
 import AccessDenied from '../../components/AccessDenied';
@@ -170,6 +171,8 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
   const webOrderDetailRequestRef = useRef(0);
   const [selectedWebOrder, setSelectedWebOrder] = useState<any | null>(null);
   const [showWebOrderDetailModal, setShowWebOrderDetailModal] = useState(false);
+  // Commande en cours d'expédition avec Denkma (fenêtre ouverte depuis le détail).
+  const [denkmaShipOrder, setDenkmaShipOrder] = useState<any | null>(null);
 
   // Create return modal
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -1719,28 +1722,49 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
                     <Text style={styles.infoCardText}>{selectedWebOrder.notes}</Text>
                   </View>
                 ) : null}
+                {denkmaDelivery(selectedWebOrder) ? (
+                  <View style={[styles.infoCard, { marginTop: Spacing.md }]}>
+                    <Text style={styles.infoCardTitle}>Livraison Denkma</Text>
+                    <Text style={styles.infoCardText}>{denkmaDestination(denkmaDelivery(selectedWebOrder)!)}</Text>
+                    <Text style={styles.infoCardText}>
+                      {denkmaState(denkmaDelivery(selectedWebOrder)!).label}
+                      {selectedWebOrder.delivery.tracking_code ? ` · Suivi ${selectedWebOrder.delivery.tracking_code}` : ''}
+                    </Text>
+                    {selectedWebOrder.delivery.error ? <Text style={[styles.infoCardText, { color: colors.danger }]}>{selectedWebOrder.delivery.error}</Text> : null}
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      style={{ minHeight: 44, justifyContent: 'center' }}
+                      onPress={async () => {
+                        try {
+                          setSelectedWebOrder(await ecommerceApi.refreshDenkma(selectedWebOrder.order_id));
+                        } catch (error: any) {
+                          Alert.alert(t('common.error'), error?.message || 'Le suivi Denkma est indisponible pour le moment.');
+                        }
+                      }}
+                    >
+                      <Text style={{ color: '#2563EB', fontSize: FontSize.sm, fontWeight: '600' }}>Actualiser le suivi</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
                 <View style={[styles.orderDetails, { marginTop: Spacing.md }]}>
                   <View style={styles.orderDetail}>
                     <Text style={styles.orderDetailLabel}>Articles</Text>
                     <Text style={styles.orderDetailValue}>{(selectedWebOrder.items || []).length}</Text>
                   </View>
+                  {denkmaDelivery(selectedWebOrder) ? (
+                    <View style={styles.orderDetail}>
+                      <Text style={styles.orderDetailLabel}>Livraison</Text>
+                      <Text style={styles.orderDetailValue}>{formatCurrency(selectedWebOrder.delivery_fee || denkmaDelivery(selectedWebOrder)?.fee || 0, user?.currency)}</Text>
+                    </View>
+                  ) : null}
                   <View style={styles.orderDetail}>
                     <Text style={styles.orderDetailLabel}>Total</Text>
-                    <Text style={styles.orderDetailValue}>{formatCurrency(selectedWebOrder.total_amount || 0, user?.currency)}</Text>
+                    <Text style={styles.orderDetailValue}>{formatCurrency(amountDue(selectedWebOrder), user?.currency)}</Text>
                   </View>
                 </View>
                 <View style={[styles.orderActions, { marginTop: Spacing.lg }]}>
-                  {['pending', 'confirmed', 'preparing', 'ready'].includes(selectedWebOrder.status) && (
-                    <TouchableOpacity
-                      style={styles.actionBtn}
-                      onPress={async () => {
-                        try {
-                          await openDenkmaForOrder(selectedWebOrder);
-                        } catch (error: any) {
-                          Alert.alert(t('common.error'), error?.message || 'Impossible d’ouvrir Denkma.');
-                        }
-                      }}
-                    >
+                  {canShipWithDenkma(selectedWebOrder) && (
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => setDenkmaShipOrder(selectedWebOrder)}>
                       <Text style={[styles.actionText, { color: '#2563EB' }]}>Livrer avec Denkma</Text>
                     </TouchableOpacity>
                   )}
@@ -1752,6 +1776,19 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
               </ScrollView>
             </View>
           </View>
+          {denkmaShipOrder && (
+            <DenkmaShipModal
+              order={denkmaShipOrder}
+              formatAmount={(amount) => formatCurrency(amount, user?.currency)}
+              onClose={() => setDenkmaShipOrder(null)}
+              onShipped={(updated) => {
+                setDenkmaShipOrder(null);
+                setSelectedWebOrder(updated);
+                void loadWebOrders();
+                Alert.alert('Enlèvement demandé', 'Denkma va venir chercher le colis. Le suivi s’affiche dans la commande.');
+              }}
+            />
+          )}
         </Modal>}
 
         {/* Order Detail Modal */}

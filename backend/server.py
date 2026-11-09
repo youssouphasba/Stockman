@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, UploadFile, File, Body, Path
+﻿from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, Query, UploadFile, File, Form, Body, Path
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from dotenv import load_dotenv
@@ -85,6 +85,7 @@ from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeServ
 from ecommerce_media import EcommerceMediaLibrary
 from ecommerce_addresses import DomainInputError, normalize_ecommerce_slug, parse_domain_input
 from ecommerce_domains import MARKER_SERVICE, DomainServiceError, EcommerceDomainService, VercelDomains
+from ecommerce_denkma import DenkmaError, EcommerceDenkmaService
 from services.pricing import (
     DEFAULT_COUNTRY_CODE,
     DEFAULT_CURRENCY,
@@ -1506,6 +1507,11 @@ class PublicEcommerceOrderItem(BaseModel):
     quantity: float = Field(..., gt=0)
 
 
+class PublicEcommerceDeliveryChoice(BaseModel):
+    provider: Literal["denkma"] = "denkma"
+    destination_session_id: str = Field(..., min_length=3, max_length=80, pattern="^[A-Za-z0-9_-]+$")
+
+
 class PublicEcommerceOrderCreate(BaseModel):
     customer_name: str = Field(..., min_length=2, max_length=120)
     customer_phone: Optional[str] = Field(default=None, max_length=40)
@@ -1513,6 +1519,18 @@ class PublicEcommerceOrderCreate(BaseModel):
     customer_address: Optional[str] = Field(default=None, max_length=500)
     notes: Optional[str] = Field(default=None, max_length=1000)
     items: List[PublicEcommerceOrderItem]
+    # Livraison Denkma : position ou point relais confirmé sur la page Denkma, sans adresse écrite.
+    delivery: Optional[PublicEcommerceDeliveryChoice] = None
+
+
+class PublicDenkmaSessionCreate(BaseModel):
+    mode: Literal["home_to_home", "home_to_relay"]
+    page_origin: Optional[str] = Field(default=None, max_length=300)
+
+
+class EcommerceDenkmaSettings(BaseModel):
+    weight_kg: float = Field(..., gt=0, le=1000)
+    parcel_category: Literal["small", "large"] = "small"
 
 
 class PublicEcommerceEventCreate(BaseModel):
@@ -1526,6 +1544,8 @@ class PublicEcommerceOrderResponse(BaseModel):
     order_number: str
     status: str
     total_amount: float
+    delivery_fee: float = 0
+    amount_due: Optional[float] = None
 
 
 class PublicEcommerceContactCreate(BaseModel):
@@ -1631,6 +1651,90 @@ async def get_public_receipt(public_token: str):
         store_address=store_address,
         receipt_footer=receipt_footer
     )
+
+async def run_denkma_operation(operation):
+    try:
+        return await operation
+    except DenkmaError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message)
+
+
+def format_order_amount(value: Any) -> str:
+    numeric = float(value or 0)
+    return str(int(numeric)) if numeric.is_integer() else f"{numeric:.2f}"
+
+
+def denkma_address_label(delivery: Optional[Dict[str, Any]]) -> Optional[str]:
+    """Texte lisible par les anciennes versions de l'application, qui n'affichent que l'adresse."""
+    if not delivery:
+        return None
+    if delivery.get("mode") == "home_to_relay":
+        return f"Point relais Denkma : {delivery.get('relay_name') or 'choisi par le client'}"
+    return "Livraison Denkma à domicile : position confirmée par le client"
+
+
+def denkma_result_page(title: str, text: str) -> str:
+    return (
+        "<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+        f"<title>{html.escape(title)}</title><style>body{{font-family:system-ui,sans-serif;background:#f7f8f4;color:#0f172a;margin:0;padding:24px}}"
+        "main{max-width:520px;margin:12vh auto;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px}"
+        "h1{font-size:22px;margin:0 0 12px}p{line-height:1.6;margin:0}</style></head>"
+        f"<body><main><h1>{html.escape(title)}</h1><p>{html.escape(text)}</p></main></body></html>"
+    )
+
+
+async def get_public_denkma_account(slug: str) -> Dict[str, Any]:
+    account_doc = await db.business_accounts.find_one({"ecommerce_slug": slug, "ecommerce_enabled": True}, {"_id": 0})
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+    return account_doc
+
+
+@app.get("/api/public/ecommerce/denkma/connected", response_class=HTMLResponse)
+async def denkma_connection_finished(
+    code: Optional[str] = Query(None, max_length=200),
+    state: Optional[str] = Query(None, max_length=200),
+):
+    # Retour du commerçant après son autorisation dans Denkma Pro : la clé est récupérée côté serveur.
+    try:
+        await ecommerce_denkma_service.finish_connection(code, state)
+        title = "Denkma est connecté"
+        text = "Votre boutique Stockman peut maintenant faire livrer ses commandes en ligne par Denkma. Vous pouvez fermer cette page et revenir dans Stockman."
+    except DenkmaError as exc:
+        title, text = "Connexion à Denkma impossible", exc.message
+    return HTMLResponse(denkma_result_page(title, text), headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"})
+
+
+@app.post("/api/public/ecommerce/denkma/events/{hook_id}")
+async def denkma_order_events(request: Request, hook_id: str = Path(..., min_length=10, max_length=64, pattern="^[A-Za-z0-9_-]+$")):
+    # Événements signés de Denkma Pro (financement, préparation, enlèvement, suivi du colis).
+    raw = await request.body()
+    return await run_denkma_operation(ecommerce_denkma_service.handle_event(hook_id, request.headers.get("x-denkma-signature"), raw))
+
+
+@app.get("/api/public/ecommerce/{slug}/delivery")
+async def public_ecommerce_delivery_options(slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$")):
+    account_doc = await get_public_denkma_account(slug)
+    return await run_denkma_operation(ecommerce_denkma_service.delivery_options(account_doc))
+
+
+@app.post("/api/public/ecommerce/{slug}/delivery/session")
+@limiter.limit("20/minute")
+async def public_ecommerce_delivery_session(request: Request, data: PublicDenkmaSessionCreate, slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$")):
+    account_doc = await get_public_denkma_account(slug)
+    return await run_denkma_operation(ecommerce_denkma_service.open_destination(account_doc, data.mode, data.page_origin))
+
+
+@app.get("/api/public/ecommerce/{slug}/delivery/session/{session_id}")
+@limiter.limit("60/minute")
+async def public_ecommerce_delivery_session_state(
+    request: Request,
+    slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$"),
+    session_id: str = Path(..., pattern="^[A-Za-z0-9_-]{3,80}$"),
+):
+    account_doc = await get_public_denkma_account(slug)
+    return await run_denkma_operation(ecommerce_denkma_service.destination_quote(account_doc, session_id))
+
 
 @app.get("/api/public/ecommerce/_domain-check")
 async def ecommerce_domain_check_marker():
@@ -1988,6 +2092,12 @@ async def create_public_ecommerce_order(
             "unit": product.get("unit") or "piÃ¨ce",
         })
 
+    delivery = None
+    if payload.delivery:
+        delivery = await run_denkma_operation(ecommerce_denkma_service.checkout_delivery(account_doc, payload.delivery.destination_session_id, payload.customer_phone))
+    delivery_fee = float((delivery or {}).get("fee") or 0)
+    amount_due = round(total_amount + delivery_fee, 2)
+
     now = datetime.now(timezone.utc)
     order_id = f"eord_{uuid.uuid4().hex[:12]}"
     order_number = f"WEB-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
@@ -2005,17 +2115,24 @@ async def create_public_ecommerce_order(
         "customer_id": customer_id,
         "customer_phone": (payload.customer_phone or "").strip() or None,
         "customer_email": str(payload.customer_email) if payload.customer_email else None,
-        "customer_address": (payload.customer_address or "").strip() or None,
+        "customer_address": denkma_address_label(delivery) if delivery else (payload.customer_address or "").strip() or None,
         "notes": (payload.notes or "").strip() or None,
         "items": order_items,
         "total_amount": round(total_amount, 2),
+        "delivery": delivery,
+        "delivery_fee": delivery_fee,
+        "amount_due": amount_due,
         "currency": account_doc.get("currency") or "XOF",
         "created_at": now,
         "updated_at": now,
     }
     await db.ecommerce_orders.insert_one(order_doc)
+    if delivery:
+        # Un échec reste visible sur la commande : « Livrer avec Denkma » le reprendra.
+        order_doc["delivery"] = await ecommerce_denkma_service.register_order(account_doc, order_doc)
     title = "Nouvelle commande E-com"
-    message = f"{payload.customer_name.strip()} a envoyé une commande de {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}."
+    delivery_note = f" (livraison Denkma de {format_order_amount(delivery_fee)} {account_doc.get('currency') or 'XOF'} comprise)" if delivery else ""
+    message = f"{payload.customer_name.strip()} a envoyé une commande de {amount_due} {account_doc.get('currency') or 'XOF'}{delivery_note}."
     notification_deeplink = build_notification_deeplink("orders", {"order_id": order_id, "source": "ecommerce", "tab": "web"})
     try:
         await notification_service.notify_user(
@@ -2075,7 +2192,7 @@ async def create_public_ecommerce_order(
             html_body = (
                 f"<p>Bonjour {(owner_doc or {}).get('name') or ''},</p>"
                 f"<p>Vous avez reçu la commande E-com <strong>{order_number}</strong> pour un total de "
-                f"<strong>{round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}</strong>.</p>"
+                f"<strong>{amount_due} {account_doc.get('currency') or 'XOF'}</strong>{html.escape(delivery_note)}.</p>"
                 f"<p>Client : {html.escape(payload.customer_name.strip())}</p>"
                 f"<ul>{items_html}</ul>"
                 f"<p><a href=\"{app_open_url}\">Ouvrir directement la commande dans l'application</a></p>"
@@ -2083,7 +2200,7 @@ async def create_public_ecommerce_order(
             )
             text_body = (
                 f"Nouvelle commande E-com {order_number}\n"
-                f"Total : {round(total_amount, 2)} {account_doc.get('currency') or 'XOF'}\n"
+                f"Total : {amount_due} {account_doc.get('currency') or 'XOF'}{delivery_note}\n"
                 f"Client : {payload.customer_name.strip()}\n"
                 f"{items_text}\n"
                 f"Ouvrir dans l'application : {app_open_url}\n"
@@ -2108,14 +2225,14 @@ async def create_public_ecommerce_order(
                 f"<p>Bonjour {html.escape(payload.customer_name.strip())},</p>"
                 f"<p>Votre commande <strong>{order_number}</strong> a bien été reçue par {html.escape(str(store_name or 'la boutique'))}.</p>"
                 f"<ul>{items_html}</ul>"
-                f"<p>Total : <strong>{round(total_amount, 2)} {html.escape(str(order_doc.get('currency') or 'XOF'))}</strong></p>"
+                f"<p>Total : <strong>{amount_due} {html.escape(str(order_doc.get('currency') or 'XOF'))}</strong>{html.escape(delivery_note)}</p>"
                 f"<p>Nous vous contacterons dès qu'elle sera confirmée.</p>"
             )
             customer_text = (
                 f"Bonjour {payload.customer_name.strip()},\n"
                 f"Votre commande {order_number} a bien été reçue.\n"
                 f"{items_text}\n"
-                f"Total : {round(total_amount, 2)} {order_doc.get('currency') or 'XOF'}\n"
+                f"Total : {amount_due} {order_doc.get('currency') or 'XOF'}{delivery_note}\n"
                 "Nous vous contacterons dès qu'elle sera confirmée."
             )
             await notification_service.send_email_notification([customer_email], f"Commande reçue {order_number}", customer_html, text_body=customer_text)
@@ -2126,6 +2243,8 @@ async def create_public_ecommerce_order(
         order_number=order_number,
         status="pending",
         total_amount=round(total_amount, 2),
+        delivery_fee=delivery_fee,
+        amount_due=amount_due,
     )
 
 
@@ -3928,6 +4047,8 @@ def get_ecommerce_domain_target() -> str:
 # Domaines des commerçants : enregistrés automatiquement chez Vercel, qui sert le site public,
 # quand VERCEL_API_TOKEN et VERCEL_PROJECT_ID (et VERCEL_TEAM_ID pour une équipe) sont configurés.
 ecommerce_domain_service = EcommerceDomainService(db, hosting=VercelDomains.from_env(), legacy_target=get_ecommerce_domain_target())
+# Livraison des commandes en ligne avec Denkma Pro ; les clés sont chiffrées avec JWT_SECRET.
+ecommerce_denkma_service = EcommerceDenkmaService(db, web_base_url=get_web_app_base_url(), on_delivered=lambda order: mark_denkma_order_delivered(order))
 
 
 def get_normalized_request_host(request: Optional[Request]) -> Optional[str]:
@@ -4150,6 +4271,8 @@ async def build_public_ecommerce_payload(account_doc: Dict[str, Any], theme: Any
             "whatsapp_phone": account_doc.get("ecommerce_whatsapp_phone"),
             "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
             "show_out_of_stock_products": bool(account_doc.get("ecommerce_show_out_of_stock_products") is True),
+            # Le client choisit alors sa position ou un point relais Denkma au lieu d'écrire une adresse.
+            "denkma_delivery": ecommerce_denkma_service.is_connected(account_doc),
         },
         "products": public_products,
     }
@@ -18479,6 +18602,123 @@ async def disconnect_ecommerce_site_domain(request: Request, user: User = Depend
     return EcommerceSiteInfo(**await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id))
 
 
+async def get_denkma_account(user: User, request: Request, *, write: bool) -> Dict[str, Any]:
+    if not is_org_admin_user(user) or user.is_demo:
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs de la boutique peuvent gérer la livraison Denkma.")
+    if write:
+        ensure_subscription_write_allowed(user, request=request)
+    owner_id = get_owner_id(user)
+    await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id)
+    account_doc = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0})
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Compte commercial introuvable")
+    return account_doc
+
+
+@api_router.get("/ecommerce/denkma")
+async def get_ecommerce_denkma(request: Request, user: User = Depends(require_auth)):
+    account_doc = await get_denkma_account(user, request, write=False)
+    return await run_denkma_operation(ecommerce_denkma_service.status(account_doc))
+
+
+@api_router.post("/ecommerce/denkma/connect")
+async def connect_ecommerce_denkma(request: Request, user: User = Depends(require_auth)):
+    account_doc = await get_denkma_account(user, request, write=True)
+    return await run_denkma_operation(ecommerce_denkma_service.start_connection(account_doc))
+
+
+@api_router.put("/ecommerce/denkma/settings")
+async def update_ecommerce_denkma_settings(data: EcommerceDenkmaSettings, request: Request, user: User = Depends(require_auth)):
+    account_doc = await get_denkma_account(user, request, write=True)
+    await run_denkma_operation(ecommerce_denkma_service.update_settings(account_doc, weight_kg=data.weight_kg, parcel_category=data.parcel_category))
+    fresh = await db.business_accounts.find_one({"account_id": account_doc["account_id"]}, {"_id": 0})
+    return await run_denkma_operation(ecommerce_denkma_service.status(fresh or account_doc, live=False))
+
+
+@api_router.delete("/ecommerce/denkma")
+async def disconnect_ecommerce_denkma(request: Request, user: User = Depends(require_auth)):
+    account_doc = await get_denkma_account(user, request, write=True)
+    await ecommerce_denkma_service.disconnect(account_doc)
+    return {"connected": False}
+
+
+async def get_denkma_order(order_id: str, user: User, request: Request) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ensure_subscription_write_allowed(user, request=request)
+    owner_id = get_owner_id(user)
+    query: Dict[str, Any] = {"order_id": order_id, "user_id": owner_id}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
+    order = await db.ecommerce_orders.find_one(query, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande E-com introuvable")
+    account_doc = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0})
+    if not account_doc:
+        raise HTTPException(status_code=404, detail="Compte commercial introuvable")
+    return account_doc, order
+
+
+DENKMA_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+@api_router.post("/ecommerce/orders/{order_id}/denkma/ship")
+async def ship_ecommerce_order_with_denkma(
+    order_id: str,
+    request: Request,
+    customer_paid: bool = Form(False),
+    photo: Optional[UploadFile] = File(None),
+    user: User = Depends(require_permission("stock", "write")),
+):
+    """« Livrer avec Denkma » : paiement confirmé, transport réservé, photo, colis prêt, enlèvement."""
+    account_doc, order = await get_denkma_order(order_id, user, request)
+    content, content_type = None, "image/jpeg"
+    if photo is not None:
+        content = await photo.read(5 * 1024 * 1024 + 1)
+        if len(content) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="La photo est trop volumineuse : 5 Mo au maximum.")
+        content_type = (photo.content_type or "image/jpeg").lower()
+        if content_type not in DENKMA_PHOTO_TYPES:
+            raise HTTPException(status_code=422, detail="Utilisez une photo JPEG, PNG ou WebP.")
+    await run_denkma_operation(ecommerce_denkma_service.ship(account_doc, order, customer_paid=customer_paid, photo=content or None, photo_type=content_type))
+    return await db.ecommerce_orders.find_one({"order_id": order_id}, {"_id": 0})
+
+
+@api_router.post("/ecommerce/orders/{order_id}/denkma/refresh")
+async def refresh_ecommerce_order_denkma(order_id: str, request: Request, user: User = Depends(require_permission("stock", "read"))):
+    owner_id = get_owner_id(user)
+    query: Dict[str, Any] = {"order_id": order_id, "user_id": owner_id}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
+    order = await db.ecommerce_orders.find_one(query, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande E-com introuvable")
+    account_doc = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0}) or {}
+    await run_denkma_operation(ecommerce_denkma_service.refresh(account_doc, order))
+    return await db.ecommerce_orders.find_one({"order_id": order_id}, {"_id": 0})
+
+
+async def mark_denkma_order_delivered(order: Dict[str, Any]) -> None:
+    """Colis remis par Denkma : la commande passe à « livrée » et devient une vente, une seule fois."""
+    current = await db.ecommerce_orders.find_one({"order_id": order.get("order_id")}, {"_id": 0})
+    if not current or current.get("status") in {"delivered", "cancelled", "rejected"} or current.get("sale_id"):
+        return
+    owner_id = current.get("user_id")
+    reference = current.get("order_number") or current.get("order_id")
+    title = "Commande livrée par Denkma"
+    try:
+        owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+        if not owner_doc:
+            return
+        await convert_ecommerce_order_to_sale(current, User(**sanitize_user_doc(owner_doc)))
+        message = f"La commande {reference} a été livrée par Denkma : la vente est enregistrée."
+    except Exception as exc:
+        logger.warning("Denkma delivered order %s not converted automatically: %s", current.get("order_id"), exc)
+        message = f"Denkma a livré la commande {reference}. Marquez-la comme livrée dans Stockman pour enregistrer la vente."
+    try:
+        await notification_service.notify_user(db, owner_id, title, message, {"type": "ecommerce_order", "order_id": current.get("order_id")})
+    except Exception as notify_err:
+        logger.warning(f"Denkma delivery notification failed: {notify_err}")
+
+
 async def get_ecommerce_setup_context(user: User, site_slug: Optional[str] = None):
     if not is_org_admin_user(user) or user.is_demo:
         raise HTTPException(status_code=403, detail="Configuration du site non autorisée")
@@ -19003,6 +19243,9 @@ async def update_ecommerce_order_status(
         {"order_id": order_id, "user_id": owner_id},
         {"$set": {"status": payload.status, "updated_at": datetime.now(timezone.utc)}},
     )
+    if payload.status in {"cancelled", "rejected"} and (order.get("delivery") or {}).get("provider") == "denkma":
+        denkma_account = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0}) or {}
+        await ecommerce_denkma_service.cancel_order(denkma_account, order)
     updated = await db.ecommerce_orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
     customer_email = str((updated or {}).get("customer_email") or "").strip().lower()
     if customer_email:
