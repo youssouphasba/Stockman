@@ -489,23 +489,25 @@ class EcommerceDenkmaService:
 
     # --- Expédition --------------------------------------------------------------
 
-    async def validated(self, account: Mapping[str, Any], order: Mapping[str, Any]) -> Dict[str, Any]:
+    async def validated(self, account: Mapping[str, Any], order: Mapping[str, Any], *, ready: bool = False) -> Dict[str, Any]:
         """Le commerçant a validé la commande : Stockman n'encaisse rien en ligne, la validation veut dire
-        « j'ai été payé » ou « je fais confiance à ce client ». Denkma réserve alors le transport et
-        demande l'enlèvement, sans autre geste. Un refus reste affiché sur la commande, sans bloquer la validation."""
+        « j'ai été payé » ou « je fais confiance à ce client ». Denkma réserve alors le transport.
+        L'enlèvement n'est demandé qu'au geste « Prête » (ready=True) : un livreur ne doit pas venir
+        chercher un colis pas encore emballé. Un refus reste affiché sur la commande, sans bloquer la validation."""
         delivery = dict(order.get("delivery") or {})
         if delivery.get("provider") != "denkma" or delivery.get("shipped_at") or delivery.get("parcel_status") \
                 or delivery.get("denkma_status") in (*SHIPPED_STATUSES, "cancelled"):
             return delivery
         try:
-            return await self.ship(account, order, customer_paid=True, wait_for_photo=True)
+            return await self.ship(account, order, customer_paid=True, wait_for_photo=True, reserve_only=not ready)
         except DenkmaError as exc:
             logger.info("Denkma automatic shipment of %s stopped: %s", order.get("order_id"), exc.code)
             saved = await self.orders.find_one({"order_id": order["order_id"]}, {"_id": 0, "delivery": 1}) or {}
             return dict(saved.get("delivery") or delivery)
 
     async def ship(self, account: Mapping[str, Any], order: Mapping[str, Any], *, customer_paid: bool,
-                   photo: Optional[bytes] = None, photo_type: str = "image/jpeg", wait_for_photo: bool = False) -> Dict[str, Any]:
+                   photo: Optional[bytes] = None, photo_type: str = "image/jpeg", wait_for_photo: bool = False,
+                   reserve_only: bool = False) -> Dict[str, Any]:
         delivery = dict(order.get("delivery") or {})
         if delivery.get("provider") != "denkma":
             raise DenkmaError(409, "denkma_not_chosen", "Le client n'a pas choisi la livraison Denkma pour cette commande.")
@@ -532,6 +534,9 @@ class EcommerceDenkmaService:
                 raise DenkmaError(422, "denkma_incomplete", "La position du client ou le point relais n'est pas confirmé chez Denkma.")
             if status not in ("funded", "prepared", *SHIPPED_STATUSES):
                 raise DenkmaError(409, "denkma_state", "La commande Denkma n'est pas prête à partir. Actualisez-la puis réessayez.")
+            if reserve_only and status not in SHIPPED_STATUSES:
+                # Transport réservé ; l'enlèvement attend que le commerçant marque la commande « Prête ».
+                return await self._save_delivery(order, {**self._merge(delivery, current), "error": None, "waiting_for": None})
             if not current.get("photo_ready") and status not in SHIPPED_STATUSES:
                 if not photo and wait_for_photo:
                     # Transport réservé : l'enlèvement partira dès que la photo du colis sera ajoutée.

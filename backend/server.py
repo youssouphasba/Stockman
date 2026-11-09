@@ -19281,9 +19281,9 @@ async def update_ecommerce_order_status(
         denkma_account = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0}) or {}
         await ecommerce_denkma_service.cancel_order(denkma_account, order)
     elif payload.status in {"confirmed", "preparing", "ready"} and (order.get("delivery") or {}).get("provider") == "denkma":
-        # Valider la commande suffit : Denkma réserve le transport et envoie un livreur.
+        # Confirmer ou Préparer : Denkma réserve le transport. « Prête » : le colis est emballé, un livreur est demandé.
         denkma_account = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0}) or {}
-        await ecommerce_denkma_service.validated(denkma_account, {**order, "status": payload.status})
+        await ecommerce_denkma_service.validated(denkma_account, {**order, "status": payload.status}, ready=payload.status == "ready")
     updated = await db.ecommerce_orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
     customer_email = str((updated or {}).get("customer_email") or "").strip().lower()
     if customer_email:

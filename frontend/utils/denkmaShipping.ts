@@ -23,7 +23,7 @@ const ORDER_STATES: Record<string, string> = {
   awaiting_destination: 'Position du client attendue',
   ready_for_quote: 'Prête à expédier',
   awaiting_funding: 'Transport à financer : rechargez votre compte Denkma Pro',
-  funded: 'Transport réservé',
+  funded: 'Transport réservé : cliquez sur « Prête » quand le colis est emballé',
   prepared: 'Colis prêt',
   dispatching: 'Enlèvement en cours',
   dispatched: 'Enlèvement demandé',

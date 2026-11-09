@@ -236,18 +236,25 @@ class DenkmaServiceTests(unittest.TestCase):
         self.assertEqual((delivery["denkma_status"], delivery["tracking_code"], delivery["error"]), ("dispatched", "DK-12345", None))
         self.assertEqual(self.api.calls[-4:], ["payment_confirmed", "photo", "prepared", "dispatch"])
 
-    def test_validating_the_order_ships_it_without_another_tap(self):
+    def test_validating_reserves_and_ready_requests_the_pickup(self):
         self.prepare_order()
-        waiting = run(self.service.validated(self.account(), self.order()))
-        self.assertEqual((waiting["denkma_status"], waiting["waiting_for"], waiting["error"]), ("funded", "photo", None))
-        self.assertNotIn("dispatch", self.api.calls)
         self.api.photo_ready = True
-        shipped = run(self.service.validated(self.account(), self.order()))
-        self.assertEqual((shipped["denkma_status"], shipped["tracking_code"], shipped["waiting_for"]), ("dispatched", "DK-12345", None))
+        reserved = run(self.service.validated(self.account(), self.order()))
+        self.assertEqual((reserved["denkma_status"], reserved["error"], reserved.get("waiting_for")), ("funded", None, None))
+        self.assertNotIn("prepared", self.api.calls)
+        self.assertNotIn("dispatch", self.api.calls)
+        shipped = run(self.service.validated(self.account(), self.order(), ready=True))
+        self.assertEqual((shipped["denkma_status"], shipped["tracking_code"]), ("dispatched", "DK-12345"))
         self.assertEqual(self.api.calls[-3:], ["payment_confirmed", "prepared", "dispatch"])
         calls = len(self.api.calls)
-        run(self.service.validated(self.account(), self.order()))
+        run(self.service.validated(self.account(), self.order(), ready=True))
         self.assertEqual(len(self.api.calls), calls)
+
+    def test_ready_without_photo_asks_for_it_instead_of_failing(self):
+        self.prepare_order()
+        waiting = run(self.service.validated(self.account(), self.order(), ready=True))
+        self.assertEqual((waiting["denkma_status"], waiting["waiting_for"], waiting["error"]), ("funded", "photo", None))
+        self.assertNotIn("dispatch", self.api.calls)
 
     def test_a_refused_validation_is_shown_on_the_order_without_failing(self):
         self.prepare_order()
