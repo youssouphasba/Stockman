@@ -1808,6 +1808,26 @@ export type DenkmaConnection = {
     parcel_category: 'small' | 'large';
     transport_open?: boolean | null;
     problem?: string | null;
+    // Compte créé depuis Stockman, que Denkma n'a pas encore validé.
+    validation_pending?: boolean;
+    // Création du compte Denkma Pro possible directement depuis Stockman.
+    signup_available?: boolean;
+};
+
+export type DenkmaSignup = {
+    subtype: 'merchant' | 'enterprise';
+    business_name: string;
+    owner_name: string;
+    phone: string;
+    phone_proof: string;
+    pin: string;
+    accepted_legal: true;
+    pickup_location: {
+        label: string;
+        city: string;
+        district?: string | null;
+        geopin: { lat: number; lng: number; accuracy?: number | null; source: 'gps' | 'manual' };
+    };
 };
 
 export type EcommerceSiteUpdate = Partial<Pick<EcommerceSite,
@@ -1881,6 +1901,8 @@ export const ecommerce = {
         request<DenkmaConnection>('/ecommerce/denkma'),
     connectDenkma: () =>
         request<{ url: string }>('/ecommerce/denkma/connect', { method: 'POST' }),
+    signupDenkma: (data: DenkmaSignup) =>
+        request<DenkmaConnection>('/ecommerce/denkma/signup', { method: 'POST', body: data }),
     updateDenkmaSettings: (data: { weight_kg: number; parcel_category: 'small' | 'large' }) =>
         request<DenkmaConnection>('/ecommerce/denkma/settings', { method: 'PUT', body: data }),
     disconnectDenkma: () =>

@@ -3,6 +3,7 @@ import json
 import sys
 import time
 import unittest
+import unittest.mock
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -50,6 +51,11 @@ class FakeDenkma:
         self._guard("exchange")
         self.webhook_url = webhook_url
         return {"api_key": "dk_live_cle_secrete_1234", "webhook_secret": "secret-evenements"}
+
+    async def partner_signup(self, partner_key, body):
+        self._guard("partner_signup")
+        self.partner_key, self.signup_body = partner_key, body
+        return {"api_key": "dk_live_cle_inscription_5678", "webhook_secret": "secret-inscription", "merchant_id": "mrc_1", "validation_status": "pending"}
 
     async def shop(self, key):
         self._guard("shop")
@@ -288,6 +294,66 @@ class DenkmaServiceTests(unittest.TestCase):
         self.assertFalse(run(self.service.status(self.account()))["connected"])
 
 
+class DenkmaSignupTests(DenkmaServiceTests):
+    DETAILS = {"subtype": "merchant", "business_name": "Boutique A", "owner_name": "Responsable A", "phone": "77 000 00 00",
+               "phone_proof": "jeton-firebase-de-test-0000", "pin": "4821", "accepted_legal": True,
+               "pickup_location": {"label": "Repère de test", "city": "Dakar", "district": None,
+                                   "geopin": {"lat": 14.7, "lng": -17.45, "accuracy": 12.0, "source": "gps"}}}
+
+    def setUp(self):
+        super().setUp()
+        self.env = unittest.mock.patch.dict("os.environ", {"DENKMA_PARTNER_KEY": "cle-plateforme-de-test"})
+        self.env.start()
+        self.addCleanup(self.env.stop)
+
+    def test_signup_creates_the_account_and_connects_the_shop(self):
+        self.assertTrue(run(self.service.status(self.account()))["signup_available"])
+        run(self.service.signup(self.account(), dict(self.DETAILS)))
+        self.assertEqual(self.api.partner_key, "cle-plateforme-de-test")
+        body = self.api.signup_body
+        self.assertEqual((body["phone"], body["partner_account_ref"], body["pin"]), ("+221770000000", "acc_a", "4821"))
+        link = self.account()["ecommerce_denkma"]
+        self.assertEqual((link["origin"], link["key_hint"]), ("signup", "5678"))
+        self.assertTrue(body["webhook_url"].endswith(f"/api/public/ecommerce/denkma/events/{link['hook_id']}"))
+        self.assertNotIn("dk_live", json.dumps(link, default=str))
+        self.assertEqual(SecretBox("secret-de-test").open(link["webhook_secret"]), "secret-inscription")
+        with self.assertRaises(DenkmaError) as ctx:
+            run(self.service.signup(self.account(), dict(self.DETAILS)))
+        self.assertEqual(ctx.exception.code, "denkma_already_connected")
+
+    def test_pending_validation_is_explained(self):
+        run(self.service.signup(self.account(), dict(self.DETAILS)))
+        self.api.fail["shop"] = DenkmaError(403, "denkma_forbidden", "Les intégrations ne sont pas ouvertes pour ce commerce.")
+        status = run(self.service.status(self.account()))
+        self.assertTrue(status["connected"])
+        self.assertTrue(status["validation_pending"])
+        self.assertIn("dès la validation", status["problem"])
+        # Les clients écrivent leur adresse tant que Denkma n'a pas validé le commerce.
+        self.api.fail.update({"floor:home_to_home": self.api.fail["shop"], "floor:home_to_relay": self.api.fail["shop"]})
+        self.assertEqual(run(self.service.delivery_options(self.account())), {"modes": []})
+
+    def test_signup_refusals(self):
+        with self.assertRaises(DenkmaError) as ctx:
+            run(self.service.signup(self.account(), {**self.DETAILS, "phone": "+1 555 000 0000"}))
+        self.assertEqual(ctx.exception.code, "denkma_phone")
+        self.api.fail["partner_signup"] = DenkmaError(401, "denkma_disconnected", "Clé refusée.")
+        with self.assertRaises(DenkmaError) as ctx:
+            run(self.service.signup(self.account(), dict(self.DETAILS)))
+        self.assertEqual((ctx.exception.status, ctx.exception.code), (503, "denkma_signup_unavailable"))
+        self.api.fail["partner_signup"] = DenkmaError(409, "denkma_refused", "Ce numéro a déjà un compte Denkma.")
+        with self.assertRaises(DenkmaError) as ctx:
+            run(self.service.signup(self.account(), dict(self.DETAILS)))
+        self.assertEqual(ctx.exception.message, "Ce numéro a déjà un compte Denkma.")
+        self.assertNotIn("ecommerce_denkma", self.account())
+        self.env.stop()
+        with unittest.mock.patch.dict("os.environ", {"DENKMA_PARTNER_KEY": ""}):
+            self.assertFalse(run(self.service.status(self.account()))["signup_available"])
+            with self.assertRaises(DenkmaError) as ctx:
+                run(self.service.signup(self.account(), dict(self.DETAILS)))
+            self.assertEqual(ctx.exception.code, "denkma_signup_unavailable")
+        self.env.start()
+
+
 class PhoneTests(unittest.TestCase):
     def test_numbers_follow_denkma_rules(self):
         for value in ("77 000 00 00", "+221 77 000 00 00", "00221770000000", "221770000000"):
@@ -351,6 +417,16 @@ class DenkmaApiTests(unittest.TestCase):
             run(self.api([FakeResponse(422, {"detail": [{"msg": "Value error, Numéro de destinataire invalide."}]})], sent).order("k", "e"))
         self.assertEqual(ctx.exception.message, "Numéro de destinataire invalide.")
         self.assertEqual(sent[-1][3], {"shipment": 1})
+
+    def test_partner_signup_uses_the_platform_key(self):
+        sent = []
+        api = self.api([FakeResponse(200, {"api_key": "k", "webhook_secret": "s"})], sent)
+        run(api.partner_signup("cle-plateforme", {"phone": "+221770000000"}))
+        method, path, body, params, headers = sent[0]
+        self.assertEqual((method, path, headers), ("POST", "/api/partners/v1/merchants", {"Authorization": "Partner cle-plateforme"}))
+        with self.assertRaises(DenkmaError) as ctx:
+            run(self.api([FakeResponse(409, {"detail": {"code": "phone_in_use", "message": "Ce numéro a déjà un compte Denkma."}})], sent).partner_signup("c", {}))
+        self.assertEqual(ctx.exception.message, "Ce numéro a déjà un compte Denkma.")
 
 
 if __name__ == "__main__":

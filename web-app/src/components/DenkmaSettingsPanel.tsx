@@ -1,7 +1,7 @@
 'use client';
 
-// Connexion de la boutique à Denkma Pro : le commerçant autorise Stockman dans son espace Denkma,
-// puis ses clients choisissent leur position ou un point relais au moment de commander.
+// Livraison Denkma de la boutique : connexion d'un compte Denkma Pro existant. La création d'un compte
+// se fait dans l'application mobile, qui localise le point de collecte et confirme le numéro par SMS.
 import React, { useCallback, useEffect, useState } from 'react';
 import { Bike } from 'lucide-react';
 import { ecommerce as ecommerceApi, type DenkmaConnection } from '../services/api';
@@ -93,6 +93,9 @@ export default function DenkmaSettingsPanel({ canEdit, readOnlyMessage, onNotice
             {!state?.connected ? (
                 <div className="space-y-3">
                     <p className="text-sm leading-6 text-slate-400">Il faut un compte Denkma Pro approuvé, avec votre point de collecte confirmé et votre compte transport rechargé.</p>
+                    {state?.signup_available && (
+                        <p className="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-3 text-sm leading-6 text-slate-200">Pas encore de compte Denkma Pro ? Créez-le depuis l&apos;application mobile Stockman, dans Paramètres &gt; Site e-commerce &gt; Livraison Denkma : votre téléphone y localise votre point de collecte et confirme votre numéro par SMS.</p>
+                    )}
                     {canEdit ? (
                         <>
                             <button type="button" disabled={busy} onClick={() => void connect()} className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white hover:bg-blue-500 disabled:opacity-50">
@@ -104,8 +107,8 @@ export default function DenkmaSettingsPanel({ canEdit, readOnlyMessage, onNotice
                 </div>
             ) : (
                 <div className="space-y-4">
-                    <div role="status" className={`rounded-2xl border-l-4 border p-4 ${state.problem || state.transport_open === false ? 'border-amber-400/40 bg-amber-500/10' : 'border-emerald-400/40 bg-emerald-500/10'}`}>
-                        <p className="text-sm font-black text-white">Denkma est connecté{state.key_hint ? ` (clé …${state.key_hint})` : ''}</p>
+                    <div role="status" className={`rounded-2xl border-l-4 border p-4 ${state.validation_pending || state.problem || state.transport_open === false ? 'border-amber-400/40 bg-amber-500/10' : 'border-emerald-400/40 bg-emerald-500/10'}`}>
+                        <p className="text-sm font-black text-white">{state.validation_pending ? 'Compte Denkma Pro en attente de validation' : `Denkma est connecté${state.key_hint ? ` (clé …${state.key_hint})` : ''}`}</p>
                         <p className="mt-1 text-sm text-slate-300">{state.problem || (state.transport_open === false ? 'Le service de livraison Denkma Pro est fermé pour votre commerce.' : 'Vos clients choisissent leur position ou un point relais Denkma au moment de commander.')}</p>
                     </div>
                     {canEdit ? (

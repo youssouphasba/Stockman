@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_API_URL = "https://api.denkma.com"
 API_PREFIX = "/api/integrations/v1"
+PARTNER_PREFIX = "/api/partners/v1"
 CONNECT_MINUTES = 10
 SIGNATURE_TOLERANCE_SECONDS = 600
 DEFAULT_WEIGHT_KG = 1.0
@@ -91,6 +92,8 @@ def _detail(data: Mapping[str, Any]) -> Optional[str]:
     detail = data.get("detail")
     if isinstance(detail, str) and detail.strip():
         return detail.strip()
+    if isinstance(detail, Mapping) and str(detail.get("message") or "").strip():
+        return str(detail["message"]).strip()
     if isinstance(detail, list) and detail and isinstance(detail[0], Mapping):
         message = str(detail[0].get("msg") or "").strip()
         return re.sub(r"^Value error, ", "", message) or None
@@ -99,7 +102,7 @@ def _detail(data: Mapping[str, Any]) -> Optional[str]:
 
 def _refusal(status: int, detail: Optional[str]) -> DenkmaError:
     if status == 401:
-        return DenkmaError(401, "denkma_disconnected", "La connexion à Denkma n'est plus valable. Reconnectez Denkma dans Paramètres > Boutique en ligne.")
+        return DenkmaError(401, "denkma_disconnected", "La connexion à Denkma n'est plus valable. Reconnectez Denkma dans Paramètres > Site e-commerce.")
     if status == 402:
         return DenkmaError(402, "denkma_funds", "Solde transport Denkma insuffisant. Rechargez votre compte Denkma Pro : l'expédition pourra ensuite partir.")
     if status == 403:
@@ -124,11 +127,12 @@ class DenkmaApi:
         self.timeout = timeout
 
     async def _call(self, method: str, path: str, *, key: Optional[str] = None, body: Optional[Dict[str, Any]] = None,
-                    files: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        headers = {"Authorization": f"Bearer {key}"} if key else {}
+                    files: Optional[Dict[str, Any]] = None, params: Optional[Dict[str, Any]] = None,
+                    prefix: str = API_PREFIX, authorization: Optional[str] = None) -> Dict[str, Any]:
+        headers = {"Authorization": authorization or f"Bearer {key}"} if (key or authorization) else {}
         try:
             async with self.client_factory(base_url=self.base_url, timeout=self.timeout) as client:
-                response = await client.request(method, API_PREFIX + path, json=body, files=files, params=params, headers=headers)
+                response = await client.request(method, prefix + path, json=body, files=files, params=params, headers=headers)
         except Exception as exc:
             logger.warning("Denkma API unreachable for %s %s: %s", method, path, type(exc).__name__)
             raise DenkmaError(503, "denkma_unreachable", "Denkma ne répond pas pour le moment. Réessayez dans quelques minutes.") from exc
@@ -144,6 +148,10 @@ class DenkmaApi:
 
     async def exchange(self, code: str, webhook_url: Optional[str]) -> Dict[str, Any]:
         return await self._call("POST", "/connect/exchange", body={"code": code, "webhook_url": webhook_url})
+
+    async def partner_signup(self, partner_key: str, body: Dict[str, Any]) -> Dict[str, Any]:
+        """Création du compte Denkma Pro du commerçant, au nom de Stockman (clé de plateforme)."""
+        return await self._call("POST", "/merchants", body=body, prefix=PARTNER_PREFIX, authorization=f"Partner {partner_key}")
 
     async def shop(self, key: str) -> Dict[str, Any]:
         return await self._call("GET", "/shop", key=key)
@@ -255,13 +263,13 @@ class EcommerceDenkmaService:
     def _key(self, account: Mapping[str, Any]) -> str:
         link = self.connection(account)
         if not link:
-            raise DenkmaError(409, "denkma_not_connected", "Connectez d'abord Denkma Pro dans Paramètres > Boutique en ligne.")
+            raise DenkmaError(409, "denkma_not_connected", "Connectez d'abord Denkma Pro dans Paramètres > Site e-commerce.")
         try:
             return self._box_factory().open(link["api_key"])
         except DenkmaError:
             raise
         except Exception:
-            raise DenkmaError(409, "denkma_not_connected", "La connexion à Denkma doit être refaite. Reconnectez Denkma dans Paramètres > Boutique en ligne.")
+            raise DenkmaError(409, "denkma_not_connected", "La connexion à Denkma doit être refaite. Reconnectez Denkma dans Paramètres > Site e-commerce.")
 
     @staticmethod
     def _settings(account: Mapping[str, Any]) -> Tuple[float, str]:
@@ -288,38 +296,84 @@ class EcommerceDenkmaService:
         if not removed.deleted_count or _aware(row["expires_at"]) <= self.clock():
             raise DenkmaError(410, "denkma_state", "Cette demande de connexion a expiré. Relancez « Connecter Denkma » depuis Stockman.")
         account = await self.accounts.find_one({"account_id": row["account_id"]}, {"_id": 0}) or {}
-        previous = account.get("ecommerce_denkma") if isinstance(account.get("ecommerce_denkma"), dict) else {}
-        hook_id = previous.get("hook_id") or secrets.token_urlsafe(18)
+        previous, hook_id = self._previous(account)
         box = self._box_factory()
-        result = await self.api.exchange(code, f"{self.web_base_url}/api/public/ecommerce/denkma/events/{hook_id}")
+        result = await self.api.exchange(code, self._events_url(hook_id))
+        await self._store(row["account_id"], previous, hook_id, box, result, origin="connect")
+        return row["account_id"]
+
+    @staticmethod
+    def partner_key() -> str:
+        return (os.environ.get("DENKMA_PARTNER_KEY") or "").strip()
+
+    @staticmethod
+    def _previous(account: Mapping[str, Any]) -> Tuple[Dict[str, Any], str]:
+        previous = account.get("ecommerce_denkma") if isinstance(account.get("ecommerce_denkma"), dict) else {}
+        return previous, previous.get("hook_id") or secrets.token_urlsafe(18)
+
+    def _events_url(self, hook_id: str) -> str:
+        return f"{self.web_base_url}/api/public/ecommerce/denkma/events/{hook_id}"
+
+    async def _store(self, account_id: str, previous: Mapping[str, Any], hook_id: str, box: SecretBox,
+                     result: Mapping[str, Any], *, origin: str) -> None:
         api_key, webhook_secret = str(result.get("api_key") or ""), str(result.get("webhook_secret") or "")
         if not api_key or not webhook_secret:
             raise DenkmaError(502, "denkma_error", "Denkma n'a pas renvoyé la clé de connexion. Relancez la connexion.")
-        await self.accounts.update_one({"account_id": row["account_id"]}, {"$set": {"ecommerce_denkma": {
+        await self.accounts.update_one({"account_id": account_id}, {"$set": {"ecommerce_denkma": {
             "api_key": box.seal(api_key), "webhook_secret": box.seal(webhook_secret), "key_hint": api_key[-4:],
-            "hook_id": hook_id, "connected_at": self.clock(),
+            "hook_id": hook_id, "connected_at": self.clock(), "origin": origin,
             "weight_kg": previous.get("weight_kg", DEFAULT_WEIGHT_KG), "parcel_category": previous.get("parcel_category", "small"),
         }}})
-        self._floor_cache.pop(row["account_id"], None)
-        return row["account_id"]
+        self._floor_cache.pop(account_id, None)
+
+    async def signup(self, account: Mapping[str, Any], details: Mapping[str, Any]) -> None:
+        """Crée le compte Denkma Pro du commerçant depuis Stockman, puis le relie à la boutique.
+
+        Le numéro a été vérifié par SMS dans l'application (preuve Firebase, revérifiée par Denkma).
+        Le compte reste en attente de validation par Denkma avant la première expédition."""
+        partner_key = self.partner_key()
+        if not partner_key:
+            raise DenkmaError(503, "denkma_signup_unavailable", "La création d'un compte Denkma Pro depuis Stockman n'est pas encore ouverte. Créez votre compte dans l'application Denkma, puis connectez-le.")
+        if self.is_connected(account):
+            raise DenkmaError(409, "denkma_already_connected", "Denkma est déjà connecté à votre boutique.")
+        phone = denkma_phone(details.get("phone"))
+        if not phone:
+            raise DenkmaError(400, "denkma_phone", "Denkma Pro est disponible avec un numéro du Sénégal ou de France.")
+        previous, hook_id = self._previous(account)
+        box = self._box_factory()
+        body = {**details, "phone": phone, "partner_account_ref": account["account_id"], "webhook_url": self._events_url(hook_id)}
+        try:
+            result = await self.api.partner_signup(partner_key, body)
+        except DenkmaError as exc:
+            if exc.status == 401:
+                logger.error("Denkma refused the Stockman partner key")
+                raise DenkmaError(503, "denkma_signup_unavailable", "La création d'un compte Denkma Pro est momentanément indisponible. Réessayez plus tard, ou créez votre compte dans l'application Denkma.") from exc
+            raise
+        await self._store(account["account_id"], previous, hook_id, box, result, origin="signup")
 
     async def status(self, account: Mapping[str, Any], *, live: bool = True) -> Dict[str, Any]:
         link = self.connection(account)
         weight, category = self._settings(account)
         state: Dict[str, Any] = {"connected": bool(link), "key_hint": link.get("key_hint"), "connected_at": link.get("connected_at"),
-                                 "weight_kg": weight, "parcel_category": category, "transport_open": None, "problem": None}
+                                 "weight_kg": weight, "parcel_category": category, "transport_open": None, "problem": None,
+                                 "validation_pending": False, "signup_available": bool(self.partner_key())}
         if link and live:
             try:
                 shop = await self.api.shop(self._key(account))
                 state["transport_open"] = bool(shop.get("transport_open"))
             except DenkmaError as exc:
-                state["problem"] = exc.message
+                # Un compte créé depuis Stockman reste fermé tant que Denkma ne l'a pas validé.
+                if exc.status == 403 and link.get("origin") == "signup":
+                    state["validation_pending"] = True
+                    state["problem"] = "Denkma vérifie votre commerce. La livraison Denkma s'ouvrira dans votre boutique dès la validation de votre compte ; en attendant, vos clients écrivent leur adresse."
+                else:
+                    state["problem"] = exc.message
         return state
 
     async def update_settings(self, account: Mapping[str, Any], *, weight_kg: float, parcel_category: str) -> None:
         link = self.connection(account)
         if not link:
-            raise DenkmaError(409, "denkma_not_connected", "Connectez d'abord Denkma Pro dans Paramètres > Boutique en ligne.")
+            raise DenkmaError(409, "denkma_not_connected", "Connectez d'abord Denkma Pro dans Paramètres > Site e-commerce.")
         if not 0 < weight_kg <= 1000 or parcel_category not in CATEGORIES:
             raise DenkmaError(400, "denkma_settings", "Indiquez un poids entre 0,1 et 1 000 kg.")
         await self.accounts.update_one({"account_id": account["account_id"]}, {"$set": {"ecommerce_denkma": {**link, "weight_kg": round(weight_kg, 2), "parcel_category": parcel_category}}})

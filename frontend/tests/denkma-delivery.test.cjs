@@ -56,3 +56,35 @@ test('The storefront replaces the written address by the Denkma choice and sends
     assert.match(source, /shipWithDenkma\(order\.order_id, form\)/);
   }
 });
+
+function loadSignup() {
+  const exports = {};
+  const compiled = ts.transpileModule(read('frontend/utils/denkmaSignup.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  vm.runInNewContext(compiled, { exports });
+  return exports;
+}
+
+test('Denkma Pro signup follows the Denkma phone and pickup rules before sending the SMS', () => {
+  const s = loadSignup();
+  for (const value of ['77 000 00 00', '+221 77 000 00 00', '00221770000000']) assert.equal(s.denkmaPhone(value), '+221770000000');
+  assert.equal(s.denkmaPhone('06 12 34 56 78'), '+33612345678');
+  for (const value of ['', '12345', '+1 555 000 0000', '88 000 00 00']) assert.equal(s.denkmaPhone(value), null);
+  // Formulaire technique de test : valeurs neutres, jamais affichées par l'application.
+  const form = { businessName: 'Boutique A', ownerName: 'Responsable A', phone: '77 000 00 00', pin: '4821', pinConfirmation: '4821',
+    label: 'Repère de test', city: 'Dakar', accuracy: 12, located: true, acceptedLegal: true };
+  assert.equal(s.signupProblem(form), null);
+  assert.match(s.signupProblem({ ...form, located: false }), /position de votre point de collecte/);
+  assert.match(s.signupProblem({ ...form, accuracy: 85 }), /± 85 m/);
+  assert.equal(s.accuracyProblem(60), null);
+  assert.match(s.signupProblem({ ...form, pin: '12', pinConfirmation: '12' }), /4 à 12 chiffres/);
+  assert.match(s.signupProblem({ ...form, pinConfirmation: '4822' }), /pas identiques/);
+  assert.match(s.signupProblem({ ...form, acceptedLegal: false }), /conditions de Denkma/);
+  assert.match(s.signupProblem({ ...form, phone: '+225 07 01 02 03 04' }), /Sénégal ou de France/);
+});
+
+test('The signup screen is mounted only when open and offers the existing-account connection too', () => {
+  const card = read('frontend/components/DenkmaSettingsCard.tsx');
+  assert.match(card, /\{signingUp && \(\s*<DenkmaSignupModal/);
+  assert.match(card, /J'ai déjà un compte Denkma Pro/);
+  assert.match(read('frontend/components/DenkmaSignupModal.tsx'), /source: 'gps'/);
+});

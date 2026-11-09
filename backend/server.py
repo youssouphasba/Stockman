@@ -1533,6 +1533,32 @@ class EcommerceDenkmaSettings(BaseModel):
     parcel_category: Literal["small", "large"] = "small"
 
 
+class DenkmaGeoPin(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lng: float = Field(..., ge=-180, le=180)
+    accuracy: Optional[float] = Field(default=None, ge=0, le=10000)
+    source: Literal["gps", "manual"] = "gps"
+
+
+class DenkmaPickupLocation(BaseModel):
+    label: str = Field(..., min_length=2, max_length=240)
+    city: str = Field(..., min_length=2, max_length=120)
+    district: Optional[str] = Field(default=None, max_length=120)
+    geopin: DenkmaGeoPin
+
+
+class EcommerceDenkmaSignup(BaseModel):
+    """Création du compte Denkma Pro depuis Stockman : numéro vérifié par SMS, point de collecte localisé."""
+    subtype: Literal["merchant", "enterprise"] = "merchant"
+    business_name: str = Field(..., min_length=2, max_length=160)
+    owner_name: str = Field(..., min_length=2, max_length=120)
+    phone: str = Field(..., min_length=6, max_length=32)
+    phone_proof: str = Field(..., min_length=20, max_length=4096)
+    pin: str = Field(..., min_length=4, max_length=12, pattern="^[0-9]+$")
+    accepted_legal: Literal[True]
+    pickup_location: DenkmaPickupLocation
+
+
 class PublicEcommerceEventCreate(BaseModel):
     event_type: str = Field(..., pattern="^(site_view|add_to_cart)$")
     product_id: Optional[str] = Field(default=None, max_length=80)
@@ -18625,6 +18651,14 @@ async def get_ecommerce_denkma(request: Request, user: User = Depends(require_au
 async def connect_ecommerce_denkma(request: Request, user: User = Depends(require_auth)):
     account_doc = await get_denkma_account(user, request, write=True)
     return await run_denkma_operation(ecommerce_denkma_service.start_connection(account_doc))
+
+
+@api_router.post("/ecommerce/denkma/signup")
+async def signup_ecommerce_denkma(data: EcommerceDenkmaSignup, request: Request, user: User = Depends(require_auth)):
+    account_doc = await get_denkma_account(user, request, write=True)
+    await run_denkma_operation(ecommerce_denkma_service.signup(account_doc, data.model_dump()))
+    fresh = await db.business_accounts.find_one({"account_id": account_doc["account_id"]}, {"_id": 0})
+    return await run_denkma_operation(ecommerce_denkma_service.status(fresh or account_doc))
 
 
 @api_router.put("/ecommerce/denkma/settings")

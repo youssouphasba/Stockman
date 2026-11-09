@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AppState, Linking, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { ecommerce, type DenkmaConnection } from '../services/api';
+import DenkmaSignupModal from './DenkmaSignupModal';
 
 type Props = {
   canEdit: boolean;
@@ -16,10 +18,12 @@ const CATEGORIES: Array<{ value: 'small' | 'large'; label: string }> = [
   { value: 'large', label: 'Gros colis' },
 ];
 
-// Connexion de la boutique à Denkma Pro : le commerçant autorise Stockman dans son espace Denkma,
-// puis ses clients choisissent leur position ou un point relais au moment de commander.
+// Livraison Denkma de la boutique : le commerçant crée son compte Denkma Pro depuis Stockman (ou
+// connecte celui qu'il a déjà), puis ses clients choisissent leur position ou un point relais.
 export default function DenkmaSettingsCard({ canEdit, styles, onFeedback }: Props) {
   const { colors } = useTheme();
+  const { user } = useAuth();
+  const [signingUp, setSigningUp] = useState(false);
   const [state, setState] = useState<DenkmaConnection | null>(null);
   const [weight, setWeight] = useState('');
   const [category, setCategory] = useState<'small' | 'large'>('small');
@@ -91,8 +95,15 @@ export default function DenkmaSettingsCard({ canEdit, styles, onFeedback }: Prop
     ]);
   }
 
+  function created(next: DenkmaConnection) {
+    setSigningUp(false);
+    setState(next);
+    onFeedback('Votre compte Denkma Pro est créé. Denkma vérifie votre commerce : la livraison s\'ouvrira dès la validation.', 'success');
+  }
+
   const text = { color: colors.text, fontSize: FontSize.sm, lineHeight: 20 };
   const muted = styles.settingDesc;
+  const tone = state?.validation_pending || state?.problem || state?.transport_open === false ? colors.warning : colors.success;
 
   return (
     <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
@@ -100,19 +111,38 @@ export default function DenkmaSettingsCard({ canEdit, styles, onFeedback }: Prop
       {!state?.connected ? (
         <>
           <Text style={muted}>Faites livrer vos commandes en ligne par Denkma : vos clients indiquent leur position sur une carte ou choisissent un point relais, au lieu d'écrire une adresse. Le prix exact de la livraison s'ajoute à leur commande.</Text>
-          <Text style={muted}>Il faut un compte Denkma Pro approuvé, avec votre point de collecte confirmé et votre compte transport rechargé.</Text>
+          {state?.signup_available ? (
+            <Text style={muted}>Pas encore de compte Denkma Pro ? Créez-le ici : votre commerce, votre point de collecte et votre numéro confirmé par SMS. Denkma valide ensuite votre compte.</Text>
+          ) : (
+            <Text style={muted}>Il faut un compte Denkma Pro approuvé, avec votre point de collecte confirmé et votre compte transport rechargé.</Text>
+          )}
+          {canEdit && state?.signup_available && (
+            <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => setSigningUp(true)} style={[styles.syncButton, { flex: 0, minHeight: 48, backgroundColor: '#2563EB', borderColor: '#2563EB' }]}>
+              <Ionicons name="person-add-outline" size={18} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontSize: FontSize.sm, fontWeight: '700' }}>Créer mon compte Denkma Pro</Text>
+            </TouchableOpacity>
+          )}
           {canEdit && (
             <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => void connect()} style={[styles.syncButton, { flex: 0, minHeight: 48, backgroundColor: '#2563EB15', borderColor: '#2563EB40' }]}>
               <Ionicons name="bicycle-outline" size={18} color="#2563EB" />
-              <Text style={{ color: '#2563EB', fontSize: FontSize.sm, fontWeight: '700' }}>{busy ? 'Ouverture...' : 'Connecter Denkma Pro'}</Text>
+              <Text style={{ color: '#2563EB', fontSize: FontSize.sm, fontWeight: '700' }}>{busy ? 'Ouverture...' : state?.signup_available ? "J'ai déjà un compte Denkma Pro" : 'Connecter Denkma Pro'}</Text>
             </TouchableOpacity>
           )}
-          {canEdit && <Text style={muted}>Vous autorisez Stockman dans votre espace Denkma Pro, puis revenez ici.</Text>}
+          {canEdit && <Text style={muted}>Avec un compte existant, vous autorisez Stockman dans votre espace Denkma Pro, puis revenez ici.</Text>}
+          {signingUp && (
+            <DenkmaSignupModal
+              initialBusinessName={user?.store_name || ''}
+              initialOwnerName={user?.name || ''}
+              initialPhone={user?.phone || ''}
+              onClose={() => setSigningUp(false)}
+              onCreated={created}
+            />
+          )}
         </>
       ) : (
         <>
-          <View style={{ borderLeftWidth: 4, borderLeftColor: state.problem ? colors.warning : colors.success, backgroundColor: (state.problem ? colors.warning : colors.success) + '14', borderRadius: BorderRadius.md, padding: Spacing.md, gap: 4 }}>
-            <Text style={[text, { fontWeight: '700' }]}>Denkma est connecté{state.key_hint ? ` (clé …${state.key_hint})` : ''}</Text>
+          <View style={{ borderLeftWidth: 4, borderLeftColor: tone, backgroundColor: tone + '14', borderRadius: BorderRadius.md, padding: Spacing.md, gap: 4 }}>
+            <Text style={[text, { fontWeight: '700' }]}>{state.validation_pending ? 'Compte Denkma Pro en attente de validation' : `Denkma est connecté${state.key_hint ? ` (clé …${state.key_hint})` : ''}`}</Text>
             <Text style={muted}>{state.problem || (state.transport_open === false ? 'Le service de livraison Denkma Pro est fermé pour votre commerce.' : 'Vos clients choisissent leur position ou un point relais Denkma au moment de commander.')}</Text>
           </View>
           {canEdit && (
