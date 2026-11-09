@@ -368,6 +368,15 @@ html:not([data-theme="light"]) .planner-shell .hover\:bg-slate-100:hover,
   background-color: #FFFFFF !important;
 }
 
+/* Éditeur visuel du site et portail fournisseur : fond de l'écran et scène de l'aperçu. */
+[data-theme="light"] .bg-\[\#0B1220\] {
+  background-color: var(--background) !important;
+}
+
+[data-theme="light"] .bg-\[\#060B14\] {
+  background-color: var(--surface-muted) !important;
+}
+
 /* --- Backgrounds: slate scale --- */
 [data-theme="light"] .bg-slate-950,
 [data-theme="light"] .bg-slate-900,

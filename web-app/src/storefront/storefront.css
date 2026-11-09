@@ -17,8 +17,18 @@
 .sf-root .sf-editable:focus {
   outline-style: solid;
 }
+/* Texte encore vide : cadre pointillé toujours visible et nom du champ en italique, pour ne pas
+   le confondre avec un vrai texte du site. */
+.sf-root .sf-editable:empty {
+  outline-color: color-mix(in srgb, currentColor 45%, transparent);
+}
+.sf-root .sf-editable:empty:hover,
+.sf-root .sf-editable:empty:focus {
+  outline-color: #10b981;
+}
 .sf-root .sf-editable:empty::before {
   content: attr(data-placeholder);
+  font-style: italic;
   opacity: 0.55;
   pointer-events: none;
 }
