@@ -203,14 +203,29 @@ export function removeCustomPage(document: ThemeDocument, pageId: string): Theme
     return next;
 }
 
-// Une section indispensable du modèle (catalogue, contact) ne peut pas disparaître de sa page.
+// Une section indispensable du modèle (catalogue, contact) ne peut ni disparaître de sa page ni
+// être masquée : il en reste toujours une visible. Une copie masquée de ce type reste supprimable.
 export function isRequiredSection(document: ThemeDocument, pageId: string, sectionId: string) {
     const page = findPage(document, pageId);
     const section = page.sections.find((item) => item.id === sectionId);
     if (!section) return false;
     const template = REGISTRY.models[document.model_id]?.pages.find((item) => item.kind === page.kind);
     const required = template?.sections.some((item) => item.type === section.type && item.required);
-    return !!required && page.sections.filter((item) => item.type === section.type).length === 1;
+    if (!required) return false;
+    const sameType = page.sections.filter((item) => item.type === section.type);
+    const visible = sameType.filter((item) => !item.hidden);
+    return sameType.length === 1 || (!section.hidden && visible.length === 1);
+}
+
+// Section masquée : gardée avec ses réglages dans l'éditeur, absente du site public.
+export function setSectionHidden(document: ThemeDocument, pageId: string, sectionId: string, hidden: boolean): ThemeDocument {
+    const current = findPage(document, pageId).sections.find((item) => item.id === sectionId);
+    if (!current || !!current.hidden === hidden || (hidden && isRequiredSection(document, pageId, sectionId))) return document;
+    const next = clone(document);
+    const section = findPage(next, pageId).sections.find((item) => item.id === sectionId) as ThemeSectionDocument;
+    // Le serveur n'accepte que true : une section visible n'a pas la propriété.
+    if (hidden) section.hidden = true; else delete section.hidden;
+    return next;
 }
 
 export function canAddSection(document: ThemeDocument, pageId: string) {
@@ -238,6 +253,12 @@ export function moveSection(document: ThemeDocument, pageId: string, sectionId: 
     const [moved] = sections.splice(from, 1);
     sections.splice(to, 0, moved);
     return next;
+}
+
+// Glisser-déposer : la section prend la place « index » de la liste (bornée), les autres suivent.
+export function moveSectionTo(document: ThemeDocument, pageId: string, sectionId: string, index: number): ThemeDocument {
+    const from = findPage(document, pageId).sections.findIndex((item) => item.id === sectionId);
+    return from < 0 ? document : moveSection(document, pageId, sectionId, Math.max(0, Math.min(index, findPage(document, pageId).sections.length - 1)) - from);
 }
 
 export function removeSection(document: ThemeDocument, pageId: string, sectionId: string): ThemeDocument {
@@ -273,6 +294,23 @@ export function moveBlock(document: ThemeDocument, pageId: string, sectionId: st
     const [moved] = blocks.splice(from, 1);
     blocks.splice(to, 0, moved);
     return next;
+}
+
+export function moveBlockTo(document: ThemeDocument, pageId: string, sectionId: string, blockId: string, index: number): ThemeDocument {
+    const blocks = findSection(document, pageId, sectionId).blocks as BlockDocument[];
+    const from = blocks.findIndex((item) => item.id === blockId);
+    return from < 0 ? document : moveBlock(document, pageId, sectionId, blockId, Math.max(0, Math.min(index, blocks.length - 1)) - from);
+}
+
+// Nom d'un bloc dans la liste de l'éditeur : son type et son rang, suivis de son premier texte s'il en a un.
+export function blockSummary(sectionType: string, block: { type: string; settings: Record<string, unknown> }, index: number) {
+    const spec = REGISTRY.sections[sectionType]?.blocks[block.type];
+    const label = `${spec?.label || 'Élément'} ${index + 1}`;
+    const text = Object.entries(spec?.settings || {})
+        .filter(([, setting]) => setting.type === 'text')
+        .map(([key]) => block.settings[key])
+        .find((value): value is string => typeof value === 'string' && value.trim() !== '');
+    return { label, text: text ? text.trim() : null };
 }
 
 export function removeBlock(document: ThemeDocument, pageId: string, sectionId: string, blockId: string): ThemeDocument {

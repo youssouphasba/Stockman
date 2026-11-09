@@ -32,6 +32,8 @@ SURFACES = ("mobile", "web")
 DOCUMENT_KEYS = {"schema_version", "model_id", "model_version", "global_settings", "pages"}
 PAGE_KEYS = {"id", "kind", "path", "title", "menu", "sections"}
 SECTION_KEYS = {"id", "type", "type_version", "settings", "blocks"}
+# Section masquée : gardée avec ses réglages, absente du site public. Seule la valeur true est stockée.
+SECTION_OPTIONAL_KEYS = {"hidden"}
 BLOCK_KEYS = {"id", "type", "type_version", "settings"}
 PAGE_TITLE_MAX_LENGTH = 120
 
@@ -313,7 +315,12 @@ def validate_theme_document(document: Any, contract: Mapping[str, Any] = CONTRAC
             section_path = f"{page_path}.sections[{section_index}]"
             if not isinstance(section, dict):
                 _fail("invalid_type", section_path, "Objet attendu")
-            _check_keys(section, SECTION_KEYS, section_path, SECTION_KEYS)
+            _check_keys(section, SECTION_KEYS | SECTION_OPTIONAL_KEYS, section_path, SECTION_KEYS)
+            if "hidden" in section:
+                if section["hidden"] is not True:
+                    _fail("invalid_value", f"{section_path}.hidden", "Seule la valeur true est acceptée")
+                if not model.get("structure_editable"):
+                    _fail("structure_locked", f"{section_path}.hidden", "La structure de ce modèle n'est pas modifiable")
             section_id = _check_id(section["id"], f"{section_path}.id", limits)
             if section_id in seen_ids:
                 _fail("duplicate_id", f"{section_path}.id", "Identifiant déjà utilisé")
@@ -354,12 +361,15 @@ def validate_theme_document(document: Any, contract: Mapping[str, Any] = CONTRAC
         if page is None:
             _fail("missing_page", "$.pages", f"Page obligatoire manquante : {kind}")
         present = [section["type"] for section in page["sections"]]
+        visible = [section["type"] for section in page["sections"] if not section.get("hidden")]
         for required in template["sections"]:
             # Une structure modifiable ne protège que les sections indispensables au parcours commercial.
             if model.get("structure_editable") and not required.get("required"):
                 continue
             if required["type"] not in present:
                 _fail("missing_section", "$.pages", f"Section indispensable manquante : {required['type']}")
+            if required["type"] not in visible:
+                _fail("required_section_hidden", "$.pages", f"Section indispensable masquée : {required['type']}")
     return copy.deepcopy(document)
 
 
@@ -423,6 +433,8 @@ def assert_guided_changes_only(base: Mapping[str, Any], candidate: Mapping[str, 
             section_path = f"{page_path}.sections[{section_index}]"
             if before_section["type_version"] != after_section["type_version"]:
                 _fail("guided_change_forbidden", f"{section_path}.type_version", "Version de section non modifiable")
+            if before_section.get("hidden") != after_section.get("hidden"):
+                _fail("guided_change_forbidden", f"{section_path}.hidden", "Affichage de la section non modifiable depuis ce canal")
             allowed = guided.get("sections", {}).get(after_section["type"], [])
             for key in _changed_keys(before_section["settings"], after_section["settings"]):
                 if key not in allowed:

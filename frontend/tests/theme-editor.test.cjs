@@ -205,3 +205,59 @@ test('Custom pages get a readable address, a title and a bounded menu placement'
   assert.match(editor, /const canManagePages = !!server\.capabilities\?\.custom_pages;/);
   assert.match(editor, /const problem = customPageProblem\(document\);\n\s+if \(problem\) \{/);
 });
+
+test('A section can be hidden without losing its settings, except the last visible indispensable one', () => {
+  const s = loadStructure();
+  let doc = marcheDocument();
+  const faq = doc.pages[0].sections.find((item) => item.type === 'faq').id;
+  const hidden = s.setSectionHidden(doc, 'home', faq, true);
+  assert.equal(hidden.pages[0].sections.find((item) => item.id === faq).hidden, true);
+  assert.equal(doc.pages[0].sections.find((item) => item.id === faq).hidden, undefined);
+  // Le serveur n'accepte que true : une section réaffichée perd la propriété.
+  const shown = s.setSectionHidden(hidden, 'home', faq, false);
+  assert.equal('hidden' in shown.pages[0].sections.find((item) => item.id === faq), false);
+  assert.equal(s.setSectionHidden(doc, 'catalog', 'catalog-main', true), doc);
+  // Avec une seconde section catalogue, l'une des deux peut être masquée, jamais les deux.
+  doc = s.addSection(doc, 'catalog', 'catalog').document;
+  const copy = doc.pages[1].sections[1].id;
+  doc = s.setSectionHidden(doc, 'catalog', 'catalog-main', true);
+  assert.equal(doc.pages[1].sections[0].hidden, true);
+  assert.equal(s.isRequiredSection(doc, 'catalog', copy), true);
+  assert.equal(s.setSectionHidden(doc, 'catalog', copy, true), doc);
+  assert.equal(s.isRequiredSection(doc, 'catalog', 'catalog-main'), false);
+  assert.equal(s.removeSection(doc, 'catalog', 'catalog-main').pages[1].sections.length, 1);
+});
+
+test('Drag and drop places a section or a block at a bounded index', () => {
+  const s = loadStructure();
+  let doc = marcheDocument();
+  const ids = doc.pages[0].sections.map((item) => item.id);
+  doc = s.moveSectionTo(doc, 'home', ids[0], 3);
+  assert.deepEqual(doc.pages[0].sections.map((item) => item.id), [ids[1], ids[2], ids[3], ids[0], ...ids.slice(4)]);
+  doc = s.moveSectionTo(doc, 'home', ids[0], 99);
+  assert.equal(doc.pages[0].sections.at(-1).id, ids[0]);
+  assert.equal(s.moveSectionTo(doc, 'home', 'inconnue', 0), doc);
+  const faq = doc.pages[0].sections.find((item) => item.type === 'faq').id;
+  doc = s.addBlock(s.addBlock(doc, 'home', faq, 'question'), 'home', faq, 'question');
+  const blocks = doc.pages[0].sections.find((item) => item.id === faq).blocks.map((item) => item.id);
+  doc = s.moveBlockTo(doc, 'home', faq, blocks[0], 1);
+  assert.deepEqual(doc.pages[0].sections.find((item) => item.id === faq).blocks.map((item) => item.id), [blocks[1], blocks[0]]);
+  // Le nom d'un bloc reprend son premier texte saisi, sinon il reste vide.
+  assert.deepEqual(plain(s.blockSummary('faq', { type: 'question', settings: { question: '  Livrez-vous ?  ' } }, 0)), { label: 'Question 1', text: 'Livrez-vous ?' });
+  assert.deepEqual(plain(s.blockSummary('faq', { type: 'question', settings: {} }, 1)), { label: 'Question 2', text: null });
+});
+
+test('The preview asks to insert a section only from the embedded frame, at a valid place', () => {
+  const live = loadLive();
+  const frame = {};
+  const valid = { origin: 'https://app.stockman.pro', source: frame, data: { type: live.LIVE_PREVIEW_INSERT, index: 2 } };
+  assert.equal(live.readLivePreviewInsert(valid, 'https://app.stockman.pro', frame), 2);
+  assert.equal(live.readLivePreviewInsert({ ...valid, origin: 'https://exemple.test' }, 'https://app.stockman.pro', frame), null);
+  assert.equal(live.readLivePreviewInsert({ ...valid, source: {} }, 'https://app.stockman.pro', frame), null);
+  for (const index of [-1, 1.5, '2', 5000]) {
+    assert.equal(live.readLivePreviewInsert({ ...valid, data: { ...valid.data, index } }, 'https://app.stockman.pro', frame), null);
+  }
+  // Une section masquée n'est jamais rendue pour les visiteurs.
+  const storefront = read('web-app/src/storefront/ThemeStorefront.tsx');
+  assert.match(storefront, /\.filter\(\(section\) => embedded \|\| !section\.hidden\)/);
+});

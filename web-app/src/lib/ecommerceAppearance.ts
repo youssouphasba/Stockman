@@ -46,7 +46,8 @@ export type ThemeMediaItem = {
   in_use: boolean;
 };
 
-export type ThemeSectionDocument = { id: string; type: string; type_version: number; settings: Record<string, unknown>; blocks: unknown[] };
+// hidden : section masquée sur le site public, gardée avec ses réglages (éditeur visuel web).
+export type ThemeSectionDocument = { id: string; type: string; type_version: number; hidden?: true; settings: Record<string, unknown>; blocks: unknown[] };
 export type ThemePageDocument = { id: string; kind: string; path?: string; title?: string | null; menu?: string; sections: ThemeSectionDocument[] };
 export type ThemeDocument = {
   schema_version: number;

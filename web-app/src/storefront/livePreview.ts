@@ -7,6 +7,8 @@ export const LIVE_PREVIEW_READY = 'stockman-preview-ready';
 export const LIVE_PREVIEW_SELECT = 'stockman-preview-select';
 // Texte modifié directement dans l'aperçu : l'éditeur vérifie le champ puis met à jour son document.
 export const LIVE_PREVIEW_EDIT = 'stockman-preview-edit';
+// Bouton « + » entre deux sections de l'aperçu : l'éditeur propose d'ajouter une section à cette place.
+export const LIVE_PREVIEW_INSERT = 'stockman-preview-insert';
 
 export type LivePreviewMessage = {
     source: typeof LIVE_PREVIEW_SOURCE;
@@ -46,6 +48,14 @@ export function readLivePreviewEdit(event: MessageEvent, expectedOrigin: string,
     if (!data || data.type !== LIVE_PREVIEW_EDIT || typeof data.field !== 'string' || typeof data.value !== 'string') return null;
     if (!/^[a-z0-9][a-z0-9_-]*(\.[a-z0-9][a-z0-9_-]*){2,3}$/.test(data.field) || data.value.length > 5000) return null;
     return { field: data.field, value: data.value };
+}
+
+// Côté éditeur : place d'insertion proposée par l'aperçu intégré, entier entre 0 et le nombre de sections.
+export function readLivePreviewInsert(event: MessageEvent, expectedOrigin: string, frame: Window | null | undefined): number | null {
+    if (event.origin !== expectedOrigin || !frame || event.source !== frame) return null;
+    const data = event.data as { type?: unknown; index?: unknown } | null;
+    if (!data || data.type !== LIVE_PREVIEW_INSERT || typeof data.index !== 'number' || !Number.isInteger(data.index) || data.index < 0 || data.index > 1000) return null;
+    return data.index;
 }
 
 // Mêmes règles que le serveur : pas de caractère de contrôle, pas de retour à la ligne dans un

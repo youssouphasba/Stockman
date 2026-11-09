@@ -12,7 +12,7 @@ import { renderSection, sectionLabel, type MotionStyle, type SectionContext } fr
 import { buildTokens, FONT_PAIRINGS } from './tokens';
 import { enumSetting, type StorefrontPayload, type StorefrontProduct, type StorefrontRoute } from './types';
 import { useStorefrontCommerce } from './useStorefrontCommerce';
-import { LIVE_PREVIEW_EDIT, LIVE_PREVIEW_READY, LIVE_PREVIEW_SELECT, readLivePreviewMessage } from './livePreview';
+import { LIVE_PREVIEW_EDIT, LIVE_PREVIEW_INSERT, LIVE_PREVIEW_READY, LIVE_PREVIEW_SELECT, readLivePreviewMessage } from './livePreview';
 import { documentTitle, hashForRoute, resolvePage, routeFromHash, siteNavigation } from './routes';
 
 const PREVIEW_UNAVAILABLE = "Cet aperçu a expiré ou n'existe pas. Créez-en un nouveau depuis Stockman.";
@@ -148,6 +148,11 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
         window.parent.postMessage({ type: LIVE_PREVIEW_SELECT, section: id }, window.location.origin);
     }, []);
 
+    // « + » entre deux sections : l'éditeur ouvre la liste des sections pour cette place.
+    const insertAt = useCallback((index: number) => {
+        window.parent.postMessage({ type: LIVE_PREVIEW_INSERT, index }, window.location.origin);
+    }, []);
+
     const edit = useMemo<InlineEdit | null>(() => (embedded ? {
         onEdit: (field: string, value: string) => window.parent.postMessage({ type: LIVE_PREVIEW_EDIT, field, value }, window.location.origin),
     } : null), [embedded]);
@@ -226,6 +231,9 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
     const currentPage = resolvePage(themeDocument, route)
         || (route.startsWith('/') ? null : themeDocument.pages.find((item) => item.kind === 'home') || themeDocument.pages[0] || null);
     const navigation = siteNavigation(themeDocument);
+    // Une section masquée n'existe pas pour les visiteurs ; l'éditeur la montre, atténuée et signalée.
+    const sections = (currentPage?.sections || []).filter((section) => embedded || !section.hidden);
+    const firstVisible = sections.find((section) => !section.hidden)?.id;
     const context: SectionContext = {
         site: payload.site,
         products: payload.products,
@@ -242,7 +250,7 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
         catalogCategory: catalogFilter.category,
     };
     const name = siteDisplayName(settings, payload.site);
-    const firstType = currentPage?.sections[0]?.type;
+    const firstType = sections.find((section) => !section.hidden)?.type;
     const customTitle = currentPage?.kind === 'custom' && typeof currentPage.title === 'string' ? currentPage.title.trim() : '';
 
     return (
@@ -266,23 +274,33 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
                         </section>
                     )}
                     {currentPage && !HEADING_SECTIONS.includes(firstType || '') && <h1 className="sr-only">{customTitle || name}</h1>}
-                    {currentPage?.sections.map((section, index) => embedded ? (
+                    {sections.map((section, index) => embedded ? (
                         <div
                             key={section.id}
                             data-sf-section={section.id}
+                            data-sf-hidden={section.hidden ? 'true' : undefined}
                             onFocus={(event) => { if ((event.target as HTMLElement).isContentEditable && highlighted !== section.id) selectSection(section.id); }}
+                            onClick={(event) => { if ((event.target as HTMLElement).closest('[data-sf-complete]')) selectSection(section.id); }}
                             className={`group/sf relative ${highlighted === section.id ? 'outline outline-2 -outline-offset-2 outline-[#10B981]' : 'hover:outline hover:outline-1 hover:-outline-offset-1 hover:outline-[#10B981]'}`}
                         >
-                            <button
-                                type="button"
-                                onClick={() => selectSection(section.id)}
-                                className={`absolute left-2 top-2 z-30 rounded-full bg-[#10B981] px-3 py-1 text-xs font-semibold text-[#052e16] shadow ${highlighted === section.id ? '' : 'opacity-0 group-hover/sf:opacity-100 focus:opacity-100'}`}
-                            >
-                                Modifier : {sectionLabel(section.type)}
-                            </button>
-                            {renderSection(section, context, index === 0)}
+                            <InsertButton index={index} onInsert={insertAt} edge="top" />
+                            <div className="absolute left-2 top-2 z-30 flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => selectSection(section.id)}
+                                    className={`rounded-full bg-[#10B981] px-3 py-1 text-xs font-semibold text-[#052e16] shadow ${highlighted === section.id || section.hidden ? '' : 'opacity-0 group-hover/sf:opacity-100 focus:opacity-100'}`}
+                                >
+                                    Modifier : {sectionLabel(section.type)}
+                                </button>
+                                {section.hidden && <span className="rounded-full bg-[#1F2937] px-3 py-1 text-xs font-semibold text-[#F9FAFB] shadow">Masquée sur le site public</span>}
+                            </div>
+                            <div className={section.hidden ? 'opacity-40' : undefined}>{renderSection(section, context, section.id === firstVisible)}</div>
+                            {index === sections.length - 1 && <InsertButton index={index + 1} onInsert={insertAt} edge="bottom" />}
                         </div>
                     ) : renderSection(section, context, index === 0))}
+                    {embedded && currentPage && sections.length === 0 && (
+                        <div className="relative py-16"><InsertButton index={0} onInsert={insertAt} edge="center" /></div>
+                    )}
                 </div>
             </main>
             <Footer settings={settings} site={payload.site} items={navigation.footer} onNavigate={navigate} />
@@ -310,5 +328,21 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
                 />
             )}
         </div>
+    );
+}
+
+// Dans l'éditeur seulement : ajouter une section à cette place de la page, comme entre deux blocs d'un document.
+function InsertButton({ index, onInsert, edge }: { index: number; onInsert: (index: number) => void; edge: 'top' | 'bottom' | 'center' }) {
+    const place = edge === 'top' ? 'top-0 -translate-y-1/2' : edge === 'bottom' ? 'bottom-0 translate-y-1/2' : 'top-1/2 -translate-y-1/2';
+    return (
+        <button
+            type="button"
+            onClick={(event) => { event.stopPropagation(); onInsert(index); }}
+            aria-label="Ajouter une section ici"
+            title="Ajouter une section ici"
+            className={`absolute left-1/2 z-40 inline-flex h-8 -translate-x-1/2 items-center gap-1 rounded-full bg-[#10B981] px-3 text-xs font-semibold text-[#052e16] shadow ${place} ${edge === 'center' ? '' : 'opacity-0 group-hover/sf:opacity-100 focus:opacity-100'}`}
+        >
+            <span aria-hidden="true" className="text-base leading-none">+</span>Section
+        </button>
     );
 }

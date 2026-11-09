@@ -241,6 +241,10 @@ export function EmptySectionFrame({ label }: { label: string }) {
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="rounded-[var(--sf-radius-lg)] border-2 border-dashed border-[var(--sf-border)] px-6 py-10 text-center text-sm text-[var(--sf-muted)]">
                 Section à compléter : {label}. Elle reste masquée sur le site public tant qu'elle est vide.
+                {/* Visible seulement dans l'éditeur visuel (voir storefront.css), qui ouvre alors les réglages de la section. */}
+                <span className="sf-complete mt-4 justify-center">
+                    <button type="button" data-sf-complete="" className="inline-flex min-h-10 items-center rounded-full bg-[#10B981] px-4 text-sm font-semibold text-[#052e16]">Ouvrir les réglages de la section</button>
+                </span>
             </div>
         </div>
     );

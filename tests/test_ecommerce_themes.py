@@ -239,6 +239,28 @@ class ValidatorTests(unittest.TestCase):
         expect_error(self, "invalid_value", validate_theme_document, with_block, contract)
 
 
+    def test_a_section_can_be_hidden_but_not_the_last_visible_required_one(self):
+        contract = technical_contract()
+        hidden = editable_document()
+        hidden["pages"][0]["sections"][1]["hidden"] = True
+        validate_theme_document(hidden, contract)
+        for value in (False, "true", 1, None):
+            wrong = editable_document()
+            wrong["pages"][0]["sections"][1]["hidden"] = value
+            expect_error(self, "invalid_value", validate_theme_document, wrong, contract)
+        # Une autre section visible du même type garde le parcours commercial ouvert.
+        one_visible = editable_document()
+        one_visible["pages"][0]["sections"][0]["hidden"] = True
+        validate_theme_document(one_visible, contract)
+        none_visible = editable_document()
+        for section in none_visible["pages"][0]["sections"]:
+            section["hidden"] = True
+        expect_error(self, "required_section_hidden", validate_theme_document, none_visible, contract)
+        locked = build_legacy_theme_document({})
+        locked["pages"][0]["sections"][0]["hidden"] = True
+        expect_error(self, "structure_locked", validate_theme_document, locked)
+
+
     def test_custom_pages_need_a_title_and_a_bounded_menu(self):
         contract = technical_contract()
         custom = {"id": "about", "kind": "custom", "path": "a-propos", "title": "À propos", "sections": []}
@@ -288,6 +310,9 @@ class ChangeControlTests(unittest.TestCase):
         expect_error(self, "guided_change_forbidden", assert_guided_changes_only, base, unlisted, contract)
         other_model = build_legacy_theme_document({})
         expect_error(self, "model_change_requires_dedicated_operation", assert_guided_changes_only, base, other_model, contract)
+        hidden = copy.deepcopy(base)
+        hidden["pages"][0]["sections"][1]["hidden"] = True
+        expect_error(self, "guided_change_forbidden", assert_guided_changes_only, base, hidden, contract)
 
     def test_authorization_uses_server_capabilities(self):
         contract = technical_contract()

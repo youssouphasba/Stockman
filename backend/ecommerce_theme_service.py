@@ -171,6 +171,9 @@ def guided_field_descriptors(document: Mapping[str, Any], contract: Mapping[str,
             section_spec = contract["sections"].get(section.get("type"), {})
             group = f"section:{page['id']}.{section['id']}"
             group_label = _group_label(page, section_spec.get("label", "Section"))
+            if section.get("hidden"):
+                # Masquée depuis l'éditeur visuel web : ses textes restent modifiables, sans être affichés.
+                group_label = f"{group_label} (masquée sur le site)"
             for key in guided.get("sections", {}).get(section.get("type"), []):
                 spec = section_spec.get("settings", {}).get(key)
                 if spec and spec["type"] in EDITABLE_FIELD_TYPES:

@@ -33,6 +33,14 @@
   pointer-events: none;
 }
 
+/* Action des sections vides : seulement dans l'éditeur visuel, où chaque section est encadrée. */
+.sf-root .sf-complete {
+  display: none;
+}
+.sf-root [data-sf-section] .sf-complete {
+  display: flex;
+}
+
 /* Bandeau défilant : deux moitiés identiques ; la seconde n'est lue par aucun lecteur d'écran. */
 .sf-root .sf-marquee-track[data-static='true'] {
   width: 100%;

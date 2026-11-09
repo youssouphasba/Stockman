@@ -162,6 +162,11 @@ class InstantiationTests(unittest.TestCase):
         self.assertEqual(block_title["block_id"], "feature-delivery")
         columns = next(field for field in fields if field["id"] == "home.selection.columns")
         self.assertEqual((columns["type"], columns["min"], columns["max"]), ("integer", 2, 5))
+        # Une section masquée depuis l'éditeur web reste modifiable sur mobile, et signalée comme telle.
+        hero = next(section for page in document["pages"] if page["kind"] == "home" for section in page["sections"] if section["type"] == "hero")
+        hero["hidden"] = True
+        hidden_groups = {field["group_label"] for field in guided_field_descriptors(document) if field.get("section_id") == hero["id"]}
+        self.assertEqual(hidden_groups, {"Accueil · Bannière d'accueil (masquée sur le site)"})
 
 
     def test_custom_pages_follow_the_site_into_a_model_that_accepts_them(self):

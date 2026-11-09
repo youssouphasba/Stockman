@@ -41,7 +41,8 @@ export type StorefrontMedia = {
 
 export type ThemeSettings = Record<string, unknown>;
 export type ThemeBlockData = { id: string; type: string; settings: ThemeSettings };
-export type ThemeSectionData = { id: string; type: string; settings: ThemeSettings; blocks: ThemeBlockData[] };
+// hidden : section masquée, jamais rendue sur le site public (visible et signalée dans l'éditeur).
+export type ThemeSectionData = { id: string; type: string; hidden?: boolean; settings: ThemeSettings; blocks: ThemeBlockData[] };
 export type ThemePageData = { id: string; kind: string; title?: string | null; path?: string; menu?: string; sections: ThemeSectionData[] };
 export type ThemeDocumentData = {
     model_id: string;
