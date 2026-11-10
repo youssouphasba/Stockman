@@ -1,7 +1,12 @@
 # Avoid bundling backend and landing page into EAS build context
 ../backend
 ../landing-page
+../promo-videos
 ../docs
+backend
+landing-page
+promo-videos
+docs
 ../tests
 ../tsc_errors.txt
 ../import_error.txt

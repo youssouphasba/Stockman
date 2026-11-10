@@ -18,7 +18,7 @@ Si deux appareils sont ouverts en même temps, un seul affiche la proposition. Q
 
 ## Apparence du site : brouillon, aperçu et publication
 
-Le bloc « Apparence du site » se trouve dans Paramètres > Boutique en ligne. Il regroupe le logo, le nom du site, le titre d'accueil, le message d'accueil et la couleur de marque. Les autres réglages du site (activation, boutique liée, produits en rupture, coordonnées, livraison, WhatsApp, paiement manuel et domaine) restent dans le formulaire du site et s'enregistrent avec « Enregistrer le site e-commerce ».
+Le bloc « Apparence du site » se trouve dans Paramètres > Boutique en ligne. Il regroupe le logo, le nom du site, le titre d'accueil, le message d'accueil et la couleur de marque. Les autres réglages du site (activation, boutique liée, produits en rupture, coordonnées, livraison, WhatsApp, paiement des commandes et domaine) restent dans le formulaire du site et s'enregistrent avec « Enregistrer le site e-commerce ».
 
 - « Enregistrer le brouillon » conserve les modifications sans changer le site public. Il existe un seul brouillon par site, partagé par tous les appareils et par tous les administrateurs opérationnels du compte.
 - « Prévisualiser » ouvre un aperçu privé du brouillon, ou de la version publiée s'il n'y a pas de brouillon. Le lien reste valable 30 minutes, fonctionne même si le site est désactivé et n'est pas indexé par les moteurs de recherche. Dans l'aperçu, les commandes, les messages de contact et les statistiques de visite sont désactivés. Abandonner le brouillon rend ses aperçus inaccessibles. Le lien est personnel : il ne doit pas être partagé.
