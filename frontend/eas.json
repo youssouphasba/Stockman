@@ -12,7 +12,7 @@
                 "image": "sdk-55"
             },
             "ios": {
-                "image": "latest"
+                "image": "sdk-55"
             },
             "env": {
                 "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
@@ -48,7 +48,7 @@
             },
             "ios": {
                 "simulator": false,
-                "image": "latest"
+                "image": "sdk-55"
             },
             "channel": "preview"
         },
@@ -59,7 +59,7 @@
                 "image": "sdk-55"
             },
             "ios": {
-                "image": "latest"
+                "image": "sdk-55"
             },
             "env": {
                 "EXPO_PUBLIC_API_URL": "https://stockman-production-149d.up.railway.app",
