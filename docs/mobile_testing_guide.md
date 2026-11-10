@@ -83,3 +83,17 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 - Verification recommandee apres deploiement:
 - Ouvrir Dashboard puis Alertes sur mobile.
 - Verifier que les accents s'affichent correctement (exemples: "Vérification", "dépenses", "à", "é").
+
+## 10. Publier une mise à jour OTA Android sur Expo
+
+Le workflow `frontend/.eas/workflows/ota-android.yml` prépare le bundle sur les serveurs d’Expo et publie uniquement sur le canal Android `production`. Il se lance à la demande, jamais à chaque push.
+
+1. Dans les réglages GitHub du projet Expo, associez le dépôt Stockman et choisissez `frontend` comme répertoire de base.
+2. Vérifiez que le commit à publier, qui doit aussi contenir le workflow, est poussé sur GitHub. Vérifiez les variables `EXPO_PUBLIC_*` dans l’environnement Expo `production` et la compatibilité du code avec le runtime du build Android installé.
+3. Depuis `frontend`, remplacez `SHA_DU_COMMIT` par l’identifiant exact du commit à publier :
+
+```powershell
+eas workflow:run .eas/workflows/ota-android.yml --ref "SHA_DU_COMMIT" --wait
+```
+
+`--ref` utilise le code du commit distant, sans inclure les modifications locales. Vérifiez le résultat dans **Workflows**, puis **Updates**, dans le tableau de bord Expo. Une modification native nécessite un nouveau build ; une OTA n’envoie rien à Google Play Console.

@@ -1,0 +1,10 @@
+name: OTA Android Stockman
+
+jobs:
+  publish_android:
+    type: update
+    environment: production
+    params:
+      channel: production
+      platform: android
+      message: "Mise à jour Stockman Android"
