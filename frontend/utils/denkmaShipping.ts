@@ -12,6 +12,13 @@ export type DenkmaOrderDelivery = {
   tracking_code?: string | null;
   error?: string | null;
   waiting_for?: string | null;
+  // Code à 6 chiffres que le commerçant donne au livreur ; présent tant que le colis attend d'être enlevé.
+  collection_code?: string | null;
+  // Annulation demandée à Denkma : 'pending' tant que Denkma ne l'a pas confirmée, 'refused' si le colis est déjà parti.
+  cancel_state?: 'pending' | 'done' | 'refused' | null;
+  cancel_error?: string | null;
+  // Le commerçant a autorisé l'expédition sans avoir confirmé le paiement.
+  authorized_unpaid_at?: string | null;
   shipped_at?: string | null;
   delivered_at?: string | null;
 };
@@ -26,12 +33,12 @@ const ORDER_STATES: Record<string, string> = {
   funded: 'Transport réservé : cliquez sur « Prête » quand le colis est emballé',
   prepared: 'Colis prêt',
   dispatching: 'Enlèvement en cours',
-  dispatched: 'Enlèvement demandé',
+  dispatched: 'Enlèvement demandé : un livreur va venir',
   cancelled: 'Livraison annulée',
 };
 
 const PARCEL_STATES: Record<string, string> = {
-  created: 'Colis pris en charge',
+  created: 'En attente de collecte',
   dropped_at_origin_relay: 'Déposé au relais de départ',
   in_transit: 'En transit',
   at_destination_relay: 'Arrivé au point relais',
@@ -62,6 +69,9 @@ export function denkmaDestination(delivery: DenkmaOrderDelivery): string {
 }
 
 export function denkmaState(delivery: DenkmaOrderDelivery): { label: string; tone: 'neutral' | 'progress' | 'warning' | 'success' } {
+  // Une annulation n'est annoncée qu'une fois confirmée par Denkma.
+  if (delivery.cancel_state === 'pending') return { label: 'Annulation de la livraison en cours chez Denkma', tone: 'warning' };
+  if (delivery.cancel_state === 'refused') return { label: delivery.cancel_error || "Denkma n'a pas pu annuler cette livraison", tone: 'warning' };
   if (delivery.parcel_status) {
     const label = PARCEL_STATES[delivery.parcel_status] || delivery.parcel_status;
     const tone = delivery.parcel_status === 'delivered' ? 'success' : ['delivery_failed', 'cancelled', 'returned', 'disputed', 'incident_reported', 'expired', 'suspended'].includes(delivery.parcel_status) ? 'warning' : 'progress';
@@ -72,6 +82,13 @@ export function denkmaState(delivery: DenkmaOrderDelivery): { label: string; ton
   const label = ORDER_STATES[delivery.denkma_status || ''] || 'Prête à expédier';
   const tone = delivery.denkma_status === 'awaiting_funding' || delivery.denkma_status === 'cancelled' ? 'warning' : delivery.denkma_status && SHIPPED.includes(delivery.denkma_status) ? 'progress' : 'neutral';
   return { label, tone };
+}
+
+// Code à donner au livreur, lisible à voix haute : « 123 456 ».
+export function collectionCode(delivery: DenkmaOrderDelivery | null | undefined): string | null {
+  const code = (delivery?.collection_code || '').trim();
+  if (!code) return null;
+  return code.length === 6 ? `${code.slice(0, 3)} ${code.slice(3)}` : code;
 }
 
 export function canShipWithDenkma(order: OrderLike | null | undefined): boolean {

@@ -4,6 +4,7 @@
 // règles que Stockman Basic (quantités bornées par le stock, incréments inchangés).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { StorefrontPayload, StorefrontProduct } from './types';
+import { usePlacedOrder } from './OrderPayment';
 
 export type CartLine = { product: StorefrontProduct; quantity: number };
 export type OrderForm = { name: string; phone: string; email: string; address: string; notes: string };
@@ -41,6 +42,9 @@ export function useStorefrontCommerce(payload: StorefrontPayload | null, preview
     const [order, setOrder] = useState<SubmitState>(IDLE);
     const [contact, setContact] = useState<SubmitState>(IDLE);
     const tracked = useRef(false);
+    // Dernière commande passée sur cet appareil : sa page de paiement reste accessible dans le panier.
+    const placedOrder = usePlacedOrder(slug, !preview);
+    const placeOrder = placedOrder.place;
 
     // Les statistiques de visite ne comptent jamais un aperçu privé.
     useEffect(() => {
@@ -80,7 +84,7 @@ export function useStorefrontCommerce(payload: StorefrontPayload | null, preview
     const total = useMemo(() => lines.reduce((sum, line) => sum + line.product.selling_price * line.quantity, 0), [lines]);
     const count = useMemo(() => lines.reduce((sum, line) => sum + line.quantity, 0), [lines]);
 
-    const submitOrder = useCallback(async (form: OrderForm, delivery?: { destination_session_id: string } | null) => {
+    const submitOrder = useCallback(async (form: OrderForm, delivery?: { destination_session_id: string } | null, paymentMethod?: string | null) => {
         if (preview) {
             setOrder({ ...IDLE, error: PREVIEW_ORDER_DISABLED });
             return false;
@@ -96,10 +100,26 @@ export function useStorefrontCommerce(payload: StorefrontPayload | null, preview
                 notes: form.notes.trim() || null,
                 items: lines.map((line) => ({ product_id: line.product.product_id, quantity: line.quantity })),
                 ...(delivery ? { delivery: { provider: 'denkma', destination_session_id: delivery.destination_session_id } } : {}),
+                ...(paymentMethod ? { payment_method: paymentMethod } : {}),
             });
             if (!response.ok) throw new Error(await readError(response, "Impossible d'envoyer la commande."));
             const data = await response.json();
             setCart({});
+            if (payload?.site.payment && data.payment_token) {
+                // La boutique affiche un compte de paiement : le panier montre la page de paiement de la commande.
+                placeOrder({
+                    orderId: data.order_id,
+                    orderNumber: data.order_number,
+                    token: data.payment_token,
+                    amountDue: typeof data.amount_due === 'number' ? data.amount_due : data.total_amount,
+                    currency: payload.site.currency || 'XOF',
+                    method: data.payment?.method || 'other',
+                    status: 'awaiting',
+                    orderStatus: data.status || 'pending',
+                });
+                setOrder(IDLE);
+                return true;
+            }
             const due = delivery && typeof data.amount_due === 'number' ? ` Montant à régler, livraison comprise : ${formatAmount(data.amount_due, payload?.site.currency || 'XOF')}.` : '';
             setOrder({ ...IDLE, success: `Commande envoyée : ${data.order_number}.${due} La boutique vous recontactera pour confirmer.` });
             return true;
@@ -107,7 +127,7 @@ export function useStorefrontCommerce(payload: StorefrontPayload | null, preview
             setOrder({ ...IDLE, error: error instanceof Error && error.message ? error.message : "Impossible d'envoyer la commande." });
             return false;
         }
-    }, [lines, payload?.site.currency, preview, slug]);
+    }, [lines, payload?.site.currency, payload?.site.payment, placeOrder, preview, slug]);
 
     const submitContact = useCallback(async (form: ContactForm) => {
         if (preview) {
@@ -134,7 +154,7 @@ export function useStorefrontCommerce(payload: StorefrontPayload | null, preview
         }
     }, [preview, slug]);
 
-    return { cart, lines, total, count, addToCart, updateQuantity, order, submitOrder, contact, submitContact };
+    return { cart, lines, total, count, addToCart, updateQuantity, order, submitOrder, contact, submitContact, placedOrder };
 }
 
 export type StorefrontCommerce = ReturnType<typeof useStorefrontCommerce>;

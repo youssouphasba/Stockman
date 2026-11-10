@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, Minus, Plus, Send, ShoppingBag, Trash2, X } from 'lucide-react';
 import { formatAmount, type OrderForm, type StorefrontCommerce } from './useStorefrontCommerce';
 import DenkmaDeliveryPicker, { useDenkmaDelivery } from './DenkmaDelivery';
+import { OrderPaymentPanel, PaymentChoice, offeredPaymentMethod, paymentOptionsFor } from './OrderPayment';
 import type { StorefrontProduct, StorefrontSite } from './types';
 
 export type CardStyle = 'minimal' | 'bordered' | 'portrait';
@@ -207,6 +208,9 @@ export function CartDrawer({ commerce, site, preview, outline, onClose }: {
     useEffect(() => { closeRef.current?.focus(); }, []);
     const currency = site.currency || 'XOF';
     const denkma = useDenkmaDelivery(site.slug, Boolean(site.denkma_delivery), preview);
+    const paymentOptions = paymentOptionsFor(site.payment, denkma.available);
+    const [chosenPayment, setPaymentMethod] = useState<string | null>(null);
+    const paymentMethod = offeredPaymentMethod(paymentOptions, chosenPayment);
     // Avec Denkma, le lieu de livraison et un téléphone joignable par le livreur sont indispensables.
     const deliveryReady = !denkma.available || Boolean(denkma.choice && form.phone.trim());
     const canSubmit = !preview && !commerce.order.submitting && form.name.trim() && commerce.lines.length > 0 && !denkma.loading && deliveryReady;
@@ -224,7 +228,11 @@ export function CartDrawer({ commerce, site, preview, outline, onClose }: {
                 </div>
                 <div className="flex-1 overflow-y-auto px-6 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
                     {commerce.order.success && <p role="status" className="mb-5 rounded-[var(--sf-radius)] bg-[var(--sf-accent-soft)] p-4 text-sm font-medium">{commerce.order.success}</p>}
+                    {commerce.placedOrder.placed && (
+                        <div className="mb-5"><OrderPaymentPanel state={commerce.placedOrder} options={site.payment} variant="theme" format={formatAmount} /></div>
+                    )}
                     {commerce.lines.length === 0 ? (
+                        commerce.placedOrder.placed ? null :
                         <p className="text-sm text-[var(--sf-muted)]">Votre panier est vide.</p>
                     ) : (
                         <ul className="space-y-4">
@@ -246,7 +254,7 @@ export function CartDrawer({ commerce, site, preview, outline, onClose }: {
                         </ul>
                     )}
                     {commerce.lines.length > 0 && (
-                        <form className="mt-6 space-y-3 border-t border-[var(--sf-border)] pt-6" onSubmit={(event) => { event.preventDefault(); void commerce.submitOrder(form, denkma.choice ? { destination_session_id: denkma.choice.sessionId } : null).then((ok) => { if (ok) { setForm(EMPTY_ORDER); denkma.reset(); } }); }}>
+                        <form className="mt-6 space-y-3 border-t border-[var(--sf-border)] pt-6" onSubmit={(event) => { event.preventDefault(); void commerce.submitOrder(form, denkma.choice ? { destination_session_id: denkma.choice.sessionId } : null, paymentMethod).then((ok) => { if (ok) { setForm(EMPTY_ORDER); denkma.reset(); } }); }}>
                             {denkma.choice && (
                                 <>
                                     <div className="flex items-baseline justify-between text-sm text-[var(--sf-muted)]"><span>Articles</span><span>{formatAmount(commerce.total, currency)}</span></div>
@@ -273,8 +281,9 @@ export function CartDrawer({ commerce, site, preview, outline, onClose }: {
                             )}
                             <label className="block text-sm font-medium" htmlFor="sf-order-notes">Note pour la boutique</label>
                             <textarea id="sf-order-notes" rows={2} value={form.notes} onChange={update('notes')} className={`${fieldClass} resize-none`} />
+                            {paymentOptions && <PaymentChoice options={paymentOptions} value={paymentMethod} onChange={setPaymentMethod} variant="theme" />}
                             {site.payment_instructions && (
-                                <div className="rounded-[var(--sf-radius)] bg-[var(--sf-surface)] p-4 text-sm leading-6"><p className="font-semibold">Paiement</p><p className="mt-1 whitespace-pre-line text-[var(--sf-muted)]">{site.payment_instructions}</p></div>
+                                <div className="rounded-[var(--sf-radius)] bg-[var(--sf-surface)] p-4 text-sm leading-6"><p className="font-semibold">{site.payment ? 'À savoir sur le paiement' : 'Paiement'}</p><p className="mt-1 whitespace-pre-line text-[var(--sf-muted)]">{site.payment_instructions}</p></div>
                             )}
                             {site.delivery_info && (
                                 <div className="rounded-[var(--sf-radius)] bg-[var(--sf-surface)] p-4 text-sm leading-6"><p className="font-semibold">Livraison</p><p className="mt-1 whitespace-pre-line text-[var(--sf-muted)]">{site.delivery_info}</p></div>
@@ -282,7 +291,7 @@ export function CartDrawer({ commerce, site, preview, outline, onClose }: {
                             {commerce.order.error && <p role="alert" className="rounded-[var(--sf-radius)] border border-[var(--sf-text)] p-3 text-sm font-medium">{commerce.order.error}</p>}
                             <button type="submit" disabled={!canSubmit} className={`${accentButtonClass(outline)} w-full`}>
                                 <Send className="h-4 w-4" aria-hidden="true" />
-                                {preview ? "Commandes désactivées dans l'aperçu" : commerce.order.submitting ? 'Envoi...' : 'Envoyer la commande'}
+                                {preview ? "Commandes désactivées dans l'aperçu" : commerce.order.submitting ? 'Envoi...' : paymentMethod && paymentMethod !== 'on_delivery' && site.payment ? 'Commander et payer' : 'Envoyer la commande'}
                             </button>
                         </form>
                     )}

@@ -28,6 +28,7 @@ import { getAccessContext } from '../utils/access';
 import EcommerceSetupInvitation, { canOfferEcommerceSetupOnWeb } from './EcommerceSetupInvitation';
 import EcommerceAppearancePanel from './EcommerceAppearancePanel';
 import EcommerceDomainPanel from './EcommerceDomainPanel';
+import EcommercePaymentSettings from './EcommercePaymentSettings';
 import DenkmaSettingsPanel from './DenkmaSettingsPanel';
 
 type SettingsWorkspaceProps = {
@@ -384,6 +385,12 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
             delivery_info: next?.delivery_info || '',
             whatsapp_phone: next?.whatsapp_phone || '',
             payment_instructions: next?.payment_instructions || '',
+            wave_phone: next?.wave_phone || '',
+            wave_name: next?.wave_name || '',
+            wave_link: next?.wave_link || '',
+            orange_money_phone: next?.orange_money_phone || '',
+            orange_money_name: next?.orange_money_name || '',
+            pay_on_delivery: next?.pay_on_delivery !== false,
             show_out_of_stock_products: Boolean(next?.show_out_of_stock_products),
         });
     }
@@ -795,9 +802,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         <textarea value={ecommerceDraft.delivery_info || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, delivery_info: event.target.value }))} rows={3} className={textareaClass} />
                                     </Field>
 
-                                    <Field label="Instructions de paiement manuel" hint="Exemple : paiement à la livraison, Wave, Orange Money, virement ou confirmation par WhatsApp.">
-                                        <textarea value={ecommerceDraft.payment_instructions || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, payment_instructions: event.target.value }))} rows={4} className={textareaClass} />
-                                    </Field>
+                                    <EcommercePaymentSettings draft={ecommerceDraft} mobileMoneyAvailable={ecommerceSite?.mobile_money_available} onChange={(patch) => setEcommerceDraft((draft: any) => ({ ...draft, ...patch }))} />
 
                                     <DenkmaSettingsPanel
                                         canEdit={canManageOrgSettings && !webConsultationOnly}

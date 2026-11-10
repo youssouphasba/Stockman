@@ -44,6 +44,9 @@ def _matches_condition(value, condition):
                 # Comme MongoDB : un champ tableau correspond si l'un de ses éléments est listé.
                 if value is _MISSING or (value not in expected and not (isinstance(value, list) and any(item in expected for item in value))):
                     return False
+            elif op == "$nin":
+                if value is not _MISSING and value in expected:
+                    return False
             elif op == "$ne":
                 if value is not _MISSING and value == expected:
                     return False
@@ -52,6 +55,9 @@ def _matches_condition(value, condition):
         return True
     if isinstance(value, list) and not isinstance(condition, list):
         return condition in value
+    if condition is None:
+        # Comme MongoDB : null correspond aussi à un champ absent.
+        return value is _MISSING or value is None
     return value is not _MISSING and value == condition
 
 
@@ -70,18 +76,37 @@ def matches(doc, query):
     return True
 
 
+def _set_path(doc, path, value):
+    # Comme MongoDB : « a.b » écrit le champ b du sous-document a, créé au besoin.
+    *parents, last = path.split(".")
+    for part in parents:
+        if not isinstance(doc.get(part), dict):
+            doc[part] = {}
+        doc = doc[part]
+    doc[last] = value
+
+
+def _unset_path(doc, path):
+    *parents, last = path.split(".")
+    for part in parents:
+        doc = doc.get(part)
+        if not isinstance(doc, dict):
+            return
+    doc.pop(last, None)
+
+
 def _apply_update(doc, update, inserting):
     for op, fields in update.items():
         if op == "$set":
             for key, value in fields.items():
-                doc[key] = copy.deepcopy(value)
+                _set_path(doc, key, copy.deepcopy(value))
         elif op == "$setOnInsert":
             if inserting:
                 for key, value in fields.items():
                     doc[key] = copy.deepcopy(value)
         elif op == "$unset":
             for key in fields:
-                doc.pop(key, None)
+                _unset_path(doc, key)
         elif op == "$inc":
             for key, value in fields.items():
                 doc[key] = doc.get(key, 0) + value

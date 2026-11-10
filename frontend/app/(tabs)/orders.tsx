@@ -52,7 +52,8 @@ import PeriodSelector, { Period } from '../../components/PeriodSelector';
 import { generateAndSharePdf, generatePurchaseOrderPdf } from '../../utils/pdfReports';
 import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
 import DenkmaShipModal from '../../components/DenkmaShipModal';
-import { amountDue, canShipWithDenkma, denkmaDelivery, denkmaDestination, denkmaState } from '../../utils/denkmaShipping';
+import { canConfirmPayment, canUndoPayment, nextStep, paymentState, unpaidReadyWarning } from '../../utils/orderPayment';
+import { amountDue, canShipWithDenkma, collectionCode, denkmaDelivery, denkmaDestination, denkmaState } from '../../utils/denkmaShipping';
 import { useAuth } from '../../contexts/AuthContext';
 import PremiumGate from '../../components/PremiumGate';
 import AccessDenied from '../../components/AccessDenied';
@@ -399,6 +400,49 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
       Alert.alert(t('common.error'), err?.message || 'Impossible de mettre à jour la commande E-com.');
     }
   };
+
+  // « Paiement reçu » : le client a payé le commerçant ; une commande nouvelle est confirmée du même geste.
+  const updateWebOrderPayment = async (orderId: string, paid: boolean) => {
+    try {
+      const { order: updated } = await ecommerceApi.updateOrderPayment(orderId, paid);
+      setSelectedWebOrder((current: any) => (current?.order_id === updated.order_id ? updated : current));
+      await loadWebOrders();
+      if (ecommerceWorkspace) setEcommerceRefreshKey((value) => value + 1);
+    } catch (err: any) {
+      Alert.alert(t('common.error'), err?.message || 'Impossible de mettre à jour le paiement de la commande.');
+    }
+  };
+
+  // « Prête » fait venir le livreur : le commerçant est prévenu si le client devait payer avant et ne l'a pas fait.
+  const markWebOrderReady = (order: any, done?: () => void) => {
+    const proceed = async () => {
+      await updateWebOrderStatus(order.order_id, 'ready');
+      if (!denkmaDelivery(order)) { done?.(); return; }
+      // Livraison Denkma : la commande reste ouverte pour afficher le code à donner au livreur.
+      try {
+        const fresh = await ecommerceApi.getOrder(order.order_id);
+        setSelectedWebOrder((current: any) => (current?.order_id === fresh.order_id ? fresh : current));
+      } catch {
+        done?.();
+      }
+    };
+    const warning = unpaidReadyWarning(order);
+    if (!warning) { void proceed(); return; }
+    Alert.alert('Paiement non reçu', warning, [
+      { text: 'Attendre le paiement', style: 'cancel' },
+      { text: 'Continuer', onPress: () => { void proceed(); } },
+    ]);
+  };
+
+  const runWebOrderStep = (order: any, action: string | null, done?: () => void) => {
+    if (action === 'payment') { void updateWebOrderPayment(order.order_id, true); return; }
+    if (action === 'ready') { markWebOrderReady(order, done); return; }
+    if (action === 'confirm' || action === 'deliver') {
+      void updateWebOrderStatus(order.order_id, action === 'confirm' ? 'confirmed' : 'delivered').then(() => done?.());
+    }
+  };
+
+  const paymentToneColor = (tone: string) => (tone === 'success' ? colors.success : tone === 'warning' ? colors.warning : tone === 'progress' ? colors.primary : colors.textMuted);
 
   // Register drawer menu items
   useFocusEffect(
@@ -1215,14 +1259,17 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
                     </View>
                     <View style={styles.orderDetail}>
                       <Text style={styles.orderDetailLabel}>Total</Text>
-                      <Text style={styles.orderDetailValue}>{formatCurrency(order.total_amount || 0, user?.currency)}</Text>
+                      <Text style={styles.orderDetailValue}>{formatCurrency(amountDue(order), user?.currency)}</Text>
                     </View>
                   </View>
+                  <Text style={[styles.orderDate, { color: paymentToneColor(paymentState(order).tone), fontWeight: '600' }]}>{paymentState(order).label}</Text>
+                  {collectionCode(denkmaDelivery(order)) ? <Text style={[styles.orderDate, { color: colors.primary, fontWeight: '700' }]}>Code à donner au livreur : {collectionCode(denkmaDelivery(order))}</Text> : null}
                   {order.customer_address ? <Text numberOfLines={1} style={styles.orderDate}>{order.customer_address}</Text> : null}
                   <Text style={[styles.orderDate, { marginTop: Spacing.xs }]}>Appuyez pour voir les détails</Text>
                   <View style={styles.orderActions}>
-                    {order.status === 'pending' && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'confirmed')}><Text style={[styles.actionText, { color: colors.primary }]}>Confirmer</Text></TouchableOpacity>}
-                    {['confirmed', 'preparing'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'ready')}><Text style={[styles.actionText, { color: colors.warning }]}>Prête</Text></TouchableOpacity>}
+                    {nextStep(order)?.action === 'payment' && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderPayment(order.order_id, true)}><Text style={[styles.actionText, { color: colors.success }]}>Paiement reçu</Text></TouchableOpacity>}
+                    {order.status === 'pending' && nextStep(order)?.action !== 'payment' && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'confirmed')}><Text style={[styles.actionText, { color: colors.primary }]}>Confirmer</Text></TouchableOpacity>}
+                    {['confirmed', 'preparing'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => markWebOrderReady(order)}><Text style={[styles.actionText, { color: colors.warning }]}>Prête</Text></TouchableOpacity>}
                     {['confirmed', 'preparing', 'ready'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'delivered')}><Text style={[styles.actionText, { color: colors.success }]}>Livrer</Text></TouchableOpacity>}
                     {['pending', 'confirmed'].includes(order.status) && <TouchableOpacity style={styles.actionBtn} onPress={() => updateWebOrderStatus(order.order_id, 'cancelled')}><Text style={[styles.actionText, { color: colors.danger }]}>Annuler</Text></TouchableOpacity>}
                   </View>
@@ -1731,6 +1778,12 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
                       {selectedWebOrder.delivery.tracking_code ? ` · Suivi ${selectedWebOrder.delivery.tracking_code}` : ''}
                     </Text>
                     {selectedWebOrder.delivery.error ? <Text style={[styles.infoCardText, { color: colors.danger }]}>{selectedWebOrder.delivery.error}</Text> : null}
+                    {collectionCode(selectedWebOrder.delivery) ? (
+                      <View accessible accessibilityLabel={`Code à donner au livreur : ${collectionCode(selectedWebOrder.delivery)}`} style={{ marginTop: Spacing.sm, padding: Spacing.md, borderRadius: 12, backgroundColor: colors.primary + '15', alignItems: 'center' }}>
+                        <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '700' }}>CODE À DONNER AU LIVREUR</Text>
+                        <Text style={{ color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: 4, marginTop: 4 }}>{collectionCode(selectedWebOrder.delivery)}</Text>
+                      </View>
+                    ) : null}
                     <TouchableOpacity
                       accessibilityRole="button"
                       style={{ minHeight: 44, justifyContent: 'center' }}
@@ -1762,15 +1815,60 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
                     <Text style={styles.orderDetailValue}>{formatCurrency(amountDue(selectedWebOrder), user?.currency)}</Text>
                   </View>
                 </View>
+                {(() => {
+                  const step = nextStep(selectedWebOrder);
+                  const payment = paymentState(selectedWebOrder);
+                  return (
+                    <>
+                      <View style={[styles.infoCard, { marginTop: Spacing.md }]}>
+                        <Text style={styles.infoCardTitle}>Paiement</Text>
+                        <Text style={[styles.infoCardText, { color: paymentToneColor(payment.tone), fontWeight: '700' }]}>{payment.label}</Text>
+                        <Text style={styles.infoCardText}>{payment.hint}</Text>
+                        {canConfirmPayment(selectedWebOrder) && step?.action !== 'payment' ? (
+                          <TouchableOpacity accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center' }} onPress={() => updateWebOrderPayment(selectedWebOrder.order_id, true)}>
+                            <Text style={{ color: colors.success, fontSize: FontSize.sm, fontWeight: '600' }}>Paiement reçu</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        {canUndoPayment(selectedWebOrder) ? (
+                          <TouchableOpacity
+                            accessibilityRole="button"
+                            style={{ minHeight: 44, justifyContent: 'center' }}
+                            onPress={() => Alert.alert('Paiement confirmé par erreur ?', 'La commande repassera en attente de paiement.', [
+                              { text: 'Non', style: 'cancel' },
+                              { text: 'Oui, annuler la confirmation', style: 'destructive', onPress: () => { void updateWebOrderPayment(selectedWebOrder.order_id, false); } },
+                            ])}
+                          >
+                            <Text style={{ color: colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>Paiement confirmé par erreur</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                      {step ? (
+                        <View style={[styles.infoCard, { marginTop: Spacing.md, borderColor: colors.primary + '55', borderWidth: 1 }]}>
+                          <Text style={[styles.infoCardTitle, { color: colors.primary }]}>Prochaine étape</Text>
+                          <Text style={styles.infoCardText}>{step.hint}</Text>
+                          {step.action ? (
+                            <TouchableOpacity
+                              accessibilityRole="button"
+                              style={{ minHeight: 48, marginTop: Spacing.sm, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.md }}
+                              onPress={() => runWebOrderStep(selectedWebOrder, step.action, () => setShowWebOrderDetailModal(false))}
+                            >
+                              <Text style={{ color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '700' }}>{step.label}</Text>
+                            </TouchableOpacity>
+                          ) : null}
+                        </View>
+                      ) : null}
+                    </>
+                  );
+                })()}
                 <View style={[styles.orderActions, { marginTop: Spacing.lg }]}>
                   {canShipWithDenkma(selectedWebOrder) && (
                     <TouchableOpacity style={styles.actionBtn} onPress={() => setDenkmaShipOrder(selectedWebOrder)}>
                       <Text style={[styles.actionText, { color: '#2563EB' }]}>Livrer avec Denkma</Text>
                     </TouchableOpacity>
                   )}
-                  {selectedWebOrder.status === 'pending' && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'confirmed'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.primary }]}>Confirmer</Text></TouchableOpacity>}
-                  {['confirmed', 'preparing'].includes(selectedWebOrder.status) && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'ready'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.warning }]}>Prête</Text></TouchableOpacity>}
-                  {['confirmed', 'preparing', 'ready'].includes(selectedWebOrder.status) && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'delivered'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.success }]}>Livrer</Text></TouchableOpacity>}
+                  {selectedWebOrder.status === 'pending' && nextStep(selectedWebOrder)?.action !== 'confirm' && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'confirmed'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.primary }]}>Confirmer sans attendre le paiement</Text></TouchableOpacity>}
+                  {['confirmed', 'preparing'].includes(selectedWebOrder.status) && nextStep(selectedWebOrder)?.action !== 'ready' && <TouchableOpacity style={styles.actionBtn} onPress={() => markWebOrderReady(selectedWebOrder, () => setShowWebOrderDetailModal(false))}><Text style={[styles.actionText, { color: colors.warning }]}>Prête</Text></TouchableOpacity>}
+                  {['confirmed', 'preparing', 'ready'].includes(selectedWebOrder.status) && nextStep(selectedWebOrder)?.action !== 'deliver' && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'delivered'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.success }]}>Livrer</Text></TouchableOpacity>}
                   {['pending', 'confirmed'].includes(selectedWebOrder.status) && <TouchableOpacity style={styles.actionBtn} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'cancelled'); setShowWebOrderDetailModal(false); }}><Text style={[styles.actionText, { color: colors.danger }]}>Annuler</Text></TouchableOpacity>}
                 </View>
               </ScrollView>

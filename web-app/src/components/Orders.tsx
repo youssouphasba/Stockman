@@ -26,8 +26,16 @@ import OrderReturnModal from './OrderReturnModal';
 import DeliveryConfirmationModal from './DeliveryConfirmationModal';
 import { exportOrders } from '../utils/ExportService';
 import DenkmaShipDialog from './DenkmaShipDialog';
-import { amountDue, canShipWithDenkma, denkmaDelivery, denkmaDestination, denkmaState } from '../lib/denkmaShipping';
+import { amountDue, canShipWithDenkma, collectionCode, denkmaDelivery, denkmaDestination, denkmaState } from '../lib/denkmaShipping';
+import { canConfirmPayment, canUndoPayment, nextStep, orderStatusLabel, paymentState, unpaidReadyWarning } from '../lib/orderPayment';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
+
+const PAYMENT_TONES: Record<string, string> = {
+    success: 'bg-emerald-500/15 text-emerald-300',
+    warning: 'bg-amber-500/15 text-amber-300',
+    progress: 'bg-blue-500/15 text-blue-300',
+    neutral: 'bg-white/10 text-slate-300',
+};
 
 const ORDER_STATUSES = ['all', 'pending', 'confirmed', 'shipped', 'partially_delivered', 'delivered', 'cancelled'] as const;
 
@@ -158,6 +166,30 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
         } catch (err: any) {
             alert(err?.message || 'Impossible de mettre à jour la commande E-com.');
         }
+    };
+
+    // « Paiement reçu » : le client a payé le commerçant ; une commande nouvelle est confirmée du même geste.
+    const updateWebOrderPayment = async (orderId: string, paid: boolean) => {
+        try {
+            const { order: updated } = await ecommerceApi.updateOrderPayment(orderId, paid);
+            setWebOrders((current) => current.map((item) => (item.order_id === updated.order_id ? updated : item)));
+        } catch (err: any) {
+            alert(err?.message || 'Impossible de mettre à jour le paiement de la commande.');
+        }
+    };
+
+    // « Prête » fait venir le livreur : le commerçant est prévenu si le client devait payer avant et ne l'a pas fait.
+    const markWebOrderReady = async (order: any) => {
+        const warning = unpaidReadyWarning(order);
+        if (warning && !window.confirm(warning)) return;
+        await updateWebOrderStatus(order.order_id, 'ready');
+    };
+
+    const runWebOrderStep = (order: any, action: string | null) => {
+        if (action === 'payment') return updateWebOrderPayment(order.order_id, true);
+        if (action === 'confirm') return updateWebOrderStatus(order.order_id, 'confirmed');
+        if (action === 'ready') return markWebOrderReady(order);
+        if (action === 'deliver') return updateWebOrderStatus(order.order_id, 'delivered');
     };
 
     const openOrderDetail = async (orderId: string) => {
@@ -397,7 +429,8 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                 <div>
                                     <div className="flex flex-wrap items-center gap-3">
                                         <h3 className="text-lg font-black text-white">{order.order_number}</h3>
-                                        <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-slate-300">{order.status}</span>
+                                        <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-slate-300">{orderStatusLabel(order.status)}</span>
+                                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${PAYMENT_TONES[paymentState(order).tone]}`}>{paymentState(order).label}</span>
                                     </div>
                                     <p className="mt-2 text-sm text-slate-400">{order.customer_name} · {order.customer_phone || order.customer_email || 'Contact non renseigné'}</p>
                                     {order.customer_address && <p className="mt-1 text-sm text-slate-500">{order.customer_address}</p>}
@@ -422,6 +455,12 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                         <p className="font-bold text-white">Livraison Denkma · {denkmaDestination(denkmaDelivery(order)!)}</p>
                                         <p className="text-blue-200">{denkmaState(denkmaDelivery(order)!).label}{order.delivery.tracking_code ? ` · Suivi ${order.delivery.tracking_code}` : ''}</p>
                                         {order.delivery.error && <p className="text-rose-300">{order.delivery.error}</p>}
+                                        {collectionCode(order.delivery) && (
+                                            <p className="mt-2 inline-flex flex-wrap items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-white">
+                                                <span className="text-xs font-bold uppercase tracking-wide text-blue-200">Code à donner au livreur</span>
+                                                <span className="text-xl font-black tracking-widest">{collectionCode(order.delivery)}</span>
+                                            </p>
+                                        )}
                                     </div>
                                     <button
                                         type="button"
@@ -439,14 +478,36 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                     </button>
                                 </div>
                             )}
-                            <div className="mt-4 flex flex-wrap gap-2">
-                                {canShipWithDenkma(order) && <button onClick={() => setDenkmaShipOrder(order)} className="rounded-xl bg-blue-500/15 px-4 py-2 text-sm font-bold text-blue-300">Livrer avec Denkma</button>}
-                                {order.status === 'pending' && <button onClick={() => updateWebOrderStatus(order.order_id, 'confirmed')} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">Confirmer</button>}
-                                {['pending', 'confirmed', 'preparing'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'preparing')} className="rounded-xl bg-blue-500/15 px-4 py-2 text-sm font-bold text-blue-300">Préparer</button>}
-                                {['confirmed', 'preparing'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'ready')} className="rounded-xl bg-amber-500/15 px-4 py-2 text-sm font-bold text-amber-300">Prête</button>}
-                                {['confirmed', 'preparing', 'ready'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'delivered')} className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white">Livrer et créer la vente</button>}
-                                {['pending', 'confirmed'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'cancelled')} className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm font-bold text-rose-300">Annuler</button>}
-                            </div>
+                            {(() => {
+                                // Une seule étape mise en avant ; les autres gestes restent disponibles, en retrait.
+                                const step = nextStep(order);
+                                const payment = paymentState(order);
+                                const secondary = 'rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10';
+                                return (
+                                    <div className="mt-4 space-y-3">
+                                        {step && (
+                                            <div className="flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                                <div>
+                                                    <p className="text-xs font-bold uppercase tracking-wide text-primary">Prochaine étape</p>
+                                                    <p className="mt-1 text-sm leading-6 text-slate-200">{step.hint}</p>
+                                                </div>
+                                                {step.action && <button onClick={() => void runWebOrderStep(order, step.action)} className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-black text-white">{step.label}</button>}
+                                            </div>
+                                        )}
+                                        <p className="text-xs leading-5 text-slate-500">Paiement : {payment.hint}</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {canConfirmPayment(order) && step?.action !== 'payment' && <button onClick={() => void updateWebOrderPayment(order.order_id, true)} className={secondary}>Paiement reçu</button>}
+                                            {canUndoPayment(order) && <button onClick={() => { if (window.confirm('Annuler la confirmation du paiement de cette commande ?')) void updateWebOrderPayment(order.order_id, false); }} className={secondary}>Paiement confirmé par erreur</button>}
+                                            {order.status === 'pending' && step?.action !== 'confirm' && <button onClick={() => updateWebOrderStatus(order.order_id, 'confirmed')} className={secondary}>Confirmer sans attendre le paiement</button>}
+                                            {['pending', 'confirmed'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'preparing')} className={secondary}>En préparation</button>}
+                                            {['confirmed', 'preparing'].includes(order.status) && step?.action !== 'ready' && <button onClick={() => void markWebOrderReady(order)} className={secondary}>Prête</button>}
+                                            {canShipWithDenkma(order) && <button onClick={() => setDenkmaShipOrder(order)} className={secondary}>Livrer avec Denkma en joignant une photo</button>}
+                                            {['confirmed', 'preparing', 'ready'].includes(order.status) && step?.action !== 'deliver' && <button onClick={() => updateWebOrderStatus(order.order_id, 'delivered')} className={secondary}>Livrer et créer la vente</button>}
+                                            {['pending', 'confirmed'].includes(order.status) && <button onClick={() => { if (window.confirm('Annuler cette commande ?')) void updateWebOrderStatus(order.order_id, 'cancelled'); }} className="rounded-xl border border-rose-400/20 px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500/10">Annuler la commande</button>}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     ))}
                 </div>

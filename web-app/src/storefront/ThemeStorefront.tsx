@@ -81,6 +81,12 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
     const [added, setAdded] = useState<{ product: StorefrontProduct; at: number } | null>(null);
     const [root, setRoot] = useState<HTMLDivElement | null>(null);
     const commerce = useStorefrontCommerce(payload, preview);
+    // Le client revient de l'application de son opérateur : la page de paiement de sa commande se rouvre.
+    const placedOrder = commerce.placedOrder.placed;
+    const paymentExpected = Boolean(placedOrder && placedOrder.status !== 'paid' && !['on_delivery', 'other'].includes(placedOrder.method));
+    useEffect(() => {
+        if (paymentExpected) setCartOpen(true);
+    }, [paymentExpected]);
 
     useEffect(() => {
         if (initialPayload) return;

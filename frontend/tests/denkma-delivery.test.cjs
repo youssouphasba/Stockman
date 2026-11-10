@@ -30,6 +30,12 @@ test('A Denkma order shows its destination, state and amount due, and ships only
   assert.equal(s.denkmaState({ ...order.delivery, denkma_status: 'awaiting_funding' }).tone, 'warning');
   assert.deepEqual({ ...s.denkmaState({ ...order.delivery, parcel_status: 'delivered' }) }, { label: 'Livré', tone: 'success' });
   assert.equal(s.denkmaState({ ...order.delivery, status: 'sync_failed' }).tone, 'warning');
+  // Le colis créé attend son livreur : il n'est pas encore pris en charge.
+  assert.equal(s.denkmaState({ ...order.delivery, parcel_status: 'created' }).label, 'En attente de collecte');
+  // Une annulation n'est annoncée qu'une fois confirmée par Denkma.
+  assert.deepEqual({ ...s.denkmaState({ ...order.delivery, parcel_status: 'created', cancel_state: 'pending' }) }, { label: 'Annulation de la livraison en cours chez Denkma', tone: 'warning' });
+  assert.equal(s.denkmaState({ ...order.delivery, cancel_state: 'refused', cancel_error: 'Le colis est déjà parti.' }).label, 'Le colis est déjà parti.');
+  assert.equal(s.denkmaState({ ...order.delivery, denkma_status: 'cancelled', cancel_state: 'done' }).label, 'Livraison annulée');
   assert.equal(s.canShipWithDenkma(order), true);
   for (const variant of [{ ...order, status: 'delivered' }, { ...order, delivery: { ...order.delivery, denkma_status: 'dispatched' } }, { ...order, delivery: { ...order.delivery, parcel_status: 'created' } }, { ...order, delivery: null }]) {
     assert.equal(s.canShipWithDenkma(variant), false);
@@ -45,7 +51,7 @@ test('The storefront replaces the written address by the Denkma choice and sends
   assert.match(picker, /allow="geolocation"/);
   const cart = read('web-app/src/storefront/commerce-ui.tsx');
   assert.match(cart, /denkma\.available \|\| denkma\.loading \? \(/);
-  assert.match(cart, /commerce\.submitOrder\(form, denkma\.choice \? \{ destination_session_id: denkma\.choice\.sessionId \} : null\)/);
+  assert.match(cart, /commerce\.submitOrder\(form, denkma\.choice \? \{ destination_session_id: denkma\.choice\.sessionId \} : null, paymentMethod\)/);
   const config = read('web-app/next.config.ts');
   assert.match(config, /frame-src [^"]*https:\/\/api\.denkma\.com/);
   assert.match(config, /geolocation=\("https:\/\/api\.denkma\.com"\)/);

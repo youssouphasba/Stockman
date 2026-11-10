@@ -40,7 +40,7 @@ test('Section models use the engine and keep Basic as a fallback', () => {
 test('The engine keeps commercial calls on the existing public routes and disables them in preview', () => {
   const commerce = read('web-app/src/storefront/useStorefrontCommerce.ts');
   for (const route of ['/events`', '/orders`', '/contact`']) assert.ok(commerce.includes(`/api/public/ecommerce/\${slug}${route}`), route);
-  assert.match(commerce, /const submitOrder = useCallback\(async \(form: OrderForm, delivery\?: \{ destination_session_id: string \} \| null\) => \{\n\s+if \(preview\) \{/);
+  assert.match(commerce, /const submitOrder = useCallback\(async \(form: OrderForm, delivery\?: \{ destination_session_id: string \} \| null, paymentMethod\?: string \| null\) => \{\n\s+if \(preview\) \{/);
   assert.match(commerce, /const submitContact = useCallback\(async \(form: ContactForm\) => \{\n\s+if \(preview\) \{/);
   assert.match(commerce, /if \(!payload \|\| preview \|\| tracked\.current \|\| !slug\) return;/);
   // La quantité ajoutée (fiche produit) reste bornée par le stock publié.

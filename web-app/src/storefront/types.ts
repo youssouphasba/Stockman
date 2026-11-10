@@ -1,4 +1,5 @@
 // Données publiques d'une boutique, telles que renvoyées par l'API publique de Stockman.
+import type { PaymentOptions } from './OrderPayment';
 
 export type StorefrontProduct = {
     product_id: string;
@@ -28,6 +29,8 @@ export type StorefrontSite = {
     delivery_info?: string | null;
     whatsapp_phone?: string | null;
     payment_instructions?: string | null;
+    // Comptes Wave et Orange Money de la boutique, paiement à la livraison ; absent : consignes écrites seulement.
+    payment?: PaymentOptions | null;
     // Livraison Denkma : position ou point relais choisi sur la carte Denkma, sans adresse écrite.
     denkma_delivery?: boolean;
 };

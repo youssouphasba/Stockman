@@ -40,6 +40,7 @@ import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 import StoreSelector from '../../components/StoreSelector';
 import EcommerceAppearanceEditor from '../../components/EcommerceAppearanceEditor';
 import EcommerceDomainCard from '../../components/EcommerceDomainCard';
+import EcommercePaymentCard from '../../components/EcommercePaymentCard';
 import DenkmaSettingsCard from '../../components/DenkmaSettingsCard';
 import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
 import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
@@ -1408,14 +1409,7 @@ export default function SettingsScreen() {
           <Text style={styles.settingLabel}>Domaine du site</Text>
           <EcommerceDomainCard site={ecommerceSite} canEdit={canManageStoreSettings} styles={styles} onSiteChange={handleDomainChange} onFeedback={showFeedback} />
           </>}
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={ecommerceDraft.payment_instructions || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, payment_instructions: value }))}
-            placeholder="Instructions de paiement manuel : Wave, Orange Money, paiement à la livraison..."
-            placeholderTextColor={colors.textMuted}
-            multiline
-          />
+          <EcommercePaymentCard draft={ecommerceDraft} mobileMoneyAvailable={ecommerceSite?.mobile_money_available} canEdit={canManageStoreSettings} styles={styles} onChange={(patch) => setEcommerceDraft((draft: any) => ({ ...draft, ...patch }))} />
           <TouchableOpacity
             style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
             onPress={() => saveEcommerceSettings()}

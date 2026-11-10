@@ -21,7 +21,8 @@ export default function DenkmaShipDialog({ order, formatAmount, onClose, onShipp
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const delivery = denkmaDelivery(order);
-    const ready = paid && !!photo && !busy;
+    // La photo est facultative : elle sert de preuve au commerçant, elle ne retarde pas l'enlèvement.
+    const ready = paid && !busy;
 
     function choose(file: File | undefined) {
         setError(null);
@@ -39,13 +40,13 @@ export default function DenkmaShipDialog({ order, formatAmount, onClose, onShipp
 
     async function ship(event: React.FormEvent) {
         event.preventDefault();
-        if (!ready || !photo) return;
+        if (!ready) return;
         setBusy(true);
         setError(null);
         try {
             const form = new FormData();
             form.append('customer_paid', 'true');
-            form.append('photo', photo, photo.name || 'colis.jpg');
+            if (photo) form.append('photo', photo, photo.name || 'colis.jpg');
             onShipped(await ecommerceApi.shipWithDenkma(order.order_id, form));
         } catch (err: any) {
             setError(err?.message || "L'expédition n'a pas pu être demandée. Réessayez.");
@@ -72,8 +73,8 @@ export default function DenkmaShipDialog({ order, formatAmount, onClose, onShipp
                     </span>
                 </label>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                    <label htmlFor="denkma-photo" className="block font-bold text-white">2. Photo du colis prêt</label>
-                    <p className="text-xs text-slate-400">Denkma la demande pour la sécurité de l&apos;envoi. JPEG, PNG ou WebP, 5 Mo au maximum.</p>
+                    <label htmlFor="denkma-photo" className="block font-bold text-white">2. Photo du colis prêt (facultatif)</label>
+                    <p className="text-xs text-slate-400">Gardez une preuve de l&apos;état du colis au départ, si vous le souhaitez. JPEG, PNG ou WebP, 5 Mo au maximum.</p>
                     <input id="denkma-photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => choose(event.target.files?.[0])} className="mt-3 block w-full text-sm text-slate-300 file:mr-3 file:rounded-xl file:border-0 file:bg-white/10 file:px-4 file:py-2 file:font-bold file:text-white" />
                     {photo && <p className="mt-2 text-xs text-emerald-300">Photo choisie : {photo.name}</p>}
                 </div>

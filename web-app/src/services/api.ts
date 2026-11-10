@@ -1797,6 +1797,15 @@ export type EcommerceSite = {
     delivery_info?: string | null;
     whatsapp_phone?: string | null;
     payment_instructions?: string | null;
+    // Comptes de paiement mobile du commerçant, affichés au client ; Stockman ne reçoit pas l'argent.
+    wave_phone?: string | null;
+    wave_name?: string | null;
+    wave_link?: string | null;
+    orange_money_phone?: string | null;
+    orange_money_name?: string | null;
+    pay_on_delivery?: boolean;
+    // Faux hors du Sénégal : Wave et Orange Money ne sont pas proposés à cette boutique.
+    mobile_money_available?: boolean;
     show_out_of_stock_products?: boolean;
 };
 
@@ -1812,6 +1821,8 @@ export type DenkmaConnection = {
     validation_pending?: boolean;
     // Création du compte Denkma Pro possible directement depuis Stockman.
     signup_available?: boolean;
+    // Faux hors du Sénégal : Denkma n'est pas proposé à ce commerce.
+    available?: boolean;
 };
 
 export type DenkmaSignup = {
@@ -1831,7 +1842,7 @@ export type DenkmaSignup = {
 };
 
 export type EcommerceSiteUpdate = Partial<Pick<EcommerceSite,
-    'enabled' | 'store_id' | 'custom_domain' | 'domain_mode' | 'domain_requested_name' | 'domain_request_notes' | 'hero_title' | 'site_name' | 'welcome_message' | 'brand_color' | 'contact_email' | 'contact_phone' | 'contact_address' | 'delivery_info' | 'whatsapp_phone' | 'payment_instructions' | 'show_out_of_stock_products'
+    'enabled' | 'store_id' | 'custom_domain' | 'domain_mode' | 'domain_requested_name' | 'domain_request_notes' | 'hero_title' | 'site_name' | 'welcome_message' | 'brand_color' | 'contact_email' | 'contact_phone' | 'contact_address' | 'delivery_info' | 'whatsapp_phone' | 'payment_instructions' | 'wave_phone' | 'wave_name' | 'wave_link' | 'orange_money_phone' | 'orange_money_name' | 'pay_on_delivery' | 'show_out_of_stock_products'
 >>;
 
 export type EcommerceStats = {
@@ -1923,6 +1934,9 @@ export const ecommerce = {
     getOrder: (orderId: string) => request<any>(`/ecommerce/orders/${orderId}`),
     updateOrderStatus: (orderId: string, status: string) =>
         request<{ message: string; order: any }>(`/ecommerce/orders/${orderId}/status`, { method: 'PUT', body: { status } }),
+    // « Paiement reçu » : le commerçant confirme que le client l'a payé (paid: false corrige une erreur).
+    updateOrderPayment: (orderId: string, paid: boolean) =>
+        request<{ order: any; changed: boolean }>(`/ecommerce/orders/${encodeURIComponent(orderId)}/payment`, { method: 'PUT', body: { paid } }),
 };
 
 export const projects = {

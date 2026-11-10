@@ -34,6 +34,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from bson import ObjectId
 from slowapi.errors import RateLimitExceeded
+from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 import base64
 from fastapi.staticfiles import StaticFiles
@@ -86,6 +87,9 @@ from ecommerce_media import EcommerceMediaLibrary
 from ecommerce_addresses import DomainInputError, normalize_ecommerce_slug, parse_domain_input
 from ecommerce_domains import MARKER_SERVICE, DomainServiceError, EcommerceDomainService, VercelDomains
 from ecommerce_denkma import DenkmaError, EcommerceDenkmaService
+import ecommerce_payment
+import ecommerce_sale
+from ecommerce_payment import EcommercePaymentService, PaymentError
 from services.pricing import (
     DEFAULT_COUNTRY_CODE,
     DEFAULT_CURRENCY,
@@ -885,6 +889,8 @@ async def run_startup_migrations():
         asyncio.create_task(supervised_loop("ai_anomalies", check_ai_anomalies_loop, 43200))
         asyncio.create_task(supervised_loop("log_cleanup", cleanup_logs_loop, 86400))
         asyncio.create_task(supervised_loop("late_deliveries", check_late_deliveries_loop, 21600))
+        # Annulations de livraison que Denkma n'a pas pu recevoir : reprises jusqu'à sa confirmation.
+        asyncio.create_task(supervised_loop("denkma_cancellations", lambda: ecommerce_denkma_service.retry_cancellations(), 300))
     except Exception as e:
         logger.error(f"Migration error: {e}")
 
@@ -1422,6 +1428,15 @@ class EcommerceSiteInfo(BaseModel):
     delivery_info: Optional[str] = None
     whatsapp_phone: Optional[str] = None
     payment_instructions: Optional[str] = None
+    # Paiement mobile : le client paie le commerçant directement, Stockman ne reçoit pas l'argent.
+    wave_phone: Optional[str] = None
+    wave_name: Optional[str] = None
+    wave_link: Optional[str] = None
+    orange_money_phone: Optional[str] = None
+    orange_money_name: Optional[str] = None
+    pay_on_delivery: bool = True
+    # Faux hors du Sénégal : Wave et Orange Money ne sont pas proposés à cette boutique.
+    mobile_money_available: bool = True
     show_out_of_stock_products: bool = False
 
 
@@ -1442,6 +1457,12 @@ class EcommerceSiteUpdate(BaseModel):
     delivery_info: Optional[str] = Field(default=None, max_length=800)
     whatsapp_phone: Optional[str] = Field(default=None, max_length=40)
     payment_instructions: Optional[str] = Field(default=None, max_length=1200)
+    wave_phone: Optional[str] = Field(default=None, max_length=40)
+    wave_name: Optional[str] = Field(default=None, max_length=80)
+    wave_link: Optional[str] = Field(default=None, max_length=300)
+    orange_money_phone: Optional[str] = Field(default=None, max_length=40)
+    orange_money_name: Optional[str] = Field(default=None, max_length=80)
+    pay_on_delivery: Optional[bool] = None
     show_out_of_stock_products: Optional[bool] = None
 
 
@@ -1521,6 +1542,16 @@ class PublicEcommerceOrderCreate(BaseModel):
     items: List[PublicEcommerceOrderItem]
     # Livraison Denkma : position ou point relais confirmé sur la page Denkma, sans adresse écrite.
     delivery: Optional[PublicEcommerceDeliveryChoice] = None
+    # Choix du client quand la boutique affiche un compte Wave ou Orange Money ; absent sur une page ouverte avant le réglage.
+    payment_method: Optional[Literal["wave", "orange_money", "on_delivery"]] = None
+
+
+class PublicEcommercePaymentToken(BaseModel):
+    token: str = Field(..., min_length=16, max_length=128)
+
+
+class EcommerceOrderPaymentUpdate(BaseModel):
+    paid: bool
 
 
 class PublicDenkmaSessionCreate(BaseModel):
@@ -1572,6 +1603,9 @@ class PublicEcommerceOrderResponse(BaseModel):
     total_amount: float
     delivery_fee: float = 0
     amount_due: Optional[float] = None
+    # État du paiement, et jeton remis au seul client pour le suivre depuis la boutique.
+    payment: Optional[Dict[str, Any]] = None
+    payment_token: Optional[str] = None
 
 
 class PublicEcommerceContactCreate(BaseModel):
@@ -1760,6 +1794,76 @@ async def public_ecommerce_delivery_session_state(
 ):
     account_doc = await get_public_denkma_account(slug)
     return await run_denkma_operation(ecommerce_denkma_service.destination_quote(account_doc, session_id))
+
+
+async def run_payment_operation(operation):
+    try:
+        return await operation
+    except PaymentError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message)
+
+
+async def notify_ecommerce_owner(owner_id: str, title: str, message: str, order_id: str) -> None:
+    """Prévient le commerçant sur son téléphone et dans sa messagerie Stockman ; un échec n'arrête rien."""
+    deeplink = build_notification_deeplink("orders", {"order_id": order_id, "source": "ecommerce", "tab": "web"})
+    try:
+        await notification_service.notify_user(db, owner_id, title, message, {"type": "ecommerce_order", "order_id": order_id, **deeplink})
+    except Exception as notify_err:
+        logger.warning(f"E-commerce payment push notification failed: {notify_err}")
+    try:
+        now = datetime.now(timezone.utc)
+        await db.admin_messages.insert_one({
+            "message_id": f"msg_{uuid.uuid4().hex[:12]}",
+            "title": title,
+            "content": message,
+            "message": message,
+            "type": "ecommerce_order",
+            "target": owner_id,
+            "target_user_ids": [owner_id],
+            "sent_by": "system",
+            "sent_at": now,
+            "created_at": now,
+            "read_by": [],
+            "read_count": 0,
+            "metadata": {"order_id": order_id, "screen": "orders", "tab": "web", "source": "ecommerce"},
+            "deeplink": deeplink,
+        })
+    except Exception as in_app_err:
+        logger.warning(f"E-commerce payment in-app notification failed: {in_app_err}")
+
+
+@app.get("/api/public/ecommerce/{slug}/orders/{order_id}/payment")
+@limiter.limit("60/minute")
+async def public_ecommerce_order_payment(
+    request: Request,
+    slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$"),
+    order_id: str = Path(..., pattern="^eord_[a-f0-9]{12}$"),
+):
+    # Le jeton du client voyage dans un en-tête : il n'apparaît dans aucune adresse.
+    return await run_payment_operation(ecommerce_payment_service.state(slug, order_id, request.headers.get("x-order-token") or ""))
+
+
+@app.post("/api/public/ecommerce/{slug}/orders/{order_id}/payment/declared")
+@limiter.limit("10/minute")
+async def public_ecommerce_order_payment_declared(
+    request: Request,
+    data: PublicEcommercePaymentToken,
+    slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$"),
+    order_id: str = Path(..., pattern="^eord_[a-f0-9]{12}$"),
+):
+    result = await run_payment_operation(ecommerce_payment_service.declare(slug, order_id, data.token))
+    if result["changed"]:
+        order = result["order"]
+        state = result["state"]
+        await notify_ecommerce_owner(
+            order.get("user_id"),
+            "Paiement à vérifier",
+            f"{order.get('customer_name') or 'Le client'} dit avoir payé {format_order_amount(state['amount_due'])} {state['currency']} "
+            f"pour la commande {state['order_number']}. Vérifiez sur votre compte "
+            f"{ecommerce_payment.wallet_label(state['method']) or 'de paiement'}, puis touchez « Paiement reçu ».",
+            order_id,
+        )
+    return result["state"]
 
 
 @app.get("/api/public/ecommerce/_domain-check")
@@ -2070,6 +2174,10 @@ async def create_public_ecommerce_order(
         raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
     if not payload.items:
         raise HTTPException(status_code=400, detail="Le panier est vide")
+    try:
+        payment_method = ecommerce_payment.choose_method(account_doc, payload.payment_method, denkma_delivery=bool(payload.delivery))
+    except PaymentError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message)
 
     owner_id = account_doc.get("owner_user_id")
     store_id = account_doc.get("ecommerce_default_store_id")
@@ -2128,6 +2236,7 @@ async def create_public_ecommerce_order(
     order_id = f"eord_{uuid.uuid4().hex[:12]}"
     order_number = f"WEB-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
     customer_id = await upsert_ecommerce_customer(owner_id, store_id, payload, order_number, now)
+    order_payment = ecommerce_payment.new_payment(payment_method)
     order_doc = {
         "order_id": order_id,
         "order_number": order_number,
@@ -2148,6 +2257,7 @@ async def create_public_ecommerce_order(
         "delivery": delivery,
         "delivery_fee": delivery_fee,
         "amount_due": amount_due,
+        "payment": order_payment["payment"],
         "currency": account_doc.get("currency") or "XOF",
         "created_at": now,
         "updated_at": now,
@@ -2159,6 +2269,18 @@ async def create_public_ecommerce_order(
     title = "Nouvelle commande E-com"
     delivery_note = f" (livraison Denkma de {format_order_amount(delivery_fee)} {account_doc.get('currency') or 'XOF'} comprise)" if delivery else ""
     message = f"{payload.customer_name.strip()} a envoyé une commande de {amount_due} {account_doc.get('currency') or 'XOF'}{delivery_note}."
+    wallet = ecommerce_payment.wallet_account(account_doc, payment_method)
+    payment_text = ""
+    if wallet:
+        message += f" Paiement choisi : {wallet['label']}."
+        wallet_holder = f" ({wallet['name']})" if wallet.get("name") else ""
+        payment_text = (
+            f"Pour payer avec {wallet['label']} : envoyez {format_order_amount(amount_due)} {account_doc.get('currency') or 'XOF'} "
+            f"au {wallet['phone']}{wallet_holder}."
+        )
+    elif payment_method == ecommerce_payment.ON_DELIVERY:
+        message += " Paiement choisi : à la livraison."
+        payment_text = "Vous paierez la boutique à la réception de votre commande."
     notification_deeplink = build_notification_deeplink("orders", {"order_id": order_id, "source": "ecommerce", "tab": "web"})
     try:
         await notification_service.notify_user(
@@ -2252,6 +2374,7 @@ async def create_public_ecommerce_order(
                 f"<p>Votre commande <strong>{order_number}</strong> a bien été reçue par {html.escape(str(store_name or 'la boutique'))}.</p>"
                 f"<ul>{items_html}</ul>"
                 f"<p>Total : <strong>{amount_due} {html.escape(str(order_doc.get('currency') or 'XOF'))}</strong>{html.escape(delivery_note)}</p>"
+                f"{'<p>' + html.escape(payment_text) + '</p>' if payment_text else ''}"
                 f"<p>Nous vous contacterons dès qu'elle sera confirmée.</p>"
             )
             customer_text = (
@@ -2259,6 +2382,7 @@ async def create_public_ecommerce_order(
                 f"Votre commande {order_number} a bien été reçue.\n"
                 f"{items_text}\n"
                 f"Total : {amount_due} {order_doc.get('currency') or 'XOF'}{delivery_note}\n"
+                f"{payment_text + chr(10) if payment_text else ''}"
                 "Nous vous contacterons dès qu'elle sera confirmée."
             )
             await notification_service.send_email_notification([customer_email], f"Commande reçue {order_number}", customer_html, text_body=customer_text)
@@ -2271,6 +2395,8 @@ async def create_public_ecommerce_order(
         total_amount=round(total_amount, 2),
         delivery_fee=delivery_fee,
         amount_due=amount_due,
+        payment={"method": payment_method, "status": ecommerce_payment.AWAITING},
+        payment_token=order_payment["token"],
     )
 
 
@@ -4075,6 +4201,8 @@ def get_ecommerce_domain_target() -> str:
 ecommerce_domain_service = EcommerceDomainService(db, hosting=VercelDomains.from_env(), legacy_target=get_ecommerce_domain_target())
 # Livraison des commandes en ligne avec Denkma Pro ; les clés sont chiffrées avec JWT_SECRET.
 ecommerce_denkma_service = EcommerceDenkmaService(db, web_base_url=get_web_app_base_url(), on_delivered=lambda order: mark_denkma_order_delivered(order))
+# Paiement des commandes en ligne : le client paie le commerçant, Stockman suit seulement l'état.
+ecommerce_payment_service = EcommercePaymentService(db)
 
 
 def get_normalized_request_host(request: Optional[Request]) -> Optional[str]:
@@ -4213,6 +4341,7 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
         "delivery_info": account_doc.get("ecommerce_delivery_info"),
         "whatsapp_phone": account_doc.get("ecommerce_whatsapp_phone"),
         "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
+        **ecommerce_payment.settings_view(account_doc),
         "show_out_of_stock_products": bool(account_doc.get("ecommerce_show_out_of_stock_products") is True),
     }
 
@@ -4296,9 +4425,11 @@ async def build_public_ecommerce_payload(account_doc: Dict[str, Any], theme: Any
             "delivery_info": account_doc.get("ecommerce_delivery_info"),
             "whatsapp_phone": account_doc.get("ecommerce_whatsapp_phone"),
             "payment_instructions": account_doc.get("ecommerce_payment_instructions"),
+            # Comptes Wave et Orange Money du commerçant, paiement à la livraison ; None : seules les consignes écrites s'affichent.
+            "payment": ecommerce_payment.public_options(account_doc),
             "show_out_of_stock_products": bool(account_doc.get("ecommerce_show_out_of_stock_products") is True),
             # Le client choisit alors sa position ou un point relais Denkma au lieu d'écrire une adresse.
-            "denkma_delivery": ecommerce_denkma_service.is_connected(account_doc),
+            "denkma_delivery": ecommerce_denkma_service.offered(account_doc),
         },
         "products": public_products,
     }
@@ -18561,6 +18692,10 @@ async def update_ecommerce_site(data: EcommerceSiteUpdate, request: Request, use
         updates["ecommerce_whatsapp_phone"] = data.whatsapp_phone.strip() or None
     if data.payment_instructions is not None:
         updates["ecommerce_payment_instructions"] = data.payment_instructions.strip() or None
+    try:
+        updates.update(ecommerce_payment.settings_updates(data.model_dump(include=set(ecommerce_payment.SETTINGS_FIELDS)), account_doc or {}))
+    except PaymentError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message)
     if data.show_out_of_stock_products is not None:
         updates["ecommerce_show_out_of_stock_products"] = bool(data.show_out_of_stock_products)
     if len(updates) > 1 and account_doc:
@@ -18733,7 +18868,7 @@ async def refresh_ecommerce_order_denkma(order_id: str, request: Request, user: 
 async def mark_denkma_order_delivered(order: Dict[str, Any]) -> None:
     """Colis remis par Denkma : la commande passe à « livrée » et devient une vente, une seule fois."""
     current = await db.ecommerce_orders.find_one({"order_id": order.get("order_id")}, {"_id": 0})
-    if not current or current.get("status") in {"delivered", "cancelled", "rejected"} or current.get("sale_id"):
+    if not current or current.get("status") in {"delivered", "cancelled", "rejected"} or current.get("sale_id") or current.get("sale_claim"):
         return
     owner_id = current.get("user_id")
     reference = current.get("order_number") or current.get("order_id")
@@ -19117,7 +19252,7 @@ async def list_ecommerce_orders(
         query["status"] = status
     total = await db.ecommerce_orders.count_documents(query)
     items = await db.ecommerce_orders.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
-    return {"items": items, "total": total}
+    return {"items": [ecommerce_payment.merchant_view(item) for item in items], "total": total}
 
 
 @api_router.get("/ecommerce/orders/{order_id}")
@@ -19129,106 +19264,78 @@ async def get_ecommerce_order(order_id: str, user: User = Depends(require_permis
     order = await db.ecommerce_orders.find_one(query, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Commande E-com introuvable")
-    return order
+    return ecommerce_payment.merchant_view(order)
 
 
 async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> Dict[str, Any]:
+    """Commande livrée : sortie du stock, vente et clôture, une seule fois (voir ecommerce_sale)."""
     owner_id = get_owner_id(user)
     store_id = order.get("store_id") or user.active_store_id
     if not store_id:
         raise HTTPException(status_code=400, detail="Boutique active introuvable")
-    if order.get("sale_id"):
-        return order
+    reference = order.get("order_number") or order.get("order_id")
 
-    sale_items: List[SaleItem] = []
-    for item in order.get("items") or []:
-        product_id = item.get("product_id")
-        quantity = float(item.get("quantity") or 0)
-        if not product_id or quantity <= 0:
-            continue
-        product = await db.products.find_one(
-            {"product_id": product_id, "user_id": owner_id, "store_id": store_id, "is_active": {"$ne": False}},
-            {"_id": 0},
-        )
-        if not product:
-            raise HTTPException(status_code=400, detail=f"Produit indisponible : {item.get('product_name') or product_id}")
-        current_quantity = float(product.get("quantity") or 0)
-        if current_quantity < quantity:
-            raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product.get('name')}")
-        update_result = await db.products.update_one(
-            {"product_id": product_id, "user_id": owner_id, "store_id": store_id, "quantity": {"$gte": quantity}},
-            {"$inc": {"quantity": -quantity}, "$set": {"updated_at": datetime.now(timezone.utc)}},
-        )
-        if update_result.modified_count == 0:
-            raise HTTPException(status_code=400, detail=f"Stock insuffisant pour {product.get('name')}")
-        new_quantity = current_quantity - quantity
+    async def record_movement(product: Dict[str, Any], quantity: float, before: float, after: float) -> None:
         movement = StockMovement(
-            product_id=product_id,
+            product_id=product["product_id"],
             user_id=owner_id,
             store_id=store_id,
             type="out",
             quantity=quantity,
-            reason=f"Vente E-com {order.get('order_number') or order.get('order_id')} livrÃ©e",
-            previous_quantity=current_quantity,
-            new_quantity=new_quantity,
-            source_type="ecommerce_order",
+            reason=f"Vente E-com {reference} livrée",
+            previous_quantity=before,
+            new_quantity=after,
+            source_type=ecommerce_sale.MOVEMENT_SOURCE,
             source_id=order.get("order_id"),
         )
         await db.stock_movements.insert_one(movement.model_dump())
-        product["quantity"] = new_quantity
-        await check_and_create_alerts(Product(**product), user.user_id, store_id=store_id)
-        unit_price = float(item.get("unit_price") or product.get("selling_price") or 0)
-        sale_items.append(SaleItem(
-            product_id=product_id,
-            product_name=product.get("name") or item.get("product_name") or "Produit",
-            quantity=quantity,
-            purchase_price=float(product.get("purchase_price") or 0),
-            selling_price=unit_price,
-            total=round(unit_price * quantity, 2),
-            sold_quantity_input=quantity,
-            sold_unit=product.get("unit") or item.get("unit"),
-        ))
+        await check_and_create_alerts(Product(**{**product, "quantity": after}), user.user_id, store_id=store_id)
 
-    if not sale_items:
-        raise HTTPException(status_code=400, detail="Aucun article valide dans cette commande")
+    async def record_sale(sale_id: str, current: Dict[str, Any], lines: List[Dict[str, Any]]) -> None:
+        sale_items: List[SaleItem] = []
+        for line in lines:
+            item, product, quantity = line["item"], line["product"], line["quantity"]
+            unit_price = float(item.get("unit_price") or product.get("selling_price") or 0)
+            sale_items.append(SaleItem(
+                product_id=product["product_id"],
+                product_name=product.get("name") or item.get("product_name") or "Produit",
+                quantity=quantity,
+                purchase_price=float(product.get("purchase_price") or 0),
+                selling_price=unit_price,
+                total=round(unit_price * quantity, 2),
+                sold_quantity_input=quantity,
+                sold_unit=product.get("unit") or item.get("unit"),
+            ))
+        total_amount = round(sum(item.total for item in sale_items), 2)
+        # Wave et Orange Money sont des paiements mobiles : la vente ne doit pas être classée en espèces.
+        payment_method = ecommerce_payment.sale_payment_method(current)
+        customer_effects = await _compute_sale_customer_effects(owner_id, current.get("customer_id"), total_amount, payment_method)
+        sale = Sale(
+            sale_id=sale_id,
+            user_id=owner_id,
+            store_id=store_id,
+            items=sale_items,
+            total_amount=total_amount,
+            payment_method=payment_method,
+            customer_id=current.get("customer_id"),
+            customer_name=current.get("customer_name"),
+            loyalty_points_earned=customer_effects["loyalty_points_earned"],
+            customer_total_spent_increment=customer_effects["customer_total_spent_increment"],
+            credit_debt_applied=customer_effects["credit_debt_applied"],
+            notes=f"Commande E-com {reference}",
+            status="completed",
+            service_type="delivery",
+            current_amount=total_amount,
+        )
+        await db.sales.insert_one(sale.model_dump())
+        await _apply_sale_customer_effects(owner_id, current.get("customer_id"), customer_effects, customer_channel="ecommerce")
 
-    total_amount = round(sum(item.total for item in sale_items), 2)
-    customer_effects = await _compute_sale_customer_effects(
-        owner_id,
-        order.get("customer_id"),
-        total_amount,
-        order.get("payment_method") or "cash",
-    )
-    sale = Sale(
-        user_id=owner_id,
-        store_id=store_id,
-        items=sale_items,
-        total_amount=total_amount,
-        payment_method=order.get("payment_method") or "cash",
-        customer_id=order.get("customer_id"),
-        customer_name=order.get("customer_name"),
-        loyalty_points_earned=customer_effects["loyalty_points_earned"],
-        customer_total_spent_increment=customer_effects["customer_total_spent_increment"],
-        credit_debt_applied=customer_effects["credit_debt_applied"],
-        notes=f"Commande E-com {order.get('order_number') or order.get('order_id')}",
-        status="completed",
-        service_type="delivery",
-        current_amount=total_amount,
-    )
-    await db.sales.insert_one(sale.model_dump())
-    await _apply_sale_customer_effects(owner_id, order.get("customer_id"), customer_effects, customer_channel="ecommerce")
-    await db.ecommerce_orders.update_one(
-        {"order_id": order["order_id"], "user_id": owner_id},
-        {"$set": {
-            "status": "delivered",
-            "sale_id": sale.sale_id,
-            "delivered_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc),
-        }},
-    )
+    try:
+        updated = await ecommerce_sale.convert(db, order, owner_id=owner_id, store_id=store_id, record_sale=record_sale, record_movement=record_movement)
+    except ecommerce_sale.SaleError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message)
     _invalidate_dashboard_ai_caches(owner_id, store_id)
-    updated = await db.ecommerce_orders.find_one({"order_id": order["order_id"], "user_id": owner_id}, {"_id": 0})
-    return updated or order
+    return updated
 
 
 @api_router.put("/ecommerce/orders/{order_id}/status")
@@ -19283,7 +19390,11 @@ async def update_ecommerce_order_status(
     elif payload.status in {"confirmed", "preparing", "ready"} and (order.get("delivery") or {}).get("provider") == "denkma":
         # Confirmer ou Préparer : Denkma réserve le transport. « Prête » : le colis est emballé, un livreur est demandé.
         denkma_account = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0}) or {}
-        await ecommerce_denkma_service.validated(denkma_account, {**order, "status": payload.status}, ready=payload.status == "ready")
+        # Sans « Paiement reçu », le commerçant autorise l'expédition : ce n'est pas une confirmation d'encaissement.
+        await ecommerce_denkma_service.validated(
+            denkma_account, {**order, "status": payload.status}, ready=payload.status == "ready",
+            paid=ecommerce_payment.settled(order),
+        )
     updated = await db.ecommerce_orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
     customer_email = str((updated or {}).get("customer_email") or "").strip().lower()
     if customer_email:
@@ -19306,6 +19417,60 @@ async def update_ecommerce_order_status(
         except Exception as email_err:
             logger.warning(f"E-commerce status email failed: {email_err}")
     return {"message": "Statut mis Ã  jour", "order": updated}
+
+
+@api_router.put("/ecommerce/orders/{order_id}/payment")
+async def update_ecommerce_order_payment(
+    order_id: str,
+    payload: EcommerceOrderPaymentUpdate,
+    user: User = Depends(require_permission("stock", "write")),
+):
+    """« Paiement reçu » : le commerçant confirme que le client l'a payé (ou corrige une erreur)."""
+    ensure_subscription_write_allowed(user)
+    owner_id = get_owner_id(user)
+    query = {"order_id": order_id, "user_id": owner_id}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
+    order = await db.ecommerce_orders.find_one(query, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande E-com introuvable")
+    result = await run_payment_operation(ecommerce_payment_service.mark(order, paid=payload.paid, actor_id=user.user_id))
+    updated = result["order"]
+    if result["changed"] and payload.paid:
+        if updated.get("status") == "pending":
+            # Une commande payée est confirmée du même geste : le commerçant n'a rien d'autre à valider.
+            confirmed = await db.ecommerce_orders.find_one_and_update(
+                {"order_id": order_id, "user_id": owner_id, "status": "pending"},
+                {"$set": {"status": "confirmed", "updated_at": datetime.now(timezone.utc)}},
+                projection={"_id": 0},
+                return_document=ReturnDocument.AFTER,
+            )
+            updated = confirmed or updated
+        if (updated.get("delivery") or {}).get("provider") == "denkma" and updated.get("status") in {"confirmed", "preparing"}:
+            # Denkma réserve le transport ; l'enlèvement attend toujours le geste « Prête ».
+            denkma_account = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0}) or {}
+            await ecommerce_denkma_service.validated(denkma_account, updated)
+            updated = await db.ecommerce_orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0}) or updated
+        customer_email = str(updated.get("customer_email") or "").strip().lower()
+        if customer_email:
+            try:
+                reference = updated.get("order_number") or order_id
+                await notification_service.send_email_notification(
+                    [customer_email],
+                    f"Paiement reçu pour la commande {reference}",
+                    (
+                        f"<p>Bonjour {html.escape(str(updated.get('customer_name') or ''))},</p>"
+                        f"<p>La boutique a bien reçu votre paiement pour la commande <strong>{html.escape(str(reference))}</strong>. "
+                        f"Elle prépare maintenant votre commande.</p>"
+                    ),
+                    text_body=(
+                        f"Bonjour {updated.get('customer_name') or ''},\n"
+                        f"La boutique a bien reçu votre paiement pour la commande {reference}. Elle prépare maintenant votre commande."
+                    ),
+                )
+            except Exception as email_err:
+                logger.warning(f"E-commerce payment email failed: {email_err}")
+    return {"order": ecommerce_payment.merchant_view(updated), "changed": result["changed"]}
 
 
 @api_router.get("/stores/consolidated-stats")

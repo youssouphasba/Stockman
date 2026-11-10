@@ -114,6 +114,9 @@ export default function DenkmaSettingsCard({ canEdit, styles, onFeedback }: Prop
   const muted = styles.settingDesc;
   const tone = state?.validation_pending || state?.problem || state?.transport_open === false ? colors.warning : colors.success;
 
+  // Denkma livre au Sénégal : la carte n'est pas proposée aux autres commerces.
+  if (state?.available === false && !state.connected) return null;
+
   return (
     <View style={{ gap: Spacing.sm, marginBottom: Spacing.md }}>
       <Text style={styles.settingLabel}>Livraison Denkma</Text>

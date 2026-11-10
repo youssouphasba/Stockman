@@ -50,13 +50,13 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
   }
 
   async function ship() {
-    if (!paid || !photo || busy) return;
+    if (!paid || busy) return;
     setBusy(true);
     setError(null);
     try {
       const form = new FormData();
       form.append('customer_paid', 'true');
-      form.append('photo', { uri: photo.uri, name: 'colis.jpg', type: photo.type } as any);
+      if (photo) form.append('photo', { uri: photo.uri, name: 'colis.jpg', type: photo.type } as any);
       const updated = await ecommerce.shipWithDenkma(order.order_id, form);
       onShipped(updated);
     } catch (err: any) {
@@ -69,7 +69,8 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
   const card = { borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.md, padding: Spacing.md, gap: Spacing.xs };
   const text = { color: colors.text, fontSize: FontSize.sm, lineHeight: 20 };
   const muted = { color: colors.textMuted, fontSize: FontSize.xs, lineHeight: 18 };
-  const ready = paid && !!photo && !busy;
+  // La photo est facultative : elle sert de preuve au commerçant, elle ne retarde pas l'enlèvement.
+  const ready = paid && !busy;
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
@@ -102,8 +103,8 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
             </View>
 
             <View style={card}>
-              <Text style={[text, { fontWeight: '700' }]}>2. Photo du colis prêt</Text>
-              <Text style={muted}>Denkma la demande pour la sécurité de l'envoi.</Text>
+              <Text style={[text, { fontWeight: '700' }]}>2. Photo du colis prêt (facultatif)</Text>
+              <Text style={muted}>Gardez une preuve de l'état du colis au départ, si vous le souhaitez.</Text>
               {photo && <Image source={{ uri: photo.uri }} style={{ width: '100%', height: 180, borderRadius: BorderRadius.md, marginTop: Spacing.sm }} resizeMode="cover" accessibilityLabel="Photo du colis" />}
               <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
                 {(['camera', 'library'] as const).map((source) => (

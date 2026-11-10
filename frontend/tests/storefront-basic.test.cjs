@@ -20,8 +20,25 @@ function basicBody() {
 
 test('Stockman Basic keeps its exact render; the private preview only adds isolated branches', () => {
   const { text } = basicBody();
-  assert.equal(sha256(text), 'bc747b18d85e8307616a30d0b1f02a54c616eb4ff72af299a0a31e6fb9017d23');
+  assert.equal(sha256(text), '9a89f6e7a94eff1fbc0a0a81edcb6e482d68bbb8f472f04f09094c562a25be7e');
   // En retirant les seules branches de l'aperçu privé, on retrouve octet pour octet le rendu public historique.
+  // Le paiement (Wave, Orange Money, à la livraison) n'ajoute que des branches isolées : sans elles, le rendu qui suit est celui d'avant.
+  const paymentBranches = [
+    ["  // Paiement : choix du client avant la commande, puis page de paiement de la commande passée.\n  const paymentOptions = paymentOptionsFor(payload?.site.payment, denkma.available);\n  const [chosenPayment, setChosenPayment] = useState<string | null>(null);\n  const paymentMethod = offeredPaymentMethod(paymentOptions, chosenPayment);\n  const placedOrder = usePlacedOrder(slug, !isPreview);\n  const placed = placedOrder.placed;\n  const paymentExpected = Boolean(placed && placed.status !== 'paid' && !['on_delivery', 'other'].includes(placed.method));\n  useEffect(() => {\n    // Le client revient de l'application de son opérateur : la page de paiement se rouvre.\n    if (paymentExpected) setCartOpen(true);\n  }, [paymentExpected]);\n", ""],
+    ["          ...(paymentMethod ? { payment_method: paymentMethod } : {}),\n", ""],
+    ["      if (paymentOptions && data.payment_token) {\n        placedOrder.place({\n          orderId: data.order_id,\n          orderNumber: data.order_number,\n          token: data.payment_token,\n          amountDue: typeof data.amount_due === 'number' ? data.amount_due : data.total_amount,\n          currency: payload?.site.currency || 'XOF',\n          method: data.payment?.method || 'other',\n          status: 'awaiting',\n          orderStatus: data.status || 'pending',\n        });\n      } else {\n        setOrderNumber(data.order_number);\n      }\n", "      setOrderNumber(data.order_number);\n"],
+    ["      {placed && (\n        <div className=\"mb-4\"><OrderPaymentPanel state={placedOrder} options={paymentOptions} variant=\"basic\" format={formatAmount} /></div>\n      )}\n", ""],
+    ["      {paymentOptions && cartLines.length > 0 && (\n        <div className=\"mt-4\"><PaymentChoice options={paymentOptions} value={paymentMethod} onChange={setChosenPayment} variant=\"basic\" /></div>\n      )}\n\n", ""],
+    ["          <p className=\"font-black\">{paymentOptions ? 'À savoir sur le paiement' : 'Paiement'}</p>\n", "          <p className=\"font-black\">Paiement</p>\n"],
+    [" : submitting ? 'Envoi...' : paymentMethod && paymentMethod !== 'on_delivery' ? 'Commander et payer' : 'Envoyer la commande'}", " : submitting ? 'Envoi...' : 'Envoyer la commande'}"],
+  ];
+  let withoutPayment = text;
+  for (const [branch, original] of paymentBranches) {
+    assert.equal(withoutPayment.split(branch).length - 1, 1, branch.slice(0, 60));
+    withoutPayment = withoutPayment.replace(branch, original);
+  }
+  for (const name of ['paymentOptions', 'paymentMethod', 'placedOrder']) assert.equal(withoutPayment.includes(name), false, name);
+  assert.equal(sha256(withoutPayment), 'bc747b18d85e8307616a30d0b1f02a54c616eb4ff72af299a0a31e6fb9017d23');
   const removals = [
     [`    // L'aperçu privé lit une révision grâce au jeton transmis dans le corps ; le site public garde sa lecture par adresse.
     const request = previewToken
@@ -37,7 +54,7 @@ test('Stockman Basic keeps its exact render; the private preview only adds isola
     [`{privatePreview ? "Commandes désactivées dans l'aperçu" : submitting ? 'Envoi...' : 'Envoyer la commande'}`, "{submitting ? 'Envoi...' : 'Envoyer la commande'}"],
     [`{privatePreview ? "Messages désactivés dans l'aperçu" : contactSubmitting ? 'Envoi...' : 'Envoyer le message'}`, "{contactSubmitting ? 'Envoi...' : 'Envoyer le message'}"],
   ];
-  let historical = text;
+  let historical = withoutPayment;
   for (const [preview, original] of removals) {
     assert.equal(historical.split(preview).length - 1, 1, preview.slice(0, 60));
     historical = historical.replace(preview, original);

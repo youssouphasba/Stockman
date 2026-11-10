@@ -89,6 +89,9 @@ export default function DenkmaSettingsPanel({ canEdit, readOnlyMessage, onNotice
         }
     }
 
+    // Denkma livre au Sénégal : le panneau n'est pas proposé aux autres commerces.
+    if (state?.available === false && !state.connected) return null;
+
     return (
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
             <div className="mb-4 flex items-start gap-3">

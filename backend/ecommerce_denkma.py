@@ -34,6 +34,10 @@ CATEGORIES = ("small", "large")
 # Statuts d'une commande Denkma après lesquels l'expédition est engagée.
 SHIPPED_STATUSES = ("dispatching", "dispatched")
 MAX_EVENTS = 50
+# Refus passagers de Denkma : la demande est à reprendre telle quelle.
+TRANSIENT_STATUSES = (429, 502, 503)
+CANCEL_PENDING, CANCEL_DONE, CANCEL_REFUSED = "pending", "done", "refused"
+CANCEL_RETRY_BATCH = 50
 
 
 def _http_client(**kwargs: Any) -> Any:
@@ -51,6 +55,25 @@ def _aware(value: Any) -> Any:
     if isinstance(value, datetime) and value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value
+
+
+def _moment(value: Any) -> Optional[datetime]:
+    """Date d'un événement Denkma (texte ISO), sinon None."""
+    if isinstance(value, datetime):
+        return _aware(value)
+    try:
+        return _aware(datetime.fromisoformat(str(value).replace("Z", "+00:00"))) if value else None
+    except ValueError:
+        return None
+
+
+def serves(account: Mapping[str, Any]) -> bool:
+    """Denkma livre au Sénégal et facture en XOF : seuls les commerces sénégalais en XOF y ont accès.
+    Un compte sans pays ni devise est un compte sénégalais d'origine."""
+    return str(account.get("country_code") or "SN").upper() == "SN" and str(account.get("currency") or "XOF").upper() == "XOF"
+
+
+NOT_SERVED = "La livraison Denkma est proposée aux commerces du Sénégal, avec des prix en francs CFA (XOF)."
 
 
 def _hash(value: str) -> str:
@@ -245,7 +268,9 @@ class EcommerceDenkmaService:
         self.api = api or DenkmaApi()
         self.web_base_url = web_base_url.rstrip("/")
         self.shop_domain = urlsplit(self.web_base_url).hostname or ""
-        self._box_factory = box_factory or (lambda: SecretBox(os.environ.get("JWT_SECRET", "")))
+        # Clé propre aux connexions Denkma ; sans elle, celle du serveur : changer JWT_SECRET ne doit pas
+        # obliger les commerçants à reconnecter Denkma une fois DENKMA_ENCRYPTION_KEY renseignée.
+        self._box_factory = box_factory or (lambda: SecretBox(os.environ.get("DENKMA_ENCRYPTION_KEY") or os.environ.get("JWT_SECRET", "")))
         self.clock = clock or _now
         self.on_delivered = on_delivered
         self._floor_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
@@ -259,6 +284,10 @@ class EcommerceDenkmaService:
 
     def is_connected(self, account: Mapping[str, Any]) -> bool:
         return bool(self.connection(account))
+
+    def offered(self, account: Mapping[str, Any]) -> bool:
+        """La boutique propose la livraison Denkma à ses clients."""
+        return self.is_connected(account) and serves(account)
 
     def _key(self, account: Mapping[str, Any]) -> str:
         link = self.connection(account)
@@ -280,6 +309,8 @@ class EcommerceDenkmaService:
                 category if category in CATEGORIES else "small")
 
     async def start_connection(self, account: Mapping[str, Any]) -> Dict[str, str]:
+        if not serves(account):
+            raise DenkmaError(403, "denkma_country", NOT_SERVED)
         state = secrets.token_urlsafe(24)
         await self.states.insert_one({"state_hash": _hash(state), "account_id": account["account_id"], "expires_at": self.clock() + timedelta(minutes=CONNECT_MINUTES)})
         query = urlencode({
@@ -331,6 +362,8 @@ class EcommerceDenkmaService:
 
         Le numéro a été vérifié par SMS dans l'application (preuve Firebase, revérifiée par Denkma).
         Le compte reste en attente de validation par Denkma avant la première expédition."""
+        if not serves(account):
+            raise DenkmaError(403, "denkma_country", NOT_SERVED)
         partner_key = self.partner_key()
         if not partner_key:
             raise DenkmaError(503, "denkma_signup_unavailable", "La création d'un compte Denkma Pro depuis Stockman n'est pas encore ouverte. Créez votre compte dans l'application Denkma, puis connectez-le.")
@@ -356,8 +389,11 @@ class EcommerceDenkmaService:
         weight, category = self._settings(account)
         state: Dict[str, Any] = {"connected": bool(link), "key_hint": link.get("key_hint"), "connected_at": link.get("connected_at"),
                                  "weight_kg": weight, "parcel_category": category, "transport_open": None, "problem": None,
-                                 "validation_pending": False, "signup_available": bool(self.partner_key())}
-        if link and live:
+                                 "validation_pending": False, "signup_available": bool(self.partner_key()),
+                                 "available": serves(account)}
+        if not state["available"]:
+            state["problem"] = NOT_SERVED
+        elif link and live:
             try:
                 shop = await self.api.shop(self._key(account))
                 state["transport_open"] = bool(shop.get("transport_open"))
@@ -388,7 +424,7 @@ class EcommerceDenkmaService:
     async def delivery_options(self, account: Mapping[str, Any]) -> Dict[str, Any]:
         """Modes proposés au client, avec leur prix « à partir de ». Un mode que la boutique ne
         peut pas financer n'est pas proposé, sans jamais révéler son solde."""
-        if not self.is_connected(account):
+        if not self.offered(account):
             return {"modes": []}
         cached = self._floor_cache.get(account["account_id"])
         if cached and cached[0] > time.monotonic():
@@ -435,6 +471,8 @@ class EcommerceDenkmaService:
 
     async def checkout_delivery(self, account: Mapping[str, Any], session_id: str, customer_phone: Optional[str]) -> Dict[str, Any]:
         """Choix du client revérifié par Denkma au moment de la commande : prix qui fait foi."""
+        if not serves(account):
+            raise DenkmaError(409, "denkma_unavailable", "La livraison Denkma n'est pas disponible pour cette boutique.")
         if not denkma_phone(customer_phone):
             raise DenkmaError(422, "denkma_phone", "Indiquez un numéro de téléphone sénégalais (ou français) : le livreur Denkma en a besoin.")
         quote = await self.destination_quote(account, session_id)
@@ -457,10 +495,16 @@ class EcommerceDenkmaService:
             "destination_session_id": (order.get("delivery") or {}).get("session_id"),
         }
 
-    async def _save_delivery(self, order: Mapping[str, Any], delivery: Dict[str, Any]) -> Dict[str, Any]:
-        delivery = {**delivery, "updated_at": self.clock()}
-        await self.orders.update_one({"order_id": order["order_id"]}, {"$set": {"delivery": delivery, "updated_at": self.clock()}})
-        return delivery
+    async def _save_delivery(self, order: Mapping[str, Any], delivery: Dict[str, Any], *, expect: Any = False) -> Optional[Dict[str, Any]]:
+        """Enregistre la livraison. Avec « expect » (version lue, None si absente), rien n'est écrit si
+        une autre écriture est passée entre-temps : None est renvoyé et l'appelant relit la commande."""
+        version = delivery.get("version")
+        delivery = {**delivery, "updated_at": self.clock(), "version": (version if isinstance(version, int) else 0) + 1}
+        query: Dict[str, Any] = {"order_id": order["order_id"]}
+        if expect is not False:
+            query["delivery.version"] = expect if expect is not None else {"$exists": False}
+        result = await self.orders.update_one(query, {"$set": {"delivery": delivery, "updated_at": self.clock()}})
+        return delivery if expect is False or result.matched_count else None
 
     @staticmethod
     def _merge(delivery: Mapping[str, Any], denkma_order: Mapping[str, Any]) -> Dict[str, Any]:
@@ -468,6 +512,15 @@ class EcommerceDenkmaService:
         for source, target in (("status", "denkma_status"), ("parcel_status", "parcel_status"), ("tracking_code", "tracking_code"), ("order_id", "denkma_order_id")):
             if denkma_order.get(source) is not None:
                 merged[target] = denkma_order[source]
+        # Code que le commerçant donne au livreur à l'enlèvement : Denkma ne le renvoie que tant que le
+        # colis attend son livreur, et il disparaît de la commande dès que le colis est parti.
+        if "collection_code" in denkma_order:
+            merged["collection_code"] = denkma_order["collection_code"]
+        if merged.get("parcel_status") not in (None, "created"):
+            merged["collection_code"] = None
+        if merged.get("cancel_state") and "cancelled" in (merged.get("denkma_status"), merged.get("parcel_status")):
+            # Denkma confirme l'annulation : la livraison est réellement arrêtée.
+            merged.update({"cancel_state": CANCEL_DONE, "cancel_error": None})
         return merged
 
     async def register_order(self, account: Mapping[str, Any], order: Mapping[str, Any]) -> Dict[str, Any]:
@@ -489,24 +542,33 @@ class EcommerceDenkmaService:
 
     # --- Expédition --------------------------------------------------------------
 
-    async def validated(self, account: Mapping[str, Any], order: Mapping[str, Any], *, ready: bool = False) -> Dict[str, Any]:
+    async def validated(self, account: Mapping[str, Any], order: Mapping[str, Any], *, ready: bool = False,
+                        paid: bool = True) -> Dict[str, Any]:
         """Le commerçant a validé la commande : Stockman n'encaisse rien en ligne, la validation veut dire
         « j'ai été payé » ou « je fais confiance à ce client ». Denkma réserve alors le transport.
         L'enlèvement n'est demandé qu'au geste « Prête » (ready=True) : un livreur ne doit pas venir
-        chercher un colis pas encore emballé. Un refus reste affiché sur la commande, sans bloquer la validation."""
+        chercher un colis pas encore emballé. Un refus reste affiché sur la commande, sans bloquer la validation.
+        paid=False : le paiement n'est pas confirmé dans Stockman. Le commerçant choisit d'expédier quand même ;
+        cette décision est gardée sur la commande, elle ne vaut pas confirmation d'encaissement."""
         delivery = dict(order.get("delivery") or {})
         if delivery.get("provider") != "denkma" or delivery.get("shipped_at") or delivery.get("parcel_status") \
                 or delivery.get("denkma_status") in (*SHIPPED_STATUSES, "cancelled"):
             return delivery
+        if not paid and not delivery.get("authorized_unpaid_at"):
+            delivery["authorized_unpaid_at"] = self.clock()
+            order = {**order, "delivery": delivery}
+        elif paid and delivery.get("authorized_unpaid_at"):
+            delivery["authorized_unpaid_at"] = None
+            order = {**order, "delivery": delivery}
         try:
-            return await self.ship(account, order, customer_paid=True, wait_for_photo=True, reserve_only=not ready)
+            return await self.ship(account, order, customer_paid=True, reserve_only=not ready)
         except DenkmaError as exc:
             logger.info("Denkma automatic shipment of %s stopped: %s", order.get("order_id"), exc.code)
             saved = await self.orders.find_one({"order_id": order["order_id"]}, {"_id": 0, "delivery": 1}) or {}
             return dict(saved.get("delivery") or delivery)
 
     async def ship(self, account: Mapping[str, Any], order: Mapping[str, Any], *, customer_paid: bool,
-                   photo: Optional[bytes] = None, photo_type: str = "image/jpeg", wait_for_photo: bool = False,
+                   photo: Optional[bytes] = None, photo_type: str = "image/jpeg",
                    reserve_only: bool = False) -> Dict[str, Any]:
         delivery = dict(order.get("delivery") or {})
         if delivery.get("provider") != "denkma":
@@ -537,13 +599,8 @@ class EcommerceDenkmaService:
             if reserve_only and status not in SHIPPED_STATUSES:
                 # Transport réservé ; l'enlèvement attend que le commerçant marque la commande « Prête ».
                 return await self._save_delivery(order, {**self._merge(delivery, current), "error": None, "waiting_for": None})
-            if not current.get("photo_ready") and status not in SHIPPED_STATUSES:
-                if not photo and wait_for_photo:
-                    # Transport réservé : l'enlèvement partira dès que la photo du colis sera ajoutée.
-                    waiting = {**self._merge(delivery, current), "error": None, "waiting_for": "photo"}
-                    return await self._save_delivery(order, waiting)
-                if not photo:
-                    raise DenkmaError(422, "photo_required", "Ajoutez la photo du colis : Denkma la demande avant l'enlèvement.")
+            if photo and not current.get("photo_ready") and status not in SHIPPED_STATUSES:
+                # La photo du colis est facultative : le commerçant peut en joindre une pour garder sa propre preuve.
                 await self.api.photo(key, ref, photo, photo_type)
             if status == "funded":
                 current = await self.api.prepared(key, ref)
@@ -556,19 +613,46 @@ class EcommerceDenkmaService:
         delivery.update({"error": None, "waiting_for": None, "shipped_at": delivery.get("shipped_at") or self.clock()})
         return await self._save_delivery(order, delivery)
 
-    async def cancel_order(self, account: Mapping[str, Any], order: Mapping[str, Any]) -> None:
-        """Commande annulée dans Stockman : sa livraison Denkma pas encore partie est annulée,
-        ce qui libère le transport réservé. Un refus de Denkma n'empêche pas l'annulation."""
+    async def cancel_order(self, account: Mapping[str, Any], order: Mapping[str, Any]) -> Dict[str, Any]:
+        """Commande annulée dans Stockman : sa livraison Denkma est annulée tant que le colis n'est pas
+        parti, ce qui libère le transport réservé. L'annulation n'est annoncée qu'une fois confirmée par
+        Denkma : un échec passager reste « en cours » et sera repris, un refus est affiché au commerçant."""
         delivery = dict(order.get("delivery") or {})
         if delivery.get("provider") != "denkma" or delivery.get("status") != "registered":
-            return
-        if delivery.get("denkma_status") in (*SHIPPED_STATUSES, "cancelled"):
-            return
+            return delivery
+        if "cancelled" in (delivery.get("denkma_status"), delivery.get("parcel_status")):
+            return delivery
+        if delivery.get("parcel_status") not in (None, "created"):
+            # Le colis est déjà entre les mains de Denkma : il ne s'annule plus depuis la boutique.
+            return await self._save_delivery(order, {**delivery, "cancel_state": CANCEL_REFUSED,
+                "cancel_error": "Le colis est déjà parti avec Denkma : la livraison continue. Contactez Denkma pour l'arrêter."})
+        delivery["cancel_state"] = CANCEL_PENDING
         try:
             current = await self.api.cancel(self._key(account), order["order_id"])
-            await self._save_delivery(order, self._merge(delivery, current))
         except DenkmaError as exc:
             logger.warning("Denkma cancellation failed for order %s: %s", order.get("order_id"), exc.code)
+            if exc.status in TRANSIENT_STATUSES:
+                return await self._save_delivery(order, {**delivery, "cancel_error": None})
+            return await self._save_delivery(order, {**delivery, "cancel_state": CANCEL_REFUSED, "cancel_error": exc.message})
+        merged = self._merge({**delivery, "cancel_error": None}, current)
+        if merged.get("cancel_state") != CANCEL_DONE:
+            # Denkma a accepté la demande sans encore confirmer l'arrêt : son événement le fera.
+            merged["cancel_state"] = CANCEL_PENDING
+        return await self._save_delivery(order, merged)
+
+    async def retry_cancellations(self) -> int:
+        """Reprend les annulations restées en cours (Denkma injoignable au moment du geste)."""
+        rows = await self.orders.find({"delivery.cancel_state": CANCEL_PENDING}, {"_id": 0}).limit(CANCEL_RETRY_BATCH).to_list(CANCEL_RETRY_BATCH)
+        done = 0
+        for order in rows:
+            account = await self.accounts.find_one({"account_id": order.get("account_id")}, {"_id": 0}) or {}
+            try:
+                delivery = await self.cancel_order(account, order)
+            except DenkmaError as exc:
+                # Boutique déconnectée de Denkma : plus rien à reprendre, le commerçant le lit sur la commande.
+                delivery = await self._save_delivery(order, {**(order.get("delivery") or {}), "cancel_state": CANCEL_REFUSED, "cancel_error": exc.message})
+            done += int((delivery or {}).get("cancel_state") == CANCEL_DONE)
+        return done
 
     async def refresh(self, account: Mapping[str, Any], order: Mapping[str, Any]) -> Dict[str, Any]:
         delivery = dict(order.get("delivery") or {})
@@ -606,17 +690,34 @@ class EcommerceDenkmaService:
         if not order:
             # Une commande retirée ne doit pas provoquer de nouvelles tentatives inutiles.
             return {"handled": False}
-        delivery = dict(order.get("delivery") or {})
-        seen = list(delivery.get("events") or [])
         event_id = str(event.get("id") or "")
-        if event_id and event_id in seen:
-            return {"handled": True, "duplicate": True}
-        delivery = self._merge(delivery, data)
-        delivery["events"] = (seen + ([event_id] if event_id else []))[-MAX_EVENTS:]
-        delivery["last_event"] = {"type": event.get("type"), "at": self.clock()}
-        if delivery.get("parcel_status") == "delivered":
-            delivery["delivered_at"] = delivery.get("delivered_at") or self.clock()
-        delivery = await self._save_delivery(order, delivery)
-        if delivery.get("parcel_status") == "delivered" and self.on_delivered:
-            await self.on_delivered({**order, "delivery": delivery})
-        return {"handled": True}
+        created = _moment(event.get("created_at"))
+        for _ in range(5):
+            delivery = dict(order.get("delivery") or {})
+            seen = list(delivery.get("events") or [])
+            if event_id and event_id in seen:
+                return {"handled": True, "duplicate": True}
+            latest = _moment(delivery.get("last_event_at"))
+            # La signature prouve l'origine d'un événement, pas son ordre d'arrivée : un événement plus
+            # ancien que le dernier appliqué est noté comme reçu, sans faire reculer le suivi.
+            stale = bool(created and latest and created < latest)
+            if not stale:
+                delivery = self._merge(delivery, data)
+                delivery["last_event"] = {"type": event.get("type"), "at": self.clock()}
+                if created:
+                    delivery["last_event_at"] = created
+                if delivery.get("parcel_status") == "delivered":
+                    delivery["delivered_at"] = delivery.get("delivered_at") or self.clock()
+            delivery["events"] = (seen + ([event_id] if event_id else []))[-MAX_EVENTS:]
+            saved = await self._save_delivery(order, delivery, expect=(order.get("delivery") or {}).get("version"))
+            if saved is not None:
+                break
+            # Un autre événement vient d'être écrit : relire, puis rejouer celui-ci sur la commande à jour.
+            order = await self.orders.find_one({"order_id": reference, "account_id": account.get("account_id")}, {"_id": 0})
+            if not order:
+                return {"handled": False}
+        else:
+            raise DenkmaError(503, "denkma_event_busy", "Commande occupée : l'événement sera renvoyé.")
+        if not stale and saved.get("parcel_status") == "delivered" and self.on_delivered:
+            await self.on_delivered({**order, "delivery": saved})
+        return {"handled": True, "stale": True} if stale else {"handled": True}

@@ -33,6 +33,9 @@ export function createEcommerceDraft(site: EcommerceSite | null, storeId?: strin
     contact_email: site?.contact_email ?? '', contact_phone: site?.contact_phone ?? '',
     contact_address: site?.contact_address ?? '', delivery_info: site?.delivery_info ?? '',
     whatsapp_phone: site?.whatsapp_phone ?? '', payment_instructions: site?.payment_instructions ?? '',
+    wave_phone: site?.wave_phone ?? '', wave_name: site?.wave_name ?? '', wave_link: site?.wave_link ?? '',
+    orange_money_phone: site?.orange_money_phone ?? '', orange_money_name: site?.orange_money_name ?? '',
+    pay_on_delivery: site?.pay_on_delivery !== false,
     show_out_of_stock_products: Boolean(site?.show_out_of_stock_products),
   };
 }

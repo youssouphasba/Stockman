@@ -113,7 +113,7 @@ class FakeDenkma:
     async def dispatch(self, key, ref):
         self._guard("dispatch")
         self.orders[ref].update({"status": "dispatched", "tracking_code": "DK-12345", "parcel_status": "created"})
-        return dict(self.orders[ref])
+        return {**self.orders[ref], "collection_code": "123456"}
 
     async def order(self, key, ref):
         self._guard("order")
@@ -223,15 +223,11 @@ class DenkmaServiceTests(unittest.TestCase):
         failed = run(self.service.register_order(self.account(), self.order()))
         self.assertEqual((failed["status"], failed["error"]), ("sync_failed", "La destination n’est pas confirmée."))
 
-    def test_one_tap_ships_after_payment_photo_and_preparation(self):
+    def test_one_tap_ships_after_payment_and_preparation_with_an_optional_photo(self):
         self.prepare_order()
         with self.assertRaises(DenkmaError) as ctx:
             run(self.service.ship(self.account(), self.order(), customer_paid=False, photo=b"img"))
         self.assertEqual(ctx.exception.code, "payment_required")
-        with self.assertRaises(DenkmaError) as ctx:
-            run(self.service.ship(self.account(), self.order(), customer_paid=True))
-        self.assertEqual(ctx.exception.code, "photo_required")
-        self.assertEqual(self.order()["delivery"]["error"], ctx.exception.message)
         delivery = run(self.service.ship(self.account(), self.order(), customer_paid=True, photo=b"img"))
         self.assertEqual((delivery["denkma_status"], delivery["tracking_code"], delivery["error"]), ("dispatched", "DK-12345", None))
         self.assertEqual(self.api.calls[-4:], ["payment_confirmed", "photo", "prepared", "dispatch"])
@@ -250,11 +246,23 @@ class DenkmaServiceTests(unittest.TestCase):
         run(self.service.validated(self.account(), self.order(), ready=True))
         self.assertEqual(len(self.api.calls), calls)
 
-    def test_ready_without_photo_asks_for_it_instead_of_failing(self):
+    def test_ready_alone_requests_the_pickup_and_shows_the_code_for_the_courier(self):
         self.prepare_order()
-        waiting = run(self.service.validated(self.account(), self.order(), ready=True))
-        self.assertEqual((waiting["denkma_status"], waiting["waiting_for"], waiting["error"]), ("funded", "photo", None))
-        self.assertNotIn("dispatch", self.api.calls)
+        shipped = run(self.service.validated(self.account(), self.order(), ready=True))
+        self.assertEqual((shipped["denkma_status"], shipped.get("waiting_for"), shipped["error"]), ("dispatched", None, None))
+        self.assertNotIn("photo", self.api.calls)
+        self.assertEqual(self.api.calls[-3:], ["payment_confirmed", "prepared", "dispatch"])
+        self.assertEqual(shipped["collection_code"], "123456")
+        self.assertEqual(self.order()["delivery"]["collection_code"], "123456")
+
+    def test_the_code_for_the_courier_leaves_the_order_once_the_parcel_is_collected(self):
+        merge = self.service._merge
+        waiting = merge({}, {"status": "dispatched", "parcel_status": "created", "collection_code": "123456"})
+        self.assertEqual(waiting["collection_code"], "123456")
+        # Un événement de suivi ne porte pas le code : tant que le colis attend, le code reste affiché.
+        self.assertEqual(merge(waiting, {"parcel_status": "created"})["collection_code"], "123456")
+        self.assertIsNone(merge(waiting, {"parcel_status": "out_for_delivery"})["collection_code"])
+        self.assertIsNone(merge(waiting, {"status": "dispatched", "parcel_status": "created", "collection_code": None})["collection_code"])
 
     def test_a_refused_validation_is_shown_on_the_order_without_failing(self):
         self.prepare_order()
@@ -307,6 +315,122 @@ class DenkmaServiceTests(unittest.TestCase):
         calls = len(self.api.calls)
         run(self.service.cancel_order(self.account(), self.order()))
         self.assertEqual(len(self.api.calls), calls)
+
+    def event(self, event_id, created_at, **data):
+        link = self.account()["ecommerce_denkma"]
+        raw = json.dumps({"id": event_id, "type": "parcel.updated", "created_at": created_at, "data": {"external_ref": "eord_1", **data}}).encode()
+        stamp = int(time.time())
+        signature = f"t={stamp},v1={sign('secret-evenements', stamp, raw)}"
+        return run(self.service.handle_event(link["hook_id"], signature, raw))
+
+    def test_an_older_event_never_moves_the_tracking_backwards(self):
+        self.prepare_order()
+        self.assertEqual(self.event("evt_b", "2026-11-08T21:10:00+00:00", parcel_status="delivered"), {"handled": True})
+        late = self.event("evt_a", "2026-11-08T21:05:00+00:00", parcel_status="created", collection_code="123456")
+        self.assertEqual(late, {"handled": True, "stale": True})
+        delivery = self.order()["delivery"]
+        self.assertEqual((delivery["parcel_status"], delivery.get("collection_code")), ("delivered", None))
+        self.assertEqual(delivery["events"], ["evt_b", "evt_a"])
+        self.assertEqual(self.delivered, ["eord_1"])
+        # Renvoyé par Denkma, l'ancien événement est reconnu : il ne compte toujours pas.
+        self.assertEqual(self.event("evt_a", "2026-11-08T21:05:00+00:00", parcel_status="created"), {"handled": True, "duplicate": True})
+        self.assertEqual(self.event("evt_c", "2026-11-08T21:10:00+00:00", parcel_status="delivered"), {"handled": True})
+
+    def test_an_event_is_replayed_on_the_fresh_order_when_another_write_came_first(self):
+        self.prepare_order()
+        original = self.service._save_delivery
+        raced = []
+
+        async def save(order, delivery, *, expect=False):
+            if expect is not False and not raced:
+                # Une autre écriture passe juste avant celle-ci.
+                raced.append(True)
+                await original(order, {**self.order()["delivery"], "tracking_code": "DK-AUTRE"})
+            return await original(order, delivery, expect=expect)
+
+        self.service._save_delivery = save
+        self.assertEqual(self.event("evt_a", "2026-11-08T21:05:00+00:00", parcel_status="in_transit"), {"handled": True})
+        delivery = self.order()["delivery"]
+        self.assertEqual((delivery["parcel_status"], delivery["tracking_code"], delivery["events"]), ("in_transit", "DK-AUTRE", ["evt_a"]))
+
+    def test_cancelling_reaches_a_parcel_still_waiting_for_its_courier(self):
+        self.prepare_order()
+        run(self.service.validated(self.account(), self.order(), ready=True))
+        self.assertEqual((self.order()["delivery"]["denkma_status"], self.order()["delivery"]["parcel_status"]), ("dispatched", "created"))
+        delivery = run(self.service.cancel_order(self.account(), self.order()))
+        self.assertEqual(self.api.calls[-1], "cancel")
+        self.assertEqual((delivery["denkma_status"], delivery["cancel_state"]), ("cancelled", "done"))
+
+    def test_a_parcel_already_collected_is_not_announced_as_cancelled(self):
+        self.prepare_order()
+        run(self.service.validated(self.account(), self.order(), ready=True))
+        self.event("evt_a", "2026-11-08T21:05:00+00:00", parcel_status="out_for_delivery")
+        calls = len(self.api.calls)
+        delivery = run(self.service.cancel_order(self.account(), self.order()))
+        self.assertEqual(len(self.api.calls), calls)
+        self.assertEqual(delivery["cancel_state"], "refused")
+        self.assertIn("déjà parti", delivery["cancel_error"])
+
+    def test_a_cancellation_denkma_could_not_receive_is_retried_until_confirmed(self):
+        self.prepare_order()
+        self.api.fail["cancel"] = DenkmaError(503, "denkma_unreachable", "Denkma ne répond pas pour le moment.")
+        delivery = run(self.service.cancel_order(self.account(), self.order()))
+        self.assertEqual((delivery["cancel_state"], delivery.get("denkma_status")), ("pending", "ready_for_quote"))
+        self.assertEqual(run(self.service.retry_cancellations()), 0)
+        self.assertEqual(self.order()["delivery"]["cancel_state"], "pending")
+        del self.api.fail["cancel"]
+        self.assertEqual(run(self.service.retry_cancellations()), 1)
+        self.assertEqual((self.order()["delivery"]["cancel_state"], self.order()["delivery"]["denkma_status"]), ("done", "cancelled"))
+        calls = len(self.api.calls)
+        self.assertEqual(run(self.service.retry_cancellations()), 0)
+        self.assertEqual(len(self.api.calls), calls)
+
+    def test_a_refused_cancellation_is_shown_and_not_retried(self):
+        self.prepare_order()
+        self.api.fail["cancel"] = DenkmaError(409, "denkma_refused", "Le colis ne peut plus être annulé.")
+        delivery = run(self.service.cancel_order(self.account(), self.order()))
+        self.assertEqual((delivery["cancel_state"], delivery["cancel_error"]), ("refused", "Le colis ne peut plus être annulé."))
+        calls = len(self.api.calls)
+        run(self.service.retry_cancellations())
+        self.assertEqual(len(self.api.calls), calls)
+
+    def test_shipping_before_payment_is_kept_as_the_merchants_decision(self):
+        self.prepare_order()
+        unpaid = run(self.service.validated(self.account(), self.order(), paid=False))
+        self.assertEqual(unpaid["authorized_unpaid_at"], self.clock.now)
+        self.assertEqual(self.order()["delivery"]["authorized_unpaid_at"], self.clock.now)
+        paid = run(self.service.validated(self.account(), self.order(), ready=True, paid=True))
+        self.assertIsNone(paid["authorized_unpaid_at"])
+
+    def test_denkma_is_offered_to_senegalese_shops_only(self):
+        for foreign in ({"country_code": "CI"}, {"country_code": "SN", "currency": "EUR"}, {"currency": "XAF"}):
+            account = {"account_id": "acc_b", **foreign}
+            for refused in (self.service.start_connection(account), self.service.signup(account, {"phone": "77 000 00 00"})):
+                with self.assertRaises(DenkmaError) as ctx:
+                    run(refused)
+                self.assertEqual((ctx.exception.status, ctx.exception.code), (403, "denkma_country"))
+            status = run(self.service.status(account))
+            self.assertEqual((status["available"], status["connected"]), (False, False))
+            self.assertIn("Sénégal", status["problem"])
+        self.assertTrue(run(self.service.status({"account_id": "acc_c", "country_code": "sn", "currency": "XOF"}))["available"])
+        # Une boutique déjà connectée qui n'est pas sénégalaise ne propose plus Denkma à ses clients.
+        self.connect()
+        run(self.service.open_destination(self.account(), "home_to_home", None))
+        self.api.sessions["mds_1"]["confirmed"] = True
+        moved = {**self.account(), "country_code": "CI"}
+        self.assertFalse(self.service.offered(moved))
+        self.assertTrue(self.service.offered(self.account()))
+        self.assertEqual(run(self.service.delivery_options(moved)), {"modes": []})
+        with self.assertRaises(DenkmaError) as ctx:
+            run(self.service.checkout_delivery(moved, "mds_1", "77 000 00 00"))
+        self.assertEqual(ctx.exception.code, "denkma_unavailable")
+
+    def test_the_connection_key_can_be_separated_from_the_server_secret(self):
+        service = EcommerceDenkmaService(self.db, web_base_url="https://app.stockman.pro", api=self.api)
+        with unittest.mock.patch.dict("os.environ", {"JWT_SECRET": "secret-serveur", "DENKMA_ENCRYPTION_KEY": ""}):
+            sealed = service._box_factory().seal("dk_live_x")
+        with unittest.mock.patch.dict("os.environ", {"JWT_SECRET": "secret-serveur-change", "DENKMA_ENCRYPTION_KEY": "secret-serveur"}):
+            self.assertEqual(service._box_factory().open(sealed), "dk_live_x")
 
     def test_settings_and_disconnection(self):
         with self.assertRaises(DenkmaError):

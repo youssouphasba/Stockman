@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { resolveEcommerceModel } from '../../../lib/ecommerceThemes';
 import ThemeStorefront from '../../../storefront/ThemeStorefront';
 import DenkmaDeliveryPicker, { useDenkmaDelivery } from '../../../storefront/DenkmaDelivery';
+import { OrderPaymentPanel, PaymentChoice, offeredPaymentMethod, paymentOptionsFor, usePlacedOrder, type PaymentOptions } from '../../../storefront/OrderPayment';
 import { Building2, Grid2X2, Heart, Mail, MapPin, Menu, MessageSquare, Minus, Phone, Plus, Search, Send, ShoppingBag, SlidersHorizontal, Trash2, X } from 'lucide-react';
 
 type PublicProduct = {
@@ -34,6 +35,8 @@ type PublicSite = {
   delivery_info?: string | null;
   whatsapp_phone?: string | null;
   payment_instructions?: string | null;
+  // Comptes Wave et Orange Money de la boutique, paiement à la livraison ; absent : consignes écrites seulement.
+  payment?: PaymentOptions | null;
   show_out_of_stock_products?: boolean;
   denkma_delivery?: boolean;
 };
@@ -213,6 +216,17 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
   const isPreview = privatePreview || searchParams.get('preview') === '1';
   const previewExpiry = formatPreviewExpiry(payload?.preview?.expires_at);
   const denkma = useDenkmaDelivery(slug, Boolean(payload?.site.denkma_delivery), isPreview);
+  // Paiement : choix du client avant la commande, puis page de paiement de la commande passée.
+  const paymentOptions = paymentOptionsFor(payload?.site.payment, denkma.available);
+  const [chosenPayment, setChosenPayment] = useState<string | null>(null);
+  const paymentMethod = offeredPaymentMethod(paymentOptions, chosenPayment);
+  const placedOrder = usePlacedOrder(slug, !isPreview);
+  const placed = placedOrder.placed;
+  const paymentExpected = Boolean(placed && placed.status !== 'paid' && !['on_delivery', 'other'].includes(placed.method));
+  useEffect(() => {
+    // Le client revient de l'application de son opérateur : la page de paiement se rouvre.
+    if (paymentExpected) setCartOpen(true);
+  }, [paymentExpected]);
   const siteMark = (payload?.site.name || 'SM')
     .split(/\s+/)
     .filter(Boolean)
@@ -311,13 +325,27 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
           notes: notes.trim() || null,
           items: cartLines.map((line) => ({ product_id: line.product.product_id, quantity: line.quantity })),
           ...(denkma.choice ? { delivery: { provider: 'denkma', destination_session_id: denkma.choice.sessionId } } : {}),
+          ...(paymentMethod ? { payment_method: paymentMethod } : {}),
         }),
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data?.detail || "Impossible d'envoyer la commande.");
       }
-      setOrderNumber(data.order_number);
+      if (paymentOptions && data.payment_token) {
+        placedOrder.place({
+          orderId: data.order_id,
+          orderNumber: data.order_number,
+          token: data.payment_token,
+          amountDue: typeof data.amount_due === 'number' ? data.amount_due : data.total_amount,
+          currency: payload?.site.currency || 'XOF',
+          method: data.payment?.method || 'other',
+          status: 'awaiting',
+          orderStatus: data.status || 'pending',
+        });
+      } else {
+        setOrderNumber(data.order_number);
+      }
       setCart({});
       setCustomerName('');
       setCustomerPhone('');
@@ -430,6 +458,9 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
           Commande envoyée : {orderNumber}. La boutique vous recontactera pour confirmer.
         </div>
       )}
+      {placed && (
+        <div className="mb-4"><OrderPaymentPanel state={placedOrder} options={paymentOptions} variant="basic" format={formatAmount} /></div>
+      )}
       {error && payload && (
         <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
           {error}
@@ -444,9 +475,13 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
         <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Note pour la boutique" rows={3} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500" />
       </div>
 
+      {paymentOptions && cartLines.length > 0 && (
+        <div className="mt-4"><PaymentChoice options={paymentOptions} value={paymentMethod} onChange={setChosenPayment} variant="basic" /></div>
+      )}
+
       {payload?.site.payment_instructions && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-          <p className="font-black">Paiement</p>
+          <p className="font-black">{paymentOptions ? 'À savoir sur le paiement' : 'Paiement'}</p>
           <p className="mt-1 whitespace-pre-line">{payload.site.payment_instructions}</p>
         </div>
       )}
@@ -466,7 +501,7 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
         style={{ backgroundColor: privatePreview || submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandColor, color: privatePreview || submitting || !customerName.trim() || cartLines.length === 0 ? undefined : brandOnColor }}
       >
         <Send className="h-4 w-4" />
-        {privatePreview ? "Commandes désactivées dans l'aperçu" : submitting ? 'Envoi...' : 'Envoyer la commande'}
+        {privatePreview ? "Commandes désactivées dans l'aperçu" : submitting ? 'Envoi...' : paymentMethod && paymentMethod !== 'on_delivery' ? 'Commander et payer' : 'Envoyer la commande'}
       </button>
     </aside>
   );
