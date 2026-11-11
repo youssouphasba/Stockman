@@ -4,6 +4,8 @@ jobs:
   publish_android:
     type: update
     environment: production
+    env:
+      EAS_NO_VCS: "1"
     params:
       channel: production
       platform: android

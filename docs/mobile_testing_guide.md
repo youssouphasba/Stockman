@@ -97,3 +97,5 @@ eas workflow:run .eas/workflows/ota-android.yml --ref "SHA_DU_COMMIT" --wait
 ```
 
 `--ref` utilise le code du commit distant, sans inclure les modifications locales. Vérifiez le résultat dans **Workflows**, puis **Updates**, dans le tableau de bord Expo. Une modification native nécessite un nouveau build ; une OTA n’envoie rien à Google Play Console.
+
+Si Expo cherche le workflow dans `.eas/workflows` à la racine du dépôt, corrigez le répertoire de base dans les réglages GitHub du projet Expo. Le workflow accepte aussi une archive sans métadonnées Git ; dans ce cas, utilisez une copie isolée du commit validé, pas le dossier de travail.
