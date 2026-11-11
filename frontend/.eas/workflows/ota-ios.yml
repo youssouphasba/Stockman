@@ -1,0 +1,12 @@
+name: OTA iOS Stockman
+
+jobs:
+  publish_ios:
+    type: update
+    environment: production
+    env:
+      EAS_NO_VCS: "1"
+    params:
+      channel: production
+      platform: ios
+      message: "Mise à jour Stockman iOS"
