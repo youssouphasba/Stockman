@@ -187,7 +187,12 @@ export default function DenkmaDeliveryPicker({ delivery, variant, format }: {
                             <button type="button" onClick={delivery.cancel} className={s.link}>Fermer</button>
                         </div>
                         {pending.embedded ? (
-                            <iframe src={pending.url} title="Carte Denkma" allow="geolocation" className="h-[70vh] w-full border-0" />
+                            <>
+                                <iframe src={pending.url} title="Carte Denkma" allow="geolocation" className="h-[60vh] w-full border-0" />
+                                <div className="px-5 py-3 text-sm">
+                                    <a href={pending.url} target="_blank" rel="noopener noreferrer" className={s.link}>Carte ou GPS bloqué ? Ouvrir dans un nouvel onglet</a>
+                                </div>
+                            </>
                         ) : (
                             <div className="space-y-4 p-5 text-sm leading-6">
                                 <p>La carte Denkma s&apos;ouvre dans un nouvel onglet. Confirmez-y {pending.mode === 'home_to_relay' ? 'votre point relais' : 'votre position'}, puis revenez ici : le prix de la livraison s&apos;affichera tout seul.</p>

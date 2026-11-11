@@ -54,7 +54,8 @@ test('The storefront replaces the written address by the Denkma choice and sends
   assert.match(cart, /commerce\.submitOrder\(form, denkma\.choice \? \{ destination_session_id: denkma\.choice\.sessionId \} : null, paymentMethod\)/);
   const config = read('web-app/next.config.ts');
   assert.match(config, /frame-src [^"]*https:\/\/api\.denkma\.com/);
-  assert.match(config, /geolocation=\("https:\/\/api\.denkma\.com"\)/);
+  assert.match(config, /geolocation=\(self "https:\/\/api\.denkma\.com"\)/);
+  assert.match(picker, /Carte ou GPS bloqué \? Ouvrir dans un nouvel onglet/);
   for (const file of ['frontend/app/(tabs)/orders.tsx', 'web-app/src/components/Orders.tsx']) assert.doesNotMatch(read(file), /utils\/denkma'/);
   for (const file of ['frontend/components/DenkmaShipModal.tsx', 'web-app/src/components/DenkmaShipDialog.tsx']) {
     const source = read(file);
@@ -69,6 +70,29 @@ function loadSignup() {
   vm.runInNewContext(compiled, { exports });
   return exports;
 }
+
+test('Both storefront layouts keep an external picker fallback with the original session', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const exports = {};
+  const compiled = ts.transpileModule(read('web-app/src/storefront/DenkmaDelivery.tsx'), {
+    reportDiagnostics: true,
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+  });
+  assert.deepEqual(compiled.diagnostics.filter(item => item.category === ts.DiagnosticCategory.Error), []);
+  vm.runInNewContext(compiled.outputText, { exports, require });
+  const url = 'https://api.denkma.com/pro/destination?s=test#token=test';
+  for (const variant of ['theme', 'basic']) {
+    const markup = renderToStaticMarkup(React.createElement(exports.default, {
+      variant, format: String,
+      delivery: {options: [], pending: {sessionId: 'test', mode: 'home_to_home', url, embedded: true}, cancel() {}, reset() {}},
+    }));
+    assert.match(markup, /allow="geolocation"/);
+    assert.ok(markup.includes(`href="${url}"`));
+    assert.match(markup, /target="_blank" rel="noopener noreferrer"/);
+    assert.match(markup, /Ouvrir dans un nouvel onglet/);
+  }
+});
 
 test('Denkma Pro signup follows the Denkma phone and pickup rules before sending the SMS', () => {
   const s = loadSignup();

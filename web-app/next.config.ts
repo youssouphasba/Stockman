@@ -49,7 +49,7 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           // Seule la carte Denkma intégrée peut demander la position, après accord du visiteur.
-          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=("https://api.denkma.com")' },
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(self "https://api.denkma.com")' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'Content-Security-Policy', value: contentSecurityPolicy("'none'") },
         ],
