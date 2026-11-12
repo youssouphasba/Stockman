@@ -40,6 +40,8 @@ Points importants :
 
 ## 5. Pilotage Enterprise
 
+Les résultats s'affichent en premier : vue choisie, cartes d'indicateurs et valeur du stock. Le bloc **Pilotage financier** vient juste après. Il est replié par défaut ; son en-tête montre l'évolution du chiffre d'affaires et du résultat net par rapport à la période précédente. Un clic l'ouvre, et le navigateur mémorise ce choix.
+
 La vue de pilotage Enterprise sert au suivi de gestion sans saisie obligatoire :
 
 - **Multi-magasins** : affiche le nombre de magasins suivis, le chiffre d'affaires consolidé et le magasin le plus performant sur la période ;

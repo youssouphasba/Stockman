@@ -251,6 +251,7 @@ La Marketplace connecte les commerçants à un réseau de fournisseurs vérifié
 
 ### Comment séparer les ventes en boutique et les ventes E-com ?
 - L'écran Finances (web et mobile) propose quatre vues en haut : **Vue d'ensemble**, **Boutique physique**, **E-com** et **Trésorerie**. La période choisie s'applique aux quatre.
+- Sur le web, les résultats s'affichent en premier, juste sous les vues : détail de la vue choisie, cartes d'indicateurs (chiffre d'affaires, marge brute, charges, résultat net, panier moyen, pertes) et valeur du stock. Viennent ensuite le **Pilotage financier** (Enterprise), le diagnostic IA et la vue rentabilité. Le Pilotage est replié par défaut : son en-tête montre l'évolution du CA et du résultat net par rapport à la période précédente, et un clic l'ouvre. Le navigateur mémorise s'il est ouvert ou fermé.
 - **Vue d'ensemble** : tous les canaux réunis, avec la part de la boutique et celle de l'E-com dans le chiffre d'affaires, la marge brute de chacune et, sur le web, le CA par jour en deux couleurs.
 - **Boutique physique** : chiffre d'affaires, marge, panier moyen et ventes de la caisse uniquement.
 - **E-com** : circuit des commandes en ligne. « Commandé » (commandes passées sur la période, annulées et refusées exclues), « Livré (CA) », « Encaissé », « À encaisser » (commandes livrées sans paiement confirmé), puis « En cours », « Annulées ou refusées » et « Livraison en transit ».

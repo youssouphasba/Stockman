@@ -23,6 +23,7 @@ import {
     Files,
     ShoppingCart,
     AlertTriangle,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     Building2,
@@ -283,6 +284,17 @@ export default function Accounting() {
     const [financeView, setFinanceView] = useState<FinanceView>('overview');
     const salesChannel = FINANCE_VIEW_CHANNEL[financeView];
     const isChannelView = salesChannel !== 'all';
+    // Bloc Pilotage replié par défaut ; le choix est mémorisé sur ce navigateur.
+    const [showPilotage, setShowPilotage] = useState(false);
+    useEffect(() => {
+        try { setShowPilotage(window.localStorage.getItem('stockman_finance_pilotage_open') === '1'); } catch { /* stockage indisponible */ }
+    }, []);
+    const togglePilotage = () => {
+        setShowPilotage((open) => {
+            try { window.localStorage.setItem('stockman_finance_pilotage_open', open ? '0' : '1'); } catch { /* stockage indisponible */ }
+            return !open;
+        });
+    };
     const [salesHistory, setSalesHistory] = useState<AccountingSaleHistoryItem[]>([]);
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
     const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
@@ -1239,37 +1251,6 @@ export default function Accounting() {
 
             <FinanceViewTabs view={financeView} onViewChange={setFinanceView} />
 
-            {/* AI P&L Analysis */}
-            <div className="mb-8 glass-card p-5 border-l-4 border-l-purple-500 bg-purple-500/5 flex items-start gap-4">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <BarChart2 size={16} className="text-purple-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                            <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Diagnostic IA</p>
-                            <p className="text-slate-400 text-sm leading-relaxed">
-                                Lecture rapide du P&L sur la période affichée. Rien ne se lance automatiquement et le contenu est plus court qu'un rapport mensuel IA.
-                            </p>
-                        </div>
-                        <button
-                            onClick={handleGenerateAnalysis}
-                            disabled={aiLoading}
-                            className="shrink-0 rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm font-bold text-purple-300 transition-all hover:bg-purple-500/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {aiLoading ? 'Analyse en cours...' : aiAnalysis ? 'Relancer le diagnostic IA' : 'Lancer le diagnostic IA'}
-                        </button>
-                    </div>
-                    {aiAnalysis ? (
-                        <p className="mt-4 text-slate-300 text-sm leading-relaxed">{aiAnalysis}</p>
-                    ) : (
-                        <p className="mt-4 text-xs font-medium text-slate-500">
-                            Cliquez sur le bouton pour générer un diagnostic IA court à partir des données de la période.
-                        </p>
-                    )}
-                </div>
-            </div>
-
             {/* Monthly Report Modal */}
             {showMonthlyReport && (
                 <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowMonthlyReport(false)}>
@@ -1293,229 +1274,6 @@ export default function Accounting() {
                         </div>
                     </div>
                 </div>
-            )}
-
-            {isEnterpriseAccounting && (
-                <section className="mb-8 rounded-3xl border border-primary/25 bg-primary/[0.06] p-6">
-                    <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Pilotage</p>
-                            <h2 className="mt-2 text-2xl font-black text-white">Pilotage financier Enterprise</h2>
-                            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-                                Compare la période affichée avec la période précédente équivalente, suit les objectifs facultatifs et consolide les magasins disponibles.
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setShowReportModal(true)}
-                            disabled={!canWriteAccounting}
-                            className="rounded-2xl border border-primary/25 bg-primary/15 px-4 py-3 text-sm font-black text-white transition-all hover:bg-primary/25 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            Export de synthèse
-                        </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
-                            <div className="flex items-center gap-3">
-                                <Building2 size={18} className="text-primary" />
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Vue consolidée multi-magasins</p>
-                            </div>
-                            <p className="mt-4 text-2xl font-black text-white">{consolidatedStats?.stores?.length ?? storeList.length}</p>
-                            <p className="mt-1 text-xs text-slate-400">magasins suivis</p>
-                            <p className="mt-4 text-sm font-bold text-primary">{formatCurrency(consolidatedStats?.total_revenue || 0)}</p>
-                            <p className="text-xs text-slate-500">CA consolidé sur {consolidatedStats?.days || period} jours</p>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
-                            <div className="flex items-center gap-3">
-                                <ArrowUpRight size={18} className="text-emerald-300" />
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Comparaison des périodes</p>
-                            </div>
-                            <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
-                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Période affichée</p>
-                                <p className="mt-1 text-xs font-bold text-white">{formatRangeLabel(currentComparisonRange)}</p>
-                                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Comparée à</p>
-                                <p className="mt-1 text-xs font-bold text-white">{formatRangeLabel(previousComparisonRange)}</p>
-                            </div>
-                            <div className="mt-4 space-y-3">
-                                {[
-                                    { label: "Chiffre d'affaires", value: comparison.revenueDelta, current: stats?.revenue || 0, previous: comparisonStats?.revenue || 0 },
-                                    { label: 'Résultat net', value: comparison.netDelta, current: stats?.net_profit || 0, previous: comparisonStats?.net_profit || 0 },
-                                    { label: 'Charges', value: comparison.expensesDelta, current: stats?.expenses || 0, previous: comparisonStats?.expenses || 0 },
-                                ].map((item) => (
-                                    <div key={item.label} className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className="text-xs font-bold text-slate-300">{item.label}</span>
-                                            <span className={`text-sm font-black ${item.value == null ? 'text-slate-500' : item.value >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                                                {item.value == null ? 'N/A' : `${item.value >= 0 ? '+' : ''}${item.value.toFixed(1)}%`}
-                                            </span>
-                                        </div>
-                                        <p className="mt-1 text-[10px] text-slate-500">
-                                            Actuel : {formatCurrency(item.current)} · précédent : {formatCurrency(item.previous)}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
-                            <div className="flex items-center gap-3">
-                                <Target size={18} className="text-amber-300" />
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Objectifs de pilotage</p>
-                            </div>
-                            <p className="mt-3 text-xs leading-5 text-slate-500">
-                                Ces objectifs ne bloquent aucun flux. Ils servent uniquement à suivre le CA, la marge nette et le poids des charges.
-                            </p>
-                            <div className="mt-4 grid grid-cols-1 gap-2">
-                                <input
-                                    value={goalDraft.revenue}
-                                    onChange={(event) => setGoalDraft((prev) => ({ ...prev, revenue: event.target.value }))}
-                                    type="number"
-                                    min="0"
-                                    placeholder="Objectif de CA"
-                                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
-                                />
-                                <div className="grid grid-cols-2 gap-2">
-                                    <input
-                                        value={goalDraft.netMargin}
-                                        onChange={(event) => setGoalDraft((prev) => ({ ...prev, netMargin: event.target.value }))}
-                                        type="number"
-                                        min="0"
-                                        placeholder="Marge nette cible %"
-                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
-                                    />
-                                    <input
-                                        value={goalDraft.maxExpenseRatio}
-                                        onChange={(event) => setGoalDraft((prev) => ({ ...prev, maxExpenseRatio: event.target.value }))}
-                                        type="number"
-                                        min="0"
-                                        placeholder="Charges max % CA"
-                                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
-                                    />
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={handleSaveGoals}
-                                    disabled={savingGoals || !canWriteAccounting}
-                                    className="mt-1 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-black text-amber-200 transition-all hover:bg-amber-300/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    {savingGoals ? 'Enregistrement...' : 'Enregistrer les objectifs'}
-                                </button>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                            <div className="flex items-center justify-between gap-3">
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Meilleur magasin</p>
-                                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black text-slate-400">{consolidatedStats?.total_orders || 0} ventes</span>
-                            </div>
-                            {leadingStore ? (
-                                <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                    <div>
-                                        <p className="text-lg font-black text-white">{leadingStore.store_name}</p>
-                                        <p className="text-xs text-slate-500">{leadingStore.address || 'Adresse non renseignée'}</p>
-                                    </div>
-                                    <div className="text-left md:text-right">
-                                        <p className="text-xl font-black text-primary">{formatCurrency(leadingStore.revenue || 0)}</p>
-                                        <p className="text-xs text-slate-500">{leadingStore.orders || 0} ventes, {leadingStore.low_stock_count || 0} stocks bas</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className="mt-4 text-sm text-slate-500">Aucune donnée multi-magasins disponible sur cette période.</p>
-                            )}
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Progression des objectifs</p>
-                            <div className="mt-4 space-y-3">
-                                {[
-                                    { label: 'CA cible', value: goalProgress.revenue, suffix: '%' },
-                                    { label: 'Marge nette cible', value: goalProgress.netMargin, suffix: '%' },
-                                    { label: 'Plafond de charges', value: goalProgress.expenseRatio, suffix: '%' },
-                                ].map((goal) => (
-                                    <div key={goal.label}>
-                                        <div className="mb-1 flex items-center justify-between gap-3 text-xs">
-                                            <span className="text-slate-400">{goal.label}</span>
-                                            <span className="font-black text-white">{goal.value == null ? 'Non défini' : `${goal.value.toFixed(0)}${goal.suffix}`}</span>
-                                        </div>
-                                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                                            <div
-                                                className="h-full rounded-full bg-primary"
-                                                style={{ width: `${Math.min(100, Math.max(0, goal.value || 0))}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            )}
-
-            {stats && (
-                <section className="mb-8 rounded-3xl border border-primary/20 bg-primary/5 p-6">
-                    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Finance avancée</p>
-                            <h2 className="mt-2 text-2xl font-black text-white">Vue rentabilité et pilotage</h2>
-                            {stats.scope_label ? (
-                                <p className="mt-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                                    {stats.scope_label}
-                                </p>
-                            ) : null}
-                            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-                                {stats.summary || 'Lecture consolidée du chiffre, des marges, des charges et de la TVA sur la sélection active.'}
-                            </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                                {[
-                                    { label: 'Marge brute', value: formatPercent(stats.gross_margin_pct ?? 0) },
-                                    { label: 'Marge nette', value: formatPercent(stats.net_margin_pct ?? 0) },
-                                    { label: 'Poids des charges', value: formatPercent(stats.expense_ratio ?? 0) },
-                                    { label: 'Poids des pertes', value: formatPercent(stats.loss_ratio ?? 0) },
-                                ].map((item) => (
-                                <div key={item.label} className="rounded-2xl border border-white/10 bg-[#111827]/85 px-4 py-4">
-                                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
-                                    <p className="mt-3 text-2xl font-black text-white">{item.value}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    {stats.recommendations && stats.recommendations.length > 0 ? (
-                        <div className="mt-6 grid grid-cols-1 gap-3 xl:grid-cols-2">
-                            {stats.recommendations.map((recommendation, index) => (
-                                <div
-                                    key={`${index}-${recommendation}`}
-                                    className="rounded-2xl border border-white/10 bg-[#111827]/80 px-4 py-4 text-sm leading-6 text-slate-200"
-                                >
-                                    {recommendation}
-                                </div>
-                            ))}
-                        </div>
-                    ) : null}
-                    {stats.top_expense_categories && stats.top_expense_categories.length > 0 ? (
-                        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Postes de charges dominants</p>
-                            <div className="mt-4 space-y-3">
-                                {stats.top_expense_categories.slice(0, 3).map((expense) => (
-                                    <div key={expense.category} className="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div>
-                                                <p className="font-bold text-white">{expense.label}</p>
-                                                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">{expense.ratio.toFixed(1)}% des charges</p>
-                                            </div>
-                                            <p className="text-sm font-black text-white">{formatCurrency(expense.amount)}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : null}
-                </section>
             )}
 
             <FinanceViewPanel view={financeView} stats={stats} formatCurrency={formatCurrency} />
@@ -1581,26 +1339,6 @@ export default function Accounting() {
                 )}
             </div>
 
-            <div className="mb-8 rounded-3xl border border-primary/20 bg-primary/8 p-5">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary">Lecture rapide</p>
-                        <h3 className="mt-2 text-lg font-black text-white">Comment lire le résultat net</h3>
-                        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300">
-                            Le résultat net correspond au chiffre d&apos;affaires, moins le coût d&apos;achat des produits vendus, moins les charges, moins les pertes de stock enregistrées.
-                            La valeur du stock restant n&apos;est pas retirée de ce calcul.
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => handleOpenFinanceDetail('net_profit')}
-                        className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black text-primary transition-all hover:bg-primary/20"
-                    >
-                        Ouvrir le détail du résultat net
-                    </button>
-                </div>
-            </div>
-
             {/* Stock value row */}
             {(stats.stock_value > 0 || stats.stock_selling_value > 0) && (
                 <div className="grid grid-cols-2 gap-4 mb-8">
@@ -1634,6 +1372,305 @@ export default function Accounting() {
                     </button>
                 </div>
             )}
+
+            {/* Pilotage Enterprise : replié par défaut pour laisser les résultats en premier. */}
+            {isEnterpriseAccounting && (
+                <section className="mb-8 rounded-3xl border border-primary/25 bg-primary/[0.06] p-4 md:p-5">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <button
+                            type="button"
+                            onClick={togglePilotage}
+                            aria-expanded={showPilotage}
+                            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                            <ChevronDown size={18} className={`shrink-0 text-primary transition-transform ${showPilotage ? 'rotate-180' : ''}`} />
+                            <span className="min-w-0">
+                                <span className="block text-sm font-black text-white">Pilotage financier</span>
+                                <span className="block text-xs text-slate-400">Comparaison avec la période précédente, objectifs et vue multi-magasins.</span>
+                            </span>
+                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {[
+                                { label: 'CA', value: comparison.revenueDelta },
+                                { label: 'Résultat net', value: comparison.netDelta },
+                            ].map((item) => (
+                                <span key={item.label} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-slate-300">
+                                    {item.label} :{' '}
+                                    <span className={item.value == null ? 'text-slate-500' : item.value >= 0 ? 'text-emerald-300' : 'text-rose-300'}>
+                                        {item.value == null ? 'N/A' : `${item.value >= 0 ? '+' : ''}${item.value.toFixed(1)} %`}
+                                    </span>
+                                </span>
+                            ))}
+                            {showPilotage && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowReportModal(true)}
+                                    disabled={!canWriteAccounting}
+                                    className="rounded-xl border border-primary/25 bg-primary/15 px-3 py-1.5 text-xs font-black text-white transition-all hover:bg-primary/25 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Export de synthèse
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {showPilotage && (
+                        <div className="mt-5">
+                            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                                <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+                                    <div className="flex items-center gap-3">
+                                        <Building2 size={18} className="text-primary" />
+                                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Vue consolidée multi-magasins</p>
+                                    </div>
+                                    <p className="mt-4 text-2xl font-black text-white">{consolidatedStats?.stores?.length ?? storeList.length}</p>
+                                    <p className="mt-1 text-xs text-slate-400">magasins suivis</p>
+                                    <p className="mt-4 text-sm font-bold text-primary">{formatCurrency(consolidatedStats?.total_revenue || 0)}</p>
+                                    <p className="text-xs text-slate-500">CA consolidé sur {consolidatedStats?.days || period} jours</p>
+                                </div>
+
+                                <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+                                    <div className="flex items-center gap-3">
+                                        <ArrowUpRight size={18} className="text-emerald-300" />
+                                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Comparaison des périodes</p>
+                                    </div>
+                                    <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Période affichée</p>
+                                        <p className="mt-1 text-xs font-bold text-white">{formatRangeLabel(currentComparisonRange)}</p>
+                                        <p className="mt-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Comparée à</p>
+                                        <p className="mt-1 text-xs font-bold text-white">{formatRangeLabel(previousComparisonRange)}</p>
+                                    </div>
+                                    <div className="mt-4 space-y-3">
+                                        {[
+                                            { label: "Chiffre d'affaires", value: comparison.revenueDelta, current: stats?.revenue || 0, previous: comparisonStats?.revenue || 0 },
+                                            { label: 'Résultat net', value: comparison.netDelta, current: stats?.net_profit || 0, previous: comparisonStats?.net_profit || 0 },
+                                            { label: 'Charges', value: comparison.expensesDelta, current: stats?.expenses || 0, previous: comparisonStats?.expenses || 0 },
+                                        ].map((item) => (
+                                            <div key={item.label} className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="text-xs font-bold text-slate-300">{item.label}</span>
+                                                    <span className={`text-sm font-black ${item.value == null ? 'text-slate-500' : item.value >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                                                        {item.value == null ? 'N/A' : `${item.value >= 0 ? '+' : ''}${item.value.toFixed(1)}%`}
+                                                    </span>
+                                                </div>
+                                                <p className="mt-1 text-[10px] text-slate-500">
+                                                    Actuel : {formatCurrency(item.current)} · précédent : {formatCurrency(item.previous)}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+                                    <div className="flex items-center gap-3">
+                                        <Target size={18} className="text-amber-300" />
+                                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Objectifs de pilotage</p>
+                                    </div>
+                                    <p className="mt-3 text-xs leading-5 text-slate-500">
+                                        Ces objectifs ne bloquent aucun flux. Ils servent uniquement à suivre le CA, la marge nette et le poids des charges.
+                                    </p>
+                                    <div className="mt-4 grid grid-cols-1 gap-2">
+                                        <input
+                                            value={goalDraft.revenue}
+                                            onChange={(event) => setGoalDraft((prev) => ({ ...prev, revenue: event.target.value }))}
+                                            type="number"
+                                            min="0"
+                                            placeholder="Objectif de CA"
+                                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
+                                        />
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <input
+                                                value={goalDraft.netMargin}
+                                                onChange={(event) => setGoalDraft((prev) => ({ ...prev, netMargin: event.target.value }))}
+                                                type="number"
+                                                min="0"
+                                                placeholder="Marge nette cible %"
+                                                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
+                                            />
+                                            <input
+                                                value={goalDraft.maxExpenseRatio}
+                                                onChange={(event) => setGoalDraft((prev) => ({ ...prev, maxExpenseRatio: event.target.value }))}
+                                                type="number"
+                                                min="0"
+                                                placeholder="Charges max % CA"
+                                                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/50"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveGoals}
+                                            disabled={savingGoals || !canWriteAccounting}
+                                            className="mt-1 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-black text-amber-200 transition-all hover:bg-amber-300/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            {savingGoals ? 'Enregistrement...' : 'Enregistrer les objectifs'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Meilleur magasin</p>
+                                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black text-slate-400">{consolidatedStats?.total_orders || 0} ventes</span>
+                                    </div>
+                                    {leadingStore ? (
+                                        <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                            <div>
+                                                <p className="text-lg font-black text-white">{leadingStore.store_name}</p>
+                                                <p className="text-xs text-slate-500">{leadingStore.address || 'Adresse non renseignée'}</p>
+                                            </div>
+                                            <div className="text-left md:text-right">
+                                                <p className="text-xl font-black text-primary">{formatCurrency(leadingStore.revenue || 0)}</p>
+                                                <p className="text-xs text-slate-500">{leadingStore.orders || 0} ventes, {leadingStore.low_stock_count || 0} stocks bas</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="mt-4 text-sm text-slate-500">Aucune donnée multi-magasins disponible sur cette période.</p>
+                                    )}
+                                </div>
+
+                                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Progression des objectifs</p>
+                                    <div className="mt-4 space-y-3">
+                                        {[
+                                            { label: 'CA cible', value: goalProgress.revenue, suffix: '%' },
+                                            { label: 'Marge nette cible', value: goalProgress.netMargin, suffix: '%' },
+                                            { label: 'Plafond de charges', value: goalProgress.expenseRatio, suffix: '%' },
+                                        ].map((goal) => (
+                                            <div key={goal.label}>
+                                                <div className="mb-1 flex items-center justify-between gap-3 text-xs">
+                                                    <span className="text-slate-400">{goal.label}</span>
+                                                    <span className="font-black text-white">{goal.value == null ? 'Non défini' : `${goal.value.toFixed(0)}${goal.suffix}`}</span>
+                                                </div>
+                                                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                                    <div
+                                                        className="h-full rounded-full bg-primary"
+                                                        style={{ width: `${Math.min(100, Math.max(0, goal.value || 0))}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </section>
+            )}
+
+            {/* AI P&L Analysis */}
+            <div className="mb-8 glass-card p-5 border-l-4 border-l-purple-500 bg-purple-500/5 flex items-start gap-4">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <BarChart2 size={16} className="text-purple-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <p className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">Diagnostic IA</p>
+                            <p className="text-slate-400 text-sm leading-relaxed">
+                                Lecture rapide du P&L sur la période affichée. Rien ne se lance automatiquement et le contenu est plus court qu'un rapport mensuel IA.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleGenerateAnalysis}
+                            disabled={aiLoading}
+                            className="shrink-0 rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm font-bold text-purple-300 transition-all hover:bg-purple-500/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {aiLoading ? 'Analyse en cours...' : aiAnalysis ? 'Relancer le diagnostic IA' : 'Lancer le diagnostic IA'}
+                        </button>
+                    </div>
+                    {aiAnalysis ? (
+                        <p className="mt-4 text-slate-300 text-sm leading-relaxed">{aiAnalysis}</p>
+                    ) : (
+                        <p className="mt-4 text-xs font-medium text-slate-500">
+                            Cliquez sur le bouton pour générer un diagnostic IA court à partir des données de la période.
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {stats && (
+                <section className="mb-8 rounded-3xl border border-primary/20 bg-primary/5 p-6">
+                    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Finance avancée</p>
+                            <h2 className="mt-2 text-2xl font-black text-white">Vue rentabilité et pilotage</h2>
+                            {stats.scope_label ? (
+                                <p className="mt-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                                    {stats.scope_label}
+                                </p>
+                            ) : null}
+                            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+                                {stats.summary || 'Lecture consolidée du chiffre, des marges, des charges et de la TVA sur la sélection active.'}
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { label: 'Marge brute', value: formatPercent(stats.gross_margin_pct ?? 0) },
+                                    { label: 'Marge nette', value: formatPercent(stats.net_margin_pct ?? 0) },
+                                    { label: 'Poids des charges', value: formatPercent(stats.expense_ratio ?? 0) },
+                                    { label: 'Poids des pertes', value: formatPercent(stats.loss_ratio ?? 0) },
+                                ].map((item) => (
+                                <div key={item.label} className="rounded-2xl border border-white/10 bg-[#111827]/85 px-4 py-4">
+                                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+                                    <p className="mt-3 text-2xl font-black text-white">{item.value}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {stats.recommendations && stats.recommendations.length > 0 ? (
+                        <div className="mt-6 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                            {stats.recommendations.map((recommendation, index) => (
+                                <div
+                                    key={`${index}-${recommendation}`}
+                                    className="rounded-2xl border border-white/10 bg-[#111827]/80 px-4 py-4 text-sm leading-6 text-slate-200"
+                                >
+                                    {recommendation}
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
+                    {stats.top_expense_categories && stats.top_expense_categories.length > 0 ? (
+                        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Postes de charges dominants</p>
+                            <div className="mt-4 space-y-3">
+                                {stats.top_expense_categories.slice(0, 3).map((expense) => (
+                                    <div key={expense.category} className="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="font-bold text-white">{expense.label}</p>
+                                                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">{expense.ratio.toFixed(1)}% des charges</p>
+                                            </div>
+                                            <p className="text-sm font-black text-white">{formatCurrency(expense.amount)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
+                </section>
+            )}
+
+            <div className="mb-8 rounded-3xl border border-primary/20 bg-primary/8 p-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary">Lecture rapide</p>
+                        <h3 className="mt-2 text-lg font-black text-white">Comment lire le résultat net</h3>
+                        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300">
+                            Le résultat net correspond au chiffre d&apos;affaires, moins le coût d&apos;achat des produits vendus, moins les charges, moins les pertes de stock enregistrées.
+                            La valeur du stock restant n&apos;est pas retirée de ce calcul.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => handleOpenFinanceDetail('net_profit')}
+                        className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-black text-primary transition-all hover:bg-primary/20"
+                    >
+                        Ouvrir le détail du résultat net
+                    </button>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left: Chart + Expenses */}
