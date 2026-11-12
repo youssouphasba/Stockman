@@ -1451,6 +1451,8 @@
     "success": "Operation successful"
   },
   "orders": {
+    "online_title": "Customer orders",
+    "online_subtitle": "Orders placed on your online store. Supplier orders are in the Suppliers screen.",
     "active_credit_notes": "Active Credit Notes",
     "actual_unit_price_hint": "Fill in if it differs from the ordered price",
     "actual_unit_price_label": "Actual billed price",

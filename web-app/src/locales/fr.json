@@ -1456,6 +1456,8 @@
     "success": "Opération réussie"
   },
   "orders": {
+    "online_title": "Commandes clients",
+    "online_subtitle": "Les commandes passées sur votre boutique en ligne. Les commandes fournisseurs sont dans l'écran Fournisseurs.",
     "active_credit_notes": "Avoirs Actifs",
     "actual_unit_price_hint": "Renseigner si différent du prix commandé",
     "actual_unit_price_label": "Prix réel facturé",

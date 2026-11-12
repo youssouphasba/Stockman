@@ -242,6 +242,7 @@ export default function SuppliersScreen() {
       setDrawerContent(t('tabs.suppliers'), [
         { label: t('suppliers.add_supplier', 'Ajouter un fournisseur'), icon: 'add-circle-outline', onPress: () => { setEditingSupplier(null); setShowFormModal(true); } },
         { label: t('suppliers.create_order', 'Passer une commande'), icon: 'cart-outline', onPress: () => setShowOrderModal(true) },
+        { label: t('orders.supplier_title', 'Commandes fournisseurs'), icon: 'receipt-outline', onPress: () => router.push('/(tabs)/supplier-orders' as any) },
         { label: t('suppliers.invite', 'Inviter un fournisseur'), icon: 'mail-outline', onPress: () => setShowInviteModal(true) },
         { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
         { label: '', icon: '', onPress: () => {}, separator: true },
@@ -981,6 +982,20 @@ export default function SuppliersScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Les commandes et retours fournisseurs ont leur propre écran ; l'onglet Commandes ne montre que les commandes en ligne. */}
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, marginBottom: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.primary + '30', backgroundColor: colors.primary + '12' }}
+            onPress={() => router.push('/(tabs)/supplier-orders' as any)}
+          >
+            <Ionicons name="receipt-outline" size={20} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.text, fontWeight: '700', fontSize: FontSize.md }}>{t('orders.supplier_title', 'Commandes fournisseurs')}</Text>
+              <Text style={{ color: colors.textMuted, fontSize: FontSize.sm }}>{t('orders.supplier_entry_hint', 'Bons de commande, réceptions, retours et avoirs')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
 
           {tab === 'manual' ? (
             <>
@@ -1793,7 +1808,7 @@ export default function SuppliersScreen() {
                             <TouchableOpacity
                               key={o.order_id}
                               style={styles.historyItem}
-                              onPress={() => router.push(`/orders?id=${o.order_id}`)}
+                              onPress={() => router.push({ pathname: '/(tabs)/supplier-orders', params: { order_id: o.order_id } } as any)}
                             >
                               <View style={styles.historyHeader}>
                                 <Text style={styles.historyRef}>#{o.order_id.slice(-6).toUpperCase()}</Text>

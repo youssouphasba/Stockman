@@ -1530,6 +1530,8 @@
     "success": "Operation successful"
   },
   "orders": {
+    "online_title": "Customer orders",
+    "online_subtitle": "Orders placed on your online store. Supplier orders are in the Suppliers screen.",
     "active_credit_notes": "Active Credit Notes",
     "add_at_least_one_item": "Add at least one item",
     "add_product_placeholder": "Add a product...",

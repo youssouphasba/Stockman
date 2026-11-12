@@ -419,6 +419,17 @@ export default function Suppliers() {
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
+        // Ouverture depuis une notification de commande fournisseur : onglet Bons de commande, et la commande visée.
+        const openTab = window.sessionStorage.getItem('stockman_suppliers_open_tab');
+        if (openTab === 'orders') {
+            const orderId = window.sessionStorage.getItem('stockman_suppliers_open_order');
+            window.sessionStorage.removeItem('stockman_suppliers_open_tab');
+            window.sessionStorage.removeItem('stockman_suppliers_open_order');
+            setActiveTab('orders');
+            setOrdersView('orders');
+            if (orderId) void openOrderDetails(orderId);
+        }
+
         const storedContext = window.sessionStorage.getItem('stockman_supplier_marketplace_context');
         if (storedContext) {
             try {

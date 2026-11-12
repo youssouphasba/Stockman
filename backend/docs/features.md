@@ -204,14 +204,19 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 
 ## 5. Commandes Fournisseurs
 
+### Où se trouvent les commandes fournisseurs ?
+- Les commandes et les retours fournisseurs sont dans l'écran **Fournisseurs** : bouton **Commandes fournisseurs** sur mobile, onglet **Bons de commande** sur le web.
+- L'écran **Commandes** (onglet mobile et barre latérale web) ne montre que les commandes des clients passées sur la boutique en ligne.
+- Les notifications de commande fournisseur et les rappels de réapprovisionnement ouvrent directement les commandes fournisseurs.
+
 ### Comment créer une commande fournisseur ?
-1. Aller dans **Fournisseurs** → **Commandes**
+1. Aller dans **Fournisseurs** → **Commandes fournisseurs** (mobile) ou **Bons de commande** (web)
 2. Sélectionner un fournisseur
 3. Ajouter les produits à commander avec les quantités
 4. Valider la commande (statut : En attente)
 
 ### Comment valider la réception d'une commande ?
-1. Dans **Commandes**, trouver la commande livrée
+1. Dans les commandes fournisseurs, trouver la commande livrée
 2. Cliquer sur **Valider la réception**
 3. Le stock est automatiquement incrémenté des quantités reçues
 

@@ -2344,7 +2344,7 @@ export default function ProductsScreen() {
           deliveryReturnContextRef.current = null;
           if (context) {
             router.push({
-              pathname: '/(tabs)/orders',
+              pathname: '/(tabs)/supplier-orders',
               params: {
                 delivery_order_id: context.orderId,
                 delivery_catalog_id: context.catalogId,

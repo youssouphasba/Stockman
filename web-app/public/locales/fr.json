@@ -1529,6 +1529,8 @@
     "success": "Opération réussie"
   },
   "orders": {
+    "online_title": "Commandes clients",
+    "online_subtitle": "Les commandes passées sur votre boutique en ligne. Les commandes fournisseurs sont dans l'écran Fournisseurs.",
     "active_credit_notes": "Avoirs Actifs",
     "add_at_least_one_item": "Ajoutez au moins un article",
     "add_product_placeholder": "Ajouter un produit...",

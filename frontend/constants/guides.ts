@@ -341,9 +341,34 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             }
         ]
     },
+    onlineOrders: {
+        title: "Commandes en ligne",
+        steps: [
+            {
+                icon: "globe-outline",
+                title: "Commandes de vos clients",
+                description: "Cet onglet regroupe les commandes passées par vos clients sur votre boutique en ligne. Les commandes et retours fournisseurs se trouvent dans Fournisseurs, bouton « Commandes fournisseurs »."
+            },
+            {
+                icon: "checkmark-circle-outline",
+                title: "Traiter une commande",
+                description: "Chaque commande met en avant la prochaine étape : confirmer le paiement, préparer, marquer prête, puis livrer. « Paiement reçu » réserve le stock de la commande."
+            },
+            {
+                icon: "cash-outline",
+                title: "Livrer sans paiement confirmé",
+                description: "Au moment de livrer, indiquez si le client a payé à la réception. Sinon, la vente est enregistrée à crédit et sera soldée au paiement."
+            }
+        ]
+    },
     orders: {
         title: "Commandes Fournisseurs",
         steps: [
+            {
+                icon: "people-outline",
+                title: "Où trouver cet écran",
+                description: "Les commandes fournisseurs s'ouvrent depuis l'écran Fournisseurs, bouton « Commandes fournisseurs ». L'onglet Commandes est réservé aux commandes de vos clients en ligne."
+            },
             {
                 icon: "search-outline",
                 title: "Recherche et filtres",

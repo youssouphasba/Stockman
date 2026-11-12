@@ -2158,6 +2158,8 @@
     "success": "Opération réussie"
   },
   "orders": {
+    "supplier_title": "Commandes fournisseurs",
+    "supplier_entry_hint": "Bons de commande, réceptions, retours et avoirs",
     "active_credit_notes": "Avoirs Actifs",
     "add_at_least_one_item": "Ajoutez au moins un article",
     "add_product_placeholder": "Ajouter un produit...",

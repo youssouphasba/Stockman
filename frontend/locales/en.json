@@ -1945,6 +1945,8 @@
     "success": "Operation successful"
   },
   "orders": {
+    "supplier_title": "Supplier orders",
+    "supplier_entry_hint": "Purchase orders, receipts, returns and credit notes",
     "active_credit_notes": "Active Credit Notes",
     "add_at_least_one_item": "Add at least one item",
     "add_product_placeholder": "Add a product...",

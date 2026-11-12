@@ -1693,7 +1693,7 @@ export default function DashboardScreen() {
                   <TouchableOpacity
                     style={styles.orderButton}
                     onPress={() => router.push({
-                      pathname: '/orders' as any,
+                      pathname: '/(tabs)/supplier-orders' as any,
                       params: {
                         product_id: item.product_id,
                         reminder_type: 'replenishment',

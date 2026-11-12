@@ -1,47 +1,33 @@
-# Guide - Commandes fournisseurs
+# Guide - Commandes clients
 
-## 1. Role du module
+## 1. Rôle du module
 
-Le module Commandes suit les commandes fournisseurs, les retours et certains flux lies a la reception ou au suivi d'approvisionnement.
+Le module Commandes regroupe les commandes passées par vos clients sur votre boutique en ligne. Les commandes et les retours fournisseurs se trouvent dans le module Fournisseurs, onglet **Bons de commande** (voir `fournisseurs.md`).
 
-Profils concernes : utilisateurs autorises sur le perimetre stock ou approvisionnement.
+Profils concernés : utilisateurs autorisés sur le périmètre stock.
 
-## 2. Acces
+## 2. Accès
 
-Barre laterale -> **Commandes**.
+Barre latérale -> **Commandes**.
 
-## 3. Ce que l'ecran permet
+## 3. Ce que l'écran permet
 
-- suivre les commandes ;
-- filtrer par statut, fournisseur ou dates ;
-- consulter les retours ;
-- scanner une facture si le flux est disponible ;
-- ouvrir le detail d'une commande ;
-- confirmer certaines etapes selon le statut et les droits.
+- suivre les commandes en ligne, avec leur statut et l'état de leur paiement ;
+- voir pour chaque commande une seule « Prochaine étape » ;
+- confirmer le paiement reçu, préparer, marquer la commande prête, puis la livrer ;
+- expédier avec Denkma quand la livraison Denkma est active ;
+- annuler une commande.
 
-## 4. Etats de commande
+## 4. Paiement et livraison
 
-Selon le flux metier, une commande peut passer par plusieurs etats, par exemple :
+- « Paiement reçu » confirme la commande et réserve son stock.
+- À la livraison d'une commande dont le paiement n'est pas confirmé, l'écran demande si le client a payé. Sinon, la vente est enregistrée à crédit et sera soldée au paiement.
+- L'annulation libère le stock réservé.
 
-- en attente ;
-- confirmee ;
-- expediee ;
-- livree ;
-- annulee ;
-- retour ou reception partielle selon les cas.
+## 5. Questions fréquentes
 
-## 5. Retours
-
-L'ecran peut aussi proposer :
-
-- le suivi des retours ;
-- des avoirs disponibles ;
-- la creation d'un retour manuel selon les droits.
-
-## 6. Questions frequentes
-
-| Question | Reponse |
+| Question | Réponse |
 |---|---|
-| Pourquoi une action n'apparait pas sur une commande ? | Cela depend du statut courant, des permissions et du plan. |
-| Peut-on filtrer les commandes ? | Oui, notamment par statut, fournisseur et periode. |
-| Le scan IA d'une facture remplace-t-il une verification humaine ? | Non, il reste une aide et doit etre relu avant validation. |
+| Où sont passées les commandes fournisseurs ? | Dans Fournisseurs, onglet Bons de commande, avec les retours, les avoirs et le scan de facture. |
+| Pourquoi une action n'apparaît pas sur une commande ? | Cela dépend du statut courant, du paiement et des permissions. |
+| Une commande livrée compte-t-elle dans le chiffre d'affaires ? | Oui, elle devient une vente E-com, payée ou à crédit. |

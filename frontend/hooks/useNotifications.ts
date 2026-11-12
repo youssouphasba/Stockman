@@ -79,7 +79,9 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
                 if (data?.tab) params.tab = String(data.tab);
                 if (data?.product_id) params.product_id = String(data.product_id);
                 if (data?.reminder_type) params.reminder_type = String(data.reminder_type);
-                router.push({ pathname: '/(tabs)/orders', params } as any);
+                // « Commandes » ne montre que les commandes en ligne ; les autres sont des commandes fournisseurs.
+                const isWebOrder = data?.tab === 'web' || data?.source === 'ecommerce';
+                router.push({ pathname: isWebOrder ? '/(tabs)/orders' : '/(tabs)/supplier-orders', params } as any);
                 return;
             }
             const customerId = data?.customer_id || data?.customerId;
@@ -138,7 +140,8 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
                 return;
             }
             if (data?.screen === 'orders') {
-                router.push({ pathname: '/(tabs)/orders', params: { source: 'notification' } } as any);
+                const isWebOrder = data?.tab === 'web' || data?.source === 'ecommerce';
+                router.push({ pathname: isWebOrder ? '/(tabs)/orders' : '/(tabs)/supplier-orders', params: { source: 'notification' } } as any);
                 return;
             }
             if (data?.screen === 'pos') {

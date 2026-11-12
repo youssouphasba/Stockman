@@ -166,12 +166,12 @@ function TabLayoutInner() {
   );
 
   const segments = useSegments();
-  const { openModal, tab, source } = useGlobalSearchParams<{ openModal?: string; tab?: string; source?: string }>();
+  const { openModal } = useGlobalSearchParams<{ openModal?: string }>();
   const lastSegment = segments[segments.length - 1];
   const currentRoute = !lastSegment || lastSegment === '(tabs)' ? 'index' : lastSegment as string;
   // Première configuration du site : proposée une seule fois (état serveur partagé) dans E-com ou Paramètres.
   const canOfferEcommerceSetup = Platform.OS !== 'web' && isOrgAdmin && !user?.is_demo && user?.can_write_data !== false;
-  const onEcommerceSetupScreen = currentRoute === 'settings' || currentRoute === 'ecommerce' || (currentRoute === 'orders' && (tab === 'web' || source === 'ecommerce'));
+  const onEcommerceSetupScreen = currentRoute === 'settings' || currentRoute === 'ecommerce' || currentRoute === 'orders';
   const [showGuide, setShowGuide] = useState(false);
   const autoGuideHandledRef = useRef(false);
   const { isFirstVisit, isReady, markSeen } = useFirstVisit('navigation');
@@ -262,7 +262,8 @@ function TabLayoutInner() {
       case 'accounting': return GUIDES.accounting;
       case 'suppliers': return GUIDES.suppliers;
       case 'crm': return GUIDES.crm;
-      case 'orders': return GUIDES.orders;
+      case 'orders': return GUIDES.onlineOrders;
+      case 'supplier-orders': return GUIDES.orders;
       case 'ecommerce': return GUIDES.ecommerce;
       case 'alerts': return GUIDES.alerts;
       case 'activity': return GUIDES.activity;
@@ -762,6 +763,13 @@ function TabLayoutInner() {
           name="planner"
           options={{
             title: t('planner.title'),
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="supplier-orders"
+          options={{
+            title: t('orders.supplier_title', 'Commandes fournisseurs'),
             href: null,
           }}
         />

@@ -17,7 +17,7 @@ Barre laterale -> **Fournisseurs** -> **Mes fournisseurs**
 | Onglet | Contenu |
 |--------|---------|
 | Mes fournisseurs | Liste des fournisseurs enregistres manuellement |
-| Bons de commande | Creation et suivi des commandes fournisseurs |
+| Bons de commande | Création et suivi des commandes fournisseurs, retours et avoirs, scan de facture. C'est le seul endroit des commandes fournisseurs : l'écran Commandes ne montre que les commandes clients en ligne. |
 | Reapprovisionnement | Suggestions de reapprovisionnement |
 | Pilotage | Analyse fournisseurs et classement |
 | Marketplace | Recherche de fournisseurs B2B connectes |

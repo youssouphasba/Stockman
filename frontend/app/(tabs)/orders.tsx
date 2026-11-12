@@ -58,10 +58,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import PremiumGate from '../../components/PremiumGate';
 import AccessDenied from '../../components/AccessDenied';
 import { useDrawer } from '../../contexts/DrawerContext';
-import { isStarterShopkeeper } from '../../utils/accountRouting';
 import EcommerceOverview from '../../components/EcommerceOverview';
 
-export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerceWorkspace?: boolean } = {}) {
+// Sans option, l'écran montre les commandes clients en ligne ; `supplierOrders` affiche les commandes et retours fournisseurs.
+export default function OrdersScreen({ ecommerceWorkspace = false, supplierOrders = false }: { ecommerceWorkspace?: boolean; supplierOrders?: boolean } = {}) {
   const { colors, glassStyle } = useTheme();
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -216,9 +216,14 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
     delivery_link_token?: string;
   }>();
 
-  const ecommerceOnly = ecommerceWorkspace || (isStarterShopkeeper(user) && (tabParam === 'web' || sourceParam === 'ecommerce'));
-  const activeTab = ecommerceOnly ? 'web' : selectedTab;
-  const ordersGuide = ecommerceWorkspace ? GUIDES.ecommerce : GUIDES.orders;
+  const ecommerceOnly = ecommerceWorkspace || !supplierOrders;
+  const activeTab = ecommerceOnly ? 'web' : (selectedTab === 'web' ? 'orders' : selectedTab);
+  const ordersGuide = ecommerceWorkspace ? GUIDES.ecommerce : supplierOrders ? GUIDES.orders : GUIDES.onlineOrders;
+  // Un lien vers une commande fournisseur (notification, rappel de réapprovisionnement, réception) ouvre l'écran fournisseurs.
+  const isWebLink = tabParam === 'web' || sourceParam === 'ecommerce';
+  const supplierTarget = !supplierOrders && !ecommerceWorkspace && Boolean(
+    (orderIdParam && !isWebLink) || (productIdParam && !isWebLink) || deliveryOrderIdParam || tabParam === 'supplier'
+  );
   const webStatusLabels: Record<string, string> = {
     all: 'Historique complet', pending: 'En attente', confirmed: 'Confirmées',
     preparing: 'En préparation', ready: 'Prêtes', delivered: 'Terminées', cancelled: 'Annulées',
@@ -466,9 +471,9 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
         ]);
         return;
       }
-      setDrawerContent(t('tabs.orders'), [
+      setDrawerContent(t('orders.supplier_title', 'Commandes fournisseurs'), [
         { label: t('orders.new_order', 'Nouvelle commande'), icon: 'add-circle-outline', onPress: () => setShowCreateModal(true) },
-        { label: t('orders.returns', 'Retours clients'), icon: 'arrow-undo-outline', onPress: () => setActiveTab('returns') },
+        { label: t('orders.returns_credit_notes'), icon: 'arrow-undo-outline', onPress: () => setActiveTab('returns') },
         { label: t('orders.history', 'Historique'), icon: 'time-outline', onPress: () => setShowHistoryModal(true) },
         { label: t('planner.title'), icon: 'calendar-outline', onPress: () => router.push('/(tabs)/planner' as any), plan: 'enterprise' },
       ]);
@@ -486,31 +491,41 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
       loadData();
       loadSuppliers();
       loadReturns();
-      loadWebOrders();
     }, [ecommerceOnly, loadData, loadSuppliers, loadReturns, loadWebOrders, user?.user_id])
   );
 
   useEffect(() => {
     const orderId = typeof orderIdParam === 'string' ? orderIdParam : undefined;
-    const tab = typeof tabParam === 'string' ? tabParam : undefined;
     const source = typeof sourceParam === 'string' ? sourceParam : undefined;
     const productId = typeof productIdParam === 'string' ? productIdParam : undefined;
     const reminderType = typeof reminderTypeParam === 'string' ? reminderTypeParam : undefined;
 
-    if (!orderId && !productId) {
-      if (tab === 'web' || source === 'ecommerce') {
-        setActiveTab('web');
-        if (!ecommerceOnly) void loadWebOrders();
+    if (supplierTarget) {
+      const params: Record<string, string> = {};
+      if (orderId) params.order_id = orderId;
+      if (productId) params.product_id = productId;
+      if (reminderType) params.reminder_type = reminderType;
+      if (source) params.source = source;
+      if (typeof deliveryOrderIdParam === 'string') {
+        params.delivery_order_id = deliveryOrderIdParam;
+        params.delivery_catalog_id = String(deliveryCatalogIdParam || '');
+        params.delivery_product_id = String(deliveryProductIdParam || '');
+        params.delivery_link_token = String(deliveryLinkTokenParam || '');
       }
+      // Vide les paramètres de cet onglet pour qu'un retour sur « Commandes » ne renvoie pas vers les fournisseurs.
+      router.setParams({ order_id: undefined, product_id: undefined, reminder_type: undefined, delivery_order_id: undefined, delivery_catalog_id: undefined, delivery_product_id: undefined, delivery_link_token: undefined, tab: undefined } as any);
+      router.replace({ pathname: '/(tabs)/supplier-orders', params } as any);
       return;
     }
+
+    if (!orderId && !productId) return;
 
     const reminderKey = `${orderId || ''}|${productId || ''}|${reminderType || ''}`;
     if (handledReminderRef.current === reminderKey) return;
     handledReminderRef.current = reminderKey;
 
     if (orderId) {
-      if (source === 'ecommerce' || tab === 'web') {
+      if (!supplierOrders) {
         openWebOrderDetail(orderId);
         return;
       }
@@ -524,7 +539,7 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
       setPreSelectedProductId(productId);
       setShowCreateModal(true);
     }
-  }, [ecommerceOnly, loadWebOrders, orderIdParam, productIdParam, reminderTypeParam, sourceParam, tabParam]);
+  }, [ecommerceOnly, loadWebOrders, orderIdParam, productIdParam, reminderTypeParam, sourceParam, supplierOrders, supplierTarget, tabParam]);
 
   useEffect(() => {
     const orderId = typeof deliveryOrderIdParam === 'string' ? deliveryOrderIdParam : undefined;
@@ -532,7 +547,7 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
     const productId = typeof deliveryProductIdParam === 'string' ? deliveryProductIdParam : undefined;
     const token = typeof deliveryLinkTokenParam === 'string' ? deliveryLinkTokenParam : undefined;
 
-    if (!orderId || !catalogId || !productId || !token) return;
+    if (!supplierOrders || !orderId || !catalogId || !productId || !token) return;
 
     const linkKey = `${token}:${orderId}:${catalogId}:${productId}`;
     if (handledDeliveryProductRef.current === linkKey) return;
@@ -547,7 +562,7 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
       productId,
       stockAlreadyRecorded: true,
     });
-  }, [deliveryCatalogIdParam, deliveryLinkTokenParam, deliveryOrderIdParam, deliveryProductIdParam]);
+  }, [deliveryCatalogIdParam, deliveryLinkTokenParam, deliveryOrderIdParam, deliveryProductIdParam, supplierOrders]);
 
   function onRefresh() {
     setRefreshing(true);
@@ -1054,7 +1069,7 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
         >
           <View style={[styles.headerRow, { paddingTop: insets.top }]}>
             <View>
-              <Text style={styles.pageTitle}>{ecommerceWorkspace ? 'E-com' : ecommerceOnly ? 'Commandes en ligne' : t('orders.title')}</Text>
+              <Text style={styles.pageTitle}>{ecommerceWorkspace ? 'E-com' : ecommerceOnly ? 'Commandes en ligne' : t('orders.supplier_title', 'Commandes fournisseurs')}</Text>
               <Text style={styles.subtitle}>
                 {activeTab === 'orders'
                   ? t('orders.orders_count', { count: orderList.length })
@@ -1124,17 +1139,6 @@ export default function OrdersScreen({ ecommerceWorkspace = false }: { ecommerce
             >
               <Ionicons name="cart-outline" size={16} color={activeTab === 'orders' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
               <Text style={[styles.filterText, activeTab === 'orders' && styles.filterTextActive]}>{t('orders.title')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                activeTab === 'web' && styles.filterChipActive,
-                { flex: 1, justifyContent: 'center' },
-              ]}
-              onPress={() => { setActiveTab('web'); loadWebOrders(); }}
-            >
-              <Ionicons name="globe-outline" size={16} color={activeTab === 'web' ? colors.primaryLight : colors.textMuted} style={{ marginRight: 6 }} />
-              <Text style={[styles.filterText, activeTab === 'web' && styles.filterTextActive]}>E-com</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[

@@ -79,8 +79,14 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
             accounting: 'accounting',
             subscription: 'subscription',
         };
-        const tab = tabByScreen[screen];
+        // Les commandes fournisseurs sont dans l'écran Fournisseurs ; « Commandes » ne montre que les commandes en ligne.
+        const supplierOrder = screen === 'orders' && notif.deeplink?.tab !== 'web' && notif.deeplink?.source !== 'ecommerce';
+        const tab = supplierOrder ? 'suppliers' : tabByScreen[screen];
         if (!tab) return;
+        if (supplierOrder) {
+            window.sessionStorage.setItem('stockman_suppliers_open_tab', 'orders');
+            if (notif.deeplink?.order_id) window.sessionStorage.setItem('stockman_suppliers_open_order', String(notif.deeplink.order_id));
+        }
         if (!notif.is_read) void handleMarkRead(notif.message_id);
         if (screen === 'orders' && notif.deeplink?.tab === 'web' && notif.deeplink?.order_id) {
             window.sessionStorage.setItem('stockman_orders_open_tab', 'web');
