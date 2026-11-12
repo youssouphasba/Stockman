@@ -43,6 +43,8 @@ import EcommerceDomainCard from '../../components/EcommerceDomainCard';
 import EcommercePaymentCard from '../../components/EcommercePaymentCard';
 import DenkmaSettingsCard from '../../components/DenkmaSettingsCard';
 import EcommerceStep from '../../components/EcommerceSettingsStep';
+import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
 import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
 import { getCommercialPlan, isStarterShopkeeper } from '../../utils/accountRouting';
@@ -216,6 +218,23 @@ function SettingsAccordionSection({
 
 type EcommerceStepId = 'products' | 'appearance' | 'contact' | 'delivery' | 'payment' | 'domain';
 
+// Version affichée dans « À propos » : numéro de l'application, puis la mise à jour à distance en cours
+// d'exécution. Cela permet de vérifier d'un coup d'œil qu'une publication OTA est bien appliquée.
+// Calculée au rendu et protégée : une erreur ici ne doit jamais empêcher l'écran de s'afficher.
+function getAppVersionLabel(): string {
+  try {
+    const version = Constants.expoConfig?.version || Updates.runtimeVersion || '';
+    const publishedAt = Updates.createdAt;
+    if (Updates.isEmbeddedLaunch || !publishedAt) return `${version} · version d'origine`;
+    const pad = (value: number) => String(value).padStart(2, '0');
+    const date = `${pad(publishedAt.getDate())}/${pad(publishedAt.getMonth() + 1)}`;
+    const time = `${pad(publishedAt.getHours())}:${pad(publishedAt.getMinutes())}`;
+    return `${version} · mise à jour du ${date} à ${time}`;
+  } catch {
+    return Constants.expoConfig?.version || '';
+  }
+}
+
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -250,34 +269,35 @@ export default function SettingsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Record<SettingsSectionKey, boolean>>({
+  // Hors parcours Starter, toutes les rubriques sont repliées à l'arrivée : seul l'utilisateur les ouvre.
+  const [expandedSections, setExpandedSections] = useState<Record<SettingsSectionKey, boolean>>(() => ({
     accountAppGroup: false,
-    storeGroup: true,
+    storeGroup: isStarterSettings,
     organizationGroup: false,
     alertsGroup: false,
-    supportGroup: true,
+    supportGroup: isStarterSettings,
     securityGroup: false,
-    profile: true,
+    profile: isStarterSettings,
     notifications: false,
     team: false,
     enterpriseHub: false,
     organization: false,
-    storeIdentity: true,
+    storeIdentity: isStarterSettings,
     storeEcommerce: false,
     storeDocuments: false,
-    storeEmpty: true,
+    storeEmpty: isStarterSettings,
     storeAlerts: false,
-    billing: true,
+    billing: isStarterSettings,
     accountAlerts: false,
     tax: false,
     reminders: false,
     sync: false,
-    support: true,
+    support: isStarterSettings,
     incident: false,
     security: false,
     legal: false,
     data: false,
-  });
+  }));
   const [billingContactName, setBillingContactName] = useState('');
   const [billingContactEmail, setBillingContactEmail] = useState('');
   const [notificationContacts, setNotificationContacts] = useState(DEFAULT_NOTIFICATION_CONTACTS);
@@ -2091,7 +2111,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>{t('settings.about')}</Text>
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>{t('settings.version')}</Text>
-            <Text style={styles.aboutValue}>1.0.0</Text>
+            <Text style={styles.aboutValue}>{getAppVersionLabel()}</Text>
           </View>
 
           <TouchableOpacity

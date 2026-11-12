@@ -99,4 +99,6 @@ eas workflow:run .eas/workflows/ota-ios.yml --ref "SHA_DU_COMMIT" --wait
 
 `--ref` utilise le code du commit distant, sans inclure les modifications locales. Vérifiez le résultat dans **Workflows**, puis **Updates**, dans le tableau de bord Expo. Si le workflow signale un échec après la publication, vérifiez d’abord si le groupe OTA existe avant de relancer. Une modification native nécessite un nouveau build ; une OTA n’envoie rien à Google Play Console ni à App Store Connect.
 
+Pour vérifier sur un téléphone qu’une OTA est bien appliquée, ouvrez **Réglages**, puis **Sécurité, légal et données**, puis **Informations légales** : la ligne **Version** affiche le numéro de l’application suivi de « mise à jour du JJ/MM à HH:MM » (heure du téléphone) quand une OTA est en cours d’exécution, ou de « version d’origine » quand l’application tourne encore sur le code livré avec le build.
+
 Si Expo cherche le workflow dans `.eas/workflows` à la racine du dépôt, corrigez le répertoire de base dans les réglages GitHub du projet Expo. Le workflow accepte aussi une archive sans métadonnées Git ; dans ce cas, utilisez une copie isolée du commit validé, pas le dossier de travail.
