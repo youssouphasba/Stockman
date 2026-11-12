@@ -870,7 +870,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         <ReTooltip
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}
-                                            labelStyle={{ color: '#64748b', marginBottom: '4px', fontSize: '10px' }}
+                                            labelStyle={{ color: '#94A3B8', marginBottom: '4px', fontSize: '10px' }}
                                             formatter={(value: any, _: any, props: any) => {
                                                 const isPred = props?.payload?.is_predicted;
                                                 return [`${Number(value).toLocaleString('fr-FR')}`, isPred ? t('dashboard.forecast_predicted') : t('dashboard.forecast_actual')];
@@ -1018,7 +1018,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                                         <ReTooltip
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}
-                                            labelStyle={{ color: '#64748b', marginBottom: '4px', fontSize: '10px' }}
+                                            labelStyle={{ color: '#94A3B8', marginBottom: '4px', fontSize: '10px' }}
                                             formatter={(value: any) => [`${Number(value).toLocaleString('fr-FR')}`, t('dashboard.stock_value')]}
                                         />
                                         <Area type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorStock)" dot={false} />

@@ -173,7 +173,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}
-                                            labelStyle={{ color: '#64748b', marginBottom: '4px', fontSize: '10px' }}
+                                            labelStyle={{ color: '#94A3B8', marginBottom: '4px', fontSize: '10px' }}
                                         />
                                         <Area type="monotone" dataKey="new_quantity" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorStock)" />
                                     </AreaChart>
@@ -200,7 +200,7 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}
-                                            labelStyle={{ color: '#64748b', marginBottom: '4px', fontSize: '10px' }}
+                                            labelStyle={{ color: '#94A3B8', marginBottom: '4px', fontSize: '10px' }}
                                         />
                                         <Bar dataKey="selling_price" fill="#10B981" radius={[4, 4, 0, 0]} />
                                         <Bar dataKey="purchase_price" fill="#6366f1" radius={[4, 4, 0, 0]} />

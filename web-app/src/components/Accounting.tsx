@@ -1642,7 +1642,7 @@ export default function Accounting() {
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #ffffff10', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px' }}
-                                            labelStyle={{ color: '#64748b', fontSize: '10px' }}
+                                            labelStyle={{ color: '#94A3B8', fontSize: '10px' }}
                                         />
                                         <Area type="monotone" dataKey="revenue" name="Revenus" stroke="#3B82F6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
                                         <Area type="monotone" dataKey="profit" name="Profit" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorProfit)" />
