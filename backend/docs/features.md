@@ -88,7 +88,7 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 
 ### Site e-commerce automatique
 - Le nom du site web est personnalisable dans les paramètres e-commerce et s'affiche dans l'en-tête de la vitrine publique.
-- Le domaine du site se connecte depuis la carte « Domaine du site » (Paramètres > Boutique en ligne) : voir `ecommerce-domain.md` pour le parcours complet.
+- Le domaine du site se connecte depuis la rubrique « Nom de domaine » (Paramètres > Site e-commerce, ou Boutique en ligne sur mobile Starter) : voir `ecommerce-domain.md` pour le parcours complet.
 - Tant que le domaine personnalisé n'est pas prêt (DNS, propriété du domaine et certificat HTTPS), Stockman continue d'ouvrir l'adresse Stockman du site, pour ne jamais envoyer les visiteurs vers un ancien hébergement encore actif sur ce domaine.
 - Les couleurs du site se choisissent avec des pastilles visuelles dans les paramètres E-com, sans saisie obligatoire de code couleur.
 - Quand le client renseigne au moins une coordonnée utile, Stockman crée ou met à jour automatiquement sa fiche dans le CRM avec la source e-commerce.

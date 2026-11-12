@@ -4,14 +4,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Bell,
+    ChevronDown,
     ChevronRight,
+    CreditCard,
+    ExternalLink,
     Eye,
     FileText,
     Globe,
     HelpCircle,
+    Link2,
     LogOut,
     Mail,
     Monitor,
+    Package,
+    Palette,
+    Phone,
     Plus,
     Printer,
     Save,
@@ -19,6 +26,7 @@ import {
     Shield,
     Store,
     Trash2,
+    Truck,
     User,
 } from 'lucide-react';
 import { auth as authApi, ecommerce as ecommerceApi, settings as settingsApi, stores as storesApi, userFeatures as userFeaturesApi } from '../services/api';
@@ -36,7 +44,7 @@ type SettingsWorkspaceProps = {
     onOpenSupport?: () => void;
 };
 
-type TabId = 'support' | 'account' | 'organization' | 'notifications' | 'documents' | 'stores' | 'security';
+type TabId = 'ecommerce' | 'support' | 'account' | 'organization' | 'notifications' | 'documents' | 'stores' | 'security';
 
 const DEFAULT_NOTIFICATION_CONTACTS: NotificationContactMap = {
     default: [],
@@ -97,6 +105,7 @@ const MODULE_OPTIONS = [
 ];
 
 const TABS: { id: TabId }[] = [
+    { id: 'ecommerce' },
     { id: 'support' },
     { id: 'account' },
     { id: 'organization' },
@@ -128,9 +137,9 @@ function SectionCard({
 }: {
     icon: React.ReactNode;
     title: string;
-    scope: string;
+    scope?: string;
     description: string;
-    actionHint: string;
+    actionHint?: string;
     children: React.ReactNode;
 }) {
     return (
@@ -139,9 +148,9 @@ function SectionCard({
                 <div className="max-w-3xl">
                     <h3 className="flex items-center gap-3 text-xl font-black text-white">{icon}{title}</h3>
                     <p className="mt-3 text-sm leading-6 text-slate-400">{description}</p>
-                    <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{actionHint}</p>
+                    {actionHint && <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{actionHint}</p>}
                 </div>
-                <ScopeBadge label={scope} />
+                {scope && <ScopeBadge label={scope} />}
             </div>
             <div className="space-y-6">{children}</div>
         </section>
@@ -167,6 +176,56 @@ function Notice({ title, text }: { title: string; text: string }) {
     );
 }
 
+type EcommerceStepId = 'products' | 'appearance' | 'contact' | 'delivery' | 'payment' | 'domain';
+
+// Rubrique repliable des réglages du site : le résumé indique l'état actuel sans avoir à l'ouvrir.
+// Le contenu n'est monté qu'à la première ouverture, puis reste monté pour ne perdre aucune saisie.
+function EcommerceStep({ icon, title, summary, incomplete = false, open, onToggle, children }: {
+    icon: React.ReactNode;
+    title: string;
+    summary: string;
+    incomplete?: boolean;
+    open: boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+}) {
+    const [mounted, setMounted] = useState(open);
+    if (open && !mounted) setMounted(true);
+    return (
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+            <button type="button" onClick={onToggle} aria-expanded={open} className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-white/[0.05]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span>
+                <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-black text-white">{title}</span>
+                    <span className={`mt-0.5 block truncate text-sm ${incomplete ? 'text-amber-300' : 'text-slate-400'}`}>{summary}</span>
+                </span>
+                <ChevronDown size={18} className={`shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+            </button>
+            {mounted ? <div className={open ? 'space-y-5 border-t border-white/10 p-5' : 'hidden'}>{children}</div> : null}
+        </div>
+    );
+}
+
+function buildEcommerceDraft(next: any) {
+    return {
+        store_id: next?.store_id || '',
+        // Le domaine se gère dans EcommerceDomainPanel : il n'est jamais renvoyé avec ce formulaire.
+        contact_email: next?.contact_email || '',
+        contact_phone: next?.contact_phone || '',
+        contact_address: next?.contact_address || '',
+        delivery_info: next?.delivery_info || '',
+        whatsapp_phone: next?.whatsapp_phone || '',
+        payment_instructions: next?.payment_instructions || '',
+        wave_phone: next?.wave_phone || '',
+        wave_name: next?.wave_name || '',
+        wave_link: next?.wave_link || '',
+        orange_money_phone: next?.orange_money_phone || '',
+        orange_money_name: next?.orange_money_name || '',
+        pay_on_delivery: next?.pay_on_delivery !== false,
+        show_out_of_stock_products: Boolean(next?.show_out_of_stock_products),
+    };
+}
+
 export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorkspaceProps) {
     const { t } = useTranslation();
     const access = getAccessContext(user);
@@ -178,9 +237,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
         ? "Personnalisez l'apparence depuis l'application mobile Stockman. L'édition web, l'aperçu web et l'historique des versions sont disponibles avec Enterprise."
         : "L'apparence ne peut pas être modifiée pour le moment : votre accès est en lecture seule.";
 
-    const [activeTab, setActiveTab] = useState<TabId>(() => (
-        typeof window !== 'undefined' && window.sessionStorage.getItem('settings:target-section') === 'ecommerce' ? 'stores' : 'support'
-    ));
+    const [requestedTab, setRequestedTab] = useState<TabId | null>(null);
     const [loading, setLoading] = useState(true);
     const [banner, setBanner] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
     const [savingKey, setSavingKey] = useState('');
@@ -190,6 +247,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     const [editingStore, setEditingStore] = useState<any>(null);
     const [ecommerceSite, setEcommerceSite] = useState<any>(null);
     const [ecommerceDraft, setEcommerceDraft] = useState<any>({});
+    const [ecommerceStep, setEcommerceStep] = useState<EcommerceStepId | null>(null);
     const [sector, setSector] = useState('');
 
     const [profileName, setProfileName] = useState('');
@@ -231,11 +289,18 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
         label: t(`settings_workspace.currencies.${currencyOption.code}`),
     }));
     const tabs = TABS.filter((tab) => {
-        if (tab.id === 'organization' || tab.id === 'documents' || tab.id === 'stores') {
+        if (tab.id === 'ecommerce' || tab.id === 'organization' || tab.id === 'documents' || tab.id === 'stores') {
             return canManageOrgSettings;
         }
         return true;
     }).map((tab) => {
+        if (tab.id === 'ecommerce') {
+            return {
+                ...tab,
+                label: 'Site e-commerce',
+                description: 'Mise en ligne, apparence, coordonnées, livraison, paiement et domaine.',
+            };
+        }
         if (tab.id === 'support') {
             return {
                 ...tab,
@@ -250,6 +315,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
             description: t(`settings_workspace.tabs.${tab.id}.description`),
         };
     });
+    const activeTab = tabs.find((tab) => tab.id === requestedTab)?.id ?? tabs[0].id;
     const notificationChannelOptions = [
         {
             key: 'in_app',
@@ -268,6 +334,23 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
         },
     ] as const;
     const activeStore = storeList.find((store) => store.store_id === user?.active_store_id) || null;
+    const ecommerceStoreName = storeList.find((store) => store.store_id === ecommerceDraft.store_id)?.name || '';
+    const ecommerceDirty = Boolean(ecommerceSite) && JSON.stringify(ecommerceDraft) !== JSON.stringify(buildEcommerceDraft(ecommerceSite));
+    const ecommerceContactCount = [ecommerceDraft.contact_email, ecommerceDraft.contact_phone, ecommerceDraft.whatsapp_phone, ecommerceDraft.contact_address]
+        .filter((value) => (value || '').trim()).length;
+    const ecommerceContactSummary = ecommerceContactCount === 0
+        ? 'À compléter'
+        : ecommerceContactCount === 4
+            ? 'Coordonnées complètes'
+            : `${ecommerceContactCount} sur 4 ${ecommerceContactCount > 1 ? 'renseignées' : 'renseignée'}`;
+    const ecommerceWallets = ecommerceSite?.mobile_money_available === false ? [] : [
+        (ecommerceDraft.wave_phone || '').trim() ? 'Wave' : '',
+        (ecommerceDraft.orange_money_phone || '').trim() ? 'Orange Money' : '',
+    ].filter(Boolean);
+    const ecommercePaymentSummary = ecommerceWallets.length
+        ? `${ecommerceWallets.join(', ')}${ecommerceDraft.pay_on_delivery !== false ? ', à la livraison' : ''}`
+        : (ecommerceDraft.payment_instructions || '').trim() ? 'Consignes de paiement renseignées' : '';
+    const toggleEcommerceStep = (step: EcommerceStepId) => setEcommerceStep((current) => (current === step ? null : step));
     const visibleModules = MODULE_OPTIONS.filter((item) => item.showFor === 'all' || ['restaurant', 'traiteur'].includes(sector));
 
     useEffect(() => {
@@ -276,23 +359,21 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
 
     useEffect(() => {
         const openEcommerceSettings = () => {
-            if (typeof window !== 'undefined') {
+            if (!canManageOrgSettings) return;
+            if (ecommerceSectionRef.current) {
+                ecommerceSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                window.sessionStorage.removeItem('settings:target-section');
+            } else {
                 window.sessionStorage.setItem('settings:target-section', 'ecommerce');
             }
-            setActiveTab('stores');
+            setRequestedTab('ecommerce');
         };
         window.addEventListener('settings:open-ecommerce', openEcommerceSettings);
         return () => window.removeEventListener('settings:open-ecommerce', openEcommerceSettings);
-    }, []);
+    }, [canManageOrgSettings]);
 
     useEffect(() => {
-        if (!tabs.some((tab) => tab.id === activeTab)) {
-            setActiveTab('support');
-        }
-    }, [activeTab, tabs]);
-
-    useEffect(() => {
-        if (activeTab !== 'stores' || typeof window === 'undefined') {
+        if (loading || activeTab !== 'ecommerce' || typeof window === 'undefined') {
             return;
         }
         if (window.sessionStorage.getItem('settings:target-section') !== 'ecommerce') {
@@ -303,7 +384,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
             window.sessionStorage.removeItem('settings:target-section');
         }, 120);
         return () => window.clearTimeout(timer);
-    }, [activeTab, ecommerceSectionRef, ecommerceSite]);
+    }, [activeTab, loading]);
 
     async function loadSettings() {
         setLoading(true);
@@ -376,23 +457,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
 
     function syncEcommerceState(next: any) {
         setEcommerceSite(next);
-        setEcommerceDraft({
-            store_id: next?.store_id || '',
-            // Le domaine se gère dans EcommerceDomainPanel : il n'est jamais renvoyé avec ce formulaire.
-            contact_email: next?.contact_email || '',
-            contact_phone: next?.contact_phone || '',
-            contact_address: next?.contact_address || '',
-            delivery_info: next?.delivery_info || '',
-            whatsapp_phone: next?.whatsapp_phone || '',
-            payment_instructions: next?.payment_instructions || '',
-            wave_phone: next?.wave_phone || '',
-            wave_name: next?.wave_name || '',
-            wave_link: next?.wave_link || '',
-            orange_money_phone: next?.orange_money_phone || '',
-            orange_money_name: next?.orange_money_name || '',
-            pay_on_delivery: next?.pay_on_delivery !== false,
-            show_out_of_stock_products: Boolean(next?.show_out_of_stock_products),
-        });
+        setEcommerceDraft(buildEcommerceDraft(next));
     }
 
     if (loading && !settings) {
@@ -407,7 +472,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
         <div className="custom-scrollbar flex-1 overflow-y-auto bg-[#0F172A] p-8">
             {canOfferEcommerceSetupOnWeb(user) && <EcommerceSetupInvitation
                 key={`${user?.user_id}:${user?.active_store_id || ''}`}
-                onConfigure={() => { setActiveTab('stores'); window.dispatchEvent(new Event('settings:open-ecommerce')); }}
+                onConfigure={() => { window.dispatchEvent(new Event('settings:open-ecommerce')); }}
             />}
             <header className="mb-8 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                 <div className="max-w-3xl">
@@ -434,7 +499,26 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                 </div>
             ) : null}
 
-            <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {tabs.map((tab) => (
+                    <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setRequestedTab(tab.id)}
+                        aria-pressed={activeTab === tab.id}
+                        className={`rounded-3xl border p-4 text-left transition-all ${
+                            activeTab === tab.id
+                                ? 'border-primary/40 bg-primary/10'
+                                : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]'
+                        }`}
+                    >
+                        <p className={`text-sm font-black uppercase tracking-[0.16em] ${activeTab === tab.id ? 'text-primary' : 'text-slate-400'}`}>{tab.label}</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-400">{tab.description}</p>
+                    </button>
+                ))}
+            </div>
+
+            {activeTab !== 'ecommerce' && <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{t('settings_workspace.summary.account.label')}</p>
                     <h2 className="mt-2 text-lg font-black text-white">{user?.name || settings?.user_name || t('settings_workspace.summary.account.empty_name')}</h2>
@@ -454,25 +538,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                     <h2 className="mt-2 text-lg font-black text-white">{activeStore?.name || t('settings_workspace.summary.store.empty')}</h2>
                     <p className="mt-3 text-sm leading-6 text-slate-400">{t('settings_workspace.summary.store.description')}</p>
                 </div>
-            </div>
-
-            <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
-                {tabs.map((tab) => (
-                    <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`rounded-3xl border p-4 text-left transition-all ${
-                            activeTab === tab.id
-                                ? 'border-primary/40 bg-primary/10'
-                                : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]'
-                        }`}
-                    >
-                        <p className={`text-sm font-black uppercase tracking-[0.16em] ${activeTab === tab.id ? 'text-primary' : 'text-slate-400'}`}>{tab.label}</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-400">{tab.description}</p>
-                    </button>
-                ))}
-            </div>
+            </div>}
 
             <div className="max-w-6xl space-y-8">
                 {activeTab === 'support' ? (
@@ -712,49 +778,63 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                     </SectionCard>
                 ) : null}
 
-                {activeTab === 'stores' ? (
-                    <>
-                        {canManageOrgSettings && ecommerceSite ? (
-                            <div ref={ecommerceSectionRef}>
-                                <SectionCard
-                                    icon={<Globe size={24} className="text-primary" />}
-                                    title="Site e-commerce"
-                                    scope={t('settings_workspace.scopes.store')}
-                                    description="Activez le site public uniquement quand vous êtes prêt à recevoir des commandes, des contacts et des visites depuis votre catalogue en ligne."
-                                    actionHint="Le bouton E-com ouvre le site, les statistiques et cette section de réglages."
-                                >
-                                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                                            <div>
-                                                <p className="text-sm font-black text-white">Site public</p>
-                                                <p className="mt-1 break-all text-sm text-slate-400">{ecommerceSite.site_url}</p>
-                                                <p className="mt-2 text-xs leading-5 text-slate-500">
-                                                    L'adresse Stockman reste toujours disponible. Le domaine personnalisé prend le relais seulement après vérification.
-                                                </p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => void runSave('ecommerce-enabled', async () => {
-                                                    const updated = await ecommerceApi.updateSite({ ...ecommerceDraft, enabled: !ecommerceSite.enabled });
-                                                    syncEcommerceState(updated);
-                                                    window.dispatchEvent(new Event('ecommerce:changed'));
-                                                }, 'Réglages e-commerce enregistrés.')}
-                                                disabled={savingKey === 'ecommerce-enabled'}
-                                                className={`rounded-2xl px-5 py-3 text-sm font-black transition-colors disabled:opacity-50 ${ecommerceSite.enabled ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/10 text-slate-300 hover:bg-primary hover:text-white'}`}
-                                            >
-                                                {ecommerceSite.enabled ? 'Site activé' : 'Activer le site'}
-                                            </button>
-                                        </div>
+                {activeTab === 'ecommerce' && canManageOrgSettings ? (
+                    <div ref={ecommerceSectionRef}>
+                        <SectionCard
+                            icon={<Globe size={24} className="text-primary" />}
+                            title="Site e-commerce"
+                            description="Mise en ligne, apparence, coordonnées, livraison, paiement et domaine."
+                        >
+                            {ecommerceSite ? <>
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                    <div className="min-w-0">
+                                        <p className="flex items-center gap-2 text-sm font-black text-white">
+                                            <span className={`h-2.5 w-2.5 rounded-full ${ecommerceSite.enabled ? 'bg-emerald-400' : 'bg-slate-500'}`} aria-hidden="true" />
+                                            {ecommerceSite.enabled ? 'Votre site est en ligne' : 'Votre site est hors ligne'}
+                                        </p>
+                                        <a href={ecommerceSite.site_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-2 break-all text-sm text-primary hover:underline">
+                                            {ecommerceSite.site_url}
+                                            <ExternalLink size={14} className="shrink-0" aria-hidden="true" />
+                                        </a>
+                                        <p className="mt-2 text-xs leading-5 text-slate-500">
+                                            {ecommerceSite.enabled
+                                                ? 'Vos clients peuvent consulter le catalogue et passer commande.'
+                                                : 'Mettez-le en ligne quand vous êtes prêt à recevoir des commandes.'}
+                                        </p>
                                     </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => void runSave('ecommerce-enabled', async () => {
+                                            const updated = await ecommerceApi.updateSite({ ...ecommerceDraft, enabled: !ecommerceSite.enabled });
+                                            syncEcommerceState(updated);
+                                            window.dispatchEvent(new Event('ecommerce:changed'));
+                                        }, ecommerceSite.enabled ? 'Votre site est hors ligne.' : 'Votre site est en ligne.')}
+                                        disabled={savingKey === 'ecommerce-enabled'}
+                                        className={`shrink-0 rounded-2xl px-5 py-3 text-sm font-black transition-colors disabled:opacity-50 ${ecommerceSite.enabled ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-primary text-white hover:bg-primary/90'}`}
+                                    >
+                                        {ecommerceSite.enabled ? 'Mettre hors ligne' : 'Mettre en ligne'}
+                                    </button>
+                                </div>
+                            </div>
 
-                                    <Field label="Boutique liée" hint="Les produits visibles sur le site proviennent de cette boutique.">
-                                        <select value={ecommerceDraft.store_id || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, store_id: event.target.value }))} className={inputClass}>
-                                            {storeList.map((store) => (
-                                                <option key={store.store_id} value={store.store_id}>{store.name}</option>
-                                            ))}
-                                        </select>
-                                    </Field>
-
+                            <div className="space-y-3">
+                                <EcommerceStep
+                                    icon={<Package size={18} />}
+                                    title="Produits affichés"
+                                    summary={`${ecommerceStoreName ? `${ecommerceStoreName} · ` : ''}${ecommerceDraft.show_out_of_stock_products ? 'ruptures affichées' : 'ruptures masquées'}`}
+                                    open={ecommerceStep === 'products'}
+                                    onToggle={() => toggleEcommerceStep('products')}
+                                >
+                                    {storeList.length > 1 ? (
+                                        <Field label="Boutique liée" hint="Les produits du site proviennent de cette boutique.">
+                                            <select value={ecommerceDraft.store_id || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, store_id: event.target.value }))} className={inputClass}>
+                                                {storeList.map((store) => (
+                                                    <option key={store.store_id} value={store.store_id}>{store.name}</option>
+                                                ))}
+                                            </select>
+                                        </Field>
+                                    ) : null}
                                     <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
                                         <input
                                             type="checkbox"
@@ -764,10 +844,18 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         />
                                         <span>
                                             <span className="block text-sm font-black text-white">Afficher les produits en rupture</span>
-                                            <span className="mt-1 block text-sm leading-6 text-slate-400">S'ils sont visibles, ils restent consultables mais ne peuvent pas être commandés. Sinon, ils sont masqués du site E-com.</span>
+                                            <span className="mt-1 block text-sm leading-6 text-slate-400">Ils restent visibles, mais ne peuvent pas être commandés. Décochez pour les masquer.</span>
                                         </span>
                                     </label>
+                                </EcommerceStep>
 
+                                <EcommerceStep
+                                    icon={<Palette size={18} />}
+                                    title="Apparence"
+                                    summary={ecommerceSite.model_name ? `Modèle ${ecommerceSite.model_name}` : 'Modèle, couleurs, textes et images'}
+                                    open={ecommerceStep === 'appearance'}
+                                    onToggle={() => toggleEcommerceStep('appearance')}
+                                >
                                     <EcommerceAppearancePanel
                                         key={`${ecommerceSite.slug}:${user?.user_id || ''}`}
                                         readOnlyMessage={appearanceReadOnlyMessage}
@@ -780,36 +868,68 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                                 .catch(() => null);
                                         }}
                                     />
+                                </EcommerceStep>
 
+                                <EcommerceStep
+                                    icon={<Phone size={18} />}
+                                    title="Coordonnées"
+                                    summary={ecommerceContactSummary}
+                                    incomplete={ecommerceContactCount === 0}
+                                    open={ecommerceStep === 'contact'}
+                                    onToggle={() => toggleEcommerceStep('contact')}
+                                >
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        <Field label="E-mail de contact" hint="Affiché dans Contactez-nous et utilisé comme destinataire prioritaire des formulaires.">
-                                            <input value={ecommerceDraft.contact_email || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, contact_email: event.target.value }))} className={inputClass} />
+                                        <Field label="E-mail" hint="Affiché sur le site ; reçoit les messages des clients.">
+                                            <input type="email" value={ecommerceDraft.contact_email || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, contact_email: event.target.value }))} className={inputClass} />
                                         </Field>
-                                        <Field label="Téléphone de contact" hint="Numéro affiché sur le site pour les demandes clients.">
-                                            <input value={ecommerceDraft.contact_phone || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, contact_phone: event.target.value }))} className={inputClass} />
+                                        <Field label="Téléphone" hint="Numéro affiché sur le site.">
+                                            <input type="tel" value={ecommerceDraft.contact_phone || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, contact_phone: event.target.value }))} className={inputClass} />
+                                        </Field>
+                                        <Field label="WhatsApp" hint="Numéro du bouton WhatsApp du site.">
+                                            <input type="tel" value={ecommerceDraft.whatsapp_phone || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, whatsapp_phone: event.target.value }))} className={inputClass} />
+                                        </Field>
+                                        <Field label="Adresse" hint="Adresse affichée dans « Contactez-nous ».">
+                                            <input value={ecommerceDraft.contact_address || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, contact_address: event.target.value }))} className={inputClass} />
                                         </Field>
                                     </div>
+                                </EcommerceStep>
 
-                                    <Field label="Adresse de contact" hint="Adresse visible dans la section Contactez-nous et reprise dans les demandes client.">
-                                        <input value={ecommerceDraft.contact_address || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, contact_address: event.target.value }))} className={inputClass} />
-                                    </Field>
-
-                                    <Field label="WhatsApp" hint="Numéro utilisé par le bouton WhatsApp du site public.">
-                                        <input value={ecommerceDraft.whatsapp_phone || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, whatsapp_phone: event.target.value }))} className={inputClass} />
-                                    </Field>
-
-                                    <Field label="Livraison" hint="Zones desservies, retrait, délais, frais ou consignes utiles.">
+                                <EcommerceStep
+                                    icon={<Truck size={18} />}
+                                    title="Livraison"
+                                    summary={(ecommerceDraft.delivery_info || '').trim() ? 'Consignes renseignées' : 'Consignes à compléter'}
+                                    incomplete={!(ecommerceDraft.delivery_info || '').trim()}
+                                    open={ecommerceStep === 'delivery'}
+                                    onToggle={() => toggleEcommerceStep('delivery')}
+                                >
+                                    <Field label="Consignes de livraison" hint="Zones desservies, retrait, délais et frais.">
                                         <textarea value={ecommerceDraft.delivery_info || ''} onChange={(event) => setEcommerceDraft((draft: any) => ({ ...draft, delivery_info: event.target.value }))} rows={3} className={textareaClass} />
                                     </Field>
-
-                                    <EcommercePaymentSettings draft={ecommerceDraft} mobileMoneyAvailable={ecommerceSite?.mobile_money_available} onChange={(patch) => setEcommerceDraft((draft: any) => ({ ...draft, ...patch }))} />
-
                                     <DenkmaSettingsPanel
                                         canEdit={canManageOrgSettings && !webConsultationOnly}
                                         readOnlyMessage={webConsultationOnly ? "Starter et Pro connectent Denkma depuis l'application mobile Stockman. La gestion web est disponible avec Enterprise." : "Votre accès ne permet pas de modifier la livraison Denkma."}
                                         onNotice={(tone, message) => setBanner({ tone, message })}
                                     />
+                                </EcommerceStep>
 
+                                <EcommerceStep
+                                    icon={<CreditCard size={18} />}
+                                    title="Paiement"
+                                    summary={ecommercePaymentSummary || 'À compléter'}
+                                    incomplete={!ecommercePaymentSummary}
+                                    open={ecommerceStep === 'payment'}
+                                    onToggle={() => toggleEcommerceStep('payment')}
+                                >
+                                    <EcommercePaymentSettings draft={ecommerceDraft} mobileMoneyAvailable={ecommerceSite?.mobile_money_available} onChange={(patch) => setEcommerceDraft((draft: any) => ({ ...draft, ...patch }))} />
+                                </EcommerceStep>
+
+                                <EcommerceStep
+                                    icon={<Link2 size={18} />}
+                                    title="Nom de domaine"
+                                    summary={ecommerceSite.custom_domain || 'Adresse Stockman'}
+                                    open={ecommerceStep === 'domain'}
+                                    onToggle={() => toggleEcommerceStep('domain')}
+                                >
                                     <EcommerceDomainPanel
                                         site={ecommerceSite}
                                         canEdit={canManageOrgSettings && !webConsultationOnly}
@@ -822,24 +942,49 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                                         }}
                                         onNotice={(tone, message) => setBanner({ tone, message })}
                                     />
-
-                                    <button
-                                        type="button"
-                                        onClick={() => void runSave('ecommerce-settings', async () => {
-                                            const updated = await ecommerceApi.updateSite({ ...ecommerceDraft, enabled: ecommerceSite.enabled });
-                                            syncEcommerceState(updated);
-                                            window.dispatchEvent(new Event('ecommerce:changed'));
-                                        }, 'Réglages e-commerce enregistrés.')}
-                                        disabled={savingKey === 'ecommerce-settings'}
-                                        className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
-                                    >
-                                        <Save size={18} />
-                                        {savingKey === 'ecommerce-settings' ? t('settings_workspace.actions.saving') : 'Enregistrer le site e-commerce'}
-                                    </button>
-                                </SectionCard>
+                                </EcommerceStep>
                             </div>
-                        ) : null}
 
+                            {ecommerceDirty ? (
+                                <div role="status" className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-primary/40 bg-[#0F172A] p-4 shadow-2xl md:flex-row md:items-center md:justify-between">
+                                    <p className="text-sm font-semibold text-white">Vous avez des modifications non enregistrées.</p>
+                                    <div className="flex flex-wrap gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => syncEcommerceState(ecommerceSite)}
+                                            disabled={savingKey === 'ecommerce-settings'}
+                                            className="rounded-2xl bg-white/10 px-5 py-3 text-sm font-black text-slate-200 transition-colors hover:bg-white/15 disabled:opacity-50"
+                                        >
+                                            Annuler
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => void runSave('ecommerce-settings', async () => {
+                                                const updated = await ecommerceApi.updateSite({ ...ecommerceDraft, enabled: ecommerceSite.enabled });
+                                                syncEcommerceState(updated);
+                                                window.dispatchEvent(new Event('ecommerce:changed'));
+                                            }, 'Réglages e-commerce enregistrés.')}
+                                            disabled={savingKey === 'ecommerce-settings'}
+                                            className="btn-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3 disabled:opacity-50"
+                                        >
+                                            <Save size={18} />
+                                            {savingKey === 'ecommerce-settings' ? t('settings_workspace.actions.saving') : 'Enregistrer'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
+                            </> : (
+                                <div className="space-y-3">
+                                    <p className="text-sm text-slate-300" role="status">Les réglages du site n’ont pas pu être chargés.</p>
+                                    <button type="button" className="btn-primary" onClick={() => void loadSettings()}>Réessayer</button>
+                                </div>
+                            )}
+                        </SectionCard>
+                    </div>
+                ) : null}
+
+                {activeTab === 'stores' ? (
+                    <>
                         {canManageOrgSettings && storeList.length ? (
                             <SectionCard
                                 icon={<Store size={24} className="text-primary" />}

@@ -6,6 +6,23 @@ La configuration du site reste dans Paramètres > Boutique en ligne. E-com reste
 
 Sept modèles sont disponibles pour Starter, Pro et Enterprise : Stockman Basic, Atelier, Marché, Vitrine, Éclat, Prestige et Bazar. La bibliothèque est conçue pour s'enrichir progressivement, sans limite commerciale codée en dur ; les droits par modèle et par abonnement se règlent côté serveur. Enterprise dispose sur le web d'un éditeur visuel pour tous les modèles à sections (tous sauf Stockman Basic), avec lequel il peut aussi créer des pages personnalisées.
 
+## Organisation des réglages du site
+
+Pour les comptes autorisés, les réglages du site constituent la première rubrique des Paramètres sur mobile, pour Starter, Pro et Enterprise. Elle s'appelle « Boutique en ligne » sur Starter mobile et « Site e-commerce » ailleurs. Elle est distincte de « Ma boutique » ou « Boutique active ». Sur le web, « Site e-commerce » est le premier onglet et s'ouvre par défaut ; les droits de consultation et de modification restent ceux de l'abonnement et du rôle.
+
+En haut, une ligne indique si le site est en ligne ou hors ligne, avec son adresse. Sur mobile, un interrupteur met le site en ligne ou hors ligne, et les boutons « Voir mon site » et « Commandes » ouvrent le site et les commandes en ligne. Sur le web, le bouton s'appelle « Mettre en ligne » ou « Mettre hors ligne ». Ce changement s'applique immédiatement.
+
+Les réglages sont ensuite rangés en six rubriques repliables, ouvertes une à la fois. Chaque rubrique affiche son état actuel sans avoir à l'ouvrir et signale ce qui reste à compléter :
+
+- « Produits affichés » : boutique liée (proposée seulement lorsqu'il y a plusieurs boutiques) et affichage des produits en rupture ;
+- « Apparence » : modèle, couleurs, textes et images, avec brouillon, aperçu et publication ;
+- « Coordonnées » : e-mail, téléphone, WhatsApp et adresse ;
+- « Livraison » : consignes de livraison et carte « Livraison Denkma » ;
+- « Paiement » : Wave, Orange Money, paiement à la livraison et autres consignes ;
+- « Nom de domaine » : adresse Stockman et connexion d'un domaine personnalisé.
+
+Dès qu'un réglage des rubriques « Produits affichés », « Coordonnées », « Livraison » (consignes) ou « Paiement » est modifié, un bandeau « Vous avez des modifications non enregistrées. » apparaît avec les boutons « Annuler » et « Enregistrer ». Sans modification en attente, aucun bouton d'enregistrement n'est affiché. L'apparence, le domaine et Denkma gardent leurs propres boutons.
+
 ## Première configuration
 
 À sa première entrée dans E-com ou dans Paramètres, un administrateur opérationnel autorisé peut recevoir la proposition « Bienvenue dans votre boutique en ligne ! ». Elle indique que la boutique dispose déjà d'un modèle de site prêt à personnaliser (Stockman Basic). « Configurer mon site » ouvre Paramètres > Boutique en ligne, sans activer le site. « Plus tard » ferme la proposition et enregistre ce choix. Dans les deux cas, Stockman reste utilisable normalement et le site peut être configuré à tout moment depuis Paramètres > Boutique en ligne.
@@ -18,7 +35,7 @@ Si deux appareils sont ouverts en même temps, un seul affiche la proposition. Q
 
 ## Apparence du site : brouillon, aperçu et publication
 
-Le bloc « Apparence du site » se trouve dans Paramètres > Boutique en ligne. Il regroupe le logo, le nom du site, le titre d'accueil, le message d'accueil et la couleur de marque. Les autres réglages du site (activation, boutique liée, produits en rupture, coordonnées, livraison, WhatsApp, paiement des commandes et domaine) restent dans le formulaire du site et s'enregistrent avec « Enregistrer le site e-commerce ».
+Le bloc « Apparence du site » se trouve dans la rubrique « Apparence » des réglages du site. Il regroupe le logo, le nom du site, le titre d'accueil, le message d'accueil et la couleur de marque. Les autres réglages du site (activation, boutique liée, produits en rupture, coordonnées, livraison, WhatsApp, paiement des commandes et domaine) se trouvent dans les autres rubriques des réglages du site ; ceux du formulaire s'enregistrent avec « Enregistrer ».
 
 - « Enregistrer le brouillon » conserve les modifications sans changer le site public. Il existe un seul brouillon par site, partagé par tous les appareils et par tous les administrateurs opérationnels du compte.
 - « Prévisualiser » ouvre un aperçu privé du brouillon, ou de la version publiée s'il n'y a pas de brouillon. Le lien reste valable 30 minutes, fonctionne même si le site est désactivé et n'est pas indexé par les moteurs de recherche. Dans l'aperçu, les commandes, les messages de contact et les statistiques de visite sont désactivés. Abandonner le brouillon rend ses aperçus inaccessibles. Le lien est personnel : il ne doit pas être partagé.

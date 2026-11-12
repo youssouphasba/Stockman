@@ -1,8 +1,8 @@
 import type { EcommerceSite, EcommerceSiteUpdate } from '../services/api';
 
 export const STARTER_SETTINGS_GROUPS = [
-  { id: 'store', title: 'Ma boutique', icon: 'storefront-outline', sections: ['storeIdentity', 'storeDocuments', 'tax', 'storeEmpty'] },
   { id: 'online', title: 'Boutique en ligne', icon: 'globe-outline', sections: ['storeEcommerce'] },
+  { id: 'store', title: 'Ma boutique', icon: 'storefront-outline', sections: ['storeIdentity', 'storeDocuments', 'tax', 'storeEmpty'] },
   { id: 'account', title: 'Mon compte', icon: 'person-outline', sections: ['identity', 'profile', 'security', 'accounts', 'team', 'logout'] },
   { id: 'notifications', title: 'Notifications', icon: 'notifications-outline', sections: ['notificationsToggle', 'notifications'] },
   { id: 'billing', title: 'Mon abonnement', icon: 'card-outline', sections: ['billing'] },

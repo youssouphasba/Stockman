@@ -8,7 +8,7 @@ L'adresse Stockman reste toujours active, même quand un nom de domaine est conn
 
 ## Connecter son propre nom de domaine
 
-Le commerçant doit d'abord posséder le domaine, acheté chez un fournisseur (OVHcloud, GoDaddy, Namecheap, Cloudflare ou autre). La carte « Domaine du site » se trouve dans Paramètres > Boutique en ligne (sur mobile Starter, dans « Plus d'options »). Tous les abonnements la gèrent depuis l'application mobile ; sur le web, la gestion est réservée à Enterprise, et Starter et Pro y voient seulement l'état du domaine.
+Le commerçant doit d'abord posséder le domaine, acheté chez un fournisseur (OVHcloud, GoDaddy, Namecheap, Cloudflare ou autre). La carte du domaine se trouve dans Paramètres > Site e-commerce (Boutique en ligne sur mobile Starter), rubrique « Nom de domaine ». Tous les abonnements la gèrent depuis l'application mobile ; sur le web, la gestion est réservée à Enterprise, et Starter et Pro y voient seulement l'état du domaine.
 
 1. Saisir le domaine, sans `https://`, puis toucher « Connecter ce domaine ». Avec `senlab.com` (ou `www.senlab.com`), le site s'ouvrira sur `www.senlab.com` et `senlab.com` y redirigera. Un sous-domaine comme `boutique.senlab.com` est aussi accepté : il est alors connecté seul.
 2. Chez le fournisseur du domaine, dans la gestion DNS, créer les enregistrements affichés par Stockman. Pour `senlab.com`, il y en a deux : un CNAME nommé `www` vers la valeur indiquée, et un enregistrement A nommé `@` vers l'adresse IP indiquée. Chaque valeur se copie avec le bouton « Copier ». Il faut supprimer les anciens enregistrements A, AAAA ou CNAME sur ces mêmes noms. Certains fournisseurs demandent le nom complet (`www.senlab.com`) au lieu du nom court (`www`).

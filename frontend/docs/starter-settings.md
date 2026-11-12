@@ -1,13 +1,13 @@
 # Paramètres Starter mobile
 
-La vue simplifiée concerne les propriétaires commerçants dont le plan souscrit est Starter, hors démonstration, sur Android et iOS. Un plan Pro ou Enterprise temporairement restreint conserve sa présentation. Les autres rôles et le web ne changent pas.
+La vue simplifiée concerne les propriétaires commerçants dont le plan souscrit est Starter, hors démonstration, sur Android et iOS. Un plan Pro ou Enterprise temporairement restreint conserve sa présentation.
 
 ## Accès
 
-La navigation mobile Starter comporte cinq onglets : Produits, Caisse, Compta, E-com, Paramètres. E-com sert au suivi quotidien des commandes et des statistiques ; la configuration reste dans la rubrique Boutique en ligne des Paramètres, qui conserve ses six rubriques.
+La navigation mobile Starter comporte cinq onglets : Produits, Caisse, Compta, E-com, Paramètres. E-com sert au suivi quotidien des commandes et des statistiques. Dans les Paramètres, « Boutique en ligne » est la première rubrique et reste distincte de « Ma boutique ». Sur mobile Pro et Enterprise, l'entrée équivalente « Site e-commerce » précède aussi les réglages de la boutique active.
 
+- Boutique en ligne : mise en ligne, aperçu et commandes reçues, puis six rubriques repliables (Produits affichés, Apparence, Coordonnées, Livraison, Paiement et Nom de domaine). Chaque rubrique affiche son état actuel ; « Enregistrer » n'apparaît que lorsqu'une modification est en attente.
 - Ma boutique : identité, adresse, reçus, factures et TVA. Les personnalisations des documents sont dans Plus d'options.
-- Boutique en ligne : activation, aperçu, coordonnées, présentation, couleur, livraison, WhatsApp, instructions de paiement et commandes reçues. Le domaine et sa vérification sont dans Plus d'options.
 - Mon compte : identité, mot de passe, PIN, biométrie, langue, thème, comptes enregistrés, accès autorisé à l'équipe et déconnexion.
 - Notifications : interrupteur existant et préférences de réception secondaires. Les destinataires et seuils avancés sont conservés sans être exposés dans la vue initiale.
 - Mon abonnement : plan, statut, échéance disponible et accès à l'écran de paiement et de changement d'offre existant, selon les droits de facturation.

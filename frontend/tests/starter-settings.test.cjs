@@ -1,4 +1,6 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { test } = require('node:test');
 const { createHarness } = require('./helpers/settingsHarness.cjs');
 
@@ -14,7 +16,7 @@ test('Native Starter settings show exactly the six requested main sections', () 
   const h = createHarness();
   const { nodes } = content(h);
   const labels = nodes.filter((node) => node.type === 'Text').map((node) => node.props.children);
-  assert.deepEqual(labels, ['Ma boutique', 'Boutique en ligne', 'Mon compte', 'Notifications', 'Mon abonnement', 'Aide et informations']);
+  assert.deepEqual(labels, ['Boutique en ligne', 'Ma boutique', 'Mon compte', 'Notifications', 'Mon abonnement', 'Aide et informations']);
   assert.equal(nodes.filter((node) => node.type === 'TouchableOpacity').length, 6);
   assert.equal(h.calls.length, 0);
 });
@@ -32,6 +34,46 @@ test('Subscribed Pro, Enterprise, web and demo accounts retain the original sett
     assert.equal(layout.props.enabled, false);
     assert.equal(h.layout.default(layout.props).props.children, layout.props.children);
   }
+});
+
+test('Pro and Enterprise show Site e-commerce before other settings and outside the active store', () => {
+  for (const plan of ['pro', 'enterprise']) {
+    const user = { user_id: plan, role: 'shopkeeper', subscription_plan: plan };
+    for (const ecommerceSite of [site, null]) {
+      const { layout } = content(createHarness({ user, states: { ecommerceSite } }));
+      const sections = layout.props.children.filter((node) => node?.props);
+      assert.equal(sections[0].props.sectionKey, 'storeEcommerce');
+      assert.equal(sections[0].props.title, 'Site e-commerce');
+      assert.equal(sections[0].props.expanded, false);
+    }
+
+    const h = createHarness({ user, params: { section: 'storeEcommerce' }, states: {
+      ecommerceSite: site, expandedSections: { storeGroup: false, storeEcommerce: false },
+    } });
+    h.effects.find((effect) => String(effect).includes('SETTINGS_SECTION_KEYS'))();
+    assert.equal(h.values.expandedSections.storeEcommerce, true);
+    assert.equal(h.values.expandedSections.storeGroup, false);
+  }
+});
+
+test('Mobile settings do not expose the site to staff without organization access', () => {
+  const h = createHarness({
+    user: { user_id: 'staff', role: 'staff', subscription_plan: 'pro' },
+    auth: { isOrgAdmin: false, isBillingAdmin: false },
+    states: { ecommerceSite: site },
+  });
+  assert.ok(!h.nodes().some((node) => node.props.sectionKey === 'storeEcommerce'));
+});
+
+test('Web settings select the first authorized tab and separate the site from stores', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../../web-app/src/components/SettingsWorkspace.tsx'), 'utf8');
+  assert.match(source, /const TABS[^=]*= \[\s*\{ id: 'ecommerce' \}/);
+  assert.match(source, /tab\.id === 'ecommerce' \|\| [^\n]+\n\s*return canManageOrgSettings;/);
+  assert.match(source, /const activeTab = tabs\.find\(\(tab\) => tab\.id === requestedTab\)\?\.id \?\? tabs\[0\]\.id;/);
+  assert.ok(source.indexOf('{tabs.map((tab) =>') < source.indexOf('settings_workspace.summary.store.label'));
+  assert.match(source, /activeTab === 'ecommerce' && canManageOrgSettings \? \([\s\S]*?title="Site e-commerce"[\s\S]*?\{ecommerceSite \? <>/);
+  const sitePanel = source.slice(source.indexOf('title="Site e-commerce"'), source.indexOf("{activeTab === 'stores'"));
+  assert.doesNotMatch(sitePanel, /scope=\{t\('settings_workspace\.scopes\.store'\)\}/);
 });
 
 test('Store documents keep advanced values when saving from the simplified form', async () => {
@@ -85,10 +127,15 @@ test('Site activation uses the existing API and keeps hidden fields unchanged', 
   assert.deepEqual(JSON.parse(JSON.stringify(call[1])), { enabled: true });
 });
 
-test('The site domain has its own card, behind More options for Starter, and never travels with the form', () => {
-  const hidden = content(createHarness({ states: { starterSection: 'online', ecommerceSite: site } }));
-  assert.equal(hidden.nodes.some((node) => node.type === 'EcommerceDomainCard'), false);
-  const shown = content(createHarness({ states: { starterSection: 'online', ecommerceSite: site, showEcommerceOptions: true } }));
+test('The site domain has its own card, inside its own collapsed step, and never travels with the form', () => {
+  const shown = content(createHarness({ states: { starterSection: 'online', ecommerceSite: site } }));
+  const steps = shown.nodes.filter((node) => node.type === 'EcommerceSettingsStep');
+  assert.deepEqual(steps.map((node) => node.props.title), ['Produits affichés', 'Apparence', 'Coordonnées', 'Livraison', 'Paiement', 'Nom de domaine']);
+  assert.ok(steps.every((node) => node.props.open === false));
+  const domainStep = steps.find((node) => node.props.title === 'Nom de domaine');
+  assert.equal(domainStep.props.summary, 'www.stockman-test.example');
+  const opened = content(createHarness({ states: { starterSection: 'online', ecommerceSite: site, ecommerceStep: 'domain' } }));
+  assert.equal(opened.nodes.find((node) => node.type === 'EcommerceSettingsStep' && node.props.title === 'Nom de domaine').props.open, true);
   const card = shown.nodes.find((node) => node.type === 'EcommerceDomainCard');
   assert.ok(card);
   assert.equal(card.props.site, site);

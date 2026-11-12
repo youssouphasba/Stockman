@@ -4,14 +4,14 @@ Dans une boutique en ligne Stockman, le client paie le commerçant directement, 
 
 ## Régler les moyens de paiement
 
-Le bloc « Paiement des commandes » se trouve dans Paramètres > Site e-commerce (sur mobile Starter, dans la rubrique Boutique en ligne). Le commerçant y indique :
+Le bloc « Paiement des commandes » se trouve dans Paramètres > Site e-commerce (Boutique en ligne sur mobile Starter), rubrique « Paiement ». Le commerçant y indique :
 
 - **Wave** : son numéro Wave, le nom affiché dans Wave (le client le vérifie avant de payer) et, s'il en a un, le lien de paiement fourni par Wave Business ;
 - **Orange Money** : son numéro Orange Money et le nom affiché ;
 - **Accepter le paiement à la livraison** : activé, le client peut choisir de payer à la réception ; désactivé, il doit payer avec Wave ou Orange Money avant la préparation ;
 - **Autres consignes de paiement** : un texte libre facultatif (virement, espèces au retrait en boutique, délai de paiement).
 
-Un moyen de paiement est proposé aux clients dès que son numéro est renseigné et enregistré avec « Enregistrer le site e-commerce ». Le commerçant peut renseigner Wave, Orange Money ou les deux. Sans aucun numéro, la boutique fonctionne comme avant : le client lit seulement les consignes écrites.
+Un moyen de paiement est proposé aux clients dès que son numéro est renseigné et enregistré avec « Enregistrer », bouton qui apparaît dès qu'une modification est en attente. Le commerçant peut renseigner Wave, Orange Money ou les deux. Sans aucun numéro, la boutique fonctionne comme avant : le client lit seulement les consignes écrites.
 
 ## Ce que voit le client
 

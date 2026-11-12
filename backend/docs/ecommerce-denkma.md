@@ -4,7 +4,7 @@ Denkma livre au Sénégal à partir de positions GPS et de points relais, pas d'
 
 ## Créer ou connecter son compte Denkma Pro
 
-La carte « Livraison Denkma » se trouve dans Paramètres > Site e-commerce (sur mobile Starter, dans la rubrique Boutique en ligne).
+La carte « Livraison Denkma » se trouve dans Paramètres > Site e-commerce (Boutique en ligne sur mobile Starter), rubrique « Livraison ».
 
 **Pas encore de compte Denkma Pro** : « Créer mon compte Denkma Pro » ouvre un formulaire dans l'application mobile Stockman :
 

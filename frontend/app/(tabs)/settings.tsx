@@ -42,6 +42,7 @@ import EcommerceAppearanceEditor from '../../components/EcommerceAppearanceEdito
 import EcommerceDomainCard from '../../components/EcommerceDomainCard';
 import EcommercePaymentCard from '../../components/EcommercePaymentCard';
 import DenkmaSettingsCard from '../../components/DenkmaSettingsCard';
+import EcommerceStep from '../../components/EcommerceSettingsStep';
 import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
 import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
 import { getCommercialPlan, isStarterShopkeeper } from '../../utils/accountRouting';
@@ -105,10 +106,10 @@ type SettingsSectionKey =
   | 'data';
 
 const SETTINGS_SECTION_GROUPS: SettingsSectionKey[][] = [
-  ['accountAppGroup', 'storeGroup', 'organizationGroup', 'alertsGroup', 'supportGroup', 'securityGroup'],
+  ['storeEcommerce', 'accountAppGroup', 'storeGroup', 'organizationGroup', 'alertsGroup', 'supportGroup', 'securityGroup'],
   ['billing', 'profile'],
   ['team', 'enterpriseHub', 'organization'],
-  ['storeIdentity', 'storeEcommerce', 'storeDocuments', 'storeEmpty'],
+  ['storeIdentity', 'storeDocuments', 'storeEmpty'],
   ['accountAlerts', 'storeAlerts', 'tax', 'reminders', 'sync'],
   ['support', 'incident'],
   ['security', 'legal', 'data'],
@@ -122,7 +123,6 @@ const SETTINGS_SECTION_PARENT: Partial<Record<SettingsSectionKey, SettingsSectio
   enterpriseHub: 'organizationGroup',
   organization: 'organizationGroup',
   storeIdentity: 'storeGroup',
-  storeEcommerce: 'storeGroup',
   storeDocuments: 'storeGroup',
   storeEmpty: 'storeGroup',
   notifications: 'alertsGroup',
@@ -214,6 +214,8 @@ function SettingsAccordionSection({
   );
 }
 
+type EcommerceStepId = 'products' | 'appearance' | 'contact' | 'delivery' | 'payment' | 'domain';
+
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -227,7 +229,7 @@ export default function SettingsScreen() {
   const isStarterSettings = Platform.OS !== 'web' && isStarterShopkeeper(user);
   const [starterSection, setStarterSection] = useState<StarterSettingsGroup | null>(null);
   const [showDocumentOptions, setShowDocumentOptions] = useState(false);
-  const [showEcommerceOptions, setShowEcommerceOptions] = useState(false);
+  const [ecommerceStep, setEcommerceStep] = useState<EcommerceStepId | null>(null);
   const [showNotificationOptions, setShowNotificationOptions] = useState(false);
   const [showBillingOptions, setShowBillingOptions] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
@@ -334,7 +336,7 @@ export default function SettingsScreen() {
     const sectionParam = Array.isArray(params.section) ? params.section[0] : params.section;
     setStarterSection(getStarterSettingsGroup(sectionParam || ''));
     setShowDocumentOptions(false);
-    setShowEcommerceOptions(false);
+    setEcommerceStep(null);
     setShowNotificationOptions(false);
     setShowBillingOptions(false);
   }, [user?.user_id]);
@@ -485,15 +487,16 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('settings:open-ecommerce', () => {
+      if (!isOrgAdmin) return;
       if (isStarterSettings) changeStarterSection('online');
       setExpandedSections((current) => ({
         ...current,
-        storeGroup: true,
         storeEcommerce: true,
       }));
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     });
     return () => subscription.remove();
-  }, [isStarterSettings, changeStarterSection]);
+  }, [isOrgAdmin, isStarterSettings, changeStarterSection]);
 
   function toggleSection(section: SettingsSectionKey) {
     setExpandedSections((current) => {
@@ -690,6 +693,25 @@ export default function SettingsScreen() {
       setEcommerceSaving(false);
     }
   }
+
+  const ecommerceStoreName = storeList.find((store) => store.store_id === ecommerceDraft.store_id)?.name || '';
+  const ecommerceDirty = !!ecommerceSite && Object.keys(buildEcommerceSettingsUpdate(ecommerceSite, ecommerceDraft)).length > 0;
+  const ecommerceContactCount = [ecommerceDraft.contact_email, ecommerceDraft.contact_phone, ecommerceDraft.whatsapp_phone, ecommerceDraft.contact_address]
+    .filter((value) => (value || '').trim()).length;
+  const ecommerceContactSummary = ecommerceContactCount === 0
+    ? 'À compléter'
+    : ecommerceContactCount === 4
+      ? 'Coordonnées complètes'
+      : `${ecommerceContactCount} sur 4 ${ecommerceContactCount > 1 ? 'renseignées' : 'renseignée'}`;
+  const ecommerceWallets = ecommerceSite?.mobile_money_available === false ? [] : [
+    (ecommerceDraft.wave_phone || '').trim() ? 'Wave' : '',
+    (ecommerceDraft.orange_money_phone || '').trim() ? 'Orange Money' : '',
+  ].filter(Boolean);
+  const ecommercePaymentSummary = ecommerceWallets.length
+    ? `${ecommerceWallets.join(', ')}${ecommerceDraft.pay_on_delivery !== false ? ', à la livraison' : ''}`
+    : (ecommerceDraft.payment_instructions || '').trim() ? 'Consignes de paiement renseignées' : '';
+  const ecommerceFieldLabel = { color: colors.text, fontSize: FontSize.sm, fontWeight: '600' as const, marginTop: Spacing.xs };
+  const toggleEcommerceStep = (step: EcommerceStepId) => setEcommerceStep((current) => (current === step ? null : step));
 
   async function openEcommercePreview() {
     if (!ecommerceSite?.site_url) return;
@@ -897,6 +919,271 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>}
         <StarterSettingsLayout enabled={isStarterSettings} activeSection={starterSection} onSectionChange={changeStarterSection} pendingCount={pendingCount}>
+        {isOrgAdmin && (
+        <SettingsAccordionSection
+          title="Site e-commerce"
+          description={ecommerceSite
+            ? `${ecommerceSite.enabled ? 'En ligne' : 'Hors ligne'} · apparence, coordonnées, livraison, paiement et domaine.`
+            : 'Votre boutique en ligne : apparence, coordonnées, livraison, paiement et domaine.'}
+          icon="globe-outline"
+          accentColor={colors.primary}
+          expanded={expandedSections.storeEcommerce}
+          onToggle={() => toggleSection('storeEcommerce')}
+          sectionKey="storeEcommerce"
+          styles={styles}
+          colors={colors}
+        >
+          {!currentStore && <View style={{ gap: 12 }}>
+            <Text style={styles.settingDesc}>Sélectionnez une boutique pour configurer votre site et son catalogue.</Text>
+            <StoreSelector />
+          </View>}
+          {currentStore && !ecommerceSite && <View style={{ gap: 12 }}>
+            <Text style={styles.settingDesc}>Les réglages du site ne sont pas disponibles. Rechargez-les pour préparer votre boutique en ligne.</Text>
+            <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} onPress={() => { setLoading(true); void loadSettings(); }}>
+              <Text style={styles.outlineButtonText}>Charger ma boutique en ligne</Text>
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={styles.supportRow} onPress={() => router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any)}>
+              <Ionicons name="receipt-outline" size={22} color={colors.primary} />
+              <Text style={styles.settingLabel}>Commandes en ligne</Text>
+            </TouchableOpacity>
+          </View>}
+          {currentStore && ecommerceSite && <>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+            <View style={[styles.statusDot, { backgroundColor: ecommerceSite.enabled ? colors.success : colors.textMuted }]} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[styles.settingLabel, { fontWeight: '700' }]}>
+                {ecommerceSite.enabled ? 'Votre site est en ligne' : 'Votre site est hors ligne'}
+              </Text>
+              <Text selectable style={styles.settingDesc}>{ecommerceSite.site_url}</Text>
+            </View>
+            <Switch
+              value={!!ecommerceSite.enabled}
+              onValueChange={(value) => saveEcommerceSettings(value)}
+              disabled={ecommerceSaving}
+              accessibilityLabel="Mettre le site en ligne"
+              trackColor={{ false: colors.divider, true: colors.primary + '66' }}
+              thumbColor={ecommerceSite.enabled ? colors.primary : colors.textMuted}
+            />
+          </View>
+          <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md, marginBottom: Spacing.md }}>
+            {!!ecommerceSite.site_url && <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.outlineButton, { flex: 1, minHeight: 44 }]}
+              onPress={() => { void openEcommercePreview(); }}
+            >
+              <Ionicons name="open-outline" size={18} color={colors.primary} />
+              <Text style={styles.outlineButtonText}>Voir mon site</Text>
+            </TouchableOpacity>}
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.outlineButton, { flex: 1, minHeight: 44 }]}
+              onPress={() => router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any)}
+            >
+              <Ionicons name="receipt-outline" size={18} color={colors.primary} />
+              <Text style={styles.outlineButtonText}>Commandes</Text>
+            </TouchableOpacity>
+          </View>
+
+          <EcommerceStep
+            title="Produits affichés"
+            summary={`${ecommerceStoreName ? `${ecommerceStoreName} · ` : ''}${ecommerceDraft.show_out_of_stock_products ? 'ruptures affichées' : 'ruptures masquées'}`}
+            icon="pricetags-outline"
+            open={ecommerceStep === 'products'}
+            onToggle={() => toggleEcommerceStep('products')}
+            styles={styles}
+            colors={colors}
+          >
+            {storeList.length > 1 && <>
+              <Text style={ecommerceFieldLabel}>Boutique liée</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {storeList.map((store) => (
+                  <TouchableOpacity
+                    key={store.store_id}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: ecommerceDraft.store_id === store.store_id }}
+                    style={[
+                      styles.chip,
+                      ecommerceDraft.store_id === store.store_id && { backgroundColor: colors.primary + '20', borderColor: colors.primary },
+                    ]}
+                    onPress={() => setEcommerceDraft((draft: any) => ({ ...draft, store_id: store.store_id }))}
+                  >
+                    <Text style={[styles.chipText, ecommerceDraft.store_id === store.store_id && { color: colors.primary }]}>
+                      {store.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </>}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>Afficher les produits en rupture</Text>
+                <Text style={styles.settingDesc}>Ils restent visibles, mais ne peuvent pas être commandés.</Text>
+              </View>
+              <Switch
+                value={!!ecommerceDraft.show_out_of_stock_products}
+                onValueChange={(value) => setEcommerceDraft((draft: any) => ({ ...draft, show_out_of_stock_products: value }))}
+                disabled={ecommerceSaving}
+                accessibilityLabel="Afficher les produits en rupture"
+                trackColor={{ false: colors.divider, true: colors.primary + '66' }}
+                thumbColor={ecommerceDraft.show_out_of_stock_products ? colors.primary : colors.textMuted}
+              />
+            </View>
+          </EcommerceStep>
+
+          <EcommerceStep
+            title="Apparence"
+            summary={ecommerceSite.model_name ? `Modèle ${ecommerceSite.model_name}` : 'Modèle, couleurs, textes et images'}
+            icon="color-palette-outline"
+            open={ecommerceStep === 'appearance'}
+            onToggle={() => toggleEcommerceStep('appearance')}
+            styles={styles}
+            colors={colors}
+          >
+            <EcommerceAppearanceEditor
+              key={`${ecommerceSite.slug}:${settingsContext}`}
+              styles={styles}
+              onPublished={() => {
+                ecommerceApi.getSite()
+                  .then((updated) => {
+                    if (settingsContextRef.current !== settingsContext) return;
+                    setEcommerceSite(updated);
+                    DeviceEventEmitter.emit('ecommerce:changed');
+                  })
+                  .catch(() => undefined);
+              }}
+            />
+          </EcommerceStep>
+
+          <EcommerceStep
+            title="Coordonnées"
+            summary={ecommerceContactSummary}
+            incomplete={ecommerceContactCount === 0}
+            icon="call-outline"
+            open={ecommerceStep === 'contact'}
+            onToggle={() => toggleEcommerceStep('contact')}
+            styles={styles}
+            colors={colors}
+          >
+            <Text style={ecommerceFieldLabel}>E-mail</Text>
+            <TextInput
+              style={styles.input}
+              value={ecommerceDraft.contact_email || ''}
+              onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_email: value }))}
+              placeholder="contact@maboutique.com"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              accessibilityLabel="E-mail de contact"
+            />
+            <Text style={ecommerceFieldLabel}>Téléphone</Text>
+            <TextInput
+              style={styles.input}
+              value={ecommerceDraft.contact_phone || ''}
+              onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_phone: value }))}
+              placeholder="Numéro affiché sur le site"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="phone-pad"
+              accessibilityLabel="Téléphone de contact"
+            />
+            <Text style={ecommerceFieldLabel}>WhatsApp</Text>
+            <TextInput
+              style={styles.input}
+              value={ecommerceDraft.whatsapp_phone || ''}
+              onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, whatsapp_phone: value }))}
+              placeholder="Numéro du bouton WhatsApp"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="phone-pad"
+              accessibilityLabel="Numéro WhatsApp"
+            />
+            <Text style={ecommerceFieldLabel}>Adresse</Text>
+            <TextInput
+              style={styles.input}
+              value={ecommerceDraft.contact_address || ''}
+              onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_address: value }))}
+              placeholder="Adresse affichée sur le site"
+              placeholderTextColor={colors.textMuted}
+              accessibilityLabel="Adresse de contact"
+            />
+          </EcommerceStep>
+
+          <EcommerceStep
+            title="Livraison"
+            summary={(ecommerceDraft.delivery_info || '').trim() ? 'Consignes renseignées' : 'Consignes à compléter'}
+            incomplete={!(ecommerceDraft.delivery_info || '').trim()}
+            icon="bicycle-outline"
+            open={ecommerceStep === 'delivery'}
+            onToggle={() => toggleEcommerceStep('delivery')}
+            styles={styles}
+            colors={colors}
+          >
+            <Text style={ecommerceFieldLabel}>Consignes de livraison</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={ecommerceDraft.delivery_info || ''}
+              onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, delivery_info: value }))}
+              placeholder="Zones desservies, retrait, délais et frais"
+              placeholderTextColor={colors.textMuted}
+              multiline
+              accessibilityLabel="Consignes de livraison"
+            />
+            <DenkmaSettingsCard canEdit={canManageStoreSettings} styles={styles} onFeedback={showFeedback} />
+          </EcommerceStep>
+
+          <EcommerceStep
+            title="Paiement"
+            summary={ecommercePaymentSummary || 'À compléter'}
+            incomplete={!ecommercePaymentSummary}
+            icon="wallet-outline"
+            open={ecommerceStep === 'payment'}
+            onToggle={() => toggleEcommerceStep('payment')}
+            styles={styles}
+            colors={colors}
+          >
+            <EcommercePaymentCard draft={ecommerceDraft} mobileMoneyAvailable={ecommerceSite?.mobile_money_available} canEdit={canManageStoreSettings} styles={styles} onChange={(patch) => setEcommerceDraft((draft: any) => ({ ...draft, ...patch }))} />
+          </EcommerceStep>
+
+          <EcommerceStep
+            title="Nom de domaine"
+            summary={ecommerceSite.custom_domain || 'Adresse Stockman'}
+            icon="link-outline"
+            open={ecommerceStep === 'domain'}
+            onToggle={() => toggleEcommerceStep('domain')}
+            styles={styles}
+            colors={colors}
+          >
+            <EcommerceDomainCard site={ecommerceSite} canEdit={canManageStoreSettings} styles={styles} onSiteChange={handleDomainChange} onFeedback={showFeedback} />
+          </EcommerceStep>
+
+          {ecommerceDirty && (
+            <View accessibilityRole="alert" style={{ marginTop: Spacing.md, padding: Spacing.md, gap: Spacing.sm, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.primary + '40', backgroundColor: colors.primary + '12' }}>
+              <Text style={[styles.settingLabel, { fontWeight: '600' }]}>Vous avez des modifications non enregistrées.</Text>
+              <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  style={[styles.outlineButton, { flex: 1, minHeight: 44 }]}
+                  onPress={() => setEcommerceDraft(createEcommerceDraft(ecommerceSite))}
+                  disabled={ecommerceSaving}
+                >
+                  <Text style={styles.outlineButtonText}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  style={[styles.outlineButton, { flex: 1, minHeight: 44, backgroundColor: colors.primary, borderColor: colors.primary }]}
+                  onPress={() => saveEcommerceSettings()}
+                  disabled={ecommerceSaving}
+                >
+                  <Ionicons name="save-outline" size={18} color="#fff" />
+                  <Text style={[styles.outlineButtonText, { color: '#fff' }]}>
+                    {ecommerceSaving ? 'Enregistrement...' : 'Enregistrer'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          </>}
+        </SettingsAccordionSection>
+        )}
+
         <SettingsSlot sectionKey="identity">
         <View style={styles.card}>
           <View style={styles.userSection}>
@@ -1255,172 +1542,6 @@ export default function SettingsScreen() {
               {t('settings.save_store')}
             </Text>
           </TouchableOpacity>
-        </SettingsAccordionSection>
-        )}
-
-        {isOrgAdmin && (isStarterSettings || (currentStore && ecommerceSite)) && (
-        <SettingsAccordionSection
-          title="Site e-commerce"
-          description="Activez le site public de cette boutique uniquement quand vous êtes prêt à recevoir des commandes web."
-          icon="globe-outline"
-          accentColor={colors.info}
-          expanded={expandedSections.storeEcommerce}
-          onToggle={() => toggleSection('storeEcommerce')}
-          sectionKey="storeEcommerce"
-          styles={styles}
-          colors={colors}
-          variant="nested"
-        >
-          {isStarterSettings && !currentStore && <View style={{ gap: 12 }}>
-            <Text style={styles.settingDesc}>Sélectionnez une boutique pour configurer votre site et son catalogue.</Text>
-            <StoreSelector />
-          </View>}
-          {isStarterSettings && currentStore && !ecommerceSite && <View style={{ gap: 12 }}>
-            <Text style={styles.settingDesc}>Les réglages du site ne sont pas disponibles. Rechargez-les pour préparer votre boutique en ligne.</Text>
-            <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} onPress={() => { setLoading(true); void loadSettings(); }}>
-              <Text style={styles.outlineButtonText}>Charger ma boutique en ligne</Text>
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" style={styles.supportRow} onPress={() => router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any)}>
-              <Ionicons name="receipt-outline" size={22} color={colors.primary} />
-              <Text style={styles.settingLabel}>Commandes en ligne</Text>
-            </TouchableOpacity>
-          </View>}
-          {(!isStarterSettings || (currentStore && ecommerceSite)) && <>
-          <View style={styles.settingRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Activer le site public</Text>
-              <Text style={styles.settingDesc}>{ecommerceSite.site_url}</Text>
-            </View>
-            <Switch
-              value={!!ecommerceSite.enabled}
-              onValueChange={(value) => saveEcommerceSettings(value)}
-              disabled={ecommerceSaving}
-              trackColor={{ false: colors.divider, true: colors.primary + '66' }}
-              thumbColor={ecommerceSite.enabled ? colors.primary : colors.textMuted}
-            />
-          </View>
-          {isStarterSettings && ecommerceSite?.site_url && <TouchableOpacity
-            accessibilityRole="button"
-            style={styles.supportRow}
-            onPress={() => { void openEcommercePreview(); }}
-          >
-            <Ionicons name="globe-outline" size={22} color={colors.primary} />
-            <Text style={styles.settingLabel}>Voir mon site</Text>
-          </TouchableOpacity>}
-          <TouchableOpacity
-            style={[styles.settingRow, { marginBottom: Spacing.md }]}
-            accessibilityRole="button"
-            onPress={() => router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any)}
-          >
-            <Ionicons name="receipt-outline" size={22} color={colors.primary} />
-            <Text style={[styles.settingLabel, { flex: 1, marginHorizontal: Spacing.sm }]}>Commandes en ligne</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-          <Text style={styles.settingLabel}>Boutique liée</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
-            {storeList.map((store) => (
-              <TouchableOpacity
-                key={store.store_id}
-                style={[
-                  styles.chip,
-                  ecommerceDraft.store_id === store.store_id && { backgroundColor: colors.primary + '20', borderColor: colors.primary },
-                ]}
-                onPress={() => setEcommerceDraft((draft: any) => ({ ...draft, store_id: store.store_id }))}
-              >
-                <Text style={[styles.chipText, ecommerceDraft.store_id === store.store_id && { color: colors.primary }]}>
-                  {store.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          <View style={styles.settingRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Afficher les produits en rupture</Text>
-              <Text style={styles.settingDesc}>S'ils sont affichés, ils restent visibles sur le site, mais ne peuvent pas être commandés. Sinon, ils sont masqués.</Text>
-            </View>
-            <Switch
-              value={!!ecommerceDraft.show_out_of_stock_products}
-              onValueChange={(value) => setEcommerceDraft((draft: any) => ({ ...draft, show_out_of_stock_products: value }))}
-              disabled={ecommerceSaving}
-              trackColor={{ false: colors.divider, true: colors.primary + '66' }}
-              thumbColor={ecommerceDraft.show_out_of_stock_products ? colors.primary : colors.textMuted}
-            />
-          </View>
-          <EcommerceAppearanceEditor
-            key={`${ecommerceSite.slug}:${settingsContext}`}
-            styles={styles}
-            onPublished={() => {
-              ecommerceApi.getSite()
-                .then((updated) => {
-                  if (settingsContextRef.current !== settingsContext) return;
-                  setEcommerceSite(updated);
-                  DeviceEventEmitter.emit('ecommerce:changed');
-                })
-                .catch(() => undefined);
-            }}
-          />
-          <TextInput
-            style={styles.input}
-            value={ecommerceDraft.contact_email || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_email: value }))}
-            placeholder="E-mail de contact"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            value={ecommerceDraft.contact_phone || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_phone: value }))}
-            placeholder="Téléphone de contact"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="phone-pad"
-          />
-          <TextInput
-            style={styles.input}
-            value={ecommerceDraft.contact_address || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_address: value }))}
-            placeholder="Adresse de contact"
-            placeholderTextColor={colors.textMuted}
-          />
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={ecommerceDraft.delivery_info || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, delivery_info: value }))}
-            placeholder="Informations de livraison"
-            placeholderTextColor={colors.textMuted}
-            multiline
-          />
-          <TextInput
-            style={styles.input}
-            value={ecommerceDraft.whatsapp_phone || ''}
-            onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, whatsapp_phone: value }))}
-            placeholder="Numéro WhatsApp"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="phone-pad"
-          />
-          <DenkmaSettingsCard canEdit={canManageStoreSettings} styles={styles} onFeedback={showFeedback} />
-          {isStarterSettings && <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showEcommerceOptions }} style={styles.supportRow} onPress={() => setShowEcommerceOptions((value) => !value)}>
-            <Ionicons name="options-outline" size={22} color={colors.primary} />
-            <Text style={[styles.settingLabel, { flex: 1 }]}>Plus d'options</Text>
-            <Ionicons name={showEcommerceOptions ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
-          </TouchableOpacity>}
-          {(!isStarterSettings || showEcommerceOptions) && <>
-          <Text style={styles.settingLabel}>Domaine du site</Text>
-          <EcommerceDomainCard site={ecommerceSite} canEdit={canManageStoreSettings} styles={styles} onSiteChange={handleDomainChange} onFeedback={showFeedback} />
-          </>}
-          <EcommercePaymentCard draft={ecommerceDraft} mobileMoneyAvailable={ecommerceSite?.mobile_money_available} canEdit={canManageStoreSettings} styles={styles} onChange={(patch) => setEcommerceDraft((draft: any) => ({ ...draft, ...patch }))} />
-          <TouchableOpacity
-            style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', alignSelf: 'stretch', marginTop: Spacing.lg }]}
-            onPress={() => saveEcommerceSettings()}
-            disabled={ecommerceSaving}
-          >
-            <Ionicons name="save-outline" size={18} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>
-              {ecommerceSaving ? 'Enregistrement...' : 'Enregistrer le site e-commerce'}
-            </Text>
-          </TouchableOpacity>
-          </>}
         </SettingsAccordionSection>
         )}
 
