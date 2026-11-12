@@ -58,6 +58,7 @@ import {
 import AccountingReportModal from './AccountingReportModal';
 import InvoiceModal from './InvoiceModal';
 import KpiCard from './analytics/KpiCard';
+import { FinanceViewPanel, FinanceViewTabs, FINANCE_VIEW_CHANNEL, paymentMethodLabel, type FinanceView } from './AccountingChannels';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 import { mergeAccountingOfflineState } from '../services/offlineState';
@@ -278,6 +279,10 @@ export default function Accounting() {
 
     // Tab for right panel
     const [rightTab, setRightTab] = useState<'profitability' | 'payments' | 'losses' | 'products' | 'sales' | 'invoices'>('profitability');
+    // Vue d'ensemble, Boutique physique, E-com ou Trésorerie : fixe le canal des chiffres de ventes.
+    const [financeView, setFinanceView] = useState<FinanceView>('overview');
+    const salesChannel = FINANCE_VIEW_CHANNEL[financeView];
+    const isChannelView = salesChannel !== 'all';
     const [salesHistory, setSalesHistory] = useState<AccountingSaleHistoryItem[]>([]);
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
     const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
@@ -361,7 +366,8 @@ export default function Accounting() {
 
     useEffect(() => {
         if (!useCustomRange) loadData();
-    }, [period, useCustomRange]);
+        else if (startDate && endDate) loadData(startDate, endDate);
+    }, [period, useCustomRange, salesChannel]);
 
     useEffect(() => {
         Promise.allSettled([settingsApi.get(), authApi.me(), storesApi.list()]).then(([settingsRes, userRes, storesRes]) => {
@@ -391,14 +397,14 @@ export default function Accounting() {
             const monthlyEndDate = new Date().toISOString().slice(0, 10);
             const [statsRes, expensesRes, salesHistoryRes, invoicesRes, comparisonRes, consolidatedRes] = await Promise.allSettled([
                 sd || ed
-                    ? accountingApi.getStats(undefined, sd, ed)
-                    : accountingApi.getStats(period),
+                    ? accountingApi.getStats(undefined, sd, ed, salesChannel)
+                    : accountingApi.getStats(period, undefined, undefined, salesChannel),
                 expensesApi.list(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
                 accountingApi.getSalesHistory(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
                 sd || ed
                     ? accountingApi.getInvoices(undefined, sd, ed, 0, 30)
                     : accountingApi.getInvoices(period, undefined, undefined, 0, 30),
-                accountingApi.getStats(undefined, previousRange.startDate, previousRange.endDate),
+                accountingApi.getStats(undefined, previousRange.startDate, previousRange.endDate, salesChannel),
                 storesApi.getConsolidatedStats(sd || ed
                     ? Math.max(1, Math.round((new Date(ed).getTime() - new Date(sd).getTime()) / 86400000) + 1)
                     : period),
@@ -748,14 +754,19 @@ export default function Accounting() {
         ),
         [filteredExpenses, i18n.language],
     );
+    // Historique des ventes limité au canal de la vue choisie.
+    const channelSales = React.useMemo(
+        () => (isChannelView ? salesHistory.filter((sale) => (sale.source === 'ecommerce' ? 'ecommerce' : 'physical') === salesChannel) : salesHistory),
+        [salesHistory, salesChannel, isChannelView],
+    );
     const monthlySalesGroups = React.useMemo(
         () => buildMonthlyGroups(
-            salesHistory,
+            channelSales,
             (sale) => sale.created_at,
             (sale) => sale.total_amount,
             i18n.language,
         ),
-        [salesHistory, i18n.language],
+        [channelSales, i18n.language],
     );
     const expenseYears = React.useMemo(() => getAvailableYears(monthlyExpenseGroups), [monthlyExpenseGroups]);
     const salesYears = React.useMemo(() => getAvailableYears(monthlySalesGroups), [monthlySalesGroups]);
@@ -908,7 +919,7 @@ export default function Accounting() {
     const accountingSteps: GuideStep[] = [
         {
             title: t('guide.accounting.role_title', "Rôle de la comptabilité"),
-            content: t('guide.accounting.role_content', "Cet écran centralise toute la finance de votre commerce : chiffre d'affaires, marges brute et nette, dépenses, pertes et résultat. Les données proviennent de vos ventes POS et des dépenses saisies manuellement."),
+            content: t('guide.accounting.role_content', "Cet écran centralise toute la finance de votre commerce : chiffre d'affaires, marges brute et nette, dépenses, pertes et résultat. Les données proviennent de vos ventes en caisse, de vos commandes E-com livrées et des dépenses saisies manuellement."),
         },
         {
             title: t('guide.accounting.filters_title', "Filtres de période"),
@@ -919,10 +930,20 @@ export default function Accounting() {
             ],
         },
         {
+            title: t('guide.accounting.views_title', "Quatre vues : ensemble, boutique, E-com, trésorerie"),
+            content: t('guide.accounting.views_content', "Les onglets sous l'en-tête choisissent les chiffres affichés. La période sélectionnée s'applique aux quatre vues."),
+            details: [
+                { label: t('guide.accounting.view_overview', "Vue d'ensemble"), description: t('guide.accounting.view_overview_desc', "Tous les canaux réunis, avec la part de la boutique et celle de l'E-com dans le chiffre d'affaires, et le CA par jour en deux couleurs."), type: 'filter' },
+                { label: t('guide.accounting.view_physical', "Boutique physique"), description: t('guide.accounting.view_physical_desc', "Uniquement les ventes de la caisse. Les charges et les pertes de stock ne sont pas réparties par canal : elles restent dans la vue d'ensemble."), type: 'filter' },
+                { label: t('guide.accounting.view_ecommerce', "E-com"), description: t('guide.accounting.view_ecommerce_desc', "Circuit des commandes en ligne : commandé, livré (CA), encaissé et à encaisser, puis commandes en cours, annulées et livraison en transit. Une commande livrée non payée est une vente à crédit."), type: 'filter' },
+                { label: t('guide.accounting.view_treasury', "Trésorerie"), description: t('guide.accounting.view_treasury_desc', "Sommes reçues sur la période par moyen de paiement, créances clients dont la part E-com, et frais de livraison Denkma à reverser, jamais comptés dans le chiffre d'affaires."), type: 'filter' },
+            ],
+        },
+        {
             title: t('guide.accounting.kpi_title', "Cartes KPI financières"),
             content: t('guide.accounting.kpi_content', "Les 4 cartes en haut résument la performance financière de la période."),
             details: [
-                { label: t('guide.accounting.kpi_revenue', "Chiffre d'affaires"), description: t('guide.accounting.kpi_revenue_desc', "Total des ventes encaissées. Ouvrez la carte pour relire l'évolution, les jours clés et les détails utiles."), type: 'card' },
+                { label: t('guide.accounting.kpi_revenue', "Chiffre d'affaires"), description: t('guide.accounting.kpi_revenue_desc', "Total des ventes terminées de la période, payées ou à crédit, annulations exclues. Ouvrez la carte pour relire l'évolution, les jours clés et les détails utiles."), type: 'card' },
                 { label: t('guide.accounting.kpi_gross', "Marge brute"), description: t('guide.accounting.kpi_gross_desc', "Différence entre le chiffre d'affaires et le coût d'achat des produits vendus, exprimée en montant et en pourcentage."), type: 'card' },
                 { label: t('guide.accounting.kpi_expenses', "Dépenses"), description: t('guide.accounting.kpi_expenses_desc', "Total des charges enregistrées manuellement, avec détail par catégorie dans le panneau associé."), type: 'card' },
                 { label: t('guide.accounting.kpi_net', "Résultat net"), description: t('guide.accounting.kpi_net_desc', "Résultat net opérationnel : chiffre d'affaires moins coût d'achat des produits vendus, moins charges, moins pertes de stock enregistrées. La valeur totale du stock restant n'est pas soustraite."), type: 'card' },
@@ -1216,6 +1237,8 @@ export default function Accounting() {
                 </div>
             </header>
 
+            <FinanceViewTabs view={financeView} onViewChange={setFinanceView} />
+
             {/* AI P&L Analysis */}
             <div className="mb-8 glass-card p-5 border-l-4 border-l-purple-500 bg-purple-500/5 flex items-start gap-4">
                 <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -1495,6 +1518,8 @@ export default function Accounting() {
                 </section>
             )}
 
+            <FinanceViewPanel view={financeView} stats={stats} formatCurrency={formatCurrency} />
+
             {/* KPI Cards */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-8">
                 <KpiCard
@@ -1511,20 +1536,24 @@ export default function Accounting() {
                     hint={`${marginPct.toFixed(1)}% du chiffre`}
                     onClick={() => handleOpenFinanceDetail('gross_profit')}
                 />
-                <KpiCard
-                    label="Charges"
-                    icon={Wallet}
-                    value={formatCurrency(stats.expenses || 0)}
-                    hint={`${formatPercent(stats.expense_ratio ?? 0)} du chiffre`}
-                    onClick={() => handleOpenFinanceDetail('expenses')}
-                />
-                <KpiCard
-                    label="Résultat net"
-                    icon={TrendingDown}
-                    value={formatCurrency(stats.net_profit || 0)}
-                    hint={`${netMarginPct.toFixed(1)}% de marge nette`}
-                    onClick={() => handleOpenFinanceDetail('net_profit')}
-                />
+                {!isChannelView && (
+                    <KpiCard
+                        label="Charges"
+                        icon={Wallet}
+                        value={formatCurrency(stats.expenses || 0)}
+                        hint={`${formatPercent(stats.expense_ratio ?? 0)} du chiffre`}
+                        onClick={() => handleOpenFinanceDetail('expenses')}
+                    />
+                )}
+                {!isChannelView && (
+                    <KpiCard
+                        label="Résultat net"
+                        icon={TrendingDown}
+                        value={formatCurrency(stats.net_profit || 0)}
+                        hint={`${netMarginPct.toFixed(1)}% de marge nette`}
+                        onClick={() => handleOpenFinanceDetail('net_profit')}
+                    />
+                )}
                 <KpiCard
                     label="Panier moyen"
                     icon={ShoppingCart}
@@ -1532,13 +1561,15 @@ export default function Accounting() {
                     hint="Base des tickets de la période"
                     onClick={() => handleOpenFinanceDetail('avg_sale')}
                 />
-                <KpiCard
-                    label="Pertes stock"
-                    icon={AlertTriangle}
-                    value={formatCurrency(stats.total_losses || 0)}
-                    hint={`${formatPercent(stats.loss_ratio ?? 0)} du chiffre`}
-                    onClick={() => handleOpenFinanceDetail('total_losses')}
-                />
+                {!isChannelView && (
+                    <KpiCard
+                        label="Pertes stock"
+                        icon={AlertTriangle}
+                        value={formatCurrency(stats.total_losses || 0)}
+                        hint={`${formatPercent(stats.loss_ratio ?? 0)} du chiffre`}
+                        onClick={() => handleOpenFinanceDetail('total_losses')}
+                    />
+                )}
                 {(stats.tax_collected || 0) > 0 && (
                     <KpiCard
                         icon={Receipt}
@@ -1844,7 +1875,7 @@ export default function Accounting() {
                                 Historique des ventes
                             </h3>
                             <span className="text-xs font-black uppercase tracking-[0.18em] text-emerald-400">
-                                {salesHistory.length} vente(s)
+                                {channelSales.length} vente(s)
                             </span>
                         </div>
                         {pendingSummary.pendingSaleCancellations > 0 && (
@@ -1868,16 +1899,16 @@ export default function Accounting() {
                                 setSelectedSalesYearMonthKey,
                             )}
                             {salesReviewMode === 'all' ? (
-                                salesHistory.length === 0 ? (
+                                channelSales.length === 0 ? (
                                     <div className="text-center py-10 text-slate-500 font-medium">Aucune vente sur cette période.</div>
                                 ) : (
-                                    salesHistory.map((sale) => (
+                                    channelSales.map((sale) => (
                                         <div key={sale.sale_id} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
                                             <div className="flex items-start justify-between gap-4">
                                                 <div className="min-w-0">
                                                     <p className="text-white font-bold truncate">{sale.customer_name || 'Client divers'}</p>
                                                     <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
-                                                        {formatDate(sale.created_at)} • {sale.item_count} article(s)
+                                                        {formatDate(sale.created_at)} • {sale.item_count} article(s){sale.source === 'ecommerce' ? ' • E-com' : ''}
                                                     </p>
                                                     <p className="text-xs text-slate-400 mt-2 truncate">
                                                         {sale.items.map((item) => item.product_name).filter(Boolean).join(', ') || 'Vente'}
@@ -2064,7 +2095,7 @@ export default function Accounting() {
                                         <div key={method} className="p-4 bg-white/5 rounded-2xl border border-white/5">
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                    {method === 'cash' ? '?? Esp?ces' : method === 'credit' ? '?? Cr?dit' : method === 'mobile_money' ? '?? Mobile Money' : method}
+                                                    {paymentMethodLabel(method, t)}
                                                 </span>
                                                 <span className="text-sm font-black text-white">{formatCurrency(amount)}</span>
                                             </div>
@@ -2165,16 +2196,16 @@ export default function Accounting() {
                                     setSelectedSalesYearMonthKey,
                                 )}
                                 {salesReviewMode === 'all' ? (
-                                    salesHistory.length === 0 ? (
+                                    channelSales.length === 0 ? (
                                         <p className="text-xs text-slate-500 italic text-center py-6">Aucune vente sur cette periode.</p>
                                     ) : (
-                                        salesHistory.map((sale) => (
+                                        channelSales.map((sale) => (
                                             <div key={sale.sale_id} className="p-4 bg-white/5 rounded-2xl border border-white/5">
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="min-w-0">
                                                         <p className="text-white font-bold truncate">{sale.customer_name || 'Client divers'}</p>
                                                         <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mt-1">
-                                                            {formatDate(sale.created_at)} ? {sale.item_count} article(s)
+                                                            {formatDate(sale.created_at)} • {sale.item_count} article(s){sale.source === 'ecommerce' ? ' • E-com' : ''}
                                                         </p>
                                                         <p className="text-xs text-slate-400 mt-2 truncate">
                                                             {sale.items.map((item) => item.product_name).filter(Boolean).join(', ') || 'Vente'}

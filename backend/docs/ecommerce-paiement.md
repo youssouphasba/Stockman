@@ -50,3 +50,6 @@ La commande met en avant une seule « Prochaine étape » : confirmer le paiemen
 - Une commande livrée par Denkma ne propose pas « Payer à la livraison » : le livreur Denkma n'encaisse jamais pour la boutique, le client paie donc avant le départ du colis.
 - Si le commerçant fait partir une commande dont le paiement n'est pas confirmé, la commande affiche « Expédiée sans paiement confirmé » jusqu'à « Paiement reçu ».
 - À la livraison, la vente enregistrée reprend le moyen de paiement de la commande : Wave et Orange Money sont classés en paiement mobile, pas en espèces.
+- Dès que le paiement d'une commande est confirmé, ses articles sont réservés : ils sortent du stock tout de suite, pour qu'une vente en caisse ne les prenne pas avant la livraison. Si la commande est annulée avant la livraison, les articles reviennent en stock.
+- Livrer une commande dont le paiement n'est pas confirmé fait apparaître une question : « Le client a payé » enregistre la vente comme payée ; « Pas encore payé : vente à crédit » enregistre une vente à crédit, et le montant s'ajoute à la dette du client. Un « Paiement reçu » ultérieur solde cette dette, une seule fois.
+- Dans Finances, la vue E-com affiche ces commandes dans « À encaisser » ; la vue Trésorerie les compte dans les créances clients.

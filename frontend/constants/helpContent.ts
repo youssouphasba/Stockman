@@ -188,6 +188,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'trophy-outline', title: 'help.modules.accounting.f7.t', description: "help.modules.accounting.f7.d" },
       { icon: 'information-circle-outline', title: 'help.modules.accounting.f8.t', description: "help.modules.accounting.f8.d" },
       { icon: 'albums-outline', title: 'Filtre de période', description: "Les ventes et les dépenses se pilotent désormais avec Voir tout, Mois et Année. En mode année, choisissez aussi directement un mois lié à l'année affichée." },
+      { icon: 'git-branch-outline', title: 'Boutique, E-com et trésorerie', description: "Quatre vues en haut de l'écran : Vue d'ensemble, Boutique physique, E-com et Trésorerie. La vue E-com suit le circuit des commandes (commandé, livré, encaissé, à encaisser) ; la vue Trésorerie montre les sommes reçues, les créances clients et les frais de livraison Denkma à reverser, qui ne comptent jamais dans le chiffre d'affaires." },
     ],
   },
   {

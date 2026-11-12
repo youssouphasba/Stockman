@@ -89,6 +89,7 @@ from ecommerce_domains import MARKER_SERVICE, DomainServiceError, EcommerceDomai
 from ecommerce_denkma import DenkmaError, EcommerceDenkmaService
 import ecommerce_payment
 import ecommerce_sale
+import finance_report
 from ecommerce_payment import EcommercePaymentService, PaymentError
 from services.pricing import (
     DEFAULT_COUNTRY_CODE,
@@ -970,6 +971,14 @@ async def create_indexes_and_init():
                 except Exception as exc:
                     logger.warning(f"E-commerce theme indexes deferred: {exc}")
                 await db.sales.create_index([("store_id", 1), ("created_at", -1)])
+                await db.sales.create_index([("user_id", 1), ("source", 1), ("created_at", -1)])
+                try:
+                    # Reprise de l'historique : les ventes nées d'une commande livrée passent en « E-com ».
+                    reclassified = await ecommerce_sale.backfill_sale_sources(db)
+                    if reclassified:
+                        logger.info(f"E-commerce sales reclassified: {reclassified}")
+                except Exception as exc:
+                    logger.warning(f"E-commerce sale source backfill deferred: {exc}")
                 await db.alert_rules.create_index([("user_id", 1), ("type", 1), ("scope", 1), ("store_id", 1)])
 
                 # Additional performance indexes
@@ -1624,6 +1633,8 @@ class PublicEcommerceContactResponse(BaseModel):
 
 class EcommerceOrderStatusUpdate(BaseModel):
     status: str
+    # À la livraison : True si le client a payé, False pour une vente à crédit, None pour garder l'état du paiement.
+    paid: Optional[bool] = None
 
 class StockTransfer(BaseModel):
     product_id: str
@@ -3688,6 +3699,8 @@ class Sale(BaseModel):
     cancelled_at: Optional[datetime] = None
     cancelled_by_user_id: Optional[str] = None
     cancellation_reason: Optional[str] = None
+    source: str = "physical"  # physical | ecommerce (vente créée à la livraison d'une commande en ligne)
+    ecommerce_order_id: Optional[str] = None
 
 
 class SaleCreate(BaseModel):
@@ -3779,6 +3792,10 @@ class AccountingStats(BaseModel):
     tax_ratio: float = 0.0
     top_expense_categories: List[Dict[str, Any]] = []
     product_performance: List[Dict[str, Any]] = [] # Detailed per-product stats
+    channel: str = "all"  # canal des chiffres de ventes : all | physical | ecommerce
+    channels: Dict[str, Dict[str, Any]] = {}  # chiffres de chaque canal sur la période
+    ecommerce: Dict[str, Any] = {}  # circuit E-com : commandé, livré, encaissé, à encaisser
+    treasury: Dict[str, Any] = {}  # encaissements, créances et livraison en transit
 
 class DashboardData(BaseModel):
     total_products: int
@@ -3846,6 +3863,8 @@ class CustomerPayment(BaseModel):
     amount: float
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    source: Optional[str] = None  # « ecommerce » : paiement d'une commande en ligne livrée à crédit
+    ecommerce_order_id: Optional[str] = None
 
 class CustomerPaymentCreate(BaseModel):
     amount: float
@@ -18848,7 +18867,13 @@ async def ship_ecommerce_order_with_denkma(
         if content_type not in DENKMA_PHOTO_TYPES:
             raise HTTPException(status_code=422, detail="Utilisez une photo JPEG, PNG ou WebP.")
     await run_denkma_operation(ecommerce_denkma_service.ship(account_doc, order, customer_paid=customer_paid, photo=content or None, photo_type=content_type))
-    return await db.ecommerce_orders.find_one({"order_id": order_id}, {"_id": 0})
+    if customer_paid and not ecommerce_payment.settled(order):
+        # Le commerçant a attesté le paiement pour faire partir le colis : il est enregistré, et le stock réservé.
+        paid_result = await run_payment_operation(ecommerce_payment_service.mark(order, paid=True, actor_id=user.user_id))
+        if paid_result["changed"]:
+            await reserve_ecommerce_order_stock(paid_result["order"], user)
+    fresh = await db.ecommerce_orders.find_one({"order_id": order_id}, {"_id": 0})
+    return ecommerce_payment.merchant_view(fresh) if fresh else fresh
 
 
 @api_router.post("/ecommerce/orders/{order_id}/denkma/refresh")
@@ -19159,6 +19184,8 @@ async def get_ecommerce_stats(user: User = Depends(require_permission("stock", "
     visits_today_query = {**base_event_query, "event_type": "site_view", "created_at": {"$gte": start_today}}
     cart_30d_query = {**base_event_query, "event_type": "add_to_cart", "created_at": {"$gte": start_30d}}
     orders_30d_query = {**base_order_query, "created_at": {"$gte": start_30d}}
+    # Commandes maintenues : les annulées et refusées ne comptent ni dans les montants ni dans les taux.
+    kept_orders_30d_query = {**orders_30d_query, "status": {"$nin": finance_report.CLOSED_WITHOUT_SALE}}
 
     visits_total = await db.ecommerce_events.count_documents({**base_event_query, "event_type": "site_view"})
     visits_30d = await db.ecommerce_events.count_documents(visits_30d_query)
@@ -19181,12 +19208,12 @@ async def get_ecommerce_stats(user: User = Depends(require_permission("stock", "
     visible_products = await db.products.count_documents(visible_catalog_query)
     out_of_stock_products = await db.products.count_documents({**catalog_query, "quantity": {"$lte": 0}})
 
-    revenue_pipeline = [
-        {"$match": orders_30d_query},
-        {"$group": {"_id": None, "total": {"$sum": "$total_amount"}, "average": {"$avg": "$total_amount"}}},
-    ]
-    revenue_docs = await db.ecommerce_orders.aggregate(revenue_pipeline).to_list(1)
-    revenue_doc = revenue_docs[0] if revenue_docs else {}
+    flow = await finance_report.ecommerce_flow(db, base_order_query, start_30d, now)
+    ecommerce_sales_query = apply_completed_sales_scope({**base_order_query, "source": finance_report.ECOMMERCE, "created_at": {"$gte": start_30d, "$lte": now}})
+    ecommerce_sales = (await finance_report.sales_report(db, ecommerce_sales_query))["channels"][finance_report.ECOMMERCE]
+    credit_repayments = await finance_report.sum_by(
+        db, "customer_payments", {**base_order_query, "source": finance_report.ECOMMERCE, "created_at": {"$gte": start_30d, "$lte": now}}, "amount")
+    kept_orders_30d = flow["ordered"]["count"]
 
     top_cart_products = await db.ecommerce_events.aggregate([
         {"$match": {**cart_30d_query, "product_id": {"$ne": None}}},
@@ -19195,15 +19222,15 @@ async def get_ecommerce_stats(user: User = Depends(require_permission("stock", "
         {"$limit": 5},
     ]).to_list(5)
     top_ordered_products = await db.ecommerce_orders.aggregate([
-        {"$match": orders_30d_query},
+        {"$match": kept_orders_30d_query},
         {"$unwind": "$items"},
         {"$group": {"_id": "$items.product_id", "name": {"$first": "$items.product_name"}, "quantity": {"$sum": "$items.quantity"}, "amount": {"$sum": "$items.total"}}},
         {"$sort": {"quantity": -1, "amount": -1}},
         {"$limit": 5},
     ]).to_list(5)
 
-    conversion_rate_30d = round((orders_30d / visits_30d) * 100, 2) if visits_30d else 0
-    cart_to_order_rate_30d = round((orders_30d / add_to_cart_30d) * 100, 2) if add_to_cart_30d else 0
+    conversion_rate_30d = round((kept_orders_30d / visits_30d) * 100, 2) if visits_30d else 0
+    cart_to_order_rate_30d = round((kept_orders_30d / add_to_cart_30d) * 100, 2) if add_to_cart_30d else 0
 
     return {
         "site": site,
@@ -19216,11 +19243,19 @@ async def get_ecommerce_stats(user: User = Depends(require_permission("stock", "
         "products_in_cart_30d": len(products_in_cart_30d),
         "orders_total": orders_total,
         "orders_30d": orders_30d,
+        "kept_orders_30d": kept_orders_30d,
+        "cancelled_orders_30d": flow["cancelled"]["count"],
         "pending_orders": pending_orders,
         "confirmed_orders": confirmed_orders,
         "cancelled_orders": cancelled_orders,
-        "revenue_30d": round(float(revenue_doc.get("total") or 0), 2),
-        "average_order_30d": round(float(revenue_doc.get("average") or 0), 2),
+        # Chiffre d'affaires E-com : ventes nées des commandes livrées, payées ou à crédit, hors livraison.
+        "revenue_30d": ecommerce_sales["revenue"],
+        "ordered_amount_30d": flow["ordered"]["amount"],
+        "collected_30d": round(ecommerce_sales["collected"] + credit_repayments["amount"], 2),
+        "to_collect_amount": flow["to_collect"]["amount"],
+        "to_collect_orders": flow["to_collect"]["count"],
+        "delivery_transit_30d": flow["delivery_transit"]["amount"],
+        "average_order_30d": round(flow["ordered"]["amount"] / kept_orders_30d, 2) if kept_orders_30d else 0,
         "conversion_rate_30d": conversion_rate_30d,
         "cart_to_order_rate_30d": cart_to_order_rate_30d,
         "catalog_products": catalog_products,
@@ -19267,29 +19302,118 @@ async def get_ecommerce_order(order_id: str, user: User = Depends(require_permis
     return ecommerce_payment.merchant_view(order)
 
 
+def _ecommerce_movement_recorder(
+    order: Dict[str, Any],
+    user: User,
+    store_id: str,
+    *,
+    reason: str,
+    movement_type: str = "out",
+    source_type: str = ecommerce_sale.MOVEMENT_SOURCE,
+):
+    """Écrit le mouvement de stock d'un article de commande en ligne (sortie, ou entrée quand une réservation est libérée)."""
+    owner_id = get_owner_id(user)
+
+    async def record(product: Dict[str, Any], quantity: float, before: float, after: float) -> None:
+        movement = StockMovement(
+            product_id=product["product_id"],
+            product_name=product.get("name"),
+            user_id=owner_id,
+            store_id=store_id,
+            type=movement_type,
+            quantity=quantity,
+            reason=reason,
+            previous_quantity=before,
+            new_quantity=after,
+            source_type=source_type,
+            source_id=order.get("order_id"),
+        )
+        await db.stock_movements.insert_one(movement.model_dump())
+        if movement_type == "out":
+            await check_and_create_alerts(Product(**{**product, "quantity": after}), user.user_id, store_id=store_id)
+
+    return record
+
+
+async def reserve_ecommerce_order_stock(order: Dict[str, Any], user: User) -> Optional[str]:
+    """Paiement confirmé avant la livraison : les articles sortent du stock pour que la caisse ne les vende pas.
+    Renvoie un message si la réservation n'a pas pu se faire ; le paiement reste enregistré."""
+    store_id = order.get("store_id") or user.active_store_id
+    if not store_id:
+        return None
+    reference = order.get("order_number") or order.get("order_id")
+    try:
+        reserved = await ecommerce_sale.reserve(
+            db, order, owner_id=get_owner_id(user), store_id=store_id,
+            record_movement=_ecommerce_movement_recorder(order, user, store_id, reason=f"Réservé pour la commande E-com {reference} (payée)"),
+        )
+    except ecommerce_sale.SaleError as exc:
+        return f"Paiement enregistré, mais le stock n'a pas pu être réservé : {exc.message}"
+    if reserved:
+        _invalidate_dashboard_ai_caches(get_owner_id(user), store_id)
+    return None
+
+
+async def release_ecommerce_order_stock(order: Dict[str, Any], user: User, why: str) -> None:
+    """Commande annulée ou paiement retiré avant la livraison : le stock réservé revient."""
+    store_id = order.get("store_id") or user.active_store_id
+    if not store_id:
+        return
+    reference = order.get("order_number") or order.get("order_id")
+    returned = await ecommerce_sale.release(
+        db, order, owner_id=get_owner_id(user), store_id=store_id,
+        record_return=_ecommerce_movement_recorder(
+            order, user, store_id, reason=f"Réservation libérée : commande E-com {reference} {why}",
+            movement_type="in", source_type="ecommerce_release",
+        ),
+    )
+    if returned:
+        _invalidate_dashboard_ai_caches(get_owner_id(user), store_id)
+
+
+async def settle_ecommerce_credit(order: Dict[str, Any], user: User) -> None:
+    """Commande livrée à crédit, puis payée : la dette du client est soldée par un paiement, une seule fois."""
+    owner_id = get_owner_id(user)
+    if not order.get("sale_on_credit") or order.get("credit_payment_id"):
+        return
+    payment_id = f"pay_{uuid.uuid4().hex[:12]}"
+    claimed = await db.ecommerce_orders.find_one_and_update(
+        {"order_id": order.get("order_id"), "user_id": owner_id, "sale_on_credit": True, "credit_payment_id": None},
+        {"$set": {"credit_payment_id": payment_id}},
+        projection={"_id": 0},
+    )
+    if not claimed:
+        return
+    sale = await db.sales.find_one({"sale_id": order.get("sale_id"), "user_id": owner_id}, {"_id": 0, "credit_debt_applied": 1})
+    amount = _round_money(float((sale or {}).get("credit_debt_applied") or 0))
+    customer_id = order.get("customer_id")
+    if not customer_id or amount <= 0:
+        return
+    reference = order.get("order_number") or order.get("order_id")
+    payment = CustomerPayment(
+        payment_id=payment_id,
+        customer_id=customer_id,
+        user_id=owner_id,
+        store_id=order.get("store_id"),
+        amount=amount,
+        notes=f"Paiement de la commande E-com {reference}",
+        source="ecommerce",
+        ecommerce_order_id=order.get("order_id"),
+    )
+    await db.customer_payments.insert_one(payment.model_dump())
+    await db.customers.update_one({"customer_id": customer_id, "user_id": owner_id}, {"$inc": {"current_debt": -amount}})
+    _invalidate_dashboard_ai_caches(owner_id, order.get("store_id"))
+
+
 async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> Dict[str, Any]:
-    """Commande livrée : sortie du stock, vente et clôture, une seule fois (voir ecommerce_sale)."""
+    """Commande livrée : sortie du stock (sauf articles déjà réservés), vente et clôture, une seule fois.
+    Une commande dont le paiement n'est pas confirmé devient une vente à crédit : elle compte dans le
+    chiffre d'affaires et reste due par le client. Les frais de livraison n'entrent pas dans la vente."""
     owner_id = get_owner_id(user)
     store_id = order.get("store_id") or user.active_store_id
     if not store_id:
         raise HTTPException(status_code=400, detail="Boutique active introuvable")
     reference = order.get("order_number") or order.get("order_id")
-
-    async def record_movement(product: Dict[str, Any], quantity: float, before: float, after: float) -> None:
-        movement = StockMovement(
-            product_id=product["product_id"],
-            user_id=owner_id,
-            store_id=store_id,
-            type="out",
-            quantity=quantity,
-            reason=f"Vente E-com {reference} livrée",
-            previous_quantity=before,
-            new_quantity=after,
-            source_type=ecommerce_sale.MOVEMENT_SOURCE,
-            source_id=order.get("order_id"),
-        )
-        await db.stock_movements.insert_one(movement.model_dump())
-        await check_and_create_alerts(Product(**{**product, "quantity": after}), user.user_id, store_id=store_id)
 
     async def record_sale(sale_id: str, current: Dict[str, Any], lines: List[Dict[str, Any]]) -> None:
         sale_items: List[SaleItem] = []
@@ -19307,8 +19431,9 @@ async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> 
                 sold_unit=product.get("unit") or item.get("unit"),
             ))
         total_amount = round(sum(item.total for item in sale_items), 2)
+        on_credit = not ecommerce_payment.settled(current)
         # Wave et Orange Money sont des paiements mobiles : la vente ne doit pas être classée en espèces.
-        payment_method = ecommerce_payment.sale_payment_method(current)
+        payment_method = "credit" if on_credit else ecommerce_payment.sale_payment_method(current)
         customer_effects = await _compute_sale_customer_effects(owner_id, current.get("customer_id"), total_amount, payment_method)
         sale = Sale(
             sale_id=sale_id,
@@ -19322,16 +19447,23 @@ async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> 
             loyalty_points_earned=customer_effects["loyalty_points_earned"],
             customer_total_spent_increment=customer_effects["customer_total_spent_increment"],
             credit_debt_applied=customer_effects["credit_debt_applied"],
-            notes=f"Commande E-com {reference}",
+            notes=f"Commande E-com {reference}" + (" livrée à crédit" if on_credit else ""),
             status="completed",
             service_type="delivery",
             current_amount=total_amount,
+            source="ecommerce",
+            ecommerce_order_id=current.get("order_id"),
         )
         await db.sales.insert_one(sale.model_dump())
+        if on_credit:
+            await db.ecommerce_orders.update_one({"order_id": current.get("order_id"), "user_id": owner_id}, {"$set": {"sale_on_credit": True}})
         await _apply_sale_customer_effects(owner_id, current.get("customer_id"), customer_effects, customer_channel="ecommerce")
 
     try:
-        updated = await ecommerce_sale.convert(db, order, owner_id=owner_id, store_id=store_id, record_sale=record_sale, record_movement=record_movement)
+        updated = await ecommerce_sale.convert(
+            db, order, owner_id=owner_id, store_id=store_id, record_sale=record_sale,
+            record_movement=_ecommerce_movement_recorder(order, user, store_id, reason=f"Vente E-com {reference} livrée"),
+        )
     except ecommerce_sale.SaleError as exc:
         raise HTTPException(status_code=exc.status, detail=exc.message)
     _invalidate_dashboard_ai_caches(owner_id, store_id)
@@ -19357,8 +19489,12 @@ async def update_ecommerce_order_status(
         raise HTTPException(status_code=404, detail="Commande E-com introuvable")
     if order.get("status") in {"delivered", "cancelled", "rejected"}:
         raise HTTPException(status_code=400, detail="Cette commande est déjà clôturée")
-    account_doc = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0, "ecommerce_site_name": 1, "ecommerce_slug": 1, "currency": 1})
+    account_doc = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0, "ecommerce_site_name": 1, "ecommerce_slug": 1, "currency": 1}) or {}
     if payload.status == "delivered":
+        if payload.paid and not ecommerce_payment.settled(order):
+            # Le client a payé à la réception : le paiement est confirmé avant d'enregistrer la vente.
+            paid_result = await run_payment_operation(ecommerce_payment_service.mark(order, paid=True, actor_id=user.user_id))
+            order = paid_result["order"]
         updated = await convert_ecommerce_order_to_sale(order, user)
         customer_email = str(updated.get("customer_email") or "").strip().lower()
         if customer_email:
@@ -19379,11 +19515,19 @@ async def update_ecommerce_order_status(
                 )
             except Exception as email_err:
                 logger.warning(f"E-commerce delivered status email failed: {email_err}")
-        return {"message": "Commande livrÃ©e et vente crÃ©Ã©e", "order": updated}
+        message = (
+            "Commande livrée : vente à crédit enregistrée, le paiement reste dû par le client"
+            if updated.get("sale_on_credit")
+            else "Commande livrée et vente enregistrée"
+        )
+        return {"message": message, "order": ecommerce_payment.merchant_view(updated)}
     await db.ecommerce_orders.update_one(
         {"order_id": order_id, "user_id": owner_id},
         {"$set": {"status": payload.status, "updated_at": datetime.now(timezone.utc)}},
     )
+    if payload.status in {"cancelled", "rejected"}:
+        # Une commande payée avait réservé ses articles : ils reviennent en stock.
+        await release_ecommerce_order_stock({**order, "status": payload.status}, user, "annulée" if payload.status == "cancelled" else "refusée")
     if payload.status in {"cancelled", "rejected"} and (order.get("delivery") or {}).get("provider") == "denkma":
         denkma_account = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0}) or {}
         await ecommerce_denkma_service.cancel_order(denkma_account, order)
@@ -19416,7 +19560,7 @@ async def update_ecommerce_order_status(
             )
         except Exception as email_err:
             logger.warning(f"E-commerce status email failed: {email_err}")
-    return {"message": "Statut mis Ã  jour", "order": updated}
+    return {"message": "Statut mis à jour", "order": ecommerce_payment.merchant_view(updated) if updated else updated}
 
 
 @api_router.put("/ecommerce/orders/{order_id}/payment")
@@ -19425,7 +19569,8 @@ async def update_ecommerce_order_payment(
     payload: EcommerceOrderPaymentUpdate,
     user: User = Depends(require_permission("stock", "write")),
 ):
-    """« Paiement reçu » : le commerçant confirme que le client l'a payé (ou corrige une erreur)."""
+    """« Paiement reçu » : le commerçant confirme que le client l'a payé (ou corrige une erreur).
+    Avant la livraison, le paiement confirmé réserve le stock ; après une livraison à crédit, il solde la dette."""
     ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
     query = {"order_id": order_id, "user_id": owner_id}
@@ -19436,7 +19581,13 @@ async def update_ecommerce_order_payment(
         raise HTTPException(status_code=404, detail="Commande E-com introuvable")
     result = await run_payment_operation(ecommerce_payment_service.mark(order, paid=payload.paid, actor_id=user.user_id))
     updated = result["order"]
+    stock_warning: Optional[str] = None
+    if result["changed"] and not payload.paid:
+        # Paiement retiré avant la livraison : la réservation tombe.
+        await release_ecommerce_order_stock(updated, user, "(paiement retiré)")
     if result["changed"] and payload.paid:
+        if updated.get("status") == "delivered":
+            await settle_ecommerce_credit(updated, user)
         if updated.get("status") == "pending":
             # Une commande payée est confirmée du même geste : le commerçant n'a rien d'autre à valider.
             confirmed = await db.ecommerce_orders.find_one_and_update(
@@ -19446,31 +19597,35 @@ async def update_ecommerce_order_payment(
                 return_document=ReturnDocument.AFTER,
             )
             updated = confirmed or updated
+        if updated.get("status") not in {"delivered", "cancelled", "rejected"}:
+            stock_warning = await reserve_ecommerce_order_stock(updated, user)
         if (updated.get("delivery") or {}).get("provider") == "denkma" and updated.get("status") in {"confirmed", "preparing"}:
             # Denkma réserve le transport ; l'enlèvement attend toujours le geste « Prête ».
             denkma_account = await db.business_accounts.find_one({"owner_user_id": owner_id}, {"_id": 0}) or {}
             await ecommerce_denkma_service.validated(denkma_account, updated)
-            updated = await db.ecommerce_orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0}) or updated
+        updated = await db.ecommerce_orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0}) or updated
         customer_email = str(updated.get("customer_email") or "").strip().lower()
         if customer_email:
             try:
                 reference = updated.get("order_number") or order_id
+                preparing = updated.get("status") != "delivered"
                 await notification_service.send_email_notification(
                     [customer_email],
                     f"Paiement reçu pour la commande {reference}",
                     (
                         f"<p>Bonjour {html.escape(str(updated.get('customer_name') or ''))},</p>"
-                        f"<p>La boutique a bien reçu votre paiement pour la commande <strong>{html.escape(str(reference))}</strong>. "
-                        f"Elle prépare maintenant votre commande.</p>"
+                        f"<p>La boutique a bien reçu votre paiement pour la commande <strong>{html.escape(str(reference))}</strong>."
+                        + (" Elle prépare maintenant votre commande.</p>" if preparing else " Merci.</p>")
                     ),
                     text_body=(
                         f"Bonjour {updated.get('customer_name') or ''},\n"
-                        f"La boutique a bien reçu votre paiement pour la commande {reference}. Elle prépare maintenant votre commande."
+                        f"La boutique a bien reçu votre paiement pour la commande {reference}."
+                        + (" Elle prépare maintenant votre commande." if preparing else " Merci.")
                     ),
                 )
             except Exception as email_err:
                 logger.warning(f"E-commerce payment email failed: {email_err}")
-    return {"order": ecommerce_payment.merchant_view(updated), "changed": result["changed"]}
+    return {"order": ecommerce_payment.merchant_view(updated), "changed": result["changed"], "stock_warning": stock_warning}
 
 
 @api_router.get("/stores/consolidated-stats")
@@ -23407,13 +23562,18 @@ async def get_accounting_stats(
     days: Optional[int] = 30,
     start_date_str: Optional[str] = Query(None, alias="start_date"),
     end_date_str: Optional[str] = Query(None, alias="end_date"),
+    channel: Optional[str] = Query(None, description="all, physical ou ecommerce"),
     user: User = Depends(require_permission("accounting", "read"))
 ):
+    """Chiffres de Finances. Les totaux sont calculés par la base de données (aucun plafond de ventes
+    ou de dépenses). « channel » limite les chiffres de ventes à un canal ; le circuit E-com, la
+    trésorerie et la répartition par canal sont toujours renvoyés (voir finance_report)."""
     user_id = get_owner_id(user)
     store_id = user.active_store_id
     stores = await load_accessible_stores(user)
+    channel = finance_report.normalize_channel(channel)
 
-    # Date logic â€” always produce tz-aware datetimes (UTC)
+    # Dates toujours en UTC, avec fuseau
     if start_date_str or end_date_str:
         date_range = _parse_optional_range(days=None, start_date=start_date_str, end_date=end_date_str)
         start_date = date_range["start"]
@@ -23424,93 +23584,28 @@ async def get_accounting_stats(
         end_date = datetime.now(timezone.utc)
         period_label = f"Derniers {days or 30} jours"
 
-    def parse_date_safe(d):
-        """Parse date handling both string and datetime, always returns tz-aware or None"""
-        if isinstance(d, str):
-            try:
-                return datetime.fromisoformat(d.replace('Z', '+00:00'))
-            except:
-                return None
-        if isinstance(d, datetime):
-            if d.tzinfo is None:
-                return d.replace(tzinfo=timezone.utc)
-            return d
-        return None
+    def scope() -> Dict[str, Any]:
+        return apply_accessible_store_scope({"user_id": user_id}, user, store_id)
 
-    # 1. Sales Data
-    sales_query: dict = {"user_id": user_id}
-    sales_query = apply_accessible_store_scope(sales_query, user, store_id)
-    sales_query = apply_completed_sales_scope(sales_query)
-
-    # Apply date filters directly to the query
+    # 1. Ventes terminées de la période, par canal
+    sales_query = apply_completed_sales_scope(scope())
     sales_query["created_at"] = {"$gte": start_date, "$lte": end_date}
-
-    sales = await db.sales.find(sales_query, {"_id": 0}).sort("created_at", -1).to_list(5000)
-
-    revenue = 0.0
-    cogs = 0.0
-    total_items_sold = 0
-    payment_breakdown: Dict[str, float] = {}
-    daily_map: Dict[str, dict] = {}
-
-    # Track performance per product
-    perf_map: Dict[str, dict] = {} # product_id -> {name, qty_sold, revenue, cogs, loss}
-
-    for s in sales:
-        sale_amount = s.get("total_amount", 0.0)
-        revenue += sale_amount
-
-        # Payment breakdown
-        pm = s.get("payment_method", "cash")
-        payment_breakdown[pm] = payment_breakdown.get(pm, 0.0) + sale_amount
-
-        # Daily aggregation
-        sale_date = parse_date_safe(s.get("created_at"))
-        if sale_date:
-            day_key = sale_date.strftime("%Y-%m-%d")
-            if day_key not in daily_map:
-                daily_map[day_key] = {"date": day_key, "revenue": 0.0, "profit": 0.0}
-            daily_map[day_key]["revenue"] += sale_amount
-
-            sale_cogs = 0.0
-            for item in s.get("items", []):
-                p_id = item.get("product_id")
-                qty = item.get("quantity", 0)
-                item_revenue = item.get("total", 0.0) or (qty * item.get("selling_price", 0.0))
-                item_cost = item.get("purchase_price", 0.0) * qty
-
-                cogs += item_cost
-                sale_cogs += item_cost
-                total_items_sold += qty
-
-                if p_id:
-                    if p_id not in perf_map:
-                        perf_map[p_id] = {"id": p_id, "name": item.get("product_name", "Inconnu"), "qty_sold": 0, "revenue": 0.0, "cogs": 0.0, "loss": 0.0}
-                    perf_map[p_id]["qty_sold"] += qty
-                    perf_map[p_id]["revenue"] += item_revenue
-                    perf_map[p_id]["cogs"] += item_cost
-
-            daily_map[day_key]["profit"] += sale_amount - sale_cogs
-
+    report = await finance_report.sales_report(db, sales_query)
+    selected = finance_report.pick(report, channel)
+    everything = finance_report.pick(report, "all")
+    totals = selected["totals"]
+    revenue = totals["revenue"]
+    cogs = totals["cogs"]
     gross_profit = revenue - cogs
-    daily_revenue = sorted(daily_map.values(), key=lambda d: d["date"])
-    # TVA collectÃ©e
-    tax_collected = sum(s.get("tax_total", 0) for s in sales)
+    perf_map: Dict[str, dict] = selected["products"]
 
-    # 2. Losses Data
-    mv_query: dict = {"user_id": user_id, "type": "out"}
-    mv_query = apply_accessible_store_scope(mv_query, user, store_id)
-
-    # Apply date filters directly to the query
-    mv_query["created_at"] = {"$gte": start_date, "$lte": end_date}
-
+    # 2. Pertes (sorties de stock qui ne sont pas des ventes)
+    mv_query: dict = {**scope(), "type": "out", "created_at": {"$gte": start_date, "$lte": end_date}}
     all_movements = await db.stock_movements.find(mv_query, {"_id": 0}).sort("created_at", -1).to_list(10000)
-
     movements = [m for m in all_movements if is_loss_stock_movement(m)]
 
     total_losses = 0.0
     loss_breakdown: Dict[str, float] = {}
-
     prod_ids = list(set([m["product_id"] for m in movements]))
     products_db = await db.products.find(
         {"product_id": {"$in": prod_ids}, "user_id": user_id},
@@ -23527,50 +23622,66 @@ async def get_accounting_stats(
         total_losses += loss_val
         reason = m.get("reason") or "Autre"
         loss_breakdown[reason] = loss_breakdown.get(reason, 0.0) + loss_val
-
-        if p_id:
+        # Les pertes ne relèvent d'aucun canal : dans une vue par canal, seuls les produits vendus sur ce canal les portent.
+        if p_id and (channel == "all" or p_id in perf_map):
             if p_id not in perf_map:
                 perf_map[p_id] = {"id": p_id, "name": p.get("name", "Inconnu") if p else "Inconnu", "qty_sold": 0, "revenue": 0.0, "cogs": 0.0, "loss": 0.0}
             perf_map[p_id]["loss"] += loss_val
 
-    # 3. Expenses Data (NEW)
-    exp_query: dict = {"user_id": user_id}
-    exp_query = apply_accessible_store_scope(exp_query, user, store_id)
-    all_expenses_docs = await db.expenses.find(exp_query, {"_id": 0}).to_list(2000)
+    # 3. Dépenses de la période
+    expense_match = {"$and": [scope(), finance_report.date_range_filter("created_at", start_date, end_date)]}
+    expenses_breakdown = await finance_report.sum_by(db, "expenses", expense_match, "amount", "category")
+    total_expenses = round(sum(expenses_breakdown.values()), 2)
 
-    total_expenses = 0.0
-    expenses_breakdown: Dict[str, float] = {}
-    for e in all_expenses_docs:
-        e_date = parse_date_safe(e.get("created_at"))
-        if e_date and start_date <= e_date <= end_date:
-            amount = e.get("amount", 0.0)
-            total_expenses += amount
-            cat = e.get("category", "Autre")
-            expenses_breakdown[cat] = expenses_breakdown.get(cat, 0.0) + amount
+    # 4. Commandes fournisseurs livrées sur la période
+    purchase_match = {"$and": [
+        {**scope(), "status": "delivered"},
+        {"$or": [
+            finance_report.date_range_filter("updated_at", start_date, end_date),
+            {"$and": [{"updated_at": None}, finance_report.date_range_filter("created_at", start_date, end_date)]},
+        ]},
+    ]}
+    purchases = await finance_report.sum_by(db, "orders", purchase_match, "total_amount")
 
-    # 4. Purchase Orders
-    purchase_query: dict = {"user_id": user_id, "status": "delivered"}
-    purchase_query = apply_accessible_store_scope(purchase_query, user, store_id)
-    purchase_orders = await db.orders.find(purchase_query, {"_id": 0}).to_list(2000)
-    delivered_orders = []
-    for o in purchase_orders:
-        o_date = parse_date_safe(o.get("updated_at") or o.get("created_at"))
-        if o_date and start_date <= o_date <= end_date:
-            delivered_orders.append(o)
-    total_purchases = sum(o.get("total_amount", 0) for o in delivered_orders)
+    # 5. Valeur actuelle du stock
+    stock = await finance_report.stock_value(db, {**scope(), "is_active": {"$ne": False}})
 
-    # 5. Stock value (current)
-    stock_query: dict = {"user_id": user_id}
-    stock_query = apply_accessible_store_scope(stock_query, user, store_id)
-    active_products = await db.products.find({**stock_query, "is_active": {"$ne": False}}, {"_id": 0}).to_list(2000)
-    stock_value = sum(p.get("quantity", 0) * p.get("purchase_price", 0) for p in active_products)
-    stock_selling_value = sum(p.get("quantity", 0) * p.get("selling_price", 0) for p in active_products)
+    # 6. Circuit E-com et trésorerie
+    flow = await finance_report.ecommerce_flow(db, scope(), start_date, end_date)
+    payments_match = {**scope(), "created_at": {"$gte": start_date, "$lte": end_date}}
+    repayments = await finance_report.sum_by(db, "customer_payments", payments_match, "amount")
+    ecommerce_repayments = await finance_report.sum_by(db, "customer_payments", {**payments_match, "source": finance_report.ECOMMERCE}, "amount")
+    receivables = await finance_report.sum_by(db, "customers", {**scope(), "current_debt": {"$gt": 0}}, "current_debt")
+    ecommerce_channel = report["channels"][finance_report.ECOMMERCE]
+    ecommerce_summary = {
+        "ordered": flow["ordered"],
+        "open": flow["open"],
+        "cancelled": flow["cancelled"],
+        "delivered": flow["delivered"],
+        "revenue": ecommerce_channel["revenue"],
+        "collected": round(ecommerce_channel["collected"] + ecommerce_repayments["amount"], 2),
+        "to_collect": flow["to_collect"],
+        "delivery_transit": flow["delivery_transit"],
+    }
+    treasury = {
+        "collected": round(everything["totals"]["collected"] + repayments["amount"], 2),
+        "collected_sales": everything["totals"]["collected"],
+        "debt_repayments": repayments["amount"],
+        "collected_by_method": {method: amount for method, amount in everything["payment_breakdown"].items() if method != "credit"},
+        "credit_sales": everything["totals"]["credit"],
+        "receivables_total": receivables["amount"],
+        "receivables_customers": int(receivables["count"]),
+        "receivables_ecommerce": flow["to_collect"]["amount"],
+        "receivables_ecommerce_orders": flow["to_collect"]["count"],
+        "delivery_transit": flow["delivery_transit"]["amount"],
+        "delivery_transit_orders": flow["delivery_transit"]["count"],
+    }
 
-    # PROFIT DIFFERENTIATION
-    # 1. Gross Profit (Stock/Sales) = already calculated as gross_profit
-    # 2. Net Profit (Sales/Expenses) = Revenue - COGS - Losses - Expenses
+    # Résultat net = ventes - coût d'achat - pertes - charges ; il n'a de sens que pour l'ensemble des ventes.
+    sales_count = totals["sales_count"]
+    tax_collected = totals["tax_collected"]
     net_profit = gross_profit - total_losses - total_expenses
-    avg_sale = revenue / len(sales) if sales else 0.0
+    avg_sale = revenue / sales_count if sales_count else 0.0
     gross_margin_pct = ((gross_profit / revenue) * 100) if revenue > 0 else 0.0
     net_margin_pct = ((net_profit / revenue) * 100) if revenue > 0 else 0.0
     expense_ratio = ((total_expenses / revenue) * 100) if revenue > 0 else 0.0
@@ -23583,7 +23694,7 @@ async def get_accounting_stats(
         expense_ratio=expense_ratio,
         loss_ratio=loss_ratio,
         tax_ratio=tax_ratio,
-        stock_value=stock_value,
+        stock_value=stock["cost"],
     )
     summary = build_accounting_summary(
         revenue=revenue,
@@ -23608,6 +23719,8 @@ async def get_accounting_stats(
         margin_pct = ((product_gross_profit / perf.get("revenue", 0.0)) * 100) if perf.get("revenue", 0.0) > 0 else 0.0
         product_performance.append({
             **perf,
+            "revenue": round(perf.get("revenue", 0.0), 2),
+            "cogs": round(perf.get("cogs", 0.0), 2),
             "gross_profit": round(product_gross_profit, 2),
             "net_contribution": round(net_contribution, 2),
             "margin_pct": round(margin_pct, 2),
@@ -23623,16 +23736,16 @@ async def get_accounting_stats(
         expenses=total_expenses,
         expenses_breakdown=expenses_breakdown,
         loss_breakdown=loss_breakdown,
-        sales_count=len(sales),
+        sales_count=sales_count,
         period_label=period_label,
-        total_purchases=total_purchases,
-        purchases_count=len(delivered_orders),
-        daily_revenue=daily_revenue,
-        payment_breakdown=payment_breakdown,
+        total_purchases=purchases["amount"],
+        purchases_count=int(purchases["count"]),
+        daily_revenue=selected["daily"],
+        payment_breakdown=selected["payment_breakdown"],
         avg_sale=round(avg_sale, 0),
-        total_items_sold=total_items_sold,
-        stock_value=round(stock_value, 0),
-        stock_selling_value=round(stock_selling_value, 0),
+        total_items_sold=int(round(totals["items_sold"])),
+        stock_value=round(stock["cost"], 0),
+        stock_selling_value=round(stock["selling"], 0),
         tax_collected=round(tax_collected, 0),
         scope_label=scope_label,
         summary=summary,
@@ -23643,7 +23756,11 @@ async def get_accounting_stats(
         loss_ratio=round(loss_ratio, 2),
         tax_ratio=round(tax_ratio, 2),
         top_expense_categories=top_expense_categories[:5],
-        product_performance=product_performance
+        product_performance=product_performance,
+        channel=channel,
+        channels=report["channels"],
+        ecommerce=ecommerce_summary,
+        treasury=treasury,
     )
 
 
@@ -23824,11 +23941,13 @@ async def get_accounting_sales_history(
     store_id: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
+    channel: Optional[str] = None,
 ):
     owner_id = get_owner_id(user)
     date_range = _parse_optional_range(days=days, start_date=start_date, end_date=end_date)
     query: Dict[str, Any] = {"user_id": owner_id}
     query = apply_store_scope(query, user, store_id)
+    query.update(finance_report.channel_filter(channel))
     query["$or"] = [{"status": {"$exists": False}}, {"status": "completed"}, {"status": "cancelled"}]
     query["created_at"] = {"$gte": date_range["start"], "$lte": date_range["end"]}
 
@@ -23853,6 +23972,8 @@ async def get_accounting_sales_history(
             "discount_amount": sale.get("discount_amount", 0.0),
             "payment_method": sale.get("payment_method", "cash"),
             "payments": sale.get("payments") or [],
+            "source": sale.get("source") or finance_report.PHYSICAL,
+            "ecommerce_order_id": sale.get("ecommerce_order_id"),
             "customer_id": sale.get("customer_id"),
             "customer_name": sale.get("customer_name") or customer_map.get(sale.get("customer_id")) or "Client divers",
             "status": sale.get("status", "completed"),

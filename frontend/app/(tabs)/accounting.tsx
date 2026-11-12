@@ -58,6 +58,7 @@ import {
 } from '../../utils/pdfReports';
 import { mergeAccountingOfflineState } from '../../services/offlineState';
 import KpiInfoButton from '../../components/KpiInfoButton';
+import { FinanceViewPanel, FinanceViewTabs, FINANCE_VIEW_CHANNEL, type FinanceView } from '../../components/FinanceChannels';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
 
@@ -198,6 +199,10 @@ export default function AccountingScreen() {
     const styles = getStyles(colors, glassStyle, screenWidth);
     const [stats, setStats] = useState<AccountingStats | null>(null);
     const [recentSales, setRecentSales] = useState<AccountingSaleHistoryItem[]>([]);
+    // Vue d'ensemble, Boutique physique, E-com ou Trésorerie : fixe le canal des chiffres de ventes.
+    const [financeView, setFinanceView] = useState<FinanceView>('overview');
+    const salesChannel = FINANCE_VIEW_CHANNEL[financeView];
+    const isChannelView = salesChannel !== 'all';
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
     const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
     const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
@@ -280,7 +285,7 @@ export default function AccountingScreen() {
             const monthlyStartDate = `${currentYear}-01-01`;
             const monthlyEndDate = new Date().toISOString().slice(0, 10);
             const [statsRes, salesRes, invoicesRes, expensesRes, storesRes, userSettingsRes] = await Promise.allSettled([
-                accountingApi.getStats(days, start, end),
+                accountingApi.getStats(days, start, end, salesChannel),
                 accountingApi.getSalesHistory(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
                 accountingApi.getInvoices(days, start, end, 0, 100),
                 expensesApi.list(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
@@ -330,7 +335,7 @@ export default function AccountingScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [user?.active_store_id]);
+    }, [user?.active_store_id, salesChannel]);
 
     useFocusEffect(
         useCallback(() => {
@@ -1097,14 +1102,19 @@ export default function AccountingScreen() {
         ),
         [expensesList, i18n.language],
     );
+    // Ventes récentes limitées au canal de la vue choisie.
+    const channelSales = React.useMemo(
+        () => (isChannelView ? recentSales.filter((sale) => (sale.source === 'ecommerce' ? 'ecommerce' : 'physical') === salesChannel) : recentSales),
+        [recentSales, salesChannel, isChannelView],
+    );
     const monthlySalesGroups = React.useMemo(
         () => buildMonthlyGroups(
-            recentSales,
+            channelSales,
             (sale) => sale.created_at,
             (sale) => sale.total_amount,
             i18n.language,
         ),
-        [recentSales, i18n.language],
+        [channelSales, i18n.language],
     );
     const expenseYears = React.useMemo(() => getAvailableYears(monthlyExpenseGroups), [monthlyExpenseGroups]);
     const salesYears = React.useMemo(() => getAvailableYears(monthlySalesGroups), [monthlySalesGroups]);
@@ -1425,6 +1435,9 @@ export default function AccountingScreen() {
                             </View>
                         </View>
 
+                        <FinanceViewTabs view={financeView} onViewChange={(view) => { setLoading(true); setFinanceView(view); }} />
+                        <FinanceViewPanel view={financeView} stats={stats} formatCurrency={formatCurrency} />
+
                         {/* KPI Grid */}
                         <View style={styles.kpiGrid} onLayout={e => { sectionOffsets.current.kpiGrid = e.nativeEvent.layout.y; }}>
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.success + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('revenue')}>
@@ -1453,30 +1466,34 @@ export default function AccountingScreen() {
                                 <Text style={styles.kpiSubValue}>{t('accounting.margin_percentage', { percentage: grossMarginPercentage.toFixed(1) })}</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.warning + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('expenses')}>
-                                <KpiInfoButton info={t('accounting.info_expenses')} />
-                                <View style={styles.kpiHeader}>
-                                    <Ionicons name="calculator-outline" size={20} color={colors.warning} />
-                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
-                                </View>
-                                <Text style={styles.kpiLabel}>{t('accounting.total_expenses')}</Text>
-                                <Text style={[styles.kpiValue, { color: colors.warning }]}>
-                                    {formatCurrency(stats?.expenses ?? 0)}
-                                </Text>
-                                <Text style={styles.kpiSubValue}>{t('accounting.expense_lines', { count: expensesList.length })}</Text>
-                            </TouchableOpacity>
+                            {!isChannelView && (
+                                <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.warning + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('expenses')}>
+                                    <KpiInfoButton info={t('accounting.info_expenses')} />
+                                    <View style={styles.kpiHeader}>
+                                        <Ionicons name="calculator-outline" size={20} color={colors.warning} />
+                                        <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
+                                    </View>
+                                    <Text style={styles.kpiLabel}>{t('accounting.total_expenses')}</Text>
+                                    <Text style={[styles.kpiValue, { color: colors.warning }]}>
+                                        {formatCurrency(stats?.expenses ?? 0)}
+                                    </Text>
+                                    <Text style={styles.kpiSubValue}>{t('accounting.expense_lines', { count: expensesList.length })}</Text>
+                                </TouchableOpacity>
+                            )}
 
-                            <TouchableOpacity style={[styles.kpiCard, { borderColor: (stats?.net_profit ?? 0) >= 0 ? colors.info + '40' : colors.danger + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('net_profit')}>
-                                <KpiInfoButton info={t('accounting.info_net_profit')} />
-                                <View style={styles.kpiHeader}>
-                                    <Ionicons name="checkmark-circle-outline" size={20} color={(stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger} />
-                                    <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
-                                </View>
-                                <Text style={styles.kpiLabel}>{t('accounting.net_profit')}</Text>
-                                <Text style={[styles.kpiValue, { color: (stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger }]}>
-                                    {formatCurrency(stats?.net_profit ?? 0)}
-                                </Text>
-                            </TouchableOpacity>
+                            {!isChannelView && (
+                                <TouchableOpacity style={[styles.kpiCard, { borderColor: (stats?.net_profit ?? 0) >= 0 ? colors.info + '40' : colors.danger + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('net_profit')}>
+                                    <KpiInfoButton info={t('accounting.info_net_profit')} />
+                                    <View style={styles.kpiHeader}>
+                                        <Ionicons name="checkmark-circle-outline" size={20} color={(stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger} />
+                                        <Ionicons name="chevron-forward-outline" size={16} color={colors.textMuted} />
+                                    </View>
+                                    <Text style={styles.kpiLabel}>{t('accounting.net_profit')}</Text>
+                                    <Text style={[styles.kpiValue, { color: (stats?.net_profit ?? 0) >= 0 ? colors.info : colors.danger }]}>
+                                        {formatCurrency(stats?.net_profit ?? 0)}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
 
                             {(stats as any)?.tax_collected > 0 && (
                                 <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.warning + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('tax')}>
@@ -1876,7 +1893,7 @@ export default function AccountingScreen() {
                         {/* Recent Sales */}
                         <View style={styles.section} onLayout={e => { sectionOffsets.current.recentSales = e.nativeEvent.layout.y; }}>
                             <Text style={styles.sectionTitle}>{t('accounting.recent_sales')}</Text>
-                            {recentSales.length === 0 && salesReviewMode === 'all' ? (
+                            {channelSales.length === 0 && salesReviewMode === 'all' ? (
                                 <View style={styles.emptyState}>
                                     <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
                                     <Text style={styles.emptyText}>{t('accounting.no_sales')}</Text>
@@ -1900,7 +1917,7 @@ export default function AccountingScreen() {
                                     {salesReviewMode === 'all' ? (
                                         <>
                                             <View style={styles.tableContainer}>
-                                                {(showAllSales ? recentSales : recentSales.slice(0, 10)).map((sale) => (
+                                                {(showAllSales ? channelSales : channelSales.slice(0, 10)).map((sale) => (
                                                     <View key={sale.sale_id} style={styles.saleRow}>
                                                         <View style={{ flex: 1 }}>
                                                             <Text style={styles.saleDate}>
@@ -1912,7 +1929,7 @@ export default function AccountingScreen() {
                                                             <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
                                                                 {sale.items.map(i => i.product_name).join(', ') || t('accounting.articles_count', { count: sale.items.length })}
                                                             </Text>
-                                                            <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} • {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}</Text>
+                                                            <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} • {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}{sale.source === 'ecommerce' ? ' • E-com' : ''}</Text>
                                                             {(sale as any).offline_pending_invoice && (
                                                                 <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
                                                                     {t('common.pending', { defaultValue: 'En attente' })} • {t('accounting.offline_invoice', 'facture hors ligne')}
@@ -1996,13 +2013,13 @@ export default function AccountingScreen() {
                                                     </View>
                                                 ))}
                                             </View>
-                                            {recentSales.length > 10 && (
+                                            {channelSales.length > 10 && (
                                                 <TouchableOpacity
                                                     style={styles.seeMoreBtn}
                                                     onPress={() => setShowAllSales(!showAllSales)}
                                                 >
                                                     <Text style={styles.seeMoreText}>
-                                                        {showAllSales ? t('common.see_less') : t('accounting.see_other_sales', { count: recentSales.length - 10, defaultValue: 'Voir les {{count}} autres ventes' })}
+                                                        {showAllSales ? t('common.see_less') : t('accounting.see_other_sales', { count: channelSales.length - 10, defaultValue: 'Voir les {{count}} autres ventes' })}
                                                     </Text>
                                                     <Ionicons name={showAllSales ? "chevron-up" : "chevron-down"} size={16} color={colors.primary} />
                                                 </TouchableOpacity>

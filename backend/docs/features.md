@@ -244,8 +244,18 @@ La Marketplace connecte les commerçants à un réseau de fournisseurs vérifié
 ### Comment accéder à la comptabilité ?
 - Aller dans l'onglet **Comptabilité** (web) ou **Bilan** (mobile)
 
+### Comment séparer les ventes en boutique et les ventes E-com ?
+- L'écran Finances (web et mobile) propose quatre vues en haut : **Vue d'ensemble**, **Boutique physique**, **E-com** et **Trésorerie**. La période choisie s'applique aux quatre.
+- **Vue d'ensemble** : tous les canaux réunis, avec la part de la boutique et celle de l'E-com dans le chiffre d'affaires, la marge brute de chacune et, sur le web, le CA par jour en deux couleurs.
+- **Boutique physique** : chiffre d'affaires, marge, panier moyen et ventes de la caisse uniquement.
+- **E-com** : circuit des commandes en ligne. « Commandé » (commandes passées sur la période, annulées et refusées exclues), « Livré (CA) », « Encaissé », « À encaisser » (commandes livrées sans paiement confirmé), puis « En cours », « Annulées ou refusées » et « Livraison en transit ».
+- **Trésorerie** : sommes reçues sur la période (ventes payées et remboursements de dettes), répartition par moyen de paiement, créances clients dont la part E-com, et frais de livraison Denkma en transit.
+- Dans les vues Boutique physique et E-com, les cartes Charges et Résultat net sont masquées : les charges et les pertes de stock ne sont pas réparties par canal. Elles restent dans la vue d'ensemble.
+- Une vente E-com est créée à la livraison de la commande. Elle compte dans le CA E-com, qu'elle soit payée ou à crédit. Les frais de livraison Denkma n'entrent jamais dans le chiffre d'affaires.
+- L'historique des ventes suit la vue choisie ; les ventes E-com y portent la mention « E-com ».
+
 ### Que signifient les indicateurs financiers ?
-- **Chiffre d'Affaires (CA)** : Total des ventes encaissées sur la période
+- **Chiffre d'Affaires (CA)** : Total des ventes terminées sur la période (annulations exclues), payées ou à crédit
 - **COGS** (Coût des Marchandises Vendues) : Coût d'achat total des produits vendus
 - **Bénéfice Brut** : CA - COGS
 - **Dépenses** : Charges diverses saisies manuellement (loyer, salaires, électricité, etc.)

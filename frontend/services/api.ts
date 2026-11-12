@@ -1000,8 +1000,8 @@ export const ecommerce = {
     return request<{ items: any[]; total: number }>(`/ecommerce/orders?${qs.toString()}`);
   },
   getOrder: (orderId: string) => request<any>(`/ecommerce/orders/${orderId}`),
-  updateOrderStatus: (orderId: string, status: string) =>
-    request<{ message: string; order: any }>(`/ecommerce/orders/${orderId}/status`, { method: 'PUT', body: { status } }),
+  updateOrderStatus: (orderId: string, status: string, paid?: boolean) =>
+    request<{ message: string; order: any }>(`/ecommerce/orders/${orderId}/status`, { method: 'PUT', body: paid === undefined ? { status } : { status, paid } }),
   // « Paiement reçu » : le commerçant confirme que le client l'a payé (paid: false corrige une erreur).
   updateOrderPayment: (orderId: string, paid: boolean) =>
     request<{ order: any; changed: boolean }>(`/ecommerce/orders/${encodeURIComponent(orderId)}/payment`, { method: 'PUT', body: { paid } }),
@@ -2709,11 +2709,12 @@ export type ReplenishmentSuggestion = {
 
 // Accounting
 export const accounting = {
-  getStats: (days?: number, startDate?: string, endDate?: string) => {
+  getStats: (days?: number, startDate?: string, endDate?: string, channel?: SalesChannel) => {
     const qs = new URLSearchParams();
     if (typeof days === 'number') qs.set('days', days.toString());
     if (startDate) qs.set('start_date', startDate);
     if (endDate) qs.set('end_date', endDate);
+    if (channel && channel !== 'all') qs.set('channel', channel);
     const query = qs.toString();
     return request<AccountingStats>(`/accounting/stats${query ? `?${query}` : ''}`);
   },
@@ -2793,6 +2794,53 @@ export type AccountingStats = {
     net_contribution?: number;
     margin_pct?: number;
   }[];
+  // Canal des chiffres de ventes : toutes les ventes, la boutique (caisse) ou l'E-com.
+  channel?: SalesChannel;
+  channels?: Partial<Record<'physical' | 'ecommerce', AccountingChannelFigures>>;
+  ecommerce?: AccountingEcommerceFlow;
+  treasury?: AccountingTreasury;
+};
+
+export type SalesChannel = 'all' | 'physical' | 'ecommerce';
+
+export type AccountingChannelFigures = {
+  revenue: number;
+  sales_count: number;
+  cogs: number;
+  gross_profit: number;
+  avg_sale: number;
+  tax_collected: number;
+  credit: number;
+  collected: number;
+  items_sold: number;
+  share_pct: number;
+};
+
+type AmountCount = { amount: number; count: number };
+
+export type AccountingEcommerceFlow = {
+  ordered: AmountCount;
+  open: AmountCount;
+  cancelled: AmountCount;
+  delivered: AmountCount;
+  revenue: number;
+  collected: number;
+  to_collect: AmountCount;
+  delivery_transit: AmountCount;
+};
+
+export type AccountingTreasury = {
+  collected: number;
+  collected_sales: number;
+  debt_repayments: number;
+  collected_by_method: Record<string, number>;
+  credit_sales: number;
+  receivables_total: number;
+  receivables_customers: number;
+  receivables_ecommerce: number;
+  receivables_ecommerce_orders: number;
+  delivery_transit: number;
+  delivery_transit_orders: number;
 };
 
 export type InventoryTask = {
@@ -2883,6 +2931,8 @@ export type AccountingSaleHistoryItem = {
   items: SaleItem[];
   invoice_id?: string;
   invoice_number?: string;
+  source?: 'physical' | 'ecommerce';
+  ecommerce_order_id?: string | null;
   invoice_label?: string;
   invoice_issued_at?: string;
   cancelled_at?: string;

@@ -27,7 +27,7 @@ import DeliveryConfirmationModal from './DeliveryConfirmationModal';
 import { exportOrders } from '../utils/ExportService';
 import DenkmaShipDialog from './DenkmaShipDialog';
 import { amountDue, canShipWithDenkma, collectionCode, denkmaDelivery, denkmaDestination, denkmaState } from '../lib/denkmaShipping';
-import { canConfirmPayment, canUndoPayment, nextStep, orderStatusLabel, paymentState, unpaidReadyWarning } from '../lib/orderPayment';
+import { canConfirmPayment, canUndoPayment, deliveryPaymentQuestion, nextStep, orderStatusLabel, paymentState, unpaidReadyWarning } from '../lib/orderPayment';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 const PAYMENT_TONES: Record<string, string> = {
@@ -44,6 +44,8 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
     const { formatDate, formatCurrency } = useDateFormatter();
     // Commande en cours d'expédition avec Denkma (fenêtre « Livrer avec Denkma »).
     const [denkmaShipOrder, setDenkmaShipOrder] = useState<any | null>(null);
+    // Commande à livrer dont le paiement n'est pas confirmé : le commerçant dit si le client a payé.
+    const [deliverWebOrder, setDeliverWebOrder] = useState<any | null>(null);
 
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -159,9 +161,9 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
         }
     };
 
-    const updateWebOrderStatus = async (orderId: string, status: string) => {
+    const updateWebOrderStatus = async (orderId: string, status: string, paid?: boolean) => {
         try {
-            await ecommerceApi.updateOrderStatus(orderId, status);
+            await ecommerceApi.updateOrderStatus(orderId, status, paid);
             await loadWebOrders();
         } catch (err: any) {
             alert(err?.message || 'Impossible de mettre à jour la commande E-com.');
@@ -185,11 +187,26 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
         await updateWebOrderStatus(order.order_id, 'ready');
     };
 
+    // « Livrer » : sans paiement confirmé, la vente est enregistrée à crédit, sauf si le client a payé à la réception.
+    const deliverWebOrderNow = (order: any) => {
+        if (deliveryPaymentQuestion(order)) {
+            setDeliverWebOrder(order);
+            return;
+        }
+        void updateWebOrderStatus(order.order_id, 'delivered');
+    };
+
+    const confirmWebDelivery = (paid: boolean) => {
+        const order = deliverWebOrder;
+        setDeliverWebOrder(null);
+        if (order) void updateWebOrderStatus(order.order_id, 'delivered', paid);
+    };
+
     const runWebOrderStep = (order: any, action: string | null) => {
         if (action === 'payment') return updateWebOrderPayment(order.order_id, true);
         if (action === 'confirm') return updateWebOrderStatus(order.order_id, 'confirmed');
         if (action === 'ready') return markWebOrderReady(order);
-        if (action === 'deliver') return updateWebOrderStatus(order.order_id, 'delivered');
+        if (action === 'deliver') return deliverWebOrderNow(order);
     };
 
     const openOrderDetail = async (orderId: string) => {
@@ -502,7 +519,7 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                             {['pending', 'confirmed'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'preparing')} className={secondary}>En préparation</button>}
                                             {['confirmed', 'preparing'].includes(order.status) && step?.action !== 'ready' && <button onClick={() => void markWebOrderReady(order)} className={secondary}>Prête</button>}
                                             {canShipWithDenkma(order) && <button onClick={() => setDenkmaShipOrder(order)} className={secondary}>Livrer avec Denkma en joignant une photo</button>}
-                                            {['confirmed', 'preparing', 'ready'].includes(order.status) && step?.action !== 'deliver' && <button onClick={() => updateWebOrderStatus(order.order_id, 'delivered')} className={secondary}>Livrer et créer la vente</button>}
+                                            {['confirmed', 'preparing', 'ready'].includes(order.status) && step?.action !== 'deliver' && <button onClick={() => deliverWebOrderNow(order)} className={secondary}>Livrer et créer la vente</button>}
                                             {['pending', 'confirmed'].includes(order.status) && <button onClick={() => { if (window.confirm('Annuler cette commande ?')) void updateWebOrderStatus(order.order_id, 'cancelled'); }} className="rounded-xl border border-rose-400/20 px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500/10">Annuler la commande</button>}
                                         </div>
                                     </div>
@@ -898,6 +915,19 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                 ) : null}
             </Modal>
 
+            {deliverWebOrder && (
+                <Modal isOpen onClose={() => setDeliverWebOrder(null)} title="Livrer la commande" maxWidth="md">
+                    <div className="space-y-5">
+                        <p className="text-sm leading-6 text-slate-300">{deliveryPaymentQuestion(deliverWebOrder)}</p>
+                        <p className="text-sm font-bold text-white">Montant dû par le client : {formatCurrency(amountDue(deliverWebOrder))}</p>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                            <button onClick={() => setDeliverWebOrder(null)} className="rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-slate-300 hover:bg-white/10">Retour</button>
+                            <button onClick={() => confirmWebDelivery(false)} className="rounded-xl border border-amber-400/30 px-4 py-3 text-sm font-bold text-amber-200 hover:bg-amber-500/10">Pas encore payé : vente à crédit</button>
+                            <button onClick={() => confirmWebDelivery(true)} className="rounded-xl bg-primary px-4 py-3 text-sm font-black text-white">Le client a payé</button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
             {denkmaShipOrder && (
                 <DenkmaShipDialog
                     order={denkmaShipOrder}

@@ -78,6 +78,13 @@ export function unpaidReadyWarning(order: OrderLike | null | undefined): string 
     : `Le client n’a pas encore payé avec ${wallet}. Marquer quand même la commande comme prête ?`;
 }
 
+// Avant « Livrer » : une commande dont le paiement n'est pas confirmé devient une vente à crédit, sauf si le
+// commerçant indique que le client l'a payé à la réception.
+export function deliveryPaymentQuestion(order: OrderLike | null | undefined): string | null {
+  if (!order || isPaid(order)) return null;
+  return 'Le client vous a-t-il payé à la réception ? Sinon, la vente sera enregistrée à crédit et le montant restera dû dans le compte du client.';
+}
+
 export function nextStep(order: OrderLike | null | undefined): NextStep | null {
   const status = order?.status || '';
   if (!order || CLOSED.includes(status)) return null;

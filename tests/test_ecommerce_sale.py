@@ -109,6 +109,62 @@ class SaleConversionTests(unittest.TestCase):
             self.convert()
         self.assertEqual((self.stock(), self.order().get("sale_claim")), ({"p1": 5.0, "p2": 1.0}, None))
 
+    async def record_return(self, product, quantity, before, after):
+        await self.db.stock_movements.insert_one({"source_type": "ecommerce_release", "source_id": "eord_1", "product_id": product["product_id"], "quantity": quantity, "previous_quantity": before, "new_quantity": after})
+
+    def reserve(self):
+        return run(ecommerce_sale.reserve(self.db, self.order(), owner_id="u1", store_id="s1", record_movement=self.record_movement, clock=lambda: self.now))
+
+    def release(self):
+        return run(ecommerce_sale.release(self.db, self.order(), owner_id="u1", store_id="s1", record_return=self.record_return, clock=lambda: self.now))
+
+    def test_a_paid_order_reserves_its_stock_and_the_delivery_does_not_take_it_twice(self):
+        self.assertTrue(self.reserve())
+        self.assertEqual(self.stock(), {"p1": 2.0, "p2": 0.0})
+        self.assertEqual((self.order().get("stock_reserved_at"), self.order().get("sale_claim")), (self.now, None))
+        done = self.convert()
+        self.assertEqual(done["status"], "delivered")
+        self.assertEqual((self.stock(), len(self.db.stock_movements.docs), len(self.sales)), ({"p1": 2.0, "p2": 0.0}, 2, 1))
+
+    def test_a_reservation_that_lacks_stock_reserves_nothing(self):
+        run(self.db.products.update_one({"product_id": "p2"}, {"$set": {"quantity": 0.0}}))
+        with self.assertRaises(SaleError) as refused:
+            self.reserve()
+        self.assertEqual(refused.exception.message, "Stock insuffisant pour Produit p2")
+        self.assertEqual((self.stock(), self.db.stock_movements.docs), ({"p1": 5.0, "p2": 0.0}, []))
+        self.assertEqual((self.order().get("stock_reserved_at"), self.order().get("sale_claim")), (None, None))
+
+    def test_a_cancelled_reservation_gives_the_stock_back_once_and_can_be_taken_again(self):
+        self.reserve()
+        self.assertEqual(self.release(), 2)
+        self.assertEqual(self.release(), 0)
+        self.assertEqual(self.stock(), {"p1": 5.0, "p2": 1.0})
+        self.assertIsNone(self.order().get("stock_reserved_at"))
+        released = [doc for doc in self.db.stock_movements.docs if doc["source_type"] == "ecommerce_order"]
+        self.assertTrue(all(doc["released_at"] == self.now for doc in released))
+        # Paiement confirmé de nouveau, puis livraison : le stock sort une seule fois de plus.
+        self.reserve()
+        self.convert()
+        self.assertEqual(self.stock(), {"p1": 2.0, "p2": 0.0})
+
+    def test_a_delivered_order_keeps_its_stock_out(self):
+        self.convert()
+        self.assertEqual(self.release(), 0)
+        self.assertEqual(self.stock(), {"p1": 2.0, "p2": 0.0})
+
+
+class SaleSourceBackfillTests(unittest.TestCase):
+    def test_only_sales_linked_to_an_order_become_ecommerce(self):
+        db = FakeDatabase()
+        for sale_id in ("sale_web", "sale_caisse"):
+            run(db.sales.insert_one({"sale_id": sale_id, "user_id": "u1"}))
+        run(db.ecommerce_orders.insert_one({"order_id": "eord_1", "user_id": "u1", "sale_id": "sale_web"}))
+        run(db.ecommerce_orders.insert_one({"order_id": "eord_2", "user_id": "u1", "sale_id": None}))
+        self.assertEqual(run(ecommerce_sale.backfill_sale_sources(db)), 1)
+        self.assertEqual(run(ecommerce_sale.backfill_sale_sources(db)), 0)
+        sales = {doc["sale_id"]: (doc.get("source"), doc.get("ecommerce_order_id")) for doc in db.sales.docs}
+        self.assertEqual(sales, {"sale_web": ("ecommerce", "eord_1"), "sale_caisse": (None, None)})
+
 
 if __name__ == "__main__":
     unittest.main()
