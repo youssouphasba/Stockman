@@ -1160,7 +1160,7 @@ export default function CRMScreen() {
                             const tc = getTierConfig(customer.tier);
                             const sourceMeta = getCustomerSourceMeta(customer);
                             return (
-                                <GuideTarget key={customer.customer_id} id={`crm.customer.${customer.customer_id}`} alias={customerIndex === 0 ? 'crm.firstCustomer' : undefined}>
+                                <GuideTarget key={customer.customer_id} id={`crm.customer.${customer.customer_id}`} alias={customerIndex === 0 ? 'crm.firstCustomer' : undefined} scrollRef={scrollViewRef}>
                                 <TouchableOpacity style={styles.customerCard} onPress={() => openCustomerDetail(customer)}>
                                     <View style={[styles.customerAvatar, { borderColor: tc.color, borderWidth: 2 }]}>
                                         <Text style={styles.customerAvatarText}>{(customer.name || '?').charAt(0).toUpperCase()}</Text>

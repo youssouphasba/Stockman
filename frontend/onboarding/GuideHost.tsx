@@ -226,6 +226,8 @@ function GuideOverlay() {
     else if (spaceAbove >= height) bubbleTop = rect.y - HOLE_PADDING - 14 - height;
     else if (spaceBelow >= spaceAbove) bubbleTop = Math.min(below, visibleBottom - height);
     else bubbleTop = Math.max(topLimit, rect.y - HOLE_PADDING - 14 - height);
+    // Cible encore hors de l'écran (défilement en cours) : la bulle reste toujours visible.
+    bubbleTop = Math.max(topLimit, Math.min(bubbleTop, visibleBottom - height));
   }
   const bubbleLeft = rect ? Math.max(16, Math.min(W - bubbleWidth - 16, rect.x + rect.width / 2 - bubbleWidth / 2)) : (W - bubbleWidth) / 2;
 
@@ -259,11 +261,15 @@ function GuideOverlay() {
                 transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] }) }],
               }]}
             />
+            {/* Onde qui part du bord du cadre vers l'extérieur : elle ne cache jamais le texte de la cible. */}
             {step.kind === 'tap' && (
-              <View style={styles.rippleCenter}>
-                <Animated.View style={[styles.ripple, { borderColor: colors.primary, opacity: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] }), transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1.9] }) }] }]} />
-                <View style={[styles.rippleDot, { backgroundColor: colors.primary }]} />
-              </View>
+              <Animated.View
+                style={[StyleSheet.absoluteFill, styles.ripple, {
+                  borderColor: colors.primary,
+                  opacity: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.7, 0] }),
+                  transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [1, 1.25] }) }],
+                }]}
+              />
             )}
           </Animated.View>
         </>
@@ -455,9 +461,7 @@ export const GUIDE_STEP_COUNT = GUIDE_STEPS.length;
 
 const styles = StyleSheet.create({
   dim: { position: 'absolute', backgroundColor: DIM },
-  rippleCenter: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  ripple: { position: 'absolute', width: 54, height: 54, borderRadius: 27, borderWidth: 3 },
-  rippleDot: { width: 14, height: 14, borderRadius: 7, opacity: 0.9 },
+  ripple: { borderRadius: 16, borderWidth: 3 },
   topBar: { position: 'absolute', left: 12, right: 12 },
   progressCard: { borderRadius: 14, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
   chapters: { flexDirection: 'row', alignItems: 'center', gap: 10 },
