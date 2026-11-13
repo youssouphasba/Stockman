@@ -100,7 +100,9 @@ export default function GuideProvider({ children, userId, canRun, currentRoute }
         }
         const started = state.status === 'pending' ? await onboardingGuide.start() : state;
         if (cancelled) return;
-        const saved = await AsyncStorage.getItem(ctxStorageKey(userId)).catch(() => null);
+        // Guide qui démarre (première fois ou relancé par l'admin) : l'ancien contexte désigne des données supprimées.
+        if (state.status === 'pending') await AsyncStorage.removeItem(ctxStorageKey(userId)).catch(() => null);
+        const saved = state.status === 'pending' ? null : await AsyncStorage.getItem(ctxStorageKey(userId)).catch(() => null);
         if (saved) {
           try { setData(JSON.parse(saved)); } catch { /* contexte illisible : on repart sans */ }
         }

@@ -29,6 +29,8 @@ import * as ImagePicker from 'expo-image-picker';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { hasPlatformModule } from '../../utils/access';
+import { StockChangeReasonChips } from '../../components/StockChangeReason';
 import { useNetwork } from '../../hooks/useNetwork';
 import { cache, KEYS } from '../../services/cache';
 import { syncService } from '../../services/sync';
@@ -308,6 +310,8 @@ export default function ProductsScreen() {
     delivery_catalog_id?: string;
   }>();
   const { user, hasPermission, hasProduction, isRestaurant } = useAuth();
+  // Module Fournisseurs coupé par l'admin : ni liaison, ni filtre, ni état d'approvisionnement.
+  const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
   const effectivePlan = user?.effective_plan || user?.plan;
   const hasEnterpriseLocations = effectivePlan === 'enterprise';
   const insets = useSafeAreaInsets();
@@ -755,6 +759,15 @@ export default function ProductsScreen() {
   const [movType, setMovType] = useState<'in' | 'out'>('in');
   const [movQuantity, setMovQuantity] = useState('');
   const [movReason, setMovReason] = useState('');
+  const [movKind, setMovKind] = useState<string | null>(null);
+  // Quantité modifiée dans la fiche : les raisons apparaissent sous le champ, selon que le stock monte ou baisse.
+  const [formStockChangeKind, setFormStockChangeKind] = useState<string | null>(null);
+  const formStockDelta = editingProduct && !formHasVariants
+    ? (parseFloat(formQuantity) || 0) - (Number(editingProduct.quantity) || 0)
+    : 0;
+  const formStockDirection: 'in' | 'out' | null = formStockDelta > 1e-9 ? 'in' : formStockDelta < -1e-9 ? 'out' : null;
+  // Le sens change (ou la quantité revient à l'identique) : la raison choisie ne vaut plus.
+  useEffect(() => { setFormStockChangeKind(null); }, [formStockDirection, editingProduct?.product_id]);
   const [movBatchNumber, setMovBatchNumber] = useState('');
   const [movExpiryDate, setMovExpiryDate] = useState('');
   const [movPurchasePrice, setMovPurchasePrice] = useState('');
@@ -1063,13 +1076,13 @@ export default function ProductsScreen() {
             );
           }
 
-          promises.push(
+          if (suppliersModuleOn) promises.push(
             suppliersApi.list(0, 200)
               .then((res) => setAllSuppliers((res.items ?? res) as Supplier[]))
               .catch(() => { /* silent */ })
           );
 
-          promises.push(
+          if (suppliersModuleOn) promises.push(
             spApi.list()
               .then((links) => {
                 const grouped: Record<string, SupplierProduct[]> = {};
@@ -1183,7 +1196,7 @@ export default function ProductsScreen() {
       setRefreshing(false);
       lastLoadedAtRef.current = Date.now();
     }
-  }, [MOBILE_PERF_ENABLED, PRODUCTS_PAGE_SIZE, filterType, hasEnterpriseLocations, isConnected, isRestaurant, productSortMode, selectedCategory, serverProductStatus, user?.active_store_id]);
+  }, [MOBILE_PERF_ENABLED, PRODUCTS_PAGE_SIZE, filterType, hasEnterpriseLocations, isConnected, isRestaurant, productSortMode, selectedCategory, serverProductStatus, suppliersModuleOn, user?.active_store_id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2056,6 +2069,7 @@ export default function ProductsScreen() {
     setMovType(type);
     setMovQuantity('');
     setMovReason('');
+    setMovKind(null);
     setMovBatchNumber('');
     setMovExpiryDate('');
     setMovPurchasePrice(type === 'in' ? String(product.purchase_price || 0) : '');
@@ -2218,6 +2232,12 @@ export default function ProductsScreen() {
       Alert.alert(t('common.error'), t('restaurant.recipe_required', 'Veuillez lier une recette de service pour ce plat.'));
       return;
     }
+    // Quantité d'un produit simple modifiée : la raison choisie sous le champ est obligatoire.
+    const stockChangeKind = formStockDirection ? formStockChangeKind : null;
+    if (formStockDirection && !stockChangeKind) {
+      Alert.alert(t('common.error'), t('products.stock_change_required'));
+      return;
+    }
     setFormLoading(true);
     try {
       const normalizedImage = formImage === null
@@ -2268,7 +2288,8 @@ export default function ProductsScreen() {
         kitchen_station: isRestaurant ? formKitchenStation : undefined,
         production_mode: isRestaurant ? formProductionMode : undefined,
         linked_recipe_id: isRestaurant ? (formLinkedRecipeId || undefined) : undefined,
-      };
+        ...(stockChangeKind ? { stock_change_kind: stockChangeKind } : {}),
+      } as ProductCreate;
 
       if (isConnected) {
         let savedProductId: string | undefined;
@@ -2289,7 +2310,7 @@ export default function ProductsScreen() {
           guideSignal('product.created', { product_id: created.product_id, name: created.name || data.name });
         }
         // Sync supplier links (multi-suppliers + primary supplier)
-        if (savedProductId && !isRestaurant) {
+        if (savedProductId && !isRestaurant && suppliersModuleOn) {
           const desiredSupplierIds = Array.from(new Set(formSupplierIds));
           const existingLinks = supplierLinksByProduct[savedProductId] || [];
           const existingBySupplierId = new Map(existingLinks.map((link) => [link.supplier_id, link]));
@@ -2440,6 +2461,10 @@ export default function ProductsScreen() {
 
   async function handleStockMovement() {
     if (!selectedProduct || !movQuantity) return;
+    if (!movKind) {
+      Alert.alert(t('common.error'), t('products.stock_change_required'));
+      return;
+    }
     setFormLoading(true);
     try {
       if (isConnected) {
@@ -2462,6 +2487,7 @@ export default function ProductsScreen() {
           product_id: selectedProduct.product_id,
           type: movType,
           quantity: parseInt(movQuantity),
+          kind: movKind || undefined,
           reason: movReason,
           batch_id: batch_id,
           purchase_price: movType === 'in' && Number.isFinite(parsedPurchasePrice)
@@ -2488,6 +2514,7 @@ export default function ProductsScreen() {
       setShowStockModal(false);
       setMovQuantity('');
       setMovReason('');
+      setMovKind(null);
       setMovBatchNumber('');
       setMovExpiryDate('');
       setMovPurchasePrice('');
@@ -3929,6 +3956,7 @@ export default function ProductsScreen() {
                 </TouchableOpacity>
               )}
             </ScrollView>
+            {suppliersModuleOn && (<>
             <Text style={styles.controlGroupLabel}>{t('products.supplier_filter_label', 'Fournisseur')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
               <TouchableOpacity style={[styles.filterChip, supplierCoverageFilter === 'all' && styles.filterChipActive]} onPress={() => setSupplierCoverageFilter('all')}>
@@ -3944,6 +3972,7 @@ export default function ProductsScreen() {
                 <Text style={[styles.filterChipText, supplierCoverageFilter === 'missing_primary' && styles.filterChipTextActive, { color: supplierCoverageFilter === 'missing_primary' ? '#fff' : colors.info }]}>{t('products.supplier_filter_missing_primary', 'Principal manquant')}</Text>
               </TouchableOpacity>
             </ScrollView>
+            </>)}
           </View>
         )}
 
@@ -4364,7 +4393,7 @@ export default function ProductsScreen() {
               );
             })()}
 
-            {!isRestaurant && (() => {
+            {!isRestaurant && suppliersModuleOn && (() => {
               const supplyMeta = getProductSupplyMeta(product.product_id);
               return (
                 <View style={[styles.supplyCard, { borderColor: supplyMeta.tone + '35', backgroundColor: supplyMeta.tone + '12' }]}>
@@ -4876,7 +4905,7 @@ export default function ProductsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {!isRestaurant && allSuppliers.length > 0 && (
+                {!isRestaurant && suppliersModuleOn && allSuppliers.length > 0 && (
                   <View style={styles.supplySection}>
                     <View style={styles.supplySectionHeader}>
                       <View style={{ flex: 1 }}>
@@ -5130,6 +5159,19 @@ export default function ProductsScreen() {
                     </ScrollView>
                   </View>
                 </View>
+                {formStockDirection && editingProduct && (
+                  <View style={{ marginBottom: Spacing.md }}>
+                    <Text style={[styles.formLabel, { marginBottom: 4 }]}>{t('products.stock_change_title')}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 8 }}>
+                      {t(formStockDirection === 'in' ? 'products.stock_change_increase' : 'products.stock_change_decrease', {
+                        from: formatMeasurementQuantity(Number(editingProduct.quantity) || 0, editingProduct.display_unit || editingProduct.unit),
+                        to: formatMeasurementQuantity(parseFloat(formQuantity) || 0, editingProduct.display_unit || editingProduct.unit),
+                        diff: formatMeasurementQuantity(Math.abs(formStockDelta), editingProduct.display_unit || editingProduct.unit),
+                      })}
+                    </Text>
+                    <StockChangeReasonChips direction={formStockDirection} value={formStockChangeKind} onChange={setFormStockChangeKind} />
+                  </View>
+                )}
                 {inferMeasurementType(formUnit) !== 'unit' && (
                   <View style={styles.formRow}>
                     <View style={styles.formHalf}>
@@ -5365,7 +5407,7 @@ export default function ProductsScreen() {
                 <GuideTarget id="product.save" scrollRef={productFormScrollRef}>
                   <TouchableOpacity
                     style={[styles.submitBtn, formLoading && styles.submitBtnDisabled]}
-                    onPress={handleSubmitProduct}
+                    onPress={() => void handleSubmitProduct()}
                     disabled={formLoading}
                   >
                     {formLoading ? (
@@ -5823,14 +5865,10 @@ export default function ProductsScreen() {
                 </View>
               </>
             )}
-            <FormField
-              label={t('products.reason_label')}
-              value={movReason}
-              onChangeText={setMovReason}
-              placeholder={t('products.reason_placeholder')}
-              colors={colors}
-              styles={styles}
-            />
+            <Text style={styles.formLabel}>{t('products.reason_label')}</Text>
+            <View style={{ marginBottom: Spacing.md }}>
+              <StockChangeReasonChips direction={movType} value={movKind} onChange={setMovKind} />
+            </View>
             <TouchableOpacity
               style={[
                 styles.submitBtn,

@@ -129,3 +129,34 @@ class ExistingAccountTests(unittest.TestCase):
         done = {"user_id": "done", "role": "shopkeeper", guide.GUIDE_FIELD: {"status": guide.COMPLETED}}
         self.assertIs(run(guide.ensure_state(db, staff)), staff)
         self.assertIs(run(guide.ensure_state(db, done)), done)
+
+
+class AdminTests(unittest.TestCase):
+    def test_stats_count_statuses_and_drop_off_steps(self):
+        db = FakeDatabase()
+        run(db.users.insert_one(owner("a", **{guide.GUIDE_FIELD: {"status": guide.ACTIVE, "step": "text_input"}})))
+        run(db.users.insert_one(owner("b", **{guide.GUIDE_FIELD: {"status": guide.SKIPPED, "step": "pos_pay"}})))
+        run(db.users.insert_one(owner("c", **{guide.GUIDE_FIELD: {"status": guide.COMPLETED, "step": "finish"}})))
+        run(db.users.insert_one(owner("d", **{guide.GUIDE_FIELD: {"status": guide.NOT_NEEDED}})))
+        stats = run(guide.admin_stats(db))
+        self.assertEqual(stats["started"], 3)
+        self.assertEqual(stats["by_status"][guide.NOT_NEEDED], 1)
+        self.assertEqual(stats["completion_rate"], 33.3)
+        self.assertEqual(stats["in_progress_by_step"][0]["label"], guide.STEP_LABELS["text_input"])
+        self.assertEqual(stats["skipped_by_step"][0]["step"], "pos_pay")
+
+    def test_relaunch_cleans_running_guide_and_restarts(self):
+        db = FakeDatabase()
+        run(db.users.insert_one(owner(**{guide.GUIDE_FIELD: {"status": guide.ACTIVE, "step": "pos_pay"}})))
+        run(seed_guide_data(db))
+        view = run(guide.relaunch(db, "owner"))
+        self.assertEqual(view["status"], guide.PENDING)
+        self.assertEqual(view["relaunch_count"], 1)
+        self.assertEqual(run(db.products.count_documents({"user_id": "owner"})), 0)
+        self.assertEqual(run(db.sales.count_documents({"user_id": "owner"})), 0)
+
+    def test_relaunch_refuses_staff(self):
+        db = FakeDatabase()
+        run(db.users.insert_one({"user_id": "staff", "role": "staff", "parent_user_id": "boss"}))
+        with self.assertRaises(ValueError):
+            run(guide.relaunch(db, "staff"))

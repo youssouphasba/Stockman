@@ -3,6 +3,8 @@ import json
 import logging
 import os
 import re
+import time
+import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -16,7 +18,7 @@ class RAGService:
     def __init__(self, api_key: str, root_dir: Path):
         self.api_key = api_key
         self.root_dir = root_dir
-        self.index_version = 31
+        self.index_version = 39
         self.index_path = root_dir / "vector_index.json"
         self.docs_dir = root_dir / "docs"
         self.web_guides_dir = self.docs_dir / "web-guides"
@@ -30,57 +32,126 @@ class RAGService:
         self.index: List[Dict[str, Any]] = []
 
         genai.configure(api_key=api_key)
+        # text-embedding-004 et embedding-001 ont été retirés par Google (erreur 404) :
+        # gemini-embedding-001, réduit à 768 dimensions pour garder un index léger.
         configured_model = (os.getenv("RAG_EMBED_MODEL") or "").strip()
-        default_candidates = [
-            "models/text-embedding-004",
-            "text-embedding-004",
-            "models/embedding-001",
-        ]
+        default_candidates = ["models/gemini-embedding-001"]
         self.embedding_models = [configured_model, *default_candidates] if configured_model else default_candidates
         self.embedding_models = list(dict.fromkeys([m for m in self.embedding_models if m]))
         self.model = self.embedding_models[0]
-        self.embedding_disabled = False
-        self.embedding_unavailable_logged = False
+        self.embedding_dimensions = int(os.getenv("RAG_EMBED_DIMENSIONS") or 768)
+        # Une panne (crédit épuisé, quota) ne coupe plus les embeddings pour toujours : nouvel essai après un délai.
+        self.embedding_retry_at = 0.0
+        self.embedding_retry_delay = 600.0
+        self.last_embedding_error: Optional[str] = None
+        self.last_embedding_error_at: Optional[float] = None
+        self._embedding_fill_task: Optional[asyncio.Task] = None
 
-    async def _generate_embedding(self, text: str) -> List[float]:
-        """Generate embedding for a single text chunk (async)."""
-        if self.embedding_disabled:
-            return []
+    def _embedding_available(self) -> bool:
+        return time.time() >= self.embedding_retry_at
+
+    def _record_embedding_failure(self, error: Exception) -> None:
+        self.last_embedding_error = str(error)[:300]
+        self.last_embedding_error_at = time.time()
+        self.embedding_retry_at = time.time() + self.embedding_retry_delay
+        logger.error("RAG embedding unavailable (%s). Next attempt in %ss. Error: %s", self.embedding_models, int(self.embedding_retry_delay), error)
         try:
-            loop = asyncio.get_event_loop()
-            last_error: Optional[Exception] = None
-            for candidate in self.embedding_models:
-                try:
-                    result = await loop.run_in_executor(
-                        None,
-                        lambda c=candidate: genai.embed_content(
-                            model=c,
-                            content=text,
-                            task_type="retrieval_document",
-                        ),
-                    )
-                    if self.model != candidate:
-                        logger.info(f"RAG embedding model switched to {candidate}")
-                    self.model = candidate
-                    return result.get("embedding", []) or []
-                except Exception as e:
-                    last_error = e
+            import ai_health
+            ai_health.record_failure(error, "recherche documentaire")
+        except Exception:
+            pass
 
-            if not self.embedding_unavailable_logged:
-                logger.error(
-                    "Embedding unavailable for all configured models %s. Last error: %s",
-                    self.embedding_models,
-                    last_error,
-                )
-                self.embedding_unavailable_logged = True
-            self.embedding_disabled = True
+    def _embed_call(self, model: str, content: Any, task_type: str) -> Any:
+        kwargs = {"model": model, "content": content, "task_type": task_type}
+        if self.embedding_dimensions:
+            try:
+                return genai.embed_content(output_dimensionality=self.embedding_dimensions, **kwargs)
+            except TypeError:
+                # Ancienne version de la bibliothèque sans réduction de dimension.
+                pass
+        return genai.embed_content(**kwargs)
+
+    async def _embed(self, contents: List[str], task_type: str) -> List[List[float]]:
+        """Embeddings d'une liste de textes ; liste vide si le service est indisponible."""
+        if not contents or not self._embedding_available():
             return []
-        except Exception as e:
-            if not self.embedding_unavailable_logged:
-                logger.error(f"Embedding error: {e}")
-                self.embedding_unavailable_logged = True
-            self.embedding_disabled = True
-            return []
+        loop = asyncio.get_event_loop()
+        last_error: Optional[Exception] = None
+        for candidate in self.embedding_models:
+            try:
+                payload: Any = contents if len(contents) > 1 else contents[0]
+                result = await loop.run_in_executor(None, lambda c=candidate: self._embed_call(c, payload, task_type))
+                vectors = result.get("embedding", []) or []
+                if vectors and not isinstance(vectors[0], list):
+                    vectors = [vectors]
+                if len(vectors) != len(contents):
+                    raise ValueError(f"{len(vectors)} embeddings reçus pour {len(contents)} textes")
+                if self.model != candidate:
+                    logger.info(f"RAG embedding model switched to {candidate}")
+                self.model = candidate
+                self.last_embedding_error = None
+                return vectors
+            except Exception as e:
+                last_error = e
+        self._record_embedding_failure(last_error or RuntimeError("embedding failed"))
+        return []
+
+    async def _generate_embedding(self, text: str, task_type: str = "retrieval_document") -> List[float]:
+        vectors = await self._embed([text], task_type)
+        return vectors[0] if vectors else []
+
+    async def _fill_missing_embeddings(self) -> None:
+        """Calcule les embeddings manquants par lots, puis met le cache à jour."""
+        missing = [chunk for chunk in self.index if not chunk.get("embedding")]
+        if not missing:
+            return
+        batch_size = 50
+        filled = 0
+        for start in range(0, len(missing), batch_size):
+            batch = missing[start:start + batch_size]
+            vectors = await self._embed([chunk["content"] for chunk in batch], "retrieval_document")
+            if not vectors:
+                break
+            for chunk, vector in zip(batch, vectors):
+                chunk["embedding"] = vector
+            filled += len(batch)
+            await asyncio.sleep(0.2)
+        if filled:
+            await self._save_index()
+        logger.info("RAG embeddings: %s/%s chunks embedded.", sum(1 for c in self.index if c.get("embedding")), len(self.index))
+
+    def _schedule_embedding_fill(self) -> None:
+        if self._embedding_fill_task and not self._embedding_fill_task.done():
+            return
+        if not self._embedding_available() or all(chunk.get("embedding") for chunk in self.index):
+            return
+        try:
+            self._embedding_fill_task = asyncio.get_event_loop().create_task(self._fill_missing_embeddings())
+        except RuntimeError:
+            pass
+
+    async def _save_index(self) -> None:
+        loop = asyncio.get_event_loop()
+        snapshot = {"version": self.index_version, "model": self.model, "chunks": self.index}
+
+        def write():
+            with open(self.index_path, "w", encoding="utf-8") as handle:
+                json.dump(snapshot, handle, ensure_ascii=False)
+
+        await loop.run_in_executor(None, write)
+
+    def status(self) -> Dict[str, Any]:
+        """État de la recherche documentaire, pour le monitoring de l'admin."""
+        embedded = sum(1 for chunk in self.index if chunk.get("embedding"))
+        return {
+            "chunks": len(self.index),
+            "embedded_chunks": embedded,
+            "model": self.model,
+            "mode": "semantic" if embedded else ("keywords" if self.index else "empty"),
+            "last_error": self.last_embedding_error,
+            "last_error_at": self.last_embedding_error_at,
+            "next_retry_in_seconds": max(0, int(self.embedding_retry_at - time.time())) if self.embedding_retry_at else 0,
+        }
 
     def _chunk_markdown(
         self,
@@ -447,24 +518,11 @@ class RAGService:
 
         logger.info(f"Indexing {len(all_chunks)} chunks...")
 
-        self.index = []
-        for i, chunk in enumerate(all_chunks):
-            embedding = await self._generate_embedding(chunk["content"])
-            if embedding:
-                chunk["embedding"] = embedding
-                self.index.append(chunk)
-            if i % 2 == 0:
-                await asyncio.sleep(0.5)
-
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None,
-            lambda: json.dump(
-                {"version": self.index_version, "chunks": self.index},
-                open(self.index_path, "w", encoding="utf-8"),
-                ensure_ascii=False,
-            ),
-        )
+        # Tous les passages restent dans l'index, même sans embedding : la recherche par mots-clés
+        # les trouve, et les embeddings manquants sont recalculés dès que le service répond.
+        self.index = all_chunks
+        await self._fill_missing_embeddings()
+        await self._save_index()
 
         logger.info("Indexing complete.")
 
@@ -476,8 +534,9 @@ class RAGService:
                 None,
                 lambda: json.load(open(self.index_path, "r", encoding="utf-8")),
             )
-            if isinstance(payload, dict) and payload.get("version") == self.index_version:
+            if isinstance(payload, dict) and payload.get("version") == self.index_version and payload.get("chunks"):
                 self.index = payload.get("chunks", [])
+                self._schedule_embedding_fill()
             else:
                 logger.info("RAG index cache is outdated; rebuilding.")
                 return False
@@ -499,6 +558,13 @@ class RAGService:
             return True
         return chunk_platform == platform
 
+    @staticmethod
+    def _tokens(text: str) -> List[str]:
+        """Mots de 3 lettres ou plus, sans accents : « créer » et « creer » se rejoignent."""
+        normalized = unicodedata.normalize("NFKD", (text or "").lower())
+        normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+        return re.findall(r"[a-z0-9_]{3,}", normalized)
+
     def _keyword_fallback_context(
         self,
         query: str,
@@ -507,7 +573,7 @@ class RAGService:
         language: str = "fr",
         platform: Optional[str] = None,
     ) -> str:
-        query_tokens = set(re.findall(r"[a-zA-Z0-9_]{3,}", (query or "").lower()))
+        query_tokens = set(self._tokens(query))
         if not query_tokens:
             return ""
 
@@ -522,7 +588,7 @@ class RAGService:
                 continue
 
             content = (chunk.get("content") or "").lower()
-            content_tokens = set(re.findall(r"[a-zA-Z0-9_]{3,}", content))
+            content_tokens = set(self._tokens(content))
             overlap = len(query_tokens.intersection(content_tokens))
             if overlap <= 0:
                 continue
@@ -551,7 +617,9 @@ class RAGService:
             if not await self.load_index():
                 return ""
 
-        query_embedding = await self._generate_embedding(query)
+        self._schedule_embedding_fill()
+        has_embeddings = any(chunk.get("embedding") for chunk in self.index)
+        query_embedding = await self._generate_embedding(query, "retrieval_query") if has_embeddings else []
         if not query_embedding:
             return self._keyword_fallback_context(
                 query=query,

@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect, Link, useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { hasPlatformModule } from '../../utils/access';
 import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
@@ -245,6 +246,8 @@ export default function SettingsScreen() {
   const compact = width < 390;
   const styles = getStyles(colors, glassStyle, compact);
   const { user, logout, isPinSet, isBiometricsEnabled, togglePin, toggleBiometrics, isRestaurant, isOrgAdmin, isBillingAdmin, hasPermission } = useAuth();
+  // Module Fournisseurs coupé par l'admin Stockman : son interrupteur et son contact e-mail disparaissent.
+  const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
   const isStarterSettings = Platform.OS !== 'web' && isStarterShopkeeper(user);
   const [starterSection, setStarterSection] = useState<StarterSettingsGroup | null>(null);
   const [showDocumentOptions, setShowDocumentOptions] = useState(false);
@@ -1494,7 +1497,7 @@ export default function SettingsScreen() {
           variant="nested"
         >
           <Text style={styles.subsectionTitle}>{t('settings.modules')}</Text>
-          {settingsData && Object.entries(settingsData.modules).map(([key, enabled]) => (
+          {settingsData && Object.entries(settingsData.modules).filter(([key]) => key !== 'suppliers' || suppliersModuleOn).map(([key, enabled]) => (
             <View key={key} style={styles.settingRow}>
               <Text style={styles.settingLabel}>{moduleLabels[key] ?? key}</Text>
               <Switch
@@ -1972,7 +1975,7 @@ export default function SettingsScreen() {
             {t('settings.account_recipients_intro')}
           </Text>
           <View style={{ gap: Spacing.sm }}>
-            {NOTIFICATION_CONTACT_FIELDS.filter((field) => !field.requiredModule || settingsData?.modules?.[field.requiredModule]).map((field) => (
+            {NOTIFICATION_CONTACT_FIELDS.filter((field) => (!field.requiredModule || settingsData?.modules?.[field.requiredModule]) && (field.requiredModule !== 'suppliers' || suppliersModuleOn)).map((field) => (
               <View key={field.key} style={{ gap: 6 }}>
                 <Text style={styles.settingLabel}>{t(field.labelKey)}</Text>
                 <Text style={styles.settingDesc}>{t('settings.example')}: {field.placeholder}</Text>
@@ -2017,7 +2020,7 @@ export default function SettingsScreen() {
             {t('settings.store_recipients_intro')}
           </Text>
           <View style={{ gap: Spacing.sm }}>
-            {NOTIFICATION_CONTACT_FIELDS.filter((field) => !field.requiredModule || settingsData?.modules?.[field.requiredModule]).map((field) => (
+            {NOTIFICATION_CONTACT_FIELDS.filter((field) => (!field.requiredModule || settingsData?.modules?.[field.requiredModule]) && (field.requiredModule !== 'suppliers' || suppliersModuleOn)).map((field) => (
               <View key={field.key} style={{ gap: 6 }}>
                 <Text style={styles.settingLabel}>{t(field.labelKey)}</Text>
                 <Text style={styles.settingDesc}>{t('settings.example')}: {field.placeholder}</Text>
@@ -2213,6 +2216,7 @@ export default function SettingsScreen() {
       <AiSupportModal
         visible={showAiModal}
         onClose={() => setShowAiModal(false)}
+        onOpenHelpCenter={() => setShowHelpCenter(true)}
       />
 
       {

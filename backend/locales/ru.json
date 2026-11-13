@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ABC-Ð°Ð½Ð°Ð»Ð¸Ð· (Ð¿Ñ€Ð¸Ð¾Ñ€Ð¸Ñ‚ÐµÑ‚Ñ‹)",
     "admin_messages": "Ð¡Ð¾Ð¾Ð±Ñ‰ÐµÐ½Ð¸Ñ Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€Ð°",
+    "admin_message_new": "Новое сообщение",
+    "admin_message_got_it": "Понятно",
+    "admin_message_next": "Следующее сообщение",
+    "admin_message_open": "Открыть",
     "ai_daily_summary": "Ð¡Ð²Ð¾Ð´ÐºÐ° Ð˜Ð˜ Ð·Ð° Ð´ÐµÐ½ÑŒ",
     "ai_tap_to_generate": "ÐÐ°Ð¶Ð¼Ð¸Ñ‚Ðµ Ð´Ð»Ñ Ð³ÐµÐ½ÐµÑ€Ð°Ñ†Ð¸Ð¸",
     "category_distribution": "Ð Ð°ÑÐ¿Ñ€ÐµÐ´ÐµÐ»ÐµÐ½Ð¸Ðµ Ð¿Ð¾ ÐºÐ°Ñ‚ÐµÐ³Ð¾Ñ€Ð¸ÑÐ¼",
@@ -1292,6 +1296,8 @@
     "delivery": "Ð´Ð¾ÑÑ‚Ð°Ð²ÐºÐ°"
   },
   "modals": {
+    "ai_unavailable": "ИИ-ассистент временно недоступен. Повторите попытку чуть позже, а пока можно открыть руководства:",
+    "ai_screen_guide": "Руководство по этому экрану",
     "ai_assistant_title": "Ð˜Ð˜-Ð¿Ð¾Ð¼Ð¾Ñ‰Ð½Ð¸Ðº",
     "ai_error_prefix": "ÐžÑˆÐ¸Ð±ÐºÐ°: ",
     "ai_error_unknown": "ÐÐµÐ¸Ð·Ð²ÐµÑÑ‚Ð½Ð°Ñ Ð¾ÑˆÐ¸Ð±ÐºÐ°",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "Ð¡ Premium Ð²Ñ‹ Ð¼Ð¾Ð¶ÐµÑ‚Ðµ:"
   },
   "products": {
+    "stock_change_title": "Почему меняется остаток?",
+    "stock_change_increase": "Остаток меняется с {{from}} на {{to}} (+{{diff}}). Выберите причину.",
+    "stock_change_decrease": "Остаток меняется с {{from}} на {{to}} (-{{diff}}). Выберите причину.",
+    "stock_change_sale_hint": "Продажа будет записана по цене продажи, оплата наличными, и появится в Бухгалтерии.",
+    "stock_change_required": "Выберите причину изменения остатка.",
     "add_btn": "Ð”Ð¾Ð±Ð°Ð²Ð¸Ñ‚ÑŒ",
     "add_photo_title": "Ð”Ð¾Ð±Ð°Ð²Ð¸Ñ‚ÑŒ Ñ„Ð¾Ñ‚Ð¾",
     "add_product": "Ð”Ð¾Ð±Ð°Ð²Ð¸Ñ‚ÑŒ Ñ‚Ð¾Ð²Ð°Ñ€",
@@ -1910,6 +1921,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Другое",
+      "restock": "Пополнение",
+      "customer_return": "Возврат от клиента",
+      "expired": "Просроченный товар",
+      "theft": "Кража",
+      "internal_use": "Внутреннее использование",
+      "sale_from_product": "Продажа вне кассы",
       "pos_sale": "POS Sale",
       "inventory_adjustment": "Inventory Adjustment",
       "supplier_reception": "Supplier Reception",

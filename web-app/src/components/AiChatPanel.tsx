@@ -9,6 +9,8 @@ interface Message {
     id: string;
     role: 'user' | 'assistant';
     content: string;
+    // Service d'IA indisponible : bouton pour ouvrir le guide de la page à la place.
+    showGuideActions?: boolean;
 }
 
 interface Props {
@@ -72,8 +74,17 @@ export default function AiChatPanel({ isOpen, onClose, currentUser, features }: 
         try {
             const res = await ai.support(text, history, lang);
             setMessages(prev => [...prev, { id: Date.now().toString() + '_ai', role: 'assistant', content: res.response }]);
-        } catch {
-            setMessages(prev => [...prev, { id: Date.now().toString() + '_err', role: 'assistant', content: "Désolé, une erreur est survenue. Réessayez." }]);
+        } catch (err: any) {
+            // Panne du service d'IA (crédit, quota) : message clair et accès direct au guide de la page.
+            const unavailable = err?.status === 503;
+            setMessages(prev => [...prev, {
+                id: Date.now().toString() + '_err',
+                role: 'assistant',
+                content: unavailable
+                    ? "L'assistant IA est momentanément indisponible. Réessayez un peu plus tard ; en attendant, vous pouvez consulter le guide de cette page :"
+                    : "Désolé, une erreur est survenue. Réessayez.",
+                showGuideActions: unavailable,
+            }]);
         } finally {
             setLoading(false);
         }
@@ -142,6 +153,18 @@ export default function AiChatPanel({ isOpen, onClose, currentUser, features }: 
                                     : 'bg-white/5 text-slate-300 rounded-tl-sm'
                             }`}>
                                 {renderContent(msg.content)}
+                                {msg.showGuideActions && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            onClose?.();
+                                            window.dispatchEvent(new Event('stockman:open-active-guide'));
+                                        }}
+                                        className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-3.5 py-1.5 text-xs font-bold text-white hover:bg-primary/80"
+                                    >
+                                        Guide de cette page
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

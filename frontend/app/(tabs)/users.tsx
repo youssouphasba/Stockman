@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter, Link } from 'expo-router';
 import Constants from 'expo-constants';
 import { useAuth } from '../../contexts/AuthContext';
+import { hasPlatformModule } from '../../utils/access';
 import { useTheme } from '../../contexts/ThemeContext';
 import { subUsers as subUsersApi, User, UserPermissions, stores as storesApi, Store, StorePermissions } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
@@ -479,7 +480,7 @@ export default function UsersScreen() {
                                 {renderPermissionRow(t('users.stock_label'), 'stock')}
                                 {renderPermissionRow(t('users.accounting_label'), 'accounting')}
                                 {renderPermissionRow(t('users.crm_label'), 'crm')}
-                                {renderPermissionRow(t('users.suppliers_label'), 'suppliers')}
+                                {hasPlatformModule(currentUser, 'suppliers') && renderPermissionRow(t('users.suppliers_label'), 'suppliers')}
                                 {renderPermissionRow(t('users.staff_label') || 'Gestion équipe', 'staff')}
 
                                 <Text style={styles.sectionTitle}>Magasins assignes</Text>
@@ -528,7 +529,7 @@ export default function UsersScreen() {
                                                     {renderScopedPermissionRow(storeId, t('users.stock_label'), 'stock')}
                                                     {renderScopedPermissionRow(storeId, t('users.accounting_label'), 'accounting')}
                                                     {renderScopedPermissionRow(storeId, t('users.crm_label'), 'crm')}
-                                                    {renderScopedPermissionRow(storeId, t('users.suppliers_label'), 'suppliers')}
+                                                    {hasPlatformModule(currentUser, 'suppliers') && renderScopedPermissionRow(storeId, t('users.suppliers_label'), 'suppliers')}
                                                     {renderScopedPermissionRow(storeId, t('users.staff_label') || 'Gestion equipe', 'staff')}
                                                 </View>
                                             )}

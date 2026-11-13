@@ -35,6 +35,14 @@ export function getAccessContext(user?: User | null): AccessContext {
   };
 }
 
+// Module activé par l'admin Stockman (global, plan, type d'activité ou compte).
+// Coupé tant que le serveur ne l'a pas activé ; l'équipe Stockman et les fournisseurs ne sont pas concernés.
+export function hasPlatformModule(user: User | null | undefined, module: string): boolean {
+  if (!user) return false;
+  if (user.role === 'superadmin' || user.role === 'supplier') return true;
+  return user.platform_modules?.[module] === true;
+}
+
 export function hasModulePermission(
   user: User | null | undefined,
   module: keyof UserPermissions,

@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ABC à¤µà¤¿à¤¶à¥à¤²à¥‡à¤·à¤£ (à¤ªà¥à¤°à¤¾à¤¥à¤®à¤¿à¤•à¤¤à¤¾à¤à¤‚)",
     "admin_messages": "à¤µà¥à¤¯à¤µà¤¸à¥à¤¥à¤¾à¤ªà¤• à¤¸à¤‚à¤¦à¥‡à¤¶",
+    "admin_message_new": "नया संदेश",
+    "admin_message_got_it": "समझ गया",
+    "admin_message_next": "अगला संदेश",
+    "admin_message_open": "खोलें",
     "ai_daily_summary": "à¤†à¤œ à¤•à¤¾ AI à¤¸à¤¾à¤°à¤¾à¤‚à¤¶",
     "ai_tap_to_generate": "à¤¬à¤¨à¤¾à¤¨à¥‡ à¤•à¥‡ à¤²à¤¿à¤ à¤Ÿà¥ˆà¤ª à¤•à¤°à¥‡à¤‚",
     "category_distribution": "à¤¶à¥à¤°à¥‡à¤£à¥€ à¤µà¤¿à¤¤à¤°à¤£",
@@ -1292,6 +1296,8 @@
     "delivery": "à¤¡à¤¿à¤²à¥€à¤µà¤°à¥€"
   },
   "modals": {
+    "ai_unavailable": "एआई सहायक अभी अस्थायी रूप से उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें; तब तक आप गाइड देख सकते हैं:",
+    "ai_screen_guide": "इस स्क्रीन की गाइड",
     "ai_assistant_title": "AI Assistant",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Unknown error",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "Premium à¤•à¥‡ à¤¸à¤¾à¤¥, à¤†à¤ª à¤•à¤° à¤¸à¤•à¤¤à¥‡ à¤¹à¥ˆà¤‚:"
   },
   "products": {
+    "stock_change_title": "स्टॉक क्यों बदल रहा है?",
+    "stock_change_increase": "स्टॉक {{from}} से {{to}} हो रहा है (+{{diff}})। कारण चुनें।",
+    "stock_change_decrease": "स्टॉक {{from}} से {{to}} हो रहा है (-{{diff}})। कारण चुनें।",
+    "stock_change_sale_hint": "बिक्री मूल्य पर नकद भुगतान वाली एक बिक्री दर्ज होती है और लेखा में दिखती है।",
+    "stock_change_required": "स्टॉक बदलने का कारण चुनें।",
     "add_btn": "à¤œà¥‹à¤¡à¤¼à¥‡à¤‚",
     "add_photo_title": "à¤«à¥‹à¤Ÿà¥‹ à¤œà¥‹à¤¡à¤¼à¥‡à¤‚",
     "add_product": "à¤‰à¤¤à¥à¤ªà¤¾à¤¦ à¤œà¥‹à¤¡à¤¼à¥‡à¤‚",
@@ -2010,6 +2021,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "अन्य",
+      "restock": "पुनःस्टॉक",
+      "customer_return": "ग्राहक वापसी",
+      "expired": "समाप्त उत्पाद",
+      "theft": "चोरी",
+      "internal_use": "आंतरिक उपयोग",
+      "sale_from_product": "काउंटर के बाहर बिक्री",
       "pos_sale": "POS Sale",
       "inventory_adjustment": "Inventory Adjustment",
       "supplier_reception": "Supplier Reception",

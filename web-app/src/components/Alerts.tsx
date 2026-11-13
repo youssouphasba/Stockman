@@ -7,6 +7,7 @@ import { alerts as alertsApi, ai as aiApi, alertRules as alertRulesApi, auth } f
 import type { AlertRule, NotificationChannel, NotificationContactMap, NotificationSeverity, User as AppUser } from '../services/api';
 import Modal from './Modal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
+import { hasPlatformModule } from '../utils/access';
 
 // Les anciennes alertes « produits dormants » ont été enregistrées avec une clé de traduction pour titre.
 const ALERT_TITLE_KEY = /^[a-z_]+(\.[a-z_]+)+$/;
@@ -199,7 +200,8 @@ export default function Alerts() {
 
     const visibleRules = useMemo(() => {
         const activeStoreId = currentUser?.active_store_id || null;
-        return RULE_TEMPLATES.map((template) => {
+        // La règle de retard fournisseur disparaît quand le module Fournisseurs est coupé.
+        return RULE_TEMPLATES.filter((template) => template.type !== 'late_delivery' || hasPlatformModule(currentUser, 'suppliers')).map((template) => {
             const persisted = rules.find((rule) => (
                 rule.type === template.type
                 && rule.scope === activeRuleScope
@@ -208,7 +210,7 @@ export default function Alerts() {
             const base = persisted || draftRule(template, activeRuleScope, activeRuleScope === 'store' ? activeStoreId : null);
             return ruleDrafts[ruleKey(base.type, base.scope, base.store_id)] || base;
         });
-    }, [activeRuleScope, currentUser?.active_store_id, ruleDrafts, rules]);
+    }, [activeRuleScope, currentUser, ruleDrafts, rules]);
 
     function getTypeStyles(type: string) {
         switch (type) {

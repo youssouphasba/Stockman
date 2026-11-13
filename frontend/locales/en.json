@@ -917,6 +917,10 @@
   "dashboard": {
     "abc_analysis": "ABC Analysis (Priorities)",
     "admin_messages": "Administrator messages",
+    "admin_message_new": "New message",
+    "admin_message_got_it": "Got it",
+    "admin_message_next": "Next message",
+    "admin_message_open": "Open",
     "ai_daily_summary": "AI Daily Summary",
     "ai_tap_to_generate": "Tap to generate",
     "category_distribution": "Category Distribution",
@@ -1855,6 +1859,8 @@
     "verified_only": "Verified only"
   },
   "modals": {
+    "ai_unavailable": "The AI assistant is temporarily unavailable. Please try again a little later; in the meantime, you can browse the guides:",
+    "ai_screen_guide": "Guide for this screen",
     "ai_assistant_title": "AI Assistant",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Unknown error",
@@ -2301,6 +2307,11 @@
     "with_premium_you_can": "With Premium, you can:"
   },
   "products": {
+    "stock_change_title": "Why is the stock changing?",
+    "stock_change_increase": "Stock goes from {{from}} to {{to}} (+{{diff}}). Choose the reason.",
+    "stock_change_decrease": "Stock goes from {{from}} to {{to}} (-{{diff}}). Choose the reason.",
+    "stock_change_sale_hint": "A sale is recorded at the selling price, paid in cash, and appears in Accounting.",
+    "stock_change_required": "Choose the reason for the stock change.",
     "add_btn": "Add",
     "add_photo_title": "Add a photo",
     "add_product": "Add Product",
@@ -2820,6 +2831,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Other",
+      "restock": "Restock",
+      "customer_return": "Customer return",
+      "expired": "Expired product",
+      "theft": "Theft",
+      "internal_use": "Internal use",
+      "sale_from_product": "Sale outside the till",
       "pos_sale": "Vente POS",
       "inventory_adjustment": "Ajustement d'inventaire",
       "supplier_reception": "Supplier reception",

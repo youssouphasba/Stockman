@@ -26,14 +26,18 @@ type Message = {
     role: 'user' | 'assistant';
     content: string;
     timestamp: Date;
+    // Service d'IA indisponible : boutons pour consulter les guides à la place.
+    showGuideActions?: boolean;
 };
 
 type AiSupportModalProps = {
     visible: boolean;
     onClose: () => void;
+    onOpenHelpCenter?: () => void;
+    onOpenScreenGuide?: () => void;
 };
 
-export default function AiSupportModal({ visible, onClose }: AiSupportModalProps) {
+export default function AiSupportModal({ visible, onClose, onOpenHelpCenter, onOpenScreenGuide }: AiSupportModalProps) {
     const { colors, glassStyle } = useTheme();
     const { t, i18n } = useTranslation();
     const { isRestaurant, user } = useAuth();
@@ -211,11 +215,14 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
             setMessages((prev) => [...prev, assistantMessage]);
         } catch (error: any) {
             const detail = error?.message || error?.toString() || t('modals.ai_error_unknown');
+            // 503 : le service d'IA lui-même est indisponible (crédit, quota) ; on propose les guides.
+            const unavailable = error?.status === 503;
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: `${t('modals.ai_error_prefix')}${detail}`,
+                content: unavailable ? t('modals.ai_unavailable') : `${t('modals.ai_error_prefix')}${detail}`,
                 timestamp: new Date(),
+                showGuideActions: unavailable && Boolean(onOpenHelpCenter || onOpenScreenGuide),
             };
             setMessages((prev) => [...prev, errorMessage]);
         } finally {
@@ -241,6 +248,28 @@ export default function AiSupportModal({ visible, onClose }: AiSupportModalProps
                         <Markdown style={markdownStyles}>
                             {item.content}
                         </Markdown>
+                    )}
+                    {item.showGuideActions && (
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                            {onOpenHelpCenter && (
+                                <TouchableOpacity
+                                    onPress={() => { onClose(); onOpenHelpCenter(); }}
+                                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 }}
+                                >
+                                    <Ionicons name="book-outline" size={15} color="#fff" />
+                                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{t('settings.help_center')}</Text>
+                                </TouchableOpacity>
+                            )}
+                            {onOpenScreenGuide && (
+                                <TouchableOpacity
+                                    onPress={() => { onClose(); onOpenScreenGuide(); }}
+                                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.primary, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 }}
+                                >
+                                    <Ionicons name="help-circle-outline" size={15} color={colors.primary} />
+                                    <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>{t('modals.ai_screen_guide')}</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     )}
                     <Text style={[styles.timestamp, isUser ? styles.userTimestamp : styles.aiTimestamp]}>
                         {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

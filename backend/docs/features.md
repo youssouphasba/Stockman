@@ -30,6 +30,7 @@ Les valeurs sont pilotables par variables d'environnement : `APP_ANDROID_LATEST_
 - Les produits, le client et la vente créés pendant le guide sont des données d'exercice : ils ne sont jamais envoyés au catalogue partagé et sont supprimés à la fin, avec leurs mouvements de stock, l'historique de prix, les alertes et le journal d'activité. Le commerçant peut garder le produit créé un par un s'il est réel : son stock est alors rétabli.
 - À la fin, deux choix : « Ajouter mes vrais produits » ou « Je veux de l'aide pour créer mes produits », qui ouvre une demande d'assistance déjà remplie. Le lien « Passer » permet de quitter le guide après confirmation ; les données d'exercice sont aussi supprimées.
 - Si l'application est fermée pendant le guide, il reprend à la dernière étape enregistrée.
+- Suivi par l'équipe Stockman (tableau de bord admin web) : la Vue d'ensemble montre combien de commerçants ont le guide à faire, en cours, terminé ou passé, le taux de réussite, la durée médiane et les étapes où ils s'arrêtent. La fiche d'un client affiche l'état de son guide et sa dernière étape, avec un bouton « Relancer le guide » : le commerçant le refait depuis le début à sa prochaine ouverture de l'application. Dans le Support, un filtre isole les demandes d'aide envoyées depuis la fin du guide.
 
 ## 1. Importation de Produits (CSV / Excel)
 
@@ -129,8 +130,10 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Les anciennes fiches qui pointent encore vers `/uploads/products/...` peuvent perdre leur image si le fichier serveur d'origine n'existe plus ; il faut alors remettre la photo sur la fiche produit.
 
 ### Comment modifier le stock d'un produit ?
-- **Entrée de stock** (réception de marchandise) : bouton **+** ou "Entrée" sur la fiche produit
-- **Sortie de stock** (perte, casse, correction) : bouton **-** ou "Sortie" sur la fiche produit
+- **Entrée de stock** : bouton **+** ou « Entrée » sur la fiche produit, puis choisir la raison : Réapprovisionnement, Retour client ou Ajustement d'inventaire.
+- **Sortie de stock** : bouton **-** ou « Sortie », puis choisir la raison : Vente hors caisse, Perte ou casse, Produit périmé, Vol, Usage interne, Ajustement d'inventaire ou Autre.
+- **Quantité modifiée dans la fiche d'édition** : c'est possible. Dès que la quantité change, Stockman affiche sous le champ les raisons qui correspondent (raisons d'entrée si elle augmente, raisons de sortie si elle baisse) ; il faut en choisir une pour enregistrer. Le stock change alors par un vrai mouvement, jamais sans trace. Les produits à variantes gardent leur quantité par variante.
+- **Effet dans les statistiques** : « Vente hors caisse » enregistre une vraie vente au prix de vente, payée en espèces (chiffre d'affaires, marge, ventes récentes, Compta). Perte ou casse, Produit périmé, Vol, Usage interne, Ajustement d'inventaire à la baisse et Autre comptent dans les **pertes** de la Compta (valeur au prix d'achat, détail par raison) et réduisent le résultat net. Les entrées augmentent le stock sans toucher au chiffre d'affaires.
 - Chaque mouvement est tracé dans l'historique avec la date, la raison et l'utilisateur
 
 ### Comment modifier rapidement le stock en lot ?
@@ -173,6 +176,16 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 6. Valider la vente → le stock est automatiquement mis à jour
 7. Imprimer le ticket ou l'envoyer par WhatsApp/Email
 
+### Comment utiliser la caisse vocale ?
+1. Dans la **Caisse** de l'application mobile, appuyer sur **Vocal** et dicter les articles, par exemple « deux gaze pièce et un savon liquide »
+2. Les produits reconnus sont proposés avec leur quantité avant d'être ajoutés au panier
+- Seuls les produits en stock de la boutique active sont reconnus
+- La reconnaissance tolère les accents, les pluriels et les petites différences d'orthographe (« gaz pièce » retrouve « Gaze pièce »)
+- Le début d'un mot suffit quand la fin est mal comprise (« oxybupreakain » retrouve « Oxybuprocaïne »)
+- Un nom partiel suffit s'il désigne un seul produit (« oxybuprocaïne » pour « Oxybuprocaïne 40mg collyre ») ; s'il correspond à plusieurs produits (« savon » pour « Savon liquide » et « Savon de Marseille »), ou si le mot ne ressemble que de loin à un produit, les produits possibles sont proposés : toucher le bon pour le cocher, puis **Ajouter au panier**
+- Rien d'incertain n'est ajouté d'office : sans choix, le produit proposé n'entre pas dans le panier
+- La quantité se dit avant le nom (« 3 coca », « deux boîtes de paracétamol ») ou après (« coca fois 3 ») ; sans quantité, 1 est retenu
+
 ### Comment annuler ou retourner une vente ?
 - Chercher la vente dans **Activité** ou **Comptabilité**
 - Utiliser la fonction de retour/annulation disponible sur la vente
@@ -212,6 +225,12 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 ---
 
 ## 5. Commandes Fournisseurs
+
+### Le module Fournisseurs est-il disponible pour tous les comptes ?
+- Non. Le module Fournisseurs est activé par l'équipe Stockman : il est coupé par défaut pour tous les comptes. Il peut être activé pour tout le monde, pour un plan (Starter, Pro, Enterprise), pour un type d'activité (épicerie, pharmacie, quincaillerie…) ou pour un compte précis. Le réglage le plus précis l'emporte : compte, puis type d'activité, puis plan, puis réglage global. Il s'applique à toute l'équipe du compte.
+- Quand le module est coupé, sur mobile comme sur le web : pas d'onglet Fournisseurs ni de commandes fournisseurs, pas de carte « Aucun fournisseur » ni de filtres Fournisseur dans Produits, pas de carte « Achats fournisseurs » dans la Compta, pas de bouton « Commander » dans le réapprovisionnement, pas de règle d'alerte « Retard fournisseur » ni de rappels de livraison, de réapprovisionnement ou d'invitation fournisseur, pas de permission Fournisseurs pour l'équipe, pas de rapport Approvisionnement ni de filtre Fournisseur dans les analyses. L'assistant IA n'utilise plus les données fournisseurs.
+- La création de produits ne dépend pas des fournisseurs : un produit se crée toujours sans fournisseur, que le module soit activé ou non.
+- Pour en bénéficier, le commerçant contacte le support Stockman.
 
 ### Où se trouvent les commandes fournisseurs ?
 - Les commandes et les retours fournisseurs sont dans l'écran **Fournisseurs** : bouton **Commandes fournisseurs** sur mobile, onglet **Bons de commande** sur le web.
@@ -474,7 +493,8 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 | Enterprise | 9 900 | 14,99 | Illimitées | Illimités | Oui |
 
 ### Quels onglets voit-on sur mobile ?
-- **Starter** : Produits, Caisse, Compta, Clients et Réglages. Il n'y a pas d'onglet Accueil : les chiffres clés sont dans la Compta. Les messages de l'administrateur (icône mégaphone, affichée quand il y en a, avec le nombre de messages non lus) et le bouton de thème clair/sombre sont dans l'en-tête, sur tous les onglets.
+- **Starter** : Produits, Caisse, Compta, Clients et Réglages (plus Fournisseurs si l'équipe Stockman a activé ce module pour le compte). Il n'y a pas d'onglet Accueil : les chiffres clés sont dans la Compta. Les messages de l'administrateur (icône mégaphone, affichée quand il y en a, avec le nombre de messages non lus) et le bouton de thème clair/sombre sont dans l'en-tête, sur tous les onglets.
+- **Messages de l'administrateur (tous les plans)** : à l'ouverture de l'application mobile, ou au retour dans l'application, chaque message non lu s'affiche d'abord dans une fenêtre, du plus ancien au plus récent (« Message suivant », puis « J'ai compris » ; « Ouvrir » mène à l'écran ou au lien prévu). Fermer la fenêtre marque le message comme lu ; il reste consultable depuis l'Accueil ou l'icône mégaphone. La fenêtre ne s'affiche jamais pendant le guide de démarrage.
 - **Commandes en ligne** : sur tous les plans, l'onglet n'apparaît qu'une fois la boutique en ligne activée (Commandes sur Pro et Enterprise, E-com sur Starter). Sur le web, l'entrée Commandes de la barre latérale suit la même règle. Tant que le site est désactivé, les commandes déjà reçues restent accessibles depuis le bouton « Commandes » de la rubrique Boutique en ligne (Site e-commerce sur Pro et Enterprise) des Paramètres.
 
 ### Comment mettre à niveau son abonnement ?
@@ -520,6 +540,18 @@ Les fournisseurs ont leur propre interface dédiée pour gérer leur catalogue e
 - Une bannière orange s'affiche en haut quand l'application est hors-ligne
 
 ---
+
+## 17 bis. Assistant IA : disponibilité
+
+### Que se passe-t-il si l'assistant IA ne répond pas ?
+- Si le service d'IA est momentanément indisponible (crédit ou quota du fournisseur d'IA atteint), l'assistant affiche : « L'assistant IA est momentanément indisponible. Réessayez un peu plus tard ; en attendant, vous pouvez consulter les guides », avec des boutons directs : **Centre d'aide** et **Guide de cet écran** sur mobile, **Guide de cette page** sur le web. Le reste de l'application fonctionne normalement.
+- L'équipe Stockman est alertée automatiquement (notification et e-mail) dès la panne, puis quand le service est rétabli. Le tableau de bord admin web (rubrique Monitoring) montre l'état de la génération et de la recherche documentaire de l'assistant, avec un bouton « Tester maintenant ».
+- Pour répondre aux questions sur l'application, l'assistant s'appuie sur ce document, les guides et le centre d'aide. Si la recherche par le sens est indisponible, il continue de chercher par mots-clés (accents compris) et reprend la recherche par le sens tout seul dès que le service répond.
+
+### Les fonctions IA ont-elles une limite d'utilisation ?
+- Oui, pour les fonctions qui font appel à l'IA générative : chacune a un quota par jour ou par mois selon le plan (par exemple l'analyse du compte de résultat, les clients à risque de départ, le rapport mensuel, la dictée vocale, la caisse vocale, le résumé client). Le quota est compté par compte : le propriétaire et les membres de son équipe partagent la même limite. Une fois le quota atteint, un message indique la limite et la période.
+- Le résumé IA du jour est généré une fois par jour et par boutique, puis réaffiché sans nouvel appel quand on rouvre le tableau de bord.
+- Les analyses calculées sans IA générative (prévisions, produits dormants, saisonnalité, doublons, score de santé…) n'ont pas de quota d'utilisation ; elles restent seulement réservées aux plans qui les incluent.
 
 ## 18. Questions Fréquentes (FAQ)
 

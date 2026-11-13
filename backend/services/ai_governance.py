@@ -235,7 +235,7 @@ AI_FEATURE_LIMITS: Dict[str, Dict[str, Any]] = {
         "kind": "hybrid",
         "period": "month",
         "min_plan": "enterprise",
-        "limits": {"enterprise": 50},
+        "limits": {"enterprise": 400},
         "tokens_estimate": (1000, 800),
     },
 
@@ -252,7 +252,7 @@ AI_FEATURE_LIMITS: Dict[str, Dict[str, Any]] = {
         "label": "Caisse vocale",
         "kind": "ai_pure",
         "period": "month",
-        "limits": {"starter": 4, "pro": 12, "enterprise": 40},
+        "limits": {"starter": 150, "pro": 400, "enterprise": 1500},
         "tokens_estimate": (1500, 500),
     },
     "customer_summary": {
@@ -260,7 +260,7 @@ AI_FEATURE_LIMITS: Dict[str, Dict[str, Any]] = {
         "kind": "hybrid",
         "period": "month",
         "min_plan": "enterprise",
-        "limits": {"enterprise": 25},
+        "limits": {"enterprise": 300},
         "cache_ttl_s": 43200,  # 12h
         "tokens_estimate": (2000, 800),
     },
@@ -269,8 +269,38 @@ AI_FEATURE_LIMITS: Dict[str, Dict[str, Any]] = {
         "kind": "hybrid",
         "period": "month",
         "min_plan": "enterprise",
-        "limits": {"enterprise": 20},
+        "limits": {"enterprise": 300},
         "tokens_estimate": (1000, 500),
+    },
+
+    # ── Fonctions Gemini qui n'avaient aucune limite (2026-11-13) ─────
+    "pl_analysis": {
+        "label": "Analyse IA du compte de résultat",
+        "kind": "ai_pure",
+        "period": "month",
+        "limits": {"starter": 60, "pro": 150, "enterprise": 500},
+        "tokens_estimate": (2500, 800),
+    },
+    "churn_prediction": {
+        "label": "Clients à risque de départ",
+        "kind": "ai_pure",
+        "period": "month",
+        "limits": {"starter": 60, "pro": 150, "enterprise": 500},
+        "tokens_estimate": (2500, 800),
+    },
+    "monthly_report": {
+        "label": "Rapport mensuel IA",
+        "kind": "ai_pure",
+        "period": "month",
+        "limits": {"starter": 20, "pro": 40, "enterprise": 100},
+        "tokens_estimate": (3000, 1200),
+    },
+    "voice_to_text": {
+        "label": "Dictée vocale",
+        "kind": "ai_pure",
+        "period": "month",
+        "limits": {"starter": 300, "pro": 800, "enterprise": 2000},
+        "tokens_estimate": (1500, 300),
     },
 }
 
@@ -433,17 +463,20 @@ def _build_limit_detail(label: str, limit: int, period: str, plan: str) -> str:
     if period == "day":
         return (
             f"La limite quotidienne est atteinte pour {label}. "
-            f"Votre plan {plan} autorise {limit} utilisation(s) par jour."
+            f"Votre plan {plan} autorise {limit} utilisation(s) par jour pour l'ensemble du compte."
         )
     return (
         f"La limite mensuelle est atteinte pour {label}. "
-        f"Votre plan {plan} autorise {limit} utilisation(s) par mois."
+        f"Votre plan {plan} autorise {limit} utilisation(s) par mois pour l'ensemble du compte."
     )
 
 
-async def check_ai_limit(db, user_id: str, plan: str, feature: str) -> None:
+async def check_ai_limit(db, owner_id: str, plan: str, feature: str) -> None:
     """
     Enforce plan gate + quota for *feature*.
+
+    Le quota est compté par compte (``owner_id``) : le propriétaire et son équipe
+    partagent la même limite, quel que soit le nombre d'utilisateurs.
 
     Raises:
         HTTPException 403  — plan not allowed
@@ -469,11 +502,15 @@ async def check_ai_limit(db, user_id: str, plan: str, feature: str) -> None:
             detail=f"{rule['label']} n'est pas disponible avec votre plan actuel.",
         )
 
+    # Les calculs « algo » ne coûtent rien en IA : ils restent réservés par plan, sans quota d'usage.
+    if rule.get("kind") == "algo":
+        return
+
     period = rule.get("period", "month")
     period_start = _period_start(period)
     usage_count = await db.ai_usage.count_documents(
         {
-            "user_id": user_id,
+            "owner_id": owner_id,
             "feature": feature,
             "success": True,  # count only successful calls
             "created_at": {"$gte": period_start},
@@ -750,5 +787,9 @@ async def ensure_ai_indexes(db) -> None:
     coll = db.ai_usage
     await coll.create_index([("user_id", 1), ("feature", 1), ("created_at", -1)])
     await coll.create_index([("owner_id", 1), ("created_at", -1)])
+    await coll.create_index([("owner_id", 1), ("feature", 1), ("created_at", -1)])
     await coll.create_index([("feature", 1), ("created_at", -1)])
     await coll.create_index([("created_at", -1)])
+    # Résumés du jour gardés en mémoire : recherche par boutique/jour/langue, effacés après 3 jours.
+    await db.ai_daily_summaries.create_index([("owner_id", 1), ("store_id", 1), ("date", 1), ("lang", 1)])
+    await db.ai_daily_summaries.create_index("created_at", expireAfterSeconds=3 * 24 * 3600)

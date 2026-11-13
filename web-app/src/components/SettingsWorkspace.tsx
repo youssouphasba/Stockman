@@ -32,7 +32,7 @@ import {
 import { auth as authApi, ecommerce as ecommerceApi, settings as settingsApi, stores as storesApi, userFeatures as userFeaturesApi } from '../services/api';
 import type { NotificationContactMap, NotificationPreferences, User as AppUser } from '../services/api';
 import ReminderRulesSettings, { ReminderRuleSettings } from './ReminderRulesSettings';
-import { getAccessContext } from '../utils/access';
+import { getAccessContext, hasPlatformModule } from '../utils/access';
 import EcommerceSetupInvitation, { canOfferEcommerceSetupOnWeb } from './EcommerceSetupInvitation';
 import EcommerceAppearancePanel from './EcommerceAppearancePanel';
 import EcommerceDomainPanel from './EcommerceDomainPanel';
@@ -229,6 +229,8 @@ function buildEcommerceDraft(next: any) {
 export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorkspaceProps) {
     const { t } = useTranslation();
     const access = getAccessContext(user);
+    // Module Fournisseurs coupé par l'admin Stockman : ni interrupteur, ni contact Appro.
+    const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
     const canManageOrgSettings = access.isOrgAdmin;
     const canManageBilling = access.isBillingAdmin;
     // Même règle que l'accès web en consultation : Starter et Pro personnalisent l'apparence depuis le mobile.
@@ -279,7 +281,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
     const [deletingAccount, setDeletingAccount] = useState(false);
     const ecommerceSectionRef = useRef<HTMLDivElement | null>(null);
 
-    const notificationContactFields = NOTIFICATION_CONTACT_FIELDS.map((field) => ({
+    const notificationContactFields = NOTIFICATION_CONTACT_FIELDS.filter((field) => field.key !== 'procurement' || suppliersModuleOn).map((field) => ({
         ...field,
         label: t(`settings_workspace.notification_groups.${field.key}.label`),
         description: t(`settings_workspace.notification_groups.${field.key}.description`),
@@ -351,7 +353,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
         ? `${ecommerceWallets.join(', ')}${ecommerceDraft.pay_on_delivery !== false ? ', à la livraison' : ''}`
         : (ecommerceDraft.payment_instructions || '').trim() ? 'Consignes de paiement renseignées' : '';
     const toggleEcommerceStep = (step: EcommerceStepId) => setEcommerceStep((current) => (current === step ? null : step));
-    const visibleModules = MODULE_OPTIONS.filter((item) => item.showFor === 'all' || ['restaurant', 'traiteur'].includes(sector));
+    const visibleModules = MODULE_OPTIONS.filter((item) => (item.showFor === 'all' || ['restaurant', 'traiteur'].includes(sector)) && (item.key !== 'suppliers' || suppliersModuleOn));
 
     useEffect(() => {
         void loadSettings();

@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "AnÃ¡lise ABC (Prioridades)",
     "admin_messages": "Mensagens do administrador",
+    "admin_message_new": "Nova mensagem",
+    "admin_message_got_it": "Entendi",
+    "admin_message_next": "Próxima mensagem",
+    "admin_message_open": "Abrir",
     "ai_daily_summary": "Resumo diÃ¡rio de IA",
     "ai_tap_to_generate": "Toque para gerar",
     "category_distribution": "DistribuiÃ§Ã£o por Categoria",
@@ -1292,6 +1296,8 @@
     "delivery": "entrega"
   },
   "modals": {
+    "ai_unavailable": "O assistente de IA está temporariamente indisponível. Tente novamente mais tarde; entretanto, pode consultar os guias:",
+    "ai_screen_guide": "Guia deste ecrã",
     "ai_assistant_title": "AI Assistant",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Unknown error",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "Com Premium, pode:"
   },
   "products": {
+    "stock_change_title": "Porque é que o estoque muda?",
+    "stock_change_increase": "O estoque passa de {{from}} para {{to}} (+{{diff}}). Escolha o motivo.",
+    "stock_change_decrease": "O estoque passa de {{from}} para {{to}} (-{{diff}}). Escolha o motivo.",
+    "stock_change_sale_hint": "É registada uma venda ao preço de venda, paga em dinheiro, que aparece na Contabilidade.",
+    "stock_change_required": "Escolha o motivo da alteração de estoque.",
     "add_btn": "Adicionar",
     "add_photo_title": "Adicionar uma foto",
     "add_product": "Adicionar produto",
@@ -2010,6 +2021,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Outro",
+      "restock": "Reabastecimento",
+      "customer_return": "Devolução de cliente",
+      "expired": "Produto expirado",
+      "theft": "Roubo",
+      "internal_use": "Uso interno",
+      "sale_from_product": "Venda fora do caixa",
       "pos_sale": "Venda POS",
       "inventory_adjustment": "Ajuste de estoque",
       "supplier_reception": "Recebimento de fornecedor",

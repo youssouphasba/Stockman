@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ABC-Analyse (PrioritÃ¤ten)",
     "admin_messages": "Nachrichten des Administrators",
+    "admin_message_new": "Neue Nachricht",
+    "admin_message_got_it": "Verstanden",
+    "admin_message_next": "Nächste Nachricht",
+    "admin_message_open": "Öffnen",
     "ai_daily_summary": "KI-Zusammenfassung des Tages",
     "ai_tap_to_generate": "Tippen zum Generieren",
     "category_distribution": "Verteilung nach Kategorie",
@@ -1292,6 +1296,8 @@
     "delivery": "Lieferung"
   },
   "modals": {
+    "ai_unavailable": "Der KI-Assistent ist vorübergehend nicht verfügbar. Versuchen Sie es etwas später erneut; in der Zwischenzeit können Sie die Anleitungen lesen:",
+    "ai_screen_guide": "Anleitung zu diesem Bildschirm",
     "ai_assistant_title": "AI Assistant",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Unknown error",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "Mit Premium kÃ¶nnen Sie:"
   },
   "products": {
+    "stock_change_title": "Warum ändert sich der Bestand?",
+    "stock_change_increase": "Der Bestand ändert sich von {{from}} auf {{to}} (+{{diff}}). Wählen Sie den Grund.",
+    "stock_change_decrease": "Der Bestand ändert sich von {{from}} auf {{to}} (-{{diff}}). Wählen Sie den Grund.",
+    "stock_change_sale_hint": "Ein Verkauf wird zum Verkaufspreis, bar bezahlt, erfasst und erscheint in der Buchhaltung.",
+    "stock_change_required": "Wählen Sie den Grund für die Bestandsänderung.",
     "add_btn": "HinzufÃ¼gen",
     "add_photo_title": "Foto hinzufÃ¼gen",
     "add_product": "Produkt hinzufÃ¼gen",
@@ -2010,6 +2021,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Sonstiges",
+      "restock": "Nachschub",
+      "customer_return": "Kundenrückgabe",
+      "expired": "Abgelaufenes Produkt",
+      "theft": "Diebstahl",
+      "internal_use": "Eigenverbrauch",
+      "sale_from_product": "Verkauf außerhalb der Kasse",
       "pos_sale": "POS-Verkauf",
       "inventory_adjustment": "Bestandsanpassung",
       "supplier_reception": "Lieferanteneingang",

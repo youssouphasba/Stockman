@@ -70,6 +70,8 @@ import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 import type { DrawerItem } from '../../components/DrawerMenu';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import { isStarterShopkeeper } from '../../utils/accountRouting';
+import { ADMIN_MESSAGES_CHANGED_EVENT } from '../../components/AdminMessagesButton';
+import { hasPlatformModule } from '../../utils/access';
 
 // screenWidth is now read via useWindowDimensions() inside the component
 
@@ -310,6 +312,12 @@ export default function DashboardScreen() {
     }
     void loadNotifications(true);
   }, [showNotifModal, loadNotifications]);
+
+  // Un message lu dans la fenêtre d'arrivée met à jour le compteur de l'Accueil.
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(ADMIN_MESSAGES_CHANGED_EVENT, () => { void loadNotifications(true); });
+    return () => sub.remove();
+  }, [loadNotifications]);
 
   const handleMarkNotificationRead = useCallback(async (messageId: string) => {
     try {
@@ -1690,6 +1698,8 @@ export default function DashboardScreen() {
                   <Text style={styles.reorderName} numberOfLines={1}>{item.name}</Text>
                   <Text style={styles.reorderMeta}>{t('dashboard.reorder_stock_meta', { current: item.current_quantity, threshold: item.reorder_point })}</Text>
                   <Text style={styles.reorderSuggest}>{t('dashboard.reorder_suggested', { qty: item.suggested_quantity })}</Text>
+                  {/* Commander passe par les Fournisseurs : bouton absent si l'admin a coupé ce module. */}
+                  {hasPlatformModule(user, 'suppliers') && (
                   <TouchableOpacity
                     style={styles.orderButton}
                     onPress={() => router.push({
@@ -1703,6 +1713,7 @@ export default function DashboardScreen() {
                     <Ionicons name="cart-outline" size={16} color="#FFF" />
                     <Text style={styles.orderButtonText}>{t('dashboard.order_btn')}</Text>
                   </TouchableOpacity>
+                  )}
                 </View>
               ))}
             </ScrollView>

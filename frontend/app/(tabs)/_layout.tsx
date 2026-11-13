@@ -25,10 +25,12 @@ import DrawerMenu from '../../components/DrawerMenu';
 import { DrawerProvider, useDrawer } from '../../contexts/DrawerContext';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import AdminMessagesButton from '../../components/AdminMessagesButton';
+import AdminMessagePopup from '../../components/AdminMessagePopup';
 import GuideProvider, { useGuide } from '../../onboarding/GuideProvider';
 import GuideHost from '../../onboarding/GuideHost';
 import { useGuideRunState } from '../../onboarding/guideStore';
 import { getStarterNavigationRedirect, getStarterRoute, isStarterShopkeeper as usesStarterNavigation } from '../../utils/accountRouting';
+import { hasPlatformModule } from '../../utils/access';
 
 function TabLayoutInner() {
   const { t, i18n } = useTranslation();
@@ -130,7 +132,9 @@ function TabLayoutInner() {
   const hideAlerts = isRestaurant || modules.alerts === false || !hasPermission('stock', 'read');
   const hideStock = isRestaurant || modules.stock_management === false || !hasPermission('stock', 'read');
   const hideAccounting = modules.accounting === false || !hasPermission('accounting', 'read');
-  const hideSuppliers = isRestaurant || modules.suppliers === false || !hasPermission('suppliers', 'read');
+  // Fournisseurs : module activé par l'admin Stockman (coupé par défaut), puis préférences et permissions du compte.
+  const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
+  const hideSuppliers = isRestaurant || !suppliersModuleOn || modules.suppliers === false || !hasPermission('suppliers', 'read');
   const hideOrders = isRestaurant || modules.orders === false || !hasPermission('stock', 'read');
   const hidePos = !hasPermission('pos', 'read');
   const hideCrm = isRestaurant || modules.crm === false || !hasPermission('crm', 'read');
@@ -186,7 +190,7 @@ function TabLayoutInner() {
     ['products', !(billingOnly || (hideStock && !isRestaurant))],
     ['pos', !hidePos],
     ['accounting', !hideAccounting],
-    ['suppliers', !isStarterShopkeeper && !hideSuppliers],
+    ['suppliers', !hideSuppliers],
     ['crm', !hideCrm],
     ['orders', !(isStarterShopkeeper || hideOrders || !ecommerceSite?.enabled)],
     ['restaurant', !isStarterShopkeeper && isRestaurant && hasOperationalAccess],
@@ -217,6 +221,11 @@ function TabLayoutInner() {
       router.replace('/subscription');
       return;
     }
+    // Module Fournisseurs coupé : un lien ou une notification ne doit pas rouvrir ses écrans.
+    if (user && !suppliersModuleOn && (currentRoute === 'suppliers' || currentRoute === 'supplier-orders')) {
+      router.replace((isStarterShopkeeper ? getStarterRoute(user, { modules, isRestaurant }) : '/(tabs)') as any);
+      return;
+    }
     if (user && isStarterShopkeeper) {
       if (!settingsReady) return;
       const target = getStarterNavigationRedirect(user, currentRoute, openModal, { modules, isRestaurant });
@@ -227,7 +236,7 @@ function TabLayoutInner() {
       const firstTab = !hidePos ? '/pos' : !hideStock ? '/products' : !hideAccounting ? '/accounting' : !hideSuppliers ? '/suppliers' : !hideCrm ? '/crm' : '/settings';
       router.replace(firstTab as any);
     }
-  }, [billingOnly, hideDashboard, currentRoute, hidePos, hideStock, hideAccounting, hideSuppliers, hideCrm, isStarterShopkeeper, isRestaurant, modules, openModal, router, settingsReady, user]);
+  }, [billingOnly, hideDashboard, currentRoute, hidePos, hideStock, hideAccounting, hideSuppliers, hideCrm, isStarterShopkeeper, isRestaurant, modules, openModal, router, settingsReady, suppliersModuleOn, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -689,7 +698,7 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.suppliers'),
             tabBarLabel: renderTabLabel(t('tabs.suppliers')),
-            href: isStarterShopkeeper ? null : (hideSuppliers ? null : '/suppliers'),
+            href: hideSuppliers ? null : '/suppliers',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="people-outline" size={size} color={color} />
             ),
@@ -839,6 +848,9 @@ function TabLayoutInner() {
         />
       </Tabs>
 
+      {/* Les messages de l'administrateur s'affichent d'abord en fenêtre, jamais pendant le guide de démarrage. */}
+      <AdminMessagePopup enabled={Boolean(user?.user_id) && guideRunState === 'idle'} />
+
       <EcommerceSetupInvitation
         key={`${user?.user_id}:${user?.active_store_id || ''}`}
         active={canOfferEcommerceSetup && onEcommerceSetupScreen && guideRunState === 'idle'}
@@ -861,7 +873,14 @@ function TabLayoutInner() {
         )
       }
 
-      {showAiModal && <AiSupportModal visible={showAiModal} onClose={() => setShowAiModal(false)} />}
+      {showAiModal && (
+        <AiSupportModal
+          visible={showAiModal}
+          onClose={() => setShowAiModal(false)}
+          onOpenHelpCenter={() => setShowHelpCenter(true)}
+          onOpenScreenGuide={() => { setGuideOverride(null); setShowGuide(true); }}
+        />
+      )}
 
       <ChatModal
         visible={showChat}

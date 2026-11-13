@@ -110,6 +110,7 @@ export default function GlobalFiltersBar() {
                         </select>
                     </label>
 
+                    {meta.suppliers.length > 0 && (
                     <label className="flex flex-col gap-2">
                         <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Fournisseur</span>
                         <select
@@ -126,6 +127,7 @@ export default function GlobalFiltersBar() {
                             ))}
                         </select>
                     </label>
+                    )}
                 </div>
             </div>
         </div>

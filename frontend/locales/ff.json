@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ABC Analysis (Priorities)",
     "admin_messages": "Administrator messages",
+    "admin_message_new": "Mesaas kesum",
+    "admin_message_got_it": "Mi faamii",
+    "admin_message_next": "Mesaas aroowo",
+    "admin_message_open": "Uddit",
     "ai_daily_summary": "AI Daily Summary",
     "ai_tap_to_generate": "Tap to generate",
     "category_distribution": "Category Distribution",
@@ -1292,6 +1296,8 @@
     "delivery": "nawde"
   },
   "modals": {
+    "ai_unavailable": "Ballal IA ngal heɓaaka jooni. Etoo goɗngol seeɗa caggal ɗuum; e nder ɗuum, aɗa waawi yiyde gidaaji ɗii:",
+    "ai_screen_guide": "Gid ekraan ngal",
     "ai_assistant_title": "Walluwo IA",
     "ai_error_prefix": "Gaaci: ",
     "ai_error_unknown": "Gaaci anndaaka",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "With Premium, you can:"
   },
   "products": {
+    "stock_change_title": "Ko waɗi stock oo waylii?",
+    "stock_change_increase": "Stock oo iwii {{from}} haa {{to}} (+{{diff}}). Suɓo sabaabu nguu.",
+    "stock_change_decrease": "Stock oo iwii {{from}} haa {{to}} (-{{diff}}). Suɓo sabaabu nguu.",
+    "stock_change_sale_hint": "Coggu ina winndee e coggu sooynde, yoboo e kaalis, ina yiyee e Kontaabilite.",
+    "stock_change_required": "Suɓo sabaabu waylo stock oo.",
     "add_btn": "Æeydu",
     "add_photo_title": "Æeydu nataal",
     "add_product": "Yokk huunde",
@@ -1887,6 +1898,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Goɗɗum",
+      "restock": "Ɓeydugol stock",
+      "customer_return": "Artirgol hiraŋnge",
+      "expired": "Porduit timmuɗo",
+      "theft": "Wujjo",
+      "internal_use": "Kuutoragol e nder",
+      "sale_from_product": "Coggu caggal kees",
       "pos_sale": "POS Sale",
       "inventory_adjustment": "Inventory Adjustment",
       "supplier_reception": "Supplier Reception",

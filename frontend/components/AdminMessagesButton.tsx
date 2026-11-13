@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Linking, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, DeviceEventEmitter, Linking, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -19,11 +19,37 @@ const ROUTES: Record<string, string> = {
   subscription: '/(tabs)/subscription',
 };
 
+// Émis quand un message est lu ailleurs (fenêtre d'arrivée) : les listes se rechargent.
+export const ADMIN_MESSAGES_CHANGED_EVENT = 'admin-messages:changed';
+
+export function hasAdminMessageDestination(deeplink?: Record<string, string>) {
+  return Boolean(deeplink?.url || ROUTES[String(deeplink?.screen || '')]);
+}
+
+// Ouvre la destination d'un message : lien externe ou écran de l'application.
+export function useOpenAdminMessageDestination() {
+  const router = useRouter();
+  return useCallback((deeplink?: Record<string, string>) => {
+    const url = String(deeplink?.url || '');
+    if (url) {
+      Linking.openURL(url).catch(() => null);
+      return;
+    }
+    const pathname = ROUTES[String(deeplink?.screen || '')];
+    if (!pathname) return;
+    const params: Record<string, string> = { source: 'in_app_message' };
+    Object.entries(deeplink || {}).forEach(([key, value]) => {
+      if (key !== 'screen' && value) params[key] = String(value);
+    });
+    router.push({ pathname, params } as any);
+  }, [router]);
+}
+
 // Messages envoyés par l'administrateur (onglet Communication de l'admin), pour les comptes sans écran Accueil.
 // L'icône n'apparaît que s'il y a des messages, comme sur l'Accueil.
 export default function AdminMessagesButton({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const openMessageDestination = useOpenAdminMessageDestination();
   const { colors } = useTheme();
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -45,7 +71,8 @@ export default function AdminMessagesButton({ compact = false }: { compact?: boo
   useEffect(() => {
     void load();
     const sub = AppState.addEventListener('change', (state) => { if (state === 'active') void load(); });
-    return () => sub.remove();
+    const changed = DeviceEventEmitter.addListener(ADMIN_MESSAGES_CHANGED_EVENT, () => { void load(); });
+    return () => { sub.remove(); changed.remove(); };
   }, [load]);
 
   const markRead = useCallback(async (messageId: string) => {
@@ -67,21 +94,10 @@ export default function AdminMessagesButton({ compact = false }: { compact?: boo
   }, []);
 
   const openDestination = useCallback((deeplink?: Record<string, string>) => {
-    const url = String(deeplink?.url || '');
-    if (url) {
-      setVisible(false);
-      Linking.openURL(url).catch(() => null);
-      return;
-    }
-    const pathname = ROUTES[String(deeplink?.screen || '')];
-    if (!pathname) return;
-    const params: Record<string, string> = { source: 'in_app_message' };
-    Object.entries(deeplink || {}).forEach(([key, value]) => {
-      if (key !== 'screen' && value) params[key] = String(value);
-    });
+    if (!hasAdminMessageDestination(deeplink)) return;
     setVisible(false);
-    router.push({ pathname, params } as any);
-  }, [router]);
+    openMessageDestination(deeplink);
+  }, [openMessageDestination]);
 
   if (items.length === 0) return null;
 
@@ -167,7 +183,7 @@ export default function AdminMessagesButton({ compact = false }: { compact?: boo
                             }}
                             style={{ alignSelf: 'flex-start', marginTop: 10, backgroundColor: colors.primary, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12 }}
                           >
-                            <Text style={{ color: '#fff', fontSize: FontSize.xs, fontWeight: '700' }}>Ouvrir</Text>
+                            <Text style={{ color: '#fff', fontSize: FontSize.xs, fontWeight: '700' }}>{t('dashboard.admin_message_open', 'Ouvrir')}</Text>
                           </TouchableOpacity>
                         )}
                       </View>

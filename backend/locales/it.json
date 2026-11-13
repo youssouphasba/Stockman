@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "Analisi ABC (PrioritÃ )",
     "admin_messages": "Messaggi dell'amministratore",
+    "admin_message_new": "Nuovo messaggio",
+    "admin_message_got_it": "Ho capito",
+    "admin_message_next": "Messaggio successivo",
+    "admin_message_open": "Apri",
     "ai_daily_summary": "AI Daily Summary",
     "ai_tap_to_generate": "Tap to generate",
     "category_distribution": "Distribuzione per Categoria",
@@ -1292,6 +1296,8 @@
     "delivery": "consegna"
   },
   "modals": {
+    "ai_unavailable": "L'assistente IA è momentaneamente non disponibile. Riprova più tardi; nel frattempo puoi consultare le guide:",
+    "ai_screen_guide": "Guida di questa schermata",
     "ai_assistant_title": "Assistente IA",
     "ai_error_prefix": "Errore: ",
     "ai_error_unknown": "Errore sconosciuto",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "Con Premium, puoi:"
   },
   "products": {
+    "stock_change_title": "Perché cambia lo stock?",
+    "stock_change_increase": "Lo stock passa da {{from}} a {{to}} (+{{diff}}). Scegli il motivo.",
+    "stock_change_decrease": "Lo stock passa da {{from}} a {{to}} (-{{diff}}). Scegli il motivo.",
+    "stock_change_sale_hint": "Viene registrata una vendita al prezzo di vendita, pagata in contanti, visibile in Contabilità.",
+    "stock_change_required": "Scegli il motivo della variazione di stock.",
     "add_btn": "Aggiungi",
     "add_photo_title": "Aggiungi una foto",
     "add_product": "Aggiungi prodotto",
@@ -2010,6 +2021,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Altro",
+      "restock": "Rifornimento",
+      "customer_return": "Reso cliente",
+      "expired": "Prodotto scaduto",
+      "theft": "Furto",
+      "internal_use": "Uso interno",
+      "sale_from_product": "Vendita fuori cassa",
       "pos_sale": "Vendita POS",
       "inventory_adjustment": "Rettifica inventario",
       "supplier_reception": "Ricezione fornitore",

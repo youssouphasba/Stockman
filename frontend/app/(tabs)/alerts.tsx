@@ -35,6 +35,7 @@ import { useFirstVisit } from '../../hooks/useFirstVisit';
 import { useTranslation } from 'react-i18next';
 import { getDateLocale } from '../../utils/date';
 import { useAuth } from '../../contexts/AuthContext';
+import { hasPlatformModule } from '../../utils/access';
 import ReminderRulesSettingsComponent from '../../components/ReminderRulesSettings';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
@@ -335,7 +336,8 @@ export default function AlertsScreen() {
 
   const visibleRules = useMemo(() => {
     const activeStoreId = user?.active_store_id || null;
-    return Object.keys(RULE_TEMPLATES).map((type) => {
+    // La règle de retard fournisseur disparaît quand le module Fournisseurs est coupé.
+    return Object.keys(RULE_TEMPLATES).filter((type) => type !== 'late_delivery' || hasPlatformModule(user, 'suppliers')).map((type) => {
       const persisted = rules.find((rule) =>
         rule.type === type
         && rule.scope === activeRuleScope
@@ -344,7 +346,7 @@ export default function AlertsScreen() {
       const base = persisted || buildDraftRule(type, activeRuleScope, activeRuleScope === 'store' ? activeStoreId : null);
       return ruleDrafts[buildRuleKey(base.type, base.scope as RuleScope, base.store_id)] || base;
     });
-  }, [activeRuleScope, ruleDrafts, rules, user?.active_store_id]);
+  }, [activeRuleScope, ruleDrafts, rules, user]);
 
   function formatDate(dateStr: string) {
     const date = new Date(dateStr);

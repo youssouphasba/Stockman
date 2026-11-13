@@ -53,7 +53,7 @@ const GlobalFiltersBar = lazyTab(() => import("../components/analytics/GlobalFil
 
 import { auth, userFeatures, chat as chatApi, demo as demoApi, subscription, ApiError, UserFeatures, removeToken, setWebAccessMode, clearWebAccessMode, type AuthResponse, type DemoSessionInfo } from "../services/api";
 import { completeRedirectSignIn, signInWithProvider } from "../services/firebaseAuth";
-import { getAccessContext } from "../utils/access";
+import { getAccessContext, hasPlatformModule } from "../utils/access";
 import { AnalyticsFiltersProvider } from "../contexts/AnalyticsFiltersContext";
 import { BUSINESS_TYPE_GROUP_IDS, MOBILE_APP_URL, PLAN_COMPARISON_ROWS } from "../data/marketing";
 import { DEMO_COUNTRIES } from "../data/demoCurrencies";
@@ -235,6 +235,11 @@ export default function Home() {
     window.addEventListener('stockman:assistance-session', handleAssistanceSession);
     return () => window.removeEventListener('stockman:assistance-session', handleAssistanceSession);
   }, [hydrateAuthenticatedUser, setActiveTab]);
+
+  // Module Fournisseurs coupé par l'admin Stockman : un lien ou une notification ne rouvre pas ses écrans.
+  useEffect(() => {
+    if (user && activeTab === 'suppliers' && !hasPlatformModule(user, 'suppliers')) setActiveTab('dashboard');
+  }, [activeTab, setActiveTab, user]);
 
   const loadUser = useCallback(async () => {
     try {
@@ -557,6 +562,12 @@ export default function Home() {
       detail: { guideKey: activeGuideKey, reset: true },
     }));
   }, [activeGuideKey]);
+
+  // L'assistant IA indisponible propose d'ouvrir le guide de la page affichée.
+  useEffect(() => {
+    window.addEventListener('stockman:open-active-guide', openActiveTabGuide);
+    return () => window.removeEventListener('stockman:open-active-guide', openActiveTabGuide);
+  }, [openActiveTabGuide]);
 
   if (!mounted || !ready || initialLoading) {
     return (

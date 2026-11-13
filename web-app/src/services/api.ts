@@ -488,6 +488,8 @@ export type User = {
     needs_profile_completion?: boolean;
     password_set?: boolean;
     is_demo?: boolean;
+    // Modules activés par l'admin Stockman pour le compte (ex. suppliers).
+    platform_modules?: Record<string, boolean>;
     demo_session_id?: string | null;
     demo_type?: string | null;
     demo_surface?: string | null;
@@ -2227,7 +2229,7 @@ export const stock = {
         qs.set('limit', limit.toString());
         return request<any>(`/stock/movements?${qs.toString()}`);
     },
-    addMovement: (data: { product_id: string; type: 'in' | 'out'; quantity: number; reason?: string; purchase_price?: number }) =>
+    addMovement: (data: { product_id: string; type: 'in' | 'out'; quantity: number; reason?: string; kind?: string; purchase_price?: number }) =>
         request<any>('/stock/movement', { method: 'POST', body: data }),
     reverseMovement: (movementId: string) =>
         request<any>(`/stock/movement/${movementId}/reverse`, { method: 'POST' }),
@@ -3040,6 +3042,12 @@ export const admin = {
     bulkSetUserPlan: (userIds: string[], plan: string) => request<any>('/admin/users/bulk-plan', { method: 'POST', body: { user_ids: userIds, plan } }),
     updateUserNote: (userId: string, note: string) => request<any>(`/admin/users/${userId}/note`, { method: 'PUT', body: { note } }),
     getUserDetail: (userId: string) => request<any>(`/admin/users/${userId}/detail`),
+    relaunchOnboardingGuide: (userId: string) => request<any>(`/admin/users/${userId}/onboarding-guide/relaunch`, { method: 'POST' }),
+    getModulePolicy: () => request<any>('/admin/modules'),
+    getAiHealth: () => request<any>('/admin/ai/health'),
+    checkAiHealth: () => request<any>('/admin/ai/health/check', { method: 'POST' }),
+    setModulePolicy: (modules: Record<string, any>) => request<any>('/admin/modules', { method: 'PUT', body: { modules } }),
+    setAccountModules: (userId: string, modules: Record<string, boolean | null>) => request<any>(`/admin/users/${userId}/modules`, { method: 'PUT', body: { modules } }),
     setFeatureFlags: (userId: string, flags: Record<string, boolean>) => request<any>(`/admin/users/${userId}/feature-flags`, { method: 'PUT', body: { flags } }),
     setCustomLimits: (userId: string, limits: Record<string, number>) => request<any>(`/admin/users/${userId}/custom-limits`, { method: 'PUT', body: { limits } }),
     toggleProduct: (id: string) => request<any>(`/admin/products/${id}/toggle`, { method: 'PUT' }),

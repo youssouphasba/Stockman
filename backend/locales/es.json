@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "AnÃ¡lisis ABC (Prioridades)",
     "admin_messages": "Mensajes del administrador",
+    "admin_message_new": "Nuevo mensaje",
+    "admin_message_got_it": "Entendido",
+    "admin_message_next": "Mensaje siguiente",
+    "admin_message_open": "Abrir",
     "ai_daily_summary": "Resumen diario de IA",
     "ai_tap_to_generate": "Toca para generar",
     "category_distribution": "DistribuciÃ³n por CategorÃ­a",
@@ -1292,6 +1296,8 @@
     "delivery": "entrega"
   },
   "modals": {
+    "ai_unavailable": "El asistente de IA no está disponible por el momento. Vuelva a intentarlo más tarde; mientras tanto, puede consultar las guías:",
+    "ai_screen_guide": "Guía de esta pantalla",
     "ai_assistant_title": "Asistente IA",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Error desconocido",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "Con Premium, puedes:"
   },
   "products": {
+    "stock_change_title": "¿Por qué cambia el stock?",
+    "stock_change_increase": "El stock pasa de {{from}} a {{to}} (+{{diff}}). Elija el motivo.",
+    "stock_change_decrease": "El stock pasa de {{from}} a {{to}} (-{{diff}}). Elija el motivo.",
+    "stock_change_sale_hint": "Se registra una venta al precio de venta, pagada en efectivo, que aparece en Contabilidad.",
+    "stock_change_required": "Elija el motivo del cambio de stock.",
     "add_btn": "AÃ±adir",
     "add_photo_title": "AÃ±adir una foto",
     "add_product": "AÃ±adir producto",
@@ -2010,6 +2021,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Otro",
+      "restock": "Reabastecimiento",
+      "customer_return": "Devolución de cliente",
+      "expired": "Producto caducado",
+      "theft": "Robo",
+      "internal_use": "Uso interno",
+      "sale_from_product": "Venta fuera de caja",
       "pos_sale": "Venta POS",
       "inventory_adjustment": "Ajuste de inventario",
       "supplier_reception": "RecepciÃ³n de proveedor",

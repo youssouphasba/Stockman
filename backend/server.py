@@ -83,6 +83,8 @@ from enterprise_access import (
 from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, compute_theme_capabilities, legacy_theme_identity, resolve_model
 from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
 import onboarding_guide
+import platform_modules
+import ai_health
 from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
 from ecommerce_media import EcommerceMediaLibrary
 from ecommerce_addresses import DomainInputError, normalize_ecommerce_slug, parse_domain_input
@@ -137,7 +139,8 @@ DEFAULT_GEMINI_MODEL = (os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash").st
 
 
 def build_gemini_model(**kwargs):
-    return genai.GenerativeModel(DEFAULT_GEMINI_MODEL, **kwargs)
+    # Enveloppé pour détecter les pannes (crédit, quota, clé) et prévenir le superadmin.
+    return ai_health.MonitoredModel(genai.GenerativeModel(DEFAULT_GEMINI_MODEL, **kwargs))
 
 
 google_key = resolve_gemini_api_key()
@@ -896,10 +899,40 @@ async def run_startup_migrations():
     except Exception as e:
         logger.error(f"Migration error: {e}")
 
+async def notify_superadmins_ai_health(event: str, payload: Dict[str, Any]) -> None:
+    """Prévient l'équipe Stockman (notification et e-mail) d'une panne ou du retour du service d'IA."""
+    try:
+        admins = await db.users.find(
+            {"role": "superadmin"},
+            {"_id": 0, "email": 1, "push_tokens": 1},
+        ).to_list(20)
+        if event == "down":
+            title = f"IA en panne : {payload.get('category_label') or 'service indisponible'}"
+            body = "Les fonctions IA de Stockman ne répondent plus. Vérifiez le crédit et le quota dans Google AI Studio."
+        else:
+            title = "IA rétablie"
+            body = "Les fonctions IA de Stockman répondent de nouveau."
+        tokens = list({token for admin in admins for token in (admin.get("push_tokens") or []) if token})
+        if tokens:
+            await notification_service.send_push_notification(tokens, title, body, {"type": "ai_health", "event": event})
+        emails = [admin.get("email") for admin in admins if admin.get("email")]
+        if emails:
+            detail = payload.get("last_error") or ""
+            html_body = (
+                f"<p>{body}</p>"
+                + (f"<p><strong>Erreur renvoyée par Gemini :</strong><br>{html.escape(detail)}</p>" if event == "down" and detail else "")
+                + "<p>État détaillé : tableau de bord admin, rubrique Monitoring.</p>"
+            )
+            await notification_service.send_email_notification(emails, f"Stockman · {title}", html_body, text_body=f"{body}\n{detail}".strip())
+    except Exception as exc:
+        logger.warning("AI health alert failed: %s", exc)
+
+
 @app.on_event("startup")
 async def create_indexes_and_init():
     """Create essential indexes and initialize dynamic configs"""
     global rag_service
+    ai_health.bind(asyncio.get_running_loop(), notify_superadmins_ai_health)
     try:
         init_firebase()
 
@@ -2935,6 +2968,8 @@ class User(UserBase):
     demo_expires_at: Optional[datetime] = None
     auth_version: int = 1
     password_set: bool = False
+    # Modules activés par l'admin Stockman pour ce compte (ex. Fournisseurs).
+    platform_modules: Dict[str, bool] = {}
 
 class BusinessAccount(BaseModel):
     account_id: str = Field(default_factory=lambda: f"acct_{uuid.uuid4().hex[:12]}")
@@ -3238,6 +3273,29 @@ class ProductUpdate(BaseModel):
     production_mode: Optional[str] = None
     linked_recipe_id: Optional[str] = None
     force_override: bool = False
+    # Raison d'un changement de quantité saisi dans la fiche produit (voir PRODUCT_STOCK_CHANGE_KINDS).
+    stock_change_kind: Optional[str] = None
+
+# Raisons d'un changement de stock (boutons + et -, quantité modifiée dans la fiche) : (sens, clé du motif).
+# Une hausse n'accepte que des raisons d'entrée, une baisse que des raisons de sortie.
+# « sale » enregistre une vraie vente (chiffre d'affaires, marge) ; les sorties hors vente comptent dans les pertes.
+STOCK_CHANGE_KINDS: Dict[str, Tuple[str, Optional[str]]] = {
+    "restock": ("in", "stock.reasons.restock"),
+    "customer_return": ("in", "stock.reasons.customer_return"),
+    "inventory_adjustment_in": ("in", "stock.reasons.inventory_adjustment"),
+    "sale": ("out", None),
+    "loss_damage": ("out", "stock.reasons.loss_damage"),
+    "expired": ("out", "stock.reasons.expired"),
+    "theft": ("out", "stock.reasons.theft"),
+    "internal_use": ("out", "stock.reasons.internal_use"),
+    "inventory_adjustment_out": ("out", "stock.reasons.inventory_adjustment"),
+    "other_out": ("out", "stock.reasons.other"),
+}
+
+def ensure_stock_change_sale_allowed(user: "User", kind: Optional[str]) -> None:
+    """Une vente saisie depuis le stock exige l'accès à la caisse, comme une vente en Caisse."""
+    if kind == "sale" and user.role != "superadmin" and not _user_has_module_access(user, "pos", level="write"):
+        raise HTTPException(status_code=403, detail="Vous n'avez pas l'accès à la caisse pour enregistrer une vente.")
 
 class PriceHistory(BaseModel):
     history_id: str = Field(default_factory=lambda: f"prc_{uuid.uuid4().hex[:12]}")
@@ -3400,11 +3458,15 @@ class StockMovement(BaseModel):
     new_purchase_price: Optional[float] = None  # Product WAC after this movement (only on "in" with WAC update)
     source_type: Optional[str] = None
     source_id: Optional[str] = None
+    # Raison choisie dans la liste (voir STOCK_CHANGE_KINDS) ; « reason » en garde le libellé.
+    kind: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StockMovementCreate(BaseModel):
     product_id: str
     type: str  # "in" or "out"
+    # Raison choisie dans la liste : une vente devient une vraie vente, une perte compte dans les pertes.
+    kind: Optional[str] = None
     quantity: float
     reason: str = ""
     batch_id: Optional[str] = None
@@ -5725,6 +5787,9 @@ async def build_user_from_doc(user_doc: dict, request: Optional[Request] = None)
     source_doc["subscription_end"] = (account_doc or {}).get("subscription_end") or user_doc.get("subscription_end")
     source_doc["trial_ends_at"] = (account_doc or {}).get("trial_ends_at") or user_doc.get("trial_ends_at")
     source_doc["business_type"] = (account_doc or {}).get("business_type") or user_doc.get("business_type")
+    source_doc["platform_modules"] = await platform_modules.access_for_account(
+        db, access_context["effective_plan"], source_doc["business_type"], account_doc, user_doc.get("role"),
+    )
     source_doc["currency"] = (account_doc or {}).get("currency") or user_doc.get("currency", DEFAULT_CURRENCY)
     source_doc["country_code"] = (account_doc or {}).get("country_code") or user_doc.get("country_code", DEFAULT_COUNTRY_CODE)
     source_doc["is_demo"] = bool((account_doc or {}).get("is_demo") or user_doc.get("is_demo"))
@@ -5842,6 +5907,13 @@ async def require_auth(request: Request, auth: Optional[HTTPAuthorizationCredent
     if not user:
         raise HTTPException(status_code=401, detail="Non authentifiÃ©")
     return user
+
+
+async def require_suppliers_module(user: User = Depends(require_auth)) -> User:
+    """Refuse les routes Fournisseurs quand l'admin Stockman a coupé ce module pour le compte."""
+    if user.role in {"superadmin", "admin", "supplier"} or user.platform_modules.get("suppliers"):
+        return user
+    raise HTTPException(status_code=403, detail="Le module Fournisseurs n'est pas activé pour ce compte.")
 
 def require_permission(module: str, level: str = "read"):
     async def permission_checker(request: Request, user: User = Depends(require_auth)):
@@ -8343,7 +8415,121 @@ async def admin_user_detail(user_id: str, admin: User = Depends(require_superadm
         "recent_activity": recent_activity,
         "system_messages": system_messages,
         "account": account or {},
+        "onboarding_guide": onboarding_guide.admin_view(user_doc),
+        "modules": await admin_account_modules_view(user_doc),
     }
+
+
+async def admin_account_modules_view(user_doc: dict) -> Optional[Dict[str, Any]]:
+    """Modules de la plateforme pour un compte commerce, avec le niveau de réglage qui décide."""
+    if user_doc.get("role") in {"superadmin", "admin", "supplier"}:
+        return None
+    account_doc = await ensure_business_account_for_user_doc(dict(user_doc))
+    plan = normalize_plan((account_doc or {}).get("plan") or user_doc.get("subscription_plan") or user_doc.get("plan"))
+    business_type = (account_doc or {}).get("business_type") or user_doc.get("business_type")
+    policy = await platform_modules.get_policy(db)
+    return {
+        "plan": plan,
+        "business_type": normalize_sector(business_type or ""),
+        "items": platform_modules.account_view(policy, plan, business_type, account_doc),
+    }
+
+
+class AdminModulePolicyRequest(BaseModel):
+    modules: Dict[str, Any]
+
+
+class AdminAccountModulesRequest(BaseModel):
+    # True ou False force le module pour ce compte ; None revient aux règles générales.
+    modules: Dict[str, Optional[bool]]
+
+
+@admin_router.get("/ai/health")
+async def admin_ai_health(admin: User = Depends(require_superadmin)):
+    """État du service d'IA : génération (Gemini) et recherche documentaire de l'assistant (RAG)."""
+    return {
+        "model": DEFAULT_GEMINI_MODEL,
+        "api_key_configured": bool(resolve_gemini_api_key()),
+        "gemini": ai_health.snapshot(),
+        "rag": rag_service.status() if rag_service else None,
+    }
+
+
+@admin_router.post("/ai/health/check")
+async def admin_ai_health_check(admin: User = Depends(require_superadmin)):
+    """Teste tout de suite la génération et les embeddings, et relance l'indexation manquante."""
+    generation: Dict[str, Any] = {"ok": False}
+    try:
+        response = await asyncio.wait_for(build_gemini_model().generate_content_async("Réponds simplement : OK"), timeout=30)
+        generation = {"ok": True, "sample": (getattr(response, "text", "") or "").strip()[:40]}
+    except Exception as exc:
+        generation = {"ok": False, "error": str(exc)[:300]}
+    embedding: Dict[str, Any] = {"ok": False, "error": "Recherche documentaire non initialisée"}
+    if rag_service:
+        rag_service.embedding_retry_at = 0
+        vector = await rag_service._generate_embedding("test", "retrieval_query")
+        embedding = {"ok": bool(vector), "dimensions": len(vector)} if vector else {"ok": False, "error": rag_service.last_embedding_error}
+        if vector:
+            rag_service._schedule_embedding_fill()
+    return {
+        "generation": generation,
+        "embedding": embedding,
+        "gemini": ai_health.snapshot(),
+        "rag": rag_service.status() if rag_service else None,
+    }
+
+
+@admin_router.get("/modules")
+async def admin_get_module_policy(admin: User = Depends(require_superadmin)):
+    return {"policy": await platform_modules.get_policy(db), **platform_modules.catalog()}
+
+
+@admin_router.put("/modules")
+async def admin_set_module_policy(data: AdminModulePolicyRequest, admin: User = Depends(require_superadmin)):
+    policy = await platform_modules.save_policy(db, data.modules)
+    return {"policy": policy, **platform_modules.catalog()}
+
+
+@admin_router.put("/users/{user_id}/modules")
+async def admin_set_account_modules(user_id: str, data: AdminAccountModulesRequest, admin: User = Depends(require_superadmin)):
+    """Force un module pour le compte entier (propriétaire et équipe), ou revient aux règles générales."""
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if user_doc.get("role") in {"superadmin", "admin", "supplier"}:
+        raise HTTPException(status_code=400, detail="Les modules ne se règlent que pour un compte commerce.")
+    account_doc = await ensure_business_account_for_user_doc(dict(user_doc))
+    if not account_doc:
+        raise HTTPException(status_code=400, detail="Compte commerce introuvable")
+    updates: Dict[str, Any] = {}
+    removals: Dict[str, Any] = {}
+    for module, value in data.modules.items():
+        if module not in platform_modules.MODULES:
+            raise HTTPException(status_code=400, detail=f"Module inconnu : {module}")
+        field = f"{platform_modules.OVERRIDES_FIELD}.{module}"
+        if value is None:
+            removals[field] = ""
+        else:
+            updates[field] = bool(value)
+    operation: Dict[str, Any] = {}
+    if updates:
+        operation["$set"] = updates
+    if removals:
+        operation["$unset"] = removals
+    if operation:
+        await db.business_accounts.update_one({"account_id": account_doc["account_id"]}, operation)
+    return await admin_account_modules_view(user_doc)
+
+
+@admin_router.post("/users/{user_id}/onboarding-guide/relaunch")
+async def admin_relaunch_onboarding_guide(user_id: str, admin: User = Depends(require_superadmin)):
+    """Refait suivre le guide de démarrage mobile à un commerçant, depuis le début."""
+    if not await db.users.find_one({"user_id": user_id}, {"_id": 0, "user_id": 1}):
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    try:
+        return await onboarding_guide.relaunch(db, user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @admin_router.get("/users/{user_id}/system-messages")
@@ -9237,6 +9423,7 @@ async def admin_onboarding_stats(days: int = 30):
         "by_surface": dict(surface_breakdown),
         "by_country": dict(country_breakdown),
         "by_business_type": dict(business_type_breakdown),
+        "guide": await onboarding_guide.admin_stats(db),
     }
 
 
@@ -11285,14 +11472,22 @@ def _resolve_ai_plan(user: User) -> str:
 async def check_ai_limit(user: User, feature: str):
     """Delegate to ai_governance (compat wrapper)."""
     plan = _resolve_ai_plan(user)
-    await ai_governance.check_ai_limit(db, user.user_id, plan, feature)
+    # Quota partagé par tout le compte : le propriétaire et son équipe.
+    await ai_governance.check_ai_limit(db, get_owner_id(user), plan, feature)
 
 
 async def track_ai_usage(user_id: str, feature: str, plan: Optional[str] = None,
                          *, platform: str = "unknown", success: bool = True,
                          latency_ms: Optional[int] = None, ai_enhanced: bool = True):
     """Delegate to ai_governance (compat wrapper)."""
-    owner_id = user_id  # will be resolved properly at call-site when possible
+    # Le quota est compté par compte : un employé consomme celui de son propriétaire.
+    owner_id = user_id
+    try:
+        user_doc = await db.users.find_one({"user_id": user_id}, {"parent_user_id": 1})
+        if user_doc and user_doc.get("parent_user_id"):
+            owner_id = user_doc["parent_user_id"]
+    except Exception as exc:
+        logger.warning("AI usage owner lookup failed for %s: %s", user_id, exc)
     await ai_governance.track_ai_usage(
         db,
         user_id=user_id,
@@ -11426,9 +11621,10 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
             available_tools["get_accounting_snapshot"] = ai_tools.get_accounting_snapshot
         if _user_has_module_access(user, "crm"):
             available_tools["get_crm_snapshot"] = ai_tools.get_crm_snapshot
-        if _user_has_module_access(user, "suppliers"):
+        suppliers_module_on = bool(user.platform_modules.get("suppliers"))
+        if suppliers_module_on and _user_has_module_access(user, "suppliers"):
             available_tools["get_procurement_snapshot"] = ai_tools.get_procurement_snapshot
-        if _user_has_module_access(user, "suppliers", "stock") or user.role in ["admin", "superadmin"] or is_org_admin_user(user):
+        if suppliers_module_on and (_user_has_module_access(user, "suppliers", "stock") or user.role in ["admin", "superadmin"] or is_org_admin_user(user)):
             available_tools["get_marketplace_overview"] = ai_tools.get_marketplace_overview
         available_tools["get_settings_snapshot"] = ai_tools.get_settings_snapshot
         available_tools["get_subscription_snapshot"] = ai_tools.get_subscription_snapshot
@@ -11541,6 +11737,9 @@ async def ai_support(request: Request, prompt: AiPrompt, user: User = Depends(re
             response = chat.send_message(contextualized_message)
         except Exception as e:
             logger.error(f"AI support response error: {str(e)}")
+            unavailable = ai_health.user_message(e)
+            if unavailable:
+                raise HTTPException(status_code=503, detail=unavailable)
             raise HTTPException(status_code=500, detail="Une erreur est survenue lors de la discussion avec l'IA")
 
         # Limit max function calls to prevent infinite loops
@@ -11780,6 +11979,17 @@ async def ai_daily_summary(request: Request, lang: str = "fr", user: User = Depe
         user,
         detail="Le resume IA du dashboard mobile est reserve au plan Enterprise.",
     )
+    # Un résumé par boutique, par jour et par langue : rouvrir le tableau de bord le réaffiche
+    # sans nouvel appel à l'IA (et sans buter sur le quota d'un résumé par jour).
+    summary_cache_query = {
+        "owner_id": get_owner_id(user),
+        "store_id": user.active_store_id or "",
+        "date": datetime.now(timezone.utc).date().isoformat(),
+        "lang": lang,
+    }
+    cached_summary = await db.ai_daily_summaries.find_one(summary_cache_query, {"_id": 0, "summary": 1})
+    if cached_summary and cached_summary.get("summary"):
+        return {"summary": cached_summary["summary"], "cached": True}
     await check_ai_limit(user, "daily_summary")
     api_key = resolve_gemini_api_key()
     if not api_key:
@@ -11845,7 +12055,13 @@ Sois direct comme un associÃ© qui connaÃ®t le business. Aucune formule de po
         model = build_gemini_model()
         response = model.generate_content(prompt)
         await track_ai_usage(user.user_id, "daily_summary", plan=_resolve_ai_plan(user))
-        return {"summary": response.text.strip()}
+        summary_text = response.text.strip()
+        await db.ai_daily_summaries.update_one(
+            summary_cache_query,
+            {"$set": {**summary_cache_query, "summary": summary_text, "created_at": datetime.now(timezone.utc)}},
+            upsert=True,
+        )
+        return {"summary": summary_text}
     except Exception as e:
         logger.error(f"AI daily-summary error: {e}")
         raise HTTPException(status_code=500, detail=i18n.t("errors.ai_generation_error", user.language))
@@ -12363,6 +12579,7 @@ Si un champ n'est pas lisible, mets null. Les prix doivent Ãªtre des nombres.
 @limiter.limit("10/minute")
 async def ai_pl_analysis(request: Request, lang: str = "fr", days: int = 30, user: User = Depends(require_permission("accounting", "read"))):
     """AI narrative analysis of P&L for the Accounting screen"""
+    await check_ai_limit(user, "pl_analysis")
     api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="ClÃ© API IA manquante")
@@ -12423,6 +12640,7 @@ Sois direct, analytique, utilise les chiffres. Pas de formules creuses."""
         genai.configure(api_key=api_key)
         model = build_gemini_model()
         response = model.generate_content(prompt)
+        await track_ai_usage(user.user_id, "pl_analysis", plan=_resolve_ai_plan(user))
         return {
             "analysis": response.text.strip(),
             "kpis": {"revenue": revenue, "gross_profit": gross_profit, "net_profit": net_profit, "margin_pct": margin_pct, "top_expense": top_expense}
@@ -12436,6 +12654,7 @@ Sois direct, analytique, utilise les chiffres. Pas de formules creuses."""
 @limiter.limit("10/minute")
 async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = Depends(require_permission("crm", "read"))):
     """AI churn prediction â€” identifies at-risk customers"""
+    await check_ai_limit(user, "churn_prediction")
     api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="ClÃ© API IA manquante")
@@ -12509,6 +12728,7 @@ Sois direct et opÃ©rationnel. Utilise les chiffres fournis."""
         genai.configure(api_key=api_key)
         model = build_gemini_model()
         response = model.generate_content(summary_prompt)
+        await track_ai_usage(user.user_id, "churn_prediction", plan=_resolve_ai_plan(user))
 
         return {"at_risk": top_at_risk, "total_at_risk": len(at_risk), "summary": response.text.strip()}
     except Exception as e:
@@ -12520,6 +12740,7 @@ Sois direct et opÃ©rationnel. Utilise les chiffres fournis."""
 @limiter.limit("5/minute")
 async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Depends(require_permission("accounting", "read"))):
     """Generate a full AI monthly report (narrative, exportable)"""
+    await check_ai_limit(user, "monthly_report")
     api_key = resolve_gemini_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="ClÃ© API IA manquante")
@@ -12605,6 +12826,7 @@ Sois professionnel, analytique et chiffrÃ©. Utilise uniquement les donnÃ©es 
         genai.configure(api_key=api_key)
         model = build_gemini_model()
         response = model.generate_content(prompt)
+        await track_ai_usage(user.user_id, "monthly_report", plan=_resolve_ai_plan(user))
         return {"report": response.text.strip(), "generated_at": now.isoformat()}
     except Exception as e:
         logger.error(f"AI monthly-report error: {e}")
@@ -12615,6 +12837,7 @@ Sois professionnel, analytique et chiffrÃ©. Utilise uniquement les donnÃ©es 
 @limiter.limit("20/minute")
 async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User = Depends(require_auth)):
     """Use Gemini to transcribe voice audio and optionally respond"""
+    await check_ai_limit(user, "voice_to_text")
     audio_base64 = data.get("audio", "")
     lang = data.get("language", "fr")
     if not audio_base64:
@@ -12642,6 +12865,7 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
 
         response = model.generate_content([prompt, audio_part])
         transcription = response.text.strip()
+        await track_ai_usage(user.user_id, "voice_to_text", plan=_resolve_ai_plan(user))
         return {"transcription": transcription}
     except Exception as e:
         logger.error(f"AI voice-to-text error: {e}")
@@ -13649,7 +13873,7 @@ async def save_duplicate_resolution(
 # ===================== VAGUE 3 â€” INTELLIGENCE FOURNISSEURS =====================
 
 
-@api_router.get("/ai/supplier-rating/{supplier_id}")
+@api_router.get("/ai/supplier-rating/{supplier_id}", dependencies=[Depends(require_suppliers_module)])
 @limiter.limit("30/minute")
 async def ai_supplier_rating(supplier_id: str, request: Request, user: User = Depends(require_operational_access)):
     """Score fournisseur 0-100 base sur historique commandes. Pro+Enterprise."""
@@ -13796,7 +14020,7 @@ async def ai_supplier_rating(supplier_id: str, request: Request, user: User = De
     return result
 
 
-@api_router.get("/ai/optimal-order-day/{supplier_id}")
+@api_router.get("/ai/optimal-order-day/{supplier_id}", dependencies=[Depends(require_suppliers_module)])
 @limiter.limit("10/minute")
 async def ai_optimal_order_day(supplier_id: str, request: Request, user: User = Depends(require_operational_access)):
     """Meilleur jour de semaine pour commander chez un fournisseur. Enterprise."""
@@ -14822,7 +15046,7 @@ async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = 
     """
     owner_id = get_owner_id(user)
     plan = _resolve_ai_plan(user)
-    _check_ai_gate(owner_id, "customer_summary", plan)
+    await check_ai_limit(user, "customer_summary")
 
     effective_store_id = user.active_store_id
     cache_key = f"customer_summary:{owner_id}:{effective_store_id or 'all'}:{customer_id}:{lang}"
@@ -14912,7 +15136,7 @@ NOTES : {notes or "Aucune"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur IA : {str(e)}")
 
-    _track_ai_usage_lite(owner_id, "customer_summary", plan)
+    await track_ai_usage(user.user_id, "customer_summary", plan=plan)
 
     result = {
         "customer_id": customer_id,
@@ -14955,7 +15179,7 @@ async def generate_customer_message(body: dict = Body(...), user: User = Depends
     if not customer_id:
         raise HTTPException(status_code=400, detail="customer_id required")
 
-    _check_ai_gate(owner_id, "customer_message", plan)
+    await check_ai_limit(user, "generate_customer_message")
 
     # Fetch customer
     effective_store_id = user.active_store_id
@@ -15049,7 +15273,7 @@ Rules:
     if not message_text:
         raise HTTPException(status_code=500, detail="AI generation failed")
 
-    _track_ai_usage_lite(owner_id, "customer_message", plan)
+    await track_ai_usage(user.user_id, "generate_customer_message", plan=plan)
 
     return {
         "customer_id": customer_id,
@@ -15283,7 +15507,7 @@ async def natural_language_query(body: dict = Body(...), user: User = Depends(re
     if not query:
         raise HTTPException(status_code=400, detail="query required")
 
-    _check_ai_gate(owner_id, "natural_query", plan)
+    await check_ai_limit(user, "natural_query")
 
     # Step 1: try regex parser
     intent, period_days = _parse_nl_intent(query)
@@ -15324,7 +15548,7 @@ Reply with JSON only, exactly: {{"intent": "...", "period_days": N}}"""
     result["resolved_by"] = resolved_by
     result["store_id"] = store_id
 
-    _track_ai_usage_lite(owner_id, "natural_query", plan)
+    await track_ai_usage(user.user_id, "natural_query", plan=plan)
     return result
 
 
@@ -15334,62 +15558,8 @@ Reply with JSON only, exactly: {{"intent": "...", "period_days": N}}"""
 
 def _match_products_from_text(text: str, products: list) -> list:
     """Match product names from transcribed text. Returns list of {product, qty}."""
-    text_lower = text.lower()
-    results = []
-    # Sort by name length descending (longest match first to avoid partial collisions)
-    sorted_products = sorted(products, key=lambda p: len(p.get("name", "")), reverse=True)
-
-    import re as _re
-    for product in sorted_products:
-        name = (product.get("name") or "").lower().strip()
-        if not name or len(name) < 2:
-            continue
-
-        # Look for the product name in the text
-        # Also look for common quantity patterns before/after the name
-        # e.g. "2 coca", "coca fois 3", "trois bouteilles de coca"
-        pattern = _re.escape(name)
-        match = _re.search(pattern, text_lower)
-        if not match:
-            continue
-
-        # Try to extract quantity near the match
-        qty = 1
-        start = match.start()
-        end = match.end()
-        context_before = text_lower[max(0, start - 20):start]
-        context_after = text_lower[end:min(len(text_lower), end + 20)]
-
-        # Number words
-        word_to_num = {
-            "un": 1, "une": 1, "one": 1, "uno": 1,
-            "deux": 2, "two": 2, "dos": 2, "deux": 2,
-            "trois": 3, "three": 3, "tres": 3,
-            "quatre": 4, "four": 4, "cuatro": 4,
-            "cinq": 5, "five": 5, "cinco": 5,
-            "six": 6, "sept": 7, "huit": 8, "neuf": 9, "dix": 10,
-        }
-
-        # Numeric digit before name
-        num_before = _re.search(r'(\d+)\s*$', context_before)
-        num_after = _re.search(r'^\s*(?:fois|x|Ã—)\s*(\d+)', context_after)
-        word_before = None
-        for word, val in word_to_num.items():
-            if _re.search(r'\b' + word + r'\s*$', context_before):
-                word_before = val
-                break
-
-        if num_before:
-            qty = int(num_before.group(1))
-        elif num_after:
-            qty = int(num_after.group(1))
-        elif word_before:
-            qty = word_before
-
-        qty = max(1, min(qty, 999))
-        results.append({"product": product, "qty": qty})
-
-    return results
+    import voice_cart
+    return voice_cart.match_products_from_text(text, products)
 
 
 @api_router.post("/ai/voice-to-cart")
@@ -15405,7 +15575,7 @@ async def voice_to_cart(body: dict = Body(...), user: User = Depends(require_ope
     if not audio_base64:
         raise HTTPException(status_code=400, detail="audio_base64 required")
 
-    _check_ai_gate(owner_id, "voice_to_cart", plan)
+    await check_ai_limit(user, "voice_to_cart")
 
     # Transcribe audio with Gemini
     import google.generativeai as genai
@@ -15439,25 +15609,36 @@ async def voice_to_cart(body: dict = Body(...), user: User = Depends(require_ope
     ).limit(500).to_list(None)
 
     # Match products in transcription
-    matched = _match_products_from_text(transcription, products)
+    import voice_cart
+    analysis = voice_cart.analyze_text(transcription, products)
 
-    items = []
-    for m in matched:
-        p = m["product"]
-        items.append({
+    def _voice_item(p: dict, quantity: int) -> dict:
+        return {
             "product_id": p.get("product_id"),
             "name": p.get("name"),
-            "quantity": m["qty"],
+            "quantity": quantity,
             "unit_price": p.get("price", 0),
             "stock_available": p.get("quantity", 0),
             "barcode": p.get("barcode"),
-        })
+        }
 
-    _track_ai_usage_lite(owner_id, "voice_to_cart", plan)
+    items = [_voice_item(m["product"], m["qty"]) for m in analysis["matches"]]
+    # Passages qui correspondent à plusieurs produits : le commerçant choisit.
+    suggestions = [
+        {
+            "said": s["said"],
+            "quantity": s["qty"],
+            "options": [_voice_item(p, s["qty"]) for p in s["products"]],
+        }
+        for s in analysis["suggestions"]
+    ]
+
+    await track_ai_usage(user.user_id, "voice_to_cart", plan=plan)
 
     return {
         "transcription": transcription,
         "items": items,
+        "suggestions": suggestions,
         "matched_count": len(items),
         "lang": lang,
     }
@@ -20255,12 +20436,33 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
         if incoming_purchase_price != current_purchase_price:
             raise HTTPException(status_code=400, detail="purchase_price_locked_use_stock_in")
 
+    # Quantité d'un produit simple modifiée dans la fiche : le changement devient un mouvement
+    # qualifié (entrée, vente, perte…) au lieu d'écraser le stock sans trace.
+    stock_change_kind = update_dict.pop("stock_change_kind", None)
+    has_variants = bool(update_dict.get("has_variants", current_product.get("has_variants")))
+    stock_delta = 0.0
+    if not has_variants and "quantity" in update_dict:
+        incoming_quantity = round_quantity(float(update_dict.get("quantity") or 0))
+        if incoming_quantity < 0:
+            raise HTTPException(status_code=400, detail="La quantité ne peut pas être négative.")
+        stock_delta = round_quantity(incoming_quantity - round_quantity(float(current_product.get("quantity") or 0)))
+        if abs(stock_delta) > 1e-9:
+            expected_direction = "in" if stock_delta > 0 else "out"
+            change = STOCK_CHANGE_KINDS.get(stock_change_kind or "")
+            if not change or change[0] != expected_direction:
+                raise HTTPException(status_code=400, detail=i18n.t("products.stock_change_required", user.language))
+            ensure_stock_change_sale_allowed(user, stock_change_kind)
+        update_dict.pop("quantity", None)
+
     normalized_update = normalize_product_measurement_fields({**current_product, **update_dict})
     update_payload = {
         key: value
         for key, value in normalized_update.items()
         if key not in {"_id", "created_at"}
     }
+    if not has_variants:
+        # Le stock d'un produit simple ne bouge que par des mouvements : on ne réécrit pas l'ancienne valeur.
+        update_payload.pop("quantity", None)
     update_payload["updated_at"] = datetime.now(timezone.utc)
 
     result = await db.products.find_one_and_update(
@@ -20287,6 +20489,17 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
             ).model_dump())
     if not result:
         raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+
+    if abs(stock_delta) > 1e-9:
+        await create_stock_movement(StockMovementCreate(
+            product_id=product_id,
+            type="in" if stock_delta > 0 else "out",
+            quantity=abs(stock_delta),
+            kind=stock_change_kind,
+            source_type="product_edit",
+            source_id=product_id,
+        ), user)
+        result = await db.products.find_one({"product_id": product_id, "user_id": owner_id}) or result
 
     result.pop("_id", None)
     product = _product_response_for_user(user, result)
@@ -20725,6 +20938,36 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     previous_quantity = product["quantity"]
 
+    # Raison choisie dans la liste : sens vérifié, libellé enregistré, vente traitée comme une vente.
+    if mov_data.kind:
+        change = STOCK_CHANGE_KINDS.get(mov_data.kind)
+        if not change or change[0] != mov_data.type:
+            raise HTTPException(status_code=400, detail=i18n.t("products.stock_change_required", user.language))
+        if mov_data.quantity <= 0:
+            raise HTTPException(status_code=400, detail="La quantité doit être supérieure à zéro.")
+        if mov_data.kind == "sale":
+            ensure_stock_change_sale_allowed(user, mov_data.kind)
+            sale = await create_sale(SaleCreate(
+                items=[{"product_id": mov_data.product_id, "quantity": mov_data.quantity}],
+                payment_method="cash",
+                notes=i18n.t("stock.reasons.sale_from_product", user.language),
+            ), user)
+            sale_movement = await db.stock_movements.find_one(
+                {"user_id": owner_id, "product_id": mov_data.product_id, "reason": "stock.reasons.pos_sale"},
+                {"_id": 0},
+                sort=[("created_at", -1)],
+            )
+            if sale_movement:
+                return StockMovement(**sale_movement)
+            return StockMovement(
+                product_id=mov_data.product_id, product_name=product.get("name"), user_id=owner_id,
+                store_id=product.get("store_id"), type="out", quantity=mov_data.quantity,
+                reason="stock.reasons.pos_sale", previous_quantity=previous_quantity,
+                new_quantity=round_quantity(previous_quantity - mov_data.quantity),
+                source_type="sale", source_id=getattr(sale, "sale_id", None), kind="sale",
+            )
+        mov_data.reason = i18n.t(change[1], user.language)
+
     # Handle Batch Sync
     new_wac = None
     if mov_data.type == "in":
@@ -20816,6 +21059,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
         new_purchase_price=new_wac,
         source_type=mov_data.source_type,
         source_id=mov_data.source_id,
+        kind=mov_data.kind,
     )
     await db.stock_movements.insert_one(movement.model_dump())
     _invalidate_dashboard_ai_caches(owner_id, product.get("store_id") or user.active_store_id)
@@ -25988,10 +26232,11 @@ async def get_analytics_filter_meta(user: User = Depends(require_operational_acc
             ]
 
     categories = await db.categories.find(categories_query, {"_id": 0, "category_id": 1, "name": 1}).to_list(1000)
+    # Module Fournisseurs coupé : pas de filtre Fournisseur dans les analyses.
     suppliers = await db.suppliers.find(
         {"user_id": owner_id, "is_active": True},
         {"_id": 0, "supplier_id": 1, "name": 1},
-    ).to_list(1000)
+    ).to_list(1000) if user.platform_modules.get("suppliers") else []
 
     return {
         "stores": [{"id": store["store_id"], "label": store.get("name") or "Magasin"} for store in stores],
@@ -26710,7 +26955,7 @@ async def get_dashboard(user: User = Depends(require_operational_access)):
 
 # ===================== SUPPLIER ROUTES =====================
 
-@api_router.get("/suppliers")
+@api_router.get("/suppliers", dependencies=[Depends(require_suppliers_module)])
 async def get_suppliers(user: User = Depends(require_permission("suppliers", "read")), skip: int = 0, limit: int = 50, search: Optional[str] = None):
     owner_id = get_owner_id(user)
     query = {"user_id": owner_id, "is_active": True}
@@ -26734,7 +26979,7 @@ async def get_suppliers(user: User = Depends(require_permission("suppliers", "re
         results.append(sup)
     return {"items": results, "total": total}
 
-@api_router.get("/suppliers/{supplier_id}", response_model=Supplier)
+@api_router.get("/suppliers/{supplier_id}", response_model=Supplier, dependencies=[Depends(require_suppliers_module)])
 async def get_supplier(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -26751,7 +26996,7 @@ async def get_supplier(supplier_id: str, user: User = Depends(require_permission
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     return Supplier(**supplier)
 
-@api_router.post("/suppliers", response_model=Supplier)
+@api_router.post("/suppliers", response_model=Supplier, dependencies=[Depends(require_suppliers_module)])
 async def create_supplier(sup_data: SupplierCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     supplier = Supplier(**sup_data.model_dump(), user_id=owner_id, store_id=user.active_store_id)
@@ -26814,7 +27059,7 @@ async def create_supplier(sup_data: SupplierCreate, user: User = Depends(require
 
     return Supplier(**{k: v for k, v in supplier_doc.items() if k != "_id"})
 
-@api_router.get("/suppliers/{supplier_id}/invitation-link")
+@api_router.get("/suppliers/{supplier_id}/invitation-link", dependencies=[Depends(require_suppliers_module)])
 async def get_supplier_invitation_link(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -26826,7 +27071,7 @@ async def get_supplier_invitation_link(supplier_id: str, user: User = Depends(re
         await db.suppliers.update_one({"supplier_id": supplier_id}, {"$set": {"invitation_token": token}})
     return {"link": f"https://stockman.pro/invite/supplier?token={token}"}
 
-@api_router.post("/suppliers/{supplier_id}/resend-invitation")
+@api_router.post("/suppliers/{supplier_id}/resend-invitation", dependencies=[Depends(require_suppliers_module)])
 async def resend_supplier_invitation(supplier_id: str, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -26873,7 +27118,7 @@ async def resend_supplier_invitation(supplier_id: str, user: User = Depends(requ
     await db.suppliers.update_one({"supplier_id": supplier_id}, {"$set": {"invitation_sent": True, "invitation_token": token}})
     return {"message": "Invitation renvoyee"}
 
-@api_router.put("/suppliers/{supplier_id}", response_model=Supplier)
+@api_router.put("/suppliers/{supplier_id}", response_model=Supplier, dependencies=[Depends(require_suppliers_module)])
 async def update_supplier(supplier_id: str, sup_data: SupplierCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     existing = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
@@ -26899,7 +27144,7 @@ async def update_supplier(supplier_id: str, sup_data: SupplierCreate, user: User
     result.pop("_id", None)
     return Supplier(**result)
 
-@api_router.delete("/suppliers/{supplier_id}")
+@api_router.delete("/suppliers/{supplier_id}", dependencies=[Depends(require_suppliers_module)])
 async def delete_supplier(supplier_id: str, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     existing = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
@@ -26922,7 +27167,7 @@ async def delete_supplier(supplier_id: str, user: User = Depends(require_permiss
     return {"message": "Fournisseur supprimÃ©"}
 
 # Supplier-Product links
-@api_router.get("/suppliers/{supplier_id}/products")
+@api_router.get("/suppliers/{supplier_id}/products", dependencies=[Depends(require_suppliers_module)])
 async def get_supplier_products(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -27165,7 +27410,7 @@ async def _build_supplier_stats_payload(
         **score_payload,
     }
 
-@api_router.get("/suppliers/{supplier_id}/stats")
+@api_router.get("/suppliers/{supplier_id}/stats", dependencies=[Depends(require_suppliers_module)])
 async def get_supplier_stats(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
@@ -27220,7 +27465,7 @@ async def get_supplier_stats(supplier_id: str, user: User = Depends(require_perm
         "delivered_count": len(delivered_orders)
     }
 
-@api_router.get("/suppliers/{supplier_id}/price-history")
+@api_router.get("/suppliers/{supplier_id}/price-history", dependencies=[Depends(require_suppliers_module)])
 async def get_supplier_price_history(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -27365,7 +27610,7 @@ async def get_supplier_price_history(supplier_id: str, user: User = Depends(requ
     return response
 
 
-@api_router.get("/suppliers/{supplier_id}/invoices", response_model=List[SupplierInvoice])
+@api_router.get("/suppliers/{supplier_id}/invoices", response_model=List[SupplierInvoice], dependencies=[Depends(require_suppliers_module)])
 async def get_supplier_invoices(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -27383,7 +27628,7 @@ async def get_supplier_invoices(supplier_id: str, user: User = Depends(require_p
     ).sort("created_at", -1).to_list(100)
     return [SupplierInvoice(**i) for i in invoices]
 
-@api_router.post("/suppliers/{supplier_id}/invoices", response_model=SupplierInvoice)
+@api_router.post("/suppliers/{supplier_id}/invoices", response_model=SupplierInvoice, dependencies=[Depends(require_suppliers_module)])
 async def create_supplier_invoice(supplier_id: str, inv_data: dict, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -27400,7 +27645,7 @@ async def create_supplier_invoice(supplier_id: str, inv_data: dict, user: User =
     await db.supplier_invoices.insert_one(invoice.model_dump())
     return invoice
 
-@api_router.get("/suppliers/{supplier_id}/logs", response_model=List[SupplierCommunicationLog])
+@api_router.get("/suppliers/{supplier_id}/logs", response_model=List[SupplierCommunicationLog], dependencies=[Depends(require_suppliers_module)])
 async def get_supplier_logs(supplier_id: str, user: User = Depends(require_permission("suppliers", "read"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -27416,7 +27661,7 @@ async def get_supplier_logs(supplier_id: str, user: User = Depends(require_permi
     ).sort("created_at", -1).to_list(100)
     return [SupplierCommunicationLog(**l) for l in logs]
 
-@api_router.post("/suppliers/{supplier_id}/logs", response_model=SupplierCommunicationLog)
+@api_router.post("/suppliers/{supplier_id}/logs", response_model=SupplierCommunicationLog, dependencies=[Depends(require_suppliers_module)])
 async def create_supplier_log(supplier_id: str, log_data: SupplierLogCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -27431,7 +27676,7 @@ async def create_supplier_log(supplier_id: str, log_data: SupplierLogCreate, use
     await db.supplier_logs.insert_one(log.model_dump())
     return log
 
-@api_router.get("/supplier-products")
+@api_router.get("/supplier-products", dependencies=[Depends(require_suppliers_module)])
 async def list_supplier_products(
     product_id: Optional[str] = None,
     user: User = Depends(require_permission("suppliers", "read")),
@@ -27458,7 +27703,7 @@ async def list_supplier_products(
 
     return [link for link in links if link.get("product_id") in allowed_product_ids]
 
-@api_router.post("/supplier-products", response_model=SupplierProduct)
+@api_router.post("/supplier-products", response_model=SupplierProduct, dependencies=[Depends(require_suppliers_module)])
 async def link_supplier_product(link_data: SupplierProductCreate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": link_data.supplier_id, "user_id": owner_id}, {"_id": 0})
@@ -27497,7 +27742,7 @@ async def link_supplier_product(link_data: SupplierProductCreate, user: User = D
 
     return link
 
-@api_router.put("/supplier-products/{link_id}", response_model=SupplierProduct)
+@api_router.put("/supplier-products/{link_id}", response_model=SupplierProduct, dependencies=[Depends(require_suppliers_module)])
 async def update_supplier_product(link_id: str, link_data: SupplierProductUpdate, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     existing = await db.supplier_products.find_one({"link_id": link_id, "user_id": owner_id}, {"_id": 0})
@@ -27535,7 +27780,7 @@ async def update_supplier_product(link_id: str, link_data: SupplierProductUpdate
     updated = await db.supplier_products.find_one({"link_id": link_id, "user_id": owner_id}, {"_id": 0})
     return SupplierProduct(**updated)
 
-@api_router.delete("/supplier-products/{link_id}")
+@api_router.delete("/supplier-products/{link_id}", dependencies=[Depends(require_suppliers_module)])
 async def unlink_supplier_product(link_id: str, user: User = Depends(require_permission("suppliers", "write"))):
     owner_id = get_owner_id(user)
     link = await db.supplier_products.find_one({"link_id": link_id, "user_id": owner_id}, {"_id": 0})
@@ -27558,7 +27803,7 @@ async def unlink_supplier_product(link_id: str, user: User = Depends(require_per
 
 # ===================== ORDER ROUTES =====================
 
-@api_router.get("/orders")
+@api_router.get("/orders", dependencies=[Depends(require_suppliers_module)])
 async def get_orders(
     user: User = Depends(require_procurement_access("read")),
     status: Optional[str] = None,
@@ -27663,7 +27908,7 @@ async def get_orders(
 
     return {"items": orders, "total": total}
 
-@api_router.get("/orders/filter-suppliers")
+@api_router.get("/orders/filter-suppliers", dependencies=[Depends(require_suppliers_module)])
 async def get_orders_filter_suppliers(user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
     await backfill_inferred_legacy_store_scope(db.orders, owner_id, user, "order_id")
@@ -27712,7 +27957,7 @@ async def get_orders_filter_suppliers(user: User = Depends(require_procurement_a
 
     return filter_suppliers
 
-@api_router.get("/orders/{order_id}")
+@api_router.get("/orders/{order_id}", dependencies=[Depends(require_suppliers_module)])
 async def get_order(order_id: str, user: User = Depends(require_procurement_access("read"))):
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
@@ -27760,7 +28005,7 @@ async def get_order(order_id: str, user: User = Depends(require_procurement_acce
     order["items"] = items
     return order
 
-@api_router.post("/orders")
+@api_router.post("/orders", dependencies=[Depends(require_suppliers_module)])
 async def create_order(order_data: OrderCreate, user: User = Depends(require_procurement_access("write"))):
     owner_id = get_owner_id(user)
     resolved_supplier_id = order_data.supplier_id
@@ -27914,7 +28159,7 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_pro
 
     return {"message": "Commande crÃ©Ã©e", "order_id": order.order_id}
 
-@api_router.put("/orders/{order_id}/status")
+@api_router.put("/orders/{order_id}/status", dependencies=[Depends(require_suppliers_module)])
 async def update_order_status(order_id: str, status_data: OrderStatusUpdate, user: User = Depends(require_procurement_access("write"))):
     owner_id = get_owner_id(user)
     valid_statuses = ["pending", "confirmed", "shipped", "partially_delivered", "delivered", "cancelled"]
@@ -28033,7 +28278,7 @@ class CreditNote(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-@api_router.put("/orders/{order_id}/receive-partial")
+@api_router.put("/orders/{order_id}/receive-partial", dependencies=[Depends(require_suppliers_module)])
 async def receive_partial_delivery(
     order_id: str,
     data: PartialDeliveryRequest,
@@ -28208,7 +28453,7 @@ async def update_supplier_order_status(order_id: str, status_data: OrderStatusUp
 
     return {"message": "Statut mis Ã  jour"}
 
-@api_router.delete("/orders/{order_id}")
+@api_router.delete("/orders/{order_id}", dependencies=[Depends(require_suppliers_module)])
 async def delete_order(order_id: str, user: User = Depends(require_procurement_access("write"))):
     owner_id = get_owner_id(user)
     order = await db.orders.find_one({"order_id": order_id, "user_id": owner_id}, {"_id": 0})
@@ -29391,7 +29636,7 @@ def get_fuzzy_regex(q: str):
     chars = [re.escape(c) for c in q]
     return ".*".join(chars)
 
-@api_router.get("/marketplace/suppliers")
+@api_router.get("/marketplace/suppliers", dependencies=[Depends(require_suppliers_module)])
 async def search_marketplace_suppliers(
     user: User = Depends(require_auth),
     q: Optional[str] = None,
@@ -29485,7 +29730,7 @@ async def search_marketplace_suppliers(
 
     return profiles
 
-@api_router.get("/marketplace/suppliers/{supplier_user_id}")
+@api_router.get("/marketplace/suppliers/{supplier_user_id}", dependencies=[Depends(require_suppliers_module)])
 async def get_marketplace_supplier(supplier_user_id: str, user: User = Depends(require_auth)):
     profile = await db.supplier_profiles.find_one({"user_id": supplier_user_id}, {"_id": 0})
     if not profile:
@@ -29510,7 +29755,7 @@ async def get_marketplace_supplier(supplier_user_id: str, user: User = Depends(r
         "ratings": ratings
     }
 
-@api_router.post("/marketplace/suppliers/{supplier_user_id}/connect", response_model=Supplier)
+@api_router.post("/marketplace/suppliers/{supplier_user_id}/connect", response_model=Supplier, dependencies=[Depends(require_suppliers_module)])
 async def connect_marketplace_supplier(
     supplier_user_id: str,
     user: User = Depends(require_permission("suppliers", "write")),
@@ -29547,7 +29792,7 @@ async def connect_marketplace_supplier(
     await db.suppliers.insert_one(supplier_doc)
     return supplier
 
-@api_router.get("/marketplace/search-products")
+@api_router.get("/marketplace/search-products", dependencies=[Depends(require_suppliers_module)])
 async def search_marketplace_products(
     user: User = Depends(require_auth),
     q: Optional[str] = None,
@@ -29595,7 +29840,7 @@ async def search_marketplace_products(
 
 # ===================== INVITATION ROUTES (CAS 1) =====================
 
-@api_router.post("/suppliers/{supplier_id}/invite")
+@api_router.post("/suppliers/{supplier_id}/invite", dependencies=[Depends(require_suppliers_module)])
 async def invite_supplier(supplier_id: str, data: SupplierInvitationCreate, user: User = Depends(require_auth)):
     # Verify manual supplier exists
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": user.user_id}, {"_id": 0})
@@ -29690,7 +29935,7 @@ async def register_from_invitation(request: Request, response: Response, user_da
 
 # ===================== RATING ROUTES (CAS 1) =====================
 
-@api_router.post("/suppliers/{supplier_user_id}/rate")
+@api_router.post("/suppliers/{supplier_user_id}/rate", dependencies=[Depends(require_suppliers_module)])
 async def rate_supplier(supplier_user_id: str, data: SupplierRatingCreate, user: User = Depends(require_auth)):
     if data.score < 1 or data.score > 5:
         raise HTTPException(status_code=400, detail="Le score doit Ãªtre entre 1 et 5")
@@ -29738,6 +29983,8 @@ async def rate_supplier(supplier_user_id: str, data: SupplierRatingCreate, user:
 
 async def check_late_deliveries_internal(user_id: str):
     """Check orders with expected_delivery in the past and not yet delivered"""
+    if not await platform_modules.owner_has_module(db, user_id, "suppliers"):
+        return
     now = datetime.now(timezone.utc)
     owner_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "account_id": 1}) or {}
     account_id = owner_doc.get("account_id")
@@ -31818,7 +32065,7 @@ async def _get_ai_data_summary(
     except Exception as e:
         logger.error(f"Error generating AI summary: {e}")
         return "(Note: Erreur partielle lors de la recuperation des donnees analytiques.)"
-@api_router.get("/replenishment/suggestions", response_model=List[ReplenishmentSuggestion])
+@api_router.get("/replenishment/suggestions", response_model=List[ReplenishmentSuggestion], dependencies=[Depends(require_suppliers_module)])
 async def get_replenishment_suggestions(user: User = Depends(require_permission("stock", "read"))):
     """Analyze sales velocity and stock levels to suggest replenishment"""
     try:
@@ -31919,7 +32166,7 @@ async def get_replenishment_suggestions(user: User = Depends(require_permission(
         return []
 
 
-@api_router.post("/replenishment/automate")
+@api_router.post("/replenishment/automate", dependencies=[Depends(require_suppliers_module)])
 async def automate_replenishment(user: User = Depends(require_procurement_access("write"))):
     """Backend trigger for the automated reorder approval workflow"""
     owner_id = get_owner_id(user)
@@ -31994,7 +32241,7 @@ async def automate_replenishment(user: User = Depends(require_procurement_access
         "order_ids": created_orders
     }
 
-@api_router.get("/analytics/procurement/overview")
+@api_router.get("/analytics/procurement/overview", dependencies=[Depends(require_suppliers_module)])
 async def get_procurement_overview(
     days: int = 90,
     start_date: Optional[str] = None,
@@ -32439,7 +32686,7 @@ class CatalogProductMappingCreate(BaseModel): # Renamed from ManualMapRequest
     catalog_id: str
     product_id: str
 
-@api_router.post("/orders/{order_id}/suggest-matches")
+@api_router.post("/orders/{order_id}/suggest-matches", dependencies=[Depends(require_suppliers_module)])
 async def get_catalog_suggestions(order_id: str, user: User = Depends(require_permission("stock", "read"))):
     """Use Gemini AI to suggest matches between catalog products and shopkeeper inventory."""
     owner_id = get_owner_id(user)
@@ -32638,7 +32885,7 @@ RÃ©ponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour)
     return {"suggestions": suggestions}
 
 
-@api_router.post("/orders/{order_id}/confirm-delivery")
+@api_router.post("/orders/{order_id}/confirm-delivery", dependencies=[Depends(require_suppliers_module)])
 async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: User = Depends(require_permission("stock", "write"))):
     """Confirm marketplace delivery with product mappings and stock updates."""
     owner_id = get_owner_id(user)
@@ -32780,7 +33027,7 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
     return {"message": "Livraison confirmÃ©e", "results": results}
 
 
-@api_router.post("/orders/map-product")
+@api_router.post("/orders/map-product", dependencies=[Depends(require_suppliers_module)])
 async def map_catalog_product(mapping: CatalogProductMappingCreate, user: User = Depends(require_permission("stock", "write"))):
     """Manually associate a catalog product with a shopkeeper inventory product."""
     owner_id = get_owner_id(user)
@@ -33649,9 +33896,11 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
         logger.error(f"Smart reminders - dormant products error: {e}")
 
     # -------- 2. ORDERS & SUPPLIERS --------
+    # Module Fournisseurs coupé par l'admin : aucun rappel de commande ou d'invitation fournisseur.
+    suppliers_enabled = bool(user.platform_modules.get("suppliers"))
 
     # 2a. Late deliveries
-    if rules.late_deliveries.enabled:
+    if suppliers_enabled and rules.late_deliveries.enabled:
       try:
         late_crit_days = rules.late_deliveries.threshold or 7
         late_orders = await db.orders.find({
@@ -33698,7 +33947,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
         logger.error(f"Smart reminders - late deliveries error: {e}")
 
     # 2b. AI replenishment suggestions - products at risk with no pending order
-    if rules.replenishment.enabled:
+    if suppliers_enabled and rules.replenishment.enabled:
       try:
         pipeline = [
             {"$match": {**store_filter, "is_active": True, "min_stock": {"$gt": 0}}},
@@ -33731,7 +33980,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
         logger.error(f"Smart reminders - replenishment error: {e}")
 
     # 2c. Pending invitations (older than X days)
-    if rules.pending_invitations.enabled:
+    if suppliers_enabled and rules.pending_invitations.enabled:
       try:
         inv_pend_days = rules.pending_invitations.threshold or 3
         cutoff_inv = now - timedelta(days=inv_pend_days)

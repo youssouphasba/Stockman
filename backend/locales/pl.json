@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ABC Analysis (Priorities)",
     "admin_messages": "Administrator messages",
+    "admin_message_new": "Nowa wiadomość",
+    "admin_message_got_it": "Rozumiem",
+    "admin_message_next": "Następna wiadomość",
+    "admin_message_open": "Otwórz",
     "ai_daily_summary": "AI Daily Summary",
     "ai_tap_to_generate": "Tap to generate",
     "category_distribution": "Category Distribution",
@@ -1292,6 +1296,8 @@
     "delivery": "dostawa"
   },
   "modals": {
+    "ai_unavailable": "Asystent AI jest chwilowo niedostępny. Spróbuj ponownie za chwilę; w międzyczasie możesz przejrzeć przewodniki:",
+    "ai_screen_guide": "Przewodnik po tym ekranie",
     "ai_assistant_title": "AI Assistant",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Unknown error",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "With Premium, you can:"
   },
   "products": {
+    "stock_change_title": "Dlaczego zmienia się stan?",
+    "stock_change_increase": "Stan zmienia się z {{from}} na {{to}} (+{{diff}}). Wybierz powód.",
+    "stock_change_decrease": "Stan zmienia się z {{from}} na {{to}} (-{{diff}}). Wybierz powód.",
+    "stock_change_sale_hint": "Sprzedaż zostanie zapisana po cenie sprzedaży, opłacona gotówką, i pojawi się w Księgowości.",
+    "stock_change_required": "Wybierz powód zmiany stanu.",
     "add_btn": "Add",
     "add_photo_title": "Add a photo",
     "add_product": "Dodaj produkt",
@@ -2010,6 +2021,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Inne",
+      "restock": "Uzupełnienie",
+      "customer_return": "Zwrot klienta",
+      "expired": "Produkt przeterminowany",
+      "theft": "Kradzież",
+      "internal_use": "Użytek wewnętrzny",
+      "sale_from_product": "Sprzedaż poza kasą",
       "pos_sale": "SprzedaÅ¼ w punkcie sprzedaÅ¼y",
       "inventory_adjustment": "Korekta zapasÃ³w",
       "supplier_reception": "PrzyjÄ™cie od dostawcy",

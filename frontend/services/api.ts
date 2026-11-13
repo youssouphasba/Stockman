@@ -2301,6 +2301,8 @@ export type User = {
   phone?: string;
   country_code?: string;
   is_demo?: boolean;
+  // Modules activés par l'admin Stockman pour le compte (ex. suppliers).
+  platform_modules?: Record<string, boolean>;
   demo_session_id?: string | null;
   demo_type?: string | null;
   demo_surface?: string | null;
@@ -2560,6 +2562,8 @@ export type StockMovementCreate = {
   type: 'in' | 'out';
   quantity: number;
   reason?: string;
+  // Raison choisie dans la liste (restock, sale, loss_damage…) : une vente devient une vraie vente.
+  kind?: string;
   batch_id?: string;
   purchase_price?: number;
 };

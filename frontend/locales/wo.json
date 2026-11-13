@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ABC Analysis (Priorities)",
     "admin_messages": "Bataaxalu njiit yi",
+    "admin_message_new": "Bataaxal bu bees",
+    "admin_message_got_it": "Dégg naa",
+    "admin_message_next": "Bataaxal bi ci topp",
+    "admin_message_open": "Ubbi",
     "ai_daily_summary": "AI Daily Summary",
     "ai_tap_to_generate": "Tap to generate",
     "category_distribution": "Seddale Xeet yi",
@@ -1292,6 +1296,8 @@
     "delivery": "yÃ³nneent"
   },
   "modals": {
+    "ai_unavailable": "Ndimbal IA bi amul fi léegi. Jéemaatal ci kanam; ci diggante bi, mën nga xool gid yi:",
+    "ai_screen_guide": "Gid bu ekraan bii",
     "ai_assistant_title": "Dimbalukat IA",
     "ai_error_prefix": "Njuumte: ",
     "ai_error_unknown": "Njuumte lu anndaaku",
@@ -1637,6 +1643,11 @@
     "with_premium_you_can": "With Premium, you can:"
   },
   "products": {
+    "stock_change_title": "Lu tax stock bi soppiku?",
+    "stock_change_increase": "Stock bi dafay jóge {{from}} dem {{to}} (+{{diff}}). Tànnal lu ko waral.",
+    "stock_change_decrease": "Stock bi dafay jóge {{from}} dem {{to}} (-{{diff}}). Tànnal lu ko waral.",
+    "stock_change_sale_hint": "Ab njaay lañuy bind ci njëgu njaay bi, fey ci xaalis, te dina feeñ ci Kontaabilite.",
+    "stock_change_required": "Tànnal lu waral soppiku stock bi.",
     "add_btn": "Yokk",
     "add_photo_title": "Yokk foto",
     "add_product": "Yokk benn liggÃ©ey",
@@ -1889,6 +1900,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Leneen",
+      "restock": "Yokk stock",
+      "customer_return": "Delloo kiliyaan",
+      "expired": "Produit bu jeex",
+      "theft": "Sàcc",
+      "internal_use": "Jëfandikoo ci biir",
+      "sale_from_product": "Njaay ci biti kees",
       "pos_sale": "POS Sale",
       "inventory_adjustment": "Inventory Adjustment",
       "supplier_reception": "Supplier Reception",

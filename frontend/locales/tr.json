@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ABC Analizi (Ã–ncelikler)",
     "admin_messages": "YÃ¶netici mesajlarÄ±",
+    "admin_message_new": "Yeni mesaj",
+    "admin_message_got_it": "Anladım",
+    "admin_message_next": "Sonraki mesaj",
+    "admin_message_open": "Aç",
     "ai_daily_summary": "Yapay Zeka GÃ¼nlÃ¼k Ã–zeti",
     "ai_tap_to_generate": "OluÅŸturmak iÃ§in dokunun",
     "category_distribution": "Kategori DaÄŸÄ±lÄ±mÄ±",
@@ -1292,6 +1296,8 @@
     "delivery": "teslimat"
   },
   "modals": {
+    "ai_unavailable": "Yapay zekâ asistanı geçici olarak kullanılamıyor. Biraz sonra tekrar deneyin; bu arada kılavuzlara göz atabilirsiniz:",
+    "ai_screen_guide": "Bu ekranın kılavuzu",
     "ai_assistant_title": "AI Assistant",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Unknown error",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "With Premium, you can:"
   },
   "products": {
+    "stock_change_title": "Stok neden değişiyor?",
+    "stock_change_increase": "Stok {{from}} değerinden {{to}} değerine çıkıyor (+{{diff}}). Nedeni seçin.",
+    "stock_change_decrease": "Stok {{from}} değerinden {{to}} değerine iniyor (-{{diff}}). Nedeni seçin.",
+    "stock_change_sale_hint": "Satış fiyatından, nakit ödenmiş bir satış kaydedilir ve Muhasebe'de görünür.",
+    "stock_change_required": "Stok değişikliğinin nedenini seçin.",
     "add_btn": "Ekle",
     "add_photo_title": "FotoÄŸraf ekle",
     "add_product": "ÃœrÃ¼n Ekle",
@@ -2010,6 +2021,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Diğer",
+      "restock": "Stok yenileme",
+      "customer_return": "Müşteri iadesi",
+      "expired": "Süresi geçmiş ürün",
+      "theft": "Hırsızlık",
+      "internal_use": "İç kullanım",
+      "sale_from_product": "Kasa dışı satış",
       "pos_sale": "POS Sale",
       "inventory_adjustment": "Inventory Adjustment",
       "supplier_reception": "Supplier Reception",

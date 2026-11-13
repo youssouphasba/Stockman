@@ -45,6 +45,7 @@ import {
 } from '../../services/api';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { hasPlatformModule } from '../../utils/access';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useDrawer } from '../../contexts/DrawerContext';
@@ -220,6 +221,7 @@ export default function AccountingScreen() {
     const [appliedStart, setAppliedStart] = useState<string>('');
     const [appliedEnd, setAppliedEnd] = useState<string>('');
     const { user, isSuperAdmin } = useAuth();
+    const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
     const { setDrawerContent } = useDrawer();
     const [currentStore, setCurrentStore] = useState<Store | null>(null);
 
@@ -1713,6 +1715,8 @@ export default function AccountingScreen() {
                                 <Text style={styles.kpiSubValue}>{t('accounting.avg_sale', { value: formatCurrency(stats?.avg_sale ?? 0) })}</Text>
                             </TouchableOpacity>
 
+                            {/* Achats fournisseurs : seulement quand l'admin Stockman a activé le module Fournisseurs. */}
+                            {suppliersModuleOn && (
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.info + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('purchases')}>
                                 <View style={styles.kpiHeader}>
                                     <Ionicons name="bag-handle-outline" size={20} color={colors.info} />
@@ -1724,6 +1728,7 @@ export default function AccountingScreen() {
                                 </Text>
                                 <Text style={styles.kpiSubValue}>{t('accounting.purchases_count', { count: stats?.purchases_count ?? 0 })}</Text>
                             </TouchableOpacity>
+                            )}
                         </View>
 
 

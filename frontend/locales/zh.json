@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ABC Analysis (Priorities)",
     "admin_messages": "Administrator messages",
+    "admin_message_new": "新消息",
+    "admin_message_got_it": "知道了",
+    "admin_message_next": "下一条消息",
+    "admin_message_open": "打开",
     "ai_daily_summary": "AI Daily Summary",
     "ai_tap_to_generate": "Tap to generate",
     "category_distribution": "Category Distribution",
@@ -1292,6 +1296,8 @@
     "delivery": "é…é€"
   },
   "modals": {
+    "ai_unavailable": "AI 助手暂时不可用。请稍后再试；在此期间，您可以查看指南：",
+    "ai_screen_guide": "本页面指南",
     "ai_assistant_title": "AI Assistant",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Unknown error",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "ä½¿ç”¨Premiumï¼Œæ‚¨å¯ä»¥ï¼š"
   },
   "products": {
+    "stock_change_title": "库存为什么变化？",
+    "stock_change_increase": "库存从 {{from}} 变为 {{to}}（+{{diff}}）。请选择原因。",
+    "stock_change_decrease": "库存从 {{from}} 变为 {{to}}（-{{diff}}）。请选择原因。",
+    "stock_change_sale_hint": "将按售价记录一笔现金支付的销售，并显示在会计中。",
+    "stock_change_required": "请选择库存变化的原因。",
     "add_btn": "æ·»åŠ ",
     "add_photo_title": "æ·»åŠ å›¾ç‰‡",
     "add_product": "æ·»åŠ äº§å“",
@@ -1910,6 +1921,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "其他",
+      "restock": "补货",
+      "customer_return": "客户退货",
+      "expired": "过期商品",
+      "theft": "失窃",
+      "internal_use": "内部使用",
+      "sale_from_product": "收银台外销售",
       "pos_sale": "POS Sale",
       "inventory_adjustment": "Inventory Adjustment",
       "supplier_reception": "Supplier Reception",

@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ØªØ­Ù„ÙŠÙ„ ABC (Ø§Ù„Ø£ÙˆÙ„ÙˆÙŠØ§Øª)",
     "admin_messages": "Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©",
+    "admin_message_new": "رسالة جديدة",
+    "admin_message_got_it": "فهمت",
+    "admin_message_next": "الرسالة التالية",
+    "admin_message_open": "فتح",
     "ai_daily_summary": "Ù…Ù„Ø®Øµ Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ Ù„Ù„ÙŠÙˆÙ…",
     "ai_tap_to_generate": "Ø§Ø¶ØºØ· Ù„Ù„Ø¥Ù†Ø´Ø§Ø¡",
     "category_distribution": "Ø§Ù„ØªÙˆØ²ÙŠØ¹ Ø­Ø³Ø¨ Ø§Ù„ÙØ¦Ø©",
@@ -1292,6 +1296,8 @@
     "delivery": "ØªÙˆØµÙŠÙ„"
   },
   "modals": {
+    "ai_unavailable": "مساعد الذكاء الاصطناعي غير متاح مؤقتًا. أعد المحاولة بعد قليل، وفي الأثناء يمكنك الاطلاع على الأدلة:",
+    "ai_screen_guide": "دليل هذه الشاشة",
     "ai_assistant_title": "Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ",
     "ai_error_prefix": "Ø®Ø·Ø£: ",
     "ai_error_unknown": "Ø®Ø·Ø£ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ",
@@ -1637,6 +1643,11 @@
     "with_premium_you_can": "Ù…Ø¹ PremiumØŒ ÙŠÙ…ÙƒÙ†Ùƒ:"
   },
   "products": {
+    "stock_change_title": "لماذا يتغير المخزون؟",
+    "stock_change_increase": "ينتقل المخزون من {{from}} إلى {{to}} (+{{diff}}). اختر السبب.",
+    "stock_change_decrease": "ينتقل المخزون من {{from}} إلى {{to}} (-{{diff}}). اختر السبب.",
+    "stock_change_sale_hint": "تُسجَّل عملية بيع بسعر البيع، مدفوعة نقدًا، وتظهر في المحاسبة.",
+    "stock_change_required": "اختر سبب تغيير المخزون.",
     "add_btn": "Ø¥Ø¶Ø§ÙØ©",
     "add_photo_title": "Ø¥Ø¶Ø§ÙØ© ØµÙˆØ±Ø©",
     "add_product": "Ø¥Ø¶Ø§ÙØ© Ù…Ù†ØªØ¬",
@@ -1918,6 +1929,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "أخرى",
+      "restock": "إعادة التموين",
+      "customer_return": "إرجاع من العميل",
+      "expired": "منتج منتهي الصلاحية",
+      "theft": "سرقة",
+      "internal_use": "استخدام داخلي",
+      "sale_from_product": "بيع خارج الصندوق",
       "pos_sale": "Ø¨ÙŠØ¹ POS",
       "inventory_adjustment": "ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù…Ø®Ø²ÙˆÙ†",
       "supplier_reception": "Ø§Ø³ØªÙ„Ø§Ù… Ø§Ù„Ù…ÙˆØ±Ø¯",

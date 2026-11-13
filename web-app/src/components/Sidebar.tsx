@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { getAccessContext } from '../utils/access';
+import { getAccessContext, hasPlatformModule } from '../utils/access';
 import type { UserPermissions } from '../services/api';
 import { ecommerce as ecommerceApi, stores as storesApi, type EcommerceStats, type Store as StoreRecord } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -260,6 +260,8 @@ export default function Sidebar({
         if (!user) return true;
         if (isSuperAdmin) return true;
         if (user.role === 'supplier') return roles.includes(user.role);
+        // Fournisseurs : module activé par l'admin Stockman, coupé par défaut.
+        if (permission === 'suppliers' && !hasPlatformModule(user, 'suppliers')) return false;
         if (managerOnly && !isOrgAdmin) return false;
         if (accountRole === 'billing_admin' && !isBillingAdmin) return false;
         if (accountRole === 'org_admin' && !isOrgAdmin) return false;

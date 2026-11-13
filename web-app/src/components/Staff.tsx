@@ -26,6 +26,7 @@ import { auth, subUsers as subUsersApi, stores as storesApi } from '../services/
 import type { PermissionLevel, UserPermissions, StorePermissions } from '../services/api';
 import Modal from './Modal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
+import { hasPlatformModule } from '../utils/access';
 
 const MODULE_LABEL_KEYS: Record<string, string> = {
     dashboard: 'staff.module_dashboard',
@@ -525,7 +526,7 @@ export default function Staff() {
                         </div>
 
                         <div className="space-y-2">
-                            {(['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'] as (keyof StaffPermissions)[]).map(mod => (
+                            {(['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'] as (keyof StaffPermissions)[]).filter(mod => mod !== 'suppliers' || hasPlatformModule(currentUser, 'suppliers')).map(mod => (
                                 <div key={mod} className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
                                     <span className="text-slate-200 font-medium">{t(MODULE_LABEL_KEYS[mod] || mod)}</span>
                                     <button
@@ -580,7 +581,7 @@ export default function Staff() {
                                         </button>
                                         {isExpanded && (
                                             <div className="space-y-2 mt-4">
-                                                {(['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'] as (keyof StaffPermissions)[]).map(mod => (
+                                                {(['pos', 'stock', 'accounting', 'crm', 'suppliers', 'staff'] as (keyof StaffPermissions)[]).filter(mod => mod !== 'suppliers' || hasPlatformModule(currentUser, 'suppliers')).map(mod => (
                                                     <div key={`${storeId}-${mod}`} className="flex items-center justify-between p-3 glass-card bg-white/5 border-white/10">
                                                         <span className="text-slate-200 font-medium">{t(MODULE_LABEL_KEYS[mod] || mod)}</span>
                                                         <button

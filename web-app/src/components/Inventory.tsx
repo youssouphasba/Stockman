@@ -59,6 +59,8 @@ import BarcodeScanner from './BarcodeScanner';
 import BatchScanModal from './BatchScanModal';
 import StockHealthPanel from './analytics/StockHealthPanel';
 import { getPendingInventorySummary, mergeInventoryOfflineState } from '../services/offlineState';
+import { hasPlatformModule } from '../utils/access';
+import { StockChangeReasonChips, StockChangeDirection } from './StockChangeReason';
 import {
     defaultPrecisionForUnit,
     formatMeasurementQuantity,
@@ -140,6 +142,8 @@ export default function Inventory() {
     const [locationTransferring, setLocationTransferring] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentFeatures, setCurrentFeatures] = useState<UserFeatures | null>(null);
+    // Fournisseurs : module activé par l'admin Stockman, coupé par défaut.
+    const suppliersModuleOn = hasPlatformModule(currentUser, 'suppliers');
     const hasEnterpriseLocations = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || (currentUser?.effective_plan || currentUser?.plan) === 'enterprise';
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [showCreateMenu, setShowCreateMenu] = useState(false);
@@ -215,6 +219,15 @@ export default function Inventory() {
     const [stockMovType, setStockMovType] = useState<'in' | 'out'>('in');
     const [stockMovQty, setStockMovQty] = useState('');
     const [stockMovReason, setStockMovReason] = useState('');
+    const [stockMovKind, setStockMovKind] = useState<string | null>(null);
+    // Quantité modifiée dans la fiche : les raisons apparaissent sous le champ, selon que le stock monte ou baisse.
+    const [formStockChangeKind, setFormStockChangeKind] = useState<string | null>(null);
+    const formStockDelta = editingProduct && !form.has_variants
+        ? (Number(form.quantity) || 0) - (Number(editingProduct.quantity) || 0)
+        : 0;
+    const formStockDirection: StockChangeDirection | null = formStockDelta > 1e-9 ? 'in' : formStockDelta < -1e-9 ? 'out' : null;
+    // Le sens change (ou la quantité revient à l'identique) : la raison choisie ne vaut plus.
+    useEffect(() => { setFormStockChangeKind(null); }, [formStockDirection, editingProduct?.product_id]);
     const [stockMovPurchasePrice, setStockMovPurchasePrice] = useState('');
     const [stockMovLoading, setStockMovLoading] = useState(false);
 
@@ -265,6 +278,10 @@ export default function Inventory() {
     const handleStockMovement = async () => {
         const qty = parseFloat(stockMovQty);
         if (isNaN(qty) || qty <= 0) return;
+        if (!stockMovKind) {
+            window.alert('Choisissez la raison du changement de stock.');
+            return;
+        }
         setStockMovLoading(true);
         try {
             const previousPurchasePrice = Number(stockModalProduct?.purchase_price || 0);
@@ -273,7 +290,8 @@ export default function Inventory() {
                 product_id: stockModalProduct.product_id,
                 type: stockMovType,
                 quantity: qty,
-                reason: stockMovReason || (stockMovType === 'in' ? 'Entree stock' : 'Sortie stock'),
+                kind: stockMovKind,
+                reason: stockMovReason || undefined,
                 purchase_price: stockMovType === 'in' && Number.isFinite(parsedPurchasePrice) ? parsedPurchasePrice : undefined,
             });
             setProducts(prev => prev.map(p =>
@@ -291,6 +309,7 @@ export default function Inventory() {
             setStockModalOpen(false);
             setStockMovQty('');
             setStockMovReason('');
+            setStockMovKind(null);
             setStockMovPurchasePrice('');
             if (stockMovType === 'in' && typeof movement?.new_purchase_price === 'number') {
                 const formatCurrency = (value: number) => `${new Intl.NumberFormat(i18n.language || 'fr-FR').format(Number(value || 0))} F`;
@@ -357,8 +376,8 @@ export default function Inventory() {
                 productsApi.list(undefined, 0, WEB_PRODUCTS_PAGE_SIZE, resolvedLocation, undefined, resolvedSearch || undefined),
                 categoriesApi.list(),
                 hasEnterpriseLocations ? locationsApi.list() : Promise.resolve([]),
-                suppliersApi.list(),
-                supplierProductsApi.list(),
+                suppliersModuleOn ? suppliersApi.list() : Promise.resolve([]),
+                suppliersModuleOn ? supplierProductsApi.list() : Promise.resolve([]),
             ]);
 
             if (prodsRes.status !== 'fulfilled') {
@@ -431,7 +450,7 @@ export default function Inventory() {
             }
             setLoading(false);
         }
-    }, [currentUser?.role, hasEnterpriseLocations, isPerfEnabled, search, selectedLocation, t]);
+    }, [currentUser?.role, hasEnterpriseLocations, isPerfEnabled, search, selectedLocation, suppliersModuleOn, t]);
 
     const loadMoreProducts = useCallback(async () => {
         if (loadingMore) return;
@@ -799,6 +818,7 @@ export default function Inventory() {
         setStockMovType(type);
         setStockMovQty('');
         setStockMovReason('');
+        setStockMovKind(null);
         setStockMovPurchasePrice(type === 'in' ? String(product.purchase_price ?? 0) : '');
         setStockModalOpen(true);
     };
@@ -1020,8 +1040,18 @@ export default function Inventory() {
         }
     };
 
-    const handleSubmitProduct = async (e: React.FormEvent) => {
+    const handleSubmitProduct = (e: React.FormEvent) => {
         e.preventDefault();
+        void submitProduct();
+    };
+
+    const submitProduct = async () => {
+        // Quantité d'un produit simple modifiée : la raison choisie sous le champ est obligatoire.
+        const stockChangeKindChoice = formStockDirection ? formStockChangeKind : null;
+        if (formStockDirection && !stockChangeKindChoice) {
+            window.alert('Choisissez la raison du changement de stock.');
+            return;
+        }
         setFormLoading(true);
         try {
             const measurement = normalizeProductMeasurement({
@@ -1046,6 +1076,7 @@ export default function Inventory() {
                 pricing_unit: measurement.pricing_unit,
                 allows_fractional_sale: measurement.allows_fractional_sale,
                 quantity_precision: measurement.quantity_precision,
+                ...(stockChangeKindChoice ? { stock_change_kind: stockChangeKindChoice } : {}),
                 variants: form.has_variants
                     ? form.variants
                         .filter((variant: any) => String(variant.name || '').trim())
@@ -1065,7 +1096,7 @@ export default function Inventory() {
                 savedProductId = created.product_id;
             }
 
-            if (savedProductId) {
+            if (savedProductId && suppliersModuleOn) {
                 const existingLinks = supplierLinksByProduct[savedProductId] || [];
                 const selectedIds = Array.from(new Set(formSupplierIds.filter(Boolean)));
                 const selectedSet = new Set(selectedIds);
@@ -2271,13 +2302,14 @@ export default function Inventory() {
                 </div>
             )}
 
+            {suppliersModuleOn && (<>
             <div className="grid gap-3 mb-4 md:grid-cols-3">
                 <button
                     type="button"
                     onClick={() => setSupplierCoverageFilter('no_supplier')}
                     className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-left transition-colors hover:bg-rose-500/15"
                 >
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-300">? traiter</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-300">À traiter</p>
                     <p className="mt-2 text-2xl font-black text-white">{supplierCoverageStats.noSupplier}</p>
                     <p className="mt-1 text-sm text-slate-300">Produits sans fournisseur</p>
                 </button>
@@ -2327,6 +2359,7 @@ export default function Inventory() {
                     Principal manquant
                 </button>
             </div>
+            </>)}
 
             {/* Products Table */}
             <div className="glass-card overflow-x-auto">
@@ -2346,7 +2379,7 @@ export default function Inventory() {
                             )}
                             <th className="py-4 px-6 font-semibold">Produit</th>
                             <th className="py-4 px-6 font-semibold">Catégorie</th>
-                            <th className="py-4 px-6 font-semibold">Fournisseurs</th>
+                            {suppliersModuleOn && <th className="py-4 px-6 font-semibold">Fournisseurs</th>}
                             <th className="py-4 px-6 font-semibold text-center">Stock</th>
                             <th className="py-4 px-6 font-semibold text-center">{t('inventory.forecast_7d', 'Prév. 7j')}</th>
                             <th className="py-4 px-6 font-semibold">Prix</th>
@@ -2393,9 +2426,11 @@ export default function Inventory() {
                                                     )}
                                                 </span>
                                                 <span className="text-xs text-slate-400 font-mono uppercase">{p.sku || 'SANS-REF'}</span>
+                                                {suppliersModuleOn && (
                                                 <span className={`mt-1 text-[11px] font-semibold ${supplyMeta.tone === 'rose' ? 'text-rose-300' : supplyMeta.tone === 'sky' ? 'text-sky-300' : 'text-emerald-300'}`}>
                                                     {supplyMeta.status}
                                                 </span>
+                                                )}
                                                 {hasEnterpriseLocations && p.location_id && (
                                                     <span className="flex items-center gap-1 text-[10px] text-primary/90 font-medium mt-0.5">
                                                         <MapPin size={9} /> {getLocationLabel(p.location_id)}
@@ -2409,6 +2444,7 @@ export default function Inventory() {
                                             {safeCategoriesList.find(c => c.category_id === p.category_id)?.name || t('common.uncategorized', { defaultValue: 'Non catégorisé' })}
                                         </span>
                                     </td>
+                                    {suppliersModuleOn && (
                                     <td className="py-4 px-6">
                                         {productLinks.length === 0 ? (
                                             <div className="inventory-supplier-card inventory-supplier-card--warning rounded-xl px-3 py-3">
@@ -2442,6 +2478,7 @@ export default function Inventory() {
                                             </div>
                                         )}
                                     </td>
+                                    )}
                                     <td className="py-4 px-6">
                                         <div className="flex flex-col items-center gap-1">
                                             <span className={`text-lg font-bold ${isOut ? 'text-red-400' : matchesMin ? 'text-amber-400' : 'text-emerald-400'}`}>
@@ -2848,16 +2885,10 @@ export default function Inventory() {
                             )}
                         </div>
 
-                        {/* Reason */}
+                        {/* Raison : une vente devient une vraie vente, une perte compte dans les pertes */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Motif (optionnel)</label>
-                            <input
-                                type="text"
-                                value={stockMovReason}
-                                onChange={e => setStockMovReason(e.target.value)}
-                                placeholder={stockMovType === 'in' ? 'Ex: Réapprovisionnement' : 'Ex: Casse, vol, correction'}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
-                            />
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Raison</label>
+                            <StockChangeReasonChips direction={stockMovType} value={stockMovKind} onChange={setStockMovKind} />
                         </div>
 
                         {stockMovType === 'in' && (
@@ -3156,7 +3187,7 @@ export default function Inventory() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300">Stock initial</label>
+                                    <label className="block text-sm font-medium text-slate-300">{editingProduct ? 'Stock' : 'Stock initial'}</label>
                                     <input
                                         type="number"
                                         step={String(isDiscreteUnitProduct(form) ? 1 : getInputStep(form))}
@@ -3190,6 +3221,16 @@ export default function Inventory() {
                                     </select>
                                 </div>
                             </div>
+
+                            {formStockDirection && editingProduct && (
+                                <div className={`rounded-xl border p-4 ${formStockDirection === 'in' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
+                                    <p className="text-sm font-bold text-white">Pourquoi le stock change ?</p>
+                                    <p className="mt-1 mb-3 text-xs text-slate-400">
+                                        Le stock passe de {formatMeasurementQuantity(Number(editingProduct.quantity) || 0, editingProduct.display_unit || editingProduct.unit)} à {formatMeasurementQuantity(Number(form.quantity) || 0, editingProduct.display_unit || editingProduct.unit)} ({formStockDirection === 'in' ? '+' : '-'}{formatMeasurementQuantity(Math.abs(formStockDelta), editingProduct.display_unit || editingProduct.unit)}). Choisissez la raison.
+                                    </p>
+                                    <StockChangeReasonChips direction={formStockDirection} value={formStockChangeKind} onChange={setFormStockChangeKind} />
+                                </div>
+                            )}
 
                             {form.measurement_type !== 'unit' && (
                                 <div className="grid grid-cols-3 gap-4">

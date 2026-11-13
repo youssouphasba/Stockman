@@ -1100,6 +1100,10 @@
   "dashboard": {
     "abc_analysis": "Analyse ABC (Priorités)",
     "admin_messages": "Messages de l'administrateur",
+    "admin_message_new": "Nouveau message",
+    "admin_message_got_it": "J'ai compris",
+    "admin_message_next": "Message suivant",
+    "admin_message_open": "Ouvrir",
     "ai_daily_summary": "Résumé IA du jour",
     "ai_tap_to_generate": "Appuyez pour générer",
     "category_distribution": "Répartition par Catégorie",
@@ -2067,6 +2071,8 @@
     "same_country_only": "Même pays que mon compte ({{country}})"
   },
   "modals": {
+    "ai_unavailable": "L'assistant IA est momentanément indisponible. Réessayez un peu plus tard ; en attendant, vous pouvez consulter les guides :",
+    "ai_screen_guide": "Guide de cet écran",
     "ai_assistant_title": "AI Assistant",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Erreur inconnue",
@@ -2587,6 +2593,11 @@
     "with_premium_you_can": "Avec Premium, vous pouvez :"
   },
   "products": {
+    "stock_change_title": "Pourquoi le stock change ?",
+    "stock_change_increase": "Le stock passe de {{from}} à {{to}} (+{{diff}}). Choisissez la raison.",
+    "stock_change_decrease": "Le stock passe de {{from}} à {{to}} (-{{diff}}). Choisissez la raison.",
+    "stock_change_sale_hint": "Une vente est enregistrée au prix de vente, payée en espèces, et apparaît dans la Compta.",
+    "stock_change_required": "Choisissez la raison du changement de stock.",
     "add_btn": "Ajouter",
     "add_photo_title": "Ajouter une photo",
     "add_product": "Ajouter un produit",
@@ -3159,6 +3170,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Autre",
+      "restock": "Réapprovisionnement",
+      "customer_return": "Retour client",
+      "expired": "Produit périmé",
+      "theft": "Vol",
+      "internal_use": "Usage interne",
+      "sale_from_product": "Vente hors caisse",
       "pos_sale": "Vente POS",
       "inventory_adjustment": "Ajustement d'inventaire",
       "supplier_reception": "Réception fournisseur",

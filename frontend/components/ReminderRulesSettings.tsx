@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { ReminderRuleSettings } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { hasPlatformModule } from '../utils/access';
 import { Spacing, FontSize, BorderRadius } from '../constants/theme';
 
 type Props = {
@@ -27,6 +29,9 @@ type RuleConfig = {
   defaultDescription: string;
   defaultUnit?: string;
 };
+
+// Rappels qui n'ont de sens qu'avec le module Fournisseurs (activé par l'admin Stockman).
+const SUPPLIER_RULE_KEYS = ['late_deliveries', 'replenishment', 'pending_invitations'];
 
 const RULE_CONFIGS: RuleConfig[] = [
   {
@@ -170,6 +175,8 @@ export default function ReminderRulesSettings({
 }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -207,7 +214,8 @@ export default function ReminderRulesSettings({
     return translated && translated !== key ? translated : fallback;
   }
 
-  const visibleRules = RULE_CONFIGS.filter((config) => allowedDomains.includes(config.domain));
+  const visibleRules = RULE_CONFIGS.filter((config) => allowedDomains.includes(config.domain)
+    && (suppliersModuleOn || !SUPPLIER_RULE_KEYS.includes(config.key)));
 
   return (
     <View>

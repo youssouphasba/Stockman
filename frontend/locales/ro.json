@@ -741,6 +741,10 @@
   "dashboard": {
     "abc_analysis": "ABC Analysis (Priorities)",
     "admin_messages": "Administrator messages",
+    "admin_message_new": "Mesaj nou",
+    "admin_message_got_it": "Am înțeles",
+    "admin_message_next": "Mesajul următor",
+    "admin_message_open": "Deschide",
     "ai_daily_summary": "AI Daily Summary",
     "ai_tap_to_generate": "Tap to generate",
     "category_distribution": "Category Distribution",
@@ -1292,6 +1296,8 @@
     "delivery": "livrare"
   },
   "modals": {
+    "ai_unavailable": "Asistentul IA este momentan indisponibil. Reîncercați puțin mai târziu; între timp, puteți consulta ghidurile:",
+    "ai_screen_guide": "Ghidul acestui ecran",
     "ai_assistant_title": "AI Assistant",
     "ai_error_prefix": "Error: ",
     "ai_error_unknown": "Unknown error",
@@ -1635,6 +1641,11 @@
     "with_premium_you_can": "With Premium, you can:"
   },
   "products": {
+    "stock_change_title": "De ce se schimbă stocul?",
+    "stock_change_increase": "Stocul trece de la {{from}} la {{to}} (+{{diff}}). Alegeți motivul.",
+    "stock_change_decrease": "Stocul trece de la {{from}} la {{to}} (-{{diff}}). Alegeți motivul.",
+    "stock_change_sale_hint": "Se înregistrează o vânzare la prețul de vânzare, plătită în numerar, vizibilă în Contabilitate.",
+    "stock_change_required": "Alegeți motivul modificării stocului.",
     "add_btn": "Add",
     "add_photo_title": "Add a photo",
     "add_product": "AdaugÄƒ produs",
@@ -2010,6 +2021,13 @@
   },
   "stock": {
     "reasons": {
+      "other": "Altele",
+      "restock": "Reaprovizionare",
+      "customer_return": "Retur client",
+      "expired": "Produs expirat",
+      "theft": "Furt",
+      "internal_use": "Uz intern",
+      "sale_from_product": "Vânzare în afara casei",
       "pos_sale": "POS Sale",
       "inventory_adjustment": "Ajustare stoc",
       "supplier_reception": "RecepÈ›ie furnizor",

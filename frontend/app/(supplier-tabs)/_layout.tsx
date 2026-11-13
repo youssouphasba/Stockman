@@ -158,7 +158,14 @@ export default function SupplierTabLayout() {
         />
       )}
 
-      {showAiModal && <AiSupportModal visible={showAiModal} onClose={() => setShowAiModal(false)} />}
+      {showAiModal && (
+        <AiSupportModal
+          visible={showAiModal}
+          onClose={() => setShowAiModal(false)}
+          onOpenHelpCenter={() => setShowHelpCenter(true)}
+          onOpenScreenGuide={() => { setGuideOverride(null); setShowGuide(true); }}
+        />
+      )}
 
       <AccountSwitcherModal visible={showAccountSwitcher} onClose={() => setShowAccountSwitcher(false)} />
 

@@ -5,11 +5,13 @@ import {
     Shield, Activity, Users, Store, AlertCircle, CheckCircle2,
     RefreshCw, TrendingUp, Globe, Search, MessageSquare,
     Lock, Unlock, Trash2, Crown, Clock, Package, Download, Filter,
-    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper, Brain
+    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper, Brain, Rocket
 } from 'lucide-react';
 import { admin as adminApi, setRefreshToken, setToken } from '../services/api';
 import AdminProductsPanel from './admin/AdminProductsPanel';
 import AdminCatalogPanel from './admin/AdminCatalogPanel';
+import AdminModulesPanel, { AccountModulesCard } from './admin/AdminModulesPanel';
+import AdminAiHealthCard from './admin/AdminAiHealthCard';
 import AdminStoreOverviewPanel from './admin/AdminStoreOverviewPanel';
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: any; icon: any; color: string; sub: string }) {
@@ -154,6 +156,10 @@ function formatAdminMoney(amount: any, currency: string) {
     const suffix = currency === 'XOF' || currency === 'XAF' ? 'FCFA' : (currency || '');
     return `${numeric.toLocaleString('fr-FR')} ${suffix}`.trim();
 }
+
+// Demandes d'aide envoyées depuis la fin du guide de démarrage mobile.
+const ONBOARDING_GUIDE_SURFACE = 'onboarding_guide';
+const formatSupportSurface = (surface?: string | null) => (surface === ONBOARDING_GUIDE_SURFACE ? 'Guide de démarrage' : surface || '—');
 
 function formatAdminDate(value: string | Date | null) {
     if (!value) return '—';
@@ -302,7 +308,7 @@ function formatRemainingDuration(seconds: number | null) {
     return `${hours}h ${minutes}m`;
 }
 
-type AdminSection = 'overview' | 'notifications' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'crm' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring';
+type AdminSection = 'overview' | 'modules' | 'notifications' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'crm' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring';
 
 export default function AdminDashboard() {
     const [activeSection, setActiveSection] = useState<AdminSection>('overview');
@@ -330,6 +336,7 @@ export default function AdminDashboard() {
     const [verificationEventsTotal, setVerificationEventsTotal] = useState(0);
     const [activeSessions, setActiveSessions] = useState<any[]>([]);
     const [tickets, setTickets] = useState<any[]>([]);
+    const [guideTicketsOnly, setGuideTicketsOnly] = useState(false);
     const [messageHistory, setMessageHistory] = useState<any[]>([]);
     const [messageHistoryTotal, setMessageHistoryTotal] = useState(0);
     const [broadcastForm, setBroadcastForm] = useState<{
@@ -390,6 +397,7 @@ export default function AdminDashboard() {
     const [noteText, setNoteText] = useState('');
     const [detailUser, setDetailUser] = useState<any>(null);
     const [detailData, setDetailData] = useState<any>(null);
+    const [guideRelaunching, setGuideRelaunching] = useState(false);
     const [detailLoading, setDetailLoading] = useState(false);
     const [userTimeline, setUserTimeline] = useState<any[]>([]);
     const [userTimelineLoading, setUserTimelineLoading] = useState(false);
@@ -1014,6 +1022,18 @@ export default function AdminDashboard() {
         finally { setDetailLoading(false); setUserTimelineLoading(false); }
     };
 
+    const handleRelaunchGuide = async () => {
+        if (!detailUser) return;
+        if (!window.confirm("Relancer le guide de démarrage ? Le commerçant le refera depuis le début à sa prochaine ouverture de l'application mobile.")) return;
+        setGuideRelaunching(true);
+        try {
+            const guide = await adminApi.relaunchOnboardingGuide(detailUser.user_id);
+            setDetailData((prev: any) => (prev ? { ...prev, onboarding_guide: guide } : prev));
+            showToast('Guide relancé.');
+        } catch { showToast('Impossible de relancer le guide.', 'error'); }
+        finally { setGuideRelaunching(false); }
+    };
+
     const handleSaveFlags = async () => {
         if (!detailUser) return;
         setFlagsSaving(true);
@@ -1357,8 +1377,9 @@ export default function AdminDashboard() {
             String(ticket.priority || '').toLowerCase() === 'urgent' ||
             Number(ticket.ageDays || 0) >= 3
         ));
-        return { withAge, oldOpen, urgent };
-    }, [tickets]);
+        const guideTickets = withAge.filter((ticket: any) => ticket.support_surface === ONBOARDING_GUIDE_SURFACE);
+        return { withAge, oldOpen, urgent, guideTickets, visible: guideTicketsOnly ? guideTickets : withAge };
+    }, [tickets, guideTicketsOnly]);
 
     const crmInsights = useMemo(() => {
         const now = Date.now();
@@ -1421,6 +1442,7 @@ export default function AdminDashboard() {
         { id: 'stores', icon: Store, label: 'Boutiques' },
         { id: 'products', icon: Package, label: 'Produits' },
         { id: 'catalog', icon: BarChart2, label: 'Catalogue' },
+        { id: 'modules', icon: Zap, label: 'Modules' },
         { id: 'disputes', icon: AlertCircle, label: 'Litiges' },
         { id: 'security', icon: Shield, label: 'Sécurité' },
         { id: 'support', icon: MessageSquare, label: 'Support' },
@@ -1638,6 +1660,38 @@ export default function AdminDashboard() {
                                         </div>
                                     ))}
                                 </div>
+                                <AccountModulesCard
+                                    userId={detailUser.user_id}
+                                    view={detailData.modules || null}
+                                    onChange={(modules) => setDetailData((prev: any) => (prev ? { ...prev, modules } : prev))}
+                                    showToast={showToast}
+                                />
+                                {detailData.onboarding_guide && (
+                                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className="text-[10px] uppercase tracking-widest text-slate-500">Guide de démarrage (mobile)</div>
+                                                <div className="mt-1 text-sm font-bold text-white">{detailData.onboarding_guide.status_label}</div>
+                                                {detailData.onboarding_guide.step_label && (
+                                                    <div className="mt-0.5 text-xs text-slate-400">Dernière étape : {detailData.onboarding_guide.step_label}</div>
+                                                )}
+                                                <div className="mt-0.5 text-xs text-slate-500">
+                                                    {detailData.onboarding_guide.finished_at
+                                                        ? `Fini le ${formatAdminDate(detailData.onboarding_guide.finished_at)}`
+                                                        : detailData.onboarding_guide.started_at
+                                                            ? `Commencé le ${formatAdminDate(detailData.onboarding_guide.started_at)}`
+                                                            : 'Pas encore commencé'}
+                                                    {detailData.onboarding_guide.relaunch_count > 0 ? ` · relancé ${detailData.onboarding_guide.relaunch_count} fois` : ''}
+                                                </div>
+                                            </div>
+                                            {detailData.onboarding_guide.can_relaunch && detailData.onboarding_guide.status !== 'pending' && (
+                                                <button onClick={handleRelaunchGuide} disabled={guideRelaunching} className="shrink-0 px-3 py-1.5 rounded-lg bg-primary/15 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/25 disabled:opacity-50 transition-all">
+                                                    {guideRelaunching ? 'Relance...' : 'Relancer le guide'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                                 {detailData.stores?.length > 0 && (
                                     <div>
                                         <div className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Boutiques</div>
@@ -2057,6 +2111,46 @@ export default function AdminDashboard() {
                         <StatCard label="Taux de vérification" value={`${onboardingSummary.verification_rate || 0}%`} icon={TrendingUp} color="bg-sky-500" sub={`${onboardingSummary.verified_total || 0} vérifiés`} />
                         <StatCard label="Temps moyen OTP" value={`${onboardingSummary.avg_minutes_to_verify || 0} min`} icon={Clock} color="bg-violet-500" sub={`${onboardingSummary.window_days || 30} jours`} />
                     </div>
+
+                    {onboardingSummary.guide && (() => {
+                        const guide = onboardingSummary.guide;
+                        const status = guide.by_status || {};
+                        const stepList = (title: string, rows: any[], empty: string) => (
+                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-3">{title}</p>
+                                {rows?.length ? (
+                                    <div className="space-y-2">
+                                        {rows.slice(0, 8).map((row: any) => (
+                                            <div key={row.step} className="flex items-center justify-between gap-3 text-sm">
+                                                <span className="text-slate-300 truncate">{row.label}</span>
+                                                <strong className="text-white">{row.count}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : <p className="text-sm text-slate-500">{empty}</p>}
+                            </div>
+                        );
+                        return (
+                            <div className="glass-card p-6">
+                                <div className="mb-5">
+                                    <h3 className="text-base font-black text-white uppercase tracking-tighter">Guide de démarrage (mobile)</h3>
+                                    <p className="mt-1 text-xs text-slate-400">Tous les comptes commerçants concernés depuis la mise en ligne du guide. Les étapes indiquent où les commerçants s'arrêtent.</p>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-5">
+                                    <StatCard label="À faire" value={status.pending || 0} icon={Clock} color="bg-slate-500" sub="Pas encore commencé" />
+                                    <StatCard label="En cours" value={status.active || 0} icon={Activity} color="bg-blue-500" sub="Commencé, pas fini" />
+                                    <StatCard label="Terminés" value={status.completed || 0} icon={CheckCircle2} color="bg-emerald-500" sub={`${guide.completion_rate || 0} % des guides commencés`} />
+                                    <StatCard label="Passés" value={status.skipped || 0} icon={X} color="bg-amber-500" sub="Lien « Passer »" />
+                                    <StatCard label="Durée médiane" value={guide.median_minutes != null ? `${guide.median_minutes} min` : '—'} icon={Rocket} color="bg-violet-500" sub="Guides terminés" />
+                                    <StatCard label="Non proposés" value={status.not_needed || 0} icon={Package} color="bg-slate-600" sub="Produits déjà présents" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {stepList('Guides en cours : étape atteinte', guide.in_progress_by_step, 'Aucun guide en cours.')}
+                                    {stepList('Guides passés : étape au moment de passer', guide.skipped_by_step, "Personne n'a passé le guide.")}
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                         <div className="glass-card p-6">
@@ -3565,9 +3659,16 @@ export default function AdminDashboard() {
                             <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 font-bold text-rose-300">
                                 SLA : {supportInsights.oldOpen.length} ticket(s) à risque
                             </span>
+                            <button
+                                type="button"
+                                onClick={() => setGuideTicketsOnly((value) => !value)}
+                                className={`rounded-full border px-3 py-1 font-bold transition-all ${guideTicketsOnly ? 'border-primary bg-primary text-white' : 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20'}`}
+                            >
+                                Guide de démarrage : {supportInsights.guideTickets.length} demande(s) d'aide{guideTicketsOnly ? ' · afficher tout' : ''}
+                            </button>
                         </div>
                         <div className="divide-y divide-white/5">
-                            {supportInsights.withAge.length > 0 ? supportInsights.withAge.map((ticket: any) => (
+                            {supportInsights.visible.length > 0 ? supportInsights.visible.map((ticket: any) => (
                                 <div key={ticket.ticket_id}>
                                     <div className="p-5 hover:bg-white/5 transition-all flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between group">
                                         <div className="flex flex-col gap-3">
@@ -3590,7 +3691,7 @@ export default function AdminDashboard() {
                                                 <MiniDetail label="Utilisateur" value={ticket.user_name || ticket.user_email || '—'} />
                                                 <MiniDetail label="Email" value={ticket.user_email || ticket.email || '—'} />
                                                 <MiniDetail label="Plan" value={ticket.plan || '—'} />
-                                                <MiniDetail label="Surface" value={ticket.support_surface || '—'} />
+                                                <MiniDetail label="Surface" value={formatSupportSurface(ticket.support_surface)} />
                                                 <MiniDetail label="Création" value={formatAdminDate(ticket.created_at)} />
                                                 <MiniDetail label="Priorité" value={ticket.priority || 'Standard'} />
                                             </div>
@@ -3673,7 +3774,7 @@ export default function AdminDashboard() {
                                     )}
                                 </div>
                             )) : (
-                                <div className="p-20 text-center text-slate-600 font-black uppercase tracking-widest text-xs opacity-40">Tous les tickets sont résolus</div>
+                                <div className="p-20 text-center text-slate-600 font-black uppercase tracking-widest text-xs opacity-40">{guideTicketsOnly ? "Aucune demande d'aide venue du guide" : 'Tous les tickets sont résolus'}</div>
                             )}
                         </div>
                     </div>
@@ -4209,6 +4310,8 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+
+            {activeSection === 'modules' && <AdminModulesPanel showToast={showToast} />}
 
             {activeSection === 'legal' && (
                 <div className="grid grid-cols-1 gap-8">
@@ -4833,6 +4936,7 @@ export default function AdminDashboard() {
             {/* -- MONITORING -- */}
             {activeSection === 'monitoring' && (
                 <div className="space-y-6">
+                    <AdminAiHealthCard showToast={showToast} />
                     <div className="flex items-center justify-between flex-wrap gap-3">
                         <h3 className="text-lg font-black text-white uppercase tracking-widest">Monitoring & Santé API</h3>
                         <div className="flex items-center gap-3">
