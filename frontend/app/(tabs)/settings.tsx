@@ -236,6 +236,73 @@ function getAppVersionLabel(): string {
   }
 }
 
+// Raisons renvoyées par expo-updates quand aucune mise à jour à distance n'est appliquée.
+const UPDATE_REASONS: Record<string, string> = {
+  noUpdateAvailableOnServer: "le serveur n'a rien de plus récent pour cette version",
+  updateRejectedBySelectionPolicy: "la mise à jour reçue a été refusée par l'application",
+  updatePreviouslyFailed: 'cette mise à jour a déjà échoué au lancement',
+  rollbackRejectedBySelectionPolicy: "le retour à la version d'origine a été refusé",
+  rollbackNoEmbedded: "aucune version d'origine disponible",
+};
+
+// Diagnostic des mises à jour à distance : canal, version d'exécution, mise à jour en cours,
+// et recherche manuelle qui affiche la raison exacte quand rien n'est appliqué.
+function UpdatesDiagnostic({ colors, styles }: { colors: any; styles: any }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  let info = '';
+  try {
+    const current = Updates.updateId ? Updates.updateId.slice(0, 8) : 'aucune';
+    info = `Canal ${Updates.channel || '—'} · exécution ${Updates.runtimeVersion || '—'} · mise à jour ${current}${Updates.isEmbeddedLaunch ? " (version d'origine)" : ''}`;
+  } catch { /* informations indisponibles */ }
+
+  const lastProblem = async () => {
+    try {
+      const entries = await Updates.readLogEntriesAsync(10 * 60 * 1000);
+      const problem = [...entries].reverse().find((entry) => entry.level === 'error' || entry.level === 'warn');
+      return problem ? ` Dernier incident : ${problem.message}` : '';
+    } catch {
+      return '';
+    }
+  };
+
+  const check = async () => {
+    if (__DEV__ || !Updates.isEnabled) {
+      setResult('Les mises à jour à distance sont désactivées dans cette version.');
+      return;
+    }
+    setBusy(true);
+    setResult(null);
+    try {
+      const response: any = await Updates.checkForUpdateAsync();
+      if (response.isAvailable) {
+        setResult('Mise à jour trouvée : téléchargement puis redémarrage…');
+        await Updates.fetchUpdateAsync();
+        await Updates.reloadAsync();
+        return;
+      }
+      const reason = UPDATE_REASONS[response.reason] || response.reason || 'raison inconnue';
+      setResult(`Aucune mise à jour : ${reason}.${await lastProblem()}`);
+    } catch (error: any) {
+      setResult(`Erreur : ${error?.message || String(error)}.${await lastProblem()}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={{ marginTop: Spacing.sm, gap: 6 }}>
+      {!!info && <Text selectable style={[styles.aboutLabel, { fontSize: 12 }]}>{info}</Text>}
+      <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => void check()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {busy ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="cloud-download-outline" size={16} color={colors.primary} />}
+        <Text style={[styles.aboutLabel, { color: colors.primary }]}>Rechercher une mise à jour</Text>
+      </TouchableOpacity>
+      {!!result && <Text selectable style={[styles.aboutLabel, { fontSize: 12 }]}>{result}</Text>}
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -2116,6 +2183,7 @@ export default function SettingsScreen() {
             <Text style={styles.aboutLabel}>{t('settings.version')}</Text>
             <Text style={styles.aboutValue}>{getAppVersionLabel()}</Text>
           </View>
+          <UpdatesDiagnostic colors={colors} styles={styles} />
 
           <TouchableOpacity
             style={[styles.aboutRow, { marginTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.md }]}
