@@ -43,6 +43,11 @@ export const GUIDE_STEPS: GuideStep[] = [
     nextLabel: 'Commencer',
   },
   {
+    id: 'tour_tabs', chapter: 'start', kind: 'info', host: 'root', target: 'tab.bar',
+    title: 'La barre des onglets',
+    body: "En bas de l'écran, chaque onglet ouvre une partie de Stockman : Produits, Caisse, Compta, Clients… L'onglet en couleur indique l'écran où vous êtes. Suivez le cadre lumineux : il vous montre à chaque fois où toucher.",
+  },
+  {
     id: 'tab_products', chapter: 'products', kind: 'tap', host: 'root', target: 'tab.products',
     title: 'Onglet Produits',
     body: "C'est ici que vous gérez votre catalogue : prix, quantités en stock, catégories et alertes.",

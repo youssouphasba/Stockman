@@ -18,7 +18,18 @@ import { useGuide, type GuideRect } from './GuideProvider';
 import { CHAPTERS, GUIDE_STEPS, STEP_INDEX } from './steps';
 
 const HOLE_PADDING = 6;
-const DIM = 'rgba(5, 4, 20, 0.78)';
+// Voile léger pendant les étapes : l'utilisateur doit continuer à voir l'écran autour de la zone éclairée.
+const DIM = 'rgba(5, 4, 20, 0.45)';
+// Voile des écrans plein format (bienvenue, fin), qui n'ont rien à montrer derrière.
+const DIM_CARD = 'rgba(5, 4, 20, 0.78)';
+// Hauteur réservée en haut à la barre de progression.
+const TOP_BAR_SPACE = 64;
+// Durée du déplacement du cadre lumineux : assez lente pour que l'œil le suive.
+const HOLE_MOVE_MS = 650;
+
+// Dernière position du cadre (coordonnées de la fenêtre), partagée entre les couches :
+// en changeant d'écran ou de fenêtre, le cadre repart de là où il était au lieu d'apparaître d'un coup.
+let lastHole: { x: number; y: number; w: number; h: number } | null = null;
 
 // Couche du guide : l'une à la racine des onglets, une autre dans chaque fenêtre (modale) qui contient une étape.
 export default function GuideHost({ id }: { id: string }) {
@@ -47,6 +58,10 @@ function GuideOverlay() {
   const [rect, setRect] = useState<GuideRect | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [bubbleHeight, setBubbleHeight] = useState(170);
+  const [compactHeight, setCompactHeight] = useState(110);
+  const keyboardRef = useRef(0);
+  keyboardRef.current = keyboardHeight;
+  const lastEnsureRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
 
   const holeX = useRef(new Animated.Value(W / 2)).current;
@@ -62,6 +77,8 @@ function GuideOverlay() {
 
   const isCard = step.kind === 'card';
   const targetId = guide.targetId;
+  // Après un écran plein format, le cadre part de tout l'écran et se resserre sur la première cible.
+  if (isCard) lastHole = null;
 
   // Apparition de la couche, puis animations en boucle (anneau et indicateur de toucher).
   useEffect(() => {
@@ -86,7 +103,11 @@ function GuideOverlay() {
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvent, (event) => setKeyboardHeight(event.endCoordinates.height));
+    const show = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      // Le clavier réduit la place : on remonte le champ pour qu'il reste visible avec la bulle.
+      lastEnsureRef.current = 0;
+    });
     const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
     return () => { show.remove(); hide.remove(); };
   }, []);
@@ -105,6 +126,12 @@ function GuideOverlay() {
       const next = measured.y < 0
         ? { x: measured.x, y: hostHeightRef.current + measured.y, width: measured.width, height: measured.height }
         : { x: measured.x - offsetRef.current.x, y: measured.y - offsetRef.current.y, width: measured.width, height: measured.height };
+      // Cible cachée par le haut de l'écran ou par le clavier : on la ramène dans la partie visible.
+      const visibleBottomNow = hostHeightRef.current - keyboardRef.current - 12;
+      if ((next.y < insets.top + TOP_BAR_SPACE || next.y + next.height > visibleBottomNow) && Date.now() - lastEnsureRef.current > 800) {
+        lastEnsureRef.current = Date.now();
+        guide.ensureTargetVisible(targetId);
+      }
       setRect((current) => (current && Math.abs(current.x - next.x) < 1 && Math.abs(current.y - next.y) < 1
         && Math.abs(current.width - next.width) < 1 && Math.abs(current.height - next.height) < 1 ? current : next));
     };
@@ -121,15 +148,23 @@ function GuideOverlay() {
       x: rect.x - HOLE_PADDING, y: rect.y - HOLE_PADDING,
       w: rect.width + HOLE_PADDING * 2, h: rect.height + HOLE_PADDING * 2,
     };
+    const offset = offsetRef.current;
     if (!hasRectRef.current) {
       hasRectRef.current = true;
-      holeX.setValue(target.x + target.w / 2);
-      holeY.setValue(target.y + target.h / 2);
-      holeW.setValue(0);
-      holeH.setValue(0);
+      const start = lastHole
+        ? { x: lastHole.x - offset.x, y: lastHole.y - offset.y, w: lastHole.w, h: lastHole.h }
+        : { x: 0, y: 0, w: W, h: hostHeightRef.current };
+      holeX.setValue(start.x);
+      holeY.setValue(start.y);
+      holeW.setValue(start.w);
+      holeH.setValue(start.h);
     }
-    const spring = (value: Animated.Value, toValue: number) => Animated.spring(value, { toValue, friction: 9, tension: 55, useNativeDriver: false });
-    Animated.parallel([spring(holeX, target.x), spring(holeY, target.y), spring(holeW, target.w), spring(holeH, target.h)]).start();
+    lastHole = { x: target.x + offset.x, y: target.y + offset.y, w: target.w, h: target.h };
+    const move = (value: Animated.Value, toValue: number) => Animated.timing(value, {
+      toValue, duration: HOLE_MOVE_MS, easing: Easing.inOut(Easing.cubic), useNativeDriver: false,
+    });
+    Animated.parallel([move(holeX, target.x), move(holeY, target.y), move(holeW, target.w), move(holeH, target.h)]).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holeH, holeW, holeX, holeY, rect]);
 
   const shakeBubble = useCallback(() => {
@@ -174,14 +209,23 @@ function GuideOverlay() {
   const holeBottom = Animated.add(holeY, holeH);
   const showHole = Boolean(rect) && !isCard;
 
-  // Bulle sous la cible si la place le permet, sinon au-dessus ; jamais sous le clavier.
+  // Bulle sous la cible si la place le permet, sinon au-dessus ; jamais sous le clavier ni sur la cible.
+  // Faute de place des deux côtés, la bulle passe en version courte (sans le texte d'explication).
   const bubbleWidth = Math.min(W - 32, 380);
   const visibleBottom = H - keyboardHeight - Math.max(insets.bottom, 12);
+  const topLimit = insets.top + TOP_BAR_SPACE;
+  let compact = false;
   let bubbleTop = H / 2 - bubbleHeight / 2;
   if (rect) {
     const below = rect.y + rect.height + HOLE_PADDING + 14;
-    const above = rect.y - HOLE_PADDING - 14 - bubbleHeight;
-    bubbleTop = below + bubbleHeight <= visibleBottom ? below : Math.max(insets.top + 64, above);
+    const spaceBelow = visibleBottom - below;
+    const spaceAbove = rect.y - HOLE_PADDING - 14 - topLimit;
+    compact = spaceBelow < bubbleHeight && spaceAbove < bubbleHeight;
+    const height = compact ? compactHeight : bubbleHeight;
+    if (spaceBelow >= height) bubbleTop = below;
+    else if (spaceAbove >= height) bubbleTop = rect.y - HOLE_PADDING - 14 - height;
+    else if (spaceBelow >= spaceAbove) bubbleTop = Math.min(below, visibleBottom - height);
+    else bubbleTop = Math.max(topLimit, rect.y - HOLE_PADDING - 14 - height);
   }
   const bubbleLeft = rect ? Math.max(16, Math.min(W - bubbleWidth - 16, rect.x + rect.width / 2 - bubbleWidth / 2)) : (W - bubbleWidth) / 2;
 
@@ -197,7 +241,7 @@ function GuideOverlay() {
   return (
     <Animated.View ref={hostRef as any} onLayout={onHostLayout} pointerEvents="box-none" style={[StyleSheet.absoluteFill, { opacity: fade, zIndex: 9999, elevation: 9999 }]}>
       {isCard ? (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: DIM }]} onStartShouldSetResponder={() => true} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: DIM_CARD }]} onStartShouldSetResponder={() => true} />
       ) : showHole ? (
         <>
           <Animated.View {...blocker} style={[styles.dim, { left: 0, right: 0, top: 0, height: holeY }]} />
@@ -255,7 +299,10 @@ function GuideOverlay() {
         <GuideCard />
       ) : (
         <Animated.View
-          onLayout={(event) => setBubbleHeight(event.nativeEvent.layout.height)}
+          onLayout={(event) => {
+            const height = event.nativeEvent.layout.height;
+            if (compact) setCompactHeight(height); else setBubbleHeight(height);
+          }}
           style={[styles.bubble, {
             top: bubbleTop, left: bubbleLeft, width: bubbleWidth, backgroundColor: bubbleBg, borderColor: colors.primary,
             opacity: bubbleIn,
@@ -266,7 +313,7 @@ function GuideOverlay() {
           }]}
         >
           <Text style={[styles.bubbleTitle, { color: colors.text }]}>{step.title}</Text>
-          <Text style={[styles.bubbleBody, { color: colors.textSecondary || colors.textMuted }]}>{step.body}</Text>
+          {!compact && <Text style={[styles.bubbleBody, { color: colors.textSecondary || colors.textMuted }]}>{step.body}</Text>}
           {!!step.action && (
             <View style={styles.actionRow}>
               <Ionicons name="hand-left-outline" size={16} color={colors.primary} />

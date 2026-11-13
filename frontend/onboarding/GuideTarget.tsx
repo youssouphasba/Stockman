@@ -32,17 +32,25 @@ export default function GuideTarget({ id, alias, children, style, value, scrollR
     });
   }), []);
 
+  // Amène la cible près du haut de la zone défilante, pour laisser la place à la bulle et au clavier en dessous.
   const ensureVisible = useCallback(() => {
     const scroll = scrollRef?.current;
     const node = viewRef.current;
     if (!scroll || !node) return;
-    const scrollNode = findNodeHandle(scroll);
-    if (!scrollNode) return;
+    const scrollTo = (y: number) => scroll.scrollTo?.({ y: Math.max(0, y - 24), animated: true });
+    // Nouvelle architecture : la mesure se fait par rapport au contenu du défilement (une référence, pas un numéro).
+    const inner = scroll.getInnerViewRef?.();
+    const legacy = () => {
+      const scrollNode = findNodeHandle(scroll);
+      if (!scrollNode) return;
+      try {
+        node.measureLayout(scrollNode as any, (_x, y) => scrollTo(y), () => null);
+      } catch { /* défilement indisponible : la cible reste mesurée telle quelle */ }
+    };
+    if (!inner) { legacy(); return; }
     try {
-      node.measureLayout(scrollNode as any, (_x, y) => {
-        scroll.scrollTo?.({ y: Math.max(0, y - 140), animated: true });
-      }, () => null);
-    } catch { /* défilement indisponible : la cible reste mesurée telle quelle */ }
+      node.measureLayout(inner, (_x, y) => scrollTo(y), legacy);
+    } catch { legacy(); }
   }, [scrollRef]);
 
   useEffect(() => {

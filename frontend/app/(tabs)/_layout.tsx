@@ -1038,7 +1038,12 @@ function GuideTabTargets({ names, height, bottomInset }: { names: string[]; heig
     names.forEach((name, index) => setStaticTarget(`tab.${name}`, {
       x: index * itemWidth, y: -height, width: itemWidth, height: height - bottomInset,
     }));
-    return () => names.forEach((name) => setStaticTarget(`tab.${name}`, null));
+    // Barre entière, présentée au début du guide.
+    setStaticTarget('tab.bar', { x: 0, y: -height, width, height: height - bottomInset });
+    return () => {
+      names.forEach((name) => setStaticTarget(`tab.${name}`, null));
+      setStaticTarget('tab.bar', null);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bottomInset, height, key, running, setStaticTarget, width]);
 

@@ -27,7 +27,7 @@ FINAL_STATES = {COMPLETED, SKIPPED}
 
 # Étapes connues de l'application : la progression enregistrée doit en faire partie.
 STEP_IDS = (
-    "welcome",
+    "welcome", "tour_tabs",
     "tab_products", "open_add_menu", "add_one", "product_name", "product_purchase_price",
     "product_selling_price", "product_quantity", "product_save",
     "open_add_menu_text", "text_import", "text_input", "text_submit",
@@ -42,6 +42,7 @@ STEP_IDS = (
 # Libellés des étapes pour le tableau de bord admin.
 STEP_LABELS = {
     "welcome": "Bienvenue",
+    "tour_tabs": "Présentation des onglets",
     "tab_products": "Produits : onglet",
     "open_add_menu": "Produits : bouton Ajouter",
     "add_one": "Produits : créer un produit",
