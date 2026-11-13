@@ -12,6 +12,8 @@ jobs:
   submit_ios:
     name: Submit iOS
     type: submit
+    env:
+      EXPO_DEBUG: "1"
     params:
       platform: ios
       profile: production-remote
