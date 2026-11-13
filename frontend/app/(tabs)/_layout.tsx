@@ -24,11 +24,15 @@ import SyncWarningBanner from '../../components/SyncWarningBanner';
 import DrawerMenu from '../../components/DrawerMenu';
 import { DrawerProvider, useDrawer } from '../../contexts/DrawerContext';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
+import AdminMessagesButton from '../../components/AdminMessagesButton';
+import GuideProvider, { useGuide } from '../../onboarding/GuideProvider';
+import GuideHost from '../../onboarding/GuideHost';
+import { useGuideRunState } from '../../onboarding/guideStore';
 import { getStarterNavigationRedirect, getStarterRoute, isStarterShopkeeper as usesStarterNavigation } from '../../utils/accountRouting';
 
 function TabLayoutInner() {
   const { t, i18n } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, setTheme } = useTheme();
   const { user, hasPermission, isSuperAdmin, hasProduction, isRestaurant, hasOperationalAccess, isBillingAdmin, isOrgAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -87,7 +91,8 @@ function TabLayoutInner() {
   }, [user?.user_id]);
 
   const refreshEcommerceSite = useCallback(async () => {
-    if (!user?.user_id || !hasOperationalAccess || (Platform.OS !== 'web' && usesStarterNavigation(user))) {
+    // L'état du site sert aussi à n'afficher l'onglet des commandes en ligne qu'une fois l'E-com activé, sur tous les plans.
+    if (!user?.user_id || !hasOperationalAccess) {
       setEcommerceSite(null);
       return;
     }
@@ -172,6 +177,24 @@ function TabLayoutInner() {
   // Première configuration du site : proposée une seule fois (état serveur partagé) dans E-com ou Paramètres.
   const canOfferEcommerceSetup = Platform.OS !== 'web' && isOrgAdmin && !user?.is_demo && user?.can_write_data !== false;
   const onEcommerceSetupScreen = currentRoute === 'settings' || currentRoute === 'ecommerce' || currentRoute === 'orders';
+  const guideRunState = useGuideRunState();
+  // Guide de démarrage : propriétaire d'un commerce (hors restaurant), sur l'application mobile.
+  const canRunOnboardingGuide = Platform.OS !== 'web' && user?.role === 'shopkeeper' && !user?.is_demo && !user?.parent_user_id && !isRestaurant;
+  // Onglets visibles, dans l'ordre de la barre : le guide met en surbrillance l'onglet à toucher.
+  const visibleTabNames = ([
+    ['index', !(isStarterShopkeeper || billingOnly || hideDashboard)],
+    ['products', !(billingOnly || (hideStock && !isRestaurant))],
+    ['pos', !hidePos],
+    ['accounting', !hideAccounting],
+    ['suppliers', !isStarterShopkeeper && !hideSuppliers],
+    ['crm', !hideCrm],
+    ['orders', !(isStarterShopkeeper || hideOrders || !ecommerceSite?.enabled)],
+    ['restaurant', !isStarterShopkeeper && isRestaurant && hasOperationalAccess],
+    ['ecommerce', isStarterShopkeeper && Platform.OS !== 'web' && hasOperationalAccess && Boolean(ecommerceSite?.enabled)],
+    ['settings', true],
+    ['admin', !isStarterShopkeeper && isSuperAdmin],
+  ] as [string, boolean][]).filter(([, visible]) => visible).map(([name]) => name);
+  const tabBarHeight = (compactTabBar ? 74 : 72) + insets.bottom;
   const [showGuide, setShowGuide] = useState(false);
   const autoGuideHandledRef = useRef(false);
   const { isFirstVisit, isReady, markSeen } = useFirstVisit('navigation');
@@ -356,6 +379,7 @@ function TabLayoutInner() {
   }
 
   return (
+    <GuideProvider userId={user?.user_id} canRun={canRunOnboardingGuide} currentRoute={currentRoute}>
     <>
       <TrialBanner />
       <SyncWarningBanner />
@@ -565,6 +589,18 @@ function TabLayoutInner() {
                   <Ionicons name="alarm-outline" size={22} color={colors.primary} />
                 </TouchableOpacity>
               )}
+              {/* Starter n'a pas d'Accueil : ses deux boutons utiles (messages de l'admin, thème) passent dans l'en-tête. */}
+              {isStarterShopkeeper && <AdminMessagesButton compact={compactHeader} />}
+              {isStarterShopkeeper && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={t('settings.dark_mode')}
+                  onPress={() => void setTheme(isDark ? 'light' : 'dark')}
+                  style={{ padding: compactHeader ? 3 : 4 }}
+                >
+                  <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={compactHeader ? 22 : 24} color={colors.text} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={() => setShowAiModal(true)} style={{ padding: compactHeader ? 3 : 4 }}>
                 <Ionicons name="sparkles-outline" size={compactHeader ? 22 : 24} color={colors.primary} />
               </TouchableOpacity>
@@ -664,7 +700,7 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.crm'),
             tabBarLabel: renderTabLabel(t('tabs.crm')),
-            href: isStarterShopkeeper ? null : (hideCrm ? null : '/crm'),
+            href: hideCrm ? null : '/crm',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="person-add-outline" size={size} color={color} />
             ),
@@ -675,7 +711,7 @@ function TabLayoutInner() {
           options={{
             title: t('tabs.orders'),
             tabBarLabel: renderTabLabel(t('tabs.orders')),
-            href: isStarterShopkeeper ? null : (hideOrders ? null : '/orders'),
+            href: isStarterShopkeeper || hideOrders || !ecommerceSite?.enabled ? null : '/orders',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="receipt-outline" size={size} color={color} />
             ),
@@ -704,7 +740,7 @@ function TabLayoutInner() {
           options={{
             title: 'E-com',
             tabBarLabel: renderTabLabel('E-com'),
-            href: isStarterShopkeeper && Platform.OS !== 'web' && hasOperationalAccess ? '/ecommerce' : null,
+            href: isStarterShopkeeper && Platform.OS !== 'web' && hasOperationalAccess && ecommerceSite?.enabled ? '/ecommerce' : null,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="storefront-outline" size={size} color={color} />
             ),
@@ -805,7 +841,7 @@ function TabLayoutInner() {
 
       <EcommerceSetupInvitation
         key={`${user?.user_id}:${user?.active_store_id || ''}`}
-        active={canOfferEcommerceSetup && onEcommerceSetupScreen}
+        active={canOfferEcommerceSetup && onEcommerceSetupScreen && guideRunState === 'idle'}
         bottomOffset={(compactTabBar ? 74 : 72) + insets.bottom + 12}
         onConfigure={() => {
           // Le paramètre couvre un écran Paramètres pas encore monté, l'événement un écran déjà ouvert.
@@ -961,8 +997,33 @@ function TabLayoutInner() {
         items={drawer.items}
         title={drawer.title}
       />
+      <GuideTabTargets names={visibleTabNames} height={tabBarHeight} bottomInset={insets.bottom} />
+      <GuideHost id="root" />
     </>
+    </GuideProvider>
   );
+}
+
+// Position des onglets de la barre du bas, calculée à partir des onglets visibles (ils se partagent la largeur).
+function GuideTabTargets({ names, height, bottomInset }: { names: string[]; height: number; bottomInset: number }) {
+  const guide = useGuide();
+  const { width } = useWindowDimensions();
+  const running = Boolean(guide?.running);
+  const setStaticTarget = guide?.setStaticTarget;
+  const key = names.join(',');
+
+  useEffect(() => {
+    if (!running || !setStaticTarget) return;
+    const itemWidth = width / Math.max(1, names.length);
+    // y négatif : position mesurée depuis le bas de l'écran, là où se trouve la barre d'onglets.
+    names.forEach((name, index) => setStaticTarget(`tab.${name}`, {
+      x: index * itemWidth, y: -height, width: itemWidth, height: height - bottomInset,
+    }));
+    return () => names.forEach((name) => setStaticTarget(`tab.${name}`, null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bottomInset, height, key, running, setStaticTarget, width]);
+
+  return null;
 }
 
 export default function TabLayout() {

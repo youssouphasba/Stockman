@@ -2082,6 +2082,19 @@ export const userNotifications = {
     request<{ marked: number }>('/user/notifications/read-all', { method: 'POST' }),
 };
 
+// Guide de démarrage : état côté serveur, partagé entre les appareils.
+export type OnboardingGuideState = { eligible: boolean; status?: string | null; step?: string | null };
+
+export const onboardingGuide = {
+  get: () => request<OnboardingGuideState>('/onboarding/guide'),
+  start: () => request<OnboardingGuideState>('/onboarding/guide/start', { method: 'POST' }),
+  progress: (step: string) => request<OnboardingGuideState>('/onboarding/guide/progress', { method: 'POST', body: { step } }),
+  finish: (outcome: 'completed' | 'skipped', keepProductIds: string[] = []) =>
+    request<OnboardingGuideState & { cleanup?: { products: number; customers: number; sales: number; kept_products: number } | null }>(
+      '/onboarding/guide/finish', { method: 'POST', body: { outcome, keep_product_ids: keepProductIds } },
+    ),
+};
+
 export type PlannerChannel = 'in_app' | 'push' | 'email';
 
 export type PlannerItem = {

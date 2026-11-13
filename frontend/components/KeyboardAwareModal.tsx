@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Spacing } from '../constants/theme';
+import GuideHost from '../onboarding/GuideHost';
 
 type Props = {
   visible: boolean;
@@ -24,6 +25,8 @@ type Props = {
   contentStyle?: StyleProp<ViewStyle>;
   scroll?: boolean;
   align?: 'bottom' | 'center';
+  // Identifiant de la couche du guide de démarrage affichée dans cette fenêtre.
+  guideHost?: string;
 };
 
 export default function KeyboardAwareModal({
@@ -36,6 +39,7 @@ export default function KeyboardAwareModal({
   contentStyle,
   scroll = true,
   align = 'bottom',
+  guideHost,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -97,6 +101,7 @@ export default function KeyboardAwareModal({
           </View>
         </KeyboardAvoidingView>
       </View>
+      {!!guideHost && visible && <GuideHost id={guideHost} />}
     </Modal>
   );
 }

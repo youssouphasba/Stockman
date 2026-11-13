@@ -82,6 +82,7 @@ from enterprise_access import (
 )
 from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, compute_theme_capabilities, legacy_theme_identity, resolve_model
 from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
+import onboarding_guide
 from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
 from ecommerce_media import EcommerceMediaLibrary
 from ecommerce_addresses import DomainInputError, normalize_ecommerce_slug, parse_domain_input
@@ -15953,6 +15954,7 @@ TEXTE Ã€ PARSER :
     if data.auto_create and user.active_store_id:
         created = 0
         owner_id = get_owner_id(user)
+        guide_exercise = await onboarding_guide.is_active(db, owner_id)
         for p in products:
             parsed_product = resolve_text_import_measurement_fields(p)
             name = str(parsed_product.get("name") or "").strip()
@@ -15988,13 +15990,16 @@ TEXTE Ã€ PARSER :
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc),
             })
+            if guide_exercise:
+                product_doc[onboarding_guide.DEMO_TAG] = True
             await db.products.insert_one(product_doc)
             created += 1
 
-        # Contribute to global catalog
-        sector = user.business_type or "autre"
-        country = user.country_code or "SN"
-        asyncio.create_task(catalog_service.contribute_products_batch(products, sector, country))
+        # Contribute to global catalog (sauf produits d'exercice du guide de démarrage)
+        if not guide_exercise:
+            sector = user.business_type or "autre"
+            country = user.country_code or "SN"
+            asyncio.create_task(catalog_service.contribute_products_batch(products, sector, country))
 
         return {"products": products, "created": created, "auto_created": True}
 
@@ -17488,6 +17493,8 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             "required_verification": required_verification,
             "verification_channel": required_verification,
             "signup_surface": signup_surface,
+            # Guide de démarrage proposé une seule fois aux nouveaux propriétaires de commerce.
+            **({"onboarding_guide": onboarding_guide.initial_state()} if role == "shopkeeper" else {}),
             "verification_completed_at": None,
             "phone_otp": None,
             "phone_otp_digest": None,
@@ -17803,6 +17810,7 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
             "required_verification": None if email_verified else "email",
             "verification_channel": None if email_verified else "email",
             "signup_surface": signup_surface,
+            "onboarding_guide": onboarding_guide.initial_state(),
             "verification_completed_at": login_at if email_verified else None,
             "phone_otp": None,
             "phone_otp_digest": None,
@@ -18929,6 +18937,44 @@ async def get_ecommerce_setup_context(user: User, site_slug: Optional[str] = Non
     if not account:
         raise HTTPException(status_code=404, detail="Compte commercial introuvable")
     return account, site
+
+
+# ===================== GUIDE DE DÉMARRAGE (MOBILE) =====================
+
+class OnboardingGuideProgress(BaseModel):
+    step: str
+
+
+class OnboardingGuideFinish(BaseModel):
+    outcome: Literal["completed", "skipped"] = "completed"
+    keep_product_ids: List[str] = []
+
+
+@api_router.get("/onboarding/guide")
+async def get_onboarding_guide(user: User = Depends(require_auth)):
+    doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    return onboarding_guide.public_state(doc)
+
+
+@api_router.post("/onboarding/guide/start")
+async def start_onboarding_guide(user: User = Depends(require_auth)):
+    return await onboarding_guide.start(db, user.user_id)
+
+
+@api_router.post("/onboarding/guide/progress")
+async def save_onboarding_guide_progress(data: OnboardingGuideProgress, user: User = Depends(require_auth)):
+    try:
+        return await onboarding_guide.save_progress(db, user.user_id, data.step)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@api_router.post("/onboarding/guide/finish")
+async def finish_onboarding_guide(data: OnboardingGuideFinish, user: User = Depends(require_auth)):
+    result = await onboarding_guide.finish(db, user.user_id, data.outcome, data.keep_product_ids)
+    if result.get("cleanup"):
+        _invalidate_dashboard_ai_caches(user.user_id, user.active_store_id)
+    return result
 
 
 @api_router.get("/ecommerce/site/onboarding")
@@ -20151,6 +20197,11 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
 
     # Check and create alerts if needed
     await check_and_create_alerts(product, owner_id, store_id=user.active_store_id)
+
+    # Produit d'exercice du guide de démarrage : étiqueté pour être supprimé, jamais envoyé au catalogue global.
+    if await onboarding_guide.is_active(db, owner_id):
+        await onboarding_guide.tag(db, "products", {"product_id": product.product_id, "user_id": owner_id})
+        return _product_response_for_user(user, product.model_dump())
 
     # Contribute to global catalog (fire-and-forget, no user data shared)
     asyncio.create_task(catalog_service.contribute_product(
@@ -22703,6 +22754,8 @@ async def create_customer(customer_data: CustomerCreate, user: User = Depends(re
         **customer_data.model_dump(exclude_none=True)
     )
     await db.customers.insert_one(customer.model_dump())
+    if await onboarding_guide.is_active(db, owner_id):
+        await onboarding_guide.tag(db, "customers", {"customer_id": customer.customer_id, "user_id": owner_id})
 
     await log_activity(
         user=user,
@@ -23370,6 +23423,8 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         credit_debt_applied=customer_effects["credit_debt_applied"],
     )
     await db.sales.insert_one(sale.model_dump())
+    if await onboarding_guide.is_active(db, owner_id):
+        await onboarding_guide.tag(db, "sales", {"sale_id": sale.sale_id, "user_id": owner_id})
     _invalidate_dashboard_ai_caches(owner_id, store_id)
 
     # 6. If this is an open order tied to a table, claim the table atomically.
@@ -24906,8 +24961,10 @@ async def check_and_create_alerts(product: Product, user_id: str, store_id: Opti
 
 async def check_slow_moving(user_id: str):
     """Check for products with no 'out' movement in the last 30 days"""
-    owner_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "account_id": 1}) or {}
+    owner_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "account_id": 1, "language": 1}) or {}
     account_id = owner_doc.get("account_id")
+    # Titre traduit dans la langue du commerçant : il sert aussi de titre aux notifications push et e-mail.
+    slow_moving_title = i18n.t("reminders.dormant_products_label", owner_doc.get("language") or "fr")
     rules = await db.alert_rules.find({"user_id": user_id, "type": "slow_moving", "enabled": True}, {"_id": 0}).to_list(1)
     if not rules:
         return
@@ -24937,7 +24994,7 @@ async def check_slow_moving(user_id: str):
                     store_id=product.get("store_id"),
                     product_id=product["product_id"],
                     type="slow_moving",
-                    title="reminders.dormant_products_label",
+                    title=slow_moving_title,
                     message=f"{product['name']} n'a eu aucune sortie depuis 30 jours",
                     severity="info"
                 )

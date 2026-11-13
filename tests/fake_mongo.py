@@ -190,6 +190,11 @@ class FakeCollection:
         del self.docs[index]
         return SimpleNamespace(deleted_count=1)
 
+    async def delete_many(self, query):
+        before = len(self.docs)
+        self.docs = [doc for doc in self.docs if not matches(doc, query)]
+        return SimpleNamespace(deleted_count=before - len(self.docs))
+
     async def find_one(self, query, projection=None):
         index = self._find_index(query)
         return _project(self.docs[index], projection) if index is not None else None

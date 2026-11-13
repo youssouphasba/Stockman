@@ -15,6 +15,7 @@ import {
     FlatList,
     Platform,
     Share,
+    DeviceEventEmitter,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -41,6 +42,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { generateAndSharePdf } from '../../utils/pdfReports';
 import KpiInfoButton from '../../components/KpiInfoButton';
 import { formatCurrency, getCurrencySymbol, formatNumber } from '../../utils/format';
+import GuideTarget, { useGuideTargetRef } from '../../onboarding/GuideTarget';
+import GuideHost from '../../onboarding/GuideHost';
+import { GUIDE_COMMAND_EVENT, guideSignal, type GuideCommand } from '../../onboarding/guideStore';
 import PremiumGate from '../../components/PremiumGate';
 import { getPendingDebtEntries, mergeCustomersOfflineState } from '../../services/offlineState';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
@@ -143,6 +147,20 @@ export default function CRMScreen() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
     const [detailTab, setDetailTab] = useState<DetailTab>('infos');
+    // Guide de démarrage : fiche du client d'exercice, onglet Achats et fermeture de la fiche à la fin.
+    const detailStatsRef = useRef<View>(null);
+    const purchasesTabRef = useRef<any>(null);
+    useGuideTargetRef('crm.detailStats', detailStatsRef);
+    useGuideTargetRef('crm.tabPurchases', purchasesTabRef);
+    useEffect(() => {
+        if (detailTab === 'achats') guideSignal('crm.purchasesShown');
+    }, [detailTab]);
+    useEffect(() => {
+        const sub = DeviceEventEmitter.addListener(GUIDE_COMMAND_EVENT, (command: GuideCommand) => {
+            if (command.name === 'close-modals') setShowDetailModal(false);
+        });
+        return () => sub.remove();
+    }, []);
     const [customerSales, setCustomerSales] = useState<Sale[]>([]);
     const [customerDebtHistory, setCustomerDebtHistory] = useState<DebtTransaction[]>([]);
     const [customerSalesStats, setCustomerSalesStats] = useState<{ visit_count: number; average_basket: number; last_purchase_date?: string }>({ visit_count: 0, average_basket: 0 });
@@ -1138,11 +1156,12 @@ export default function CRMScreen() {
                                 </Text>
                             </View>
                         )}
-                        {filteredCustomers.map(customer => {
+                        {filteredCustomers.map((customer, customerIndex) => {
                             const tc = getTierConfig(customer.tier);
                             const sourceMeta = getCustomerSourceMeta(customer);
                             return (
-                                <TouchableOpacity key={customer.customer_id} style={styles.customerCard} onPress={() => openCustomerDetail(customer)}>
+                                <GuideTarget key={customer.customer_id} id={`crm.customer.${customer.customer_id}`} alias={customerIndex === 0 ? 'crm.firstCustomer' : undefined}>
+                                <TouchableOpacity style={styles.customerCard} onPress={() => openCustomerDetail(customer)}>
                                     <View style={[styles.customerAvatar, { borderColor: tc.color, borderWidth: 2 }]}>
                                         <Text style={styles.customerAvatarText}>{(customer.name || '?').charAt(0).toUpperCase()}</Text>
                                     </View>
@@ -1185,6 +1204,7 @@ export default function CRMScreen() {
                                         <Ionicons name="logo-whatsapp" size={18} color="#fff" />
                                     </TouchableOpacity>
                                 </TouchableOpacity>
+                                </GuideTarget>
                             );
                         })}
                         {filteredCustomers.length === 0 && (
@@ -1312,7 +1332,7 @@ export default function CRMScreen() {
                                             <Ionicons name={getTierConfig(detailCustomer.tier).icon as any} size={14} color={getTierConfig(detailCustomer.tier).color} />
                                             <Text style={[styles.tierBadgeLargeText, { color: getTierConfig(detailCustomer.tier).color }]}>{t(getTierConfig(detailCustomer.tier).labelKey)}</Text>
                                         </View>
-                                        <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-around', alignItems: 'center' }}>
+                                        <View ref={detailStatsRef} collapsable={false} style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-around', alignItems: 'center' }}>
                                             <View style={{ alignItems: 'center' }}>
                                                 <Text style={{ fontSize: FontSize.md, fontWeight: '700', color: colors.warning }}>{detailCustomer.loyalty_points}</Text>
                                                 <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('crm.points')}</Text>
@@ -1339,6 +1359,7 @@ export default function CRMScreen() {
                                             ] as { key: DetailTab; label: string; icon: string }[]).map(tab => (
                                                 <TouchableOpacity
                                                     key={tab.key}
+                                                    ref={tab.key === 'achats' ? purchasesTabRef : undefined}
                                                     style={[styles.tab, detailTab === tab.key && styles.tabActive]}
                                                     onPress={() => setDetailTab(tab.key)}
                                                 >
@@ -1758,6 +1779,7 @@ export default function CRMScreen() {
                             )}
                         </View>
                     </View>
+                    <GuideHost id="customerDetail" />
                 </Modal>}
 
                 {/* Promotion Create/Edit Modal */}

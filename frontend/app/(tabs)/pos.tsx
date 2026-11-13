@@ -63,6 +63,8 @@ import LineDiscountModal from '../../components/LineDiscountModal';
 import { useDrawer } from '../../contexts/DrawerContext';
 import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync, RecordingPresets } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
+import GuideTarget from '../../onboarding/GuideTarget';
+import { getGuideRunState, guideSignal } from '../../onboarding/guideStore';
 
 export type CartItem = {
     cartKey: string;
@@ -718,6 +720,7 @@ export default function POSScreen() {
             };
         });
         if (isMobile) setShowProductList(false);
+        guideSignal('cart.added', { product_id: product.product_id });
     };
 
     const parseLocalizedFloat = (val: string) => {
@@ -985,6 +988,7 @@ export default function POSScreen() {
 
             setLastSale(normalizedSale);
             setShowReceiptModal(true);
+            guideSignal('sale.completed', { sale_id: normalizedSale?.sale_id });
 
             updateActiveSession(s => ({
                 ...s,
@@ -1182,7 +1186,9 @@ export default function POSScreen() {
             setShowCustomerModal(false);
             setNewCustomerName('');
             setNewCustomerPhone('');
-            if (Platform.OS === 'web') {
+            if (getGuideRunState() === 'running') {
+                guideSignal('customer.created', { customer_id: newCustomer.customer_id });
+            } else if (Platform.OS === 'web') {
                 window.alert(t('pos.customer_created'));
             } else {
                 Alert.alert(t('common.success'), t('pos.customer_created'));
@@ -1373,6 +1379,7 @@ export default function POSScreen() {
             </View>
 
             <View style={styles.paymentMethods}>
+                <GuideTarget id="pos.payCash" style={{ flex: 1 }}>
                 <TouchableOpacity
                     style={[styles.payButton, { backgroundColor: colors.success }, (!canWrite || checkoutLoading || cart.length === 0) && { opacity: 0.5 }]}
                     onPress={() => handleCheckout('cash')}
@@ -1381,6 +1388,7 @@ export default function POSScreen() {
                     <Ionicons name="cash-outline" size={20} color="#fff" />
                     <Text style={styles.payButtonText}>{t('pos.payment_cash')}</Text>
                 </TouchableOpacity>
+                </GuideTarget>
 
                 <TouchableOpacity
                     style={[styles.payButton, { backgroundColor: colors.primary }, (!canWrite || checkoutLoading || cart.length === 0) && { opacity: 0.5 }]}
@@ -1485,9 +1493,14 @@ export default function POSScreen() {
                                         <Text style={styles.posProductEmptyTitle}>{t('pos.no_products_title', 'Aucun produit')}</Text>
                                         <Text style={styles.posProductEmptyText}>{t('pos.no_products_for_store', 'Aucun produit actif n’est disponible dans cette boutique.')}</Text>
                                     </View>
-                                ) : filteredProducts.map(product => (
-                                    <TouchableOpacity
+                                ) : filteredProducts.map((product, productIndex) => (
+                                    <GuideTarget
                                         key={product.product_id}
+                                        id={`pos.product.${product.product_id}`}
+                                        alias={productIndex === 0 ? 'pos.firstProduct' : undefined}
+                                        style={{ width: StyleSheet.flatten(styles.productCard).width }}
+                                    >
+                                    <TouchableOpacity
                                         style={styles.productCard}
                                         onPress={() => addToCart(product)}
                                         disabled={requiresFinishedStock(product) && product.quantity === 0}
@@ -1522,6 +1535,7 @@ export default function POSScreen() {
                                             {isWeightedProduct(product) ? ` / ${formatMeasurementQuantity(1, product.pricing_unit || product.unit).split(' ')[1]}` : ''}
                                         </Text>
                                     </TouchableOpacity>
+                                    </GuideTarget>
                                 ))}
                             </ScrollView>
                         </View>
@@ -1543,9 +1557,11 @@ export default function POSScreen() {
 
                             {isCompactPOS && cart.length > 0 ? (
                                 <View style={styles.compactCustomerSelector}>
-                                    <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
-                                        <Ionicons name="person-add" size={14} color={colors.primary} />
-                                    </TouchableOpacity>
+                                    <GuideTarget id="pos.addCustomer">
+                                        <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
+                                            <Ionicons name="person-add" size={14} color={colors.primary} />
+                                        </TouchableOpacity>
+                                    </GuideTarget>
                                     <TouchableOpacity
                                         style={styles.compactCustomerSelectorButton}
                                         onPress={() => setShowCustomerPickerModal(true)}
@@ -1560,9 +1576,11 @@ export default function POSScreen() {
                             ) : (
                                 <View style={styles.customerSelector}>
                                     <View style={styles.customerHeader}>
-                                        <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
-                                            <Ionicons name="person-add" size={14} color={colors.primary} />
-                                        </TouchableOpacity>
+                                        <GuideTarget id="pos.addCustomer">
+                                            <TouchableOpacity style={styles.addCustomerBtn} onPress={() => setShowCustomerModal(true)}>
+                                                <Ionicons name="person-add" size={14} color={colors.primary} />
+                                            </TouchableOpacity>
+                                        </GuideTarget>
                                         <Ionicons name="people-outline" size={16} color={colors.textMuted} />
                                         <TextInput
                                             style={styles.customerSearchInput}
@@ -1700,6 +1718,7 @@ export default function POSScreen() {
                         <View>
                             {/* Mobile Quick Actions Bar */}
                             <View style={styles.mobileFloatingActions}>
+                                <GuideTarget id="pos.productsButton" style={{ flex: 1 }}>
                                 <TouchableOpacity
                                     style={[styles.mobileFloatingAction, { backgroundColor: colors.primary }]}
                                     onPress={() => setShowProductList(true)}
@@ -1707,6 +1726,7 @@ export default function POSScreen() {
                                     <Ionicons name="grid" size={20} color="#fff" />
                                     <Text style={styles.mobileFloatingActionText} numberOfLines={1} ellipsizeMode="tail">{t('pos.products_btn', 'Produits')}</Text>
                                 </TouchableOpacity>
+                                </GuideTarget>
                                 <TouchableOpacity
                                     style={[styles.mobileFloatingAction, { backgroundColor: colors.info }]}
                                     onPress={openPosScanner}
@@ -1986,6 +2006,7 @@ export default function POSScreen() {
                 backgroundColor={colors.bgMid}
                 borderColor={colors.glassBorder}
                 maxHeightRatio={0.72}
+                guideHost="customerForm"
             >
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{t('pos.new_customer_title')}</Text>
@@ -1995,13 +2016,15 @@ export default function POSScreen() {
                         </View>
                         <View style={styles.formGroup}>
                             <Text style={styles.formLabel}>{t('pos.customer_name_label')}</Text>
-                            <TextInput
-                                style={[styles.formInput, styles.customerFormInput]}
-                                value={newCustomerName}
-                                onChangeText={setNewCustomerName}
-                                placeholder={t('pos.customer_name_placeholder')}
-                                placeholderTextColor="#6B7280"
-                            />
+                            <GuideTarget id="customer.name" value={newCustomerName}>
+                                <TextInput
+                                    style={[styles.formInput, styles.customerFormInput]}
+                                    value={newCustomerName}
+                                    onChangeText={setNewCustomerName}
+                                    placeholder={t('pos.customer_name_placeholder')}
+                                    placeholderTextColor="#6B7280"
+                                />
+                            </GuideTarget>
                         </View>
                         <View style={styles.formGroup}>
                             <Text style={styles.formLabel}>{t('pos.customer_phone_label')}</Text>
@@ -2014,9 +2037,11 @@ export default function POSScreen() {
                                 keyboardType="phone-pad"
                             />
                         </View>
-                        <TouchableOpacity style={styles.createBtn} onPress={handleCreateCustomer} disabled={createCustomerLoading}>
-                            {createCustomerLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.createBtnText}>{t('pos.create_customer_btn')}</Text>}
-                        </TouchableOpacity>
+                        <GuideTarget id="customer.save">
+                            <TouchableOpacity style={styles.createBtn} onPress={handleCreateCustomer} disabled={createCustomerLoading}>
+                                {createCustomerLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.createBtnText}>{t('pos.create_customer_btn')}</Text>}
+                            </TouchableOpacity>
+                        </GuideTarget>
             </KeyboardAwareModal>}
 
             {showCustomerPickerModal && <KeyboardAwareModal

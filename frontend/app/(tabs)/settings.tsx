@@ -2226,10 +2226,10 @@ export default function SettingsScreen() {
         )
       }
 
-      <ContactSupportModal
+      {showSupportModal && <ContactSupportModal
         visible={showSupportModal}
         onClose={() => setShowSupportModal(false)}
-      />
+      />}
 
       <ChangePasswordModal
         visible={showPasswordModal}

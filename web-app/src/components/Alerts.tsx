@@ -8,6 +8,10 @@ import type { AlertRule, NotificationChannel, NotificationContactMap, Notificati
 import Modal from './Modal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 
+// Les anciennes alertes « produits dormants » ont été enregistrées avec une clé de traduction pour titre.
+const ALERT_TITLE_KEY = /^[a-z_]+(\.[a-z_]+)+$/;
+const alertTitle = (title: string, translate: (key: string) => string) => (ALERT_TITLE_KEY.test(title || '') ? translate(title) : title);
+
 type RuleScope = 'account' | 'store';
 type RuleTemplate = {
     type: string;
@@ -329,7 +333,7 @@ export default function Alerts() {
                             <div className="flex-1 flex flex-col gap-1">
                                 <div className="flex justify-between items-start gap-4">
                                     <div>
-                                        <h4 className={`font-bold text-xl ${!alert.is_read ? 'text-white' : 'text-slate-400'}`}>{alert.title}</h4>
+                                        <h4 className={`font-bold text-xl ${!alert.is_read ? 'text-white' : 'text-slate-400'}`}>{alertTitle(alert.title, (key) => String(t(key)))}</h4>
                                         {alert.store_id && <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 mt-1">Boutique concernee</p>}
                                     </div>
                                     <span className="text-xs text-slate-500 font-mono">{new Date(alert.created_at).toLocaleDateString()}</span>

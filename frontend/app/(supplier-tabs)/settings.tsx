@@ -552,10 +552,10 @@ export default function SupplierSettingsScreen() {
           onClose={() => setHelpGuide(null)}
         />
 
-        <ContactSupportModal
+        {showSupportModal && <ContactSupportModal
           visible={showSupportModal}
           onClose={() => setShowSupportModal(false)}
-        />
+        />}
 
         <ChangePasswordModal
           visible={showPasswordModal}

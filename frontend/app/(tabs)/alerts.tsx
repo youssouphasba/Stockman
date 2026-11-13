@@ -38,6 +38,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import ReminderRulesSettingsComponent from '../../components/ReminderRulesSettings';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
+// Les anciennes alertes « produits dormants » ont été enregistrées avec une clé de traduction pour titre.
+const ALERT_TITLE_KEY = /^[a-z_]+(\.[a-z_]+)+$/;
+const alertTitle = (title: string, translate: (key: string) => string) => (ALERT_TITLE_KEY.test(title || '') ? translate(title) : title);
+
 type RuleScope = 'account' | 'store';
 type ContactGroupKey = 'default' | 'stock' | 'procurement' | 'finance' | 'crm' | 'operations' | 'billing';
 type SeverityLevel = 'info' | 'warning' | 'critical';
@@ -477,7 +481,7 @@ export default function AlertsScreen() {
                   </View>
                   <View style={styles.alertInfo}>
                     <View style={styles.alertTitleRow}>
-                      <Text style={styles.alertTitle}>{alert.title}</Text>
+                      <Text style={styles.alertTitle}>{alertTitle(alert.title, (key) => String(t(key)))}</Text>
                       <View style={[styles.severityBadge, { backgroundColor: getSeverityColor(alert.severity) + '20' }]}>
                         <Text style={[styles.severityText, { color: getSeverityColor(alert.severity) }]}>
                           {getSeverityLabel(alert.severity)}

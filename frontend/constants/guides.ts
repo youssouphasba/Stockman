@@ -27,7 +27,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "layers-outline",
                 title: "Vue simplifiée selon le plan",
-                description: "Sur mobile, un compte Starter démarre dans Produits et conserve les accès essentiels à la Caisse, à la Compta, à E-com et aux Paramètres. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
+                description: "Sur mobile, un compte Starter démarre dans Produits, sans onglet Accueil : les chiffres clés sont dans la Compta. Il garde la Caisse, la Compta, les Clients et les Paramètres, ainsi que l'onglet E-com une fois la boutique en ligne activée. Les messages de l'administrateur (icône mégaphone, affichée quand vous en avez) et le bouton clair/sombre se trouvent dans l'en-tête, sur tous les onglets. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
             },
             {
                 icon: "pie-chart-outline",

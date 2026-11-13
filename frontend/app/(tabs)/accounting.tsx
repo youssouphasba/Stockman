@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useRef } from 'react';
+﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -14,6 +14,7 @@ import {
     TextInput,
     Linking,
     Alert,
+    DeviceEventEmitter,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,6 +59,8 @@ import {
 } from '../../utils/pdfReports';
 import { mergeAccountingOfflineState } from '../../services/offlineState';
 import KpiInfoButton from '../../components/KpiInfoButton';
+import { useGuideTargetRef } from '../../onboarding/GuideTarget';
+import { GUIDE_COMMAND_EVENT, type GuideCommand } from '../../onboarding/guideStore';
 import { FinanceViewPanel, FinanceViewTabs, FINANCE_VIEW_CHANNEL, type FinanceView } from '../../components/FinanceChannels';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 
@@ -234,6 +237,9 @@ export default function AccountingScreen() {
         recentSales: useRef<View>(null),
     };
     const sectionOffsets = useRef<Record<string, number>>({});
+    // Guide de démarrage : indicateurs et ventes récentes mis en surbrillance, défilement à la demande.
+    useGuideTargetRef('accounting.kpis', sectionRefs.kpiGrid);
+    useGuideTargetRef('accounting.sales', sectionRefs.recentSales);
 
     // Expenses
     const [expensesList, setExpensesList] = useState<Expense[]>([]);
@@ -277,6 +283,13 @@ export default function AccountingScreen() {
             scrollViewRef.current.scrollTo({ y, animated: true });
         }
     }, []);
+
+    useEffect(() => {
+        const sub = DeviceEventEmitter.addListener(GUIDE_COMMAND_EVENT, (command: GuideCommand) => {
+            if (command.name === 'scroll') scrollToSection(command.section);
+        });
+        return () => sub.remove();
+    }, [scrollToSection]);
 
     const loadData = useCallback(async (period: number | 'custom', start?: string, end?: string) => {
         try {
@@ -1439,7 +1452,7 @@ export default function AccountingScreen() {
                         <FinanceViewPanel view={financeView} stats={stats} formatCurrency={formatCurrency} />
 
                         {/* KPI Grid */}
-                        <View style={styles.kpiGrid} onLayout={e => { sectionOffsets.current.kpiGrid = e.nativeEvent.layout.y; }}>
+                        <View ref={sectionRefs.kpiGrid} collapsable={false} style={styles.kpiGrid} onLayout={e => { sectionOffsets.current.kpiGrid = e.nativeEvent.layout.y; }}>
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.success + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('revenue')}>
                                 <KpiInfoButton info={t('accounting.info_revenue')} />
                                 <View style={styles.kpiHeader}>
@@ -1891,7 +1904,7 @@ export default function AccountingScreen() {
                         )}
 
                         {/* Recent Sales */}
-                        <View style={styles.section} onLayout={e => { sectionOffsets.current.recentSales = e.nativeEvent.layout.y; }}>
+                        <View ref={sectionRefs.recentSales} collapsable={false} style={styles.section} onLayout={e => { sectionOffsets.current.recentSales = e.nativeEvent.layout.y; }}>
                             <Text style={styles.sectionTitle}>{t('accounting.recent_sales')}</Text>
                             {channelSales.length === 0 && salesReviewMode === 'all' ? (
                                 <View style={styles.emptyState}>

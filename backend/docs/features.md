@@ -22,6 +22,15 @@ Les valeurs sont pilotables par variables d'environnement : `APP_ANDROID_LATEST_
 
 ---
 
+## 0 bis. Guide de démarrage (application mobile)
+
+- À l'inscription, le propriétaire d'un commerce reçoit un guide de démarrage, proposé une seule fois sur l'application mobile. Les comptes existants, les membres d'équipe, les comptes de démonstration et les restaurants ne le reçoivent pas.
+- Le guide est guidé pas à pas et animé : l'écran s'assombrit sauf la zone à toucher (onglet, bouton ou champ), une bulle explique l'élément et la consigne, et une barre indique la progression (Produits, Caisse, Compta, Clients). Une saisie incorrecte fait trembler la bulle avec un message, et l'utilisateur réessaie.
+- Étapes : créer un produit d'exercice un par un (nom, prix d'achat, prix de vente, quantité), créer d'autres produits par import de texte, voir le scan en lot, l'import CSV et l'import catalogue, faire une vente en Caisse (produit au panier, client créé depuis la Caisse, encaissement en espèces, reçu), lire le chiffre d'affaires, la marge et les ventes récentes dans la Compta, puis la fiche du client et ses achats dans l'onglet Clients.
+- Les produits, le client et la vente créés pendant le guide sont des données d'exercice : ils ne sont jamais envoyés au catalogue partagé et sont supprimés à la fin, avec leurs mouvements de stock, l'historique de prix, les alertes et le journal d'activité. Le commerçant peut garder le produit créé un par un s'il est réel : son stock est alors rétabli.
+- À la fin, deux choix : « Ajouter mes vrais produits » ou « Je veux de l'aide pour créer mes produits », qui ouvre une demande d'assistance déjà remplie. Le lien « Passer » permet de quitter le guide après confirmation ; les données d'exercice sont aussi supprimées.
+- Si l'application est fermée pendant le guide, il reprend à la dernière étape enregistrée.
+
 ## 1. Importation de Produits (CSV / Excel)
 
 ### Comment importer des produits ?
@@ -463,6 +472,10 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 | Starter | 2 500 | 6,99 | 1 | 1 | Non |
 | Pro | 4 900 | 9,99 | 2 | 5 | Non |
 | Enterprise | 9 900 | 14,99 | Illimitées | Illimités | Oui |
+
+### Quels onglets voit-on sur mobile ?
+- **Starter** : Produits, Caisse, Compta, Clients et Réglages. Il n'y a pas d'onglet Accueil : les chiffres clés sont dans la Compta. Les messages de l'administrateur (icône mégaphone, affichée quand il y en a, avec le nombre de messages non lus) et le bouton de thème clair/sombre sont dans l'en-tête, sur tous les onglets.
+- **Commandes en ligne** : sur tous les plans, l'onglet n'apparaît qu'une fois la boutique en ligne activée (Commandes sur Pro et Enterprise, E-com sur Starter). Sur le web, l'entrée Commandes de la barre latérale suit la même règle. Tant que le site est désactivé, les commandes déjà reçues restent accessibles depuis le bouton « Commandes » de la rubrique Boutique en ligne (Site e-commerce sur Pro et Enterprise) des Paramètres.
 
 ### Comment mettre à niveau son abonnement ?
 - **Paramètres** → **Abonnement** → **Changer de plan**

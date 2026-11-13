@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -17,6 +17,9 @@ import { useTranslation } from 'react-i18next';
 import { products as productsApi } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import GuideTarget from '../onboarding/GuideTarget';
+import GuideHost from '../onboarding/GuideHost';
+import { getGuideRunState, guideSignal } from '../onboarding/guideStore';
 
 interface TextImportModalProps {
     visible: boolean;
@@ -33,6 +36,8 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
     const [loading, setLoading] = useState(false);
 
     const [resultMsg, setResultMsg] = useState('');
+    // Guide de démarrage : deux échecs d'import suffisent pour passer à la suite.
+    const guideFailuresRef = useRef(0);
 
     const confirmDiscardChanges = (onConfirm: () => void) => {
         Alert.alert(
@@ -60,7 +65,10 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
         try {
             const result = await productsApi.importText(text, true);
             const msg = t('products.import_text_success', { count: result.created || result.count });
-            if (Platform.OS === 'web') {
+            // Pendant le guide de démarrage, c'est le guide qui annonce la réussite.
+            if (getGuideRunState() === 'running') {
+                guideSignal('textImport.done', { created: result.created || 0 });
+            } else if (Platform.OS === 'web') {
                 window.alert(msg);
             } else {
                 Alert.alert(t('common.success'), msg);
@@ -71,6 +79,8 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
         } catch (error: any) {
             const errMsg = error.message || t('products.import_text_error');
             setResultMsg(errMsg);
+            guideFailuresRef.current += 1;
+            if (guideFailuresRef.current >= 2) guideSignal('textImport.done', { created: 0, failed: true });
             if (Platform.OS === 'web') {
                 window.alert(errMsg);
             } else {
@@ -101,17 +111,20 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
                     <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
                         <Text style={styles.helpText}>{t('products.import_text_help')}</Text>
 
-                        <TextInput
-                            style={styles.textInput}
-                            multiline
-                            numberOfLines={10}
-                            placeholder={t('products.import_text_placeholder')}
-                            placeholderTextColor={colors.textMuted}
-                            value={text}
-                            onChangeText={setText}
-                            textAlignVertical="top"
-                        />
+                        <GuideTarget id="textImport.input" value={text}>
+                            <TextInput
+                                style={styles.textInput}
+                                multiline
+                                numberOfLines={10}
+                                placeholder={t('products.import_text_placeholder')}
+                                placeholderTextColor={colors.textMuted}
+                                value={text}
+                                onChangeText={setText}
+                                textAlignVertical="top"
+                            />
+                        </GuideTarget>
 
+                        <GuideTarget id="textImport.submit">
                         <TouchableOpacity
                             style={[styles.importBtn, (!text.trim() || loading) && styles.btnDisabled]}
                             onPress={handleImport}
@@ -126,9 +139,11 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
                                 </>
                             )}
                         </TouchableOpacity>
+                        </GuideTarget>
                     </ScrollView>
                 </KeyboardAvoidingView>
             </View>
+            <GuideHost id="textImport" />
         </Modal>
     );
 }

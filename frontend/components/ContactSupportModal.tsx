@@ -10,17 +10,21 @@ import { WHATSAPP_SUPPORT_NUMBER, WHATSAPP_SUPPORT_MESSAGE_KEY } from '../consta
 interface ContactSupportModalProps {
     visible: boolean;
     onClose: () => void;
+    // Demande préremplie (ex. fin du guide de démarrage) et informations transmises à l'équipe.
+    initialSubject?: string;
+    initialMessage?: string;
+    metadata?: Record<string, string>;
 }
 
-export default function ContactSupportModal({ visible, onClose }: ContactSupportModalProps) {
+export default function ContactSupportModal({ visible, onClose, initialSubject = '', initialMessage = '', metadata }: ContactSupportModalProps) {
     const { t } = useTranslation();
     const { colors } = useTheme();
     const { user } = useAuth();
     const plan = user?.effective_plan || user?.subscription_plan || user?.plan;
     const isEnterprisePlan = plan === 'enterprise';
     const [tab, setTab] = useState<'new' | 'tickets'>('new');
-    const [subject, setSubject] = useState('');
-    const [message, setMessage] = useState('');
+    const [subject, setSubject] = useState(initialSubject);
+    const [message, setMessage] = useState(initialMessage);
     const [loading, setLoading] = useState(false);
     const [remoteLoading, setRemoteLoading] = useState(false);
 
@@ -54,7 +58,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
         }
         setLoading(true);
         try {
-            await support.createTicket(subject, message);
+            await support.createTicket(subject, message, metadata);
             Alert.alert(t('modals.success'), t('modals.contactSupport.success'));
             setSubject('');
             setMessage('');
@@ -147,7 +151,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                 <View style={styles.overlay}>
                     <KeyboardAvoidingView
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        style={[styles.container, { backgroundColor: colors.glass, maxHeight: '90%' }]}
+                        style={[styles.container, { backgroundColor: colors.bgMid, maxHeight: '90%' }]}
                     >
                         <View style={styles.header}>
                             <TouchableOpacity onPress={() => setSelectedTicket(null)} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -225,7 +229,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
             <View style={styles.overlay}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={[styles.container, { backgroundColor: colors.glass }]}
+                    style={[styles.container, { backgroundColor: colors.bgMid }]}
                 >
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: colors.text }]}>{t('modals.contactSupport.title')}</Text>

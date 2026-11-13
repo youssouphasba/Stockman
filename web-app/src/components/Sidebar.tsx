@@ -199,7 +199,8 @@ export default function Sidebar({
         { id: 'dashboard', icon: LayoutDashboard, label: t('dashboard.title'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'dashboard' },
         { id: 'multi_stores', icon: Store, label: t('sidebar.multi_stores'), roles: ['shopkeeper', 'staff', 'admin'], accountRole: 'org_admin', managerOnly: true },
         { id: 'pos', icon: ShoppingCart, label: t('sidebar.pos'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'pos' },
-        { id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' },
+        // Commandes en ligne : visibles seulement une fois la boutique en ligne activée.
+        ...(ecommerceSite?.enabled ? [{ id: 'orders', icon: ClipboardList, label: t('tabs.orders'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'stock' } as SidebarItem] : []),
         { id: 'accounting', icon: TrendingUp, label: t('admin.segments.finance'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
         { id: 'reports', icon: FileText, label: t('sidebar.reports'), roles: ['shopkeeper', 'staff', 'admin'], permission: 'accounting' },
         {

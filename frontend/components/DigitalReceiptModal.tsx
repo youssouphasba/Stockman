@@ -9,6 +9,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { API_URL, Sale, Store } from '../services/api';
 import { generateSalePdf } from '../utils/pdfReports';
 import { useAuth } from '../contexts/AuthContext';
+import GuideTarget from '../onboarding/GuideTarget';
+import GuideHost from '../onboarding/GuideHost';
 
 interface DigitalReceiptModalProps {
     visible: boolean;
@@ -118,11 +120,14 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
                         <Text style={[styles.secondaryShareBtnText, { color: colors.textSecondary }]}>{t('modals.receipt_whatsapp_link')}</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-                        <Text style={[styles.closeBtnText, { color: colors.primary }]}>{t('modals.receipt_done')}</Text>
-                    </TouchableOpacity>
+                    <GuideTarget id="receipt.done">
+                        <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                            <Text style={[styles.closeBtnText, { color: colors.primary }]}>{t('modals.receipt_done')}</Text>
+                        </TouchableOpacity>
+                    </GuideTarget>
                 </View>
             </View>
+            {visible && <GuideHost id="receipt" />}
         </Modal>
     );
 }

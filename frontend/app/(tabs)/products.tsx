@@ -91,6 +91,9 @@ import {
 } from '../../utils/measurement';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import GuideTarget from '../../onboarding/GuideTarget';
+import GuideHost from '../../onboarding/GuideHost';
+import { guideSignal } from '../../onboarding/guideStore';
 
 type ProductStockFilter = 'all' | 'in_stock' | 'out_of_stock' | 'low_stock' | 'overstock' | 'deadstock';
 type ProductSortMode = 'stock_priority' | 'quantity_desc' | 'name_asc' | 'recently_added';
@@ -768,6 +771,8 @@ export default function ProductsScreen() {
   // Global Catalog states
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [showTextImportModal, setShowTextImportModal] = useState(false);
+  // Défilement du formulaire produit : le guide de démarrage y amène chaque champ à l'écran.
+  const productFormScrollRef = useRef<ScrollView>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showControlsPanel, setShowControlsPanel] = useState(false);
   const [showTrashModal, setShowTrashModal] = useState(false);
@@ -2281,6 +2286,7 @@ export default function ProductsScreen() {
         } else {
           const created = await productsApi.create(data);
           savedProductId = created.product_id;
+          guideSignal('product.created', { product_id: created.product_id, name: created.name || data.name });
         }
         // Sync supplier links (multi-suppliers + primary supplier)
         if (savedProductId && !isRestaurant) {
@@ -3721,18 +3727,21 @@ export default function ProductsScreen() {
                   {isSelectionMode ? 'Fermer la sélection' : 'Sélection'}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.headerActionChip, styles.headerActionPrimaryChip]}
-                onPress={() => setShowAddMenu(!showAddMenu)}
-              >
-                <Ionicons name={showAddMenu ? "close" : "add"} size={20} color="#fff" />
-                <Text numberOfLines={1} style={styles.headerActionPrimaryText}>{showAddMenu ? 'Fermer' : 'Ajouter'}</Text>
-              </TouchableOpacity>
+              <GuideTarget id="products.add">
+                <TouchableOpacity
+                  style={[styles.headerActionChip, styles.headerActionPrimaryChip]}
+                  onPress={() => setShowAddMenu(!showAddMenu)}
+                >
+                  <Ionicons name={showAddMenu ? "close" : "add"} size={20} color="#fff" />
+                  <Text numberOfLines={1} style={styles.headerActionPrimaryText}>{showAddMenu ? 'Fermer' : 'Ajouter'}</Text>
+                </TouchableOpacity>
+              </GuideTarget>
             </View>
           )}
         </View>
         {showAddMenu && canWrite && (
           <View style={{ backgroundColor: colors.glass, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.glassBorder, padding: Spacing.sm, marginTop: Spacing.xs, gap: 6 }}>
+            <GuideTarget id="products.menu.add">
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
               onPress={() => { setShowAddMenu(false); openNewProductModal(); }}
@@ -3740,7 +3749,9 @@ export default function ProductsScreen() {
               <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
               <Text style={{ color: colors.text, fontSize: FontSize.md }}>{isRestaurant ? t('restaurant.add_dish', 'Ajouter un plat') : t('products.add_product')}</Text>
             </TouchableOpacity>
+            </GuideTarget>
             {!isRestaurant && (
+              <GuideTarget id="products.menu.scan">
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
                 onPress={() => { setShowAddMenu(false); router.push('/inventory/batch-scan'); }}
@@ -3748,8 +3759,10 @@ export default function ProductsScreen() {
                 <Ionicons name="scan-outline" size={20} color={colors.info} />
                 <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.batch_scan', 'Scan en lot')}</Text>
               </TouchableOpacity>
+              </GuideTarget>
             )}
             {!isRestaurant && (
+              <GuideTarget id="products.menu.csv">
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
                 onPress={() => { setShowAddMenu(false); setShowBulkImportModal(true); }}
@@ -3757,8 +3770,10 @@ export default function ProductsScreen() {
                 <Ionicons name="cloud-upload-outline" size={20} color={colors.warning} />
                 <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.import_csv', 'Import CSV')}</Text>
               </TouchableOpacity>
+              </GuideTarget>
             )}
             {!isRestaurant && (
+              <GuideTarget id="products.menu.text">
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
                 onPress={() => { setShowAddMenu(false); setShowTextImportModal(true); }}
@@ -3766,8 +3781,10 @@ export default function ProductsScreen() {
                 <Ionicons name="text-outline" size={20} color={colors.primary} />
                 <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.text_import', 'Import texte')}</Text>
               </TouchableOpacity>
+              </GuideTarget>
             )}
             {!isRestaurant && userSector && (
+              <GuideTarget id="products.menu.catalog">
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
                 onPress={() => { setShowAddMenu(false); handleImportCatalog(); }}
@@ -3780,6 +3797,7 @@ export default function ProductsScreen() {
                 )}
                 <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.import_catalog', 'Import catalogue')}</Text>
               </TouchableOpacity>
+              </GuideTarget>
             )}
             {!isRestaurant && (
               <TouchableOpacity
@@ -4644,6 +4662,7 @@ export default function ProductsScreen() {
               keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(8, insets.top / 2) : 0}
             >
               <ScrollView
+                ref={productFormScrollRef}
                 style={styles.modalScroll}
                 contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
                 keyboardShouldPersistTaps="handled"
@@ -4665,7 +4684,9 @@ export default function ProductsScreen() {
                 </TouchableOpacity>
                 <View style={styles.inputRowWithAction}>
                   <View style={{ flex: 1 }}>
-                    <FormField label={t('products.field_name')} value={formName} onChangeText={setFormName} placeholder={t('products.field_name_placeholder')} colors={colors} styles={styles} />
+                    <GuideTarget id="product.name" value={formName} scrollRef={productFormScrollRef}>
+                      <FormField label={t('products.field_name')} value={formName} onChangeText={setFormName} placeholder={t('products.field_name_placeholder')} colors={colors} styles={styles} />
+                    </GuideTarget>
                   </View>
                   <TouchableOpacity
                     style={[styles.scanBtnMini, { backgroundColor: colors.primary + '15' }]}
@@ -5079,7 +5100,9 @@ export default function ProductsScreen() {
 
                 <View style={styles.formRow}>
                   <View style={styles.formHalf}>
-                    <FormField label={t('products.field_quantity')} value={formQuantity} onChangeText={setFormQuantity} keyboardType="numeric" colors={colors} styles={styles} />
+                    <GuideTarget id="product.quantity" value={formQuantity} scrollRef={productFormScrollRef}>
+                      <FormField label={t('products.field_quantity')} value={formQuantity} onChangeText={setFormQuantity} keyboardType="numeric" colors={colors} styles={styles} />
+                    </GuideTarget>
                   </View>
                   <View style={styles.formHalf}>
                     <Text style={[styles.formLabel, { marginBottom: 5 }]}>{t('products.field_unit')}</Text>
@@ -5130,7 +5153,7 @@ export default function ProductsScreen() {
                   </View>
                 )}
                 <View style={styles.formRow}>
-                  <View style={styles.formHalf}>
+                  <GuideTarget id="product.purchase_price" value={formPurchasePrice} scrollRef={productFormScrollRef} style={styles.formHalf}>
                     <View style={styles.formGroup}>
                       <Text style={styles.formLabel}>
                         {t('products.field_purchase_price', "Coût d'achat")}
@@ -5151,10 +5174,10 @@ export default function ProductsScreen() {
                         placeholderTextColor={colors.textMuted}
                       />
                     </View>
-                  </View>
-                  <View style={styles.formHalf}>
+                  </GuideTarget>
+                  <GuideTarget id="product.selling_price" value={formSellingPrice} scrollRef={productFormScrollRef} style={styles.formHalf}>
                     <FormField label={t('products.field_selling_price')} value={formSellingPrice} onChangeText={setFormSellingPrice} keyboardType="numeric" colors={colors} styles={styles} />
-                  </View>
+                  </GuideTarget>
                 </View>
                 {editingProduct && (
                   <TouchableOpacity
@@ -5339,21 +5362,24 @@ export default function ProductsScreen() {
                   }}
                 />
 
-                <TouchableOpacity
-                  style={[styles.submitBtn, formLoading && styles.submitBtnDisabled]}
-                  onPress={handleSubmitProduct}
-                  disabled={formLoading}
-                >
-                  {formLoading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.submitBtnText}>{editingProduct ? t('common.validate') : t('common.add')}</Text>
-                  )}
-                </TouchableOpacity>
+                <GuideTarget id="product.save" scrollRef={productFormScrollRef}>
+                  <TouchableOpacity
+                    style={[styles.submitBtn, formLoading && styles.submitBtnDisabled]}
+                    onPress={handleSubmitProduct}
+                    disabled={formLoading}
+                  >
+                    {formLoading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.submitBtnText}>{editingProduct ? t('common.validate') : t('common.add')}</Text>
+                    )}
+                  </TouchableOpacity>
+                </GuideTarget>
               </ScrollView>
             </KeyboardAvoidingView>
           </View>
         </View>
+        {showAddModal && !editingProduct && <GuideHost id="productForm" />}
       </Modal >
 
       {/* Product History Modal */}
