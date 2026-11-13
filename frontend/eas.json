@@ -84,6 +84,11 @@
                 "ascApiKeyIssuerId": "29f0c420-b33a-4fa6-ac46-454c8cfa02f6",
                 "ascApiKeyId": "8R9PK3F836"
             }
+        },
+        "production-remote": {
+            "ios": {
+                "ascAppId": "6760587628"
+            }
         }
     }
 }
