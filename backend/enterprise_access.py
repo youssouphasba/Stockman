@@ -292,9 +292,22 @@ def user_has_operational_access(
     if user_doc.get("role") == "superadmin" or is_org_admin_doc(user_doc):
         return True
     effective_permissions = build_effective_permissions(user_doc, account_doc=account_doc, active_store_id=active_store_id)
+    # Le tableau de bord est visible par défaut : ce défaut seul ne vaut pas un accès
+    # opérationnel (sinon un compte limité à la facturation passerait). Il compte s'il a
+    # été accordé explicitement à l'employé.
+    raw_permissions = user_doc.get("permissions")
+    dashboard_is_explicit = isinstance(raw_permissions, dict) and "dashboard" in raw_permissions
+    if not dashboard_is_explicit:
+        store_permissions = user_doc.get("store_permissions")
+        if isinstance(store_permissions, dict):
+            dashboard_is_explicit = any(
+                isinstance(permission_map, dict) and "dashboard" in permission_map
+                for permission_map in store_permissions.values()
+            )
     return any(
         effective_permissions.get(module) in ("read", "write")
         for module in PERMISSION_MODULES
+        if module != "dashboard" or dashboard_is_explicit
     )
 
 
