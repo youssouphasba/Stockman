@@ -101,4 +101,6 @@ eas workflow:run .eas/workflows/ota-ios.yml --ref "SHA_DU_COMMIT" --wait
 
 Pour vérifier sur un téléphone qu’une OTA est bien appliquée, ouvrez **Réglages**, puis **Sécurité, légal et données**, puis **Informations légales** : la ligne **Version** affiche le numéro de l’application suivi de « mise à jour du JJ/MM à HH:MM » (heure du téléphone) quand une OTA est en cours d’exécution, ou de « version d’origine » quand l’application tourne encore sur le code livré avec le build.
 
+Depuis la version 1.0.24, la même rubrique affiche sous la ligne **Version** le canal, la version d’exécution et l’identifiant de la mise à jour en cours, ainsi que le bouton **Rechercher une mise à jour**. Il interroge le serveur : si une mise à jour est trouvée, il la télécharge et redémarre l’application ; sinon, il affiche la raison donnée par expo-updates (rien de plus récent sur le serveur, mise à jour refusée par l’application ou déjà en échec) et le dernier incident enregistré. Les textes peuvent être sélectionnés pour être copiés.
+
 Si Expo cherche le workflow dans `.eas/workflows` à la racine du dépôt, corrigez le répertoire de base dans les réglages GitHub du projet Expo. Le workflow accepte aussi une archive sans métadonnées Git ; dans ce cas, utilisez une copie isolée du commit validé, pas le dossier de travail.
