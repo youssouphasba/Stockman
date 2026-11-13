@@ -85,6 +85,7 @@ from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
 import onboarding_guide
 import platform_modules
 import ai_health
+import fiscal_ledger
 from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
 from ecommerce_media import EcommerceMediaLibrary
 from ecommerce_addresses import DomainInputError, normalize_ecommerce_slug, parse_domain_input
@@ -1081,6 +1082,7 @@ async def create_indexes_and_init():
 
                 # AI governance indexes
                 await ai_governance.ensure_ai_indexes(db)
+                await fiscal_ledger.ensure_indexes(db)
 
                 # Init CGU if missing
                 exists_cgu = await db.system_configs.find_one({"config_id": "cgu"})
@@ -7349,6 +7351,9 @@ async def admin_delete_user(email: str, admin: User = Depends(require_superadmin
         "promotions", "stores", "notifications",
     ]
     deleted_counts = {}
+    # Le registre des ventes est conservé pendant le délai légal, sans donnée personnelle de client.
+    if await fiscal_ledger.mark_retention(db, owner_id, target.get("name")):
+        deleted_counts["fiscal_ledger_kept"] = True
     for col in collections:
         r = await db[col].delete_many({"user_id": owner_id})
         if r.deleted_count:
@@ -19683,6 +19688,7 @@ async def convert_ecommerce_order_to_sale(order: Dict[str, Any], user: User) -> 
             ecommerce_order_id=current.get("order_id"),
         )
         await db.sales.insert_one(sale.model_dump())
+        await fiscal_record_sale(owner_id, sale.model_dump())
         if on_credit:
             await db.ecommerce_orders.update_one({"order_id": current.get("order_id"), "user_id": owner_id}, {"$set": {"sale_on_credit": True}})
         await _apply_sale_customer_effects(owner_id, current.get("customer_id"), customer_effects, customer_channel="ecommerce")
@@ -21934,6 +21940,7 @@ async def finalize_order(sale_id: str, data: dict = Body(...), user: User = Depe
 
     updated = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "completed"})
     updated.pop("_id", None)
+    await fiscal_record_sale(owner_id, updated, actor_id=user.user_id)
     return updated
 
 @api_router.post("/sales/{sale_id}/cancel", response_model=Sale)
@@ -22052,6 +22059,7 @@ async def cancel_sale(
     )
 
     updated_sale.pop("_id", None)
+    await fiscal_record_cancellation(owner_id, updated_sale, actor_id=user.user_id, reason=cancel_data.reason)
     return Sale(**updated_sale)
 
 @api_router.post("/sales/{sale_id}/serve")
@@ -23508,6 +23516,99 @@ async def _enrich_sale_items_with_product_tax(
     return enriched
 
 
+# ---------------------------------------------------------------------------
+# Registre inaltérable des ventes (commerces uniquement, hors restauration)
+# ---------------------------------------------------------------------------
+_fiscal_background_tasks: set = set()
+
+
+async def _fiscal_ledger_timezone(owner_id: str) -> Optional[str]:
+    """Fuseau du commerce, ou None si le compte n'est pas concerné (restauration)."""
+    owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "business_type": 1, "country_code": 1}) or {}
+    if normalize_sector(owner_doc.get("business_type") or "") in RESTAURANT_SECTORS:
+        return None
+    return fiscal_ledger.timezone_for_country(owner_doc.get("country_code"))
+
+
+async def fiscal_record_sale(owner_id: str, sale_doc: dict, *, actor_id: Optional[str] = None, training: bool = False) -> None:
+    """Inscrit une vente terminée au registre. Une panne du registre ne bloque pas la vente :
+    la vente manquante est signalée par la vérification."""
+    async def _record() -> None:
+        try:
+            await fiscal_ledger.record_sale(db, owner_id, sale_doc, timezone_name=timezone_name, actor_id=actor_id, training=training)
+        except Exception as exc:
+            logger.error("Fiscal ledger: sale %s not recorded: %s", sale_doc.get("sale_id"), exc)
+
+    try:
+        timezone_name = await _fiscal_ledger_timezone(owner_id)
+        if timezone_name is None:
+            return
+        if await fiscal_ledger.is_ready(db, owner_id):
+            await _record()
+        else:
+            # Première vente du compte : la reprise de l'historique peut être longue,
+            # elle se fait en arrière-plan pour ne pas retarder l'encaissement.
+            task = asyncio.create_task(_record())
+            _fiscal_background_tasks.add(task)
+            task.add_done_callback(_fiscal_background_tasks.discard)
+    except Exception as exc:
+        logger.error("Fiscal ledger: sale %s not recorded: %s", sale_doc.get("sale_id"), exc)
+
+
+async def fiscal_record_cancellation(owner_id: str, sale_doc: dict, *, actor_id: Optional[str] = None, reason: Optional[str] = None) -> None:
+    try:
+        timezone_name = await _fiscal_ledger_timezone(owner_id)
+        if timezone_name is None:
+            return
+        await fiscal_ledger.record_cancellation(db, owner_id, sale_doc, timezone_name=timezone_name, actor_id=actor_id, reason=reason)
+    except Exception as exc:
+        logger.error("Fiscal ledger: cancellation of %s not recorded: %s", sale_doc.get("sale_id"), exc)
+
+
+async def _require_fiscal_ledger(user: User) -> str:
+    owner_id = get_owner_id(user)
+    if await _fiscal_ledger_timezone(owner_id) is None:
+        raise HTTPException(status_code=404, detail="Le registre des ventes n'est pas disponible pour ce type d'activité.")
+    return owner_id
+
+
+@api_router.get("/fiscal/status")
+async def fiscal_status(user: User = Depends(require_permission("accounting", "read"))):
+    """État du registre inaltérable des ventes du compte."""
+    owner_id = await _require_fiscal_ledger(user)
+    await fiscal_ledger.ensure_closures(db, owner_id)
+    return await fiscal_ledger.status(db, owner_id)
+
+
+@api_router.post("/fiscal/verify")
+async def fiscal_verify(user: User = Depends(require_permission("accounting", "read"))):
+    """Contrôle la série, le chaînage, les empreintes et la concordance avec les ventes."""
+    owner_id = await _require_fiscal_ledger(user)
+    return await fiscal_ledger.verify(db, owner_id)
+
+
+@api_router.get("/fiscal/closures")
+async def fiscal_closures(period_type: Optional[str] = None, user: User = Depends(require_permission("accounting", "read"))):
+    """Clôtures journalières, mensuelles et annuelles."""
+    owner_id = await _require_fiscal_ledger(user)
+    return {"closures": await fiscal_ledger.list_closures(db, owner_id, period_type)}
+
+
+@api_router.get("/fiscal/archive")
+async def fiscal_archive(period_type: str, period_key: str, user: User = Depends(require_permission("accounting", "read"))):
+    """Archive figée d'une période close (jour AAAA-MM-JJ, mois AAAA-MM ou année AAAA)."""
+    owner_id = await _require_fiscal_ledger(user)
+    archive = await fiscal_ledger.build_archive(db, owner_id, period_type, period_key)
+    if not archive:
+        raise HTTPException(status_code=404, detail="Aucune clôture pour cette période : elle n'est pas terminée ou ne contient aucune vente.")
+    await log_activity(
+        user=user, action="fiscal_archive", module="accounting",
+        description=f"Archive du registre des ventes : {period_type} {period_key}",
+        details={"period_type": period_type, "period_key": period_key, "hash": archive.get("hash")},
+    )
+    return archive
+
+
 @api_router.post("/sales", response_model=Sale)
 async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permission("pos", "write"))):
     ensure_subscription_write_allowed(user)
@@ -23668,8 +23769,12 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         credit_debt_applied=customer_effects["credit_debt_applied"],
     )
     await db.sales.insert_one(sale.model_dump())
-    if await onboarding_guide.is_active(db, owner_id):
+    guide_practice_sale = await onboarding_guide.is_active(db, owner_id)
+    if guide_practice_sale:
         await onboarding_guide.tag(db, "sales", {"sale_id": sale.sale_id, "user_id": owner_id})
+    if not is_open_order:
+        # Les ventes d'entraînement du guide sont inscrites à part, hors des totaux.
+        await fiscal_record_sale(owner_id, sale.model_dump(), actor_id=user.user_id, training=bool(guide_practice_sale))
     _invalidate_dashboard_ai_caches(owner_id, store_id)
 
     # 6. If this is an open order tied to a table, claim the table atomically.
@@ -34602,6 +34707,9 @@ async def delete_account(
         "categories", "locations", "tables", "reservations",
         "returns", "credit_notes"
     ]
+
+    # Le registre des ventes est conservé pendant le délai légal, sans donnée personnelle de client.
+    await fiscal_ledger.mark_retention(db, owner_id, user.name)
 
     for col in collections_to_wipe:
         await db[col].delete_many({"user_id": owner_id})

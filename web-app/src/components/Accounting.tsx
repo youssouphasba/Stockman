@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
+import FiscalLedgerCard from './FiscalLedgerCard';
 import {
     TrendingUp,
     TrendingDown,
@@ -2412,6 +2413,8 @@ export default function Accounting() {
                     )}
                 </div>
             </div>
+
+            <FiscalLedgerCard formatCurrency={formatCurrency} />
 
             {/* Modals */}
             <AccountingReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} stats={stats} expenses={expenses} period={period} startDate={startDate} endDate={endDate} />

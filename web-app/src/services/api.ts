@@ -2260,6 +2260,14 @@ export const sales = {
     productForecast: (productId: string) => request<any>(`/sales/forecast/${productId}`),
 };
 
+export const fiscal = {
+    status: () => request<any>('/fiscal/status'),
+    verify: () => request<any>('/fiscal/verify', { method: 'POST' }),
+    closures: (periodType?: string) => request<any>(`/fiscal/closures${periodType ? `?period_type=${encodeURIComponent(periodType)}` : ''}`),
+    archive: (periodType: string, periodKey: string) =>
+        request<any>(`/fiscal/archive?period_type=${encodeURIComponent(periodType)}&period_key=${encodeURIComponent(periodKey)}`),
+};
+
 export const accounting = {
     getStats: (days?: number, startDate?: string, endDate?: string, channel?: SalesChannel) => {
         const qs = new URLSearchParams();

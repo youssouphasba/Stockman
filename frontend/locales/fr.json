@@ -4082,5 +4082,28 @@
     "type_rack": "Rayon",
     "type_bin": "Casier",
     "type_block": "Bloc"
+  },
+  "fiscal": {
+    "title": "Registre des ventes",
+    "subtitle": "Chaque vente et chaque annulation sont inscrites de façon inaltérable : numérotées, chaînées entre elles et clôturées chaque jour, mois et année.",
+    "entries": "Inscriptions",
+    "cumulative": "Total cumulé",
+    "last_entry": "Dernière inscription",
+    "not_started": "Le registre démarre à la prochaine vente.",
+    "verify": "Vérifier l'intégrité",
+    "verifying": "Vérification…",
+    "verify_ok": "Registre intact : {{count}} inscriptions contrôlées, aucune anomalie.",
+    "verify_problems": "Anomalies détectées : {{count}}",
+    "closures": "Clôtures",
+    "period_day": "Jours",
+    "period_month": "Mois",
+    "period_year": "Années",
+    "no_closures": "Aucune période close pour l’instant. La première clôture apparaît le lendemain de la première vente.",
+    "sales_count": "Ventes : {{count}}",
+    "cancellations": "Annulations : {{count}}",
+    "tax": "TVA",
+    "download": "Archive",
+    "download_error": "Impossible de télécharger l'archive.",
+    "load_error": "Impossible de charger le registre."
   }
 }

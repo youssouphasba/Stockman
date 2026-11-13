@@ -202,6 +202,17 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 
 ---
 
+### Mes ventes peuvent-elles être modifiées ou supprimées ?
+- Non. Une vente enregistrée ne peut être ni modifiée ni supprimée. Pour la corriger, on l'annule (avec un motif), puis on refait la bonne vente : la vente d'origine reste visible avec son annulation.
+- Pour les commerces (hors restauration), chaque vente terminée et chaque annulation sont inscrites dans un **registre inaltérable** : numéro continu, copie figée de la vente (articles, montants, TVA, règlements), empreinte chaînée à la vente précédente et total cumulé depuis l'origine. Une annulation est une nouvelle ligne en négatif.
+- Les journées, les mois et les années terminés sont **clôturés** automatiquement : chaque clôture fige le nombre de ventes, le total encaissé, les annulations, la TVA et la répartition par mode de paiement.
+- Une période close peut être **archivée** : l'archive contient ses ventes, sa clôture et une empreinte qui prouve qu'elle n'a pas changé.
+- Le registre se consulte en bas de l'écran **Comptabilité** (application mobile et web) : nombre d'inscriptions, total cumulé, bouton **Vérifier l'intégrité**, liste des clôtures par jour, mois ou année et bouton **Archive** pour télécharger une période close.
+- Une **vérification** contrôle à tout moment que la série ne présente aucun trou, que le chaînage est intact et que chaque vente correspond à son inscription.
+- Les ventes d'entraînement du guide de démarrage sont inscrites à part et ne comptent pas dans les totaux.
+- Si le compte est supprimé, le registre des ventes est conservé 6 ans (durée légale de conservation), sans donnée personnelle de client.
+- Le registre démarre à la première vente qui suit sa mise en service ; les ventes plus anciennes y sont reprises et marquées comme telles, leur intégrité n'étant garantie qu'à partir de cette date.
+
 ## 4. Alertes de Stock
 
 ### Comment configurer des alertes ?

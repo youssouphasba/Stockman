@@ -3236,5 +3236,28 @@
     "required": "Add your email so our team can follow up with you.",
     "save_error": "Unable to save your email right now.",
     "not_available": "Unavailable"
+  },
+  "fiscal": {
+    "title": "Sales ledger",
+    "subtitle": "Every sale and every cancellation is recorded so it cannot be altered: numbered, chained together and closed every day, month and year.",
+    "entries": "Entries",
+    "cumulative": "Cumulative total",
+    "last_entry": "Last entry",
+    "not_started": "The ledger starts with the next sale.",
+    "verify": "Check integrity",
+    "verifying": "Checking…",
+    "verify_ok": "Ledger intact: {{count}} entries checked, no issue found.",
+    "verify_problems": "Issues found: {{count}}",
+    "closures": "Closures",
+    "period_day": "Days",
+    "period_month": "Months",
+    "period_year": "Years",
+    "no_closures": "No closed period yet. The first closure appears the day after the first sale.",
+    "sales_count": "Sales: {{count}}",
+    "cancellations": "Cancellations: {{count}}",
+    "tax": "VAT",
+    "download": "Archive",
+    "download_error": "Could not download the archive.",
+    "load_error": "Could not load the ledger."
   }
 }

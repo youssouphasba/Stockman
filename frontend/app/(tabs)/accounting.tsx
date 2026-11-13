@@ -48,6 +48,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { hasPlatformModule } from '../../utils/access';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import FiscalLedgerPanel from '../../components/FiscalLedgerPanel';
 import { useDrawer } from '../../contexts/DrawerContext';
 import PremiumGate from '../../components/PremiumGate';
 import AccessDenied from '../../components/AccessDenied';
@@ -2152,6 +2153,8 @@ export default function AccountingScreen() {
                                 </View>
                             )}
                         </View>
+
+                        <FiscalLedgerPanel formatCurrency={formatCurrency} />
 
                         <View style={{ height: Spacing.xxl }} />
                     </ScrollView >
