@@ -101,3 +101,31 @@ class LifecycleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ExistingAccountTests(unittest.TestCase):
+    def test_existing_owner_without_products_receives_the_guide(self):
+        db = FakeDatabase()
+        doc = {"user_id": "old", "role": "shopkeeper"}
+        run(db.users.insert_one(dict(doc)))
+        updated = run(guide.ensure_state(db, doc))
+        self.assertTrue(guide.is_eligible(updated))
+        stored = run(db.users.find_one({"user_id": "old"}))
+        self.assertEqual(stored[guide.GUIDE_FIELD]["status"], guide.PENDING)
+
+    def test_existing_owner_with_products_is_left_alone(self):
+        db = FakeDatabase()
+        doc = {"user_id": "old", "role": "shopkeeper"}
+        run(db.users.insert_one(dict(doc)))
+        run(db.products.insert_one({"product_id": "real", "user_id": "old"}))
+        updated = run(guide.ensure_state(db, doc))
+        self.assertFalse(guide.is_eligible(updated))
+        stored = run(db.users.find_one({"user_id": "old"}))
+        self.assertEqual(stored[guide.GUIDE_FIELD]["status"], guide.NOT_NEEDED)
+
+    def test_staff_and_finished_guides_are_untouched(self):
+        db = FakeDatabase()
+        staff = {"user_id": "staff", "role": "staff", "parent_user_id": "boss"}
+        done = {"user_id": "done", "role": "shopkeeper", guide.GUIDE_FIELD: {"status": guide.COMPLETED}}
+        self.assertIs(run(guide.ensure_state(db, staff)), staff)
+        self.assertIs(run(guide.ensure_state(db, done)), done)

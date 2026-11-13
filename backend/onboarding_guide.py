@@ -1,7 +1,8 @@
 """Guide interactif de démarrage (application mobile).
 
-Le guide est proposé une seule fois au propriétaire d'un compte créé après sa mise
-en ligne : l'inscription pose l'état « pending ». Pendant le guide, le produit, le
+Le guide est proposé une seule fois au propriétaire d'un compte commerce :
+l'inscription pose l'état « pending » ; un compte plus ancien le reçoit à sa prochaine
+ouverture de l'application s'il n'a encore aucun produit (``ensure_state``). Pendant le guide, le produit, le
 client et la vente créés pour l'exercice reçoivent l'étiquette ``onboarding_demo`` ;
 ils sont supprimés à la fin, avec tout ce qu'ils ont produit (mouvements de stock,
 historique de prix, alertes, journal d'activité). Le commerçant peut garder un
@@ -19,6 +20,8 @@ PENDING = "pending"
 ACTIVE = "active"
 COMPLETED = "completed"
 SKIPPED = "skipped"
+# Compte existant qui avait déjà des produits : le guide ne lui est pas imposé.
+NOT_NEEDED = "not_needed"
 OPEN_STATES = {PENDING, ACTIVE}
 FINAL_STATES = {COMPLETED, SKIPPED}
 
@@ -46,11 +49,28 @@ def initial_state() -> Dict[str, Any]:
     return {"status": PENDING}
 
 
+def _is_shop_owner(user_doc: Optional[Dict[str, Any]]) -> bool:
+    return bool(user_doc) and user_doc.get("role") == "shopkeeper" and not user_doc.get("is_demo") and not user_doc.get("parent_user_id")
+
+
+async def ensure_state(db, user_doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Pose l'état du guide sur un compte créé avant sa mise en ligne.
+
+    Le guide est imposé seulement si le commerçant n'a encore aucun produit ; sinon
+    le compte est marqué « not_needed » pour ne plus refaire la vérification.
+    """
+    if not _is_shop_owner(user_doc) or user_doc.get(GUIDE_FIELD):
+        return user_doc
+    user_id = user_doc["user_id"]
+    has_products = await db.products.find_one({"user_id": user_id, DEMO_TAG: {"$ne": True}}, {"_id": 0, "product_id": 1})
+    state = {"status": NOT_NEEDED} if has_products else initial_state()
+    await db.users.update_one({"user_id": user_id, GUIDE_FIELD: {"$exists": False}}, {"$set": {GUIDE_FIELD: state}})
+    return {**user_doc, GUIDE_FIELD: state}
+
+
 def is_eligible(user_doc: Optional[Dict[str, Any]]) -> bool:
     """Seul le propriétaire d'un compte commerce, hors démonstration, suit le guide."""
-    if not user_doc:
-        return False
-    if user_doc.get("role") != "shopkeeper" or user_doc.get("is_demo") or user_doc.get("parent_user_id"):
+    if not _is_shop_owner(user_doc):
         return False
     return (user_doc.get(GUIDE_FIELD) or {}).get("status") in OPEN_STATES
 

@@ -18953,6 +18953,7 @@ class OnboardingGuideFinish(BaseModel):
 @api_router.get("/onboarding/guide")
 async def get_onboarding_guide(user: User = Depends(require_auth)):
     doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    doc = await onboarding_guide.ensure_state(db, doc)
     return onboarding_guide.public_state(doc)
 
 
