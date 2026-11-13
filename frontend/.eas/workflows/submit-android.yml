@@ -12,6 +12,7 @@ jobs:
   submit_android:
     name: Submit Android
     type: submit
+    environment: production
     env:
       EXPO_DEBUG: "1"
     params:

@@ -12,6 +12,7 @@ jobs:
   submit_ios:
     name: Submit iOS
     type: submit
+    environment: production
     env:
       EXPO_DEBUG: "1"
     params:
