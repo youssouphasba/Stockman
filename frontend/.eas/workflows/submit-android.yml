@@ -1,0 +1,20 @@
+name: Submit Android build to Google Play
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: Identifiant du build Android à soumettre
+        type: string
+        required: true
+
+jobs:
+  submit_android:
+    name: Submit Android
+    type: submit
+    env:
+      EXPO_DEBUG: "1"
+    params:
+      platform: android
+      profile: production-remote
+      build_id: ${{ inputs.build_id }}

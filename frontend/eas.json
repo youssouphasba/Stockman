@@ -88,6 +88,10 @@
         "production-remote": {
             "ios": {
                 "ascAppId": "6760587628"
+            },
+            "android": {
+                "track": "production",
+                "releaseStatus": "draft"
             }
         }
     }
