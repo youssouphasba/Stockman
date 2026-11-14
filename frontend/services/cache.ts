@@ -2,7 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const KEYS = {
     DASHBOARD: 'dashboard',
+    DASHBOARD_SNAPSHOT: 'dashboard_snapshot',
     PRODUCTS: 'products',
+    PRODUCTS_SNAPSHOT: 'products_snapshot',
     CATEGORIES: 'categories',
     SUPPLIERS: 'suppliers',
     ORDERS: 'orders',

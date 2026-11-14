@@ -118,6 +118,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'pricetag-outline', title: 'help.modules.pos.f8.t', description: "help.modules.pos.f8.d" },
       { icon: 'calculator-outline', title: 'help.modules.pos.f9.t', description: "help.modules.pos.f9.d" },
       { icon: 'share-outline', title: 'help.modules.pos.f10.t', description: "help.modules.pos.f10.d" },
+      { icon: 'time-outline', title: 'pos.checkout_loading_help_title', description: 'pos.checkout_loading_help_description' },
     ],
   },
   {
@@ -180,6 +181,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'calendar-outline', title: 'help.modules.crm.f6.t', description: "help.modules.crm.f6.d" },
       { icon: 'call-outline', title: 'help.modules.crm.f7.t', description: "help.modules.crm.f7.d" },
       { icon: 'download-outline', title: 'help.modules.crm.f8.t', description: "help.modules.crm.f8.d" },
+      { icon: 'people-outline', title: 'crm.loading_help_title', description: 'crm.loading_help_description' },
     ],
   },
   {
@@ -199,6 +201,7 @@ export const HELP_MODULES: HelpModule[] = [
       { icon: 'download-outline', title: 'help.modules.accounting.f6.t', description: "help.modules.accounting.f6.d" },
       { icon: 'trophy-outline', title: 'help.modules.accounting.f7.t', description: "help.modules.accounting.f7.d" },
       { icon: 'information-circle-outline', title: 'help.modules.accounting.f8.t', description: "help.modules.accounting.f8.d" },
+      { icon: 'time-outline', title: 'accounting.loading_help_title', description: 'accounting.loading_help_description' },
       { icon: 'albums-outline', title: 'Filtre de période', description: "Les ventes et les dépenses se pilotent désormais avec Voir tout, Mois et Année. En mode année, choisissez aussi directement un mois lié à l'année affichée." },
       { icon: 'git-branch-outline', title: 'Boutique, E-com et trésorerie', description: "Quatre vues en haut de l'écran : Vue d'ensemble, Boutique physique, E-com et Trésorerie. La vue E-com suit le circuit des commandes (commandé, livré, encaissé, à encaisser) ; la vue Trésorerie montre les sommes reçues, les créances clients et les frais de livraison Denkma à reverser, qui ne comptent jamais dans le chiffre d'affaires." },
       { icon: 'shield-checkmark-outline', title: 'Registre des ventes', description: "En bas de l'écran (commerces) : chaque vente et chaque annulation sont inscrites de façon inaltérable, numérotées et chaînées. Les jours, mois et années terminés sont clôturés automatiquement ; Vérifier l'intégrité contrôle le registre et Archive télécharge une période close." },
@@ -453,6 +456,7 @@ export const HELP_MODULES: HelpModule[] = [
 
 export const FAQ: FAQItem[] = [
   { question: 'screen_guide.help_question', answer: 'screen_guide.help_answer' },
+  { question: 'auth.verifyPhone.helpQuestion', answer: 'auth.verifyPhone.helpAnswer', audience: 'all' },
   { question: 'help.faq.q1.q', answer: "help.faq.q1.a" },
   { question: 'help.faq.q2.q', answer: "help.faq.q2.a" },
   { question: 'help.faq.q3.q', answer: "help.faq.q3.a" },

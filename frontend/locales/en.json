@@ -1,5 +1,6 @@
 {
   "screen_guide": {
+    "pos_product_unavailable": "No product can be highlighted right now.",
     "close": "Close guide",
     "previous": "Previous step",
     "next": "Next",
@@ -84,6 +85,12 @@
     "not_enough_data": "Not enough sales data for ABC analysis."
   },
   "accounting": {
+    "stats_loading": "Loading financial metrics…",
+    "stats_unavailable": "Could not load the financial metrics.",
+    "history_loading": "Loading history…",
+    "history_unavailable": "Could not load this history.",
+    "loading_help_title": "View metrics and transaction history",
+    "loading_help_description": "Metrics for the selected period and channel appear as soon as they are available. Sales, invoice and expense history may appear afterward.",
     "invoice_create_error": "Could not create the invoice.",
     "view_overview": "Overview",
     "view_physical": "Physical store",
@@ -645,12 +652,22 @@
       "trialNote": "30 days free • No credit card required"
     },
     "verifyPhone": {
-      "title": "Verification",
+      "title": "Phone verification",
+      "subtitle": "Confirm your phone number.",
+      "sendingTo": "Sending the code to {{phone}}…",
       "sentTo": "A verification code has been sent to {{phone}}.",
+      "sendError": "We couldn’t send the code by text message. You can receive the code by email.",
+      "helpQuestion": "When is the SMS verification code sent?",
+      "helpAnswer": "The request starts when you open the verification screen. If the screen reopens while the request is pending, it uses the same request. You can switch to email if the text message cannot be sent.",
+      "invalidPhone": "The phone number is invalid.",
+      "limitReached": "Too many attempts. Try again later.",
       "testTip": "(For testing, the code is in the server logs)",
       "label": "6-digit code",
       "placeholder": "000000",
       "verify": "Verify number",
+      "resendCode": "Resend code",
+      "resendCountdown": "Resend code ({{seconds}} s)",
+      "useEmail": "Receive the code by email",
       "notReceived": "I didn't receive the code",
       "errorCode": "Please enter the 6-digit code",
       "errorIncorrect": "Incorrect or expired code",
@@ -849,6 +866,9 @@
     "chat": "Chat"
   },
   "crm": {
+    "customers_unavailable": "Could not load customers.",
+    "loading_help_title": "View the customer list",
+    "loading_help_description": "You can open customer records as soon as the list appears, without waiting for promotions or loyalty settings.",
     "active_30d": "Active (30d)",
     "active_clients": "Active (30d)",
     "add_credit_debit": "Add credit/debit",
@@ -2041,6 +2061,7 @@
     "success": "Operation successful"
   },
   "orders": {
+    "ecommerce_load_error": "Could not load orders.",
     "supplier_title": "Supplier orders",
     "supplier_entry_hint": "Purchase orders, receipts, returns and credit notes",
     "active_credit_notes": "Active Credit Notes",
@@ -2211,6 +2232,11 @@
     "cart_title": "Cart",
     "cash": "Cash",
     "checkout": "Checkout",
+    "checkout_settings_loading": "Loading checkout settings…",
+    "checkout_settings_unavailable": "Checkout settings are unavailable.",
+    "checkout_loading_help_title": "Build a cart while data loads",
+    "checkout_loading_help_description": "You can build a cart as soon as products appear. If checkout settings are not yet available, payment is disabled to prevent an incorrect total.",
+    "products_loading": "Loading products…",
     "clear": "Clear",
     "clear_cart": "Clear",
     "client_create_error": "Could not create customer",
@@ -2564,6 +2590,7 @@
     "kpi_out_of_stock": "Stockouts",
     "kpi_products": "Products",
     "loading_more": "Loading products...",
+    "catalog_unavailable": "Could not load products.",
     "load_more": "Load {{count}} more product(s)",
     "all_search_results_loaded": "All results ({{count}}) are displayed.",
     "all_products_loaded": "All loaded products ({{loaded}}/{{total}}).",

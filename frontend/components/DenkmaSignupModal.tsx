@@ -31,6 +31,8 @@ function smsError(error: any): string {
   return error?.message || "L'envoi du SMS a échoué. Réessayez.";
 }
 
+const DENKMA_PHONE_SCOPE = 'denkma-signup';
+
 // Création du compte Denkma Pro sans quitter Stockman : le commerçant renseigne son commerce,
 // localise son point de collecte, choisit son code PIN Denkma et confirme son numéro par SMS.
 // Le compte est ensuite validé par Denkma avant la première expédition.
@@ -93,7 +95,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
     setBusy(true);
     setError(null);
     try {
-      await sendPhoneVerification(denkmaPhone(phone) as string);
+      await sendPhoneVerification(denkmaPhone(phone) as string, DENKMA_PHONE_SCOPE, step === 'code');
       setCode('');
       setStep('code');
     } catch (err: any) {
@@ -112,7 +114,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
     setError(null);
     let proof: string;
     try {
-      proof = await confirmPhoneCode(code.trim());
+      proof = await confirmPhoneCode(code.trim(), denkmaPhone(phone) as string, DENKMA_PHONE_SCOPE);
     } catch (err: any) {
       setError(smsError(err));
       setBusy(false);
@@ -145,7 +147,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
   }
 
   function close() {
-    clearPhoneVerificationState();
+    clearPhoneVerificationState(DENKMA_PHONE_SCOPE);
     onClose();
   }
 

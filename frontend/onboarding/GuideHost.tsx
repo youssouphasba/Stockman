@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { useGuide, type GuideRect } from './GuideProvider';
 import { CHAPTERS, GUIDE_STEPS, STEP_INDEX } from './steps';
 
@@ -26,6 +27,7 @@ const DIM_CARD = 'rgba(5, 4, 20, 0.78)';
 const TOP_BAR_SPACE = 64;
 // Durée du déplacement du cadre lumineux : assez lente pour que l'œil le suive.
 const HOLE_MOVE_MS = 650;
+const POS_TARGET_WAIT_MS = 4000;
 
 // Dernière position du cadre (coordonnées de la fenêtre), partagée entre les couches :
 // en changeant d'écran ou de fenêtre, le cadre repart de là où il était au lieu d'apparaître d'un coup.
@@ -50,6 +52,7 @@ function GuideOverlay() {
   const guide = useGuide()!;
   const step = guide.step!;
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: W, height: H } = useWindowDimensions();
   const hostRef = useRef<View>(null);
@@ -63,6 +66,7 @@ function GuideOverlay() {
   keyboardRef.current = keyboardHeight;
   const lastEnsureRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
+  const [targetWaitExpired, setTargetWaitExpired] = useState(false);
 
   const holeX = useRef(new Animated.Value(W / 2)).current;
   const holeY = useRef(new Animated.Value(H / 2)).current;
@@ -77,6 +81,16 @@ function GuideOverlay() {
 
   const isCard = step.kind === 'card';
   const targetId = guide.targetId;
+  const isPosProductStep = step.id === 'pos_pick' || step.id === 'pos_products';
+  const hasRect = Boolean(rect);
+  const showPosRecovery = isPosProductStep && !hasRect && targetWaitExpired;
+
+  useEffect(() => {
+    setTargetWaitExpired(false);
+    if (!isPosProductStep || hasRect) return;
+    const timer = setTimeout(() => setTargetWaitExpired(true), POS_TARGET_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [isPosProductStep, hasRect, step.id]);
   // Après un écran plein format, le cadre part de tout l'écran et se resserre sur la première cible.
   if (isCard) lastHole = null;
 
@@ -130,7 +144,7 @@ function GuideOverlay() {
       const visibleBottomNow = hostHeightRef.current - keyboardRef.current - 12;
       if ((next.y < insets.top + TOP_BAR_SPACE || next.y + next.height > visibleBottomNow) && Date.now() - lastEnsureRef.current > 800) {
         lastEnsureRef.current = Date.now();
-        guide.ensureTargetVisible(targetId);
+        guide.ensureTargetVisible(guide.hasTarget(targetId) ? targetId : step.fallbackTarget || targetId);
       }
       setRect((current) => (current && Math.abs(current.x - next.x) < 1 && Math.abs(current.y - next.y) < 1
         && Math.abs(current.width - next.width) < 1 && Math.abs(current.height - next.height) < 1 ? current : next));
@@ -274,7 +288,7 @@ function GuideOverlay() {
           </Animated.View>
         </>
       ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: DIM }]} onStartShouldSetResponder={() => true} onResponderRelease={nudge} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: DIM }]} onStartShouldSetResponder={() => true} />
       )}
 
       {/* Progression : chapitres du guide et sortie de secours. */}
@@ -320,23 +334,26 @@ function GuideOverlay() {
         >
           <Text style={[styles.bubbleTitle, { color: colors.text }]}>{step.title}</Text>
           {!compact && <Text style={[styles.bubbleBody, { color: colors.textSecondary || colors.textMuted }]}>{step.body}</Text>}
-          {!!step.action && (
+          {!!step.action && !showPosRecovery && (
             <View style={styles.actionRow}>
               <Ionicons name="hand-left-outline" size={16} color={colors.primary} />
               <Text style={[styles.actionText, { color: colors.primary }]}>{step.action}</Text>
             </View>
           )}
-          {!!error && (
+          {!!error && !!rect && (
             <View style={styles.actionRow}>
               <Ionicons name="alert-circle" size={16} color={colors.danger} />
               <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
             </View>
           )}
-          {!rect && !!targetId && (
+          {!rect && !!targetId && !showPosRecovery && (
             <View style={styles.actionRow}>
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.bubbleBody, { color: colors.textMuted, marginTop: 0 }]}>Préparation de l’écran…</Text>
             </View>
+          )}
+          {showPosRecovery && (
+            <Text style={[styles.bubbleBody, { color: colors.textMuted }]}>{t('screen_guide.pos_product_unavailable')}</Text>
           )}
           {(step.kind === 'field' || step.kind === 'info') && (
             <TouchableOpacity accessibilityRole="button" onPress={onNext} style={[styles.nextButton, { backgroundColor: colors.primary }]}>

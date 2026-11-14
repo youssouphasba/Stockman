@@ -53,6 +53,7 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 - Pour valider ce flux, vérifiez qu'un nouveau compte Google arrive sur l'écran de complétion, puis qu'après validation il bascule vers la vérification téléphone et que `country_code`, `currency`, `phone` et `business_type` sont bien présents dans `/api/auth/me`.
 - Après une modification des identifiants Google, du fichier `google-services.json`, du fichier `GoogleService-Info.plist` ou de la configuration native de connexion Google, un simple `eas update` ne suffit pas.
 - Il faut générer un nouveau build pour tester correctement la connexion Google sur mobile.
+- Sur un compte en attente de vérification SMS, ouvrir rapidement deux fois l'écran de saisie du code : un seul envoi doit démarrer, sans message d'erreur de concurrence. Vérifier que « code envoyé » n'apparaît qu'après la confirmation de l'envoi, que le code reçu fonctionne et que le passage à l'e-mail reste possible.
 
 ## 5. Verification des notifications push
 
@@ -62,6 +63,8 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 
 ## 6. Guide contextuel de navigation
 
+- Fermer l'application à l'étape « Ajouter au panier » du guide de démarrage, puis la rouvrir. Vérifier que la Caisse ouvre automatiquement la liste Produits et met l'article en surbrillance sans demander de relancer le guide.
+
 - Le guide contextuel de navigation doit s'ouvrir automatiquement une seule fois lors de la premiere arrivee sur les onglets.
 - Apres fermeture du guide, changer d'onglet ne doit plus le rouvrir automatiquement.
 - Le guide doit ensuite rester accessible uniquement via le bouton d'aide.
@@ -69,6 +72,14 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 - Avec un compte français, ouvrir le guide E-com et rechercher Wave, Orange Money ou Denkma dans le centre d’aide : les rubriques de configuration de ces services ne doivent pas apparaître. Les consignes de paiement et le traitement des commandes restent accessibles. Avec un compte sénégalais éligible en XOF, vérifier que les rubriques correspondantes apparaissent. Basculer entre les deux comptes sans redémarrer l’application et répéter la vérification.
 
 ## 7. Fluidite et reglages
+
+- Caisse : avec une connexion lente, ouvrir Produits avant la fin du chargement des clients et des réglages. Vérifier que les articles apparaissent dès leur retour et que l'encaissement ne propose pas de total provisoire. Revenir sur la Caisse pendant un panier en cours : ni le panier ni le catalogue déjà affiché ne doivent disparaître.
+- Produits : ralentir la réponse des catégories et vérifier que la liste se remplit sans les attendre. Changer rapidement de filtre ou de recherche, puis revenir sur l'onglet. Les réponses précédentes ne doivent pas remplacer la liste courante.
+- Accueil : après une première visite en ligne, rouvrir l'application avec une connexion lente. L'Accueil peut reprendre les données en cache de la boutique active. Changer de compte ou de boutique et vérifier que les indicateurs précédents ne réapparaissent pas.
+- Réglages et E-com : ralentir le chargement du site dans Réglages et vérifier que les autres rubriques restent accessibles. Dans E-com, revenir aux commandes ou les actualiser : la liste doit rester visible pour le même filtre, y compris en cas d'échec de l'actualisation.
+- Pendant une actualisation, basculer vers un autre compte ou une autre boutique. Vérifier que les réponses en retard ne modifient pas l'écran de la nouvelle boutique. Refaire le même parcours hors ligne, puis après reconnexion.
+- Compta : ralentir les historiques et vérifier que les indicateurs et les filtres restent accessibles. Changer rapidement de période et de canal : ne jamais afficher un ancien total ou un zéro provisoire pour le nouveau filtre. Vérifier aussi le retour en Compta après une vente et les factures en attente de synchronisation.
+- Clients : ralentir les promotions et les réglages de fidélité. La liste des clients doit rester consultable dès qu'elle est disponible. Changer rapidement de tri et vérifier que la dernière demande l'emporte.
 
 - Le changement d'onglet doit rester fluide sans rechargement visible du layout de navigation a chaque appui.
 - Depuis Parametres, l'ouverture des CGU ou de la politique de confidentialite doit permettre un retour simple vers Parametres.

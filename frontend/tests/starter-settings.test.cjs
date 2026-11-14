@@ -275,11 +275,37 @@ test('Legacy settings deep links and E-com events select the matching Starter se
 test('A settings response that arrives after leaving the account cannot replace the current state', async () => {
   let resolve;
   const h = createHarness({ services: { settings: { get: () => new Promise((done) => { resolve = done; }) } } });
-  const cleanup = h.focusEffects[0]();
+  const cleanup = h.effects.find((effect) => String(effect).includes('pendingSettingsContextRef.current = null'))();
+  h.focusEffects[0]();
   cleanup();
   resolve({ modules: { crm: false } });
   await new Promise(setImmediate);
   assert.deepEqual(h.values.settingsData.modules, {});
+});
+
+test('Settings stay available while the online store loads and returning does not restart in-flight requests', async () => {
+  let resolveSite;
+  let siteRequests = 0;
+  const h = createHarness({ states: { loading: true }, services: { ecommerce: {
+    getSite: () => {
+      siteRequests++;
+      return new Promise((resolve) => { resolveSite = resolve; });
+    },
+  } } });
+  h.focusEffects[0]();
+  h.focusEffects[0]();
+  await new Promise(setImmediate);
+  assert.equal(h.values.loading, false);
+  assert.equal(h.values.ecommerceLoading, true);
+  assert.equal(siteRequests, 1);
+  assert.equal(h.calls.filter(([name]) => name === 'settings.get').length, 1);
+  assert.equal(h.calls.some(([name]) => name === 'features.get'), false);
+  resolveSite({ enabled: false, store_id: 'store' });
+  await new Promise(setImmediate);
+  h.focusEffects[0]();
+  assert.equal(h.values.ecommerceLoading, false);
+  assert.equal(h.values.ecommerceSite.enabled, false);
+  assert.equal(siteRequests, 1);
 });
 
 test('Android back returns to the settings section list before leaving Settings', () => {

@@ -33,6 +33,7 @@ import { hasPlatformModule } from '../../utils/access';
 import { STOCK_CHANGE_OPTIONS, StockChangeReasonChips, StockChangeReasonModal } from '../../components/StockChangeReason';
 import { useNetwork } from '../../hooks/useNetwork';
 import { cache, KEYS } from '../../services/cache';
+import { createScreenRefresh } from '../../utils/screenRefresh';
 import { syncService } from '../../services/sync';
 import {
   products as productsApi,
@@ -262,8 +263,16 @@ const BulkEditProductRow = React.memo(function BulkEditProductRow({
   );
 });
 
+const MOBILE_PRODUCTS_FOCUS_TTL_MS = 60_000;
+const MOBILE_PRODUCTS_INSIGHTS_DELAY_MS = 1_500;
+
 export default function ProductsScreen() {
-  const MOBILE_PRODUCTS_FOCUS_TTL_MS = 60_000;
+  const { user } = useAuth();
+  const catalogScope = JSON.stringify([user?.user_id, user?.active_store_id]);
+  return <ProductsWorkspace key={catalogScope} catalogScope={catalogScope} />;
+}
+
+function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
   const PRODUCTS_PAGE_SIZE = 100;
   const { t, i18n } = useTranslation();
@@ -326,7 +335,8 @@ export default function ProductsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [serverSearchResults, setServerSearchResults] = useState<Product[] | null>(null);
+  const [searchItems, setServerSearchResults] = useState<Product[] | null>(null);
+  const [resolvedSearchKey, setResolvedSearchKey] = useState<string | null>(null);
   const [serverSearchTotal, setServerSearchTotal] = useState(0);
   const [serverSearchLoading, setServerSearchLoading] = useState(false);
   const [serverSearchLoadingMore, setServerSearchLoadingMore] = useState(false);
@@ -352,7 +362,13 @@ export default function ProductsScreen() {
   const handledCreateActionRef = useRef<string | null>(null);
   const handledProductPrefillRef = useRef<string | null>(null);
   const deliveryReturnContextRef = useRef<{ orderId: string; catalogId: string; token: string } | null>(null);
-  const lastLoadedAtRef = useRef(0);
+  const productRefresh = useRef(createScreenRefresh<'catalog' | 'categories' | 'extras' | 'insights'>(MOBILE_PRODUCTS_FOCUS_TTL_MS));
+  const visibleCatalogRef = useRef<string | null>(null);
+  const catalogRevisionRef = useRef(0);
+  const catalogOnlineRef = useRef(isConnected);
+  catalogOnlineRef.current = isConnected;
+  const [visibleCatalogKey, setVisibleCatalogKey] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState(false);
   const lastImportNotificationRef = useRef<string | null>(null);
   const lastDeleteNotificationRef = useRef<string | null>(null);
   const lastBulkDeletedIdsRef = useRef<string[]>([]);
@@ -396,6 +412,14 @@ export default function ProductsScreen() {
   }, [actionParam, sourceParam]);
 
   const serverProductStatus = filterType === 'deadstock' || filterType === 'all' ? undefined : filterType;
+  const catalogRequestKey = JSON.stringify([selectedCategory, productSortMode, serverProductStatus, isRestaurant, isConnected]);
+  const catalogKeyRef = useRef(catalogRequestKey);
+  catalogKeyRef.current = catalogRequestKey;
+  const searchRequestKey = JSON.stringify([catalogRequestKey, debouncedSearch]);
+  const searchKeyRef = useRef(searchRequestKey);
+  searchKeyRef.current = searchRequestKey;
+  const serverSearchResults = resolvedSearchKey === searchRequestKey ? searchItems : null;
+  const catalogUpdating = isConnected && visibleCatalogKey !== catalogRequestKey && !catalogError;
 
   useEffect(() => {
     const source = typeof prefillSourceParam === 'string' ? prefillSourceParam : undefined;
@@ -902,7 +926,6 @@ export default function ProductsScreen() {
     }
     confirmDiscardChanges(() => setShowCategoryModal(false));
   };
-  const previousStoreIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (formSku.length >= 8 && !editingProduct && isConnected) {
@@ -964,31 +987,38 @@ export default function ProductsScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Server-side search when query is non-empty and not covered by local list
   useEffect(() => {
+    let current = true;
+    setServerSearchLoadingMore(false);
     if (!debouncedSearch || !isConnected) {
       setServerSearchResults(null);
       setServerSearchTotal(0);
+      setServerSearchLoading(false);
       return;
     }
-    // If local list already covers all products (total === productList.length), no need for server search
-    // Otherwise, search server to find products beyond the loaded page
     setServerSearchLoading(true);
     productsApi.list(selectedCategory ?? undefined, 0, PRODUCTS_PAGE_SIZE, isRestaurant ? true : undefined, debouncedSearch, {
       sort_by: productSortMode,
       product_status: serverProductStatus,
     })
       .then((res) => {
+        if (!current || searchKeyRef.current !== searchRequestKey) return;
         const items = (res.items ?? res) as Product[];
         setServerSearchResults(items);
         setServerSearchTotal(res.total ?? items.length);
+        setResolvedSearchKey(searchRequestKey);
       })
       .catch(() => {
+        if (!current || searchKeyRef.current !== searchRequestKey) return;
         setServerSearchResults(null);
         setServerSearchTotal(0);
+        setResolvedSearchKey(searchRequestKey);
       })
-      .finally(() => setServerSearchLoading(false));
-  }, [PRODUCTS_PAGE_SIZE, debouncedSearch, isConnected, isRestaurant, productSortMode, selectedCategory, serverProductStatus]);
+      .finally(() => {
+        if (current && searchKeyRef.current === searchRequestKey) setServerSearchLoading(false);
+      });
+    return () => { current = false; };
+  }, [PRODUCTS_PAGE_SIZE, debouncedSearch, isConnected, isRestaurant, productSortMode, searchRequestKey, selectedCategory, serverProductStatus]);
 
   // LayoutAnimation triggered on filter changes (NOT search, to preserve keyboard focus)
   useEffect(() => {
@@ -1011,193 +1041,188 @@ export default function ProductsScreen() {
   const [showAllMovements, setShowAllMovements] = useState(false);
   const [showAllSalesHistory, setShowAllSalesHistory] = useState(false);
 
-  const loadData = useCallback(async () => {
-    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    try {
-      if (isConnected) {
-        // Phase 1: Show cached data immediately while fetching
-        if (productList.length === 0) {
-          const [cachedProds, cachedCats] = await Promise.all([
-            cache.get<Product[]>(KEYS.PRODUCTS),
-            cache.get<Category[]>(KEYS.CATEGORIES),
-          ]);
-          if (cachedProds && cachedProds.length > 0) {
-            const sectorFiltered = isRestaurant ? cachedProds.filter((p) => p.is_menu_item) : cachedProds;
-            const filtered = selectedCategory
-              ? sectorFiltered.filter((p) => p.category_id === selectedCategory)
-              : sectorFiltered;
-            setProductList(filtered);
-            setLoading(false); // Show cached data right away
-          }
-          if (cachedCats) setCategoryList(cachedCats);
+  const loadCategories = useCallback((force: boolean) => {
+    if (!isConnected) return;
+    void productRefresh.current.run('categories', async (isCurrent) => {
+      try {
+        const categories = await categoriesApi.list();
+        if (!isCurrent()) return false;
+        setCategoryList(categories);
+        void cache.set(KEYS.CATEGORIES, categories);
+        return true;
+      } catch {
+        return false;
+      }
+    }, { force, replace: force });
+  }, [isConnected]);
+
+  const loadProductExtras = useCallback((force: boolean) => {
+    if (!isConnected) return;
+    const requestKey = JSON.stringify([hasEnterpriseLocations, isRestaurant, suppliersModuleOn]);
+    void productRefresh.current.run('extras', async (isCurrent) => {
+      const tasks = [
+        salesApi.forecast().then((forecast) => { if (isCurrent()) setForecastData(forecast); }),
+        ...(hasEnterpriseLocations ? [
+          locationsApi.list().then((locations) => { if (isCurrent()) setLocationList(locations); }),
+        ] : []),
+        ...(isRestaurant ? [
+          recipesApi.list().then((recipes) => {
+            if (isCurrent()) setRecipeList(recipes.filter((recipe: Recipe) => recipe.recipe_type !== 'prep'));
+          }),
+        ] : [
+          productsApi.listTrash(0, 200).then((response) => {
+            if (isCurrent()) setDeletedProducts((response.items ?? response) as ProductTrashItem[]);
+          }),
+        ]),
+        ...(suppliersModuleOn ? [
+          suppliersApi.list(0, 200).then((response) => {
+            if (isCurrent()) setAllSuppliers((response.items ?? response) as Supplier[]);
+          }),
+          spApi.list().then((links) => {
+            if (!isCurrent()) return;
+            const grouped: Record<string, SupplierProduct[]> = {};
+            for (const link of links || []) {
+              if (!link?.product_id) continue;
+              (grouped[link.product_id] ??= []).push(link);
+            }
+            setSupplierLinksByProduct(grouped);
+          }),
+        ] : []),
+      ];
+      await Promise.allSettled(tasks);
+      return true;
+    }, { requestKey, force, replace: force });
+
+    void productRefresh.current.run('insights', async (isCurrent) => {
+      await new Promise<void>((resolve) => setTimeout(resolve, MOBILE_PRODUCTS_INSIGHTS_DELAY_MS));
+      if (!isCurrent() || !catalogOnlineRef.current) return false;
+      const [deadstock, seasonality, duplicates, correlations] = await Promise.allSettled([
+        aiApi.deadstockAnalysis(),
+        aiApi.seasonalityAlerts(),
+        aiApi.detectDuplicates('products'),
+        aiApi.productCorrelations(),
+      ]);
+      if (!isCurrent()) return false;
+      if (deadstock.status === 'fulfilled' && deadstock.value?.deadstock) {
+        setDeadstockIds(new Set(deadstock.value.deadstock.map((entry: any) => entry.product_id)));
+        setDeadstockCount(deadstock.value.deadstock.length);
+      }
+      if (seasonality.status === 'fulfilled' && seasonality.value?.alerts) {
+        const map: Record<string, any> = {};
+        for (const alert of seasonality.value.alerts) map[alert.product_id] = alert;
+        setSeasonalityMap(map);
+      }
+      if (duplicates.status === 'fulfilled') setDuplicatesCount(duplicates.value?.total_found || 0);
+      if (correlations.status === 'fulfilled' && correlations.value?.pairs) {
+        const map: Record<string, Array<{ name: string; lift: number }>> = {};
+        for (const pair of correlations.value.pairs) {
+          (map[pair.product_a_id] ??= []).push({ name: pair.product_b_name, lift: pair.lift });
+          (map[pair.product_b_id] ??= []).push({ name: pair.product_a_name, lift: pair.lift });
+        }
+        setCorrelationsMap(map);
+      }
+      return true;
+    }, { requestKey });
+  }, [hasEnterpriseLocations, isConnected, isRestaurant, suppliersModuleOn]);
+
+  const loadCatalog = useCallback((force: boolean) => {
+    loadCategories(force);
+    return productRefresh.current.run('catalog', async (isCurrent) => {
+      const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const canPublish = () => isCurrent() && catalogKeyRef.current === catalogRequestKey;
+      let networkFinished = false;
+      const publish = (items: Product[], total: number) => {
+        catalogRevisionRef.current += 1;
+        setProductsLoadingMore(false);
+        setProductList(items);
+        setProductsTotal(total);
+        visibleCatalogRef.current = catalogRequestKey;
+        setVisibleCatalogKey(catalogRequestKey);
+        setCatalogError(false);
+        setLoading(false);
+      };
+
+      if (!canPublish()) return false;
+      setCatalogError(false);
+      const readCachedCatalog = async (allowLegacy: boolean) => {
+        const snapshot = await cache.get<{ scope: string; items: Product[] }>(KEYS.PRODUCTS_SNAPSHOT);
+        const legacy = allowLegacy ? await cache.get<Product[] | { items: Product[] }>(KEYS.PRODUCTS) : null;
+        const cached = allowLegacy
+          ? (Array.isArray(legacy) ? legacy : legacy?.items) ?? (snapshot?.scope === catalogScope ? snapshot.items : null)
+          : snapshot?.scope === catalogScope ? snapshot.items : null;
+        if (!canPublish() || networkFinished || visibleCatalogRef.current === catalogRequestKey || !Array.isArray(cached)) return;
+        const items = cached.filter((product) => (!isRestaurant || product.is_menu_item)
+          && (!selectedCategory || product.category_id === selectedCategory));
+        publish(items, items.length);
+      };
+
+      try {
+        if (!isConnected) {
+          const categories = cache.get<Category[]>(KEYS.CATEGORIES).then((cached) => {
+            if (canPublish() && cached) setCategoryList(cached);
+          });
+          await readCachedCatalog(true);
+          void categories;
+          return true;
         }
 
-        // Phase 2: Fetch essential data (products + categories)
-        const isEnterprise = hasEnterpriseLocations;
-        const [prodsRes, cats] = await Promise.all([
-          productsApi.list(selectedCategory ?? undefined, 0, PRODUCTS_PAGE_SIZE, isRestaurant ? true : undefined, undefined, {
+        const cached = visibleCatalogRef.current === null ? readCachedCatalog(false) : undefined;
+        try {
+          const response = await productsApi.list(selectedCategory ?? undefined, 0, PRODUCTS_PAGE_SIZE, isRestaurant ? true : undefined, undefined, {
             sort_by: productSortMode,
             product_status: serverProductStatus,
-          }),
-          categoriesApi.list(),
-        ]);
-
-        const prods = prodsRes.items ?? prodsRes;
-        setProductList(prods as Product[]);
-        setProductsTotal(prodsRes.total ?? prods.length);
-        setCategoryList(cats);
-        if (!selectedCategory && filterType === 'all') {
-          cache.set(KEYS.PRODUCTS, prods);
-        }
-        cache.set(KEYS.CATEGORIES, cats);
-
-        // Phase 3: Fetch secondary data in background (non-blocking)
-        const loadSecondary = async () => {
-          const promises: Promise<any>[] = [];
-
-          promises.push(
-            salesApi.forecast()
-              .then((f) => setForecastData(f))
-              .catch(() => { /* silent */ })
-          );
-
-          if (isEnterprise) {
-            promises.push(
-              locationsApi.list()
-                .then((locs) => setLocationList(locs))
-                .catch(() => { /* silent */ })
-            );
-          }
-
-          if (isRestaurant) {
-            promises.push(
-              recipesApi.list()
-                .then((r) => setRecipeList(r.filter((recipe: Recipe) => recipe.recipe_type !== 'prep')))
-                .catch(() => { /* silent */ })
-            );
-          }
-
-          if (suppliersModuleOn) promises.push(
-            suppliersApi.list(0, 200)
-              .then((res) => setAllSuppliers((res.items ?? res) as Supplier[]))
-              .catch(() => { /* silent */ })
-          );
-
-          if (suppliersModuleOn) promises.push(
-            spApi.list()
-              .then((links) => {
-                const grouped: Record<string, SupplierProduct[]> = {};
-                for (const link of links || []) {
-                  if (!link?.product_id) continue;
-                  if (!grouped[link.product_id]) grouped[link.product_id] = [];
-                  grouped[link.product_id].push(link);
-                }
-                setSupplierLinksByProduct(grouped);
-              })
-              .catch(() => setSupplierLinksByProduct({}))
-          );
-
-          if (!isRestaurant) {
-            promises.push(
-              productsApi.listTrash(0, 200)
-                .then((res) => setDeletedProducts((res.items ?? res) as ProductTrashItem[]))
-                .catch(() => setDeletedProducts([]))
-            );
-          }
-
-          await Promise.allSettled(promises);
-        };
-        loadSecondary();
-
-        // Phase 4: AI features — fully deferred, non-blocking
-        setTimeout(() => {
-          Promise.allSettled([
-            aiApi.deadstockAnalysis(),
-            aiApi.seasonalityAlerts(),
-            aiApi.detectDuplicates('products'),
-            aiApi.productCorrelations(),
-          ]).then(([dsRes, seasonRes, dupsRes, corrRes]) => {
-            if (dsRes.status === 'fulfilled' && dsRes.value?.deadstock) {
-              setDeadstockIds(new Set(dsRes.value.deadstock.map((d: any) => d.product_id)));
-              setDeadstockCount(dsRes.value.deadstock.length);
-            }
-            if (seasonRes.status === 'fulfilled' && seasonRes.value?.alerts) {
-              const map: Record<string, any> = {};
-              for (const a of seasonRes.value.alerts) map[a.product_id] = a;
-              setSeasonalityMap(map);
-            }
-            if (dupsRes.status === 'fulfilled') {
-              setDuplicatesCount(dupsRes.value?.total_found || 0);
-            }
-            if (corrRes.status === 'fulfilled' && corrRes.value?.pairs) {
-              const cmap: Record<string, Array<{name: string; lift: number}>> = {};
-              for (const pair of corrRes.value.pairs) {
-                if (!cmap[pair.product_a_id]) cmap[pair.product_a_id] = [];
-                if (!cmap[pair.product_b_id]) cmap[pair.product_b_id] = [];
-                cmap[pair.product_a_id].push({ name: pair.product_b_name, lift: pair.lift });
-                cmap[pair.product_b_id].push({ name: pair.product_a_name, lift: pair.lift });
-              }
-              setCorrelationsMap(cmap);
-            }
           });
-        }, 1500);
-
-      } else {
-        // Offline: read from cache
-        const cachedProds = await cache.get<Product[]>(KEYS.PRODUCTS);
-        const cachedCats = await cache.get<Category[]>(KEYS.CATEGORIES);
-        if (cachedProds) {
-          const sectorFiltered = isRestaurant ? cachedProds.filter((p) => p.is_menu_item) : cachedProds;
-          const filtered = selectedCategory
-            ? sectorFiltered.filter((p) => p.category_id === selectedCategory)
-            : sectorFiltered;
-          setProductList(filtered);
+          networkFinished = true;
+          if (!canPublish()) return false;
+          const items = (response.items ?? response) as Product[];
+          publish(items, response.total ?? items.length);
+          if (!selectedCategory && !serverProductStatus) {
+            void cache.set(KEYS.PRODUCTS, items);
+            if (!isRestaurant) void cache.set(KEYS.PRODUCTS_SNAPSHOT, { scope: catalogScope, items });
+          }
+          loadProductExtras(force);
+          return true;
+        } catch (error) {
+          if (!canPublish()) return false;
+          if (error instanceof ApiError && error.status === 403) {
+            networkFinished = true;
+            setAccessDenied(true);
+          } else {
+            await cached;
+            if (canPublish()) setCatalogError(visibleCatalogRef.current !== catalogRequestKey);
+          }
+          return false;
         }
-        setProductsTotal(filtered.length);
-        setDeletedProducts([]);
-        if (cachedCats) setCategoryList(cachedCats);
+      } finally {
+        if (canPublish()) {
+          if (MOBILE_PERF_ENABLED) {
+            const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
+            console.log(`[SCREEN PERF][MOBILE][products] category=${selectedCategory || 'all'} duration=${elapsed.toFixed(1)}ms`);
+            const host = globalThis as unknown as { __stockmanScreenPerf?: any[] };
+            (host.__stockmanScreenPerf ??= []).push({
+              screen: 'products',
+              category: selectedCategory || 'all',
+              duration_ms: elapsed,
+              ts: new Date().toISOString(),
+            });
+          }
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 403) {
-        setAccessDenied(true);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-      // Fallback to cache on error
-      const cachedProds = await cache.get<Product[]>(KEYS.PRODUCTS);
-      if (cachedProds) {
-        const sectorFiltered = isRestaurant ? cachedProds.filter((p) => p.is_menu_item) : cachedProds;
-        const filtered = selectedCategory
-          ? sectorFiltered.filter((p) => p.category_id === selectedCategory)
-          : sectorFiltered;
-        setProductList(filtered);
-        setProductsTotal(filtered.length);
-      }
-      const cachedCats = await cache.get<Category[]>(KEYS.CATEGORIES);
-      if (cachedCats) setCategoryList(cachedCats);
-      setDeletedProducts([]);
-      setSupplierLinksByProduct({});
-      if (!hasEnterpriseLocations) setLocationList([]);
-    } finally {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      if (MOBILE_PERF_ENABLED) {
-        const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
-        console.log(`[SCREEN PERF][MOBILE][products] category=${selectedCategory || 'all'} duration=${elapsed.toFixed(1)}ms`);
-        const host = globalThis as unknown as { __stockmanScreenPerf?: any[] };
-        if (!host.__stockmanScreenPerf) host.__stockmanScreenPerf = [];
-        host.__stockmanScreenPerf.push({
-          screen: 'products',
-          category: selectedCategory || 'all',
-          duration_ms: elapsed,
-          ts: new Date().toISOString(),
-        });
-      }
-      setLoading(false);
-      setRefreshing(false);
-      lastLoadedAtRef.current = Date.now();
-    }
-  }, [MOBILE_PERF_ENABLED, PRODUCTS_PAGE_SIZE, filterType, hasEnterpriseLocations, isConnected, isRestaurant, productSortMode, selectedCategory, serverProductStatus, suppliersModuleOn, user?.active_store_id]);
+    }, { requestKey: catalogRequestKey, force, replace: force });
+  }, [MOBILE_PERF_ENABLED, PRODUCTS_PAGE_SIZE, catalogRequestKey, catalogScope, isConnected, isRestaurant,
+    loadCategories, loadProductExtras, productSortMode, selectedCategory, serverProductStatus]);
+
+  const loadCatalogRef = useRef(loadCatalog);
+  loadCatalogRef.current = loadCatalog;
+  const loadData = useCallback(() => loadCatalogRef.current(true), []);
+
+  useEffect(() => {
+    const refresh = productRefresh.current;
+    refresh.activate();
+    return () => refresh.dispose();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1234,36 +1259,6 @@ export default function ProductsScreen() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    const nextStoreId = user?.active_store_id;
-    if (!nextStoreId) return;
-
-    const storeChanged = !!previousStoreIdRef.current && previousStoreIdRef.current !== nextStoreId;
-    previousStoreIdRef.current = nextStoreId;
-
-    if (storeChanged) {
-      setAccessDenied(false);
-      setSelectedProduct(null);
-      setShowHistoryModal(false);
-      setSelectedProductIds(new Set());
-      setCurrentStore(null);
-      setProductList([]);
-      setProductsTotal(0);
-      setServerSearchResults(null);
-      setServerSearchTotal(0);
-      setForecastData(null);
-
-      // Category ids are store-scoped; reset them before reloading the new store.
-      if (selectedCategory !== null) {
-        setSelectedCategory(null);
-        return;
-      }
-    }
-
-    setLoading(true);
-    loadData();
-  }, [loadData, selectedCategory, user?.active_store_id]);
 
   // Load user sector for catalog import
   useEffect(() => {
@@ -1384,15 +1379,8 @@ export default function ProductsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const hasRecentData = Boolean(
-        productList.length > 0 &&
-        lastLoadedAtRef.current > 0 &&
-        Date.now() - lastLoadedAtRef.current < MOBILE_PRODUCTS_FOCUS_TTL_MS
-      );
-      if (!hasRecentData) {
-        loadData();
-      }
-    }, [loadData, productList.length])
+      void loadCatalog(false);
+    }, [loadCatalog])
   );
 
   function onRefresh() {
@@ -1421,19 +1409,22 @@ export default function ProductsScreen() {
             product_status: serverProductStatus,
           },
         );
+        if (searchKeyRef.current !== searchRequestKey) return;
         const items = (response.items ?? response) as Product[];
         setServerSearchResults((current) => mergeUniqueProducts(current ?? [], items));
         setServerSearchTotal(response.total ?? serverSearchTotal);
       } catch {
         // Laisser les resultats deja visibles.
       } finally {
-        setServerSearchLoadingMore(false);
+        if (searchKeyRef.current === searchRequestKey) setServerSearchLoadingMore(false);
       }
       return;
     }
 
-    if (productsLoadingMore || productList.length >= productsTotal) return;
+    if (visibleCatalogKey !== catalogRequestKey || productsLoadingMore || productList.length >= productsTotal) return;
 
+    const revision = catalogRevisionRef.current;
+    const isCurrentPage = () => catalogKeyRef.current === catalogRequestKey && catalogRevisionRef.current === revision;
     setProductsLoadingMore(true);
     try {
       const response = await productsApi.list(
@@ -1447,13 +1438,14 @@ export default function ProductsScreen() {
           product_status: serverProductStatus,
         },
       );
+      if (!isCurrentPage()) return;
       const items = (response.items ?? response) as Product[];
       setProductList((current) => mergeUniqueProducts(current, items));
       setProductsTotal(response.total ?? productsTotal);
     } catch {
       // Garder la page actuelle si le chargement supplementaire echoue.
     } finally {
-      setProductsLoadingMore(false);
+      if (isCurrentPage()) setProductsLoadingMore(false);
     }
   }
 
@@ -1571,8 +1563,14 @@ export default function ProductsScreen() {
       ? serverSearchResults
       : (productList || []);
     if (!Array.isArray(sourceList)) return [];
-    return sourceList.filter(matchesActiveProductFilters);
-  }, [productList, serverSearchResults, debouncedSearch, matchesActiveProductFilters]);
+    return sourceList.filter((product) => (!isRestaurant || product.is_menu_item)
+      && (!selectedCategory || product.category_id === selectedCategory)
+      && matchesActiveProductFilters(product)
+      && (!debouncedSearch || serverSearchResults !== null || fuzzyMatch(
+        [product.name, product.sku, product.subcategory, categoryNameById.get(product.category_id || '')].filter(Boolean).join(' '),
+        debouncedSearch,
+      )));
+  }, [productList, serverSearchResults, debouncedSearch, selectedCategory, isRestaurant, matchesActiveProductFilters, categoryNameById]);
 
   useEffect(() => {
     if (!focusedProductId || filtered.length === 0) return;
@@ -1748,6 +1746,8 @@ export default function ProductsScreen() {
 
   const loadAllVisibleProducts = useCallback(async () => {
     const usingServerSearch = !!debouncedSearch;
+    const revision = catalogRevisionRef.current;
+    const isCurrent = () => searchKeyRef.current === searchRequestKey && catalogRevisionRef.current === revision;
     const initialItems = usingServerSearch
       ? (serverSearchResults ?? [])
       : (productList ?? []);
@@ -1772,6 +1772,7 @@ export default function ProductsScreen() {
           product_status: serverProductStatus,
         },
       );
+      if (!isCurrent()) return null;
       const incomingItems = (response.items ?? response) as Product[];
       mergedItems = mergeUniqueProducts(mergedItems, incomingItems);
       total = response.total ?? total;
@@ -1799,6 +1800,7 @@ export default function ProductsScreen() {
     productList,
     productsTotal,
     productSortMode,
+    searchRequestKey,
     selectedCategory,
     serverProductStatus,
     serverSearchResults,
@@ -1811,9 +1813,16 @@ export default function ProductsScreen() {
       return;
     }
 
+    if (!isConnected) {
+      setSelectedProductIds(new Set(filtered.map((product) => product.product_id)));
+      return;
+    }
+    if (visibleCatalogKey !== catalogRequestKey || (debouncedSearch && serverSearchResults === null)) return;
     setSelectAllLoading(true);
     try {
-      const { items } = await loadAllVisibleProducts();
+      const result = await loadAllVisibleProducts();
+      if (!result) return;
+      const { items } = result;
       const visibleProducts = items.filter(matchesActiveProductFilters);
       setSelectedProductIds(new Set(visibleProducts.map((product) => product.product_id)));
     } finally {
@@ -1823,7 +1832,7 @@ export default function ProductsScreen() {
 
   const canLoadMoreVisibleProducts = debouncedSearch
     ? !!serverSearchResults && serverSearchResults.length < serverSearchTotal
-    : productList.length < productsTotal;
+    : visibleCatalogKey === catalogRequestKey && productList.length < productsTotal;
   const isLoadingMoreVisibleProducts = debouncedSearch ? serverSearchLoadingMore : productsLoadingMore;
 
   const serviceRecipes = useMemo(
@@ -4056,6 +4065,12 @@ export default function ProductsScreen() {
   }
 
   function renderProductsEmptyState() {
+    if (catalogUpdating || (debouncedSearch && serverSearchLoading)) {
+      return <ActivityIndicator style={{ padding: Spacing.lg }} color={colors.primary} />;
+    }
+    if (catalogError) {
+      return <EmptyState title={t('common.error')} message={t('products.catalog_unavailable')} icon="cloud-offline-outline" actionLabel={t('common.retry')} onAction={() => { void loadData(); }} />;
+    }
     return (
       <EmptyState
         title={debouncedSearch ? t('common.no_results') : isRestaurant ? t('restaurant.no_dish', 'Aucun plat') : t('products.no_products')}
@@ -4093,7 +4108,7 @@ export default function ProductsScreen() {
       <>
         {filtered.length > 0 && (
           <View style={styles.loadMoreSection}>
-            {isLoadingMoreVisibleProducts ? (
+            {isLoadingMoreVisibleProducts || catalogUpdating ? (
               <View style={styles.loadMoreSpinner}>
                 <ActivityIndicator size="small" color={colors.primary} />
                 <Text style={styles.loadMoreText}>{t('products.loading_more')}</Text>

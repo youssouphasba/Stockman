@@ -178,7 +178,7 @@ test('Android back uses the authorized initial tab without returning to hidden H
   assert.equal(option('backBehavior', { isStarterShopkeeper: false }), undefined);
 });
 
-test('Starter keeps five main tabs and Pro and Enterprise retain their existing tabs', () => {
+test('The E-com tab follows site activation without hiding Clients', () => {
   const layout = readSource('app/(tabs)/_layout.tsx');
   const screens = [];
   function visit(node) {
@@ -186,7 +186,7 @@ test('Starter keeps five main tabs and Pro and Enterprise retain their existing 
     ts.forEachChild(node, visit);
   }
   visit(layout);
-  function visibleTabs(starterMode, platform = 'android') {
+  function visibleTabs(starterMode, platform = 'android', enabled = true) {
     return screens.filter((screen) => {
       const options = screen.attributes.properties.find((attribute) => attribute.name?.text === 'options');
       const value = evaluate('(' + options.initializer.expression.getText(layout) + ')', {
@@ -194,15 +194,17 @@ test('Starter keeps five main tabs and Pro and Enterprise retain their existing 
         hideStock: false, hidePos: false, hideAccounting: false, hideSuppliers: false,
         hideCrm: false, hideOrders: false, isRestaurant: false, hasOperationalAccess: true,
         isSuperAdmin: false, productsTabTitle: 'Produits', productsTabIcon: 'cube-outline',
+        ecommerceSite: { enabled },
         t: (key) => key, renderTabLabel: (label) => label,
         Platform: { OS: platform },
       });
       return value.href !== null;
     }).map((screen) => screen.attributes.properties.find((attribute) => attribute.name?.text === 'name').initializer.text);
   }
-  assert.deepEqual(visibleTabs(true), ['products', 'pos', 'accounting', 'ecommerce', 'settings']);
-  assert.deepEqual(visibleTabs(true, 'ios'), ['products', 'pos', 'accounting', 'ecommerce', 'settings']);
-  assert.deepEqual(visibleTabs(true, 'web'), ['products', 'pos', 'accounting', 'settings']);
+  assert.deepEqual(visibleTabs(true), ['products', 'pos', 'accounting', 'suppliers', 'crm', 'ecommerce', 'settings']);
+  assert.deepEqual(visibleTabs(true, 'ios'), visibleTabs(true));
+  assert.deepEqual(visibleTabs(true, 'android', false), ['products', 'pos', 'accounting', 'suppliers', 'crm', 'settings']);
+  assert.deepEqual(visibleTabs(true, 'web'), visibleTabs(true, 'android', false));
   assert.deepEqual(visibleTabs(false), ['index', 'products', 'pos', 'accounting', 'suppliers', 'crm', 'orders', 'settings']);
 });
 
@@ -259,18 +261,18 @@ test('Starter E-com loads its orders without depending on procurement permission
     });
     run();
     await Promise.resolve();
-    assert.deepEqual(calls, ecommerceOnly ? ['web'] : ['procurement', 'suppliers', 'returns', 'web']);
+    assert.deepEqual(calls, ecommerceOnly ? ['web'] : ['procurement', 'suppliers', 'returns']);
   }
 });
 
-test('E-com route parameters open the list or the notification order detail', () => {
+test('E-com route parameters open the notification detail without fetching the list twice', () => {
   const orders = readSource('app/(tabs)/orders.tsx');
   const effect = findNode(orders, (node) => ts.isCallExpression(node) && node.expression.getText(orders) === 'useEffect' && node.arguments[0]?.getText(orders).includes('const reminderKey ='));
   for (const orderIdParam of [undefined, 'order-from-notification']) {
     const calls = [];
     const run = evaluate('(' + effect.arguments[0].getText(orders) + ')', {
       orderIdParam, tabParam: 'web', sourceParam: 'ecommerce', productIdParam: undefined,
-      ecommerceOnly: false,
+      supplierOrders: false, supplierTarget: false,
       reminderTypeParam: undefined, handledReminderRef: { current: null },
       setActiveTab: (tab) => { calls.push(tab); },
       loadWebOrders: async () => { calls.push('list'); },
@@ -278,6 +280,6 @@ test('E-com route parameters open the list or the notification order detail', ()
       openDetailModal: () => { assert.fail('Procurement detail must not open'); },
     });
     run();
-    assert.deepEqual(calls, orderIdParam ? [orderIdParam] : ['web', 'list']);
+    assert.deepEqual(calls, orderIdParam ? [orderIdParam] : []);
   }
 });

@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -60,6 +61,8 @@ import {
     printAndShare
 } from '../../utils/pdfReports';
 import { mergeAccountingOfflineState } from '../../services/offlineState';
+import { createScreenRefresh } from '../../utils/screenRefresh';
+import { useGuide } from '../../onboarding/GuideProvider';
 import KpiInfoButton from '../../components/KpiInfoButton';
 import { useGuideTargetRef } from '../../onboarding/GuideTarget';
 import { GUIDE_COMMAND_EVENT, type GuideCommand } from '../../onboarding/guideStore';
@@ -195,14 +198,32 @@ function getMonthGroupsForYear<T>(groups: MonthlyGroup<T>[], year: number) {
 }
 
 export default function AccountingScreen() {
+    const { user } = useAuth();
+    return <AccountingWorkspace key={JSON.stringify([user?.user_id, user?.active_store_id])} />;
+}
+
+type LoadStatus = 'loading' | 'ready' | 'error';
+
+function AccountingWorkspace() {
     const { colors, glassStyle, isDark } = useTheme();
     const { t, i18n } = useTranslation();
     const router = useRouter();
+    const isFocused = useIsFocused();
+    const guideStepId = useGuide()?.step?.id;
     const { invoice_id: invoiceIdParam } = useLocalSearchParams<{ invoice_id?: string }>();
     const insets = useSafeAreaInsets();
     const { width: screenWidth } = useWindowDimensions();
     const styles = getStyles(colors, glassStyle, screenWidth);
-    const [stats, setStats] = useState<AccountingStats | null>(null);
+    const [statsSnapshot, setStatsSnapshot] = useState<{ key: string; data: AccountingStats } | null>(null);
+    const [statsErrorKey, setStatsErrorKey] = useState<string | null>(null);
+    const [historyStatus, setHistoryStatus] = useState<{ sales: LoadStatus; expenses: LoadStatus; invoices: LoadStatus; invoiceKey: string }>({
+        sales: 'loading', expenses: 'loading', invoices: 'loading', invoiceKey: '',
+    });
+    const [refresh] = useState(() => createScreenRefresh<'stats' | 'history' | 'store' | 'settings'>(60_000));
+    useEffect(() => {
+        refresh.activate();
+        return refresh.dispose;
+    }, [refresh]);
     const [recentSales, setRecentSales] = useState<AccountingSaleHistoryItem[]>([]);
     // Vue d'ensemble, Boutique physique, E-com ou Trésorerie : fixe le canal des chiffres de ventes.
     const [financeView, setFinanceView] = useState<FinanceView>('overview');
@@ -211,16 +232,26 @@ export default function AccountingScreen() {
     const [invoiceHistory, setInvoiceHistory] = useState<CustomerInvoice[]>([]);
     const [invoiceBusyId, setInvoiceBusyId] = useState<string | null>(null);
     const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const handledInvoiceLinkRef = useRef<string | null>(null);
 
     const [selectedPeriod, setSelectedPeriod] = useState<number | 'custom'>(30);
+    const [lastPresetPeriod, setLastPresetPeriod] = useState(30);
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
     // Applied dates: only updated when user clicks "Appliquer", not on every keystroke
     const [appliedStart, setAppliedStart] = useState<string>('');
     const [appliedEnd, setAppliedEnd] = useState<string>('');
+    const activePeriod = selectedPeriod === 'custom' && (!appliedStart || !appliedEnd) ? lastPresetPeriod : selectedPeriod;
+    const reportDays = typeof activePeriod === 'number' ? activePeriod : undefined;
+    const reportStart = activePeriod === 'custom' ? appliedStart : undefined;
+    const reportEnd = activePeriod === 'custom' ? appliedEnd : undefined;
+    const invoiceKey = JSON.stringify([reportDays, reportStart, reportEnd]);
+    const statsKey = JSON.stringify([invoiceKey, salesChannel]);
+    const stats = statsSnapshot?.key === statsKey ? statsSnapshot.data : null;
+    const invoicesStatus = historyStatus.invoiceKey === invoiceKey ? historyStatus.invoices : 'loading';
+    const latestQuery = useRef({ reportDays, reportStart, reportEnd, invoiceKey, statsKey, salesChannel });
+    latestQuery.current = { reportDays, reportStart, reportEnd, invoiceKey, statsKey, salesChannel };
     const { user, isSuperAdmin } = useAuth();
     const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
     const { setDrawerContent } = useDrawer();
@@ -247,7 +278,13 @@ export default function AccountingScreen() {
     // Expenses
     const [expensesList, setExpensesList] = useState<Expense[]>([]);
     const [settingsData, setSettingsData] = useState<UserSettings | null>(null);
-    const [expenseCategories, setExpenseCategories] = useState<string[]>(DEFAULT_EXPENSE_CATEGORIES);
+    const expenseCategories = React.useMemo(() => buildExpenseCategories(settingsData?.expense_categories || [], expensesList), [settingsData, expensesList]);
+    const confirmedHistory = useRef({
+        recentSales: [] as AccountingSaleHistoryItem[],
+        invoiceHistory: [] as CustomerInvoice[],
+        expensesList: [] as Expense[],
+        invoiceKey: '',
+    });
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [expenseCategory, setExpenseCategory] = useState('other');
     const [expenseCategoryDraft, setExpenseCategoryDraft] = useState('');
@@ -286,6 +323,13 @@ export default function AccountingScreen() {
             scrollViewRef.current.scrollTo({ y, animated: true });
         }
     }, []);
+    const onGuideSectionLayout = (section: 'kpiGrid' | 'recentSales', y: number) => {
+        sectionOffsets.current[section] = y;
+        if ((section === 'kpiGrid' && guideStepId === 'accounting_kpis')
+            || (section === 'recentSales' && guideStepId === 'accounting_sales' && historyStatus.sales === 'ready')) {
+            scrollToSection(section);
+        }
+    };
 
     useEffect(() => {
         const sub = DeviceEventEmitter.addListener(GUIDE_COMMAND_EVENT, (command: GuideCommand) => {
@@ -294,94 +338,123 @@ export default function AccountingScreen() {
         return () => sub.remove();
     }, [scrollToSection]);
 
-    const loadData = useCallback(async (period: number | 'custom', start?: string, end?: string) => {
-        try {
-            const days = period === 'custom' ? undefined : period;
-            const currentYear = new Date().getFullYear();
-            const monthlyStartDate = `${currentYear}-01-01`;
-            const monthlyEndDate = new Date().toISOString().slice(0, 10);
-            const [statsRes, salesRes, invoicesRes, expensesRes, storesRes, userSettingsRes] = await Promise.allSettled([
-                accountingApi.getStats(days, start, end, salesChannel),
-                accountingApi.getSalesHistory(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
-                accountingApi.getInvoices(days, start, end, 0, 100),
-                expensesApi.list(undefined, monthlyStartDate, monthlyEndDate, 0, 1000),
-                storesApi.list(),
-                settingsApi.get(),
-            ]);
-            const hasForbiddenCoreRequest = [statsRes, salesRes, invoicesRes, expensesRes].some(
-                result => result.status === 'rejected' && result.reason instanceof ApiError && result.reason.status === 403
-            );
-            if (hasForbiddenCoreRequest) {
-                setAccessDenied(true);
-                return;
+    const loadData = useCallback((replace = true, refreshHistory = replace) => {
+        const query = latestQuery.current;
+        void refresh.run('store', async (isCurrent) => {
+            try {
+                const items = await storesApi.list();
+                if (isCurrent()) setCurrentStore(items.find((store) => store.store_id === user?.active_store_id) ?? null);
+                return true;
+            } catch {
+                return false;
             }
-            const statsData = statsRes.status === 'fulfilled' ? statsRes.value : stats;
-            const salesData = salesRes.status === 'fulfilled' ? salesRes.value : { items: recentSales };
-            const invoicesData = invoicesRes.status === 'fulfilled' ? invoicesRes.value : { items: invoiceHistory };
-            const expensesData = expensesRes.status === 'fulfilled' ? expensesRes.value : expensesList;
-            const expensesItems = Array.isArray(expensesData)
-                ? expensesData
-                : Array.isArray((expensesData as any)?.items)
-                    ? (expensesData as any).items
-                    : [];
-            const storesData = storesRes.status === 'fulfilled' ? storesRes.value : [];
-            const userSettingsData = userSettingsRes.status === 'fulfilled' ? userSettingsRes.value : settingsData;
-            const merged = await mergeAccountingOfflineState({
-                recentSales: Array.isArray(salesData?.items) ? salesData.items : [],
-                invoiceHistory: Array.isArray(invoicesData?.items) ? invoicesData.items : [],
-                expensesList: expensesItems,
-            });
-            setStats(statsData);
+        });
+        void refresh.run('settings', async (isCurrent) => {
+            try {
+                const settings = await settingsApi.get();
+                if (isCurrent()) setSettingsData(settings);
+                return true;
+            } catch {
+                return false;
+            }
+        });
+        const statsRequest = refresh.run('stats', async (isCurrent) => {
+            setStatsErrorKey(null);
+            try {
+                const data = await accountingApi.getStats(query.reportDays, query.reportStart, query.reportEnd, query.salesChannel);
+                if (!isCurrent() || latestQuery.current.statsKey !== query.statsKey) return false;
+                setStatsSnapshot({ key: query.statsKey, data });
+                return true;
+            } catch (error) {
+                if (isCurrent() && latestQuery.current.statsKey === query.statsKey) {
+                    if (error instanceof ApiError && error.status === 403) setAccessDenied(true);
+                    else setStatsErrorKey(query.statsKey);
+                }
+                return false;
+            } finally {
+                if (isCurrent() && latestQuery.current.statsKey === query.statsKey) setRefreshing(false);
+            }
+        }, { requestKey: query.statsKey, force: true, replace });
+        const historyRequest = refresh.run('history', async (isCurrent) => {
+            setHistoryStatus((status) => ({
+                sales: status.sales === 'ready' ? 'ready' : 'loading',
+                expenses: status.expenses === 'ready' ? 'ready' : 'loading',
+                invoices: status.invoiceKey === query.invoiceKey && status.invoices === 'ready' ? 'ready' : 'loading',
+                invoiceKey: query.invoiceKey,
+            }));
+            const yearStart = `${new Date().getFullYear()}-01-01`;
+            const today = new Date().toISOString().slice(0, 10);
+            const [sales, invoices, expenses] = await Promise.allSettled([
+                accountingApi.getSalesHistory(undefined, yearStart, today, 0, 1000),
+                accountingApi.getInvoices(query.reportDays, query.reportStart, query.reportEnd, 0, 100),
+                expensesApi.list(undefined, yearStart, today, 0, 1000),
+            ]);
+            const current = () => isCurrent() && latestQuery.current.invoiceKey === query.invoiceKey;
+            if (!current()) return false;
+            if ([sales, invoices, expenses].some(
+                (result) => result.status === 'rejected' && result.reason instanceof ApiError && result.reason.status === 403,
+            )) {
+                setAccessDenied(true);
+                return false;
+            }
+            const previous = confirmedHistory.current;
+            const raw = {
+                recentSales: sales.status === 'fulfilled' ? (sales.value.items ?? []) : previous.recentSales,
+                invoiceHistory: invoices.status === 'fulfilled' ? (invoices.value.items ?? [])
+                    : previous.invoiceKey === query.invoiceKey ? previous.invoiceHistory : [],
+                expensesList: expenses.status === 'fulfilled' ? (expenses.value.items ?? (Array.isArray(expenses.value) ? expenses.value : [])) : previous.expensesList,
+                invoiceKey: invoices.status === 'fulfilled' ? query.invoiceKey : previous.invoiceKey,
+            };
+            const merged = await mergeAccountingOfflineState(raw);
+            if (!current()) return false;
+            confirmedHistory.current = invoices.status === 'fulfilled' ? raw : {
+                ...raw, invoiceHistory: previous.invoiceHistory, invoiceKey: previous.invoiceKey,
+            };
             setRecentSales(merged.recentSales);
             setInvoiceHistory(merged.invoiceHistory);
             setExpensesList(merged.expensesList);
-            setSettingsData(userSettingsData);
-            setExpenseCategories(buildExpenseCategories(userSettingsData?.expense_categories || [], merged.expensesList));
             setPendingSummary(merged.summary);
-            const active = (storesData || []).find(s => s.store_id === user?.active_store_id) || null;
-            setCurrentStore(active);
-            setAccessDenied(false);
-        } catch (error) {
-            if (error instanceof ApiError && error.status === 403) {
-                setAccessDenied(true);
-            } else {
-                console.error(error);
-            }
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    }, [user?.active_store_id, salesChannel]);
+            setHistoryStatus((status) => ({
+                sales: sales.status === 'fulfilled' || status.sales === 'ready' ? 'ready' : 'error',
+                expenses: expenses.status === 'fulfilled' || status.expenses === 'ready' ? 'ready' : 'error',
+                invoices: invoices.status === 'fulfilled' || (status.invoiceKey === query.invoiceKey && status.invoices === 'ready') ? 'ready' : 'error',
+                invoiceKey: query.invoiceKey,
+            }));
+            return sales.status === 'fulfilled' && invoices.status === 'fulfilled' && expenses.status === 'fulfilled';
+        }, { requestKey: query.invoiceKey, force: refreshHistory, replace });
+        return Promise.all([statsRequest, historyRequest]);
+    }, [refresh, user?.active_store_id]);
 
-    useFocusEffect(
-        useCallback(() => {
-            loadData(selectedPeriod, appliedStart, appliedEnd);
-        }, [loadData, selectedPeriod, appliedStart, appliedEnd])
-    );
+    useFocusEffect(useCallback(() => {
+        void loadData(false, true);
+    }, [loadData]));
+
+    useEffect(() => {
+        if (isFocused) void loadData(false);
+    }, [isFocused, loadData, statsKey]);
 
     const onRefresh = () => {
         setRefreshing(true);
-        loadData(selectedPeriod, appliedStart, appliedEnd);
+        void loadData();
     };
 
     const changePeriod = (period: number | 'custom') => {
         if (period !== 'custom') {
+            setLastPresetPeriod(period);
             setStartDate('');
             setEndDate('');
             setAppliedStart('');
             setAppliedEnd('');
-            setLoading(true);
-            loadData(period);
         }
+        setActiveKpiDetail(null);
         setSelectedPeriod(period);
     };
 
     const applyCustomDates = (nextStart = startDate, nextEnd = endDate) => {
         if (!nextStart || !nextEnd) return;
+        setActiveKpiDetail(null);
         setAppliedStart(nextStart);
         setAppliedEnd(nextEnd);
-        setLoading(true);
-        loadData('custom', nextStart, nextEnd);
     };
 
     const buildInvoiceStore = (invoice: CustomerInvoice): Store => ({
@@ -480,7 +553,7 @@ export default function AccountingScreen() {
                 return;
             }
             await generateStoredInvoicePdf(invoice);
-            await loadData(selectedPeriod, appliedStart, appliedEnd);
+            await loadData();
         } catch (error) {
             console.error(error);
             Alert.alert(t('common.error'), t('accounting.invoice_create_error', { defaultValue: "Impossible de créer la facture." }));
@@ -502,7 +575,7 @@ export default function AccountingScreen() {
                         try {
                             setCancellingSaleId(saleId);
                             await salesApi.cancel(saleId);
-                            await loadData(selectedPeriod, appliedStart || undefined, appliedEnd || undefined);
+                            await loadData();
                         } catch (err: any) {
                             Alert.alert(
                                 t('common.error', { defaultValue: 'Erreur' }),
@@ -587,12 +660,12 @@ export default function AccountingScreen() {
         );
 
         setSavingExpenseCategory(true);
+        refresh.invalidate('settings');
         try {
             const updatedSettings = await settingsApi.update({
                 expense_categories: nextCategories.filter((category) => !DEFAULT_EXPENSE_CATEGORIES.includes(category)),
             } as any);
             setSettingsData(updatedSettings);
-            setExpenseCategories(buildExpenseCategories(updatedSettings?.expense_categories || [], expensesList));
             setExpenseCategory(nextCategory);
             setExpenseCategoryDraft('');
         } catch (error) {
@@ -625,7 +698,7 @@ export default function AccountingScreen() {
                     description: expenseDescription
                 });
                 setShowExpenseModal(false);
-                loadData(selectedPeriod, appliedStart, appliedEnd);
+                void loadData();
             } catch (error) {
                 console.error(error);
                 alert(t('accounting.save_error'));
@@ -656,7 +729,7 @@ export default function AccountingScreen() {
         const performDelete = async () => {
             try {
                 await expensesApi.delete(id);
-                loadData(selectedPeriod, appliedStart, appliedEnd);
+                void loadData();
             } catch (error) {
                 console.error(error);
                 Alert.alert(t('common.error'), t('accounting.delete_error'));
@@ -798,11 +871,11 @@ export default function AccountingScreen() {
         const token = await getToken();
         if (!token) return;
         const params = new URLSearchParams();
-        if (selectedPeriod === 'custom' && appliedStart && appliedEnd) {
-            params.set('start_date', appliedStart);
-            params.set('end_date', appliedEnd);
-        } else if (selectedPeriod !== 'custom') {
-            params.set('days', selectedPeriod.toString());
+        if (reportStart && reportEnd) {
+            params.set('start_date', reportStart);
+            params.set('end_date', reportEnd);
+        } else if (reportDays !== undefined) {
+            params.set('days', reportDays.toString());
         }
 
         try {
@@ -942,7 +1015,7 @@ export default function AccountingScreen() {
 
         const storeName = currentStore?.name || t('accounting.default_store_name');
         const storeAddress = currentStore?.address || t('accounting.default_address');
-        const periodLabel = stats.period_label || (typeof selectedPeriod === 'number' ? t('accounting.last_days_label', { count: selectedPeriod }) : t('common.periods.custom'));
+        const periodLabel = stats.period_label || (reportDays !== undefined ? t('accounting.last_days_label', { count: reportDays }) : t('common.periods.custom'));
 
         const html = `
             <html>
@@ -1218,18 +1291,20 @@ export default function AccountingScreen() {
     }, [salesReviewMode, monthlySalesGroups, selectedSalesMonthKey, salesYearGroups, selectedSalesYearMonthKey]);
 
     if (accessDenied) {
-        return <AccessDenied onRetry={() => { setAccessDenied(false); loadData(selectedPeriod, appliedStart, appliedEnd); }} />;
-    }
-    if (loading && !isLocked) {
-        return (
-            <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.container}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                </View>
-            </LinearGradient>
-        );
+        return <AccessDenied onRetry={() => { setAccessDenied(false); void loadData(); }} />;
     }
 
+    const renderLoadStatus = (status: LoadStatus, loadingLabel: string, errorLabel: string) => (
+        <View style={styles.emptyState}>
+            {status === 'loading' && <ActivityIndicator size="small" color={colors.primary} />}
+            <Text style={styles.emptyStateText}>{status === 'error' ? errorLabel : loadingLabel}</Text>
+            {status === 'error' && (
+                <TouchableOpacity accessibilityRole="button" onPress={onRefresh} style={styles.actionBtn}>
+                    <Text style={styles.actionBtnText}>{t('common.retry')}</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
     const grossMarginPercentage = stats && stats.revenue > 0
         ? (stats.gross_profit / stats.revenue) * 100
         : 0;
@@ -1422,7 +1497,9 @@ export default function AccountingScreen() {
                         <View style={{ paddingTop: Spacing.xs, marginBottom: Spacing.sm }}>
                             <Text style={styles.subtitle}>{stats?.period_label}</Text>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.xs, marginTop: Spacing.xs }}>
-                                <TouchableOpacity style={styles.actionBtn} onPress={generateActivityReportPdf}>
+                                <TouchableOpacity style={styles.actionBtn} onPress={generateActivityReportPdf}
+                                    disabled={!stats || historyStatus.expenses !== 'ready'}
+                                    accessibilityState={{ disabled: !stats || historyStatus.expenses !== 'ready' }}>
                                     <Ionicons name="analytics-outline" size={16} color={colors.primary} />
                                     <Text style={styles.actionBtnText}>{t('accounting.report')}</Text>
                                 </TouchableOpacity>
@@ -1451,11 +1528,16 @@ export default function AccountingScreen() {
                             </View>
                         </View>
 
-                        <FinanceViewTabs view={financeView} onViewChange={(view) => { setLoading(true); setFinanceView(view); }} />
-                        <FinanceViewPanel view={financeView} stats={stats} formatCurrency={formatCurrency} />
+                        <FinanceViewTabs view={financeView} onViewChange={(view) => { setActiveKpiDetail(null); setFinanceView(view); }} />
+                        {stats ? <FinanceViewPanel view={financeView} stats={stats} formatCurrency={formatCurrency} /> : renderLoadStatus(
+                            statsErrorKey === statsKey ? 'error' : 'loading',
+                            t('accounting.stats_loading'),
+                            t('accounting.stats_unavailable'),
+                        )}
 
                         {/* KPI Grid */}
-                        <View ref={sectionRefs.kpiGrid} collapsable={false} style={styles.kpiGrid} onLayout={e => { sectionOffsets.current.kpiGrid = e.nativeEvent.layout.y; }}>
+                        {stats && <View ref={sectionRefs.kpiGrid} collapsable={false} style={styles.kpiGrid}
+                            onLayout={(event) => onGuideSectionLayout('kpiGrid', event.nativeEvent.layout.y)}>
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.success + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('revenue')}>
                                 <KpiInfoButton info={t('accounting.info_revenue')} />
                                 <View style={styles.kpiHeader}>
@@ -1524,7 +1606,7 @@ export default function AccountingScreen() {
                                     <Text style={styles.kpiSubValue}>TVA</Text>
                                 </TouchableOpacity>
                             )}
-                        </View>
+                        </View>}
 
                         {pendingSummary.pendingTotal > 0 && (
                             <View style={[styles.offlineBanner, { borderColor: colors.warning + '35', backgroundColor: colors.warning + '14' }]}>
@@ -1546,7 +1628,9 @@ export default function AccountingScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            {expensesList.length === 0 && expenseReviewMode === 'all' ? (
+                            {historyStatus.expenses !== 'ready' && expensesList.length === 0 ? renderLoadStatus(
+                                historyStatus.expenses, t('accounting.history_loading'), t('accounting.history_unavailable'),
+                            ) : expensesList.length === 0 && expenseReviewMode === 'all' ? (
                                 <View style={styles.emptyState}>
                                     <Text style={styles.emptyStateText}>{t('accounting.no_expenses')}</Text>
                                 </View>
@@ -1672,7 +1756,7 @@ export default function AccountingScreen() {
                         </View>
 
                         {/* KPI Grid 2: Stock & Losses */}
-                        <View style={[styles.kpiGrid, { marginTop: 10 }]} onLayout={e => { sectionOffsets.current.stockLoss = e.nativeEvent.layout.y; }}>
+                        {stats && <View style={[styles.kpiGrid, { marginTop: 10 }]} onLayout={e => { sectionOffsets.current.stockLoss = e.nativeEvent.layout.y; }}>
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.warning + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('stock')}>
                                 <KpiInfoButton info={t('accounting.info_stock_purchase')} />
                                 <View style={styles.kpiHeader}>
@@ -1699,10 +1783,10 @@ export default function AccountingScreen() {
                                     {t('accounting.loss_reasons', { count: Object.keys(stats?.loss_breakdown ?? {}).length })}
                                 </Text>
                             </TouchableOpacity>
-                        </View>
+                        </View>}
 
                         {/* KPI Grid 3: Items & Purchases */}
-                        <View style={[styles.kpiGrid, { marginTop: 10 }]} onLayout={e => { sectionOffsets.current.itemsPurchases = e.nativeEvent.layout.y; }}>
+                        {stats && <View style={[styles.kpiGrid, { marginTop: 10 }]} onLayout={e => { sectionOffsets.current.itemsPurchases = e.nativeEvent.layout.y; }}>
                             <TouchableOpacity style={[styles.kpiCard, { borderColor: colors.success + '40' }]} activeOpacity={0.9} onPress={() => setActiveKpiDetail('items')}>
                                 <KpiInfoButton info={t('accounting.info_sales_count')} />
                                 <View style={styles.kpiHeader}>
@@ -1730,7 +1814,7 @@ export default function AccountingScreen() {
                                 <Text style={styles.kpiSubValue}>{t('accounting.purchases_count', { count: stats?.purchases_count ?? 0 })}</Text>
                             </TouchableOpacity>
                             )}
-                        </View>
+                        </View>}
 
 
                         {/* Revenue Trend Chart */}
@@ -1910,9 +1994,13 @@ export default function AccountingScreen() {
                         )}
 
                         {/* Recent Sales */}
-                        <View ref={sectionRefs.recentSales} collapsable={false} style={styles.section} onLayout={e => { sectionOffsets.current.recentSales = e.nativeEvent.layout.y; }}>
+                        <View ref={historyStatus.sales === 'ready' ? sectionRefs.recentSales : undefined}
+                            collapsable={false} style={styles.section}
+                            onLayout={(event) => onGuideSectionLayout('recentSales', event.nativeEvent.layout.y)}>
                             <Text style={styles.sectionTitle}>{t('accounting.recent_sales')}</Text>
-                            {channelSales.length === 0 && salesReviewMode === 'all' ? (
+                            {historyStatus.sales !== 'ready' && channelSales.length === 0 ? renderLoadStatus(
+                                historyStatus.sales, t('accounting.history_loading'), t('accounting.history_unavailable'),
+                            ) : channelSales.length === 0 && salesReviewMode === 'all' ? (
                                 <View style={styles.emptyState}>
                                     <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
                                     <Text style={styles.emptyText}>{t('accounting.no_sales')}</Text>
@@ -2116,7 +2204,9 @@ export default function AccountingScreen() {
 
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>{t('accounting.invoice_history', { defaultValue: 'Historique des factures' })}</Text>
-                            {invoiceHistory.length === 0 ? (
+                            {invoicesStatus === 'loading' || (invoicesStatus === 'error' && invoiceHistory.length === 0)
+                                ? renderLoadStatus(invoicesStatus, t('accounting.history_loading'), t('accounting.history_unavailable')
+                            ) : invoiceHistory.length === 0 ? (
                                 <View style={styles.emptyState}>
                                     <Ionicons name="document-text-outline" size={40} color={colors.textMuted} />
                                     <Text style={styles.emptyText}>{t('accounting.no_invoices', { defaultValue: 'Aucune facture sur cette periode.' })}</Text>
@@ -2556,7 +2646,6 @@ export default function AccountingScreen() {
 
 const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => StyleSheet.create({
     container: { flex: 1 },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     content: { padding: Spacing.md, paddingTop: Spacing.xxl },
 
     // Header

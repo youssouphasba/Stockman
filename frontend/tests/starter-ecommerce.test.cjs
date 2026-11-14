@@ -34,7 +34,7 @@ const loader = find(orders, (node) => ts.isVariableDeclaration(node) && node.nam
 function orderLoader(overrides = {}) {
   const state = { orders: [], total: 0, loading: false, error: false, calls: [] };
   const scope = {
-    ecommerceWorkspace: true, webStatus: 'all', webOrdersRequestRef: { current: 0 }, webOrdersOffsetRef: { current: 0 },
+    ecommerceWorkspace: true, webStatus: 'all', webOrdersRequestRef: { current: 0 }, webOrdersOffsetRef: { current: 0 }, webOrdersStatusRef: { current: null },
     setWebOrders: (value) => { state.orders = typeof value === 'function' ? value(state.orders) : value; },
     setWebOrdersTotal: (value) => { state.total = value; },
     setWebOrdersLoading: (value) => { state.loading = value; },
@@ -96,6 +96,30 @@ test('Loading failures remain errors instead of a successful empty list', async 
   await h.run();
   assert.equal(h.state.error, true);
   assert.equal(h.state.loading, false);
+});
+
+test('Refreshing the same E-com filter preserves existing orders, including on failure', async () => {
+  const h = orderLoader();
+  const order = { order_id: 'existing' };
+  h.scope.ecommerceApi.listOrders = async () => ({ items: [order], total: 1 });
+  await h.run();
+  let rejectRefresh;
+  h.scope.ecommerceApi.listOrders = () => new Promise((_resolve, reject) => { rejectRefresh = reject; });
+  const refresh = h.run();
+  assert.equal(h.state.orders[0], order);
+  rejectRefresh(new Error('offline'));
+  await refresh;
+  assert.equal(h.state.orders[0], order);
+  assert.equal(h.state.error, true);
+});
+
+test('Changing E-com filters clears orders belonging to the old filter', async () => {
+  const h = orderLoader({ webStatus: 'preparing', webOrdersStatusRef: { current: 'pending' } });
+  h.state.orders = [{ order_id: 'old' }];
+  const refresh = h.run();
+  assert.equal(h.state.orders.length, 0);
+  await refresh;
+  assert.equal(h.scope.webOrdersStatusRef.current, 'preparing');
 });
 
 test('Pro and Enterprise keep the original unfiltered API call', async () => {

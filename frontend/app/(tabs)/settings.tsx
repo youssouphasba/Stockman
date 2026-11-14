@@ -24,7 +24,7 @@ import { hasPlatformModule } from '../../utils/access';
 import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
-import { ecommerce as ecommerceApi, notifications as notificationsApi, settings as settingsApi, UserSettings, profile, userFeatures, stores as storesApi, Store, type EcommerceSite } from '../../services/api';
+import { ecommerce as ecommerceApi, notifications as notificationsApi, settings as settingsApi, UserSettings, profile, stores as storesApi, Store, type EcommerceSite } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import AiSupportModal from '../../components/AiSupportModal';
@@ -332,6 +332,13 @@ export default function SettingsScreen() {
   const { isOnline, syncStatus, pendingCount, lastSyncLabel, processQueue, prefetchData } = useSync();
   const [settingsData, setSettingsData] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportingData, setExportingData] = useState(false);
+  const [ecommerceLoading, setEcommerceLoading] = useState(false);
+  const loadedSettingsRef = useRef<string | null>(null);
+  const loadedEcommerceRef = useRef<string | null>(null);
+  const pendingSettingsContextRef = useRef<string | null>(null);
+  const pendingEcommerceContextRef = useRef<string | null>(null);
+  const ecommerceLoadVersionRef = useRef(0);
   const [showAiModal, setShowAiModal] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -472,8 +479,9 @@ export default function SettingsScreen() {
   }
 
   const handleExportData = async () => {
+    if (exportingData) return;
     try {
-      setLoading(true);
+      setExportingData(true);
       const data = await profile.exportData();
       const filename = `stockman_data_${new Date().toISOString().split('T')[0]}.json`;
       const fileUri = FileSystem.documentDirectory + filename;
@@ -487,7 +495,7 @@ export default function SettingsScreen() {
     } catch (e) {
       Alert.alert(t('common.error'), t('settings.export_error'));
     } finally {
-      setLoading(false);
+      setExportingData(false);
     }
   };
   const [showDisputeForm, setShowDisputeForm] = useState(false);
@@ -504,17 +512,42 @@ export default function SettingsScreen() {
   const canViewOrganizationGroup = (showManagerZone && isOrgAdmin && hasEnterprisePlan) || canManageOrganizationSettings;
   const canViewStoreGroup = canManageStoreSettings || canViewTeam;
 
+  const loadEcommerceSettings = useCallback(async () => {
+    if (!isOrgAdmin || !user?.active_store_id || loadedEcommerceRef.current === settingsContext
+      || pendingEcommerceContextRef.current === settingsContext) return;
+    pendingEcommerceContextRef.current = settingsContext;
+    const version = ++ecommerceLoadVersionRef.current;
+    const isCurrent = () => version === ecommerceLoadVersionRef.current && settingsContextRef.current === settingsContext;
+    setEcommerceLoading(true);
+    try {
+      const site = await ecommerceApi.getSite();
+      if (!isCurrent()) return;
+      setEcommerceSite(site);
+      setEcommerceDraft(createEcommerceDraft(site, user.active_store_id));
+      if (site) loadedEcommerceRef.current = settingsContext;
+    } catch {
+      if (isCurrent()) setEcommerceSite(null);
+    } finally {
+      if (isCurrent()) {
+        pendingEcommerceContextRef.current = null;
+        setEcommerceLoading(false);
+      }
+    }
+  }, [isOrgAdmin, settingsContext, user?.active_store_id]);
+
   const loadSettings = useCallback(async () => {
+    if (pendingSettingsContextRef.current === settingsContext) return;
+    pendingSettingsContextRef.current = settingsContext;
     const version = ++loadVersionRef.current;
+    const isCurrent = () => version === loadVersionRef.current && settingsContextRef.current === settingsContext;
     setLoadError(null);
     try {
-      const [result, _features, storesList, ecommerceResult] = await Promise.all([
+      const [result, storesList] = await Promise.all([
         settingsApi.get(),
-        userFeatures.get().catch(() => null),
-        storesApi.list().catch(() => []),
-        ecommerceApi.getSite().catch(() => null),
+        storesApi.list().catch(() => null),
       ]);
-      if (version !== loadVersionRef.current) return;
+      if (!isCurrent()) return;
+      if (storesList || !user?.active_store_id) loadedSettingsRef.current = settingsContext;
       setLoadedSettingsContext(settingsContext);
       setSettingsData(result);
       setBillingContactName(result?.billing_contact_name || '');
@@ -527,8 +560,6 @@ export default function SettingsScreen() {
       setCurrentStore(activeStore);
       setStoreName(activeStore?.name || '');
       setStoreAddress(activeStore?.address || '');
-      setEcommerceSite(ecommerceResult);
-      setEcommerceDraft(createEcommerceDraft(ecommerceResult, activeStore?.store_id));
       setReceiptName(activeStore?.receipt_business_name ?? result?.receipt_business_name ?? '');
       setReceiptFooter(activeStore?.receipt_footer ?? result?.receipt_footer ?? '');
       setInvoiceName(activeStore?.invoice_business_name ?? result?.invoice_business_name ?? '');
@@ -538,13 +569,16 @@ export default function SettingsScreen() {
       setInvoiceFooter(activeStore?.invoice_footer ?? result?.invoice_footer ?? '');
       setInvoicePaymentTerms(activeStore?.invoice_payment_terms ?? result?.invoice_payment_terms ?? '');
     } catch {
-      if (version === loadVersionRef.current) {
+      if (isCurrent()) {
         setLoadedSettingsContext(settingsContext);
         setSettingsData(null);
         setLoadError('Impossible de charger les paramètres. Réessayez lorsque la connexion est disponible.');
       }
     } finally {
-      if (version === loadVersionRef.current) setLoading(false);
+      if (isCurrent()) {
+        pendingSettingsContextRef.current = null;
+        setLoading(false);
+      }
     }
   }, [user?.user_id, user?.active_store_id, settingsContext]);
 
@@ -565,12 +599,27 @@ export default function SettingsScreen() {
     }
   };
 
+  useEffect(() => () => {
+    loadVersionRef.current++;
+    ecommerceLoadVersionRef.current++;
+    pendingSettingsContextRef.current = null;
+    pendingEcommerceContextRef.current = null;
+  }, [settingsContext]);
+
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      void loadSettings();
-      return () => { loadVersionRef.current++; };
-    }, [loadSettings])
+      if (loadedSettingsRef.current !== settingsContext && pendingSettingsContextRef.current !== settingsContext) {
+        loadedSettingsRef.current = null;
+        setLoading(true);
+        void loadSettings();
+      }
+      if (loadedEcommerceRef.current !== settingsContext && pendingEcommerceContextRef.current !== settingsContext) {
+        loadedEcommerceRef.current = null;
+        setEcommerceSite(null);
+        setEcommerceLoading(false);
+        void loadEcommerceSettings();
+      }
+    }, [loadEcommerceSettings, loadSettings, settingsContext])
   );
 
   useEffect(() => {
@@ -1026,10 +1075,14 @@ export default function SettingsScreen() {
             <StoreSelector />
           </View>}
           {currentStore && !ecommerceSite && <View style={{ gap: 12 }}>
-            <Text style={styles.settingDesc}>Les réglages du site ne sont pas disponibles. Rechargez-les pour préparer votre boutique en ligne.</Text>
-            <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} onPress={() => { setLoading(true); void loadSettings(); }}>
-              <Text style={styles.outlineButtonText}>Charger ma boutique en ligne</Text>
-            </TouchableOpacity>
+            {ecommerceLoading
+              ? <ActivityIndicator color={colors.primary} />
+              : <>
+                <Text style={styles.settingDesc}>Les réglages du site ne sont pas disponibles. Rechargez-les pour préparer votre boutique en ligne.</Text>
+                <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} onPress={() => { void loadEcommerceSettings(); }}>
+                  <Text style={styles.outlineButtonText}>Charger ma boutique en ligne</Text>
+                </TouchableOpacity>
+              </>}
             <TouchableOpacity accessibilityRole="button" style={styles.supportRow} onPress={() => router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any)}>
               <Ionicons name="receipt-outline" size={22} color={colors.primary} />
               <Text style={styles.settingLabel}>Commandes en ligne</Text>
@@ -2195,7 +2248,7 @@ export default function SettingsScreen() {
             {t('settings.danger_zone_desc')}
           </Text>
 
-          <TouchableOpacity style={styles.settingRow} onPress={handleExportData}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleExportData} disabled={exportingData} accessibilityState={{ busy: exportingData, disabled: exportingData }}>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>{t('settings.export_data')}</Text>
               <Text style={styles.settingDesc}>{t('settings.export_data_desc')}</Text>

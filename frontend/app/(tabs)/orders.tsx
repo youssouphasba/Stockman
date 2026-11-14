@@ -160,15 +160,19 @@ export default function OrdersScreen({ ecommerceWorkspace = false, supplierOrder
   const [returnsList, setReturnsList] = useState<ReturnData[]>([]);
   const [returnsLoading, setReturnsLoading] = useState(false);
   const [creditNotesList, setCreditNotesList] = useState<CreditNote[]>([]);
-  const [webOrders, setWebOrders] = useState<any[]>([]);
+  const [webOrderRows, setWebOrders] = useState<any[]>([]);
   const [webOrdersLoading, setWebOrdersLoading] = useState(false);
   const [webOrdersError, setWebOrdersError] = useState(false);
   const [webStatus, setWebStatus] = useState('all');
-  const [webOrdersTotal, setWebOrdersTotal] = useState(0);
+  const [webOrderCount, setWebOrdersTotal] = useState(0);
   const [ecommerceRefreshKey, setEcommerceRefreshKey] = useState(0);
   const [ecommerceView, setEcommerceView] = useState<'orders' | 'stats'>('orders');
   const webOrdersRequestRef = useRef(0);
   const webOrdersOffsetRef = useRef(0);
+  const webOrdersStatusRef = useRef<string | null>(null);
+  const webOrdersMatchFilter = !ecommerceWorkspace || webOrdersStatusRef.current === webStatus;
+  const webOrders = webOrdersMatchFilter ? webOrderRows : [];
+  const webOrdersTotal = webOrdersMatchFilter ? webOrderCount : 0;
   const webOrderDetailRequestRef = useRef(0);
   const [selectedWebOrder, setSelectedWebOrder] = useState<any | null>(null);
   const [showWebOrderDetailModal, setShowWebOrderDetailModal] = useState(false);
@@ -356,10 +360,12 @@ export default function OrdersScreen({ ecommerceWorkspace = false, supplierOrder
 
   const loadWebOrders = useCallback(async (append = false) => {
     const request = ++webOrdersRequestRef.current;
-    const offset = ecommerceWorkspace && append ? webOrdersOffsetRef.current : 0;
+    const sameFilter = webOrdersStatusRef.current === webStatus;
+    const loadNextPage = ecommerceWorkspace && append && sameFilter;
+    const offset = loadNextPage ? webOrdersOffsetRef.current : 0;
     setWebOrdersLoading(true);
     setWebOrdersError(false);
-    if (ecommerceWorkspace && !append) {
+    if (ecommerceWorkspace && !sameFilter) {
       setWebOrders([]);
       setWebOrdersTotal(0);
     }
@@ -369,12 +375,13 @@ export default function OrdersScreen({ ecommerceWorkspace = false, supplierOrder
         : await ecommerceApi.listOrders();
       if (request !== webOrdersRequestRef.current) return;
       const items = result.items || [];
+      webOrdersStatusRef.current = webStatus;
       webOrdersOffsetRef.current = offset + items.length;
       setWebOrdersTotal(result.total);
-      setWebOrders((previous) => append ? [...previous, ...items] : items);
+      setWebOrders((previous) => loadNextPage ? [...previous, ...items] : items);
     } catch {
       if (request !== webOrdersRequestRef.current) return;
-      if (!append) setWebOrders([]);
+      if (!ecommerceWorkspace && !append) setWebOrders([]);
       setWebOrdersError(true);
     } finally {
       if (request === webOrdersRequestRef.current) setWebOrdersLoading(false);
@@ -1240,17 +1247,19 @@ export default function OrdersScreen({ ecommerceWorkspace = false, supplierOrder
 
           {activeTab === 'web' && (!ecommerceWorkspace || ecommerceView === 'orders') && (
             <View style={{ gap: Spacing.md }}>
-              {ecommerceWorkspace && webOrdersError ? <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>Impossible de charger les commandes</Text>
-                <TouchableOpacity style={[styles.actionBtn, { minHeight: 48 }]} onPress={() => { void loadWebOrders(); }}><Text style={[styles.actionText, { color: colors.primary }]}>Réessayer</Text></TouchableOpacity>
-              </View> : webOrdersLoading && (!ecommerceWorkspace || webOrders.length === 0) ? (
+              {ecommerceWorkspace && webOrdersError && <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>{t('orders.ecommerce_load_error')}</Text>
+                <TouchableOpacity style={[styles.actionBtn, { minHeight: 48 }]} onPress={() => { void loadWebOrders(); }}><Text style={[styles.actionText, { color: colors.primary }]}>{t('common.retry')}</Text></TouchableOpacity>
+              </View>}
+              {(webOrdersLoading && (!ecommerceWorkspace || webOrders.length === 0))
+                || (ecommerceWorkspace && !webOrdersMatchFilter && !webOrdersError) ? (
                 <ActivityIndicator color={colors.primary} style={{ marginTop: Spacing.xl }} />
               ) : visibleWebOrders.length === 0 ? (
-                <View style={styles.emptyState}>
+                (ecommerceWorkspace && webOrdersError ? null : <View style={styles.emptyState}>
                   <Ionicons name="globe-outline" size={64} color={colors.textMuted} />
                   <Text style={styles.emptyTitle}>Aucune commande E-com</Text>
                   <Text style={styles.emptyText}>Les commandes envoyées depuis le site e-commerce apparaîtront ici.</Text>
-                </View>
+                </View>)
               ) : visibleWebOrders.map((order) => (
                 <TouchableOpacity
                   key={order.order_id}

@@ -170,7 +170,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     advanceOn: { route: 'pos' },
   },
   {
-    id: 'pos_products', chapter: 'pos', kind: 'tap', host: 'root', target: 'pos.productsButton', route: 'pos', optional: true,
+    id: 'pos_products', chapter: 'pos', kind: 'tap', host: 'root', target: 'pos.productsButton', route: 'pos',
     title: 'Vos produits',
     body: 'Ce bouton affiche les produits disponibles à la vente.',
     action: 'Touchez « Produits ».',

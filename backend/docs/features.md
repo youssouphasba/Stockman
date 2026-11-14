@@ -29,12 +29,19 @@ Les valeurs sont pilotables par variables d'environnement : `APP_ANDROID_LATEST_
 - Étapes : présenter la barre des onglets en bas de l'écran, puis créer un produit d'exercice un par un (nom, prix d'achat, prix de vente, quantité), créer d'autres produits par import de texte, voir le scan en lot, l'import CSV et l'import catalogue, faire une vente en Caisse (produit au panier, client créé depuis la Caisse, encaissement en espèces, reçu), lire le chiffre d'affaires, la marge et les ventes récentes dans la Compta, puis la fiche du client et ses achats dans l'onglet Clients.
 - Les produits, le client et la vente créés pendant le guide sont des données d'exercice : ils ne sont jamais envoyés au catalogue partagé et sont supprimés à la fin, avec leurs mouvements de stock, l'historique de prix, les alertes et le journal d'activité. Le commerçant peut garder le produit créé un par un s'il est réel : son stock est alors rétabli.
 - À la fin, deux choix : « Ajouter mes vrais produits » ou « Je veux de l'aide pour créer mes produits », qui ouvre une demande d'assistance déjà remplie. Le lien « Passer » permet de quitter le guide après confirmation ; les données d'exercice sont aussi supprimées.
-- Si l'application est fermée pendant le guide, il reprend à la dernière étape enregistrée.
+- Si l'application est fermée pendant le guide, il reprend à la dernière étape enregistrée. À l'étape « Ajouter au panier », la Caisse rouvre automatiquement la liste Produits.
 - Suivi par l'équipe Stockman (tableau de bord admin web) : la Vue d'ensemble montre combien de commerçants ont le guide à faire, en cours, terminé ou passé, le taux de réussite, la durée médiane et les étapes où ils s'arrêtent. La fiche d'un client affiche l'état de son guide et sa dernière étape, avec un bouton « Relancer le guide » : le commerçant le refait depuis le début à sa prochaine ouverture de l'application. Dans le Support, un filtre isole les demandes d'aide envoyées depuis la fin du guide.
 
 Les guides contextuels des écrans sont distincts du guide de démarrage. Utilisez la flèche de retour ou **Suivant** pour changer d’étape, ou balayez horizontalement. Sur un petit écran, faites défiler le texte de l’étape verticalement : les boutons restent en place. La croix ferme le guide à tout moment.
 
+### Vérification du téléphone sur mobile
+
+- Sur l'écran de vérification du téléphone, l'envoi du code par SMS démarre automatiquement. La réouverture de l'écran pendant l'envoi reprend la même demande, sans envoyer de deuxième SMS.
+- L'écran affiche que le code est envoyé uniquement lorsque l'envoi est confirmé. En cas d'échec réel, l'utilisateur peut choisir « Recevoir le code par e-mail ».
+
 ## 1. Importation de Produits (CSV / Excel)
+
+Sur mobile, le catalogue s'affiche sans attendre les catégories, les analyses ou les données fournisseurs. Pendant un changement de filtre, les commandes de recherche et de tri restent accessibles.
 
 ### Comment importer des produits ?
 L'importation permet d'ajouter des centaines de produits en masse depuis un fichier CSV ou Excel, sans les saisir un par un.
@@ -173,6 +180,9 @@ Sur mobile, pour un commerce, le bouton **Ajouter un produit** de l'écran **Auc
 
 ## 3. Caisse (Point de Vente / POS)
 
+- Le panier reste visible pendant l'actualisation. Les produits s'affichent dès qu'ils sont disponibles, sans attendre les clients, les boutiques ni les réglages d'encaissement. Les données déjà affichées restent visibles au retour sur la même boutique.
+- L'encaissement attend que les réglages nécessaires au calcul du total soient disponibles. Hors ligne, les réglages déjà mis en cache restent utilisables.
+
 ### Comment faire une vente ?
 1. Aller dans l'onglet **Caisse** (ou POS)
 2. Scanner le code-barres d'un article ou le rechercher dans la liste
@@ -292,6 +302,8 @@ La Marketplace connecte les commerçants à un réseau de fournisseurs vérifié
 
 ## 7. Comptabilité & Analyse Financière
 
+- Les indicateurs de la période et du canal sélectionnés s'affichent sans attendre les historiques, qui se chargent séparément. Changer de filtre ne présente pas les anciens totaux sous le nouveau filtre.
+
 ### Comment accéder à la comptabilité ?
 - Aller dans l'onglet **Comptabilité** (web) ou **Bilan** (mobile)
 
@@ -333,6 +345,8 @@ La Marketplace connecte les commerçants à un réseau de fournisseurs vérifié
 ---
 
 ## 8. CRM & Fidélité Client
+
+- La liste Clients s'affiche dès que les fiches sont disponibles, sans attendre les promotions ni les réglages de fidélité. Elle reste consultable pendant l'actualisation de la même boutique.
 
 ### Comment ajouter un client ?
 1. Aller dans **Clients** (CRM)
@@ -418,6 +432,8 @@ Modules configurables : Produits, Caisse, Comptabilité, CRM, Fournisseurs, Pers
 
 ## 11. Tableau de Bord (Dashboard)
 
+Sur mobile, le tableau de bord peut afficher les dernières données enregistrées pour le même compte et la même boutique pendant l'actualisation.
+
 ### Que montre le tableau de bord ?
 - **Chiffre d'Affaires** du jour et du mois
 - **Nombre de produits** dans l'inventaire
@@ -444,6 +460,8 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 ---
 
 ## 13. Paramètres de l'Application
+
+Sur mobile, les réglages de la boutique en ligne se chargent indépendamment des autres rubriques. Dans l'onglet **E-com** de Starter, les commandes déjà chargées restent visibles pendant l'actualisation du même filtre.
 
 ### Comment changer de langue ?
 - **Paramètres** → **Langue** → choisir parmi les 15 langues disponibles
@@ -616,6 +634,7 @@ R: Après validation d'une vente, l'écran de confirmation propose : Imprimer, E
 R: **Tableau de bord** → section **Alertes Péremption**, ou **Alertes** → filtre Péremption.
 
 ### Administration des boutiques
+- Les listes **Utilisateurs** et **Boutiques** de l'administration excluent les comptes et les boutiques de démonstration. Les sessions de démonstration restent consultables dans l'onglet **Démos**.
 - Le backoffice admin permet d'ouvrir une boutique pour consulter son inventaire réel.
 - Chaque produit affiche son état de stock, sa valeur, ses lots, sa prochaine date de péremption et ses alertes actives.
 - Les péremptions sont distinguées par statut : expiré, à surveiller ou valide.

@@ -1,5 +1,6 @@
 {
   "screen_guide": {
+    "pos_product_unavailable": "Aucun produit ne peut être mis en surbrillance pour le moment.",
     "close": "Fermer le guide",
     "previous": "Étape précédente",
     "next": "Suivant",
@@ -84,6 +85,12 @@
     "not_enough_data": "Pas assez de données de vente pour l'analyse ABC."
   },
   "accounting": {
+    "stats_loading": "Chargement des indicateurs…",
+    "stats_unavailable": "Impossible de charger les indicateurs.",
+    "history_loading": "Chargement de l’historique…",
+    "history_unavailable": "Impossible de charger cet historique.",
+    "loading_help_title": "Consulter les indicateurs et les historiques",
+    "loading_help_description": "Les indicateurs de la période et du canal sélectionnés s’affichent dès qu’ils sont disponibles. Les historiques de ventes, de factures et de dépenses peuvent apparaître ensuite.",
     "view_overview": "Vue d'ensemble",
     "view_physical": "Boutique physique",
     "view_ecommerce": "E-com",
@@ -746,15 +753,22 @@
       "errorSubmit": "Impossible de finaliser votre compte pour le moment."
     },
     "verifyPhone": {
-      "title": "Vérification",
+      "title": "Vérification du téléphone",
+      "subtitle": "Confirmez votre numéro de téléphone.",
+      "sendingTo": "Envoi du code au {{phone}}…",
       "sentTo": "Un code de vérification a été envoyé au {{phone}}.",
+      "sendError": "Impossible d’envoyer le code par SMS. Vous pouvez recevoir le code par e-mail.",
+      "helpQuestion": "Quand le code de vérification par SMS est-il envoyé ?",
+      "helpAnswer": "L’envoi démarre à l’ouverture de l’écran de vérification. Si l’écran se rouvre pendant l’envoi, il reprend la même demande. Vous pouvez choisir l’e-mail si le SMS ne peut pas être envoyé.",
+      "invalidPhone": "Le numéro de téléphone est invalide.",
+      "resendCountdown": "Renvoyer le code ({{seconds}} s)",
       "testTip": "(Pour le test, le code est dans les logs du serveur)",
       "label": "Code à 6 chiffres",
       "placeholder": "000000",
       "verify": "Vérifier le numéro",
       "sendCode": "Envoyer le code",
       "resendCode": "Renvoyer le code",
-      "useEmail": "Recevoir le code par email",
+      "useEmail": "Recevoir le code par e-mail",
       "switchSuccess": "Vérification par SMS activée.",
       "switchError": "Impossible de passer à la vérification SMS pour le moment.",
       "notReceived": "Je n'ai pas reçu le code",
@@ -1029,6 +1043,9 @@
     "warning": "Avertissement"
   },
   "crm": {
+    "customers_unavailable": "Impossible de charger les clients.",
+    "loading_help_title": "Consulter la liste des clients",
+    "loading_help_description": "Vous pouvez consulter les fiches dès que la liste des clients s’affiche, sans attendre les promotions ni les réglages de fidélité.",
     "active_30d": "Actifs (30j)",
     "active_clients": "Actifs (30j)",
     "add_credit_debit": "Ajouter crédit/débit",
@@ -2253,6 +2270,7 @@
     "success": "Opération réussie"
   },
   "orders": {
+    "ecommerce_load_error": "Impossible de charger les commandes.",
     "supplier_title": "Commandes fournisseurs",
     "supplier_entry_hint": "Bons de commande, réceptions, retours et avoirs",
     "active_credit_notes": "Avoirs Actifs",
@@ -2436,6 +2454,11 @@
     "cart_title": "Panier",
     "cash": "Espèces",
     "checkout": "Paiement",
+    "checkout_settings_loading": "Chargement des réglages d’encaissement…",
+    "checkout_settings_unavailable": "Les réglages d’encaissement sont indisponibles.",
+    "checkout_loading_help_title": "Préparer le panier pendant le chargement",
+    "checkout_loading_help_description": "Vous pouvez préparer un panier dès que les produits s’affichent. Si les réglages d’encaissement ne sont pas encore disponibles, le paiement reste en attente pour éviter un total incorrect.",
+    "products_loading": "Chargement des produits…",
     "clear": "Vider",
     "clear_cart": "Vider",
     "client_create_error": "Impossible de créer le client",
@@ -2864,6 +2887,7 @@
     "kpi_out_of_stock": "Ruptures",
     "kpi_products": "Produits",
     "loading_more": "Chargement des produits...",
+    "catalog_unavailable": "Impossible de charger les produits.",
     "load_more": "Charger {{count}} produit(s) de plus",
     "all_search_results_loaded": "Tous les resultats ({{count}}) sont affiches.",
     "all_products_loaded": "Tous les produits charges ({{loaded}}/{{total}}).",

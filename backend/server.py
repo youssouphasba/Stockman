@@ -8378,9 +8378,18 @@ async def admin_global_stats(user: User = Depends(require_superadmin)):
         "last_updated": datetime.now(timezone.utc)
     }
 
+ADMIN_NON_DEMO_FILTER = {"is_demo": {"$ne": True}, "demo_session_id": {"$in": [None, ""]}}
+
+
+async def admin_non_demo_filter(owner_field: str) -> dict:
+    demo_owner_ids = await db.users.distinct("user_id", {"$nor": [ADMIN_NON_DEMO_FILTER]})
+    return {**ADMIN_NON_DEMO_FILTER, owner_field: {"$nin": demo_owner_ids}}
+
+
 @admin_router.get("/users")
 async def admin_list_users(skip: int = 0, limit: int = 100, user: User = Depends(require_superadmin)):
-    users = await db.users.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    query = await admin_non_demo_filter("parent_user_id")
+    users = await db.users.find(query, {"_id": 0, "password_hash": 0, "hashed_password": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     for user_doc in users:
         if not user_doc.get("last_login_at") and user_doc.get("last_login"):
             user_doc["last_login_at"] = user_doc["last_login"]
@@ -10361,7 +10370,9 @@ async def admin_verification_events(
 @admin_router.get("/stores")
 async def admin_list_stores(skip: int = 0, limit: int = 50):
     """List all stores with owner info and product counts (Optimized)"""
+    query = await admin_non_demo_filter("user_id")
     pipeline = [
+        {"$match": query},
         {"$sort": {"created_at": -1}},
         {"$skip": skip},
         {"$limit": limit},
@@ -10502,7 +10513,7 @@ async def admin_list_stores(skip: int = 0, limit: int = 50):
 
         for store in stores:
             store.update(metrics.get(store.get("store_id"), {}))
-    total = await db.stores.count_documents({})
+    total = await db.stores.count_documents(query)
     return {"items": stores, "total": total}
 
 

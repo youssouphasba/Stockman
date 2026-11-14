@@ -99,8 +99,14 @@ const CATEGORIES: { key: CategoryOption; labelKey: string }[] = [
 ];
 
 import { useAuth } from '../../contexts/AuthContext';
+import { createScreenRefresh } from '../../utils/screenRefresh';
 
 export default function CRMScreen() {
+    const { user } = useAuth();
+    return <CRMWorkspace key={JSON.stringify([user?.user_id, user?.active_store_id])} />;
+}
+
+function CRMWorkspace() {
     const { colors, glassStyle } = useTheme();
     const { t, i18n } = useTranslation();
     const router = useRouter();
@@ -114,10 +120,14 @@ export default function CRMScreen() {
     const [promoList, setPromoList] = useState<Promotion[]>([]);
     const [loyaltySettings, setLoyaltySettings] = useState<LoyaltySettings | null>(null);
     const [loading, setLoading] = useState(true);
-    const lastLoadedAtRef = useRef(0);
+    const [customerLoadError, setCustomerLoadError] = useState(false);
+    const [refresh] = useState(() => createScreenRefresh<'customers' | 'promotions' | 'settings'>(60_000));
+    useEffect(() => {
+        refresh.activate();
+        return refresh.dispose;
+    }, [refresh]);
     const scrollViewRef = useRef<ScrollView | null>(null);
     const customerSectionYRef = useRef(0);
-    const FOCUS_TTL_MS = 60_000;
     const [refreshing, setRefreshing] = useState(false);
     const [savingSettings, setSavingSettings] = useState(false);
     const [accessDenied, setAccessDenied] = useState(false);
@@ -125,6 +135,8 @@ export default function CRMScreen() {
 
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState<SortKey>('name');
+    const latestSort = useRef(sortBy);
+    latestSort.current = sortBy;
     const [tierFilter, setTierFilter] = useState<string>('tous');
     const [insightFilter, setInsightFilter] = useState<InsightFilter>('all');
     const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
@@ -198,40 +210,49 @@ export default function CRMScreen() {
     const paymentBaselineRef = useRef({ amount: '', notes: '', type: 'payment' as 'payment' | 'debt' });
     const handledCustomerLinkRef = useRef<string | null>(null);
 
-    const loadData = useCallback(async () => {
-        try {
-            const [custsRes, promosRes, userSettingsRes] = await Promise.allSettled([
-                customersApi.list(sortBy),
-                promotionsApi.list(),
-                settingsApi.get(),
-            ]);
-            if (custsRes.status === 'fulfilled') {
-                const mergedCustomers = await mergeCustomersOfflineState(custsRes.value.items ?? custsRes.value as any);
+    const loadData = useCallback((replace = true) => {
+        void refresh.run('promotions', async (isCurrent) => {
+            try {
+                const items = await promotionsApi.list();
+                if (isCurrent()) setPromoList(items);
+                return true;
+            } catch {
+                return false;
+            }
+        }, { replace });
+        void refresh.run('settings', async (isCurrent) => {
+            try {
+                const settings = await settingsApi.get();
+                if (isCurrent()) setLoyaltySettings(settings.loyalty);
+                return true;
+            } catch {
+                return false;
+            }
+        }, { replace });
+        const sort = latestSort.current;
+        return refresh.run('customers', async (isCurrent) => {
+            setCustomerLoadError(false);
+            try {
+                const response = await customersApi.list(sort);
+                if (!isCurrent()) return false;
+                const mergedCustomers = await mergeCustomersOfflineState(response.items ?? response);
+                if (!isCurrent()) return false;
                 setCustomerList(mergedCustomers.customers);
                 setPendingCrmSummary(mergedCustomers.summary);
-            } else if (custsRes.reason instanceof ApiError && custsRes.reason.status === 403) {
-                setAccessDenied(true);
-            } else {
-                console.error(custsRes.reason);
+                setAccessDenied(false);
+                setLoading(false);
+                return true;
+            } catch (error) {
+                if (isCurrent()) {
+                    if (error instanceof ApiError && error.status === 403) setAccessDenied(true);
+                    else setCustomerLoadError(true);
+                }
+                return false;
+            } finally {
+                if (isCurrent()) setRefreshing(false);
             }
-            if (promosRes.status === 'fulfilled') {
-                setPromoList(promosRes.value);
-            }
-            if (userSettingsRes.status === 'fulfilled') {
-                setLoyaltySettings(userSettingsRes.value.loyalty);
-            }
-        } catch (error) {
-            if (error instanceof ApiError && error.status === 403) {
-                setAccessDenied(true);
-            } else {
-                console.error(error);
-            }
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-            lastLoadedAtRef.current = Date.now();
-        }
-    }, [sortBy]);
+        }, { replace, requestKey: sort });
+    }, [refresh]);
 
     const handleExportCSV = async () => {
         try {
@@ -305,9 +326,8 @@ export default function CRMScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            if (Date.now() - lastLoadedAtRef.current < FOCUS_TTL_MS) return;
-            loadData();
-        }, [loadData])
+            void loadData(false);
+        }, [loadData, sortBy])
     );
 
     const onRefresh = () => {
@@ -328,6 +348,7 @@ export default function CRMScreen() {
 
     const updateLoyaltySettings = async (updates: Partial<LoyaltySettings>) => {
         if (!loyaltySettings || !canWrite) return;
+        refresh.invalidate('settings');
         const newSettings = { ...loyaltySettings, ...updates };
         setLoyaltySettings(newSettings);
         try {
@@ -918,7 +939,14 @@ export default function CRMScreen() {
     if (loading && !isLocked) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
+                {customerLoadError ? (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyText}>{t('crm.customers_unavailable')}</Text>
+                        <TouchableOpacity style={styles.emptyBtn} onPress={() => void loadData()}>
+                            <Text style={styles.emptyBtnText}>{t('common.retry')}</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : <ActivityIndicator size="large" color={colors.primary} />}
             </View>
         );
     }

@@ -36,6 +36,7 @@ import PeriodSelector, { Period } from '../../components/PeriodSelector'; // Ass
 import { useAuth } from '../../contexts/AuthContext';
 import { useNetwork } from '../../hooks/useNetwork';
 import { cache, KEYS } from '../../services/cache';
+import { createScreenRefresh } from '../../utils/screenRefresh';
 import {
   dashboard as dashboardApi,
   statistics as statisticsApi,
@@ -133,6 +134,12 @@ function StatusBadge({ label, count, color, styles, onPress }: { label: string; 
 }
 
 export default function DashboardScreen() {
+  const { user } = useAuth();
+  const dashboardScope = JSON.stringify([user?.user_id, user?.active_store_id]);
+  return <DashboardWorkspace key={dashboardScope} dashboardScope={dashboardScope} />;
+}
+
+function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
   const MOBILE_DASHBOARD_FOCUS_TTL_MS = 60_000;
   const MOBILE_NOTIFICATIONS_TTL_MS = 30_000;
   const DEFERRED_DASHBOARD_LOAD_DELAY_MS = 350;
@@ -203,7 +210,6 @@ export default function DashboardScreen() {
   const [nlQuery, setNlQuery] = useState('');
   const [nlResult, setNlResult] = useState<any>(null);
   const [nlLoading, setNlLoading] = useState(false);
-  const dashboardCacheKey = user?.user_id ? `${KEYS.DASHBOARD}:${user.user_id}` : KEYS.DASHBOARD;
   const effectivePlan = user?.effective_plan || user?.plan;
   const isStarterOrProPlan = effectivePlan === 'starter' || effectivePlan === 'pro';
   const showAdvancedDashboardSections = !isStarterOrProPlan;
@@ -274,9 +280,9 @@ export default function DashboardScreen() {
 
   // Use refs to avoid re-triggering useFocusEffect when isConnected changes
   const isConnectedRef = useRef(isConnected);
-  const loadingRef = useRef(false);
+  const dashboardRefresh = useRef(createScreenRefresh<'core'>(MOBILE_DASHBOARD_FOCUS_TTL_MS));
+  const hasDashboardDataRef = useRef(false);
   const deferredLoadingRef = useRef(false);
-  const lastLoadedAtRef = useRef(0);
   const lastNotificationsLoadedAtRef = useRef(0);
   const deferredLoadVersionRef = useRef(0);
   const deferredLoadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -390,7 +396,10 @@ export default function DashboardScreen() {
   }, []);
 
   useEffect(() => {
+    const refresh = dashboardRefresh.current;
+    refresh.activate();
     return () => {
+      refresh.dispose();
       cancelDeferredLoads();
     };
   }, [cancelDeferredLoads]);
@@ -399,60 +408,59 @@ export default function DashboardScreen() {
     setTimeout(resolve, ms);
   }), []);
 
-  const loadCoreData = useCallback(async () => {
+  const loadCoreData = useCallback(async (isCurrent: () => boolean) => {
     const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    if (loadingRef.current) return;
-    loadingRef.current = true;
+    let networkFinished = false;
+    const cachedData = !hasDashboardDataRef.current
+      ? cache.get<{ scope: string; data: DashboardData }>(KEYS.DASHBOARD_SNAPSHOT).then((snapshot) => {
+        if (isCurrent() && !networkFinished && snapshot?.scope === dashboardScope && snapshot.data) {
+          hasDashboardDataRef.current = true;
+          setData(snapshot.data);
+          setLoading(false);
+        }
+      })
+      : undefined;
 
     try {
-      if (isConnectedRef.current) {
-        const settingsPromise = settingsApi.get()
-          .then((result) => {
-            setUserSettings(result);
-          })
-          .catch(() => {
-            // Le dashboard principal ne doit pas attendre ce chargement.
-          });
-
-        try {
-          const dashboardResult = await dashboardApi.get();
-          setData(dashboardResult);
-          cache.set(dashboardCacheKey, dashboardResult);
-        } catch {
-          const cached = await cache.get<DashboardData>(dashboardCacheKey);
-          if (cached) setData(prev => prev ?? cached);
-        }
-
-        void settingsPromise;
-      } else {
-        const cached = await cache.get<DashboardData>(dashboardCacheKey);
-        if (cached) setData(prev => prev ?? cached);
+      if (!isConnected) {
+        await cachedData;
+        return false;
       }
+      void settingsApi.get().then((result) => {
+        if (isCurrent()) setUserSettings(result);
+      }).catch(() => {});
+
+      const result = await dashboardApi.get();
+      networkFinished = true;
+      if (!isCurrent()) return false;
+      hasDashboardDataRef.current = true;
+      setData(result);
+      void cache.set(KEYS.DASHBOARD_SNAPSHOT, { scope: dashboardScope, data: result });
+      return true;
     } catch {
-      const cached = await cache.get<DashboardData>(dashboardCacheKey);
-      if (cached) setData(prev => prev ?? cached);
+      await cachedData;
+      return false;
     } finally {
-      if (Platform.OS !== 'web') {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      if (isCurrent()) {
+        if (Platform.OS !== 'web') {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        }
+        if (MOBILE_PERF_ENABLED) {
+          const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
+          console.log(`[SCREEN PERF][MOBILE][dashboard] duration=${elapsed.toFixed(1)}ms store=${user?.active_store_id || 'n/a'}`);
+          const host = globalThis as unknown as { __stockmanScreenPerf?: any[] };
+          (host.__stockmanScreenPerf ??= []).push({
+            screen: 'dashboard',
+            store_id: user?.active_store_id || null,
+            duration_ms: elapsed,
+            ts: new Date().toISOString(),
+          });
+        }
+        setLoading(false);
+        setRefreshing(false);
       }
-      if (MOBILE_PERF_ENABLED) {
-        const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt;
-        console.log(`[SCREEN PERF][MOBILE][dashboard] duration=${elapsed.toFixed(1)}ms store=${user?.active_store_id || 'n/a'}`);
-        const host = globalThis as unknown as { __stockmanScreenPerf?: any[] };
-        if (!host.__stockmanScreenPerf) host.__stockmanScreenPerf = [];
-        host.__stockmanScreenPerf.push({
-          screen: 'dashboard',
-          store_id: user?.active_store_id || null,
-          duration_ms: elapsed,
-          ts: new Date().toISOString(),
-        });
-      }
-      setLoading(false);
-      setRefreshing(false);
-      loadingRef.current = false;
-      lastLoadedAtRef.current = Date.now();
     }
-  }, [MOBILE_PERF_ENABLED, dashboardCacheKey, user?.active_store_id]);
+  }, [MOBILE_PERF_ENABLED, dashboardScope, isConnected, user?.active_store_id]);
 
   const loadDeferredDashboardData = useCallback(async (version: number) => {
     if (deferredLoadingRef.current || !isConnectedRef.current) {
@@ -484,7 +492,7 @@ export default function DashboardScreen() {
 
       await waitForDeferredStep(DEFERRED_DASHBOARD_STEP_DELAY_MS);
       if (version !== deferredLoadVersionRef.current) return;
-      await loadNotifications(true);
+      await loadNotifications();
 
       if (!showDashboardAiSections) {
         setShowDeferredEnterpriseCards(false);
@@ -558,54 +566,21 @@ export default function DashboardScreen() {
     }) as unknown as { cancel?: () => void };
   }, [DEFERRED_DASHBOARD_LOAD_DELAY_MS, cancelDeferredLoads, loadDeferredDashboardData]);
 
-  const loadData = useCallback(async () => {
-    await loadCoreData();
-    scheduleDeferredDashboardDataLoad();
-  }, [loadCoreData, scheduleDeferredDashboardDataLoad]);
+  const loadData = useCallback((force = true) => dashboardRefresh.current.run('core', async (isCurrent) => {
+    const loaded = await loadCoreData(isCurrent);
+    if (isCurrent() && isConnected) scheduleDeferredDashboardDataLoad();
+    return loaded;
+  }, { requestKey: isConnected ? 'online' : 'offline', force }),
+  [isConnected, loadCoreData, scheduleDeferredDashboardDataLoad]);
 
-  // Initial load and reload when the authenticated user changes
-  useEffect(() => {
-    cancelDeferredLoads();
-    setData(null);
-    setUserSettings(null);
-    setStats(null);
-    setStatsData(null);
-    setInventoryTasks([]);
-    setHealthScore(null);
-    setPrediction(null);
-    setContextualTips([]);
-    setRebalance(null);
-    setStoreBenchmark(null);
-    setNlResult(null);
-    setShowDeferredEnterpriseCards(false);
-    setLoading(true);
-    loadingRef.current = false;
-    lastLoadedAtRef.current = 0;
-    lastNotificationsLoadedAtRef.current = 0;
-    void loadData();
-  }, [cancelDeferredLoads, loadData]);
-
-  // Reload when tab regains focus (e.g. tab switch back)
   useFocusEffect(
     useCallback(() => {
-      const hasRecentData = Boolean(
-        data &&
-        lastLoadedAtRef.current > 0 &&
-        Date.now() - lastLoadedAtRef.current < MOBILE_DASHBOARD_FOCUS_TTL_MS
-      );
-      if (!loadingRef.current && !hasRecentData) {
-        void loadData();
-      }
-      if (!loadingRef.current) {
-        void loadNotifications();
-      }
-    }, [data, loadData, loadNotifications])
+      void loadData(false);
+    }, [loadData])
   );
 
   function onRefresh() {
     setRefreshing(true);
-    cancelDeferredLoads();
-    loadingRef.current = false; // Reset guard so refresh always triggers a load
     void loadData();
   }
 
