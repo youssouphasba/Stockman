@@ -70,7 +70,8 @@ import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 import type { DrawerItem } from '../../components/DrawerMenu';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import { isStarterShopkeeper } from '../../utils/accountRouting';
-import { ADMIN_MESSAGES_CHANGED_EVENT } from '../../components/AdminMessagesButton';
+import { ADMIN_MESSAGES_CHANGED_EVENT } from '../../components/AdminMessagesButton';import AdminMessageLinkButton from '../../components/AdminMessageLinkButton';
+
 import { hasPlatformModule } from '../../utils/access';
 
 // screenWidth is now read via useWindowDimensions() inside the component
@@ -2223,6 +2224,9 @@ export default function DashboardScreen() {
                             {n.sent_by}
                           </Text>
                         )}
+                        <AdminMessageLinkButton link={n.action_link} onOpened={() => {
+                          if (!n.is_read && n.message_id) void handleMarkNotificationRead(n.message_id);
+                        }} />
                         {!!n.deeplink?.screen && (
                           <TouchableOpacity
                             onPress={() => {

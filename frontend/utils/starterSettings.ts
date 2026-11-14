@@ -2,11 +2,12 @@ import type { EcommerceSite, EcommerceSiteUpdate } from '../services/api';
 
 export const STARTER_SETTINGS_GROUPS = [
   { id: 'online', title: 'Boutique en ligne', icon: 'globe-outline', sections: ['storeEcommerce'] },
-  { id: 'store', title: 'Ma boutique', icon: 'storefront-outline', sections: ['storeIdentity', 'storeDocuments', 'tax', 'storeEmpty'] },
-  { id: 'account', title: 'Mon compte', icon: 'person-outline', sections: ['identity', 'profile', 'security', 'accounts', 'team', 'logout'] },
+  { id: 'store', title: 'Ma boutique', icon: 'storefront-outline', sections: ['team', 'storeIdentity', 'storeDocuments', 'tax', 'storeEmpty'] },
+  { id: 'help', title: 'Aide', icon: 'help-circle-outline', sections: ['sync', 'support', 'incident'] },
+  { id: 'account', title: 'Mon compte', icon: 'person-outline', sections: ['identity', 'profile', 'security', 'accounts', 'data', 'logout'] },
   { id: 'notifications', title: 'Notifications', icon: 'notifications-outline', sections: ['notificationsToggle', 'notifications'] },
   { id: 'billing', title: 'Mon abonnement', icon: 'card-outline', sections: ['billing'] },
-  { id: 'help', title: 'Aide et informations', icon: 'help-circle-outline', sections: ['sync', 'support', 'incident', 'legal', 'data'] },
+  { id: 'information', title: 'Informations', icon: 'information-circle-outline', sections: ['legal'] },
 ] as const;
 
 export type StarterSettingsGroup = typeof STARTER_SETTINGS_GROUPS[number]['id'];

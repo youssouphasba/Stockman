@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles, HelpCircle, Chrome } from "lucide-react";
+import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Monitor, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles, HelpCircle, Chrome } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Sidebar from "../components/Sidebar";
@@ -86,7 +86,7 @@ export default function Home() {
   const [activeTab, setActiveTabRaw] = useState(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
-      if (hash) return hash;
+      if (hash && !hash.startsWith('web-login=')) return hash;
       return window.sessionStorage.getItem('stockman_active_tab') || 'dashboard';
     }
     return 'dashboard';
@@ -112,7 +112,7 @@ export default function Home() {
   useEffect(() => {
     const onPopState = (e: PopStateEvent) => {
       const hash = window.location.hash.replace('#', '');
-      if (hash) {
+      if (hash && !hash.startsWith('web-login=')) {
         setActiveTabRaw(hash);
         window.sessionStorage.setItem('stockman_active_tab', hash);
       }
@@ -121,7 +121,9 @@ export default function Home() {
     // Seed current state so the first back doesn't leave the SPA
     if (typeof window !== 'undefined' && !window.history.state?.tab) {
       const currentTab = window.location.hash.replace('#', '') || 'dashboard';
-      window.history.replaceState({ tab: currentTab }, '', `#${currentTab}`);
+      if (!currentTab.startsWith('web-login=')) {
+        window.history.replaceState({ tab: currentTab }, '', `#${currentTab}`);
+      }
     }
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
@@ -167,8 +169,21 @@ export default function Home() {
     user?.role !== 'supplier' &&
     effectivePlan !== 'enterprise';
   const isRestaurantBusiness = features?.is_restaurant || ['restaurant', 'traiteur', 'boulangerie'].includes(features?.sector || '');
+  const pageScrollRef = useRef<HTMLDivElement>(null);
+  const [enterpriseOfferRequest, setEnterpriseOfferRequest] = useState(0);
+  const clearEnterpriseOfferRequest = useCallback(() => setEnterpriseOfferRequest(0), []);
+  useEffect(() => {
+    if (activeTab !== 'subscription') clearEnterpriseOfferRequest();
+  }, [activeTab, clearEnterpriseOfferRequest]);
+  const openEnterpriseOffer = () => {
+    setActiveTab('subscription');
+    setEnterpriseOfferRequest((current) => current + 1);
+  };
+  useEffect(() => {
+    pageScrollRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [activeTab]);
   const analyticsEnabled = useMemo(
-    () => !isRestaurantBusiness && ['dashboard', 'multi_stores', 'stock_history', 'stats', 'reports'].includes(activeTab),
+    () => activeTab === 'dashboard' ? !isRestaurantBusiness : ['multi_stores', 'stock_history', 'stats', 'reports'].includes(activeTab),
     [activeTab, isRestaurantBusiness],
   );
   const needsProfileCompletion = isLogged && user?.needs_profile_completion === true;
@@ -497,6 +512,7 @@ export default function Home() {
   };
 
   const [mounted, setMounted] = useState(false);
+  const webLoginExchange = useRef<Promise<AuthResponse> | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -507,6 +523,20 @@ export default function Home() {
 
     const bootstrapAuth = async () => {
       try {
+        const fragment = window.location.hash.slice(1);
+        if (fragment.startsWith('web-login=')) {
+          const code = new URLSearchParams(fragment).get('web-login') || '';
+          window.history.replaceState({ tab: 'subscription' }, '', '#subscription');
+          webLoginExchange.current = auth.exchangeWebLogin(code);
+        }
+        if (webLoginExchange.current) {
+          const session = await webLoginExchange.current;
+          if (cancelled) return;
+          webLoginExchange.current = null;
+          hydrateAuthenticatedUser(session.user);
+          setActiveTab('subscription');
+          return;
+        }
         const token = await completeRedirectSignIn();
         if (cancelled) return;
 
@@ -519,6 +549,10 @@ export default function Home() {
         await loadUser();
       } catch {
         if (cancelled) return;
+        if (webLoginExchange.current) {
+          webLoginExchange.current = null;
+          setError(t('home.login.mobile_link_error'));
+        }
         removeToken();
         clearWebAccessMode();
         setIsLogged(false);
@@ -534,7 +568,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [handleSocialToken, loadUser]);
+  }, [handleSocialToken, hydrateAuthenticatedUser, loadUser, setActiveTab, t]);
 
   useEffect(() => {
     if (isLogged && isBillingOnly && activeTab !== 'subscription') {
@@ -621,7 +655,7 @@ export default function Home() {
     );
   }
 
-  if (isSubscriptionRecoveryMode) {
+  if (isSubscriptionRecoveryMode && !(isBillingAdmin && activeTab === 'subscription')) {
     const planLabel = subscriptionPlan === 'enterprise' ? 'Enterprise' : subscriptionPlan === 'pro' ? 'Pro' : 'Starter';
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6 py-12">
@@ -663,12 +697,12 @@ export default function Home() {
             </ul>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <button
+            {isBillingAdmin && <button
               onClick={() => setActiveTab('subscription')}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-primary text-white font-black tracking-tight hover:scale-[1.01] transition-transform"
             >
               <Zap size={18} /> {t('home.recovery.cta_regularize')}
-            </button>
+            </button>}
             <button
               onClick={handleLogout}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-slate-200 font-black tracking-tight hover:bg-white/10"
@@ -888,7 +922,7 @@ export default function Home() {
 
   if (isLogged) {
     return (
-      <AnalyticsFiltersProvider enabled={analyticsEnabled}>
+      <AnalyticsFiltersProvider key={user?.user_id} enabled={analyticsEnabled}>
         <>
           {showDemoLeadPrompt && (
             <div className="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
@@ -942,7 +976,7 @@ export default function Home() {
               </div>
             </div>
           )}
-          <main className="min-h-screen bg-[#0F172A] flex">
+          <main className="flex h-dvh overflow-hidden bg-[#0F172A]">
             <Sidebar
               activeTab={activeTab}
               setActiveTab={setActiveTab}
@@ -959,96 +993,63 @@ export default function Home() {
               unreadNotifications={unreadNotifications}
             />
 
-            <div className="flex-1 flex flex-col h-screen overflow-auto min-w-0">
-              <TrialBanner onNavigateToSubscription={() => setActiveTab('subscription')} userRole={user?.role} />
-              {isWebConsultationOnly && (
-                <div className="shrink-0 border-b border-amber-500/20 bg-amber-500/10 px-4 py-4 md:px-6">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="max-w-3xl">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-amber-300">
-                        <ShieldCheck size={14} />
-                        {t('home.web_read_only.badge', { plan: effectivePlan === 'pro' ? 'Pro' : 'Starter', defaultValue: 'Consultation web Starter / Pro' })}
-                      </div>
-                      <h2 className="mt-3 text-lg font-black text-white">
-                        {t('home.web_read_only.title', { defaultValue: 'Votre formule permet la consultation du web app, mais pas les modifications.' })}
-                      </h2>
-                      <p className="mt-1 text-sm leading-6 text-slate-300">
-                        {t('home.web_read_only.desc', { defaultValue: 'Vous pouvez parcourir les écrans du back-office et consulter vos données. Les créations, éditions et suppressions se font sur mobile ou avec le plan Enterprise.' })}
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-200">
-                        Le passage a Enterprise garde le meme compte, les memes boutiques et les memes donnees. Le web complet se debloque des confirmation du paiement.
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold text-slate-200">
-                          Meme compte
-                        </span>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold text-slate-200">
-                          Memes donnees
-                        </span>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold text-slate-200">
-                          Activation apres paiement confirme
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <button
-                        onClick={() => setActiveTab('subscription')}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-bold text-primary transition hover:bg-primary/15"
-                      >
-                        <Zap size={16} />
-                        Comprendre l evolution Enterprise
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('subscription')}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-black text-white shadow-lg shadow-primary/25 transition hover:bg-primary/90"
-                      >
-                        <Zap size={16} />
-                        {t('home.web_read_only.cta_upgrade', { defaultValue: 'Passer à Enterprise' })}
-                      </button>
-                      <a
-                        href="/pricing"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10"
-                      >
-                        <BarChart3 size={16} />
-                        {t('home.web_read_only.cta_compare', { defaultValue: 'Comparer les formules' })}
-                      </a>
-                      <a
-                        href="/features"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10"
-                      >
-                        <LayoutDashboard size={16} />
-                        {t('home.web_read_only.cta_features', { defaultValue: 'Voir les fonctionnalités web' })}
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {/* Mobile top bar */}
-              <div className="md:hidden flex items-center gap-3 p-4 border-b border-white/10 bg-[#0F172A] shrink-0">
-                <button
-                  onClick={() => setIsSidebarOpen(true)}
-                  className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-colors"
-                >
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <div className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-[#0F172A] px-3 py-2 md:hidden">
+                <button type="button" aria-label={t('home.mobile_menu')} aria-expanded={isSidebarOpen}
+                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  className="grid size-11 shrink-0 place-items-center rounded-lg bg-white/5 text-slate-200">
                   <Menu size={20} />
                 </button>
-                <div className="flex items-center gap-2">
-                  <img src="/icon.png" alt="Stockman" className="w-7 h-7 rounded-lg" />
-                  <span className="font-bold text-gradient">Stockman</span>
-                </div>
+                <img src="/icon.png" alt="" className="size-7 shrink-0 rounded-lg" />
+                <span className="min-w-0 flex-1 truncate font-bold text-gradient">Stockman</span>
+                {activeGuideKey && (
+                  <button type="button" aria-label={t('home.current_tab_guide')} onClick={openActiveTabGuide}
+                    className="grid size-11 shrink-0 place-items-center rounded-lg text-slate-200 hover:bg-white/10">
+                    <HelpCircle size={20} />
+                  </button>
+                )}
+                <button type="button" aria-label={t('home.ai_assistant')} onClick={() => setIsChatOpen(true)}
+                  className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                  <Sparkles size={20} />
+                </button>
               </div>
-
-              {analyticsEnabled && (
+              <div ref={pageScrollRef} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto overscroll-y-contain">
                 <div className="shrink-0">
-                  <GlobalFiltersBar />
+                  <TrialBanner onNavigateToSubscription={() => setActiveTab('subscription')} userRole={user?.role} />
+                  <p className="flex items-start gap-2 border-b border-white/10 px-4 py-2 text-sm text-slate-200 lg:hidden">
+                    <Monitor size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-primary" />
+                    {t('home.desktop_recommendation')}
+                  </p>
+                  {isWebConsultationOnly && (
+                    <div className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-2">
+                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-amber-300">
+                          <ShieldCheck size={14} aria-hidden="true" />
+                          {t('home.web_read_only.badge', { plan: effectivePlan === 'pro' ? 'Pro' : 'Starter' })}
+                        </span>
+                        {isBillingAdmin && (
+                          <button type="button" onClick={openEnterpriseOffer} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-bold text-slate-950 hover:bg-primary/90">
+                            <Zap size={15} aria-hidden="true" />
+                            {t('home.web_read_only.cta_upgrade')}
+                          </button>
+                        )}
+                      </div>
+                      <details className="text-sm text-slate-200">
+                        <summary className="w-fit cursor-pointer py-2 font-medium text-primary">
+                          {t('home.web_read_only.cta_explain')}
+                        </summary>
+                        <p className="mb-1">{t('home.web_read_only.consultation')}</p>
+                        <p className="mb-2">{t('home.web_read_only.transition')}</p>
+                      </details>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {/* Page content */}
-              <div className="flex-1 overflow-auto flex flex-col">
+                {analyticsEnabled && (
+                  <div className="shrink-0">
+                    <GlobalFiltersBar />
+                  </div>
+                )}
+                <div className="flex min-w-0 grow shrink-0 flex-col">
                 {activeTab === 'dashboard' && (
                   isRestaurantBusiness
                     ? <Dashboard onNavigate={setActiveTab} features={features} />
@@ -1072,7 +1073,7 @@ export default function Home() {
                 {activeTab === 'stats' && <AbcAnalysis />}
                 {activeTab === 'inventory_counting' && <InventoryCounting />}
                 {activeTab === 'expiry_alerts' && <ExpiryAlerts />}
-                {activeTab === 'subscription' && <Subscription />}
+                {activeTab === 'subscription' && <Subscription enterpriseOfferRequest={enterpriseOfferRequest} onEnterpriseOfferShown={clearEnterpriseOfferRequest} />}
                 {activeTab === 'production' && <ProductionView onNavigate={setActiveTab} />}
                 {activeTab === 'tables' && <TableManagement />}
                 {activeTab === 'reservations' && <Reservations />}
@@ -1081,11 +1082,12 @@ export default function Home() {
                 {activeTab === 'supplier_portal' && <SupplierPortal />}
                 {activeTab === 'planner' && <Planner user={user} />}
                 {activeTab === 'settings' && <Settings user={user} onOpenSupport={() => setIsSupportOpen(true)} />}
+                </div>
               </div>
             </div>
 
             {/* Floating action buttons */}
-            <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
+            <div className="fixed bottom-6 right-6 z-40 hidden items-center gap-3 md:flex">
               {activeGuideKey && (
                 <button
                   onClick={openActiveTabGuide}
@@ -1189,16 +1191,14 @@ export default function Home() {
           </div>
         </div>
       )}
-      <main className="min-h-screen flex items-center justify-center p-6 bg-[#0F172A]">
-        <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <main className="min-h-dvh bg-[#0F172A] px-4 py-4 sm:px-6 sm:py-6">
+        <div className="mx-auto grid w-full max-w-md grid-cols-1 items-start gap-4 lg:max-w-5xl lg:grid-cols-2 lg:gap-x-12 lg:gap-y-6">
+          <div className="flex items-center gap-3 lg:col-span-2">
+            <img src="/icon.png" alt="" className="h-9 w-9 rounded-lg" />
+            <h1 className="text-2xl font-bold text-gradient">Stockman</h1>
+          </div>
 
-          {/* Left Side: Brand & Welcome */}
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center gap-3">
-              <img src="/icon.png" alt="Stockman" className="w-12 h-12 rounded-xl shadow-lg shadow-primary/20" />
-              <h1 className="text-5xl text-gradient tracking-tight">Stockman</h1>
-            </div>
-
+          <div className="row-start-3 flex min-w-0 flex-col gap-6 lg:col-start-1 lg:row-start-2">
             <div className="flex flex-col gap-4">
               <h2 className="text-4xl font-extrabold text-white leading-tight">
                 {t('home.brand.h2')} <br />
@@ -1251,12 +1251,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Side: Auth Card */}
-          <div className="glass-card flex flex-col gap-6 shadow-2xl relative overflow-hidden group p-8">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all"></div>
-
+          <section aria-labelledby="stockman-login-title" className="glass-card relative row-start-2 flex min-w-0 flex-col gap-4 p-4 shadow-2xl sm:p-6 lg:col-start-2">
             <div className="flex flex-col gap-1 relative z-10">
-              <h3 className="text-2xl font-bold text-white">{t('home.login.title')}</h3>
+              <h2 id="stockman-login-title" className="text-xl font-bold text-white">{t('home.login.title')}</h2>
               <p className="text-slate-400">{t('home.login.subtitle')}</p>
             </div>
 
@@ -1275,9 +1272,11 @@ export default function Home() {
 
             <div className="flex flex-col gap-4 relative z-10">
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-300">{t('home.login.email_label')}</label>
+                <label htmlFor="stockman-login-email" className="text-sm font-semibold text-slate-300">{t('home.login.email_label')}</label>
                 <input
+                  id="stockman-login-email"
                   type="email"
+                  autoComplete="username"
                   placeholder={t('home.login.email_placeholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -1286,12 +1285,14 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center">
-                  <label className="text-sm font-semibold text-slate-300">{t('home.login.password_label')}</label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label htmlFor="stockman-login-password" className="text-sm font-semibold text-slate-300">{t('home.login.password_label')}</label>
                   <a href="#" className="text-xs text-primary hover:underline">{t('home.login.forgot_password')}</a>
                 </div>
                 <input
+                  id="stockman-login-password"
                   type="password"
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -1305,7 +1306,7 @@ export default function Home() {
               <button
                 onClick={handleLogin}
                 disabled={loading || !!checkoutLoadingPlan}
-                className={`btn-primary w-full py-4 rounded-xl flex items-center justify-center gap-3 text-lg shadow-xl shadow-primary/20 ${loading || checkoutLoadingPlan ? 'opacity-70 cursor-wait' : ''}`}
+                className={`btn-primary w-full min-h-11 px-3 py-2.5 rounded-xl flex items-center justify-center gap-3 text-base shadow-xl shadow-primary/20 ${loading || checkoutLoadingPlan ? 'opacity-70 cursor-wait' : ''}`}
               >
                 {checkoutLoadingPlan ? (
                   <>
@@ -1362,7 +1363,7 @@ export default function Home() {
                     className="text-primary font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
                   >{t('home.login.create_account_link')}</button>
                 </span>
-                <div className="mt-3 flex items-center justify-center gap-3 text-xs">
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs">
                   <a href="/pricing" className="text-slate-400 hover:text-white transition-colors">{t('home.login.compare_plans')}</a>
                   <span className="text-white/10">|</span>
                   <a href={MOBILE_APP_URL} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">{t('home.login.open_mobile')}</a>
@@ -1382,7 +1383,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </main>
 

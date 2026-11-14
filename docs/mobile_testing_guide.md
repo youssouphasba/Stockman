@@ -41,6 +41,7 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 
 - Après un achat Starter ou Pro via Google Play / App Store, l’application lance une synchronisation serveur (`/subscription/sync`) puis recharge le contexte utilisateur pour propager immédiatement le nouveau plan dans les écrans verrouillés.
 - Si la boutique indique "déjà abonné", utilisez le bouton **Récupérer mon abonnement**. L’application tente maintenant de reconnaître le plan à partir des entitlements actifs, des abonnements actifs et des identifiants de produits RevenueCat avant de relancer la synchronisation.
+- Depuis un compte de facturation mobile, choisir Enterprise puis toucher **Découvrir Enterprise** : vérifier que Stockman Web ouvre **Abonnement** avec le même compte, même si le navigateur était connecté à un autre compte. Vérifier qu'un lien déjà utilisé ou expiré revient à la connexion sans ouvrir de session et qu'un compte Starter ou Pro ne reçoit pas de droits Enterprise.
 
 ## 4. Connexion Google mobile
 
@@ -102,5 +103,7 @@ eas workflow:run .eas/workflows/ota-ios.yml --ref "SHA_DU_COMMIT" --wait
 Pour vérifier sur un téléphone qu’une OTA est bien appliquée, ouvrez **Réglages**, puis **Sécurité, légal et données**, puis **Informations légales** : la ligne **Version** affiche le numéro de l’application suivi de « mise à jour du JJ/MM à HH:MM » (heure du téléphone) quand une OTA est en cours d’exécution, ou de « version d’origine » quand l’application tourne encore sur le code livré avec le build.
 
 Depuis la version 1.0.24, la même rubrique affiche sous la ligne **Version** le canal, la version d’exécution et l’identifiant de la mise à jour en cours, ainsi que le bouton **Rechercher une mise à jour**. Il interroge le serveur : si une mise à jour est trouvée, il la télécharge et redémarre l’application ; sinon, il affiche la raison donnée par expo-updates (rien de plus récent sur le serveur, mise à jour refusée par l’application ou déjà en échec) et le dernier incident enregistré. Les textes peuvent être sélectionnés pour être copiés.
+
+Sur Android, vérifiez le runtime affiché sur un appareil installé depuis Google Play, au moins en français et en anglais. Le runtime doit rester identique lors d’un changement de langue et correspondre à celui annoncé dans Expo. Le plugin Android de Stockman inscrit la valeur de `runtimeVersion` directement dans le manifeste pour éviter qu’une ressource de langue ne la remplace. Si un ancien build affiche `1.0.0` alors qu’Expo annonce `1.0.22`, il faut le remplacer par un build corrigé. Ne publiez pas de rattrapage pour `1.0.0` sur `production` sans avoir vérifié la compatibilité de tous les anciens builds ciblés.
 
 Si Expo cherche le workflow dans `.eas/workflows` à la racine du dépôt, corrigez le répertoire de base dans les réglages GitHub du projet Expo. Le workflow accepte aussi une archive sans métadonnées Git ; dans ce cas, utilisez une copie isolée du commit validé, pas le dossier de travail.

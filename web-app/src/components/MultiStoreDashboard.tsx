@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     AlertTriangle,
     ArrowRight,
@@ -50,6 +50,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
     const [rebalance, setRebalance] = useState<any>(null);
     const [benchmark, setBenchmark] = useState<any>(null);
     const { filters } = useAnalyticsFilters();
+    const comparisonRequest = useRef(0);
     const hasCustomRange = filters.useCustomRange && !!filters.startDate && !!filters.endDate;
     const analyticsFilters = {
         ...(hasCustomRange ? { start_date: filters.startDate, end_date: filters.endDate } : { days: filters.days }),
@@ -62,29 +63,35 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
         : `sur ${filters.days} jours`;
 
     const load = useCallback(async () => {
+        const request = ++comparisonRequest.current;
         setLoading(true);
         setError(null);
         try {
             const statsRes = await analyticsApi.getStoreComparison(analyticsFilters);
-            setStats(statsRes);
+            if (request === comparisonRequest.current) setStats(statsRes);
         } catch (err) {
+            if (request !== comparisonRequest.current) return;
             console.error(err);
             setStats(null);
             setError("Impossible de charger la vue multi-boutiques.");
         } finally {
-            setLoading(false);
+            if (request === comparisonRequest.current) setLoading(false);
         }
     }, [filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange]);
 
     useEffect(() => {
         load();
+        return () => { comparisonRequest.current++; };
+    }, [load]);
+
+    useEffect(() => {
         // Vague 4: load AI features in background
         Promise.allSettled([aiApi.rebalanceSuggestions(), aiApi.storeBenchmark()])
             .then(([rebalRes, benchRes]) => {
                 if (rebalRes.status === 'fulfilled') setRebalance(rebalRes.value);
                 if (benchRes.status === 'fulfilled') setBenchmark(benchRes.value);
             });
-    }, [load]);
+    }, []);
 
     const handleSwitch = async (storeId: string) => {
         setSwitching(storeId);

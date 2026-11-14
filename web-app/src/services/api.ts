@@ -302,7 +302,7 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
     finalStatus = response.status;
 
     if (response.status === 401) {
-        const skipRefresh = ['/auth/login', '/auth/refresh'];
+        const skipRefresh = ['/auth/login', '/auth/refresh', '/auth/web-login/exchange'];
         if (!skipRefresh.includes(endpoint)) {
             const refreshed = await refreshWithMutex();
             if (refreshed) {
@@ -310,7 +310,7 @@ async function performRequest<T>(endpoint: string, options: RequestOptions = {})
                 finalStatus = response.status;
             }
         }
-        if (response.status === 401 && endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
+        if (response.status === 401 && !skipRefresh.includes(endpoint)) {
             const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - reqStart;
             recordApiPerf({
                 method,
@@ -1684,6 +1684,15 @@ export type ProjectDashboard = {
 
 // Ported services (Subset for the MVP)
 export const auth = {
+    exchangeWebLogin: async (code: string) => {
+        removeToken();
+        const session = await performRequest<AuthResponse>('/auth/web-login/exchange', {
+            method: 'POST', body: { code },
+        });
+        setToken(session.access_token);
+        if (session.refresh_token) setRefreshToken(session.refresh_token);
+        return session;
+    },
     login: async (email: string, password: string) => {
         removeToken();
         const session = await request<AuthResponse>('/auth/login', {
@@ -2864,6 +2873,8 @@ export const disputes = {
 };
 
 // User notifications
+export type AdminMessageActionLink = { label: string; url: string };
+
 export type UserNotification = {
     message_id: string;
     type?: string;
@@ -2875,6 +2886,7 @@ export type UserNotification = {
     is_read?: boolean;
     read_count?: number;
     deeplink?: Record<string, string>;
+    action_link?: AdminMessageActionLink;
 };
 
 export const userNotifications = {
@@ -3103,6 +3115,7 @@ export const admin = {
         installation_country_code?: string;
         installation_platform?: string;
         deeplink?: Record<string, string>;
+        action_link?: AdminMessageActionLink;
     }) =>
         request<any>('/admin/messages/send', { method: 'POST', body: data }),
     suggestNotificationMessage: (data: {

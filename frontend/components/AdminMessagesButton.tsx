@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { userNotifications, type UserNotification } from '../services/api';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
+import AdminMessageLinkButton from './AdminMessageLinkButton';
 
 const ROUTES: Record<string, string> = {
   home: '/(tabs)',
@@ -175,6 +176,9 @@ export default function AdminMessagesButton({ compact = false }: { compact?: boo
                         </View>
                         <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 20 }}>{item.content || ''}</Text>
                         {!!item.sent_by && <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 6 }}>{item.sent_by}</Text>}
+                        <AdminMessageLinkButton link={item.action_link} onOpened={() => {
+                          if (!item.is_read && item.message_id) void markRead(item.message_id);
+                        }} />
                         {!!(item.deeplink?.screen || item.deeplink?.url) && (
                           <TouchableOpacity
                             onPress={() => {

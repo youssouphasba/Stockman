@@ -2498,6 +2498,8 @@
     "stock_change_decrease": "Le stock passe de {{from}} à {{to}} (-{{diff}}). Choisissez la raison.",
     "stock_change_sale_hint": "Une vente est enregistrée au prix de vente, payée en espèces, et apparaît dans la Compta.",
     "stock_change_required": "Choisissez la raison du changement de stock.",
+    "duplicate_name_in_store": "Un produit porte déjà ce nom dans cette boutique. Utilisez sa fiche ou choisissez un nom distinct.",
+    "potential_duplicate_create": "Des produits portent un nom proche dans cette boutique. Voulez-vous créer une fiche distincte ?",
     "stock_change_pending": "Raison du changement à choisir",
     "stock_change_choose": "Choisir",
     "stock_change_edit": "Modifier",

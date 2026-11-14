@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { userNotifications, type UserNotification } from '../services/api';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
+import AdminMessageLinkButton from './AdminMessageLinkButton';
 import {
   ADMIN_MESSAGES_CHANGED_EVENT,
   hasAdminMessageDestination,
@@ -119,6 +120,7 @@ export default function AdminMessagePopup({ enabled }: { enabled: boolean }) {
             {!!current.content && (
               <Text style={{ color: colors.textSecondary, fontSize: 15, lineHeight: 22 }}>{current.content}</Text>
             )}
+            <AdminMessageLinkButton link={current.action_link} onOpened={dismissCurrent} />
           </ScrollView>
 
           <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.lg }}>

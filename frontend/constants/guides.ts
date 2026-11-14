@@ -522,11 +522,12 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
         steps: [
             { icon: "globe-outline", title: "Première configuration", description: "Stockman Basic conserve votre site actuel. Lors de la proposition initiale, Configurer mon site ouvre Boutique en ligne sans activer le site. Plus tard enregistre votre choix pour ce site, sur tous vos appareils. Vous pouvez toujours configurer le site ensuite depuis les Paramètres." },
             { icon: "globe-outline", title: "Boutique en ligne", description: "Mettez le site en ligne lorsque vous êtes prêt. Les réglages sont rangés en six rubriques repliables : Produits affichés, Apparence, Coordonnées, Livraison, Paiement et Nom de domaine. Chacune affiche son état actuel, et « Enregistrer » n'apparaît que lorsqu'une modification est en attente. Dans la rubrique Apparence, choisissez un modèle, modifiez le logo, le nom, les textes d'accueil et la couleur, enregistrez un brouillon, vérifiez-le avec Prévisualiser, puis publiez : le site public ne change qu'à la publication. Les commandes reçues restent accessibles quand le site est désactivé. Dans la rubrique Nom de domaine, saisissez votre domaine, créez chez votre fournisseur les enregistrements affichés, puis lancez la vérification. Le site passe sur votre domaine dès que tout est prêt ; l'adresse Stockman reste active." },
-            { icon: "storefront-outline", title: "Ma boutique", description: "Modifiez le nom et l'adresse de la boutique active, les reçus et les factures. Plus d'options affiche les pieds de page, le préfixe et les conditions de paiement. Les réglages de TVA restent dans cette rubrique." },
-            { icon: "person-outline", title: "Mon compte", description: "Retrouvez le mot de passe, le PIN, la biométrie, la langue, le thème, les comptes enregistrés et la déconnexion. Les accès à l'équipe déjà autorisés restent disponibles." },
+            { icon: "storefront-outline", title: "Ma boutique", description: "Utilisateurs et permissions se trouve en tête de cette rubrique. L’ajout d’utilisateurs nécessite Pro ou Enterprise. Retrouvez aussi le nom et l’adresse de la boutique active, les reçus, les factures et la TVA. Plus d’options affiche les pieds de page, le préfixe et les conditions de paiement." },
+            { icon: "help-circle-outline", title: "Aide", description: "Vérifiez la connexion et les données en attente, synchronisez, contactez le support ou signalez un problème." },
+            { icon: "person-outline", title: "Mon compte", description: "Retrouvez la sécurité, la langue, le thème, les comptes enregistrés et la déconnexion. Dans Données et suppression, vous pouvez exporter vos données ou demander la suppression du compte." },
             { icon: "notifications-outline", title: "Notifications", description: "Activez ou désactivez les notifications. Plus d'options permet d'ajuster les préférences de réception existantes. Les réglages avancés déjà enregistrés sont conservés." },
             { icon: "card-outline", title: "Mon abonnement", description: "Consultez votre formule, son statut et l'échéance disponible. Gérer le paiement et Changer d'offre ouvrent l'écran Abonnement existant, selon vos droits." },
-            { icon: "help-circle-outline", title: "Aide et informations", description: "Vérifiez la connexion et les données en attente, synchronisez, contactez le support, signalez un problème ou ouvrez les informations légales. L'export et la suppression du compte restent protégés par leurs parcours existants." },
+            { icon: "information-circle-outline", title: "Informations", description: "Consultez la version de Stockman, les conditions d'utilisation et la politique de confidentialité." },
         ]
     },
     settings: {
@@ -624,6 +625,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "card-outline",
                 title: "Comparer les formules avec votre usage réel",
                 description: "Ne choisissez pas seulement en regardant le prix. Comparez surtout les limites, le nombre de boutiques, l'équipe autorisée et les outils disponibles afin de prendre une formule adaptée à votre activité."
+            },
+            {
+                icon: "open-outline",
+                title: "Découvrir Enterprise",
+                description: "Sélectionnez Enterprise et touchez Découvrir Enterprise pour ouvrir Abonnement sur Stockman Web avec le compte déjà connecté sur votre téléphone."
             },
             {
                 icon: "phone-portrait-outline",

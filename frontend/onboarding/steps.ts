@@ -73,7 +73,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     id: 'product_name', chapter: 'products', kind: 'field', host: 'productForm', target: 'product.name',
     title: 'Nom du produit',
     body: "Le nom tel que vous l'appelez en boutique. Il apparaîtra en caisse et sur les reçus.",
-    action: "Écrivez le nom d'un article de votre boutique, puis touchez « Suivant ».",
+    action: "Écrivez un nom qui n'est pas déjà utilisé dans votre boutique, puis touchez « Suivant ».",
     validate: (value) => (String(value || '').trim().length >= 2 ? null : 'Écrivez au moins deux caractères.'),
     requires: 'productForm', fallbackStep: 'open_add_menu', resumeAt: 'open_add_menu',
   },

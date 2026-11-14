@@ -17,20 +17,18 @@ type AnalyticsFiltersContextValue = {
     filters: AnalyticsFiltersState;
     meta: AnalyticsFilterMeta;
     metaLoading: boolean;
+    metaError: boolean;
     setFilter: <K extends keyof AnalyticsFiltersState>(key: K, value: AnalyticsFiltersState[K]) => void;
     resetFilters: () => void;
-    refreshMeta: () => Promise<void>;
+    refreshMeta: () => void;
+    setDateRange: (startDate: string, endDate: string) => void;
 };
 
 const DEFAULT_META: AnalyticsFilterMeta = {
     stores: [],
     categories: [],
     suppliers: [],
-    periods: [
-        { label: '7 jours', days: 7 },
-        { label: '30 jours', days: 30 },
-        { label: '90 jours', days: 90 },
-    ],
+    periods: [],
 };
 
 const DEFAULT_FILTERS: AnalyticsFiltersState = {
@@ -55,34 +53,32 @@ export function AnalyticsFiltersProvider({
     const [filters, setFilters] = useState<AnalyticsFiltersState>(DEFAULT_FILTERS);
     const [meta, setMeta] = useState<AnalyticsFilterMeta>(DEFAULT_META);
     const [metaLoading, setMetaLoading] = useState(true);
-
-    const loadMeta = async () => {
-        setMetaLoading(true);
-        try {
-            const response = await analytics.getFilterMeta();
-            setMeta({
-                ...DEFAULT_META,
-                ...response,
-                periods: response.periods?.length ? response.periods : DEFAULT_META.periods,
-            });
-        } catch (error) {
-            console.error('Failed to load analytics filters', error);
-            setMeta(DEFAULT_META);
-        } finally {
-            setMetaLoading(false);
-        }
-    };
+    const [metaError, setMetaError] = useState(false);
+    const [revision, setRevision] = useState(0);
 
     useEffect(() => {
-        if (!enabled) {
-            setMetaLoading(false);
-            return;
-        }
-        loadMeta();
-    }, [enabled]);
+        if (!enabled) return;
+        let current = true;
+        setMetaLoading(true);
+        setMetaError(false);
+        analytics.getFilterMeta()
+            .then((response) => {
+                if (!current) return;
+                setMeta(response);
+                setFilters((filters) => ({
+                    ...filters,
+                    storeId: response.stores.some((item) => item.id === filters.storeId) ? filters.storeId : '',
+                    categoryId: response.categories.some((item) => item.id === filters.categoryId) ? filters.categoryId : '',
+                    supplierId: response.suppliers.some((item) => item.id === filters.supplierId) ? filters.supplierId : '',
+                }));
+            })
+            .catch(() => { if (current) setMetaError(true); })
+            .finally(() => { if (current) setMetaLoading(false); });
+        return () => { current = false; };
+    }, [enabled, revision]);
 
     const setFilter = <K extends keyof AnalyticsFiltersState>(key: K, value: AnalyticsFiltersState[K]) => {
-        setFilters((current) => ({ ...current, [key]: value }));
+        setFilters((current) => ({ ...current, ...(key === 'days' ? { useCustomRange: false } : {}), [key]: value }));
     };
 
     return (
@@ -91,9 +87,11 @@ export function AnalyticsFiltersProvider({
                 filters,
                 meta,
                 metaLoading,
+                metaError,
                 setFilter,
                 resetFilters: () => setFilters(DEFAULT_FILTERS),
-                refreshMeta: loadMeta,
+                refreshMeta: () => setRevision((value) => value + 1),
+                setDateRange: (startDate, endDate) => setFilters((current) => ({ ...current, startDate, endDate, useCustomRange: true })),
             }}
         >
             {children}

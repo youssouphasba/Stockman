@@ -463,6 +463,7 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 
 ### Les notifications admin peuvent-elles ouvrir une section précise ?
 - Oui. Depuis **Admin** → **Communication**, le champ **Destination au clic** permet d'ouvrir Accueil, Produits, Ajouter un produit, Alertes, Assistance, Abonnement, Commandes, Caisse, CRM, Comptabilité, Paramètres ou une section précise de **Paramètres**.
+- Pour ajouter un lien externe, choisir **Ajouter un bouton de lien**, puis saisir le **Texte du bouton** et son **Adresse du lien (HTTPS)**. Le bouton est visible dans le message sur mobile et sur le web, et dans l'e-mail si ce canal est sélectionné. Il ne remplace pas la destination interne et ne s'affiche pas dans le push système. L'option n'est pas proposée pour les installations sans compte, qui ne reçoivent que le push.
 - Les sections disponibles dans **Paramètres** couvrent notamment Compte et application, Abonnement et facturation, Profil et apparence, Synchronisation, Organisation et pilotage, Modules visibles, Boutique active, Boutique · Identité, Boutique · Documents, Fiscalité, Alertes et notifications, Canaux de réception, Destinataires, Support et incidents, Assistance, Déclarer un incident, Sécurité du compte, Informations légales, Données et suppression.
 - Quand la notification est envoyée en push, le clic ouvre directement la destination choisie.
 - Quand elle est envoyée en in-app, le centre de notifications affiche un bouton **Ouvrir** si une destination existe.
@@ -491,6 +492,13 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 
 ---
 
+## Filtres d’analyse sur le web
+
+- Dans les vues d’analyse qui les utilisent, ouvrez **Filtres** pour modifier la période, la boutique, la catégorie ou le fournisseur lorsque ces options sont disponibles. La barre repliée affiche la période et les sélections actives. Les listes proviennent des données accessibles sur le compte.
+- Pour une période personnalisée, choisissez **Dates**, renseignez les deux dates, puis choisissez **Appliquer**. La date de fin est incluse, et la période est limitée à 365 jours. Le filtre de dates porte sur les ventes de la période ; les niveaux de stock restent ceux d’aujourd’hui.
+- Sur téléphone, le menu, le guide de l’onglet et l’assistant sont accessibles dans l’en-tête du back-office.
+- Il est recommandé de se connecter depuis un ordinateur pour utiliser Stockman Web plus confortablement. Sur Starter et Pro, **Comprendre l’évolution vers Enterprise** déplie les explications. Les personnes autorisées à gérer la facturation peuvent choisir **Passer à Enterprise** pour afficher directement l’offre, sans déclencher de paiement.
+
 ## 14. Plans & Abonnements
 
 ### Note backoffice admin (stabilite abonnements)
@@ -503,6 +511,8 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 | Starter | 2 500 | 6,99 | 1 | 1 | Non |
 | Pro | 4 900 | 9,99 | 2 | 5 | Non |
 | Enterprise | 9 900 | 14,99 | Illimitées | Illimités | Oui |
+
+- Sur mobile, **Découvrir Enterprise** ouvre **Abonnement** sur [Stockman Web](https://app.stockman.pro) avec le compte déjà connecté, sans ressaisir son mot de passe. Ce raccourci ne change ni le plan ni les accès : Starter et Pro restent en consultation avant un éventuel changement d'offre.
 
 ### Quels onglets voit-on sur mobile ?
 - **Starter** : Produits, Caisse, Compta, Clients et Réglages (plus Fournisseurs si l'équipe Stockman a activé ce module pour le compte). Il n'y a pas d'onglet Accueil : les chiffres clés sont dans la Compta. Les messages de l'administrateur (icône mégaphone, affichée quand il y en a, avec le nombre de messages non lus) et le bouton de thème clair/sombre sont dans l'en-tête, sur tous les onglets.

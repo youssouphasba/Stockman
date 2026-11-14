@@ -2220,6 +2220,8 @@
     "stock_change_decrease": "Stock goes from {{from}} to {{to}} (-{{diff}}). Choose the reason.",
     "stock_change_sale_hint": "A sale is recorded at the selling price, paid in cash, and appears in Accounting.",
     "stock_change_required": "Choose the reason for the stock change.",
+    "duplicate_name_in_store": "A product with this name already exists in this store. Use its product record or choose a different name.",
+    "potential_duplicate_create": "Products with similar names already exist in this store. Create a separate product?",
     "stock_change_pending": "Reason for the change to choose",
     "stock_change_choose": "Choose",
     "stock_change_edit": "Change",

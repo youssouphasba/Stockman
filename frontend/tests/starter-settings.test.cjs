@@ -12,12 +12,12 @@ function content(harness) {
 
 const site = { slug: 'store', site_url: 'https://app.stockman.pro/shop/store', store_id: 'store', enabled: false, custom_domain: 'www.stockman-test.example', domain_mode: 'connect' };
 
-test('Native Starter settings show exactly the six requested main sections', () => {
+test('Native Starter settings show Help after My store and separate Information', () => {
   const h = createHarness();
   const { nodes } = content(h);
   const labels = nodes.filter((node) => node.type === 'Text').map((node) => node.props.children);
-  assert.deepEqual(labels, ['Boutique en ligne', 'Ma boutique', 'Mon compte', 'Notifications', 'Mon abonnement', 'Aide et informations']);
-  assert.equal(nodes.filter((node) => node.type === 'TouchableOpacity').length, 6);
+  assert.deepEqual(labels, ['Boutique en ligne', 'Ma boutique', 'Aide', 'Mon compte', 'Notifications', 'Mon abonnement', 'Informations']);
+  assert.equal(nodes.filter((node) => node.type === 'TouchableOpacity').length, 7);
   assert.equal(h.calls.length, 0);
 });
 
@@ -34,6 +34,22 @@ test('Subscribed Pro, Enterprise, web and demo accounts retain the original sett
     assert.equal(layout.props.enabled, false);
     assert.equal(h.layout.default(layout.props).props.children, layout.props.children);
   }
+});
+
+test('Users and permissions is first in My store and preserves access for authorized staff', () => {
+  const starter = createHarness({ states: { starterSection: 'store' } });
+  const { nodes } = content(starter);
+  const teamLink = nodes.find((node) => node.props.href === '/(tabs)/users');
+  assert.ok(teamLink);
+  assert.ok(nodes.some((node) => node.type === 'Text' && node.props.children === 'users.starter_staff_locked'));
+  assert.equal(starter.load('utils/starterSettings.ts').getStarterSettingsGroup('team'), 'store');
+
+  const staff = createHarness({
+    user: { user_id: 'staff', role: 'staff', subscription_plan: 'pro' },
+    auth: { isOrgAdmin: false, isBillingAdmin: false, hasPermission: (module) => module === 'staff' },
+  });
+  assert.ok(staff.nodes().some((node) => node.props.href === '/(tabs)/users'));
+  assert.ok(!staff.nodes().some((node) => node.props.sectionKey === 'storeIdentity'));
 });
 
 test('Pro and Enterprise show Site e-commerce before other settings and outside the active store', () => {
@@ -202,12 +218,19 @@ test('Security, language, theme and stored accounts retain their handlers', asyn
   assert.ok(!h.calls.some(([name]) => name === 'logout'));
 });
 
-test('Help preserves sync, support, export and the existing account deletion modal', async () => {
+test('Help preserves sync and support without account actions', () => {
   const h = createHarness({ states: { starterSection: 'help' }, sync: { isOnline: false, pendingCount: 3 } });
   const { nodes } = content(h);
   assert.ok(nodes.some((node) => node.props.onPress?.name === 'prefetchData' && node.props.disabled));
   assert.ok(nodes.some((node) => node.props.onPress?.name === 'processQueue' && node.props.disabled));
   assert.ok(nodes.some((node) => String(node.props.onPress).includes('setShowSupportModal(true)')));
+  assert.ok(!nodes.some((node) => node.props.onPress?.name === 'handleExportData'));
+  assert.ok(!nodes.some((node) => String(node.props.onPress).includes('setShowDeleteModal(true)')));
+});
+
+test('My account preserves export and the existing account deletion modal', async () => {
+  const h = createHarness({ states: { starterSection: 'account' } });
+  const { nodes } = content(h);
   const remove = nodes.find((node) => String(node.props.onPress).includes('setShowDeleteModal(true)'));
   remove.props.onPress();
   assert.equal(h.values.showDeleteModal, true);
@@ -217,7 +240,7 @@ test('Help preserves sync, support, export and the existing account deletion mod
 });
 
 test('Legacy settings deep links and E-com events select the matching Starter section', () => {
-  const groups = { storeDocuments: 'store', tax: 'store', storeEcommerce: 'online', security: 'account', billing: 'billing', support: 'help', sync: 'help', accountAlerts: 'notifications' };
+  const groups = { storeDocuments: 'store', tax: 'store', storeEcommerce: 'online', security: 'account', data: 'account', legal: 'information', billing: 'billing', support: 'help', sync: 'help', accountAlerts: 'notifications' };
   for (const [section, group] of Object.entries(groups)) {
     const h = createHarness({ params: { section } });
     h.effects.find((effect) => String(effect).includes('SETTINGS_SECTION_KEYS'))();
@@ -244,7 +267,7 @@ test('A settings response that arrives after leaving the account cannot replace 
   assert.deepEqual(h.values.settingsData.modules, {});
 });
 
-test('Android back returns to the six settings sections before leaving Settings', () => {
+test('Android back returns to the settings section list before leaving Settings', () => {
   const h = createHarness({ states: { starterSection: 'store' } });
   content(h);
   h.focusEffects.at(-1)();

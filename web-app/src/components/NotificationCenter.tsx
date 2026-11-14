@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Bell, CheckCheck, Circle } from 'lucide-react';
+import { X, Bell, CheckCheck, Circle, ExternalLink } from 'lucide-react';
 import { userNotifications, type UserNotification } from '../services/api';
+import { isAdminMessageActionUrl } from '../lib/adminMessageActionLink';
 
 interface NotificationCenterProps {
     isOpen: boolean;
@@ -151,9 +152,8 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
                     ) : (
                         <div className="space-y-2">
                             {notifications.map((notif) => (
-                                <button
+                                <article
                                     key={notif.message_id}
-                                    onClick={() => !notif.is_read && handleMarkRead(notif.message_id)}
                                     className={`w-full text-left p-4 rounded-2xl border transition-all ${
                                         notif.is_read
                                             ? 'bg-white/3 border-white/5 opacity-60'
@@ -165,15 +165,26 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
                                             <Circle size={8} className="text-primary fill-primary mt-1.5 shrink-0" />
                                         )}
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-white text-sm truncate">{notif.title}</p>
-                                            <p className="text-xs text-slate-400 mt-1 line-clamp-2">{notif.content}</p>
+                                            <button type="button" onClick={() => !notif.is_read && void handleMarkRead(notif.message_id)} className="block w-full text-left">
+                                                <span className="block font-bold text-white text-sm truncate">{notif.title}</span>
+                                                <span className="block text-xs text-slate-400 mt-1 line-clamp-2">{notif.content}</span>
+                                            </button>
+                                            {notif.action_link?.label && isAdminMessageActionUrl(notif.action_link.url) && (
+                                                <a
+                                                    href={notif.action_link.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={() => !notif.is_read && void handleMarkRead(notif.message_id)}
+                                                    className="mt-3 mr-2 inline-flex min-h-10 max-w-full items-center gap-2 rounded-lg border border-primary/50 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10"
+                                                >
+                                                    <ExternalLink size={14} className="shrink-0" />
+                                                    <span className="min-w-0 break-words">{notif.action_link.label}</span>
+                                                </a>
+                                            )}
                                             {notif.deeplink?.screen && (
                                                 <button
                                                     type="button"
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        openDestination(notif);
-                                                    }}
+                                                    onClick={() => openDestination(notif)}
                                                     className="mt-3 rounded-full bg-primary px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white hover:bg-primary/90"
                                                 >
                                                     Ouvrir
@@ -189,7 +200,7 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
                                             </div>
                                         </div>
                                     </div>
-                                </button>
+                                </article>
                             ))}
                         </div>
                     )}

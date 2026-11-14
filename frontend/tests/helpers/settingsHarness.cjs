@@ -15,7 +15,7 @@ function visit(node) {
   }
   ts.forEachChild(node, visit);
 }
-visit(ast);
+visit(ast.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === 'SettingsScreen').body);
 
 function createHarness(overrides = {}) {
   const effects = [];

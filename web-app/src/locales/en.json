@@ -1,4 +1,24 @@
 {
+  "analytics_filters": {
+    "title": "Filters",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "dates": "Dates",
+    "reset": "Reset",
+    "start": "Start date",
+    "end": "End date",
+    "apply": "Apply",
+    "date_error": "Choose a valid date range of up to 365 days.",
+    "loading": "Loading filters…",
+    "error": "Could not load filters.",
+    "retry": "Retry",
+    "store": "Store",
+    "category": "Category",
+    "supplier": "Supplier",
+    "default_store": "Active store",
+    "default_category": "All categories",
+    "default_supplier": "All suppliers"
+  },
   "abc": {
     "no_revenue": "No revenue generated during this period.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -2550,6 +2570,22 @@
     "whatsapp_not_installed": "WhatsApp is not installed on this device."
   },
   "home": {
+    "desktop_recommendation": "For the best experience with Stockman Web, we recommend signing in from a computer.",
+    "web_read_only": {
+      "badge": "View-only web access · {{plan}}",
+      "cta_upgrade": "Upgrade to Enterprise",
+      "cta_explain": "What changes with Enterprise?",
+      "consultation": "With Starter or Pro, you can view your data on the web. To make changes, use the mobile app or upgrade to Enterprise.",
+      "transition": "You keep your account, stores and data. Full web access is enabled once payment is confirmed.",
+      "price_unavailable": "Price unavailable",
+      "subscription_load_error": "Could not load subscription plans.",
+      "pricing_region": "Pricing region: {{region}}",
+      "billing_country_correction": "If a correction is needed, contact support before billing.",
+      "upgrade_card": "Upgrade to Enterprise by card ({{currency}})",
+      "upgrade_mobile_money": "Upgrade to Enterprise with Mobile Money ({{currency}})",
+      "retry": "Try again"
+    },
+    "mobile_menu": "Open menu",
     "recovery": {
       "badge": "Limited access",
       "title": "Your {{plan}} subscription requires attention",
@@ -2600,6 +2636,7 @@
       "or_continue": "Or continue with",
       "continue_google": "Google",
       "social_error": "Social sign-in failed.",
+      "mobile_link_error": "This sign-in link has expired or is no longer valid. Try again from the Stockman app or sign in here.",
       "create_account": "Need an Enterprise web account?",
       "create_account_link": "Create my Enterprise account",
       "compare_plans": "Compare plans",

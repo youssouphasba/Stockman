@@ -1093,7 +1093,20 @@ export default function Inventory() {
                 const updated = await productsApi.update(editingProduct.product_id, payload);
                 savedProductId = updated.product_id || editingProduct.product_id;
             } else {
-                const created = await productsApi.create(payload);
+                let created;
+                try {
+                    created = await productsApi.create(payload);
+                } catch (error) {
+                    if (!(error instanceof ApiError) || error.status !== 409) throw error;
+                    let conflict;
+                    try { conflict = JSON.parse(error.message); } catch { throw error; }
+                    if (conflict?.code !== 'potential_product_duplicate' || !Array.isArray(conflict.products)) throw error;
+                    const names = conflict.products.map(({ name, unit }: { name: string; unit?: string }) =>
+                        unit ? `${name} (${unit})` : name
+                    ).join('\n');
+                    if (!window.confirm(`${conflict.message}\n\n${names}`)) return;
+                    created = await productsApi.create({ ...payload, confirm_distinct_product: true });
+                }
                 savedProductId = created.product_id;
             }
 

@@ -5,9 +5,10 @@ import {
     Shield, Activity, Users, Store, AlertCircle, CheckCircle2,
     RefreshCw, TrendingUp, Globe, Search, MessageSquare,
     Lock, Unlock, Trash2, Crown, Clock, Package, Download, Filter,
-    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper, Brain, Rocket
+    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper, Brain, Rocket, Link2, ExternalLink
 } from 'lucide-react';
-import { admin as adminApi, setRefreshToken, setToken } from '../services/api';
+import { admin as adminApi, setRefreshToken, setToken, type AdminMessageActionLink } from '../services/api';
+import { ADMIN_MESSAGE_ACTION_LABEL_LIMIT, ADMIN_MESSAGE_ACTION_URL_LIMIT, isAdminMessageActionUrl } from '../lib/adminMessageActionLink';
 import AdminProductsPanel from './admin/AdminProductsPanel';
 import AdminCatalogPanel from './admin/AdminCatalogPanel';
 import AdminModulesPanel, { AccountModulesCard } from './admin/AdminModulesPanel';
@@ -339,6 +340,7 @@ export default function AdminDashboard() {
     const [guideTicketsOnly, setGuideTicketsOnly] = useState(false);
     const [messageHistory, setMessageHistory] = useState<any[]>([]);
     const [messageHistoryTotal, setMessageHistoryTotal] = useState(0);
+    const [broadcastActionLink, setBroadcastActionLink] = useState<AdminMessageActionLink | null>(null);
     const [broadcastForm, setBroadcastForm] = useState<{
         title: string;
         message: string;
@@ -476,6 +478,7 @@ export default function AdminDashboard() {
     };
 
     const openUserCommunication = (user: any) => {
+        setBroadcastActionLink(null);
         setBroadcastForm({
             title: '',
             message: '',
@@ -4162,6 +4165,32 @@ export default function AdminDashboard() {
                                     ))}
                                 </select>
                             </div>
+                            {broadcastForm.target !== 'anonymous_installations' && (
+                                broadcastActionLink ? (
+                                    <fieldset className="grid min-w-0 gap-3 rounded-lg border border-white/10 p-3">
+                                        <legend className="px-1 text-sm font-semibold">Bouton de lien</legend>
+                                        <button type="button" onClick={() => setBroadcastActionLink(null)} aria-label="Retirer le bouton de lien" title="Retirer le bouton de lien" className="justify-self-end rounded-lg p-2 hover:bg-white/10">
+                                            <X size={18} />
+                                        </button>
+                                        {(['label', 'url'] as const).map(field => (
+                                            <label key={field} className="grid min-w-0 gap-1.5 text-sm">
+                                                {field === 'label' ? 'Texte du bouton' : 'Adresse du lien (HTTPS)'}
+                                                <input
+                                                    type={field === 'url' ? 'url' : 'text'}
+                                                    maxLength={field === 'url' ? ADMIN_MESSAGE_ACTION_URL_LIMIT : ADMIN_MESSAGE_ACTION_LABEL_LIMIT}
+                                                    value={broadcastActionLink[field]}
+                                                    onChange={event => setBroadcastActionLink({ ...broadcastActionLink, [field]: event.target.value })}
+                                                    className="min-w-0 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-primary/50 focus:outline-none"
+                                                />
+                                            </label>
+                                        ))}
+                                    </fieldset>
+                                ) : (
+                                    <button type="button" onClick={() => setBroadcastActionLink({ label: '', url: '' })} className="flex min-h-11 items-center gap-2 self-start rounded-lg px-2 text-sm font-semibold text-primary hover:bg-primary/10">
+                                        <Link2 size={18} /> Ajouter un bouton de lien
+                                    </button>
+                                )
+                            )}
                             <div className="flex flex-col gap-3">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Canaux</label>
                                 <div className="flex flex-wrap gap-2">
@@ -4189,6 +4218,13 @@ export default function AdminDashboard() {
                             <button
                                 onClick={async () => {
                                     if (!broadcastForm.message.trim()) return;
+                                    const actionLink = broadcastForm.target !== 'anonymous_installations' && broadcastActionLink
+                                        ? { label: broadcastActionLink.label.trim(), url: broadcastActionLink.url.trim() }
+                                        : undefined;
+                                    if (actionLink && (!actionLink.label || !isAdminMessageActionUrl(actionLink.url))) {
+                                        showToast('Saisissez le texte du bouton et une adresse HTTPS valide.', 'error');
+                                        return;
+                                    }
                                     if (broadcastForm.target === 'specific' && !broadcastForm.targetUserIds.length) {
                                         showToast('Veuillez sélectionner au moins un utilisateur.', 'error');
                                         return;
@@ -4210,8 +4246,10 @@ export default function AdminDashboard() {
                                             installation_country_code: broadcastForm.target === 'anonymous_installations' && broadcastForm.installationCountry !== 'all' ? broadcastForm.installationCountry : undefined,
                                             installation_platform: broadcastForm.target === 'anonymous_installations' && broadcastForm.installationPlatform !== 'all' ? broadcastForm.installationPlatform : undefined,
                                             deeplink: selectedDestination?.deeplink,
+                                            action_link: actionLink,
                                         });
                                         showToast('Message envoyé.');
+                                        setBroadcastActionLink(null);
                                         setBroadcastForm({
                                             title: '',
                                             message: '',
@@ -4253,6 +4291,11 @@ export default function AdminDashboard() {
                                 <Bell size={24} className="text-primary" />
                                 <p className="text-white font-black text-sm">{broadcastForm.title || 'Titre du message'}</p>
                                 <p className="text-slate-500 text-xs px-4 leading-relaxed">{broadcastForm.message || 'Le contenu apparaîtra ici.'}</p>
+                                {broadcastForm.target !== 'anonymous_installations' && Boolean(broadcastActionLink?.label.trim()) && (
+                                    <span className="inline-flex max-w-full items-center gap-2 break-all rounded-lg border border-primary/50 px-3 py-2 text-xs font-semibold text-primary">
+                                        <ExternalLink size={14} className="shrink-0" /> {broadcastActionLink?.label.trim()}
+                                    </span>
+                                )}
                             </div>
                         </div>
                         <div className="glass-card overflow-hidden">
@@ -4292,6 +4335,11 @@ export default function AdminDashboard() {
                                                 </div>
                                                 <h5 className="text-sm font-bold text-white">{message.title || 'Sans titre'}</h5>
                                                 <p className="text-sm leading-relaxed text-slate-300">{message.content}</p>
+                                                {message.action_link?.label && typeof message.action_link.url === 'string' && isAdminMessageActionUrl(message.action_link.url) && (
+                                                    <a href={message.action_link.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex max-w-full items-center gap-2 break-all text-sm text-primary underline">
+                                                        <ExternalLink size={14} className="shrink-0" /> {message.action_link.label}
+                                                    </a>
+                                                )}
                                             </div>
                                             <div className="min-w-[180px] space-y-1 text-right">
                                                 <p className="text-xs text-slate-500">Cible</p>

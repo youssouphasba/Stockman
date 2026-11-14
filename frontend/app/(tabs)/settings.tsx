@@ -501,8 +501,8 @@ export default function SettingsScreen() {
   const canManageStoreSettings = isOrgAdmin;
   const canManageAlertSettings = isOrgAdmin;
   const canManageBillingSettings = showManagerZone && isBillingAdmin;
-  const canViewOrganizationGroup = canViewTeam || (showManagerZone && isOrgAdmin && hasEnterprisePlan) || canManageOrganizationSettings;
-  const canViewStoreGroup = canManageStoreSettings;
+  const canViewOrganizationGroup = (showManagerZone && isOrgAdmin && hasEnterprisePlan) || canManageOrganizationSettings;
+  const canViewStoreGroup = canManageStoreSettings || canViewTeam;
 
   const loadSettings = useCallback(async () => {
     const version = ++loadVersionRef.current;
@@ -1532,23 +1532,6 @@ export default function SettingsScreen() {
           styles={styles}
           colors={colors}
         >
-        {/* Team link (direct, no sub-dropdown) */}
-        {canViewTeam && (
-          <SettingsSlot sectionKey="team">
-          <Link href="/(tabs)/users" asChild>
-            <TouchableOpacity style={styles.supportRow}>
-              <View style={[styles.supportIconWrapper, { backgroundColor: colors.info }]}>
-                <Ionicons name="people" size={20} color="#fff" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.settingLabel}>{t('settings.users_permissions')}</Text>
-                <Text style={styles.settingDesc}>{t('settings.users_permissions_desc')}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          </Link>
-          </SettingsSlot>
-        )}
 
         {/* Modules */}
         {canManageOrganizationSettings && (
@@ -1591,6 +1574,25 @@ export default function SettingsScreen() {
           styles={styles}
           colors={colors}
         >
+        {canViewTeam && (
+          <SettingsSlot sectionKey="team">
+          <Link href="/(tabs)/users" asChild>
+            <TouchableOpacity style={styles.supportRow}>
+              <View style={[styles.supportIconWrapper, { backgroundColor: colors.info }]}>
+                <Ionicons name="people" size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>{t('settings.users_permissions')}</Text>
+                <Text style={styles.settingDesc}>{getCommercialPlan(user) === 'starter'
+                  ? t('users.starter_staff_locked')
+                  : t('settings.users_permissions_desc')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </Link>
+          </SettingsSlot>
+        )}
+
         {isOrgAdmin && currentStore && (
         <SettingsAccordionSection
           title={t('settings.section_store_identity')}

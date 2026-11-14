@@ -15,7 +15,8 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple
 import uuid
 import secrets
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
+from analytics_period import resolve_analytics_period
 from utils.i18n import i18n
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -82,7 +83,9 @@ from enterprise_access import (
 )
 from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, compute_theme_capabilities, legacy_theme_identity, resolve_model
 from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
+from admin_message_links import AdminMessageActionLink, render_admin_message_email_actions
 import onboarding_guide
+from product_name_matching import POTENTIAL_DUPLICATE_THRESHOLD, product_name_similarity
 import platform_modules
 import ai_health
 import fiscal_ledger
@@ -1051,6 +1054,7 @@ async def create_indexes_and_init():
                 await db.user_sessions.create_index("user_id")
                 await db.user_sessions.create_index("session_id", unique=True, sparse=True)
                 await db.user_sessions.create_index("refresh_jti", sparse=True)
+                await db.web_login_codes.create_index("expires_at", expireAfterSeconds=0)
                 await db.users.create_index([("is_demo", 1), ("demo_expires_at", 1)])
                 await db.users.create_index("demo_session_id")
                 await db.business_accounts.create_index([("is_demo", 1), ("demo_expires_at", 1)])
@@ -3241,6 +3245,7 @@ class ProductCreate(BaseModel):
     production_mode: str = "prepped"
     linked_recipe_id: Optional[str] = None
     force_override: bool = False
+    confirm_distinct_product: bool = False
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -4056,6 +4061,7 @@ class AdminMessage(BaseModel):
     read_by: List[str] = []
     delivery: Dict[str, Any] = Field(default_factory=dict)
     deeplink: Dict[str, Any] = Field(default_factory=dict)
+    action_link: Optional[AdminMessageActionLink] = None
 
 class AdminMessageCreate(BaseModel):
     title: str
@@ -4068,6 +4074,7 @@ class AdminMessageCreate(BaseModel):
     installation_country_code: Optional[str] = None
     installation_platform: Optional[str] = None
     deeplink: Dict[str, Any] = Field(default_factory=dict)
+    action_link: Optional[AdminMessageActionLink] = None
 
 
 class AdminNotificationSuggestionRequest(BaseModel):
@@ -11077,20 +11084,13 @@ async def _deliver_admin_message(message: AdminMessage, recipients: List[dict]) 
         )
     if "email" in channels:
         emails = [recipient.get("email") for recipient in recipients if recipient.get("email")]
-        action_url = build_admin_message_action_url(message.deeplink)
-        action_html = ""
-        action_text = ""
-        if action_url:
-            action_html = f"""
-        <p style="margin:20px 0;">
-            <a href="{escape(action_url)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Ouvrir dans Stockman</a>
-        </p>
-            """
-            action_text = f"\n\nOuvrir dans Stockman : {action_url}"
+        action_html, action_text = render_admin_message_email_actions(
+            build_admin_message_action_url(message.deeplink), message.action_link
+        )
         html_body = f"""
         <p>{escape(message.content).replace(chr(10), '<br>')}</p>
         {action_html}
-        <p style="color:#64748b;font-size:12px;">Message envoyÃ© par Stockman.</p>
+        <p style="color:#64748b;font-size:12px;">Message envoyé par Stockman.</p>
         """
         delivery["email"] = await notification_service.send_email_notification(
             emails,
@@ -15760,6 +15760,8 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
     if "in_app" not in channels:
         channels.insert(0, "in_app")
     if is_anonymous_installation_target(data.target):
+        if data.action_link:
+            raise HTTPException(status_code=400, detail="Un bouton de lien ne peut pas être ajouté à un envoi push seul.")
         channels = ["push"]
     msg = AdminMessage(
         type=data.type,
@@ -15769,7 +15771,8 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
         target_user_ids=list(dict.fromkeys([user_id.strip() for user_id in data.recipient_user_ids if user_id.strip()])),
         channels=channels,
         sent_by=user.name,
-        deeplink={str(key): value for key, value in (data.deeplink or {}).items() if value is not None and str(value).strip()}
+        deeplink={str(key): value for key, value in (data.deeplink or {}).items() if value is not None and str(value).strip()},
+        action_link=data.action_link,
     )
     if is_anonymous_installation_target(data.target):
         installations = await _resolve_admin_push_installations(
@@ -15783,7 +15786,10 @@ async def admin_send_message(data: AdminMessageCreate, user: User = Depends(requ
         recipients = await _resolve_admin_message_recipients(data.target, msg.target_user_ids)
         delivery = await _deliver_admin_message(msg, recipients)
     msg.delivery = delivery
-    await db.admin_messages.insert_one(msg.model_dump())
+    doc = msg.model_dump(exclude={"action_link"})
+    if msg.action_link:
+        doc["action_link"] = msg.action_link.model_dump(mode="json")
+    await db.admin_messages.insert_one(doc)
 
     # Log
     await db.activity_logs.insert_one({
@@ -16165,13 +16171,14 @@ TEXTE Ã€ PARSER :
             if not name:
                 continue
             sku = normalize_product_sku(parsed_product.get("barcode"))
-            if sku:
-                try:
+            try:
+                await ensure_unique_product_name(owner_id, user.active_store_id, name, user.language)
+                if sku:
                     await ensure_unique_product_sku(owner_id, user.active_store_id, sku)
-                except HTTPException as exc:
-                    if exc.status_code == 409:
-                        continue
-                    raise
+            except HTTPException as exc:
+                if exc.status_code == 409:
+                    continue
+                raise
             product_doc = normalize_product_measurement_fields({
                 "product_id": str(uuid.uuid4()),
                 "user_id": owner_id,
@@ -18462,6 +18469,56 @@ async def open_app_from_signed_link(t: str):
     return RedirectResponse(url=normalize_app_deeplink_url(deeplink), status_code=307)
 
 
+class WebLoginExchange(BaseModel):
+    code: str = Field(pattern=r"^[A-Za-z0-9_-]{43}$")
+
+
+@api_router.post("/auth/web-login/start")
+@limiter.limit("10/minute")
+async def start_web_login(request: Request, response: Response, user: User = Depends(require_auth)):
+    token = request.headers.get("Authorization", "").removeprefix("Bearer ")
+    if not token or user.role not in {"shopkeeper", "staff"} or user.is_demo:
+        raise HTTPException(status_code=403, detail="Ce compte ne peut pas ouvrir une session web depuis l’application.")
+    claims = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    code = secrets.token_urlsafe(32)
+    await db.web_login_codes.insert_one({
+        "_id": hashlib.sha256(code.encode("ascii")).hexdigest(),
+        "user_id": user.user_id,
+        "session_id": claims["sid"],
+        "auth_version": claims["av"],
+        "expires_at": datetime.now(timezone.utc) + timedelta(seconds=90),
+    })
+    response.headers["Cache-Control"] = "no-store"
+    return {"code": code}
+
+
+@api_router.post("/auth/web-login/exchange", response_model=TokenResponse)
+@limiter.limit("20/minute")
+async def exchange_web_login(request: Request, response: Response, data: WebLoginExchange):
+    grant = await db.web_login_codes.find_one_and_delete({
+        "_id": hashlib.sha256(data.code.encode("ascii")).hexdigest(),
+        "expires_at": {"$gt": datetime.now(timezone.utc)},
+    })
+    expired = HTTPException(status_code=401, detail="Ce lien de connexion a expiré ou a déjà été utilisé.")
+    if not grant:
+        raise expired
+    user_doc = await db.users.find_one({
+        "user_id": grant["user_id"], "is_active": {"$ne": False},
+        "role": {"$in": ["shopkeeper", "staff"]},
+    }, {"_id": 0})
+    source_session = await db.user_sessions.find_one({
+        "session_id": grant["session_id"], "user_id": grant["user_id"],
+    }, {"_id": 0, "session_id": 1, "revoked_at": 1})
+    if (not user_doc or user_doc.get("is_demo")
+            or normalize_auth_version(user_doc.get("auth_version")) != normalize_auth_version(grant["auth_version"])
+            or not is_active_session_doc(source_session)):
+        raise expired
+    user = await build_user_from_doc(user_doc, request=request)
+    tokens = await create_authenticated_session(user_doc, request, response)
+    response.headers["Cache-Control"] = "no-store"
+    return TokenResponse(access_token=tokens["access_token"], refresh_token=tokens["refresh_token"], user=user)
+
+
 @api_router.get("/auth/me")
 async def get_me(user: User = Depends(require_auth)):
     """Get current user info"""
@@ -20366,12 +20423,53 @@ async def ensure_unique_product_sku(
     if existing:
         raise HTTPException(status_code=409, detail="duplicate_sku_in_store")
 
+async def ensure_unique_product_name(owner_id, store_id, name, language, *, exclude_product_id=None):
+    words = (name or "").split()
+    if not words:
+        return
+    pattern = r"^\s*" + r"\s+".join(re.escape(word) for word in words) + r"\s*$"
+    query = {
+        "user_id": owner_id,
+        "store_id": store_id,
+        "is_active": {"$ne": False},
+        "name": {"$regex": pattern, "$options": "i"},
+    }
+    if exclude_product_id:
+        query["product_id"] = {"$ne": exclude_product_id}
+    if await db.products.find_one(query, {"_id": 1}):
+        raise HTTPException(status_code=409, detail=i18n.t("products.duplicate_name_in_store", language))
+
+
 @api_router.post("/products", response_model=Product)
 async def create_product(prod_data: ProductCreate, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
+    store_id = user.active_store_id
     if prod_data.location_id:
         ensure_enterprise_locations_allowed(user)
 
+    sku = normalize_product_sku(prod_data.sku)
+    await ensure_unique_product_name(owner_id, store_id, prod_data.name, user.language)
+    await ensure_unique_product_sku(owner_id, store_id, sku)
+    if not prod_data.confirm_distinct_product:
+        suggestions = []
+        async for candidate in db.products.find(
+            {"user_id": owner_id, "store_id": store_id, "is_active": {"$ne": False}},
+            {"_id": 0, "name": 1, "display_unit": 1, "unit": 1},
+        ):
+            score = product_name_similarity(prod_data.name, candidate.get("name") or "")
+            if score >= POTENTIAL_DUPLICATE_THRESHOLD:
+                suggestions.append((score, candidate))
+                suggestions.sort(key=lambda item: item[0], reverse=True)
+                del suggestions[3:]
+        if suggestions:
+            raise HTTPException(status_code=409, detail={
+                "code": "potential_product_duplicate",
+                "products": [
+                    {"name": item["name"], "unit": item.get("display_unit") or item.get("unit")}
+                    for _, item in suggestions
+                ],
+                "message": i18n.t("products.potential_duplicate_create", user.language),
+            })
     # Compress product image (I16)
     if prod_data.image:
         prod_data.image = compress_image_base64(prod_data.image)
@@ -20381,9 +20479,10 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
     if prod_data.production_mode in ("on_demand", "hybrid"):
         prod_data.is_menu_item = True
 
-    product_payload = normalize_product_measurement_fields(prod_data.model_dump(exclude={"force_override"}))
-    product_payload["sku"] = normalize_product_sku(product_payload.get("sku"))
-    await ensure_unique_product_sku(owner_id, user.active_store_id, product_payload.get("sku"))
+    product_payload = normalize_product_measurement_fields(
+        prod_data.model_dump(exclude={"force_override", "confirm_distinct_product"})
+    )
+    product_payload["sku"] = sku
     product = Product(
         **product_payload,
         user_id=owner_id,
@@ -20452,6 +20551,15 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
             current_product.get("store_id") or user.active_store_id,
             update_dict.get("sku"),
             exclude_product_id=product_id,
+        )
+
+    current_name = current_product.get("name") or ""
+    next_name = update_dict.get("name", current_name)
+    name_changed = " ".join((next_name or "").casefold().split()) != " ".join(current_name.casefold().split())
+    reactivating = current_product.get("is_active") is False and update_dict.get("is_active") is True
+    if reactivating or (name_changed and update_dict.get("is_active", current_product.get("is_active")) is not False):
+        await ensure_unique_product_name(
+            owner_id, current_product.get("store_id"), next_name, user.language, exclude_product_id=product_id,
         )
 
     if "purchase_price" in update_dict and not force_override:
@@ -20880,6 +20988,9 @@ async def restore_product(product_id: str, user: User = Depends(require_permissi
     if product.get("is_active") is not False:
         return _product_response_for_user(user, product)
 
+    await ensure_unique_product_name(
+        owner_id, product.get("store_id"), product.get("name"), user.language, exclude_product_id=product_id,
+    )
     now = datetime.now(timezone.utc)
     await db.products.update_one(
         {"product_id": product_id, "user_id": owner_id},
@@ -25859,7 +25970,7 @@ def build_current_sales_rows(snapshot: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     for sale in snapshot["sales_docs"]:
         sale_date = parse_analytics_datetime(sale.get("created_at"))
-        if not sale_date or sale_date < current_start:
+        if not sale_date or not current_start <= sale_date < snapshot["current_end"]:
             continue
 
         revenue = 0.0
@@ -26073,16 +26184,21 @@ async def build_analytics_snapshot(
     store_id: Optional[str] = None,
     category_id: Optional[str] = None,
     supplier_id: Optional[str] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ) -> Dict[str, Any]:
     owner_id = get_owner_id(user)
     # Default to active store so analytics reflect the selected store
     effective_store_id = store_id or user.active_store_id
     normalized_days = normalize_analytics_days(days)
     now = datetime.now(timezone.utc)
-    current_start = now - timedelta(days=normalized_days)
-    previous_start = current_start - timedelta(days=normalized_days)
+    try:
+        previous_start, current_start, current_end, normalized_days = resolve_analytics_period(
+            now, normalized_days, start_date, end_date,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     dormant_start = now - timedelta(days=30)
-    sales_window_start = min(previous_start, dormant_start)
 
     stores = await load_accessible_stores(user)
     if effective_store_id:
@@ -26125,9 +26241,15 @@ async def build_analytics_snapshot(
 
     sales_query: Dict[str, Any] = {
         "user_id": owner_id,
-        "created_at": {"$gte": sales_window_start, "$lt": now},
         "$or": [{"status": {"$exists": False}}, {"status": "completed"}],
     }
+    if previous_start <= now and current_end >= dormant_start:
+        sales_query["created_at"] = {"$gte": min(previous_start, dormant_start), "$lt": max(now, current_end)}
+    else:
+        sales_query["$and"] = [{"$or": [
+            {"created_at": {"$gte": previous_start, "$lt": current_end}},
+            {"created_at": {"$gte": dormant_start, "$lt": now}},
+        ]}]
     sales_query = apply_accessible_store_scope(sales_query, user, effective_store_id)
     sales_docs = await db.sales.find(sales_query, {"_id": 0}).to_list(10000)
     if visible_store_ids:
@@ -26165,9 +26287,9 @@ async def build_analytics_snapshot(
             continue
 
         bucket = None
-        if sale_date >= current_start:
+        if current_start <= sale_date < current_end:
             bucket = "current"
-        elif sale_date >= previous_start:
+        elif previous_start <= sale_date < current_start:
             bucket = "previous"
 
         sale_id = sale.get("sale_id")
@@ -26193,7 +26315,7 @@ async def build_analytics_snapshot(
             line_cogs = purchase_price * quantity
             line_gross_profit = line_revenue - (purchase_price * quantity)
 
-            if sale_date >= dormant_start and product_id:
+            if dormant_start <= sale_date < now and product_id:
                 sold_product_ids_30d.add(product_id)
 
             if bucket == "current":
@@ -26316,6 +26438,7 @@ async def build_analytics_snapshot(
         "currency": user.currency or "XOF",
         "scope_label": scope_label,
         "current_start": current_start,
+        "current_end": current_end,
         "previous_start": previous_start,
         "now": now,
         "stores": stores,
@@ -26380,6 +26503,8 @@ async def get_executive_overview(
     category_id: Optional[str] = None,
     supplier_id: Optional[str] = None,
     user: User = Depends(require_operational_access),
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ):
     snapshot = await build_analytics_snapshot(
         user,
@@ -26387,6 +26512,8 @@ async def get_executive_overview(
         store_id=store_id,
         category_id=category_id,
         supplier_id=supplier_id,
+        start_date=start_date,
+        end_date=end_date,
     )
     summary_metrics = snapshot["summary_metrics"]
     revenue_delta = compute_delta_ratio(snapshot["current_revenue"], snapshot["previous_revenue"])
@@ -26451,6 +26578,8 @@ async def get_analytics_store_comparison(
     category_id: Optional[str] = None,
     supplier_id: Optional[str] = None,
     user: User = Depends(require_org_admin),
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ):
     snapshot = await build_analytics_snapshot(
         user,
@@ -26458,6 +26587,8 @@ async def get_analytics_store_comparison(
         store_id=store_id,
         category_id=category_id,
         supplier_id=supplier_id,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     rows = []
@@ -26520,6 +26651,8 @@ async def get_stock_health(
     category_id: Optional[str] = None,
     supplier_id: Optional[str] = None,
     user: User = Depends(require_permission("stock", "read")),
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ):
     snapshot = await build_analytics_snapshot(
         user,
@@ -26527,6 +26660,8 @@ async def get_stock_health(
         store_id=store_id,
         category_id=category_id,
         supplier_id=supplier_id,
+        start_date=start_date,
+        end_date=end_date,
     )
     now = datetime.now(timezone.utc)
     expiry_cutoff = now + timedelta(days=30)
@@ -26634,6 +26769,8 @@ async def get_stock_abc_analysis(
     category_id: Optional[str] = None,
     supplier_id: Optional[str] = None,
     user: User = Depends(require_permission("stock", "read")),
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ):
     snapshot = await build_analytics_snapshot(
         user,
@@ -26641,6 +26778,8 @@ async def get_stock_abc_analysis(
         store_id=store_id,
         category_id=category_id,
         supplier_id=supplier_id,
+        start_date=start_date,
+        end_date=end_date,
     )
     product_map = snapshot["product_map"]
     products_ranked = sorted(snapshot["top_products"].values(), key=lambda item: item["revenue"], reverse=True)
@@ -26700,6 +26839,8 @@ async def get_analytics_kpi_details(
     category_id: Optional[str] = None,
     supplier_id: Optional[str] = None,
     user: User = Depends(require_operational_access),
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ):
     if context == "multi_stores" and not is_org_admin_user(user):
         raise HTTPException(status_code=403, detail="Acces org admin requis")
@@ -26710,6 +26851,8 @@ async def get_analytics_kpi_details(
         store_id=store_id,
         category_id=category_id,
         supplier_id=supplier_id,
+        start_date=start_date,
+        end_date=end_date,
     )
     scope_label = snapshot.get("scope_label") or "selection courante"
     product_rows = build_product_metric_rows(snapshot)

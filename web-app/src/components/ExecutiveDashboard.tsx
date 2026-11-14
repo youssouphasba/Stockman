@@ -68,19 +68,22 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
         : `${filters.days} derniers jours`;
 
     useEffect(() => {
+        let cancelled = false;
         const loadOverview = async () => {
             setLoading(true);
             setError(null);
             try {
                 const response = await analytics.getExecutiveOverview(analyticsFilters);
-                setOverview(response);
+                if (!cancelled) setOverview(response);
             } catch (err) {
+                if (cancelled) return;
                 console.error(err);
                 setError("Impossible de charger le cockpit executif.");
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
 
+            if (cancelled) return;
             Promise.allSettled([
                 aiApi.businessHealthScore(analyticsFilters),
                 aiApi.dashboardPrediction({
@@ -90,6 +93,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                 }),
                 aiApi.contextualTips(),
             ]).then(([healthRes, predictionRes, tipsRes]) => {
+                if (cancelled) return;
                 if (healthRes.status === 'fulfilled') setHealthScore(healthRes.value);
                 if (predictionRes.status === 'fulfilled') setPrediction(predictionRes.value);
                 if (tipsRes.status === 'fulfilled') setContextualTips(tipsRes.value?.tips || []);
@@ -97,6 +101,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
         };
 
         loadOverview();
+        return () => { cancelled = true; };
     }, [filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange]);
 
     if (loading && !overview) {

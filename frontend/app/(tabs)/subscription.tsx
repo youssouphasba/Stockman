@@ -17,12 +17,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
 import { subscription, SubscriptionData } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { purchaseStarter, purchasePro, restorePurchases, isPurchasesAvailable } from '../../services/purchases';
 import { COUNTRIES } from '../../constants/countries';
 import { getFlagFromCountryCode } from '../../utils/flags';
+import { openStockmanWebLogin } from '../../utils/openStockmanWebLogin';
 
 type PlanKey = 'starter' | 'pro' | 'enterprise';
 
@@ -70,6 +72,11 @@ const PLANS: PlanConfig[] = [
     },
 ];
 
+const EXTRA_PLAN_BENEFITS = {
+    pro: ['pro_team_benefit', 'advanced_catalog_audit', 'business_anomaly_detection'],
+    enterprise: ['enterprise_benefits.stores', 'enterprise_benefits.team', 'enterprise_benefits.web', 'enterprise_benefits.analytics', 'enterprise_benefits.locations', 'enterprise_benefits.advanced_stock', 'enterprise_benefits.support'],
+} as const;
+
 function formatDemoTypeLabel(demoType: string | null | undefined, t: (key: string) => string) {
     switch (demoType) {
         case 'retail':
@@ -87,14 +94,14 @@ export default function SubscriptionScreen() {
     const { t, i18n } = useTranslation();
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { user, restoreSession } = useAuth();
+    const { user, restoreSession, isBillingAdmin } = useAuth();
     const { colors, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
     const [loading, setLoading] = useState(true);
     const [payLoading, setPayLoading] = useState(false);
     const [data, setData] = useState<SubscriptionData | null>(null);
-    const [selectedPlan, setSelectedPlan] = useState<PlanKey>('pro');
+    const [selectedPlan, setSelectedPlan] = useState<PlanKey>('enterprise');
 
     const legalReturnRoute = '/(tabs)/subscription';
     const isNative = Platform.OS !== 'web';
@@ -170,13 +177,13 @@ export default function SubscriptionScreen() {
     const activePlanConfig = PLANS.find((plan) => plan.key === currentPlan);
     const selectedPlanConfig = PLANS.find((plan) => plan.key === selectedPlan) ?? PLANS[1];
     const isSelectedPlanCurrent = Boolean(isActive && !isFreeTrial && currentPlan === selectedPlan);
-    const shouldShowPurchaseAction = !isEnterpriseManagedOnWeb && selectedPlan !== 'enterprise' && !isSelectedPlanCurrent;
+    const shouldShowPurchaseAction = isBillingAdmin && !data?.is_demo && !isEnterpriseManagedOnWeb && selectedPlan !== 'enterprise' && !isSelectedPlanCurrent;
     const billingCountry = COUNTRIES.find((country) => country.code === (data?.country_code || user?.country_code)) || COUNTRIES[0];
-    const selectedPrice = data?.effective_prices?.[selectedPlan]?.display_price || (
-        useMobileMoney ? `${selectedPlanConfig.priceXOF} ${t('common.currency_default')}` : selectedPlanConfig.priceEUR
+    const getPlanPrice = (plan: PlanConfig) => data?.effective_prices?.[plan.key]?.display_price || (
+        useMobileMoney ? `${plan.priceXOF} ${t('common.currency_default')}` : plan.priceEUR
     );
+    const selectedPrice = getPlanPrice(selectedPlanConfig);
     const storeLabel = isIOS ? t('subscription.store_app_store') : t('subscription.store_google_play');
-    const headerGradient: [string, string] = activePlanConfig ? activePlanConfig.gradient : ['#3B82F6', '#2563EB'];
     const planLabel = activePlanConfig
         ? (t(activePlanConfig.labelKey) || activePlanConfig.key.charAt(0).toUpperCase() + activePlanConfig.key.slice(1))
         : t('subscription.plan_starter');
@@ -244,8 +251,16 @@ export default function SubscriptionScreen() {
         }
     };
 
-    const handleEnterpriseContact = async () => {
-        await WebBrowser.openBrowserAsync('https://app.stockman.pro/features');
+    const handleEnterpriseWeb = async () => {
+        try {
+            if (isNative) {
+                await openStockmanWebLogin();
+            } else {
+                await WebBrowser.openBrowserAsync(new URL('/#subscription', Constants.expoConfig?.extra?.webAppUrl).toString());
+            }
+        } catch {
+            Alert.alert(t('common.error'), t('subscription.web_open_error'));
+        }
     };
 
     const handleRestorePurchases = async () => {
@@ -292,182 +307,86 @@ export default function SubscriptionScreen() {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
-            <LinearGradient colors={headerGradient} style={[styles.header, { paddingTop: insets.top + 20 }]}>
-                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>{t('subscription.title')}</Text>
-                <View style={styles.planBadge}>
-                    <Text style={styles.planBadgeText}>
-                        {planLabel}
-                        {isFreeTrial ? ` (${t('subscription.free_trial')})` : ''}
-                    </Text>
-                </View>
-                {isFreeTrial ? (
-                    <Text style={styles.trialDaysText}>
-                        {t('subscription.trial_remaining', { count: remainingDays })}
-                    </Text>
-                ) : null}
-            </LinearGradient>
-
             <View style={styles.content}>
-                {accessPhase !== 'active' ? (
-                    <View style={[styles.card, styles.attentionCard]}>
-                        <Text style={styles.sectionTitle}>Continuité d&apos;activité</Text>
-                        <Text style={styles.cardSubtitle}>
-                            Votre compte est actuellement en phase {accessPhase}. Vous pouvez continuer à utiliser l&apos;application sans perdre vos données, puis régulariser le paiement dès que possible.
-                        </Text>
-                        {data?.grace_until ? (
-                            <Text style={styles.helperText}>
-                                Fin de grâce : {new Date(data.grace_until).toLocaleDateString('fr-FR')}
-                            </Text>
-                        ) : null}
-                        {data?.read_only_after ? (
-                            <Text style={styles.helperText}>
-                                Passage en lecture seule : {new Date(data.read_only_after).toLocaleDateString('fr-FR')}
-                            </Text>
-                        ) : null}
-                    </View>
-                ) : null}
-
-                {data?.is_demo ? (
-                    <View style={[styles.card, styles.demoCard]}>
-                        <View style={styles.demoHeader}>
-                            <Ionicons name="time-outline" size={22} color="#38BDF8" />
-                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('subscription.demo_active', 'Session démo active')}</Text>
-                        </View>
-                        <Text style={styles.cardSubtitle}>
-                            Type : {formatDemoTypeLabel(data.demo_type, t)} · Surface : {data.demo_surface || 'mobile'}
-                        </Text>
-                        {Platform.OS !== 'ios' ? (
-                            <Text style={styles.helperText}>
-                                {t('subscription.expiration', 'Expiration')} : {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleDateString(i18n.language) : t('subscription.not_specified', 'Non renseignée')}
+                <View style={styles.header}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('common.back')} style={styles.backButton} onPress={() => router.back()}>
+                        <Ionicons name="arrow-back" size={22} color={colors.text} />
+                    </TouchableOpacity>
+                    <View style={styles.headerCopy}>
+                        <Text style={styles.headerTitle}>{t('subscription.title')}</Text>
+                        {activePlanConfig ? (
+                            <Text style={styles.cardSubtitle}>
+                                {planLabel} · {isFreeTrial
+                                    ? t('subscription.trial_remaining', { count: remainingDays, days: remainingDays })
+                                    : isActive
+                                        ? t('subscription.plan_active')
+                                        : t('subscription.no_active_plan')}
                             </Text>
                         ) : null}
                     </View>
-                ) : null}
+                </View>
 
-                {activePlanConfig ? (
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>{t('subscription.current_plan', 'Votre plan actuel')}</Text>
-                        <View style={styles.currentPlanRow}>
-                            <LinearGradient colors={activePlanConfig.gradient} style={styles.currentPlanIcon}>
-                                <Ionicons name={activePlanConfig.icon as any} size={22} color="white" />
-                            </LinearGradient>
-                            <View style={styles.currentPlanCopy}>
-                                <Text style={styles.currentPlanName}>{planLabel}</Text>
-                                <Text style={styles.cardSubtitle}>
-                                    {isFreeTrial
-                                        ? t('subscription.trial_remaining', { defaultValue: 'Essai gratuit en cours, {{days}} jour(s) restant(s).', days: remainingDays })
-                                        : isActive
-                                            ? t('subscription.plan_active', 'Plan actuellement actif sur votre compte.')
-                                            : t('subscription.no_active_plan', 'Aucun abonnement actif confirmé pour le moment.')}
-                                </Text>
-                            </View>
-                        </View>
-                        {data?.subscription_end ? (
-                            <Text style={styles.renewalText}>
-                                {t('subscription.renewal', { date: new Date(data.subscription_end).toLocaleDateString(i18n.language) })}
-                                {data.subscription_provider === 'flutterwave' ? t('subscription.mobile_money_label') : ''}
-                            </Text>
-                        ) : null}
-                    </View>
-                ) : null}
-
-                {isEnterpriseManagedOnWeb ? (
-                    <View style={[styles.card, styles.enterpriseManagedCard]}>
-                        <Text style={styles.sectionTitle}>Gestion Enterprise</Text>
-                        <Text style={styles.cardSubtitle}>
-                            Votre compte Enterprise se gère depuis le web. Les achats intégrés mobile et la restauration Google Play ou App Store ne modifient pas cette formule.
-                        </Text>
+                <View style={styles.planCards} accessibilityRole="tablist">
+                    {PLANS.map((plan) => (
                         <TouchableOpacity
-                            style={[styles.payButton, { backgroundColor: '#7C3AED' }]}
-                            onPress={handleEnterpriseContact}
+                            key={plan.key}
+                            accessibilityRole="tab"
+                            accessibilityState={{ selected: selectedPlan === plan.key }}
+                            style={[styles.planTab, plan.key === 'enterprise' && styles.recommendedTab, selectedPlan === plan.key && styles.planTabSelected]}
+                            onPress={() => setSelectedPlan(plan.key)}
                         >
-                            <Ionicons name="open-outline" size={22} color="white" />
-                            <Text style={styles.payButtonText}>Ouvrir la gestion web</Text>
+                            <Text style={styles.planTabName}>{t(plan.labelKey)}</Text>
+                            <Text style={styles.planTabPrice}>{getPlanPrice(plan)}</Text>
                         </TouchableOpacity>
-                    </View>
-                ) : null}
-
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>{t('subscription.billing_country_title') || 'Pays et devise'}</Text>
-                    <Text style={styles.cardSubtitle}>{t('subscription.billing_country_locked')}</Text>
-                    <View style={styles.pickerWrapper}>
-                        <Ionicons name="globe-outline" size={18} color={colors.textMuted} />
-                        <Text style={styles.pickerLabel}>{getFlagFromCountryCode(billingCountry.code)}</Text>
-                        <Text style={styles.pickerValue}>{billingCountry.name} ({billingCountry.currency})</Text>
-                    </View>
-                    <Text style={styles.helperText}>
-                        {t('subscription.billing_region', { region: data?.pricing_region || 'fallback' })}
-                    </Text>
-                    <Text style={styles.helperText}>{t('subscription.billing_country_support')}</Text>
+                    ))}
                 </View>
 
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Comparer les offres</Text>
-                    <Text style={styles.cardSubtitle}>
-                        Consultez votre formule actuelle et les autres plans avant de lancer un changement.
-                    </Text>
-                    <View style={styles.planCards}>
-                        {PLANS.map((plan) => {
-                            const price = data?.effective_prices?.[plan.key]?.display_price || (
-                                useMobileMoney ? `${plan.priceXOF} ${t('common.currency_default')}` : plan.priceEUR
-                            );
-                            const isSelected = selectedPlan === plan.key;
-                            const isCurrentPlan = currentPlan === plan.key && isActive && !isFreeTrial;
-                            return (
-                                <TouchableOpacity
-                                    key={plan.key}
-                                    style={[styles.planCard, isSelected && styles.planCardSelected]}
-                                    onPress={() => setSelectedPlan(plan.key)}
-                                    activeOpacity={0.85}
-                                >
-                                    <View style={styles.planBadgeRow}>
-                                        {isCurrentPlan ? (
-                                            <View style={[styles.inlineBadge, styles.currentBadge]}>
-                                                <Text style={[styles.inlineBadgeText, styles.currentBadgeText]}>Actuel</Text>
-                                            </View>
-                                        ) : null}
-                                        {plan.key === 'pro' ? (
-                                            <View style={[styles.inlineBadge, styles.popularBadgeInline]}>
-                                                <Text style={styles.inlineBadgeText}>{t('subscription.popular')}</Text>
-                                            </View>
-                                        ) : null}
-                                        {isIOS && plan.key === 'enterprise' ? (
-                                            <View style={[styles.inlineBadge, styles.infoBadge]}>
-                                                <Text style={[styles.inlineBadgeText, styles.infoBadgeText]}>Info</Text>
-                                            </View>
-                                        ) : null}
-                                    </View>
-                                    <LinearGradient colors={plan.gradient} style={styles.planCardIcon}>
-                                        <Ionicons name={plan.icon as any} size={22} color="white" />
-                                    </LinearGradient>
-                                    <Text style={styles.planCardName}>{t(plan.labelKey) || plan.key}</Text>
-                                    <Text style={styles.planCardPrice}>
-                                        {price}{t('subscription.per_month')}
-                                    </Text>
-                                    <View style={styles.planCardDetails}>
-                                        <Text style={styles.planCardDetail}>• {plan.stores} {t('subscription.features.stores')}</Text>
-                                        <Text style={styles.planCardDetail}>• {plan.users} {t('subscription.features.users')}</Text>
-                                        <Text style={styles.planCardDetail}>
-                                            • {plan.key === 'enterprise'
-                                                ? 'Gestion web avancée, gouvernance multi-boutiques et accompagnement dédié.'
-                                                : "Gestion et paiement directement depuis l'application."}
-                                        </Text>
-                                    </View>
-                                    {isSelected ? (
-                                        <View style={styles.selectedCheck}>
-                                            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                                        </View>
-                                    ) : null}
-                                </TouchableOpacity>
-                            );
-                        })}
+                <View style={[styles.planCard, selectedPlan === 'enterprise' && styles.recommendedCard]}>
+                    <View style={styles.planBadgeRow}>
+                        {selectedPlan === 'enterprise' && (
+                            <Text style={styles.recommendedLabel}>{t('subscription.recommended')}</Text>
+                        )}
+                        {isSelectedPlanCurrent && <Text style={styles.currentLabel}>{t('subscription.current_plan')}</Text>}
                     </View>
+                    <View style={styles.planHeading}>
+                        <LinearGradient colors={selectedPlanConfig.gradient} style={styles.planCardIcon}>
+                            <Ionicons name={selectedPlanConfig.icon as any} size={20} color="white" />
+                        </LinearGradient>
+                        <View style={styles.headerCopy}>
+                            <Text style={styles.planCardName}>{t(selectedPlanConfig.labelKey)}</Text>
+                            <Text style={styles.planCardPrice}>{selectedPrice}{t('subscription.per_month')}</Text>
+                        </View>
+                    </View>
+                    <View style={styles.planCardDetails}>
+                        {selectedPlan !== 'starter' && (
+                            <Text accessibilityRole="header" style={styles.planCardName}>{t('subscription.beyond_starter')}</Text>
+                        )}
+                        {(selectedPlan === 'starter'
+                            ? [
+                                `${selectedPlanConfig.stores} ${t('subscription.features.stores')}`,
+                                `${selectedPlanConfig.users} ${t('subscription.features.users')}`,
+                                t('subscription.starter_operations_benefit'),
+                            ]
+                            : [
+                                ...(selectedPlan === 'pro' ? [t('subscription.pro_store_limit', { count: Number(selectedPlanConfig.stores) })] : []),
+                                ...EXTRA_PLAN_BENEFITS[selectedPlan].map((feature) => t(`subscription.${feature}`, { users: selectedPlanConfig.users })),
+                            ]
+                        ).map((feature) => (
+                            <View key={feature} style={styles.featureRow}>
+                                <Ionicons name="checkmark" size={17} color={colors.primary} />
+                                <Text style={styles.planCardDetail}>{feature}</Text>
+                            </View>
+                        ))}
+                    </View>
+                    {selectedPlan === 'enterprise' && isBillingAdmin && !data?.is_demo ? (
+                        <TouchableOpacity accessibilityRole="link" style={[styles.payButton, styles.enterpriseButton]} onPress={handleEnterpriseWeb}>
+                            <Ionicons name="open-outline" size={18} color="white" />
+                            <Text style={styles.payButtonText}>{t(isNative ? 'subscription.discover_enterprise' : 'subscription.enterprise_manage_web')}</Text>
+                        </TouchableOpacity>
+                    ) : null}
                 </View>
 
-                {shouldShowPurchaseAction ? (
+                {isNative && shouldShowPurchaseAction ? (
                     <View style={styles.card}>
                         <Text style={styles.sectionTitle}>
                             {isActive && !isFreeTrial
@@ -483,7 +402,7 @@ export default function SubscriptionScreen() {
                         </Text>
                         {isNative ? (
                             <TouchableOpacity
-                                style={[styles.payButton, { backgroundColor: selectedPlanConfig.gradient[0] }]}
+                                style={[styles.payButton, { backgroundColor: selectedPlanConfig.gradient[1] }]}
                                 onPress={() => handleRevenueCatPurchase(selectedPlan)}
                                 disabled={payLoading}
                             >
@@ -530,51 +449,62 @@ export default function SubscriptionScreen() {
                     </View>
                 ) : null}
 
-                {isSelectedPlanCurrent ? (
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>Plan déjà actif</Text>
+                {accessPhase !== 'active' ? (
+                    <View style={[styles.card, styles.attentionCard]}>
+                        <Text style={styles.sectionTitle}>Continuité d&apos;activité</Text>
                         <Text style={styles.cardSubtitle}>
-                            Cette formule est déjà appliquée à votre compte. Sélectionnez une autre offre pour la comparer ou utilisez la restauration si vous réinstallez l'application.
+                            Votre compte est actuellement en phase {accessPhase}. Vous pouvez continuer à utiliser l&apos;application sans perdre vos données, puis régulariser le paiement dès que possible.
                         </Text>
-                    </View>
-                ) : null}
-
-                {selectedPlan === 'enterprise' ? (
-                    <View style={styles.card}>
-                        <View style={styles.enterpriseHeader}>
-                            <Ionicons name="business-outline" size={24} color="#7C3AED" />
-                            <Text style={[styles.sectionTitle, styles.enterpriseTitle]}>
-                                {t('subscription.plan_enterprise') || 'Enterprise'}
+                        {data?.grace_until ? (
+                            <Text style={styles.helperText}>
+                                Fin de grâce : {new Date(data.grace_until).toLocaleDateString('fr-FR')}
                             </Text>
-                        </View>
-                        <Text style={styles.enterpriseDesc}>
-                            {isIOS
-                                ? t('subscription.enterprise_ios_desc', 'Le plan Enterprise est destiné aux équipes multi-boutiques avec pilotage web avancé. Cette page présente l\'offre sans afficher de parcours de paiement externe.')
-                                : (t('subscription.enterprise_contact_desc') || 'Pour accéder au plan Enterprise, ouvrez la présentation dédiée sur le web.')}
-                        </Text>
-                        {isIOS ? (
-                            <View style={styles.enterpriseInfoCard}>
-                                <Text style={styles.enterpriseInfoText}>
-                                    {t('subscription.enterprise_ios_features', 'Assistance dédiée, gouvernance multi-sites, back-office web avancé et accompagnement au déploiement.')}
-                                </Text>
-                            </View>
-                        ) : (
-                            <TouchableOpacity
-                                style={[styles.payButton, { backgroundColor: '#7C3AED' }]}
-                                onPress={handleEnterpriseContact}
-                            >
-                                <Ionicons name="open-outline" size={22} color="white" />
-                                <Text style={styles.payButtonText}>Découvrir Enterprise</Text>
-                            </TouchableOpacity>
-                        )}
+                        ) : null}
+                        {data?.read_only_after ? (
+                            <Text style={styles.helperText}>
+                                Passage en lecture seule : {new Date(data.read_only_after).toLocaleDateString('fr-FR')}
+                            </Text>
+                        ) : null}
                     </View>
                 ) : null}
 
-                {isNative && !isEnterpriseManagedOnWeb ? (
+                {data?.is_demo ? (
+                    <View style={[styles.card, styles.demoCard]}>
+                        <View style={styles.demoHeader}>
+                            <Ionicons name="time-outline" size={22} color="#38BDF8" />
+                            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('subscription.demo_active', 'Session démo active')}</Text>
+                        </View>
+                        <Text style={styles.cardSubtitle}>
+                            Type : {formatDemoTypeLabel(data.demo_type, t)} · Surface : {data.demo_surface || 'mobile'}
+                        </Text>
+                        {Platform.OS !== 'ios' ? (
+                            <Text style={styles.helperText}>
+                                {t('subscription.expiration', 'Expiration')} : {data.demo_expires_at ? new Date(data.demo_expires_at).toLocaleDateString(i18n.language) : t('subscription.not_specified', 'Non renseignée')}
+                            </Text>
+                        ) : null}
+                    </View>
+                ) : null}
+
+                {data?.subscription_end && (
+                    <Text style={styles.renewalText}>
+                        {t('subscription.renewal', { date: new Date(data.subscription_end).toLocaleDateString(i18n.language) })}
+                        {data.subscription_provider === 'flutterwave' ? t('subscription.mobile_money_label') : ''}
+                    </Text>
+                )}
+
+                {isNative && isBillingAdmin && !data?.is_demo && !isEnterpriseManagedOnWeb ? (
                     <TouchableOpacity style={styles.restoreButton} onPress={handleRestorePurchases}>
                         <Text style={styles.restoreText}>{t('subscription.restore_purchase')}</Text>
                     </TouchableOpacity>
                 ) : null}
+                <View style={styles.card}>
+                    <Text style={styles.sectionTitle}>{t('subscription.billing_country_title')}</Text>
+                    <View style={styles.pickerWrapper}>
+                        <Ionicons name="globe-outline" size={18} color={colors.textMuted} />
+                        <Text style={styles.pickerLabel}>{getFlagFromCountryCode(billingCountry.code)}</Text>
+                        <Text style={styles.pickerValue}>{billingCountry.name} ({billingCountry.currency})</Text>
+                    </View>
+                </View>
             </View>
         </ScrollView>
     );
@@ -585,16 +515,14 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgDark },
     loadingBack: { position: 'absolute', top: 60, left: 20, flexDirection: 'row', alignItems: 'center' },
     loadingBackText: { color: colors.primary, marginLeft: 8 },
-    header: { paddingHorizontal: 20, paddingBottom: 40, alignItems: 'center' },
-    backButton: { position: 'absolute', left: 20, top: 55, zIndex: 1 },
-    headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white', marginBottom: 8 },
-    planBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
-    planBadgeText: { color: 'white', fontWeight: '600', fontSize: 14 },
-    trialDaysText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 8 },
-    content: { marginTop: -20, paddingHorizontal: 16 },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+    backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    headerCopy: { flex: 1, minWidth: 0 },
+    headerTitle: { fontSize: 20, fontWeight: '700', color: colors.text },
+    content: { paddingHorizontal: 14, paddingTop: 8 },
     card: {
         backgroundColor: colors.card,
-        borderRadius: 16,
+        borderRadius: 8,
         padding: 16,
         marginBottom: 16,
         shadowColor: '#000',
@@ -602,10 +530,6 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 8,
         elevation: 2,
-    },
-    enterpriseManagedCard: {
-        borderWidth: 1,
-        borderColor: 'rgba(124, 58, 237, 0.28)',
     },
     attentionCard: {
         backgroundColor: isDark ? 'rgba(245,158,11,0.16)' : '#FEF3C7',
@@ -621,22 +545,12 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     cardSubtitle: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
     helperText: { fontSize: 12, color: isDark ? '#FCD34D' : '#92400E', marginTop: 8, lineHeight: 18 },
     demoHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-    currentPlanRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    currentPlanIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    currentPlanCopy: { flex: 1 },
-    currentPlanName: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 4 },
     renewalText: { fontSize: 13, color: colors.textSecondary, marginTop: 10, lineHeight: 18 },
     pickerWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.inputBg,
-        borderRadius: 12,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.divider,
         paddingHorizontal: 12,
@@ -646,43 +560,25 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     },
     pickerLabel: { color: colors.text, fontSize: 18 },
     pickerValue: { color: colors.text, fontSize: 14, flex: 1 },
-    planCards: { gap: 10 },
-    planCard: {
-        backgroundColor: colors.card,
-        borderRadius: 16,
-        padding: 14,
-        borderWidth: 2,
-        borderColor: colors.glassBorder,
-    },
-    planCardSelected: {
-        borderColor: colors.success,
-        backgroundColor: isDark ? colors.success + '20' : '#F0FDF4',
-    },
-    planBadgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, minHeight: 22, marginBottom: 10 },
-    inlineBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 999,
-    },
-    inlineBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
-    currentBadge: { backgroundColor: isDark ? 'rgba(16,185,129,0.22)' : '#DCFCE7' },
-    currentBadgeText: { color: isDark ? '#FFFFFF' : '#166534' },
-    popularBadgeInline: { backgroundColor: '#F59E0B' },
-    infoBadge: { backgroundColor: isDark ? 'rgba(124,58,237,0.24)' : '#EDE9FE' },
-    infoBadgeText: { color: isDark ? '#FFFFFF' : '#5B21B6' },
-    planCardIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    planCardName: { fontSize: 15, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
-    planCardPrice: { fontSize: 13, color: colors.textMuted, marginBottom: 10 },
-    planCardDetails: { gap: 4 },
-    planCardDetail: { fontSize: 12, color: colors.textSecondary, lineHeight: 18 },
-    selectedCheck: { position: 'absolute', top: 12, right: 12 },
+    planCards: { flexDirection: 'row', gap: 6, marginBottom: 10 },
+    planTab: { flex: 1, minWidth: 0, minHeight: 54, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3, paddingVertical: 5, borderWidth: 2, borderColor: colors.divider, borderRadius: 8 },
+    recommendedTab: { backgroundColor: colors.card, borderColor: colors.primary },
+    planTabSelected: { borderWidth: 2, borderColor: colors.primary, backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5' },
+    planTabName: { fontSize: 13, fontWeight: '700', color: colors.text, textAlign: 'center' },
+    planTabPrice: { fontSize: 11, color: colors.textSecondary, textAlign: 'center' },
+    planCard: { backgroundColor: colors.card, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.divider, marginBottom: 12 },
+    recommendedCard: { borderWidth: 2, borderColor: colors.primary, backgroundColor: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5' },
+    planBadgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    recommendedLabel: { fontSize: 12, fontWeight: '700', color: isDark ? '#A7F3D0' : '#065F46', marginBottom: 6 },
+    currentLabel: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
+    planHeading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    planCardIcon: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    planCardName: { fontSize: 16, fontWeight: '700', color: colors.text },
+    planCardPrice: { fontSize: 14, color: colors.textSecondary },
+    planCardDetails: { gap: 5, marginTop: 10 },
+    featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
+    planCardDetail: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
+    enterpriseButton: { backgroundColor: '#065F46', marginTop: 12 },
     payButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -692,22 +588,11 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         gap: 10,
         marginTop: 4,
     },
-    payButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+    payButtonText: { flexShrink: 1, textAlign: 'center', color: 'white', fontSize: 16, fontWeight: 'bold' },
     legalHint: { fontSize: 12, color: colors.textMuted, marginTop: 12, textAlign: 'center', lineHeight: 17 },
     legalLinksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10 },
     legalLink: { color: colors.primary, fontSize: 13, fontWeight: '600', textAlign: 'center' },
     legalSeparator: { color: colors.textMuted, fontSize: 13 },
-    enterpriseHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-    enterpriseTitle: { marginBottom: 0, color: '#7C3AED' },
-    enterpriseDesc: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 16 },
-    enterpriseInfoCard: {
-        backgroundColor: isDark ? 'rgba(124,58,237,0.16)' : '#F5F3FF',
-        borderRadius: 12,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: isDark ? 'rgba(124,58,237,0.24)' : '#DDD6FE',
-    },
-    enterpriseInfoText: { color: colors.text, fontSize: 14, lineHeight: 20 },
     restoreButton: { alignItems: 'center', paddingVertical: 12, marginBottom: 16 },
     restoreText: { color: colors.primary, fontSize: 14, fontWeight: '500' },
 });

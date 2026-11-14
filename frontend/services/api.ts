@@ -549,6 +549,7 @@ export const appVersion = {
 
 // Auth
 export const auth = {
+  startWebLogin: () => rawRequest<{ code: string }>('/auth/web-login/start', { method: 'POST' }),
   login: (email: string, password: string) =>
     request<AuthResponse>('/auth/login', {
       method: 'POST',
@@ -1876,6 +1877,7 @@ export const admin = {
     installation_country_code?: string;
     installation_platform?: string;
     deeplink?: Record<string, string>;
+    action_link?: AdminMessageActionLink;
   }) =>
     request<{ message_id: string; sent: boolean; delivery?: any }>('/admin/messages/send', { method: 'POST', body: data }),
   suggestNotificationMessage: (data: {
@@ -2060,6 +2062,8 @@ export const disputes = {
 };
 
 // User Notifications
+export type AdminMessageActionLink = { label: string; url: string };
+
 export type UserNotification = {
   message_id: string;
   type?: string;
@@ -2071,6 +2075,7 @@ export type UserNotification = {
   is_read?: boolean;
   read_count?: number;
   deeplink?: Record<string, string>;
+  action_link?: AdminMessageActionLink;
 };
 
 export const userNotifications = {
@@ -2495,6 +2500,7 @@ export type ProjectDashboard = {
 };
 
 export type ProductCreate = {
+  confirm_distinct_product?: boolean;
   name: string;
   description?: string;
   sku?: string;

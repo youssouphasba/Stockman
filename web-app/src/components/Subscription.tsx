@@ -1,6 +1,7 @@
 ﻿'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     AlertCircle,
     ArrowRight,
@@ -97,7 +98,12 @@ function isAllowedCheckoutUrl(rawUrl: string) {
     }
 }
 
-export default function Subscription() {
+export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseOfferShown }: {
+    enterpriseOfferRequest?: number;
+    onEnterpriseOfferShown?: () => void;
+}) {
+    const { t } = useTranslation();
+    const enterpriseOfferRef = useRef<HTMLDivElement>(null);
     const [subDetails, setSubDetails] = useState<SubscriptionData | null>(null);
     const [loading, setLoading] = useState(true);
     const [purchasing, setPurchasing] = useState<'flutterwave' | 'stripe' | null>(null);
@@ -109,6 +115,13 @@ export default function Subscription() {
     useEffect(() => {
         void loadSubDetails();
     }, []);
+
+    useEffect(() => {
+        if (loading || !enterpriseOfferRef.current || !enterpriseOfferRequest) return;
+        enterpriseOfferRef.current.scrollIntoView({ block: 'start' });
+        enterpriseOfferRef.current.focus({ preventScroll: true });
+        onEnterpriseOfferShown?.();
+    }, [enterpriseOfferRequest, loading, onEnterpriseOfferShown, subDetails]);
 
     const loadSubDetails = async () => {
         setLoading(true);
@@ -183,8 +196,12 @@ export default function Subscription() {
     }
     if (!subDetails) {
         return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A] text-slate-300">
-                Impossible de charger les informations d'abonnement.
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[#0F172A] p-8 text-center text-slate-300">
+                <p role="status">{t('home.web_read_only.subscription_load_error')}</p>
+                <button type="button" onClick={() => void loadSubDetails()} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary/15 px-3 font-semibold text-primary">
+                    <RefreshCw size={16} aria-hidden="true" />
+                    {t('home.web_read_only.retry')}
+                </button>
             </div>
         );
     }
@@ -201,8 +218,8 @@ export default function Subscription() {
         return {
             id: planId,
             name: planId.charAt(0).toUpperCase() + planId.slice(1),
-            price: quote.display_price || 'Prix a venir',
-            provider: quote.provider || subDetails.recommended_checkout_provider || 'stripe',
+            price: quote?.display_price || t('home.web_read_only.price_unavailable'),
+            provider: quote?.provider || subDetails.recommended_checkout_provider || 'stripe',
             ...PLAN_META[planId],
         };
     });
@@ -391,9 +408,11 @@ export default function Subscription() {
                         <div className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white">
                             {billingCountry.flag} {billingCountry.name}
                         </div>
-                        <p className="text-xs text-slate-500 mt-2">
-                            Region tarifaire : {subDetails.pricing_region || 'fallback'}
-                        </p>
+                        {subDetails.pricing_region && (
+                            <p className="mt-2 text-xs text-slate-500">
+                                {t('home.web_read_only.pricing_region', { region: subDetails.pricing_region })}
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm text-slate-400 mb-2">Devise de facturation</label>
@@ -401,7 +420,7 @@ export default function Subscription() {
                             {billingCountry.currency}
                         </div>
                         <p className="text-xs text-slate-500 mt-2">
-                            Si une correction est necessaire, elle doit passer par le support avant facturation.
+                            {t('home.web_read_only.billing_country_correction')}
                         </p>
                     </div>
                 </div>
@@ -411,6 +430,9 @@ export default function Subscription() {
                 {plans.map((plan) => (
                     <div
                         key={plan.id}
+                        ref={plan.id === 'enterprise' ? enterpriseOfferRef : undefined}
+                        tabIndex={plan.id === 'enterprise' ? -1 : undefined}
+                        aria-labelledby={`subscription-plan-${plan.id}`}
                         className={`glass-card p-8 flex flex-col gap-8 relative overflow-hidden group border-2 ${
                             plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade
                                 ? 'border-primary/40 shadow-2xl shadow-primary/10 ring-1 ring-primary/30'
@@ -428,7 +450,7 @@ export default function Subscription() {
                                 <plan.icon size={24} />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
+                                <h3 id={`subscription-plan-${plan.id}`} className="text-2xl font-bold text-white">{plan.name}</h3>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-3xl font-black text-white">{plan.price}</span>
                                     <span className="text-slate-500 text-sm font-medium">/ mois</span>
@@ -454,7 +476,7 @@ export default function Subscription() {
                             <div className="flex flex-col gap-3">
                                 {plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade && (
                                     <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-slate-200">
-                                        Le paiement Enterprise met à jour le compte actuel. L&apos;application web complète s&apos;active après confirmation du paiement.
+                                        {t('home.web_read_only.transition')}
                                     </div>
                                 )}
                                 <button
@@ -464,7 +486,7 @@ export default function Subscription() {
                                 >
                                     {purchasing === 'stripe' ? <RefreshCw className="animate-spin" size={18} /> : <CreditCard size={18} />}
                                     {plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade
-                                        ? `Passer à Enterprise par carte (${currency})`
+                                        ? t('home.web_read_only.upgrade_card', { currency })
                                         : `Payer par carte bancaire (${currency})`} <ArrowRight size={16} />
                                 </button>
                                 {canUseMobileMoney ? (
@@ -475,7 +497,7 @@ export default function Subscription() {
                                     >
                                         {purchasing === 'flutterwave' ? <RefreshCw className="animate-spin" size={18} /> : <Smartphone size={18} />}
                                         {plan.id === 'enterprise' && shouldHighlightEnterpriseUpgrade
-                                            ? `Passer à Enterprise via Mobile Money (${currency})`
+                                            ? t('home.web_read_only.upgrade_mobile_money', { currency })
                                             : `Payer via Mobile Money (${currency})`}
                                     </button>
                                 ) : (

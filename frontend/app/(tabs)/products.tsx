@@ -2227,6 +2227,28 @@ export default function ProductsScreen() {
     }
   }
 
+  async function createProductWithDuplicateReview(data: ProductCreate) {
+    try {
+      return await productsApi.create(data);
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 409) throw error;
+      let conflict;
+      try { conflict = JSON.parse(error.message); } catch { throw error; }
+      if (conflict?.code !== 'potential_product_duplicate' || !Array.isArray(conflict.products)) throw error;
+      const names = conflict.products.map(({ name, unit }: { name: string; unit?: string }) =>
+        unit ? `${name} (${unit})` : name
+      ).join('\n');
+      const message = `${conflict.message}\n\n${names}`;
+      const confirmed = Platform.OS === 'web' ? window.confirm(message) : await new Promise<boolean>((resolve) => {
+        Alert.alert(t('products.potential_duplicate_title'), message, [
+          { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+          { text: t('products.create_distinct_product'), onPress: () => resolve(true) },
+        ], { cancelable: true, onDismiss: () => resolve(false) });
+      });
+      return confirmed ? productsApi.create({ ...data, confirm_distinct_product: true }) : null;
+    }
+  }
+
   async function handleSubmitProduct() {
     if (!formName.trim()) return;
     if (isRestaurant && formProductionMode !== 'prepped' && !formLinkedRecipeId) {
@@ -2306,7 +2328,8 @@ export default function ProductsScreen() {
           }
           savedProductId = editingProduct.product_id;
         } else {
-          const created = await productsApi.create(data);
+          const created = await createProductWithDuplicateReview(data);
+          if (!created) return;
           savedProductId = created.product_id;
           guideSignal('product.created', { product_id: created.product_id, name: created.name || data.name });
         }
@@ -2687,8 +2710,10 @@ export default function ProductsScreen() {
           ? t('products.restore_bulk_success', 'Produits restaures avec succes.')
           : t('products.restore_success', 'Produit restaure avec succes.')
       );
-    } catch {
-      Alert.alert(t('common.error'), t('products.restore_error', 'Impossible de restaurer le produit.'));
+    } catch (err) {
+      Alert.alert(t('common.error'), err instanceof ApiError && err.status === 409
+        ? err.message
+        : t('products.restore_error', 'Impossible de restaurer le produit.'));
       await loadData();
     } finally {
       setLoading(false);
@@ -3019,7 +3044,7 @@ export default function ProductsScreen() {
         allows_fractional_sale: false,
         quantity_precision: 1,
       });
-      const created = await productsApi.create({
+      const created = await createProductWithDuplicateReview({
         name: trimmedName,
         purchase_price: purchasePrice,
         selling_price: sellingPrice,
@@ -3032,6 +3057,7 @@ export default function ProductsScreen() {
         quantity_precision: measurement.quantity_precision,
         min_stock: 0,
       });
+      if (!created) return;
 
       setProductList((prev) => [created, ...prev.filter((product) => product.product_id !== created.product_id)]);
       setServerSearchResults((prev) => prev ? [created, ...prev.filter((product) => product.product_id !== created.product_id)] : prev);

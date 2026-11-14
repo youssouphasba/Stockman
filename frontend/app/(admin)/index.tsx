@@ -7,8 +7,11 @@ import { router } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
+import AdminMessageLinkButton from '../../components/AdminMessageLinkButton';
 import { FilterBar, SearchBar, StatCard, Badge, SectionHeader, Card, ActionButton, EmptyState } from '../../components/AdminUI';
 import { formatCurrency, formatNumber } from '../../utils/format';
+import type { AdminMessageActionLink } from '../../services/api';
+import { ADMIN_MESSAGE_ACTION_LABEL_LIMIT, ADMIN_MESSAGE_ACTION_URL_LIMIT, isAdminMessageActionUrl } from '../../utils/adminMessageActionLink';
 
 const { width } = Dimensions.get('window');
 type Segment = 'global' | 'users' | 'stores' | 'subscriptions' | 'demos' | 'stock' | 'finance' | 'crm' | 'support' | 'disputes' | 'comms' | 'leads' | 'security' | 'logs' | 'settings' | 'cgu' | 'privacy';
@@ -169,6 +172,7 @@ export default function AdminDashboard() {
     // Compose
     const [msgTitle, setMsgTitle] = useState('');
     const [msgContent, setMsgContent] = useState('');
+    const [msgActionLink, setMsgActionLink] = useState<AdminMessageActionLink | null>(null);
     const [msgTarget, setMsgTarget] = useState<AdminMessageTarget>('all');
     const [msgChannels, setMsgChannels] = useState<AdminChannel[]>(['in_app', 'push']);
     const [msgDestination, setMsgDestination] = useState('none');
@@ -493,6 +497,12 @@ export default function AdminDashboard() {
         if (!msgTitle.trim() || !msgContent.trim()) return Alert.alert(t('auth.register.errorFillRequired'));
         const finalTarget = msgTarget === 'specific' ? targetUserId.trim() : msgTarget;
         if (msgTarget === 'specific' && !targetUserId.trim()) return Alert.alert(t('admin.placeholders.targetUserId'));
+        const actionLink = msgTarget !== 'anonymous_installations' && msgActionLink
+            ? { label: msgActionLink.label.trim(), url: msgActionLink.url.trim() }
+            : undefined;
+        if (actionLink && (!actionLink.label || !isAdminMessageActionUrl(actionLink.url))) {
+            return Alert.alert(t('admin.actions.invalidLinkButton'));
+        }
         try {
             const messageType = finalTarget === 'all' ? 'broadcast' : msgTarget === 'specific' ? 'individual' : 'announcement';
             const isAnonymousTarget = msgTarget === 'anonymous_installations';
@@ -507,7 +517,9 @@ export default function AdminDashboard() {
                 installation_country_code: isAnonymousTarget && msgInstallationCountry !== 'all' ? msgInstallationCountry : undefined,
                 installation_platform: isAnonymousTarget && msgInstallationPlatform !== 'all' ? msgInstallationPlatform : undefined,
                 deeplink: destination?.deeplink,
+                action_link: actionLink,
             });
+            setMsgActionLink(null);
             Alert.alert(t('admin.actions.sendSuccess')); setMsgTitle(''); setMsgContent(''); setMsgAiObjective(''); setMsgAiRationale(''); setTargetUserId(''); setMsgDestination('none'); setMsgChannels(['in_app', 'push']); loadData();
         } catch { Alert.alert(t('admin.actions.error')); }
     };
@@ -548,6 +560,7 @@ export default function AdminDashboard() {
     const openUserCommunication = (target: User) => {
         setMsgTitle('');
         setMsgContent('');
+        setMsgActionLink(null);
         setMsgAiObjective('');
         setMsgAiRationale('');
         setMsgDestination('none');
@@ -1517,6 +1530,45 @@ export default function AdminDashboard() {
                     colors={colors}
                 />
 
+                {msgTarget !== 'anonymous_installations' && (
+                    <View style={{ marginTop: 12, gap: 8 }}>
+                        {msgActionLink ? (
+                            <>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <Text style={{ color: colors.text, fontWeight: '700' }}>{t('admin.actions.linkButton')}</Text>
+                                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('admin.actions.removeLinkButton')} onPress={() => setMsgActionLink(null)} style={{ padding: 10 }}>
+                                        <Ionicons name="close-outline" size={22} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                </View>
+                                {(['label', 'url'] as const).map((field) => {
+                                    const isUrl = field === 'url';
+                                    const label = t(isUrl ? 'admin.placeholders.linkButtonUrl' : 'admin.placeholders.linkButtonLabel');
+                                    return (
+                                        <TextInput
+                                            key={field}
+                                            value={msgActionLink[field]}
+                                            onChangeText={(value) => setMsgActionLink({ ...msgActionLink, [field]: value })}
+                                            accessibilityLabel={label}
+                                            placeholder={label}
+                                            placeholderTextColor={colors.textMuted}
+                                            keyboardType={isUrl ? 'url' : 'default'}
+                                            autoCapitalize={isUrl ? 'none' : 'sentences'}
+                                            autoCorrect={!isUrl}
+                                            maxLength={isUrl ? ADMIN_MESSAGE_ACTION_URL_LIMIT : ADMIN_MESSAGE_ACTION_LABEL_LIMIT}
+                                            style={{ backgroundColor: colors.inputBg, borderRadius: 8, padding: 12, color: colors.text, borderWidth: 1, borderColor: colors.glassBorder }}
+                                        />
+                                    );
+                                })}
+                            </>
+                        ) : (
+                            <TouchableOpacity accessibilityRole="button" onPress={() => setMsgActionLink({ label: '', url: '' })} style={{ flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 44 }}>
+                                <Ionicons name="link-outline" size={20} color={colors.primary} />
+                                <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('admin.actions.addLinkButton')}</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+
                 <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, marginBottom: 6 }}>Canaux :</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                     {[
@@ -1561,6 +1613,7 @@ export default function AdminDashboard() {
                         <Badge label={m.type} color={m.type === 'broadcast' ? '#8B5CF6' : '#3B82F6'} />
                     </View>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={2}>{m.content}</Text>
+                    <AdminMessageLinkButton link={m.action_link} />
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>
                         Cible : {m.target} · {m.sent_by} · {new Date(m.sent_at).toLocaleDateString()}
                     </Text>

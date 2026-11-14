@@ -1,4 +1,24 @@
 {
+  "analytics_filters": {
+    "title": "Filtres",
+    "days_one": "{{count}} jour",
+    "days_other": "{{count}} jours",
+    "dates": "Dates",
+    "reset": "Réinitialiser",
+    "start": "Date de début",
+    "end": "Date de fin",
+    "apply": "Appliquer",
+    "date_error": "Choisissez une période valide de 365 jours maximum.",
+    "loading": "Chargement des filtres…",
+    "error": "Impossible de charger les filtres.",
+    "retry": "Réessayer",
+    "store": "Boutique",
+    "category": "Catégorie",
+    "supplier": "Fournisseur",
+    "default_store": "Boutique active",
+    "default_category": "Toutes les catégories",
+    "default_supplier": "Tous les fournisseurs"
+  },
   "abc": {
     "no_revenue": "Aucun revenu généré sur la période.",
     "not_enough_data": "Pas assez de données de vente pour l’analyse ABC."
@@ -2575,6 +2595,22 @@
     "whatsapp_not_installed": "WhatsApp n'est pas installé sur cet appareil."
   },
   "home": {
+    "desktop_recommendation": "Pour utiliser Stockman Web plus confortablement, nous vous recommandons de vous connecter depuis un ordinateur.",
+    "web_read_only": {
+      "badge": "Consultation web · {{plan}}",
+      "cta_upgrade": "Passer à Enterprise",
+      "cta_explain": "Comprendre l’évolution vers Enterprise",
+      "consultation": "Avec Starter ou Pro, vous pouvez consulter vos données sur le web. Pour les modifier, utilisez l’application mobile ou passez à Enterprise.",
+      "transition": "Vous conservez votre compte, vos boutiques et vos données. L’accès complet au web s’active après confirmation du paiement.",
+      "price_unavailable": "Tarif indisponible",
+      "subscription_load_error": "Impossible de charger les offres d’abonnement.",
+      "pricing_region": "Région tarifaire : {{region}}",
+      "billing_country_correction": "Si une correction est nécessaire, contactez le support avant la facturation.",
+      "upgrade_card": "Passer à Enterprise par carte ({{currency}})",
+      "upgrade_mobile_money": "Passer à Enterprise via Mobile Money ({{currency}})",
+      "retry": "Réessayer"
+    },
+    "mobile_menu": "Ouvrir le menu",
     "recovery": {
       "badge": "Accès limité",
       "title": "Votre abonnement {{plan}} demande une régularisation",
@@ -2625,6 +2661,7 @@
       "or_continue": "Ou continuer avec",
       "continue_google": "Google",
       "social_error": "Connexion sociale impossible.",
+      "mobile_link_error": "Ce lien de connexion a expiré ou ne fonctionne plus. Réessayez depuis l’application Stockman ou connectez-vous ici.",
       "create_account": "Besoin d'un compte web Enterprise ?",
       "create_account_link": "Créer mon compte Enterprise",
       "compare_plans": "Comparer les plans",

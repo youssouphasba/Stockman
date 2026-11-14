@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -19,6 +20,7 @@ import { planner as plannerApi, type PlannerChannel, type PlannerItem } from '..
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDrawer } from '../../contexts/DrawerContext';
+import { openStockmanWebLogin } from '../../utils/openStockmanWebLogin';
 
 type PlannerFilter = 'active' | 'completed' | 'all';
 
@@ -347,7 +349,18 @@ export default function PlannerScreen() {
           <Text style={[styles.guardTitle, { color: colors.text }]}>{t('planner.enterprise_only_title')}</Text>
           <Text style={[styles.guardDescription, { color: colors.textMuted }]}>{t('planner.enterprise_only_desc')}</Text>
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/subscription' as any)}
+            accessibilityRole="link"
+            onPress={async () => {
+              if (Platform.OS === 'web') {
+                router.push('/(tabs)/subscription' as any);
+                return;
+              }
+              try {
+                await openStockmanWebLogin();
+              } catch {
+                Alert.alert(t('common.error'), t('subscription.web_open_error'));
+              }
+            }}
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
           >
             <Text style={styles.primaryButtonText}>{t('planner.discover_enterprise')}</Text>
