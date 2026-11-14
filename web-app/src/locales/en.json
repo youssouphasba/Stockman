@@ -1,4 +1,10 @@
 {
+  "executive_dashboard": {
+    "label": "Executive dashboard",
+    "title": "Consolidated business overview",
+    "compare_stores": "Compare stores",
+    "open_stock": "Open stock centre"
+  },
   "analytics_filters": {
     "title": "Filters",
     "days_one": "{{count}} day",

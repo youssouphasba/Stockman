@@ -1,4 +1,10 @@
 {
+  "executive_dashboard": {
+    "label": "Tableau de bord exécutif",
+    "title": "Vue de direction consolidée",
+    "compare_stores": "Comparer les boutiques",
+    "open_stock": "Ouvrir le centre de stock"
+  },
   "analytics_filters": {
     "title": "Filtres",
     "days_one": "{{count}} jour",

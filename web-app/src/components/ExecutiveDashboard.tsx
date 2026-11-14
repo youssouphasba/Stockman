@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { analytics, AnalyticsExecutiveOverview, AnalyticsKpiDetail, ai as aiApi } from '../services/api';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
+import { useTranslation } from 'react-i18next';
 import KpiCard from './analytics/KpiCard';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
@@ -43,6 +44,7 @@ function toPercent(delta: number) {
 }
 
 export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardProps) {
+    const { t } = useTranslation();
     const { filters } = useAnalyticsFilters();
     const [overview, setOverview] = useState<AnalyticsExecutiveOverview | null>(null);
     const [loading, setLoading] = useState(true);
@@ -203,8 +205,8 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
             <ScreenGuide guideKey="executive_dashboard_tour" steps={executiveSteps} />
             <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div>
-                    <p className="text-xs font-black uppercase tracking-[0.24em] text-primary">Cockpit executif</p>
-                    <h1 className="mt-2 text-3xl font-black tracking-tight text-white">Vue direction consolidee</h1>
+                    <p className="text-xs font-black uppercase tracking-[0.24em] text-primary">{t('executive_dashboard.label')}</p>
+                    <h1 className="mt-2 text-3xl font-black tracking-tight text-white">{t('executive_dashboard.title')}</h1>
                     {overview.scope_label ? (
                         <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
                             {overview.scope_label}
@@ -220,14 +222,14 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                         className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white transition hover:border-primary/30 hover:text-primary"
                     >
                         <Store size={16} />
-                        Comparer les magasins
+                        {t('executive_dashboard.compare_stores')}
                     </button>
                     <button
                         onClick={() => onNavigate?.('inventory')}
                         className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white transition hover:border-primary/30 hover:text-primary"
                     >
                         <Package size={16} />
-                        Ouvrir le centre stock
+                        {t('executive_dashboard.open_stock')}
                     </button>
                 </div>
             </div>

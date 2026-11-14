@@ -26525,7 +26525,8 @@ async def get_executive_overview(
     trend_label = "progresse" if revenue_delta > 0.03 else "recule" if revenue_delta < -0.03 else "reste stable"
     rotation_label = "rapide" if rotation_ratio >= 1 else "modÃ©rÃ©e" if rotation_ratio >= 0.45 else "lente"
     summary = (
-        f"{snapshot['scope_label'].capitalize()} : le chiffre d'affaires {trend_label} de {abs(revenue_delta) * 100:.1f}% sur {snapshot['days']} jours. "
+        f"{snapshot['scope_label'].capitalize()} : le chiffre d'affaires {trend_label} "
+        f"{f'de {abs(revenue_delta) * 100:.1f} % ' if trend_label != 'reste stable' else ''}sur {snapshot['days']} jours. "
         f"{summary_metrics['low_stock_count']} produits sont en stock bas et "
         f"{summary_metrics['dormant_products_count']} sont dormants depuis 30 jours. La rotation du stock reste {rotation_label}."
     )
