@@ -65,19 +65,20 @@ export function StockChangeReasonChips({ direction, value, onChange }: {
   );
 }
 
-// Fenêtre ouverte à l'enregistrement d'une fiche produit dont la quantité a changé.
-export function StockChangeReasonModal({ visible, direction, subtitle, onSelect, onClose }: {
+// Fenêtre ouverte quand la quantité d'une fiche produit a changé : le commerçant choisit la raison.
+export function StockChangeReasonModal({ visible, direction, subtitle, initialKind, onSelect, onClose }: {
   visible: boolean;
   direction: StockChangeDirection;
   subtitle: string;
+  initialKind?: string | null;
   onSelect: (kind: string) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const [kind, setKind] = React.useState<string | null>(null);
+  const [kind, setKind] = React.useState<string | null>(initialKind ?? null);
 
-  React.useEffect(() => { if (visible) setKind(null); }, [visible, direction]);
+  React.useEffect(() => { if (visible) setKind(initialKind ?? null); }, [visible, direction, initialKind]);
 
   if (!visible) return null;
   const accent = direction === 'in' ? colors.success : colors.warning;

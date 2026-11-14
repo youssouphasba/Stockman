@@ -15591,31 +15591,49 @@ async def voice_to_cart(body: dict = Body(...), user: User = Depends(require_ope
     genai.configure(api_key=api_key)
     model = build_gemini_model()
 
-    lang_names = {"fr": "French", "en": "English", "es": "Spanish", "ar": "Arabic", "pt": "Portuguese"}
+    lang_names = {"fr": "French", "en": "English", "es": "Spanish", "ar": "Arabic", "pt": "Portuguese", "wo": "Wolof", "ff": "Fula"}
     lang_name = lang_names.get(lang, "French")
 
-    try:
-        import base64 as _b64
-        audio_bytes = _b64.b64decode(audio_base64)
-        audio_part = {"inline_data": {"mime_type": "audio/m4a", "data": audio_base64}}
-        transcription_prompt = f"Transcribe exactly what is said in this audio in {lang_name}. Output only the transcription, no comments."
-        response = model.generate_content([transcription_prompt, audio_part])
-        transcription = (response.text or "").strip() if response else ""
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
-
-    if not transcription:
-        return {"transcription": "", "items": [], "unmatched": True}
-
-    # Fetch products catalogue
+    # Catalogue en stock de la boutique : il guide la reconnaissance des produits.
     store_filter = {"store_id": store_id} if store_id else {}
     products = await db.products.find(
         {"owner_id": owner_id, **store_filter, "quantity": {"$gt": 0}}
     ).limit(500).to_list(None)
 
-    # Match products in transcription
     import voice_cart
-    analysis = voice_cart.analyze_text(transcription, products)
+    audio_part = {"inline_data": {"mime_type": "audio/m4a", "data": audio_base64}}
+    ai_analysis = None
+    transcription = ""
+    try:
+        response = model.generate_content(
+            [voice_cart.build_ai_prompt(products, lang_name), audio_part],
+            generation_config={"temperature": 0, "response_mime_type": "application/json", "max_output_tokens": 4096},
+        )
+        ai_analysis = voice_cart.parse_ai_response(getattr(response, "text", "") or "", products)
+        if ai_analysis:
+            transcription = ai_analysis["transcription"]
+    except Exception as e:
+        logger.warning("Voice cart catalog-guided recognition failed: %s", e)
+
+    if ai_analysis is None:
+        # Repli : transcription simple, puis recherche tolérante dans le catalogue.
+        try:
+            transcription_prompt = f"Transcribe exactly what is said in this audio in {lang_name}. Output only the transcription, once, no comments."
+            response = model.generate_content([transcription_prompt, audio_part], generation_config={"temperature": 0, "max_output_tokens": 1024})
+            transcription = voice_cart.collapse_repetitions((response.text or "").strip() if response else "")
+        except Exception as e:
+            unavailable = ai_health.user_message(e)
+            if unavailable:
+                raise HTTPException(status_code=503, detail=unavailable)
+            raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+
+    if not transcription and not (ai_analysis and (ai_analysis["matches"] or ai_analysis["suggestions"])):
+        await track_ai_usage(user.user_id, "voice_to_cart", plan=plan)
+        return {"transcription": "", "items": [], "suggestions": [], "unmatched": True}
+
+    # Produits reconnus par le modèle, complétés par la recherche tolérante sur la transcription.
+    fuzzy_analysis = voice_cart.analyze_text(transcription, products)
+    analysis = voice_cart.merge_analyses(ai_analysis, fuzzy_analysis) if ai_analysis else fuzzy_analysis
 
     def _voice_item(p: dict, quantity: int) -> dict:
         return {

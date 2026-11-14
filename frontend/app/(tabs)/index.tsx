@@ -70,7 +70,7 @@ import AccountSwitcherModal from '../../components/AccountSwitcherModal';
 import type { DrawerItem } from '../../components/DrawerMenu';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import { isStarterShopkeeper } from '../../utils/accountRouting';
-import { ADMIN_MESSAGES_CHANGED_EVENT } from '../../components/AdminMessagesButton';
+import { ADMIN_MESSAGES_CHANGED_EVENT } from '../../components/AdminMessagesButton';
 import { hasPlatformModule } from '../../utils/access';
 
 // screenWidth is now read via useWindowDimensions() inside the component

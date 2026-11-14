@@ -7,6 +7,7 @@ et sur une partie du nom quand elle désigne un seul produit sans ambiguïté. Q
 plusieurs produits correspondent, ils sont proposés au commerçant, qui choisit.
 """
 
+import json
 import re
 import unicodedata
 from difflib import SequenceMatcher
@@ -259,4 +260,138 @@ def analyze_text(text: str, products: List[Dict[str, Any]]) -> Dict[str, List[Di
             "products": [catalog[candidate[3]][0] for candidate in candidates],
         })
 
+    return {"matches": matches, "suggestions": suggestions}
+
+
+# ---------------------------------------------------------------------------
+# Transcription guidée par le catalogue
+# ---------------------------------------------------------------------------
+# Sans connaître les produits, la transcription se trompe (« gaze » entendu « gas », « eau »
+# entendu « oh ») et peut boucler sur un bruit. On donne donc le catalogue au modèle, qui
+# renvoie les produits qu'il a reconnus ; seuls les noms présents au catalogue sont retenus.
+MAX_CATALOG_NAMES = 500
+MAX_AI_CANDIDATES = 5
+
+
+def build_ai_prompt(products: List[Dict[str, Any]], language_name: str) -> str:
+    names = []
+    seen = set()
+    for product in products:
+        name = (product.get("name") or "").strip()
+        if name and name.lower() not in seen:
+            seen.add(name.lower())
+            names.append(name)
+        if len(names) >= MAX_CATALOG_NAMES:
+            break
+    catalog = "\n".join(f"- {name}" for name in names)
+    return (
+        "You are the voice checkout of a small shop. In the audio, the cashier lists products to sell, "
+        f"usually in {language_name}, sometimes with a quantity (\"deux\", \"3\", \"une fois\"...).\n"
+        "Here is the shop catalog, one product per line:\n"
+        f"{catalog}\n\n"
+        "Return only JSON with this shape:\n"
+        "{\"transcription\": \"words actually heard\", "
+        "\"items\": [{\"name\": \"exact catalog name\", \"quantity\": 1}], "
+        "\"unsure\": [{\"said\": \"words heard\", \"quantity\": 1, \"candidates\": [\"exact catalog name\"]}]}\n"
+        "Rules:\n"
+        "- Spoken words are often short or mispronounced forms of catalog names (\"gaz\" or \"gas\" for \"Gaze pièce\", "
+        "\"eau\" for \"Eau pour préparation injectable\"): match them to the catalog.\n"
+        "- Use only names copied exactly from the catalog.\n"
+        "- Put a product in \"items\" only when one catalog product clearly fits. When several could fit, put the spoken "
+        f"words in \"unsure\" with up to {MAX_AI_CANDIDATES} candidates, best first.\n"
+        "- Quantity defaults to 1.\n"
+        "- If the audio is silent or unintelligible, return empty lists. Write the transcription once, never repeat it."
+    )
+
+
+def collapse_repetitions(text: str, max_length: int = 300) -> str:
+    """Supprime les répétitions en boucle (« Gas, gas. Gas, gas. ... ») d'une transcription."""
+    parts = [part.strip() for part in re.split(r"(?<=[.!?\n])\s+", text or "") if part.strip()]
+    kept: List[str] = []
+    for part in parts:
+        if not kept or normalize(part) != normalize(kept[-1]):
+            kept.append(part)
+    collapsed = " ".join(kept)
+    return collapsed if len(collapsed) <= max_length else collapsed[:max_length].rstrip() + "…"
+
+
+def _ai_quantity(value: Any) -> int:
+    try:
+        return max(1, min(int(round(float(value))), MAX_QUANTITY))
+    except (TypeError, ValueError):
+        return 1
+
+
+def parse_ai_response(raw: str, products: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Lit la réponse JSON du modèle. Renvoie None si elle est inexploitable."""
+    text = (raw or "").strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text)
+    try:
+        data = json.loads(text)
+    except ValueError:
+        match = re.search(r"\{.*\}", text, re.S)
+        if not match:
+            return None
+        try:
+            data = json.loads(match.group(0))
+        except ValueError:
+            return None
+    if not isinstance(data, dict):
+        return None
+
+    by_name: Dict[str, List[Dict[str, Any]]] = {}
+    for product in products:
+        key = normalize(product.get("name") or "")
+        if key:
+            by_name.setdefault(key, []).append(product)
+
+    matches: List[Dict[str, Any]] = []
+    suggestions: List[Dict[str, Any]] = []
+    used = set()
+    for item in data.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        found = by_name.get(normalize(str(item.get("name") or "")), [])
+        quantity = _ai_quantity(item.get("quantity"))
+        if len(found) == 1 and found[0].get("product_id") not in used:
+            used.add(found[0].get("product_id"))
+            matches.append({"product": found[0], "qty": quantity})
+        elif len(found) > 1:  # plusieurs produits portent ce nom : le commerçant choisit
+            suggestions.append({"said": str(item.get("name")), "qty": quantity, "products": found[:MAX_SUGGESTED_PRODUCTS]})
+    for entry in data.get("unsure") or []:
+        if not isinstance(entry, dict):
+            continue
+        candidates: List[Dict[str, Any]] = []
+        for name in entry.get("candidates") or []:
+            for product in by_name.get(normalize(str(name)), []):
+                if product.get("product_id") not in used and product not in candidates:
+                    candidates.append(product)
+        if candidates:
+            suggestions.append({
+                "said": str(entry.get("said") or "").strip()[:80],
+                "qty": _ai_quantity(entry.get("quantity")),
+                "products": candidates[:MAX_SUGGESTED_PRODUCTS],
+            })
+    transcription = collapse_repetitions(str(data.get("transcription") or ""))
+    return {"transcription": transcription, "matches": matches, "suggestions": suggestions}
+
+
+def merge_analyses(primary: Dict[str, Any], secondary: Dict[str, Any]) -> Dict[str, Any]:
+    """Réunit deux analyses sans doublon : la première l'emporte."""
+    matched_ids = {match["product"].get("product_id") for match in primary["matches"]}
+    matches = list(primary["matches"])
+    for match in secondary["matches"]:
+        product_id = match["product"].get("product_id")
+        if product_id not in matched_ids:
+            matched_ids.add(product_id)
+            matches.append(match)
+    suggestions = []
+    seen_groups = set()
+    for suggestion in primary["suggestions"] + secondary["suggestions"]:
+        products = [product for product in suggestion["products"] if product.get("product_id") not in matched_ids]
+        key = tuple(sorted(str(product.get("product_id")) for product in products))
+        if products and key not in seen_groups:
+            seen_groups.add(key)
+            suggestions.append({**suggestion, "products": products})
     return {"matches": matches, "suggestions": suggestions}

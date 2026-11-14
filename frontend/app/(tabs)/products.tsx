@@ -30,7 +30,7 @@ import BarcodeScanner from '../../components/BarcodeScanner';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasPlatformModule } from '../../utils/access';
-import { StockChangeReasonChips } from '../../components/StockChangeReason';
+import { STOCK_CHANGE_OPTIONS, StockChangeReasonChips, StockChangeReasonModal } from '../../components/StockChangeReason';
 import { useNetwork } from '../../hooks/useNetwork';
 import { cache, KEYS } from '../../services/cache';
 import { syncService } from '../../services/sync';
@@ -760,8 +760,9 @@ export default function ProductsScreen() {
   const [movQuantity, setMovQuantity] = useState('');
   const [movReason, setMovReason] = useState('');
   const [movKind, setMovKind] = useState<string | null>(null);
-  // Quantité modifiée dans la fiche : les raisons apparaissent sous le champ, selon que le stock monte ou baisse.
+  // Quantité modifiée dans la fiche : une fenêtre propose les raisons, selon que le stock monte ou baisse.
   const [formStockChangeKind, setFormStockChangeKind] = useState<string | null>(null);
+  const [showStockReasonModal, setShowStockReasonModal] = useState(false);
   const formStockDelta = editingProduct && !formHasVariants
     ? (parseFloat(formQuantity) || 0) - (Number(editingProduct.quantity) || 0)
     : 0;
@@ -2235,7 +2236,7 @@ export default function ProductsScreen() {
     // Quantité d'un produit simple modifiée : la raison choisie sous le champ est obligatoire.
     const stockChangeKind = formStockDirection ? formStockChangeKind : null;
     if (formStockDirection && !stockChangeKind) {
-      Alert.alert(t('common.error'), t('products.stock_change_required'));
+      setShowStockReasonModal(true);
       return;
     }
     setFormLoading(true);
@@ -5130,7 +5131,18 @@ export default function ProductsScreen() {
                 <View style={styles.formRow}>
                   <View style={styles.formHalf}>
                     <GuideTarget id="product.quantity" value={formQuantity} scrollRef={productFormScrollRef}>
-                      <FormField label={t('products.field_quantity')} value={formQuantity} onChangeText={setFormQuantity} keyboardType="numeric" colors={colors} styles={styles} />
+                      <FormField
+                        label={t('products.field_quantity')}
+                        value={formQuantity}
+                        onChangeText={setFormQuantity}
+                        onEndEditing={() => {
+                          // Saisie terminée : si le stock a changé, on demande aussitôt pourquoi.
+                          if (formStockDirection && !formStockChangeKind) setShowStockReasonModal(true);
+                        }}
+                        keyboardType="numeric"
+                        colors={colors}
+                        styles={styles}
+                      />
                     </GuideTarget>
                   </View>
                   <View style={styles.formHalf}>
@@ -5159,19 +5171,46 @@ export default function ProductsScreen() {
                     </ScrollView>
                   </View>
                 </View>
-                {formStockDirection && editingProduct && (
-                  <View style={{ marginBottom: Spacing.md }}>
-                    <Text style={[styles.formLabel, { marginBottom: 4 }]}>{t('products.stock_change_title')}</Text>
-                    <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 8 }}>
-                      {t(formStockDirection === 'in' ? 'products.stock_change_increase' : 'products.stock_change_decrease', {
-                        from: formatMeasurementQuantity(Number(editingProduct.quantity) || 0, editingProduct.display_unit || editingProduct.unit),
-                        to: formatMeasurementQuantity(parseFloat(formQuantity) || 0, editingProduct.display_unit || editingProduct.unit),
-                        diff: formatMeasurementQuantity(Math.abs(formStockDelta), editingProduct.display_unit || editingProduct.unit),
-                      })}
-                    </Text>
-                    <StockChangeReasonChips direction={formStockDirection} value={formStockChangeKind} onChange={setFormStockChangeKind} />
-                  </View>
-                )}
+                {formStockDirection && editingProduct && (() => {
+                  const unitLabel = editingProduct.display_unit || editingProduct.unit;
+                  const summary = t(formStockDirection === 'in' ? 'products.stock_change_increase' : 'products.stock_change_decrease', {
+                    from: formatMeasurementQuantity(Number(editingProduct.quantity) || 0, unitLabel),
+                    to: formatMeasurementQuantity(parseFloat(formQuantity) || 0, unitLabel),
+                    diff: formatMeasurementQuantity(Math.abs(formStockDelta), unitLabel),
+                  });
+                  const chosen = STOCK_CHANGE_OPTIONS[formStockDirection].find((option) => option.kind === formStockChangeKind);
+                  return (
+                    <>
+                      <TouchableOpacity
+                        onPress={() => setShowStockReasonModal(true)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Spacing.md, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: chosen ? colors.glassBorder : colors.warning, backgroundColor: colors.glass }}
+                      >
+                        <Ionicons name={chosen ? chosen.icon : 'help-circle-outline'} size={18} color={chosen ? colors.primary : colors.warning} />
+                        <Text style={{ flex: 1, color: chosen ? colors.text : colors.warning, fontSize: 13, fontWeight: '600' }}>
+                          {chosen ? t(chosen.labelKey) : t('products.stock_change_pending', 'Raison du changement à choisir')}
+                        </Text>
+                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
+                          {chosen ? t('products.stock_change_edit', 'Modifier') : t('products.stock_change_choose', 'Choisir')}
+                        </Text>
+                      </TouchableOpacity>
+                      <StockChangeReasonModal
+                        visible={showStockReasonModal}
+                        direction={formStockDirection}
+                        subtitle={summary}
+                        initialKind={formStockChangeKind}
+                        onSelect={(kind) => {
+                          setFormStockChangeKind(kind);
+                          setShowStockReasonModal(false);
+                        }}
+                        onClose={() => {
+                          // Fermée sans raison : la quantité revient à sa valeur d'origine.
+                          if (!formStockChangeKind) setFormQuantity(String(Number(editingProduct.quantity) || 0));
+                          setShowStockReasonModal(false);
+                        }}
+                      />
+                    </>
+                  );
+                })()}
                 {inferMeasurementType(formUnit) !== 'unit' && (
                   <View style={styles.formRow}>
                     <View style={styles.formHalf}>
@@ -5926,6 +5965,7 @@ interface FormFieldProps {
   keyboardType?: 'numeric' | 'default';
   editable?: boolean;
   helperText?: string;
+  onEndEditing?: () => void;
   colors: any;
   styles: any;
 }
@@ -5938,6 +5978,7 @@ function FormField({
   keyboardType,
   editable = true,
   helperText,
+  onEndEditing,
   colors,
   styles
 }: FormFieldProps) {
@@ -5959,6 +6000,7 @@ function FormField({
         placeholderTextColor={colors.textMuted}
         keyboardType={keyboardType}
         editable={editable}
+        onEndEditing={onEndEditing}
       />
       {helperText ? <Text style={{ color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: 6 }}>{helperText}</Text> : null}
     </View>

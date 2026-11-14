@@ -60,7 +60,7 @@ import BatchScanModal from './BatchScanModal';
 import StockHealthPanel from './analytics/StockHealthPanel';
 import { getPendingInventorySummary, mergeInventoryOfflineState } from '../services/offlineState';
 import { hasPlatformModule } from '../utils/access';
-import { StockChangeReasonChips, StockChangeDirection } from './StockChangeReason';
+import { STOCK_CHANGE_OPTIONS, StockChangeReasonChips, StockChangeReasonDialog, StockChangeDirection } from './StockChangeReason';
 import {
     defaultPrecisionForUnit,
     formatMeasurementQuantity,
@@ -220,8 +220,9 @@ export default function Inventory() {
     const [stockMovQty, setStockMovQty] = useState('');
     const [stockMovReason, setStockMovReason] = useState('');
     const [stockMovKind, setStockMovKind] = useState<string | null>(null);
-    // Quantité modifiée dans la fiche : les raisons apparaissent sous le champ, selon que le stock monte ou baisse.
+    // Quantité modifiée dans la fiche : une fenêtre propose les raisons, selon que le stock monte ou baisse.
     const [formStockChangeKind, setFormStockChangeKind] = useState<string | null>(null);
+    const [showStockReasonDialog, setShowStockReasonDialog] = useState(false);
     const formStockDelta = editingProduct && !form.has_variants
         ? (Number(form.quantity) || 0) - (Number(editingProduct.quantity) || 0)
         : 0;
@@ -1049,7 +1050,7 @@ export default function Inventory() {
         // Quantité d'un produit simple modifiée : la raison choisie sous le champ est obligatoire.
         const stockChangeKindChoice = formStockDirection ? formStockChangeKind : null;
         if (formStockDirection && !stockChangeKindChoice) {
-            window.alert('Choisissez la raison du changement de stock.');
+            setShowStockReasonDialog(true);
             return;
         }
         setFormLoading(true);
@@ -3193,6 +3194,10 @@ export default function Inventory() {
                                         step={String(isDiscreteUnitProduct(form) ? 1 : getInputStep(form))}
                                         value={form.quantity}
                                         onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+                                        onBlur={() => {
+                                            // Saisie terminée : si le stock a changé, on demande aussitôt pourquoi.
+                                            if (formStockDirection && !formStockChangeKind) setShowStockReasonDialog(true);
+                                        }}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary/50"
                                     />
                                 </div>
@@ -3222,15 +3227,38 @@ export default function Inventory() {
                                 </div>
                             </div>
 
-                            {formStockDirection && editingProduct && (
-                                <div className={`rounded-xl border p-4 ${formStockDirection === 'in' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
-                                    <p className="text-sm font-bold text-white">Pourquoi le stock change ?</p>
-                                    <p className="mt-1 mb-3 text-xs text-slate-400">
-                                        Le stock passe de {formatMeasurementQuantity(Number(editingProduct.quantity) || 0, editingProduct.display_unit || editingProduct.unit)} à {formatMeasurementQuantity(Number(form.quantity) || 0, editingProduct.display_unit || editingProduct.unit)} ({formStockDirection === 'in' ? '+' : '-'}{formatMeasurementQuantity(Math.abs(formStockDelta), editingProduct.display_unit || editingProduct.unit)}). Choisissez la raison.
-                                    </p>
-                                    <StockChangeReasonChips direction={formStockDirection} value={formStockChangeKind} onChange={setFormStockChangeKind} />
-                                </div>
-                            )}
+                            {formStockDirection && editingProduct && (() => {
+                                const unitLabel = editingProduct.display_unit || editingProduct.unit;
+                                const summary = `Le stock passe de ${formatMeasurementQuantity(Number(editingProduct.quantity) || 0, unitLabel)} à ${formatMeasurementQuantity(Number(form.quantity) || 0, unitLabel)} (${formStockDirection === 'in' ? '+' : '-'}${formatMeasurementQuantity(Math.abs(formStockDelta), unitLabel)}). Choisissez la raison.`;
+                                const chosen = STOCK_CHANGE_OPTIONS[formStockDirection].find((option) => option.kind === formStockChangeKind);
+                                return (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowStockReasonDialog(true)}
+                                            className={`flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm ${chosen ? 'border-white/10 bg-white/5 text-white' : 'border-amber-500/40 bg-amber-500/10 text-amber-200'}`}
+                                        >
+                                            <span className="font-semibold">{chosen ? chosen.label : 'Raison du changement à choisir'}</span>
+                                            <span className="text-xs font-bold text-primary">{chosen ? 'Modifier' : 'Choisir'}</span>
+                                        </button>
+                                        <StockChangeReasonDialog
+                                            open={showStockReasonDialog}
+                                            direction={formStockDirection}
+                                            subtitle={summary}
+                                            initialKind={formStockChangeKind}
+                                            onSelect={(kind) => {
+                                                setFormStockChangeKind(kind);
+                                                setShowStockReasonDialog(false);
+                                            }}
+                                            onClose={() => {
+                                                // Fermée sans raison : la quantité revient à sa valeur d'origine.
+                                                if (!formStockChangeKind) setForm((prev: any) => ({ ...prev, quantity: Number(editingProduct.quantity) || 0 }));
+                                                setShowStockReasonDialog(false);
+                                            }}
+                                        />
+                                    </>
+                                );
+                            })()}
 
                             {form.measurement_type !== 'unit' && (
                                 <div className="grid grid-cols-3 gap-4">
