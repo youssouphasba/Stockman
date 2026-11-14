@@ -556,6 +556,8 @@ Sur mobile, les réglages de la boutique en ligne se chargent indépendamment de
 ### Qu'est-ce que le portail fournisseur ?
 Les fournisseurs ont leur propre interface dédiée pour gérer leur catalogue et leurs commandes.
 
+Lorsque l'équipe Stockman désactive le réglage global **Fournisseurs**, il n'est pas possible de créer un compte fournisseur, même avec un lien d'invitation. Sur l'écran d'inscription mobile, le profil **Fournisseur** reste visible avec la mention **Bientôt disponible**. Les fournisseurs déjà inscrits conservent leur accès.
+
 ### Fonctionnalités du portail fournisseur :
 - **Dashboard** : KPIs (CA total, commandes reçues, panier moyen, note des clients)
 - **Catalogue** : ajouter/modifier des produits avec prix et disponibilité

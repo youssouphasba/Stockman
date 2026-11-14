@@ -549,6 +549,7 @@ export const appVersion = {
 
 // Auth
 export const auth = {
+  getSupplierRegistration: () => rawRequest<{ enabled: boolean }>('/auth/supplier-registration'),
   startWebLogin: () => rawRequest<{ code: string }>('/auth/web-login/start', { method: 'POST' }),
   login: (email: string, password: string) =>
     request<AuthResponse>('/auth/login', {

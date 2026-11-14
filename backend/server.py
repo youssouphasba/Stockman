@@ -17664,11 +17664,26 @@ def get_currency_from_phone(phone: str) -> str:
     # Autres pays â€” Stripe (EUR comme devise de facturation)
     return "EUR"
 
+@api_router.get("/auth/supplier-registration")
+async def get_supplier_registration(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    return {"enabled": await platform_modules.is_supplier_registration_enabled(db)}
+
+
+async def require_supplier_registration_enabled():
+    if not await platform_modules.is_supplier_registration_enabled(db):
+        raise HTTPException(status_code=403, detail="L'inscription des fournisseurs sera bientôt disponible.")
+
+
 @api_router.post("/auth/register", response_model=TokenResponse)
 @limiter.limit("10/minute")
 async def register(request: Request, user_data: UserCreate, response: Response):
     """Register a new user with email/password"""
     try:
+        role = user_data.role if user_data.role in ("shopkeeper", "supplier") else "shopkeeper"
+        if role == "supplier":
+            await require_supplier_registration_enabled()
+
         user_data.email = user_data.email.lower().strip()
         existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
         if existing:
@@ -17686,7 +17701,6 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         )
         await db.stores.insert_one(store.model_dump())
 
-        role = user_data.role if user_data.role in ("shopkeeper", "supplier") else "shopkeeper"
         initial_plan = user_data.plan if user_data.plan in ("starter", "pro", "enterprise") else "starter"
         signup_surface = resolve_signup_surface(user_data.signup_surface, initial_plan)
         required_verification = resolve_required_verification(role, initial_plan, signup_surface)
@@ -30158,6 +30172,7 @@ async def invite_supplier(supplier_id: str, data: SupplierInvitationCreate, user
 @api_router.post("/auth/register-from-invitation")
 async def register_from_invitation(request: Request, response: Response, user_data: UserCreate, token: str):
     """Register a supplier from an invitation token"""
+    await require_supplier_registration_enabled()
     invitation = await db.supplier_invitations.find_one({"token": token, "status": "pending"}, {"_id": 0})
     if not invitation:
         raise HTTPException(status_code=404, detail="Invitation invalide ou expirÃ©e")

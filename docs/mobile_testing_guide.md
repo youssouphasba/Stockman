@@ -55,6 +55,12 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 - Il faut générer un nouveau build pour tester correctement la connexion Google sur mobile.
 - Sur un compte en attente de vérification SMS, ouvrir rapidement deux fois l'écran de saisie du code : un seul envoi doit démarrer, sans message d'erreur de concurrence. Vérifier que « code envoyé » n'apparaît qu'après la confirmation de l'envoi, que le code reçu fonctionne et que le passage à l'e-mail reste possible.
 
+## 4.1 Disponibilité de l'inscription fournisseur
+
+- Désactiver le réglage global **Fournisseurs** dans l'administration, puis ouvrir l'inscription mobile. Le profil **Fournisseur** doit rester visible avec la mention **Bientôt disponible**, sans ouvrir de formulaire.
+- Vérifier qu'une demande directe d'inscription fournisseur, y compris par invitation, est refusée sans créer de compte. L'inscription commerçant et la connexion d'un fournisseur déjà inscrit doivent rester possibles.
+- Réactiver le réglage global et rouvrir l'inscription : le profil **Fournisseur** doit redevenir sélectionnable.
+
 ## 5. Verification des notifications push
 
 - L'alerte dans Stockman et la notification push sont deux etapes distinctes : une alerte peut etre creee meme si Expo ne parvient pas a envoyer la notification.

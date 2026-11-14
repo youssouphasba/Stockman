@@ -66,15 +66,20 @@ def invalidate_cache() -> None:
     _cache["at"] = 0.0
 
 
-async def get_policy(db) -> Dict[str, Dict[str, Any]]:
+async def get_policy(db, *, fresh: bool = False) -> Dict[str, Dict[str, Any]]:
     now = time.monotonic()
-    if _cache["policy"] is not None and now - _cache["at"] < _CACHE_TTL_SECONDS:
+    if not fresh and _cache["policy"] is not None and now - _cache["at"] < _CACHE_TTL_SECONDS:
         return _cache["policy"]
     doc = await db.platform_settings.find_one({"key": POLICY_KEY}, {"_id": 0})
     policy = normalize_policy(doc)
     _cache["policy"] = policy
     _cache["at"] = now
     return policy
+
+
+async def is_supplier_registration_enabled(db) -> bool:
+    policy = await get_policy(db, fresh=True)
+    return policy["suppliers"]["default"]
 
 
 async def save_policy(db, raw: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:

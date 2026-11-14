@@ -13,14 +13,14 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link, useRouter } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { ApiError } from '../../services/api';
+import { ApiError, auth } from '../../services/api';
 import { COUNTRIES, Country } from '../../constants/countries';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { getFlagFromCountryCode } from '../../utils/flags';
@@ -103,6 +103,7 @@ export default function RegisterScreen() {
   };
 
   const [step, setStep] = useState<SignupStep>('role');
+  const [supplierRegistration, setSupplierRegistration] = useState<'checking' | 'enabled' | 'disabled' | 'unavailable'>('checking');
   const [selectedRole, setSelectedRole] = useState<SignupRole>('shopkeeper');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -121,6 +122,24 @@ export default function RegisterScreen() {
   const [showSectorModal, setShowSectorModal] = useState(false);
   const [sectorSearch, setSectorSearch] = useState('');
   const [howDidYouHear, setHowDidYouHear] = useState('');
+
+  useFocusEffect(React.useCallback(() => {
+    if (step !== 'role') return;
+    let active = true;
+    setSupplierRegistration('checking');
+    void auth.getSupplierRegistration().then(({ enabled }) => {
+      if (active) setSupplierRegistration(enabled === true ? 'enabled' : 'disabled');
+    }).catch(() => {
+      if (active) setSupplierRegistration('unavailable');
+    });
+    return () => { active = false; };
+  }, [step]));
+
+  const supplierRegistrationEnabled = supplierRegistration === 'enabled';
+  const supplierRegistrationLabel = supplierRegistrationEnabled ? authText.supplierDesc
+    : supplierRegistration === 'checking' ? t('common.loading')
+    : supplierRegistration === 'disabled' ? t('auth.register.supplierComingSoon')
+    : t('auth.register.supplierAvailabilityUnavailable');
 
   function toggleThemeQuick() {
     void setTheme(isDark ? 'light' : 'dark');
@@ -155,6 +174,10 @@ export default function RegisterScreen() {
   const phonePlaceholder = `${t('auth.register.phonePlaceholder')} (${selectedCountry.name})`;
 
   async function handleRegister() {
+    if (selectedRole === 'supplier' && !supplierRegistrationEnabled) {
+      setError(supplierRegistrationLabel);
+      return;
+    }
     const phoneRequired = selectedRole === 'shopkeeper';
     if (!name.trim() || !email.trim() || !password.trim() || (phoneRequired && !phone.trim())) {
       setError(authText.errorFillRequired);
@@ -207,7 +230,12 @@ export default function RegisterScreen() {
         router.replace('/(tabs)');
       }
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : t('auth.register.errorRegister'));
+      if (selectedRole === 'supplier' && e instanceof ApiError && e.status === 403) {
+        setSupplierRegistration('disabled');
+        setError(t('auth.register.supplierComingSoon'));
+      } else {
+        setError(e instanceof ApiError ? e.message : t('auth.register.errorRegister'));
+      }
     } finally {
       setLoading(false);
     }
@@ -255,7 +283,11 @@ export default function RegisterScreen() {
 
               <TouchableOpacity
                 style={[styles.roleCard, selectedRole === 'supplier' && styles.roleCardActive]}
+                disabled={!supplierRegistrationEnabled}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !supplierRegistrationEnabled, busy: supplierRegistration === 'checking' }}
                 onPress={() => {
+                  if (!supplierRegistrationEnabled) return;
                   setSelectedRole('supplier');
                   setStep('details');
                 }}
@@ -265,9 +297,9 @@ export default function RegisterScreen() {
                 </View>
                 <View style={styles.roleInfo}>
                   <Text style={styles.roleTitle} numberOfLines={1} adjustsFontSizeToFit>{authText.supplier}</Text>
-                  <Text style={styles.roleDesc} numberOfLines={2} ellipsizeMode="tail">{authText.supplierDesc}</Text>
+                  <Text style={styles.roleDesc}>{supplierRegistrationLabel}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={24} color={colors.textMuted} />
+                {supplierRegistrationEnabled && <Ionicons name="chevron-forward" size={24} color={colors.textMuted} />}
               </TouchableOpacity>
 
               <View style={styles.footer}>

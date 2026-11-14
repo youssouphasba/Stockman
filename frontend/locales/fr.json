@@ -736,6 +736,8 @@
       "supplier": "Fournisseur",
       "supplierAccount": "Compte Fournisseur",
       "supplierDesc": "Publiez votre catalogue, recevez des commandes",
+      "supplierComingSoon": "Bientôt disponible",
+      "supplierAvailabilityUnavailable": "Disponibilité temporairement inconnue",
       "title": "Créer un compte",
       "trialNote": "30 jours gratuits • Sans carte bancaire"
     },

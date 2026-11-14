@@ -612,6 +612,8 @@
       "shopkeeperDesc": "Manage your business, track your stock and sales, and manage your suppliers and customers with ease. Your business in your pocket.",
       "supplier": "Supplier",
       "supplierDesc": "Publish your catalog, grow your visibility among merchants, and receive more orders.",
+      "supplierComingSoon": "Coming soon",
+      "supplierAvailabilityUnavailable": "Availability temporarily unknown",
       "alreadyHaveAccount": "Already have an account?",
       "changeProfile": "Change profile",
       "name": "Name",

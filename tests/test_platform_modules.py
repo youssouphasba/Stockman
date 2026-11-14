@@ -41,6 +41,20 @@ class ResolveTests(unittest.TestCase):
         }}})
         self.assertEqual(policy["suppliers"], {"default": False, "plans": {}, "business_types": {}})
 
+    def test_supplier_signup_follows_only_the_current_global_setting(self):
+        db = FakeDatabase()
+        self.assertFalse(run(pm.is_supplier_registration_enabled(db)))
+        run(pm.save_policy(db, {"suppliers": {"default": False, "plans": {"enterprise": True}}}))
+        self.assertFalse(run(pm.is_supplier_registration_enabled(db)))
+        run(db.platform_settings.update_one(
+            {"key": pm.POLICY_KEY}, {"$set": {"modules.suppliers.default": True}},
+        ))
+        self.assertTrue(run(pm.is_supplier_registration_enabled(db)))
+        run(db.platform_settings.update_one(
+            {"key": pm.POLICY_KEY}, {"$set": {"modules.suppliers.default": False}},
+        ))
+        self.assertFalse(run(pm.is_supplier_registration_enabled(db)))
+
     def test_team_and_background_jobs_follow_the_owner_account(self):
         db = FakeDatabase()
         run(db.users.insert_one({"user_id": "owner", "role": "shopkeeper", "account_id": "acct_owner", "plan": "pro"}))
