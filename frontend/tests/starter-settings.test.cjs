@@ -36,6 +36,21 @@ test('Subscribed Pro, Enterprise, web and demo accounts retain the original sett
   }
 });
 
+test('My subscription embeds the shared offers and keeps billing details below', () => {
+  const h = createHarness({ states: { starterSection: 'billing', showBillingOptions: true } });
+  const { nodes } = content(h);
+  const offers = nodes.findIndex((node) => node.type === 'SubscriptionPlans' && node.props.embedded);
+  const billing = nodes.findIndex((node) => node.props.children === 'settings.billing_details');
+  assert.ok(offers >= 0 && billing > offers);
+  assert.ok(nodes.some((node) => node.props.children === 'settings.save_billing_contact'));
+  assert.ok(!nodes.some((node) => ['Gérer le paiement', "Changer d'offre", 'settings.my_subscription'].includes(node.props.children)));
+});
+
+test('Accounts without billing rights do not mount the subscription offers in Settings', () => {
+  const h = createHarness({ states: { starterSection: 'billing' }, auth: { isBillingAdmin: false } });
+  assert.ok(!h.nodes().some((node) => node.type === 'SubscriptionPlans'));
+});
+
 test('Users and permissions is first in My store and preserves access for authorized staff', () => {
   const starter = createHarness({ states: { starterSection: 'store' } });
   const { nodes } = content(starter);

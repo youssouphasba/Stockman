@@ -25,6 +25,7 @@ import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 interface ExecutiveDashboardProps {
     onNavigate?: (tab: string) => void;
+    canUseAdvancedAnalytics: boolean;
 }
 
 function formatCurrency(amount: number, currency = 'XOF') {
@@ -43,7 +44,7 @@ function toPercent(delta: number) {
     return Number.isFinite(delta) ? delta * 100 : 0;
 }
 
-export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardProps) {
+export default function ExecutiveDashboard({ onNavigate, canUseAdvancedAnalytics }: ExecutiveDashboardProps) {
     const { t } = useTranslation();
     const { filters } = useAnalyticsFilters();
     const [overview, setOverview] = useState<AnalyticsExecutiveOverview | null>(null);
@@ -80,12 +81,12 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
             } catch (err) {
                 if (cancelled) return;
                 console.error(err);
-                setError("Impossible de charger le cockpit executif.");
+                setError(t('executive_text.load_error'));
             } finally {
                 if (!cancelled) setLoading(false);
             }
 
-            if (cancelled) return;
+            if (cancelled || !canUseAdvancedAnalytics) return;
             Promise.allSettled([
                 aiApi.businessHealthScore(analyticsFilters),
                 aiApi.dashboardPrediction({
@@ -104,7 +105,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
 
         loadOverview();
         return () => { cancelled = true; };
-    }, [filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange]);
+    }, [canUseAdvancedAnalytics, filters.categoryId, filters.days, filters.endDate, filters.startDate, filters.storeId, filters.supplierId, filters.useCustomRange, t]);
 
     if (loading && !overview) {
         return (
@@ -151,8 +152,8 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
         } catch (err) {
             console.error(err);
             setDetail({
-                title: 'Detail indisponible',
-                description: "Impossible de charger le detail de ce KPI.",
+                title: t('executive_text.detail_title'),
+                description: t('executive_text.detail_error'),
                 export_name: 'detail_indisponible',
                 columns: [],
                 rows: [],
@@ -247,7 +248,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                     icon={TrendingUp}
                     label="Marge brute"
                     value={formatCurrency(kpis.gross_profit, currency)}
-                    hint="Basee sur le cout d'achat enregistre"
+                    hint={t('executive_text.margin_hint')}
                     delta={toPercent(kpis.gross_profit_delta)}
                     onClick={() => openDetail('gross_profit')}
                 />
@@ -255,7 +256,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                     icon={ShoppingCart}
                     label="Panier moyen"
                     value={formatCurrency(kpis.average_ticket, currency)}
-                    hint={`${kpis.sales_count} ventes consolidees • ${periodLabel}`}
+                    hint={t('executive_text.sales_hint', { count: kpis.sales_count, period: periodLabel })}
                     delta={toPercent(kpis.average_ticket_delta)}
                     onClick={() => openDetail('average_ticket')}
                 />
@@ -270,7 +271,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                     icon={Repeat}
                     label="Rotation du stock"
                     value={`${kpis.stock_turnover_ratio.toFixed(2)}x`}
-                    hint="Sorties / stock valorise sur la selection"
+                    hint={t('executive_text.turnover_hint')}
                     onClick={() => openDetail('stock_turnover_ratio')}
                 />
                 <KpiCard
@@ -296,6 +297,7 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                 />
             </div>
 
+            {canUseAdvancedAnalytics && <>
             <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <div className="rounded-3xl border border-emerald-500/15 bg-gradient-to-br from-emerald-500/8 to-transparent p-6">
                     <div className="flex items-center gap-2">
@@ -474,9 +476,10 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                 )}
             </section>
 
+            </>}
             {overview.recommendations?.length ? (
                 <section className="mt-6 rounded-3xl border border-primary/20 bg-primary/5 p-6">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Synthese & recommandations</p>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">{t('executive_text.recommendations')}</p>
                     <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
                         {overview.recommendations.map((recommendation, index) => (
                             <div
@@ -527,13 +530,13 @@ export default function ExecutiveDashboard({ onNavigate }: ExecutiveDashboardPro
                 </section>
 
                 <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Top categories</p>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{t('executive_text.top_categories')}</p>
                     <h2 className="mt-2 text-xl font-black text-white">Les rayons qui performent</h2>
 
                     <div className="mt-6 space-y-4">
                         {topCategories.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-slate-500">
-                                Aucune categorie vendue sur cette selection.
+                                {t('executive_text.empty_categories')}
                             </div>
                         ) : (
                             topCategories.map((category, index) => {

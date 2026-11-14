@@ -102,7 +102,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "cloud-upload-outline",
                 title: "Importer plusieurs produits d'un coup",
-                description: "L'import fichier sert à intégrer un CSV structuré. L'import texte sert quand vous avez une liste brute issue d'un message, d'un bon ou d'une note. Les unités comme kg, g, L ou ml peuvent être reprises automatiquement si elles sont bien indiquées. Un même code-barres ne peut pas être utilisé par deux produits dans la même boutique. Vérifiez toujours le résultat avant de valider la création."
+                description: "Dans Produits, ouvrez le menu « Ajouter » en haut de la liste. Quand l'écran affiche « Aucun produit », le bouton « Ajouter un produit » ouvre le même menu. Choisissez « Import texte » pour coller une liste issue d'un message, d'un bon ou d'une note. Vérifiez ensuite les produits créés. Choisissez « Import CSV » pour charger un fichier CSV ou Excel, puis vérifiez l'aperçu avant de valider. Les unités comme kg, g, L ou ml peuvent être reprises automatiquement si elles sont bien indiquées. Un même code-barres ne peut pas être utilisé par deux produits dans la même boutique."
             },
             {
                 icon: "scan-outline",
@@ -509,12 +509,13 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     ecommerce: {
         title: "E-com",
         steps: [
-            { icon: "receipt-outline", title: "Commandes en ligne", description: "Consultez les commandes récentes et filtrez par statut. Historique complet et Voir plus de commandes donnent accès aux commandes plus anciennes, sans limite de période." },
-            { icon: "wallet-outline", title: "Paiement des commandes", description: "Le client vous paie directement, en une seule fois, articles et livraison compris : Stockman ne reçoit pas cet argent. Indiquez votre numéro Wave ou Orange Money dans Paramètres > Site e-commerce, rubrique « Paiement ». Chaque commande affiche l'état de son paiement. Quand le client touche « J'ai payé », vous recevez « Paiement à vérifier » : vérifiez sur votre compte, puis touchez « Paiement reçu ». La commande est confirmée du même geste." },
-            { icon: "checkmark-circle-outline", title: "Préparer et livrer", description: "Ouvrez une commande pour consulter ses articles et son destinataire. La « Prochaine étape » met en avant le geste attendu. Les actions autorisées permettent de confirmer, marquer comme prête ou livrée, annuler, ou livrer avec Denkma quand le client a choisi sa position ou un point relais Denkma : confirmez son paiement, touchez « Prête » quand le colis est emballé, puis donnez au livreur le code affiché dans la commande. Stockman affiche ensuite le suivi." },
-            { icon: "stats-chart-outline", title: "Suivre l'activité", description: "Dans la vue Statistiques, retrouvez les commandes et celles en attente, ainsi que le CA E-com, le panier moyen, les visites et la conversion sur la période indiquée. E-com s'ouvre d'abord sur la vue Commandes." },
-            { icon: "settings-outline", title: "Site public et paramètres", description: "E-com est votre espace de gestion des commandes et de suivi commercial. Pour configurer la vitrine publique, ouvrez Paramètres > Boutique en ligne. Le site peut rester désactivé ou non configuré sans bloquer les commandes déjà reçues." },
-            { icon: "bicycle-outline", title: "Livraison Denkma", description: "Dans Paramètres > Site e-commerce, rubrique « Livraison », la carte Livraison Denkma crée votre compte Denkma Pro depuis l'application mobile : commerce, position du point de collecte prise sur place, code PIN Denkma et numéro confirmé par SMS. Denkma valide ensuite votre compte ; vous pouvez aussi connecter un compte Denkma Pro existant. Installez ensuite l'application Denkma avec « Télécharger l'application Denkma » et connectez-vous avec votre numéro et votre code PIN : vous y rechargez votre compte transport et suivez vos colis. Une fois Denkma actif, vos clients choisissent leur position ou un point relais au lieu d'écrire une adresse." },
+            { icon: "receipt-outline", title: "screen_guide.ecommerce.orders_title", description: "screen_guide.ecommerce.orders_description" },
+            { icon: "wallet-outline", title: "screen_guide.ecommerce.payment_title", description: "screen_guide.ecommerce.payment_description" },
+            { icon: "phone-portrait-outline", title: "screen_guide.ecommerce.mobile_money_title", description: "screen_guide.ecommerce.mobile_money_description", requires: "ecommerce_mobile_money_available" },
+            { icon: "checkmark-circle-outline", title: "screen_guide.ecommerce.delivery_title", description: "screen_guide.ecommerce.delivery_description" },
+            { icon: "stats-chart-outline", title: "screen_guide.ecommerce.stats_title", description: "screen_guide.ecommerce.stats_description" },
+            { icon: "settings-outline", title: "screen_guide.ecommerce.site_title", description: "screen_guide.ecommerce.site_description" },
+            { icon: "bicycle-outline", title: "screen_guide.ecommerce.denkma_title", description: "screen_guide.ecommerce.denkma_description", requires: "ecommerce_denkma_available" },
         ]
     },
     starterSettings: {
@@ -526,7 +527,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             { icon: "help-circle-outline", title: "Aide", description: "Vérifiez la connexion et les données en attente, synchronisez, contactez le support ou signalez un problème." },
             { icon: "person-outline", title: "Mon compte", description: "Retrouvez la sécurité, la langue, le thème, les comptes enregistrés et la déconnexion. Dans Données et suppression, vous pouvez exporter vos données ou demander la suppression du compte." },
             { icon: "notifications-outline", title: "Notifications", description: "Activez ou désactivez les notifications. Plus d'options permet d'ajuster les préférences de réception existantes. Les réglages avancés déjà enregistrés sont conservés." },
-            { icon: "card-outline", title: "Mon abonnement", description: "Consultez votre formule, son statut et l'échéance disponible. Gérer le paiement et Changer d'offre ouvrent l'écran Abonnement existant, selon vos droits." },
+            { icon: "card-outline", title: "Mon abonnement", description: "Consultez votre formule et comparez directement Starter, Pro et Enterprise. Les actions disponibles figurent sous l'offre sélectionnée. Les coordonnées de facturation sont en bas de la rubrique." },
             { icon: "information-circle-outline", title: "Informations", description: "Consultez la version de Stockman, les conditions d'utilisation et la politique de confidentialité." },
         ]
     },
@@ -629,7 +630,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "open-outline",
                 title: "Découvrir Enterprise",
-                description: "Sélectionnez Enterprise et touchez Découvrir Enterprise pour ouvrir Abonnement sur Stockman Web avec le compte déjà connecté sur votre téléphone."
+                description: "Sélectionnez Enterprise et touchez Découvrir Enterprise pour ouvrir le tableau de bord sur Stockman Web avec le compte déjà connecté sur votre téléphone."
             },
             {
                 icon: "phone-portrait-outline",

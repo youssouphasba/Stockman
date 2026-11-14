@@ -1,4 +1,186 @@
 {
+  "supplier_actions": {
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "ship": "Expédier",
+    "confirm_change": "Passer la commande {{id}} au statut « {{status}} » ?",
+    "created": "{{id}} · Créée le {{date}}",
+    "received": "Reçu : {{quantity}}",
+    "processing": "Traitement…"
+  },
+  "supplier_portal_text": {
+    "availability_error": "Impossible de mettre à jour la disponibilité.",
+    "no_orders": "Aucune commande ne correspond à ces filtres.",
+    "select_order": "Sélectionnez une commande",
+    "order_details": "Les détails de la commande et les actions disponibles s’affichent ici.",
+    "requested_delivery": "Livraison souhaitée",
+    "merchant_note": "Note du commerçant",
+    "no_action": "Aucune action en attente côté fournisseur. Le commerçant doit confirmer la réception.",
+    "company": "Société",
+    "incomplete": "À compléter",
+    "lead_time": "Délai moyen",
+    "company_name": "Nom de la société",
+    "phone": "Téléphone professionnel",
+    "category": "Catégories",
+    "delivery_days": "Délai moyen (jours)",
+    "status_pending": "Nouvelle",
+    "status_confirmed": "Confirmée",
+    "status_shipped": "Expédiée",
+    "status_partially_delivered": "Partiellement livrée",
+    "status_delivered": "Livrée",
+    "status_cancelled": "Annulée",
+    "status_unknown": "Statut inconnu"
+  },
+  "reservation_status": {
+    "pending": "En attente",
+    "confirmed": "Confirmée",
+    "arrived": "Arrivée",
+    "cancelled": "Annulée",
+    "no_show": "Non présentée",
+    "unknown": "Statut inconnu"
+  },
+  "verify_email_web": {
+    "invalid_length": "Saisissez le code à six chiffres reçu par e-mail.",
+    "invalid_code": "Le code est incorrect.",
+    "resend_error": "Impossible de renvoyer l’e-mail de vérification.",
+    "title": "Vérifiez votre adresse e-mail",
+    "instructions": "Saisissez le code envoyé à {{email}} pour activer votre accès web.",
+    "code": "Code de vérification",
+    "checking": "Vérification…",
+    "verify": "Vérifier mon adresse e-mail",
+    "resend": "Renvoyer le code",
+    "resend_in": "Renvoyer le code ({{seconds}} s)",
+    "switch_account": "Utiliser un autre compte"
+  },
+  "alert_rule_text": {
+    "unsaved": "Modifications non enregistrées",
+    "synced": "Règle synchronisée"
+  },
+  "stock_history_guide": {
+    "role": "Rôle de l’historique des stocks",
+    "role_text": "L’historique retrace les entrées fournisseurs, les sorties liées aux ventes, les ajustements, les transferts et les corrections d’inventaire.",
+    "kpis": "Indicateurs",
+    "kpi_text": "Les quatre indicateurs résument l’activité et permettent de filtrer le tableau.",
+    "all": "Affiche tous les mouvements.",
+    "incoming": "Affiche uniquement les entrées de stock.",
+    "outgoing": "Affiche uniquement les sorties de stock.",
+    "adjustments": "Affiche les ajustements manuels ou automatiques.",
+    "filter_text": "Filtrez la liste par produit, type de mouvement ou période.",
+    "search": "Recherche",
+    "search_text": "Recherchez un nom de produit ou un mot-clé dans le motif.",
+    "type": "Type de mouvement",
+    "type_text": "Affichez tous les mouvements, les entrées, les sorties ou les ajustements.",
+    "period": "Période",
+    "period_text": "Choisissez une période. Par défaut, les 30 derniers jours sont affichés.",
+    "table": "Tableau des mouvements",
+    "table_text": "Chaque ligne affiche les informations d’un mouvement de stock.",
+    "date": "Date et heure du mouvement.",
+    "product": "Nom du produit concerné.",
+    "movement": "Vert pour une entrée, rouge pour une sortie et orange pour un ajustement.",
+    "quantity": "Quantité déplacée ou ajustée.",
+    "author": "Utilisateur ou système à l’origine du mouvement.",
+    "reason": "Motif saisi par l’utilisateur ou généré automatiquement.",
+    "export": "Télécharge l’historique filtré au format CSV."
+  },
+  "subscription_upgrade": {
+    "heading": "Évolution vers Enterprise",
+    "title": "Passez à Enterprise sans changer de compte.",
+    "description": "Vous conservez vos boutiques, vos utilisateurs et vos données. L’accès complet au web s’active après confirmation du paiement.",
+    "verify": "1. Vérifier",
+    "verify_description": "Confirmez le pays, la devise et le contact de facturation.",
+    "pay": "2. Pay",
+    "pay_description": "Choisissez le paiement par carte ou par Mobile Money, selon votre devise.",
+    "activate": "3. Activate",
+    "activate_description": "L’accès complet au web s’active dès que Stripe ou Flutterwave confirme le paiement.",
+    "unchanged": "Ce qui ne change pas",
+    "account": "Vous gardez votre compte principal.",
+    "data": "Vos boutiques et vos données sont conservées.",
+    "access": "Stockman Web reste accessible pendant le changement d’offre.",
+    "demo": "Session de démonstration active"
+  },
+  "reports_text": {
+    "executive": "Rapport exécutif",
+    "financial_summary": "Synthèse financière de la période",
+    "lead_time": "Délai",
+    "consolidated": "Consolidé",
+    "dashboard": "Tableau de bord exécutif",
+    "multi_store_description": "Comparaison des résultats des boutiques de l’organisation.",
+    "current_invoices": "Factures clients de la période sélectionnée.",
+    "period": "Période : {{period}}",
+    "revenue": "{{revenue}} de chiffre d’affaires consolidé",
+    "invoice_count_one": "{{count}} facture sur la période",
+    "invoice_count_other": "{{count}} factures sur la période"
+  },
+  "stock_history_text": {
+    "title": "Historique des stocks",
+    "description": "Mouvements de stock par période, boutique, catégorie et fournisseur.",
+    "empty": "Aucun mouvement enregistré.",
+    "page": "{{shown}} sur {{total}} mouvements",
+    "date": "Date et heure",
+    "product": "Produit",
+    "movement": "Mouvement",
+    "quantity": "Quantité",
+    "author": "Auteur",
+    "reason": "Motif / notes",
+    "system": "Système",
+    "operation": "Mouvement de stock",
+    "search": "Rechercher un produit…",
+    "export": "Exporter en CSV",
+    "all_movements": "Mouvements",
+    "incoming": "Entrées",
+    "outgoing": "Sorties",
+    "adjustments": "Ajustements",
+    "all_active": "Tous les mouvements",
+    "incoming_hint": "Quantités reçues ou ajustées",
+    "outgoing_hint": "Quantités consommées ou vendues",
+    "entry": "Entrée",
+    "exit": "Sortie",
+    "adjustment": "Ajustement",
+    "filter_all": "Tous",
+    "filter_in": "Entrées",
+    "filter_out": "Sorties",
+    "filter_adjustment": "Ajustements",
+    "range": "Du {{start}} au {{end}}",
+    "affected_one": "{{count}} référence concernée",
+    "affected_other": "{{count}} références concernées"
+  },
+  "subscription_banner": {
+    "demo": "Démo {{type}} active jusqu’au {{date}}",
+    "grace_until": "Paiement à régulariser avant le {{date}}",
+    "grace": "Paiement à régulariser",
+    "restricted": "Accès web limité. Régularisez votre abonnement pour retrouver tous les modules.",
+    "read_only": "Compte en lecture seule. Régularisez votre abonnement pour reprendre.",
+    "last_day": "Dernier jour d’essai gratuit. Activez votre abonnement pour continuer.",
+    "days_one": "{{count}} jour d’essai gratuit restant",
+    "days_other": "{{count}} jours d’essai gratuit restants"
+  },
+  "executive_text": {
+    "recommendations": "Synthèse et recommandations",
+    "load_error": "Impossible de charger le tableau de bord exécutif.",
+    "detail_title": "Détail indisponible",
+    "detail_error": "Impossible de charger le détail de cet indicateur.",
+    "margin_hint": "Calculée à partir du coût d’achat enregistré",
+    "turnover_hint": "Sorties rapportées à la valeur du stock",
+    "top_categories": "Catégories les plus vendues",
+    "empty_categories": "Aucune vente par catégorie sur cette période.",
+    "sales_hint_one": "{{count}} vente consolidée · {{period}}",
+    "sales_hint_other": "{{count}} ventes consolidées · {{period}}"
+  },
+  "multi_store_text": {
+    "detail_title": "Détail indisponible",
+    "detail_error": "Impossible de charger le détail multi-boutiques.",
+    "revenue": "Chiffre d’affaires consolidé",
+    "sales": "Ventes consolidées",
+    "empty": "Aucune boutique ne correspond à ces filtres.",
+    "summary_one": "Comparaison de {{count}} boutique · {{period}}",
+    "summary_other": "Comparaison de {{count}} boutiques · {{period}}"
+  },
+  "inventory_text": {
+    "deleted_location": "Emplacement supprimé"
+  },
+  "delivery_confirmation": {
+    "select_product": "Sélectionnez le produit dont le stock sera mis à jour à la livraison."
+  },
   "executive_dashboard": {
     "label": "Tableau de bord exécutif",
     "title": "Vue de direction consolidée",
@@ -583,6 +765,9 @@
     "unit_placeholder": "unité"
   },
   "common": {
+    "phone": "Téléphone",
+    "email": "Adresse e-mail",
+    "history": "Historique",
     "add": "Ajouter",
     "all": "Tous",
     "general": "Général",
@@ -658,6 +843,9 @@
     "last_90_days": "90 derniers jours"
   },
   "crm": {
+    "subtitle": "Fidélisez vos clients et suivez leurs dettes.",
+    "no_customers_found": "Aucun client trouvé.",
+    "no_phone": "Sans numéro de téléphone",
     "cancel_payment": "Annuler",
     "payment_cancelled": "Paiement annulé avec succès",
     "confirm_cancel_payment": "Annuler ce paiement de {{amount}} ? La dette du client sera restaurée.",
@@ -2093,13 +2281,14 @@
     "version": "Version"
   },
   "production": {
+    "title": "Production",
     "status_planned": "Planifié",
     "status_in_progress": "En cours",
     "status_completed": "Terminé",
     "status_cancelled": "Annulé"
   },
   "projects": {
-    "corps_gros_oeuvre": "Gros Å“uvre",
+    "corps_gros_oeuvre": "Gros œuvre",
     "corps_plomberie": "Plomberie",
     "corps_electricite": "Électricité",
     "corps_peinture": "Peinture",
@@ -2601,6 +2790,7 @@
     "whatsapp_not_installed": "WhatsApp n'est pas installé sur cet appareil."
   },
   "home": {
+    "current_tab_guide": "Guide de cet onglet",
     "desktop_recommendation": "Pour utiliser Stockman Web plus confortablement, nous vous recommandons de vous connecter depuis un ordinateur.",
     "web_read_only": {
       "badge": "Consultation web · {{plan}}",

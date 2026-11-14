@@ -475,7 +475,7 @@ export default function AccountingScreen() {
                 if (pendingInvoice) {
                     await generateStoredInvoicePdf(pendingInvoice);
                 } else {
-                    Alert.alert(t('common.error'), t('accounting.invoice_create_error', { defaultValue: "Impossible de creer la facture." }));
+                    Alert.alert(t('common.error'), t('accounting.invoice_create_error', { defaultValue: "Impossible de créer la facture." }));
                 }
                 return;
             }
@@ -483,7 +483,7 @@ export default function AccountingScreen() {
             await loadData(selectedPeriod, appliedStart, appliedEnd);
         } catch (error) {
             console.error(error);
-            Alert.alert(t('common.error'), t('accounting.invoice_create_error', { defaultValue: "Impossible de creer la facture." }));
+            Alert.alert(t('common.error'), t('accounting.invoice_create_error', { defaultValue: "Impossible de créer la facture." }));
         } finally {
             setInvoiceBusyId(null);
         }
@@ -1741,7 +1741,7 @@ export default function AccountingScreen() {
                                     <Text style={styles.sectionSubtitle}>
                                         {revenueSeries.length > 1
                                             ? `Variation sur la période : ${revenueDelta >= 0 ? '+' : ''}${formatCurrency(revenueDelta)}${bestRevenueDay ? ` • pic le ${new Date(bestRevenueDay.date).toLocaleDateString(i18n.language)}` : ''}`
-                                            : "Suivi quotidien du chiffre d'affaires sur la période."}
+                                            : t('accounting_extra.revenue_trend')}
                                     </Text>
                                     <View style={styles.chartContainer}>
                                         <LineChart
@@ -2322,7 +2322,7 @@ export default function AccountingScreen() {
                                     ))}
                                 </View>
 
-                                <Text style={styles.fieldLabel}>Ajouter une catégorie personnalisée</Text>
+                                <Text style={styles.fieldLabel}>{t('accounting_extra.add_category')}</Text>
                                 <View style={styles.customCategoryRow}>
                                     <TextInput
                                         style={[styles.input, styles.customCategoryInput]}
@@ -2344,7 +2344,7 @@ export default function AccountingScreen() {
                                         ) : (
                                             <>
                                                 <Ionicons name="add-outline" size={18} color="#fff" />
-                                                <Text style={styles.addCategoryBtnText}>Ajouter</Text>
+                                                <Text style={styles.addCategoryBtnText}>{t('accounting_extra.add')}</Text>
                                             </>
                                         )}
                                     </TouchableOpacity>

@@ -41,7 +41,9 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 
 - Après un achat Starter ou Pro via Google Play / App Store, l’application lance une synchronisation serveur (`/subscription/sync`) puis recharge le contexte utilisateur pour propager immédiatement le nouveau plan dans les écrans verrouillés.
 - Si la boutique indique "déjà abonné", utilisez le bouton **Récupérer mon abonnement**. L’application tente maintenant de reconnaître le plan à partir des entitlements actifs, des abonnements actifs et des identifiants de produits RevenueCat avant de relancer la synchronisation.
-- Depuis un compte de facturation mobile, choisir Enterprise puis toucher **Découvrir Enterprise** : vérifier que Stockman Web ouvre **Abonnement** avec le même compte, même si le navigateur était connecté à un autre compte. Vérifier qu'un lien déjà utilisé ou expiré revient à la connexion sans ouvrir de session et qu'un compte Starter ou Pro ne reçoit pas de droits Enterprise.
+- Depuis un compte de facturation mobile, choisir Enterprise puis toucher **Découvrir Enterprise** : vérifier que Stockman Web ouvre le **Tableau de bord** avec le même compte, même si le navigateur était connecté à un autre compte. Vérifier qu'un lien déjà utilisé ou expiré revient à la connexion sans ouvrir de session et qu'un compte Starter ou Pro ne reçoit pas de droits Enterprise.
+- Dans **Réglages → Mon abonnement**, vérifier que les trois offres sont affichées directement et que les coordonnées de facturation s’ouvrent sous les offres. Les liens de paiement et de restauration doivent être les mêmes que depuis le bandeau d’essai.
+- Vérifier en français et en anglais les messages de suppression et de restauration de produit, les règles d’alerte et les étapes d’import du catalogue fournisseur. Vérifier aussi les pluriels et l’absence de clés de traduction à la place des libellés.
 
 ## 4. Connexion Google mobile
 
@@ -63,6 +65,8 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 - Le guide contextuel de navigation doit s'ouvrir automatiquement une seule fois lors de la premiere arrivee sur les onglets.
 - Apres fermeture du guide, changer d'onglet ne doit plus le rouvrir automatiquement.
 - Le guide doit ensuite rester accessible uniquement via le bouton d'aide.
+- Sur un petit écran, ouvrir un guide d’écran en portrait, puis en paysage si l’appareil le permet. Vérifier que la fermeture et les boutons de navigation restent visibles, même avec une police agrandie. Sur une étape longue, faire défiler le texte verticalement, puis changer d’étape avec les boutons et par balayage horizontal. Fermer et rouvrir le guide : il doit repartir de la première étape.
+- Avec un compte français, ouvrir le guide E-com et rechercher Wave, Orange Money ou Denkma dans le centre d’aide : les rubriques de configuration de ces services ne doivent pas apparaître. Les consignes de paiement et le traitement des commandes restent accessibles. Avec un compte sénégalais éligible en XOF, vérifier que les rubriques correspondantes apparaissent. Basculer entre les deux comptes sans redémarrer l’application et répéter la vérification.
 
 ## 7. Fluidite et reglages
 

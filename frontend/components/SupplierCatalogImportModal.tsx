@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import * as DocumentPicker from 'expo-document-picker';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
@@ -12,24 +13,25 @@ type Props = {
   onSuccess: () => void;
 };
 
-const REQUIRED_FIELDS = [{ key: 'name', label: 'Nom' }];
+const REQUIRED_FIELDS = [{ key: 'name' }];
 const OPTIONAL_FIELDS = [
-  { key: 'description', label: 'Description' },
-  { key: 'category', label: 'Categorie' },
-  { key: 'subcategory', label: 'Sous-categorie' },
-  { key: 'price', label: 'Prix' },
-  { key: 'unit', label: 'Unite' },
-  { key: 'stock_available', label: 'Stock disponible' },
-  { key: 'min_order_quantity', label: 'Quantite minimale' },
-  { key: 'sku', label: 'SKU' },
-  { key: 'barcode', label: 'Code-barres' },
-  { key: 'brand', label: 'Marque' },
-  { key: 'origin', label: 'Origine' },
-  { key: 'delivery_time', label: 'Delai de livraison' },
-  { key: 'publication_status', label: 'Visibilite' },
+  { key: 'description' },
+  { key: 'category' },
+  { key: 'subcategory' },
+  { key: 'price' },
+  { key: 'unit' },
+  { key: 'stock_available' },
+  { key: 'min_order_quantity' },
+  { key: 'sku' },
+  { key: 'barcode' },
+  { key: 'brand' },
+  { key: 'origin' },
+  { key: 'delivery_time' },
+  { key: 'publication_status' },
 ];
 
 export default function SupplierCatalogImportModal({ visible, onClose, onSuccess }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [step, setStep] = useState(0);
@@ -80,7 +82,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
       setMapping(parsed.ai_mapping || {});
       setStep(1);
     } catch {
-      Alert.alert('Erreur', "Impossible d'analyser le fichier.");
+      Alert.alert(t('common.error'), t('supplier_catalog_import.parse_error'));
     } finally {
       setLoading(false);
     }
@@ -101,7 +103,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
   function handleConfirmMapping() {
     const missing = REQUIRED_FIELDS.filter((field) => !mapping[field.key]);
     if (missing.length > 0) {
-      Alert.alert('Champ manquant', `Mappez au moins : ${missing.map((field) => field.label).join(', ')}`);
+      Alert.alert(t('supplier_catalog_import.missing_field'), t('supplier_catalog_import.missing_mapping', { fields: missing.map((field) => t(`supplier_catalog_import.${field.key}`)).join(', ') }));
       return;
     }
     setStep(2);
@@ -119,7 +121,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
       setResult(importResult);
       setStep(3);
     } catch (error: any) {
-      Alert.alert('Erreur', error?.message || "Impossible d'importer le catalogue.");
+      Alert.alert(t('common.error'), error?.message || t('supplier_catalog_import.import_error'));
     } finally {
       setLoading(false);
     }
@@ -129,13 +131,9 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
     return (
       <View style={styles.centerContent}>
         <Ionicons name="cloud-upload-outline" size={60} color={colors.primary} />
-        <Text style={styles.stepTitle}>Importer un fichier CSV</Text>
-        <Text style={styles.stepDescription}>
-          Importez plusieurs produits fournisseur en une seule fois. Ce flux sert a creer
-          rapidement un catalogue propre a partir d un tableau CSV.
-        </Text>
+        <Text style={styles.stepTitle}>{t('supplier_catalog_import.upload')}</Text>
         <TouchableOpacity style={styles.primaryButton} onPress={handlePickFile} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Choisir un fichier</Text>}
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>{t('supplier_catalog_import.choose')}</Text>}
         </TouchableOpacity>
       </View>
     );
@@ -144,19 +142,19 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
   function renderMapping() {
     return (
       <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
-        <Text style={styles.stepTitle}>Mapper les colonnes</Text>
+        <Text style={styles.stepTitle}>{t('supplier_catalog_import.mapping')}</Text>
         <Text style={styles.stepDescription}>
-          Verifiez la correspondance entre vos colonnes CSV et les champs du catalogue fournisseur.
+          {t('supplier_catalog_import.mapping_description')}
         </Text>
         {[...REQUIRED_FIELDS, ...OPTIONAL_FIELDS].map((field) => (
           <View key={field.key} style={styles.mappingBlock}>
             <Text style={styles.mappingLabel}>
-              {field.label}
+              {t(`supplier_catalog_import.${field.key}`)}
               {REQUIRED_FIELDS.some((item) => item.key === field.key) ? ' *' : ''}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <TouchableOpacity style={[styles.chip, !mapping[field.key] && styles.chipActive]} onPress={() => toggleMapping(field.key, null)}>
-                <Text style={[styles.chipText, !mapping[field.key] && styles.chipTextActive]}>Ignorer</Text>
+                <Text style={[styles.chipText, !mapping[field.key] && styles.chipTextActive]}>{t('supplier_catalog_import.skip')}</Text>
               </TouchableOpacity>
               {headers.map((header) => (
                 <TouchableOpacity key={`${field.key}-${header}`} style={[styles.chip, mapping[field.key] === header && styles.chipActive]} onPress={() => toggleMapping(field.key, header)}>
@@ -167,7 +165,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
           </View>
         ))}
         <TouchableOpacity style={styles.primaryButton} onPress={handleConfirmMapping}>
-          <Text style={styles.primaryButtonText}>Continuer</Text>
+          <Text style={styles.primaryButtonText}>{t('supplier_catalog_import.next')}</Text>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -177,37 +175,37 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
     const previewRows = rawData.slice(0, 5);
     return (
       <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
-        <Text style={styles.stepTitle}>Apercu avant import</Text>
+        <Text style={styles.stepTitle}>{t('supplier_catalog_import.preview')}</Text>
         <Text style={styles.stepDescription}>
-          Verifiez quelques lignes avant de creer vos fiches catalogue.
+          {t('supplier_catalog_import.preview_description')}
         </Text>
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryText}>Fichier : {fileName}</Text>
-          <Text style={styles.summaryText}>Lignes detectees : {rawData.length}</Text>
-          <Text style={styles.summaryText}>Visibilite des produits importes :</Text>
+          <Text style={styles.summaryText}>{t('supplier_catalog_import.file', { name: fileName })}</Text>
+          <Text style={styles.summaryText}>{t('supplier_catalog_import.rows', { count: rawData.length })}</Text>
+          <Text style={styles.summaryText}>{t('supplier_catalog_import.visibility')}</Text>
           <View style={styles.importVisibilityRow}>
             <TouchableOpacity style={[styles.choiceChip, importVisibility === 'published' && styles.choiceChipActive]} onPress={() => setImportVisibility('published')}>
-              <Text style={[styles.choiceChipText, importVisibility === 'published' && styles.choiceChipTextActive]}>Visible</Text>
+              <Text style={[styles.choiceChipText, importVisibility === 'published' && styles.choiceChipTextActive]}>{t('supplier_catalog_import.visible')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.choiceChip, importVisibility === 'draft' && styles.choiceChipActive]} onPress={() => setImportVisibility('draft')}>
-              <Text style={[styles.choiceChipText, importVisibility === 'draft' && styles.choiceChipTextActive]}>Masque</Text>
+              <Text style={[styles.choiceChipText, importVisibility === 'draft' && styles.choiceChipTextActive]}>{t('supplier_catalog_import.hidden')}</Text>
             </TouchableOpacity>
           </View>
         </View>
         {previewRows.map((row, index) => (
           <View key={index} style={styles.previewCard}>
-            <Text style={styles.previewTitle}>{mapping.name ? row[mapping.name] : 'Sans nom'}</Text>
+            <Text style={styles.previewTitle}>{mapping.name ? row[mapping.name] : t('supplier_catalog_import.unnamed')}</Text>
             <Text style={styles.previewMeta}>
-              {mapping.price ? `${row[mapping.price] || 0} FCFA` : 'Prix non mappe'} - {mapping.category ? row[mapping.category] || 'Sans categorie' : 'Sans categorie'}
+              {mapping.price ? `${row[mapping.price] || 0} FCFA` : t('supplier_catalog_import.unmapped_price')} - {mapping.category ? row[mapping.category] || t('supplier_catalog_import.uncategorized') : t('supplier_catalog_import.uncategorized')}
             </Text>
           </View>
         ))}
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.secondaryButton} onPress={() => setStep(1)}>
-            <Text style={styles.secondaryButtonText}>Retour</Text>
+            <Text style={styles.secondaryButtonText}>{t('supplier_catalog_import.back')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={handleImport} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Importer</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>{t('supplier_catalog_import.import')}</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -220,20 +218,20 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
         <View style={styles.successCircle}>
           <Ionicons name="checkmark" size={40} color={colors.success} />
         </View>
-        <Text style={styles.stepTitle}>Import termine</Text>
+        <Text style={styles.stepTitle}>{t('supplier_catalog_import.done')}</Text>
         <Text style={styles.stepDescription}>
-          {result?.count || 0} produit(s) ont ete crees dans le catalogue fournisseur.
+          {t('supplier_catalog_import.imported', { count: result?.count || 0 })}
         </Text>
         {!!result?.errors?.length && (
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryText}>Lignes a corriger : {result.errors.length}</Text>
+            <Text style={styles.summaryText}>{t('supplier_catalog_import.rows_to_fix', { count: result.errors.length })}</Text>
             {result.errors.slice(0, 5).map((error, index) => (
-              <Text key={index} style={styles.errorText}>Ligne {error.row + 1} : {error.error}</Text>
+              <Text key={index} style={styles.errorText}>{t('supplier_catalog_import.row_error', { row: error.row + 1, error: error.error })}</Text>
             ))}
           </View>
         )}
         <TouchableOpacity style={styles.primaryButton} onPress={() => { onSuccess(); handleClose(); }}>
-          <Text style={styles.primaryButtonText}>Retour au catalogue</Text>
+          <Text style={styles.primaryButtonText}>{t('supplier_catalog_import.back_to_catalogue')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -246,7 +244,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Import catalogue</Text>
+            <Text style={styles.headerTitle}>{t('supplier_catalog_import.title')}</Text>
             <TouchableOpacity onPress={handleClose}>
               <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>

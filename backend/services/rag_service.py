@@ -18,7 +18,7 @@ class RAGService:
     def __init__(self, api_key: str, root_dir: Path):
         self.api_key = api_key
         self.root_dir = root_dir
-        self.index_version = 52
+        self.index_version = 59
         self.index_path = root_dir / "vector_index.json"
         self.docs_dir = root_dir / "docs"
         self.web_guides_dir = self.docs_dir / "web-guides"
@@ -366,6 +366,8 @@ class RAGService:
                     steps_content,
                 )
                 for step_title, step_desc in steps:
+                    if step_title.startswith("screen_guide.") or step_desc.startswith("screen_guide."):
+                        continue
                     chunks.append(
                         {
                             "content": f"Guide {title} - {step_title}: {step_desc}",
@@ -403,7 +405,7 @@ class RAGService:
                     feature_desc = (desc_a or desc_b or "").strip()
                     if not feature_title or not feature_desc:
                         continue
-                    if feature_title.startswith("help.") or feature_desc.startswith("help."):
+                    if feature_title.startswith(("help.", "screen_guide.")) or feature_desc.startswith(("help.", "screen_guide.")):
                         continue
                     chunks.append(
                         {

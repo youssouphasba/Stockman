@@ -10,9 +10,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTranslation } from 'react-i18next';
 import { HELP_MODULES, FAQ, HelpModule, HelpFeature, FAQItem } from '../constants/helpContent';
+import { filterGuideContent } from '../utils/ecommerceGuideFeatures';
 
 type Props = {
   visible: boolean;
@@ -25,6 +27,7 @@ type Props = {
 
 export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole = 'shopkeeper', isRestaurant = false, hasEnterprisePlan = false }: Props) {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
@@ -38,8 +41,8 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
         (isRestaurant
           ? m.audience === 'restaurant' || m.audience === 'all'
           : m.audience == null || m.audience === 'default' || m.audience === 'all')
-    );
-  }, [userRole, isRestaurant, hasEnterprisePlan]);
+    ).map((module) => ({ ...module, features: filterGuideContent(module.features, user) }));
+  }, [userRole, isRestaurant, hasEnterprisePlan, user]);
 
   const filteredFaq = useMemo(() => {
     return FAQ.filter(

@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Link2, PackagePlus, RefreshCcw, Search } from 'lucide-react';
 import Modal from './Modal';
 import { DeliveryMappingItem, MatchSuggestion, supplier_orders as ordersApi, products as productsApi } from '../services/api';
@@ -20,6 +21,7 @@ type Props = {
 };
 
 export default function DeliveryConfirmationModal({ isOpen, orderId, onClose, onConfirmed }: Props) {
+    const { t } = useTranslation();
     const { formatCurrency } = useDateFormatter();
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -165,7 +167,7 @@ export default function DeliveryConfirmationModal({ isOpen, orderId, onClose, on
                         <p className="text-xs font-black uppercase tracking-widest text-slate-500">Association en cours</p>
                         <p className="mt-2 text-lg font-bold text-white">{searchingSuggestion?.catalog_name || 'Produit catalogue'}</p>
                         <p className="mt-1 text-sm text-slate-400">
-                            Selectionnez le produit interne qui doit recevoir le stock a la livraison.
+                            {t('delivery_confirmation.select_product')}
                         </p>
                     </div>
 

@@ -151,7 +151,8 @@ export default function ScreenGuide({ guideKey, steps, autoStart = true }: Scree
     return (
         <>
             <div
-                className="fixed inset-0 z-[9999] bg-slate-950/30 backdrop-blur-[1px] transition-opacity"
+                aria-hidden="true"
+                className="fixed inset-0 z-[9999] bg-[var(--overlay)]"
                 onClick={handleClose}
             />
 

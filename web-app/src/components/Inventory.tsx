@@ -272,9 +272,9 @@ export default function Inventory() {
             current = current.parent_id ? locationMap.get(current.parent_id) : undefined;
             guard += 1;
         }
-        if (parts.length === 0) return 'Emplacement supprime';
+        if (parts.length === 0) return t('inventory_text.deleted_location');
         return parts.reverse().join(' / ');
-    }, [locationMap]);
+    }, [locationMap, t]);
 
     const handleStockMovement = async () => {
         const qty = parseFloat(stockMovQty);

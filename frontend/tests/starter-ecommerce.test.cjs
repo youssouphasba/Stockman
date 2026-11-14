@@ -141,7 +141,7 @@ test('Status changes reuse the current handler and refresh workspace statistics 
       Alert: { alert: () => assert.fail('Unexpected alert') }, t: (key) => key,
     });
     await update('order', 'ready');
-    assert.deepEqual(calls, workspace ? [['order', 'ready'], 'list', 'stats'] : [['order', 'ready'], 'list']);
+    assert.deepEqual(calls, workspace ? [['order', 'ready', undefined], 'list', 'stats'] : [['order', 'ready', undefined], 'list']);
   }
 });
 
@@ -161,8 +161,8 @@ test('A failed status update shows the existing error without refreshing or clai
 test('A Starter E-com deep link loads once through the focus effect, not twice', () => {
   const effect = find(orders, (node) => ts.isCallExpression(node) && node.expression.getText(orders) === 'useEffect' && node.arguments[0]?.getText(orders).includes('const reminderKey ='));
   evaluate('(' + effect.arguments[0].getText(orders) + ')', {
-    ecommerceOnly: true, orderIdParam: undefined, productIdParam: undefined, tabParam: 'web', sourceParam: 'ecommerce', reminderTypeParam: undefined,
-    setActiveTab: (value) => assert.equal(value, 'web'),
+    supplierTarget: false, orderIdParam: undefined, productIdParam: undefined, sourceParam: 'ecommerce', reminderTypeParam: undefined,
+    setActiveTab: () => assert.fail('The E-com tab is already selected'),
     loadWebOrders: () => assert.fail('Already loaded through focus'),
   })();
 });

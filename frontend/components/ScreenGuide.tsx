@@ -1,22 +1,27 @@
-﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
   FlatList,
-  Dimensions,
-  ViewToken,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  type ViewToken,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import { filterGuideContent, type EcommerceGuideFeature } from '../utils/ecommerceGuideFeatures';
 
 export type GuideStep = {
   icon?: keyof typeof Ionicons.glyphMap;
   title: string;
   description: string;
+  requires?: EcommerceGuideFeature;
 };
 
 type Props = {
@@ -26,252 +31,172 @@ type Props = {
   steps: GuideStep[];
 };
 
-const CARD_PADDING = Spacing.lg * 2;
-
 export default function ScreenGuide({ visible, onClose, title, steps }: Props) {
-  const { colors } = useTheme();
-  const [currentStep, setCurrentStep] = useState(0);
-  const flatListRef = useRef<FlatList<GuideStep>>(null);
-  const [containerWidth, setContainerWidth] = useState(
-    Dimensions.get('window').width - Spacing.lg * 2
-  );
-
-  useEffect(() => {
-    if (visible) {
-      setCurrentStep(0);
-      setTimeout(() => {
-        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-      }, 100);
-    }
-  }, [visible]);
-
-  const itemWidth = containerWidth - CARD_PADDING;
-
-  const onViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0 && viewableItems[0].index != null) {
-        setCurrentStep(viewableItems[0].index);
-      }
-    },
-    []
-  );
-
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
-
-  function goToStep(index: number) {
-    if (index >= 0 && index < steps.length) {
-      flatListRef.current?.scrollToIndex({ index, animated: true });
-      setCurrentStep(index);
-    }
-  }
-
-  function handleNext() {
-    if (currentStep < steps.length - 1) {
-      goToStep(currentStep + 1);
-    } else {
-      onClose();
-    }
-  }
-
-  const isLast = currentStep === steps.length - 1;
-  const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
-
-  function handlePrevious() {
-    if (currentStep > 0) {
-      goToStep(currentStep - 1);
-    }
-  }
-
-  const renderStep = useCallback(
-    ({ item }: { item: GuideStep }) => (
-      <View style={[styles.stepCard, { width: itemWidth }]}>
-        <View
-          style={[styles.stepIconCircle, { backgroundColor: colors.primary + '15' }]}
-        >
-          <Ionicons
-            name={item.icon || 'information-circle'}
-            size={36}
-            color={colors.primary}
-          />
-        </View>
-        <Text style={[styles.stepTitle, { color: colors.text }]}>{item.title}</Text>
-        <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
-          {item.description}
-        </Text>
-      </View>
-    ),
-    [itemWidth, colors]
-  );
-
+  const { user } = useAuth();
   if (!visible) return null;
-
+  const availableSteps = filterGuideContent(steps, user);
+  if (availableSteps.length === 0) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View
-          style={[styles.container, { backgroundColor: colors.bgMid }]}
-          onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <View
-              style={[styles.headerIcon, { backgroundColor: colors.primary + '20' }]}
-            >
-              <Ionicons name="help-buoy-outline" size={22} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1, marginLeft: Spacing.sm }}>
-              <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-                {title}
-              </Text>
-              <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-                Étape {currentStep + 1} sur {steps.length}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={22} color={colors.textSecondary} />
-            </TouchableOpacity>
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <SafeAreaProvider style={styles.backdrop}>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.overlay}>
+            <GuideCard
+              key={JSON.stringify([user?.user_id, user?.account_id, title, availableSteps.map((item) => item.title)])}
+              onClose={onClose}
+              title={title}
+              steps={availableSteps}
+            />
           </View>
-
-          <View style={styles.progressWrap}>
-            <View style={[styles.progressTrack, { backgroundColor: colors.textMuted + '22' }]}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { backgroundColor: colors.primary, width: `${progress}%` },
-                ]}
-              />
-            </View>
-            <Text style={[styles.progressHint, { color: colors.textSecondary }]}>
-              Balayez ou utilisez les boutons pour suivre le guide pas à pas.
-            </Text>
-          </View>
-
-          {/* Paginated Steps */}
-          <FlatList
-            ref={flatListRef}
-            data={steps}
-            renderItem={renderStep}
-            keyExtractor={(_, i) => String(i)}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={itemWidth}
-            snapToAlignment="center"
-            decelerationRate="fast"
-            contentContainerStyle={{ paddingHorizontal: CARD_PADDING / 2 }}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={viewabilityConfig}
-            getItemLayout={(_, index) => ({
-              length: itemWidth,
-              offset: itemWidth * index,
-              index,
-            })}
-          />
-
-          {/* Dots */}
-          <View style={styles.dotsRow}>
-            {steps.map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.dot,
-                  i === currentStep
-                    ? { width: 20, backgroundColor: colors.primary }
-                    : { width: 8, backgroundColor: colors.textMuted + '40' },
-                ]}
-              />
-            ))}
-          </View>
-
-          {/* Navigation */}
-          <View style={styles.navRow}>
-            <View style={styles.navLeft}>
-              <TouchableOpacity onPress={onClose} style={styles.skipBtn}>
-                <Text style={[styles.skipText, { color: colors.textSecondary }]}>
-                  Passer
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handlePrevious}
-                disabled={currentStep === 0}
-                style={[
-                  styles.previousBtn,
-                  { borderColor: colors.textMuted + '30' },
-                  currentStep === 0 && styles.previousBtnDisabled,
-                ]}
-              >
-                <Ionicons name="arrow-back" size={15} color={colors.textSecondary} />
-                <Text style={[styles.previousText, { color: colors.textSecondary }]}>
-                  Précédent
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleNext}
-              style={[styles.nextBtn, { backgroundColor: colors.primary }]}
-            >
-              <Text style={styles.nextText}>
-                {isLast ? "J'ai compris !" : 'Suivant'}
-              </Text>
-              {!isLast && (
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
 
+function GuideCard({ onClose, title, steps }: Omit<Props, 'visible'>) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [page, setPage] = useState({ width: 0, height: 0 });
+  const flatList = useRef<FlatList<GuideStep>>(null);
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+  const step = Math.min(currentStep, steps.length - 1);
+  const isLast = step === steps.length - 1;
+  const hasPager = page.width > 0 && page.height > 0;
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const index = viewableItems[0]?.index;
+    if (index != null) setCurrentStep(index);
+  }, []);
+
+  function goToStep(index: number) {
+    if (!flatList.current || index < 0 || index >= steps.length) return;
+    flatList.current.scrollToIndex({ index, animated: true });
+    setCurrentStep(index);
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.bgMid }]}>
+      <View style={styles.header}>
+        <View style={styles.headerCopy}>
+          <Text accessibilityRole="header" numberOfLines={2} style={[styles.headerTitle, { color: colors.text }]}>
+            {title}
+          </Text>
+          <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
+            {t('common.step', { step: step + 1, total: steps.length })}
+          </Text>
+        </View>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('screen_guide.close')} onPress={onClose} style={styles.iconButton}>
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.progressTrack, { backgroundColor: colors.divider }]}>
+        <View style={{ width: `${((step + 1) / steps.length) * 100}%`, height: '100%', backgroundColor: colors.primary }} />
+      </View>
+
+      <View
+        style={styles.pager}
+        onLayout={({ nativeEvent: { layout: { width, height } } }) =>
+          setPage((current) => current.width === width && current.height === height ? current : { width, height })
+        }
+      >
+        {hasPager && (
+          <FlatList
+            key={page.width}
+            ref={flatList}
+            data={steps}
+            keyExtractor={(_, index) => String(index)}
+            horizontal
+            pagingEnabled
+            style={styles.pager}
+            showsHorizontalScrollIndicator={false}
+            contentInsetAdjustmentBehavior="never"
+            initialScrollIndex={step}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            getItemLayout={(_, index) => ({ length: page.width, offset: page.width * index, index })}
+            renderItem={({ item }) => (
+              <ScrollView
+                style={{ width: page.width, height: page.height }}
+                contentContainerStyle={styles.stepCard}
+                contentInsetAdjustmentBehavior="never"
+                nestedScrollEnabled
+              >
+                <View style={[styles.stepIconCircle, { backgroundColor: colors.primary + '15' }]}>
+                  <Ionicons name={item.icon || 'information-circle'} size={28} color={colors.primary} />
+                </View>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>{t(item.title)}</Text>
+                <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>{t(item.description)}</Text>
+              </ScrollView>
+            )}
+          />
+        )}
+      </View>
+
+      <View style={[styles.navRow, { borderTopColor: colors.divider }]}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('screen_guide.previous')}
+          accessibilityState={{ disabled: step === 0 || !hasPager }}
+          disabled={step === 0 || !hasPager}
+          onPress={() => goToStep(step - 1)}
+          style={[styles.iconButton, styles.previousBtn, { borderColor: colors.divider }, step === 0 && styles.disabled]}
+        >
+          <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !isLast && !hasPager }}
+          disabled={!isLast && !hasPager}
+          onPress={isLast ? onClose : () => goToStep(step + 1)}
+          style={[styles.nextBtn, { backgroundColor: colors.primaryDark }]}
+        >
+          <Text style={styles.nextText}>{t(isLast ? 'screen_guide.finish' : 'screen_guide.next')}</Text>
+          {!isLast && <Ionicons name="arrow-forward" size={18} color="#fff" />}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const BUTTON_SIZE = 44;
+
 const styles = StyleSheet.create({
-  overlay: {
+  backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.sm,
   },
   container: {
     width: '100%',
     maxWidth: 500,
+    height: '100%',
+    maxHeight: 520,
     borderRadius: BorderRadius.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
     overflow: 'hidden',
   },
   header: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.sm,
+    paddingLeft: Spacing.md,
+    gap: Spacing.sm,
   },
-  progressWrap: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  progressHint: {
-    fontSize: FontSize.xs,
-    marginTop: Spacing.xs,
-    lineHeight: 18,
-  },
-  headerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   headerTitle: {
     fontSize: FontSize.md,
@@ -281,22 +206,30 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     marginTop: 2,
   },
-  closeBtn: {
-    padding: Spacing.xs,
+  progressTrack: {
+    flexShrink: 0,
+    height: 4,
+    marginHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    overflow: 'hidden',
+  },
+  pager: {
+    flex: 1,
+    minHeight: 0,
   },
   stepCard: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.xl,
-    paddingHorizontal: Spacing.md,
+    padding: Spacing.md,
   },
   stepIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   stepTitle: {
     fontSize: FontSize.lg,
@@ -306,67 +239,44 @@ const styles = StyleSheet.create({
   },
   stepDesc: {
     fontSize: FontSize.sm,
-    lineHeight: 22,
     textAlign: 'center',
-    paddingHorizontal: Spacing.sm,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    marginVertical: Spacing.md,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
   },
   navRow: {
+    flexShrink: 0,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     gap: Spacing.sm,
   },
-  navLeft: {
-    flexDirection: 'row',
+  iconButton: {
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  skipBtn: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-  },
-  skipText: {
-    fontSize: FontSize.sm,
-    fontWeight: '500',
+    justifyContent: 'center',
   },
   previousBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
     borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
   },
-  previousBtnDisabled: {
+  disabled: {
     opacity: 0.45,
   },
-  previousText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
   nextBtn: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: BUTTON_SIZE,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+    borderRadius: BorderRadius.sm,
   },
   nextText: {
+    flexShrink: 1,
+    textAlign: 'center',
     color: '#fff',
     fontSize: FontSize.sm,
     fontWeight: '700',

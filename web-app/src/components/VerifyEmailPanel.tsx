@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Mail, RefreshCw } from 'lucide-react';
 import { auth, type User } from '../services/api';
 
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export default function VerifyEmailPanel({ user, onVerified, onLogout }: Props) {
+  const { t } = useTranslation();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -26,7 +28,7 @@ export default function VerifyEmailPanel({ user, onVerified, onLogout }: Props) 
 
   const handleVerify = async () => {
     if (otp.length !== 6) {
-      setError('Entrez le code a 6 chiffres recu par email.');
+      setError(t('verify_email_web.invalid_length'));
       return;
     }
     setLoading(true);
@@ -42,7 +44,7 @@ export default function VerifyEmailPanel({ user, onVerified, onLogout }: Props) 
         onVerified(response.user);
       }
     } catch (err: any) {
-      setError(err?.message || 'Le code email est incorrect.');
+      setError(err?.message || t('verify_email_web.invalid_code'));
     } finally {
       setLoading(false);
     }
@@ -58,7 +60,7 @@ export default function VerifyEmailPanel({ user, onVerified, onLogout }: Props) 
       setMessage(response.message);
       setCooldown(60);
     } catch (err: any) {
-      setError(err?.message || "Impossible de renvoyer l'email de verification.");
+      setError(err?.message || t('verify_email_web.resend_error'));
     } finally {
       setResending(false);
     }
@@ -71,15 +73,15 @@ export default function VerifyEmailPanel({ user, onVerified, onLogout }: Props) 
           <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center mx-auto">
             <Mail className="text-primary" size={28} />
           </div>
-          <h1 className="text-3xl font-black">Verifiez votre email</h1>
+          <h1 className="text-3xl font-black">{t('verify_email_web.title')}</h1>
           <p className="text-slate-400 text-sm leading-6">
-            Nous avons cree votre compte Enterprise. Entrez le code envoye a <strong className="text-white">{user.email}</strong> pour debloquer l&apos;acces web.
+            {t('verify_email_web.instructions', { email: user.email })}
           </p>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-widest">Code email</label>
+            <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-widest">{t('verify_email_web.code')}</label>
             <input
               type="text"
               value={otp}
@@ -107,7 +109,7 @@ export default function VerifyEmailPanel({ user, onVerified, onLogout }: Props) 
             disabled={loading || otp.length !== 6}
             className="btn-primary w-full py-4 rounded-xl disabled:opacity-60"
           >
-            {loading ? 'Verification...' : 'Verifier mon email'}
+            {loading ? t('verify_email_web.checking') : t('verify_email_web.verify')}
           </button>
 
           <button
@@ -116,14 +118,14 @@ export default function VerifyEmailPanel({ user, onVerified, onLogout }: Props) 
             className="w-full py-3 rounded-xl border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             <RefreshCw size={16} className={resending ? 'animate-spin' : ''} />
-            {cooldown > 0 ? `Renvoyer le code (${cooldown}s)` : 'Renvoyer le code'}
+            {cooldown > 0 ? t('verify_email_web.resend_in', { seconds: cooldown }) : t('verify_email_web.resend')}
           </button>
 
           <button
             onClick={onLogout}
             className="w-full text-sm text-slate-400 hover:text-white transition-colors"
           >
-            Utiliser un autre compte
+            {t('verify_email_web.switch_account')}
           </button>
         </div>
       </div>

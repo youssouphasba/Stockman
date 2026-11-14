@@ -86,7 +86,8 @@ export default function Home() {
   const [activeTab, setActiveTabRaw] = useState(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
-      if (hash && !hash.startsWith('web-login=')) return hash;
+      if (hash.startsWith('web-login=')) return 'dashboard';
+      if (hash) return hash;
       return window.sessionStorage.getItem('stockman_active_tab') || 'dashboard';
     }
     return 'dashboard';
@@ -526,7 +527,8 @@ export default function Home() {
         const fragment = window.location.hash.slice(1);
         if (fragment.startsWith('web-login=')) {
           const code = new URLSearchParams(fragment).get('web-login') || '';
-          window.history.replaceState({ tab: 'subscription' }, '', '#subscription');
+          window.history.replaceState({ tab: 'dashboard' }, '', '#dashboard');
+          window.sessionStorage.setItem('stockman_active_tab', 'dashboard');
           webLoginExchange.current = auth.exchangeWebLogin(code);
         }
         if (webLoginExchange.current) {
@@ -534,7 +536,7 @@ export default function Home() {
           if (cancelled) return;
           webLoginExchange.current = null;
           hydrateAuthenticatedUser(session.user);
-          setActiveTab('subscription');
+          setActiveTabRaw('dashboard');
           return;
         }
         const token = await completeRedirectSignIn();
@@ -568,7 +570,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [handleSocialToken, hydrateAuthenticatedUser, loadUser, setActiveTab, t]);
+  }, [handleSocialToken, hydrateAuthenticatedUser, loadUser, t]);
 
   useEffect(() => {
     if (isLogged && isBillingOnly && activeTab !== 'subscription') {
@@ -1053,7 +1055,10 @@ export default function Home() {
                 {activeTab === 'dashboard' && (
                   isRestaurantBusiness
                     ? <Dashboard onNavigate={setActiveTab} features={features} />
-                    : <ExecutiveDashboard onNavigate={setActiveTab} />
+                    : <ExecutiveDashboard
+                        onNavigate={setActiveTab}
+                        canUseAdvancedAnalytics={effectivePlan === 'enterprise' || user?.role === 'admin' || user?.role === 'superadmin'}
+                      />
                 )}
                 {activeTab === 'multi_stores' && <MultiStoreDashboard user={user} />}
                 {activeTab === 'pos' && <POS />}

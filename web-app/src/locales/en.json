@@ -1,4 +1,186 @@
 {
+  "supplier_actions": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "ship": "Ship",
+    "confirm_change": "Change order {{id}} to “{{status}}”?",
+    "created": "{{id}} · Created on {{date}}",
+    "received": "Received: {{quantity}}",
+    "processing": "Processing…"
+  },
+  "supplier_portal_text": {
+    "availability_error": "Could not update availability.",
+    "no_orders": "No orders match these filters.",
+    "select_order": "Select an order",
+    "order_details": "Order details and available actions appear here.",
+    "requested_delivery": "Requested delivery",
+    "merchant_note": "Merchant note",
+    "no_action": "No pending supplier actions. The merchant must confirm receipt.",
+    "company": "Company",
+    "incomplete": "Incomplete",
+    "lead_time": "Average lead time",
+    "company_name": "Company name",
+    "phone": "Business phone",
+    "category": "Categories",
+    "delivery_days": "Average lead time (days)",
+    "status_pending": "New",
+    "status_confirmed": "Confirmed",
+    "status_shipped": "Shipped",
+    "status_partially_delivered": "Partially delivered",
+    "status_delivered": "Delivered",
+    "status_cancelled": "Cancelled",
+    "status_unknown": "Unknown status"
+  },
+  "reservation_status": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "arrived": "Arrived",
+    "cancelled": "Cancelled",
+    "no_show": "No-show",
+    "unknown": "Unknown status"
+  },
+  "verify_email_web": {
+    "invalid_length": "Enter the six-digit code sent by email.",
+    "invalid_code": "The code is incorrect.",
+    "resend_error": "Could not resend the verification email.",
+    "title": "Verify your email address",
+    "instructions": "Enter the code sent to {{email}} to enable web access.",
+    "code": "Verification code",
+    "checking": "Verifying…",
+    "verify": "Verify my email address",
+    "resend": "Resend code",
+    "resend_in": "Resend code ({{seconds}} s)",
+    "switch_account": "Use a different account"
+  },
+  "alert_rule_text": {
+    "unsaved": "Unsaved changes",
+    "synced": "Rule synced"
+  },
+  "stock_history_guide": {
+    "role": "About stock history",
+    "role_text": "Stock history records supplier receipts, sales outflows, adjustments, transfers and inventory corrections.",
+    "kpis": "Indicators",
+    "kpi_text": "The four indicators summarize activity and can be used to filter the table.",
+    "all": "Show all stock movements.",
+    "incoming": "Show incoming stock only.",
+    "outgoing": "Show outgoing stock only.",
+    "adjustments": "Show manual or automatic adjustments.",
+    "filter_text": "Filter the list by product, movement type or date range.",
+    "search": "Search",
+    "search_text": "Search by product name or a keyword in the reason.",
+    "type": "Movement type",
+    "type_text": "Show all movements, incoming stock, outgoing stock or adjustments.",
+    "period": "Date range",
+    "period_text": "Choose a date range. The last 30 days are shown by default.",
+    "table": "Stock movements table",
+    "table_text": "Each row shows details of one stock movement.",
+    "date": "Date and time of the movement.",
+    "product": "Name of the affected product.",
+    "movement": "Green for incoming stock, red for outgoing stock and orange for adjustments.",
+    "quantity": "Quantity moved or adjusted.",
+    "author": "User or system that recorded the movement.",
+    "reason": "Reason entered by the user or generated automatically.",
+    "export": "Download the filtered stock history as a CSV file."
+  },
+  "subscription_upgrade": {
+    "heading": "Upgrading to Enterprise",
+    "title": "Upgrade to Enterprise without changing accounts.",
+    "description": "You keep your stores, users and data. Full web access is enabled once payment is confirmed.",
+    "verify": "1. Verify",
+    "verify_description": "Confirm your billing country, currency and contact.",
+    "pay": "2. Pay",
+    "pay_description": "Choose card or Mobile Money payment, depending on your currency.",
+    "activate": "3. Activate",
+    "activate_description": "Full web access is enabled when Stripe or Flutterwave confirms payment.",
+    "unchanged": "What stays the same",
+    "account": "You keep your main account.",
+    "data": "Your stores and data are preserved.",
+    "access": "Stockman Web stays available during the upgrade.",
+    "demo": "Demo session active"
+  },
+  "reports_text": {
+    "executive": "Executive report",
+    "financial_summary": "Financial summary for the period",
+    "lead_time": "Lead time",
+    "consolidated": "Consolidated",
+    "dashboard": "Executive dashboard",
+    "multi_store_description": "Compare results across the organization’s stores.",
+    "current_invoices": "Customer invoices for the selected period.",
+    "period": "Period: {{period}}",
+    "revenue": "{{revenue}} consolidated revenue",
+    "invoice_count_one": "{{count}} invoice in the period",
+    "invoice_count_other": "{{count}} invoices in the period"
+  },
+  "stock_history_text": {
+    "title": "Stock history",
+    "description": "Stock movements by period, store, category and supplier.",
+    "empty": "No stock movements recorded.",
+    "page": "{{shown}} of {{total}} movements",
+    "date": "Date and time",
+    "product": "Product",
+    "movement": "Movement",
+    "quantity": "Quantity",
+    "author": "Author",
+    "reason": "Reason / notes",
+    "system": "System",
+    "operation": "Stock movement",
+    "search": "Search for a product…",
+    "export": "Export CSV",
+    "all_movements": "Movements",
+    "incoming": "Incoming",
+    "outgoing": "Outgoing",
+    "adjustments": "Adjustments",
+    "all_active": "All movements",
+    "incoming_hint": "Quantities received or adjusted",
+    "outgoing_hint": "Quantities used or sold",
+    "entry": "Incoming",
+    "exit": "Outgoing",
+    "adjustment": "Adjustment",
+    "filter_all": "All",
+    "filter_in": "Incoming",
+    "filter_out": "Outgoing",
+    "filter_adjustment": "Adjustments",
+    "range": "From {{start}} to {{end}}",
+    "affected_one": "{{count}} affected item",
+    "affected_other": "{{count}} affected items"
+  },
+  "subscription_banner": {
+    "demo": "{{type}} demo active until {{date}}",
+    "grace_until": "Payment due by {{date}}",
+    "grace": "Payment due",
+    "restricted": "Web access is limited. Update your subscription to restore access to all modules.",
+    "read_only": "Your account is read-only. Update your subscription to resume.",
+    "last_day": "Last day of your free trial. Activate your subscription to continue.",
+    "days_one": "{{count}} day left in your free trial",
+    "days_other": "{{count}} days left in your free trial"
+  },
+  "executive_text": {
+    "recommendations": "Summary and recommendations",
+    "load_error": "Could not load the executive dashboard.",
+    "detail_title": "Details unavailable",
+    "detail_error": "Could not load details for this indicator.",
+    "margin_hint": "Based on the recorded purchase cost",
+    "turnover_hint": "Stock outflows relative to inventory value",
+    "top_categories": "Top-selling categories",
+    "empty_categories": "No category sales during this period.",
+    "sales_hint_one": "{{count}} consolidated sale · {{period}}",
+    "sales_hint_other": "{{count}} consolidated sales · {{period}}"
+  },
+  "multi_store_text": {
+    "detail_title": "Details unavailable",
+    "detail_error": "Could not load multi-store details.",
+    "revenue": "Consolidated revenue",
+    "sales": "Consolidated sales",
+    "empty": "No stores match these filters.",
+    "summary_one": "Comparison of {{count}} store · {{period}}",
+    "summary_other": "Comparison of {{count}} stores · {{period}}"
+  },
+  "inventory_text": {
+    "deleted_location": "Deleted location"
+  },
+  "delivery_confirmation": {
+    "select_product": "Select the product whose stock will be updated on delivery."
+  },
   "executive_dashboard": {
     "label": "Executive dashboard",
     "title": "Consolidated business overview",
@@ -582,6 +764,9 @@
     "unit_placeholder": "unit"
   },
   "common": {
+    "phone": "Phone",
+    "email": "Email address",
+    "history": "History",
     "add": "Add",
     "all": "All",
     "general": "General",
@@ -653,6 +838,9 @@
     "last_90_days": "Last 90 days"
   },
   "crm": {
+    "subtitle": "Build customer loyalty and track outstanding balances.",
+    "no_customers_found": "No customers found.",
+    "no_phone": "No phone number",
     "cancel_payment": "Cancel",
     "payment_cancelled": "Payment cancelled successfully",
     "confirm_cancel_payment": "Cancel this payment of {{amount}}? The customer's debt will be restored.",
@@ -2065,6 +2253,7 @@
     "version": "Version"
   },
   "production": {
+    "title": "Production",
     "status_planned": "Planned",
     "status_in_progress": "In Progress",
     "status_completed": "Completed",
@@ -2343,6 +2532,14 @@
     "zones_ph": "City center, suburb..."
   },
   "suppliers": {
+    "invite_to_stockman": "Invite to Stockman",
+    "invite_stockman_desc": "Invite this supplier to Stockman so you can manage orders together.",
+    "link_copied": "Link copied.",
+    "copy_error": "Could not copy the link.",
+    "copy_invite_link": "Copy invitation link",
+    "invitation_sent_email": "Invitation sent by email.",
+    "send_error": "Could not send the invitation.",
+    "send_by_email": "Send by email",
     "add_invoice_feature": "Upload feature coming soon",
     "add_note": "Add Note",
     "add_suppliers_hint": "Add your regular suppliers",
@@ -2576,6 +2773,7 @@
     "whatsapp_not_installed": "WhatsApp is not installed on this device."
   },
   "home": {
+    "current_tab_guide": "Guide for this tab",
     "desktop_recommendation": "For the best experience with Stockman Web, we recommend signing in from a computer.",
     "web_read_only": {
       "badge": "View-only web access · {{plan}}",

@@ -1,5 +1,6 @@
 ﻿'use client';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Phone, Users, CalendarDays, Check } from 'lucide-react';
 import { reservations as reservationsApi, tables as tablesApi } from '../services/api';
 
@@ -11,17 +12,13 @@ const STATUS_STYLES: Record<string, string> = {
     no_show: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-    pending: 'En attente',
-    confirmed: 'Confirmee',
-    arrived: 'Arrivee',
-    cancelled: 'Annulee',
-    no_show: 'No-show',
-};
-
 const today = () => new Date().toISOString().split('T')[0];
 
 export default function Reservations() {
+    const { t } = useTranslation();
+    const statusLabel = (status: string) => t(Object.hasOwn(STATUS_STYLES, status)
+        ? `reservation_status.${status}`
+        : 'reservation_status.unknown');
     const [date, setDate] = useState(today());
     const [list, setList] = useState<any[]>([]);
     const [tableList, setTableList] = useState<any[]>([]);
@@ -146,13 +143,13 @@ export default function Reservations() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${STATUS_STYLES[r.status] || ''}`}>{STATUS_LABELS[r.status] || r.status}</span>
+                                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${STATUS_STYLES[r.status] || ''}`}>{statusLabel(r.status)}</span>
                                 <select
                                     value={r.status}
                                     onChange={e => updateStatus(r, e.target.value)}
                                     className="bg-[#0F172A] border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none"
                                 >
-                                    {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                    {Object.keys(STATUS_STYLES).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
                                 </select>
                             </div>
                         </div>

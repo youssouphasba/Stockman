@@ -3731,32 +3731,32 @@ export default function Suppliers() {
 
                                 {/* Invitation section */}
                                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-3">
-                                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('invite_to_stockman')}</p>
-                                    <p className="text-sm text-slate-400">{t('invite_stockman_desc')}</p>
+                                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('suppliers.invite_to_stockman')}</p>
+                                    <p className="text-sm text-slate-400">{t('suppliers.invite_stockman_desc')}</p>
                                     <div className="flex flex-wrap gap-3">
                                         <button
                                             onClick={async () => {
                                                 try {
                                                     const res = await suppliersApi.getInvitationLink(selectedSupplier.supplier_id);
                                                     await navigator.clipboard.writeText(res.link);
-                                                    alert(t('link_copied'));
-                                                } catch { alert(t('copy_error')); }
+                                                    alert(t('suppliers.link_copied'));
+                                                } catch { alert(t('suppliers.copy_error')); }
                                             }}
                                             className="px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all flex items-center gap-2"
                                         >
-                                            <Copy size={14} /> {t('copy_invite_link')}
+                                            <Copy size={14} /> {t('suppliers.copy_invite_link')}
                                         </button>
                                         {selectedSupplier.email && (
                                             <button
                                                 onClick={async () => {
                                                     try {
                                                         await suppliersApi.resendInvitation(selectedSupplier.supplier_id);
-                                                        alert(t('invitation_sent_email'));
-                                                    } catch { alert(t('send_error')); }
+                                                        alert(t('suppliers.invitation_sent_email'));
+                                                    } catch { alert(t('suppliers.send_error')); }
                                                 }}
                                                 className="px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-2"
                                             >
-                                                <Mail size={14} /> {t('send_by_email')}
+                                                <Mail size={14} /> {t('suppliers.send_by_email')}
                                             </button>
                                         )}
                                     </div>

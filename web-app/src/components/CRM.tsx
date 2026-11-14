@@ -583,7 +583,7 @@ export default function CRM({ user }: CRMProps) {
             <header className="flex flex-wrap justify-between items-start gap-4 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">{t('crm.title') || 'Gestion Clients (CRM)'}</h1>
-                    <p className="text-slate-400">{t('crm.subtitle') || 'Fidélisez votre clientèle et suivez les dettes.'}</p>
+                    <p className="text-slate-400">{t('crm.subtitle')}</p>
                 </div>
                 {pendingCrmSummary.pendingTotal > 0 && (
                     <div className="max-w-2xl rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-200">
@@ -1107,7 +1107,7 @@ export default function CRM({ user }: CRMProps) {
                 {filteredCustomers.length === 0 ? (
                     <div className="p-20 text-center text-slate-500 flex flex-col items-center gap-4">
                         <Users size={48} className="opacity-20" />
-                        <p>{t('crm.no_customers_found') || 'Aucun client trouvé.'}</p>
+                        <p>{t('crm.no_customers_found')}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -1148,7 +1148,7 @@ export default function CRM({ user }: CRMProps) {
                                                                 </span>
                                                             )}
                                                         </span>
-                                                        <span className="text-xs text-slate-500">{c.phone || t('crm.no_phone') || 'Sans mobile'}</span>
+                                                        <span className="text-xs text-slate-500">{c.phone || t('crm.no_phone')}</span>
                                                     </div>
                                                 </div>
                                             </td>
@@ -1211,7 +1211,7 @@ export default function CRM({ user }: CRMProps) {
                             />
                         </div>
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm text-slate-400 font-medium">{t('common.phone') || 'Téléphone'}</label>
+                            <label className="text-sm text-slate-400 font-medium">{t('common.phone')}</label>
                             <input
                                 type="tel"
                                 placeholder="+225 ..."
@@ -1221,7 +1221,7 @@ export default function CRM({ user }: CRMProps) {
                             />
                         </div>
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm text-slate-400 font-medium">{t('common.email') || 'Email'}</label>
+                            <label className="text-sm text-slate-400 font-medium">{t('common.email')}</label>
                             <input
                                 type="email"
                                 placeholder="client@email.com"

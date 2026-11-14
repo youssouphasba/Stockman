@@ -492,7 +492,7 @@ export default function Alerts() {
                                 </div>
 
                                 <div className="flex items-center justify-between gap-3 pt-2">
-                                    <div className="text-xs text-slate-500">{hasUnsavedChanges ? 'Modifications non enregistrees' : 'Regle synchronisee'}</div>
+                                    <div className="text-xs text-slate-500">{hasUnsavedChanges ? t('alert_rule_text.unsaved') : t('alert_rule_text.synced')}</div>
                                     <div className="flex items-center gap-2">
                                         {hasUnsavedChanges && (
                                             <button onClick={() => resetDraft(rule)} className="rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 transition-all">

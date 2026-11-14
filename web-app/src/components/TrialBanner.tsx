@@ -1,5 +1,6 @@
 ﻿'use client';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Clock, AlertTriangle, AlertOctagon, ChevronRight } from 'lucide-react';
 import { subscription as subscriptionApi } from '../services/api';
 
@@ -31,11 +32,13 @@ function formatDemoTypeLabel(demoType?: string | null) {
         case 'enterprise':
             return 'Enterprise';
         default:
-            return 'Demo';
+            return '';
     }
 }
 
 export default function TrialBanner({ onNavigateToSubscription, userRole }: Props) {
+    const { t, i18n } = useTranslation();
+    const locale = i18n.resolvedLanguage || i18n.language;
     const [remainingDays, setRemainingDays] = useState<number | null>(null);
     const [isTrial, setIsTrial] = useState(false);
     const [isDemo, setIsDemo] = useState(false);
@@ -69,7 +72,7 @@ export default function TrialBanner({ onNavigateToSubscription, userRole }: Prop
         const diffDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
         const variant = getVariant(diffDays);
         const { bg, border, text, Icon } = VARIANTS[variant];
-        const label = `Demo ${formatDemoTypeLabel(demoType)} active jusqu'au ${expiresAt.toLocaleString('fr-FR')}`;
+        const label = t('subscription_banner.demo', { type: formatDemoTypeLabel(demoType), date: expiresAt.toLocaleString(locale) });
 
         return (
             <button
@@ -93,14 +96,16 @@ export default function TrialBanner({ onNavigateToSubscription, userRole }: Prop
     const { bg, border, text, Icon } = VARIANTS[variant];
 
     const label = accessPhase === 'grace'
-        ? `Paiement a regulariser avant le ${graceUntil ? new Date(graceUntil).toLocaleDateString('fr-FR') : 'plus tard'}`
+        ? (graceUntil
+            ? t('subscription_banner.grace_until', { date: new Date(graceUntil).toLocaleDateString(locale) })
+            : t('subscription_banner.grace'))
         : accessPhase === 'restricted'
-            ? "Acces web limite — regularisez l'abonnement pour retrouver tous les modules"
+            ? t('subscription_banner.restricted')
             : accessPhase === 'read_only'
-                ? "Compte en lecture seule — regularisez l'abonnement pour reprendre"
+                ? t('subscription_banner.read_only')
                 : remainingDays === 1
-                    ? "Dernier jour d'essai gratuit — Activez votre plan pour continuer"
-                    : `${remainingDays} jours d'essai gratuit restants`;
+                    ? t('subscription_banner.last_day')
+                    : t('subscription_banner.days', { count: remainingDays ?? 0 });
 
     return (
         <button

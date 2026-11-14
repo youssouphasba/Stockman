@@ -1,9 +1,90 @@
 {
+  "screen_guide": {
+    "close": "Close guide",
+    "previous": "Previous step",
+    "next": "Next",
+    "finish": "Done",
+    "help_question": "How do I navigate a screen guide?",
+    "help_answer": "Use the back arrow or Next to change steps, or swipe horizontally. Scroll vertically to read longer steps. Tap the close button to exit at any time.",
+    "ecommerce": {
+      "orders_title": "Online orders",
+      "orders_description": "Review recent orders and filter by status. The full order history includes older orders with no date limit.",
+      "payment_title": "Order payments",
+      "payment_description": "Customers pay you directly. Add payment instructions in your online store settings. Once you have verified a payment, select “Payment received” in the order.",
+      "mobile_money_title": "Payments with Wave and Orange Money",
+      "mobile_money_description": "For stores in Senegal using CFA francs (XOF), add your Wave or Orange Money number under Payment in the site settings. When the customer selects “I’ve paid”, check that you received the money before selecting “Payment received”.",
+      "delivery_title": "Prepare and deliver orders",
+      "delivery_description": "Open an order to see its items and recipient details. Follow the next step shown: confirm the order, mark it as ready, or mark it as delivered. You can also cancel it when its status and your permissions allow.",
+      "stats_title": "Track online sales",
+      "stats_description": "In Statistics, see total and pending orders, online sales revenue, average order value, visits and conversion rate for the selected period.",
+      "site_title": "Public store and settings",
+      "site_description": "To configure your public storefront, open the online store section in Settings. You can still access existing orders if the site is disabled or has not been set up.",
+      "denkma_title": "Denkma delivery",
+      "denkma_description": "For stores in Senegal using CFA francs (XOF), open Delivery in the site settings to connect a Denkma Pro account or create one if the option is available. Once the account is approved, top up your transport balance in Denkma. For a Denkma delivery, confirm the payment, mark the parcel as ready, then give the displayed code to the courier. You can track the shipment in the order."
+    }
+  },
+  "alert_rule_text": {
+    "select_store": "Select an active store before creating store-specific rules.",
+    "unsaved": "Unsaved changes",
+    "synced": "Rule synced",
+    "create": "Create"
+  },
+  "accounting_extra": {
+    "add_category": "Add a custom category",
+    "add": "Add",
+    "revenue_trend": "Daily revenue over the selected period."
+  },
+  "supplier_catalog_import": {
+    "name": "Name",
+    "description": "Description",
+    "category": "Category",
+    "subcategory": "Subcategory",
+    "price": "Price",
+    "unit": "Unit",
+    "stock_available": "Available stock",
+    "min_order_quantity": "Minimum quantity",
+    "sku": "SKU",
+    "barcode": "Barcode",
+    "brand": "Brand",
+    "origin": "Origin",
+    "delivery_time": "Delivery time",
+    "publication_status": "Visibility",
+    "parse_error": "Could not read the file.",
+    "missing_field": "Required field missing",
+    "missing_mapping": "Match a column to each required field: {{fields}}.",
+    "import_error": "Could not import the catalogue.",
+    "upload": "Import a CSV file",
+    "choose": "Choose a file",
+    "mapping": "Match columns",
+    "mapping_description": "Check how the CSV columns match the supplier catalogue fields.",
+    "skip": "Skip",
+    "next": "Continue",
+    "preview": "Import preview",
+    "preview_description": "Review the rows before creating the product listings.",
+    "file": "File: {{name}}",
+    "rows": "Rows found: {{count}}",
+    "visibility": "Visibility of imported products",
+    "visible": "Visible",
+    "hidden": "Hidden",
+    "unnamed": "Unnamed",
+    "unmapped_price": "Price not mapped",
+    "uncategorized": "Uncategorized",
+    "back": "Back",
+    "import": "Import",
+    "done": "Import complete",
+    "imported_one": "{{count}} product added to the supplier catalogue.",
+    "imported_other": "{{count}} products added to the supplier catalogue.",
+    "rows_to_fix": "Rows to fix: {{count}}",
+    "row_error": "Row {{row}}: {{error}}",
+    "back_to_catalogue": "Back to catalogue",
+    "title": "Import a catalogue"
+  },
   "abc": {
     "no_revenue": "No gain during this period.",
     "not_enough_data": "Not enough sales data for ABC analysis."
   },
   "accounting": {
+    "invoice_create_error": "Could not create the invoice.",
     "view_overview": "Overview",
     "view_physical": "Physical store",
     "view_ecommerce": "E-commerce",
@@ -153,7 +234,7 @@
     "info_revenue": "Total sales collected over the selected period, all payment methods combined.",
     "info_gross_profit": "Difference between revenue and the purchase cost of products sold.",
     "info_expenses": "Sum of all recorded expenses (rent, salaries, transport, etc.) over the period.",
-    "info_net_profit": "Actual profit after deducting all costs: revenue âˆ’ purchase cost âˆ’ expenses.",
+    "info_net_profit": "Actual profit after deducting all costs: revenue − purchase cost − expenses.",
     "info_sales_count": "Total number of transactions completed at the register over the period.",
     "info_avg_basket": "Average amount per transaction: revenue divided by number of sales.",
     "info_stock_purchase": "Total value of your stock based on purchase prices.",
@@ -218,13 +299,13 @@
       "cancel": "Cancel",
       "success": "Success",
       "error": "Error",
-      "sendSuccess": "âœ… Sent",
+      "sendSuccess": "✅ Sent",
       "addLinkButton": "Add a link button",
       "linkButton": "Link button",
       "removeLinkButton": "Remove link button",
       "invalidLinkButton": "Enter the button text and a valid HTTPS address.",
       "linkOpenError": "Unable to open this link.",
-      "statusUpdated": "âœ… Status updated"
+      "statusUpdated": "✅ Status updated"
     },
     "alerts": {
       "title": "Alerts",
@@ -238,15 +319,15 @@
       "send": "Send",
       "broadcast": "Broadcast",
       "history": "History",
-      "broadcastSuccess": "ðŸ“¢ Broadcast: Sent to {{count}} devices"
+      "broadcastSuccess": "📢 Broadcast: Sent to {{count}} devices"
     },
     "dashboard": "Admin Dashboard",
     "data_explorer": {
       "documents": "documents",
       "search_placeholder": "Rechercher (ID, nom, email...)...",
       "select_collection": "Choisissez une collection",
-      "select_hint": "SÃ©lectionnez une collection",
-      "title": "Explorateur de DonnÃ©es"
+      "select_hint": "Sélectionnez une collection",
+      "title": "Explorateur de Données"
     },
     "disputes": {
       "title": "Disputes",
@@ -325,13 +406,13 @@
       "appVersion": "App version",
       "serverStatus": "Server status",
       "actions": "Actions",
-      "dataExplorer": "ðŸ“Š Data Explorer (MongoDB)"
+      "dataExplorer": "📊 Data Explorer (MongoDB)"
     },
     "stock": {
       "title": "Products",
       "units": "{{count}} units",
       "seller": "Seller",
-      "deleteConfirmTitle": "âš ï¸ Permanent Deletion",
+      "deleteConfirmTitle": "⚠️ Permanent Deletion",
       "deleteConfirmDesc": "Are you sure you want to delete the product \"{{name}}\"? This action is irreversible.",
       "empty": "No products"
     },
@@ -375,11 +456,11 @@
     "daily_summary_prompt": "You are Stockman AI. Here are the activities of the day : {activity}. Write a very short (3-4 sentences) and motivating summary for the retailer.",
     "persona_name": "Stockman Assistant",
     "replenishment_advice_prompt": "You are a logistics expert. Here are the critical products: {products}. Provide replenishment advice based on recent sales.",
-    "summary_goal": "Analyze the merchant's real data. Don't just answer questions â€” proactively surface insights, detect anomalies, benchmark performance, and suggest concrete quantified actions. If you spot a problem, name it clearly. If you see an opportunity, quantify it.",
+    "summary_goal": "Analyze the merchant's real data. Don't just answer questions — proactively surface insights, detect anomalies, benchmark performance, and suggest concrete quantified actions. If you spot a problem, name it clearly. If you see an opportunity, quantify it.",
     "summary_instruction_admin": "IF THE USER IS AN ADMINISTRATOR, START YOUR FIRST RESPONSE WITH A BRIEF SUMMARY OF THE SYSTEM'S HEALTH IF ALERTS ARE PRESENT.",
     "summary_role_admin": "You are the personal assistant to Stockman's ADMINISTRATOR. You have access to global metrics.",
-    "summary_role_merchant": "You are Stockman's AI business assistant â€” combining the expertise of an accountant, inventory manager, and business analyst. You proactively analyze data, identify hidden trends, risks, and missed opportunities.",
-    "summary_tone": "Be direct and analytical. Use concrete numbers. Give numbered, actionable recommendations. Never say 'you might want to' â€” say 'Do X to achieve Y'. Write like an expert business advisor who deeply understands retail commerce.",
+    "summary_role_merchant": "You are Stockman's AI business assistant — combining the expertise of an accountant, inventory manager, and business analyst. You proactively analyze data, identify hidden trends, risks, and missed opportunities.",
+    "summary_tone": "Be direct and analytical. Use concrete numbers. Give numbered, actionable recommendations. Never say 'you might want to' — say 'Do X to achieve Y'. Write like an expert business advisor who deeply understands retail commerce.",
     "summary_role_restaurant": "You are Stockman's AI operations assistant for a restaurant. You combine the perspective of a floor manager, kitchen lead, ingredient stock manager, and margin analyst.",
     "summary_goal_restaurant": "Analyze the restaurant's real operating data. Do more than answer questions: detect dining room tension, kitchen delays, menu items without recipes, ingredient stock risks, and recommend immediate actions across menu, prep, and service.",
     "summary_tone_restaurant": "Be direct, operational, and service-focused. Use concrete numbers. Give short, actionable recommendations for dining room flow, kitchen execution, reservations, tables, and ingredients.",
@@ -414,8 +495,8 @@
     "analysis_error": "Could not analyze anomalies",
     "analyze_desc": "Analyze sales, stock, and margins",
     "analyzing": "Analyzing...",
-    "anomaly_analysis_summary": "AI Analysis â€” {{count}} anomaly detected",
-    "anomaly_analysis_summary_plural": "AI Analysis â€” {{count}} anomalies detected",
+    "anomaly_analysis_summary": "AI Analysis — {{count}} anomaly detected",
+    "anomaly_analysis_summary_plural": "AI Analysis — {{count}} anomalies detected",
     "channels": "Channels:",
     "config": {
       "low_stock": {
@@ -512,9 +593,9 @@
       "demoHint": "Explore the app with sample data, no sign-up needed",
       "errorDemo": "Unable to start the demo"
     },
-    "logout_btn": "Se dÃ©connecter",
-    "logout_confirm": "Voulez-vous vraiment vous dÃ©connecter ?",
-    "logout_title": "DÃ©connexion",
+    "logout_btn": "Se déconnecter",
+    "logout_confirm": "Voulez-vous vraiment vous déconnecter ?",
+    "logout_title": "Déconnexion",
     "register": {
       "title": "Create an account",
       "chooseProfile": "Choose your profile",
@@ -561,7 +642,7 @@
       "errorRegister": "Registration error",
       "continue": "Continue",
       "selectBusinessType": "Choose a sector",
-      "trialNote": "30 days free â€¢ No credit card required"
+      "trialNote": "30 days free • No credit card required"
     },
     "verifyPhone": {
       "title": "Verification",
@@ -579,29 +660,29 @@
   "batch_scan": {
     "action_required": "Action required",
     "aim_hint": "Visez un code-barres ou un tag RFID pour l'ajouter",
-    "allow_camera": "Autoriser la camÃ©ra",
+    "allow_camera": "Autoriser la caméra",
     "apply_action": "Apply action",
     "auto_replenish": "Auto Replenishment",
     "auto_replenish_desc": "Generate purchase orders for missing items",
-    "choose_action": "Choose actionâ€¦",
+    "choose_action": "Choose action…",
     "clear_all": "Tout effacer",
     "done_count": "Terminer ({{count}})",
     "items_identified": " identified Items",
-    "no_camera": "Pas d'accÃ¨s Ã  la camÃ©ra",
+    "no_camera": "Pas d'accès à la caméra",
     "orders_generated": "{{count}} Purchase order generated.",
     "partial_result": "Partial result",
     "processing_title": "Processing batch",
     "quick_inventory": "Quick Inventory",
     "quick_inventory_desc": "Mark this items as present in stock",
-    "requesting_permission": "Demande d'autorisation de camÃ©ra...",
+    "requesting_permission": "Demande d'autorisation de caméra...",
     "rfid_associate": " RFID Association",
     "rfid_associate_desc": "Associate this codes RFID tags",
     "rfid_bulk_info": "RFID association by batch allows you to quickly associate tags.",
-    "scanned_flash": "ScannÃ© !",
-    "scanned_items": "Articles scannÃ©s ({{count}})",
+    "scanned_flash": "Scanné !",
+    "scanned_items": "Articles scannés ({{count}})",
     "select_action": "Select action",
     "title": "Rapid scan (batch)",
-    "unknown_codes": "{{count}} codes are unknownâ€¦"
+    "unknown_codes": "{{count}} codes are unknown…"
   },
   "bulk_import": {
     "back": "Back",
@@ -672,7 +753,7 @@
     "barcode": "Barcode",
     "barcode_placeholder": "E.g.: 6001234567890",
     "brand": "Brand",
-    "brand_placeholder": "E.g.: NestlÃ©, Samsung...",
+    "brand_placeholder": "E.g.: Nestlé, Samsung...",
     "origin": "Origin / Source",
     "origin_placeholder": "E.g.: Senegal, France...",
     "weight": "Weight",
@@ -685,6 +766,8 @@
     "section_logistics": "Logistics"
   },
   "common": {
+    "not_specified": "Not specified",
+    "product": "Product",
     "add": "Add",
     "all": "All",
     "article": "Item",
@@ -880,7 +963,7 @@
     "report_title": "CUSTOMER & CRM REPORT",
     "report_total_revenue": "Total Rev.",
     "reward_threshold": "Reward Threshold",
-    "reward_threshold_label": "Seuil de rÃ©compense (pts)",
+    "reward_threshold_label": "Seuil de récompense (pts)",
     "search_customers_placeholder": "Search customer...",
     "search_placeholder": "Search customer...",
     "see_other_operations": "See {{count}} other operations",
@@ -1056,7 +1139,7 @@
     "faq": {
       "q1": {
         "q": "How to add my first product?",
-        "a": "Go to the Products tab, press the '+' button at the bottom right. Fill in the name, selling price, and initial stock. You can also scan an existing barcode."
+        "a": "In the Products tab, tap Add at the top of the screen or Add Product if the list is empty. In the Add menu, select Add Product and enter the name, selling price, and initial stock. You can also use Text import, CSV Import, or Batch scan."
       },
       "q2": {
         "q": "How to make a sale?",
@@ -1219,7 +1302,7 @@
         },
         "f8": {
           "t": "Bulk Import",
-          "d": "Import your products via a CSV/Excel file or by copy-pasting free text. AI parsing automatically detects products."
+          "d": "On the Products screen, tap Add Product when the list is empty or open the add menu at the top of the list. Choose Text import to paste your list and let AI identify the products, or CSV Import to upload a CSV or Excel file."
         },
         "f9": {
           "t": "Batch Scan",
@@ -1262,7 +1345,7 @@
         },
         "f6": {
           "t": "Auto Loyalty",
-          "d": "Loyalty points are calculated and credited automatically at each purchase. The customer progresses through tiers (Bronze â†’ Platinum)."
+          "d": "Loyalty points are calculated and credited automatically at each purchase. The customer progresses through tiers (Bronze → Platinum)."
         },
         "f7": {
           "t": "Multi-Sessions",
@@ -1289,7 +1372,7 @@
         },
         "f2": {
           "t": "Status Tracking",
-          "d": "Follow each order: Pending â†’ Confirmed â†’ Shipped â†’ Delivered. The visual progress bar shows the advancement."
+          "d": "Follow each order: Pending → Confirmed → Shipped → Delivered. The visual progress bar shows the advancement."
         },
         "f3": {
           "t": "AI Intake",
@@ -1860,7 +1943,7 @@
     "min_catalog_products_placeholder": "e.g. 10",
     "see_more_products": "See {{count}} more products",
     "send_invitation": "Send invitation",
-    "star": "â­",
+    "star": "⭐",
     "suppliers": "Marketplace Suppliers",
     "title": "Marketplace",
     "verified_only": "Verified only"
@@ -1874,7 +1957,7 @@
     "ai_history_cleared": "History cleared. How can I help you?",
     "ai_loading": "AI is thinking...",
     "ai_placeholder": "Ask your question...",
-    "ai_recording": "ðŸŽ™ï¸ Recording...",
+    "ai_recording": "🎙️ Recording...",
     "ai_welcome": "Hello! I am your Stockman assistant. How can I help you today?",
     "ai_welcome_restaurant": "Hello! I am your Stockman restaurant assistant. I can help with your menu, recipes, kitchen flow, tables, reservations, and service.",
     "ai_welcome_sector": "Hello! I am your Stockman assistant for {{sector}}. I can help with products, sales, stock, and daily decisions.",
@@ -1931,7 +2014,7 @@
       "remoteSuccess": "Request sent. You will also receive an email confirmation."
     },
     "deleteAccount": {
-      "dangerZone": "Danger Zone âš ï¸",
+      "dangerZone": "Danger Zone ⚠️",
       "warningTitle": "Warning",
       "warningText": "You are about to permanently delete your account and all associated data.",
       "confirmationTitle": "Ultimate confirmation",
@@ -1950,10 +2033,10 @@
     "order_creation": "Order Creation",
     "receipt": "Digital Receipt",
     "receipt_done": "Terminer",
-    "receipt_qr_subtitle": "Scannez pour rÃ©cupÃ©rer votre reÃ§u en ligne",
+    "receipt_qr_subtitle": "Scannez pour récupérer votre reçu en ligne",
     "receipt_share_pdf": "Partager la Facture PDF",
     "receipt_whatsapp_link": "Lien WhatsApp uniquement",
-    "receipt_whatsapp_text": "Voici votre reÃ§u Stockman : {{url}}",
+    "receipt_whatsapp_text": "Voici votre reçu Stockman : {{url}}",
     "save": "Save",
     "success": "Operation successful"
   },
@@ -2203,7 +2286,7 @@
     "cancel_action": "Cancel",
     "confirm_action": "Confirm",
     "terminal_active": "Terminal : {{name}}",
-    "terminal_modal_subtitle": "SÃ©lectionnez le terminal pour cette session de caisse.",
+    "terminal_modal_subtitle": "Sélectionnez le terminal pour cette session de caisse.",
     "terminal_modal_title": "Choisir un Terminal",
     "terminal_select": "Changer de terminal",
     "title": "Point of Sale",
@@ -2374,7 +2457,7 @@
     "categories_exist": "All categories already exist.",
     "categories_imported": "categories imported",
     "categories_offline": "Category management is unavailable offline.",
-    "category_label": "CatÃ©gorie",
+    "category_label": "Catégorie",
     "category_name_placeholder": "Category name",
     "category_save_error": "Could not save category",
     "category_duplicate_error": "This category already exists.",
@@ -2423,7 +2506,7 @@
     "wac_locked_hint": "Use a stock entry with the new cost to recalculate the WAC.",
     "wac_go_to_stock_in": "Create a stock entry",
     "wac_view_history": "View price history",
-    "wac_updated_toast": "WAC updated: {{old}} â†’ {{new}}",
+    "wac_updated_toast": "WAC updated: {{old}} → {{new}}",
     "purchase_price_unit_label": "Unit purchase price",
     "purchase_price_unit_hint": "Editable when renegotiated off-platform",
     "field_quantity": "Quantity",
@@ -2444,8 +2527,8 @@
     "unit_cl": "cL",
     "unit_ml": "mL",
     "unit_m": "m",
-    "unit_mÂ²": "mÂ²",
-    "unit_mÂ³": "mÂ³",
+    "unit_mÂ²": "m²",
+    "unit_mÂ³": "m³",
     "unit_paquet": "Pack",
     "unit_boite": "Box",
     "unit_bouteille": "Bottle",
@@ -2611,8 +2694,8 @@
   },
   "scanner": {
     "aim": "Placez le code-barres dans le cadre",
-    "allow_camera": "Autoriser la camÃ©ra",
-    "permission_text": "L'accÃ¨s Ã  la camÃ©ra est nÃ©cessaire pour scanner les codes-barres.",
+    "allow_camera": "Autoriser la caméra",
+    "permission_text": "L'accès à la caméra est nécessaire pour scanner les codes-barres.",
     "title": "Scanner un Produit"
   },
   "settings": {
@@ -2710,7 +2793,7 @@
     "users_permissions": "Users & Permissions",
     "users_permissions_desc": "Manage your employees' access",
     "version": "Version",
-    "store_settings": "Store Â· Settings",
+    "store_settings": "Store · Settings",
     "no_store_selected": "No store selected for point of sale settings.",
     "no_active_store_docs": "No active store selected to customize documents.",
     "test_push_title": "Test push sent",
@@ -2724,6 +2807,9 @@
     "subscription_title": "Subscription",
     "subscription_view_desc": "View your current plan, compare offers and restore purchases.",
     "billing_contact": "Billing contact",
+    "billing_details": "Billing details",
+    "billing_contact_saved": "Billing details saved.",
+    "billing_contact_save_error": "Could not save billing details.",
     "billing_contact_desc": "Receives subscription updates and account billing information.",
     "billing_name_placeholder": "Contact name",
     "billing_email_placeholder": "email@company.com",
@@ -2746,13 +2832,13 @@
     "section_modules_desc": "Enable or disable modules shown in the application.",
     "section_store": "Active store",
     "section_store_desc": "Name, documents and settings for the selected point of sale.",
-    "section_store_identity": "Store Â· Identity",
+    "section_store_identity": "Store · Identity",
     "section_store_identity_desc": "Name, address and identity of the currently selected store.",
     "store_identity_info": "Update the name and address of the currently selected store.",
     "store_name_placeholder": "Store name",
     "store_address_placeholder": "Address",
     "save_store": "Save my store",
-    "section_store_docs": "Store Â· Documents",
+    "section_store_docs": "Store · Documents",
     "section_store_docs_desc": "Receipts and invoices for the active store.",
     "store_docs_info": "Receipt and invoice for the active store. Advanced rules are better managed on the web.",
     "receipt_title": "Receipt",
@@ -2835,7 +2921,7 @@
     "email_channel_billing": "Billing",
     "email_step_1": "Enable the \"Email\" channel in Receiving channels.",
     "email_step_2": "Choose a minimum severity threshold.",
-    "email_step_3": "Add your address in Account recipients â†’ Default.",
+    "email_step_3": "Add your address in Account recipients → Default.",
     "example": "Example",
     "emails_placeholder": "email1@company.com, email2@company.com",
     "recipients": "Recipients",
@@ -2912,6 +2998,8 @@
     "pay_google_play": "Pay via Google Play",
     "pay_mobile_money": "Pay via Mobile Money",
     "payment_failed": "Payment failed. Please try again.",
+    "load_error": "Could not load subscription plans.",
+    "retry": "Try again",
     "per_month": "/month",
     "plan_premium": "Premium",
     "plan_pro": "Pro",
@@ -3097,7 +3185,7 @@
     "commercial_profile": "Commercial Profile",
     "company_name_label": "Company name*",
     "company_name_ph": "Company name",
-    "create_profile": "CrÃ©ate my profile",
+    "create_profile": "Créate my profile",
     "days": "days",
     "description_label": "Description",
     "description_ph": "Describe your activity",
@@ -3140,7 +3228,7 @@
     "city_placeholder": "e.g., Dakar, Paris...",
     "critical_alert": "CRITICAL",
     "days_delivery": "{{days}}d delivery",
-    "days_remaining": "âŒ› {{count}}d remaining",
+    "days_remaining": "⌛ {{count}}d remaining",
     "delete_confirm": "Are you sure you want to delete \"{{name}}\"?",
     "delete_error": "Could not delete",
     "delete_title": "Delete Supplier",
@@ -3464,8 +3552,8 @@
     "title": "Team Management",
     "user_details_title": "User Details",
     "whatsapp_invite_later": "Later",
-    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\nðŸ“§ Email: {{email}}\nðŸ”‘ Password: {{password}}\n\nðŸ“± Mobile app: {{mobileUrl}}\nðŸ’» Web app: {{webUrl}}\n\nGood work!",
-    "whatsapp_invite_msg_without_password": "Hello {{name}}!\n\nHere is your Stockman sign-in email:\nðŸ“§ Email: {{email}}\n\nThe initial password can no longer be displayed in this share. If you no longer have it, ask the administrator to reset it before signing in.\n\nðŸ“± Mobile app: {{mobileUrl}}\nðŸ’» Web app: {{webUrl}}",
+    "whatsapp_invite_msg": "Hello {{name}}!\n\nHere are your access details for the Stockman app:\n📧 Email: {{email}}\n🔑 Password: {{password}}\n\n📱 Mobile app: {{mobileUrl}}\n💻 Web app: {{webUrl}}\n\nGood work!",
+    "whatsapp_invite_msg_without_password": "Hello {{name}}!\n\nHere is your Stockman sign-in email:\n📧 Email: {{email}}\n\nThe initial password can no longer be displayed in this share. If you no longer have it, ask the administrator to reset it before signing in.\n\n📱 Mobile app: {{mobileUrl}}\n💻 Web app: {{webUrl}}",
     "whatsapp_invite_prompt": "Do you want to send access via WhatsApp?",
     "whatsapp_invite_send": "Send",
     "whatsapp_not_installed": "WhatsApp is not installed on this device.",
@@ -3527,7 +3615,7 @@
     "prep_time": "Preparation time (min)",
     "instructions": "Instructions (optional)",
     "instructions_hint": "Preparation steps...",
-    "ingredients_later": "ðŸ’¡ You can add ingredients after creating the recipe.",
+    "ingredients_later": "💡 You can add ingredients after creating the recipe.",
     "create_recipe": "Create recipe",
     "delete_recipe": "Delete recipe",
     "multiplier": "Multiplier",
@@ -3622,7 +3710,7 @@
   },
   "sync": {
     "pending_count": "{{count}} action(s) pending sync",
-    "failed_count": "{{count}} action(s) failed to sync â€” Tap to view",
+    "failed_count": "{{count}} action(s) failed to sync — Tap to view",
     "failed_title": "Unsynced actions",
     "failed_description": "These actions failed after multiple attempts. They are saved locally and will not be lost.",
     "retry_all": "Retry all",

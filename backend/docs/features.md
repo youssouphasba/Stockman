@@ -32,6 +32,8 @@ Les valeurs sont pilotables par variables d'environnement : `APP_ANDROID_LATEST_
 - Si l'application est fermée pendant le guide, il reprend à la dernière étape enregistrée.
 - Suivi par l'équipe Stockman (tableau de bord admin web) : la Vue d'ensemble montre combien de commerçants ont le guide à faire, en cours, terminé ou passé, le taux de réussite, la durée médiane et les étapes où ils s'arrêtent. La fiche d'un client affiche l'état de son guide et sa dernière étape, avec un bouton « Relancer le guide » : le commerçant le refait depuis le début à sa prochaine ouverture de l'application. Dans le Support, un filtre isole les demandes d'aide envoyées depuis la fin du guide.
 
+Les guides contextuels des écrans sont distincts du guide de démarrage. Utilisez la flèche de retour ou **Suivant** pour changer d’étape, ou balayez horizontalement. Sur un petit écran, faites défiler le texte de l’étape verticalement : les boutons restent en place. La croix ferme le guide à tout moment.
+
 ## 1. Importation de Produits (CSV / Excel)
 
 ### Comment importer des produits ?
@@ -39,7 +41,7 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 
 **Étapes :**
 1. Aller dans l'onglet **Produits**
-2. Appuyer sur le bouton **Importer** (icône nuage ou flèche vers le haut)
+2. Sur mobile, ouvrir **Ajouter** en haut de la liste ou appuyer sur **Ajouter un produit** si l'écran affiche **Aucun produit**. Choisir ensuite **Import CSV**. Sur le web, ouvrir **Créer / importer**, puis choisir **Importer un CSV**.
 3. Sélectionner votre fichier CSV ou Excel (taille max : 5 Mo)
 4. Si le fichier vient de Shopify, Odoo ou WooCommerce, Stockman détecte la source et mappe automatiquement les colonnes exportées vers les champs produits Stockman
 5. Pour les autres fichiers CSV, l'IA analyse les colonnes et peut transformer le template vers les champs Stockman avant l'import si elle identifie le nom du produit avec suffisamment de confiance
@@ -87,9 +89,11 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 ## 2. Gestion des Produits & Inventaire
 
 ### Comment ajouter un produit ?
-1. Aller dans **Produits** → bouton **+** ou **Ajouter**
+1. Sur mobile, dans **Produits**, ouvrir **Ajouter** en haut de la liste ou appuyer sur **Ajouter un produit** si l'écran affiche **Aucun produit**. Choisir ensuite **Ajouter un produit** dans les options. Sur le web, ouvrir **Créer / importer**, puis choisir **Créer manuellement**.
 2. Remplir : Nom (obligatoire), Prix d'achat, Prix de vente, Quantité, SKU (code-barres), Catégorie, Stock minimum, Unité
 3. Sauvegarder
+
+Sur mobile, pour un commerce, le bouton **Ajouter un produit** de l'écran **Aucun produit** ouvre le menu **Ajouter** en haut de la liste. Ce menu présente, dans l'ordre, **Ajouter un produit**, **Import texte**, **Import CSV**, **Scan en lot**, **Import catalogue secteur** si un secteur est renseigné, puis **Export PDF inventaire**. Dans un restaurant, le bouton **Ajouter un plat** ouvre directement la fiche du plat.
 
 ### Comment sont conservées les photos produits ?
 - Les photos ajoutées depuis le mobile passent par l'endpoint `/api/upload/image`.
@@ -97,6 +101,8 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - Une photo produit ne doit pas dépendre d'un fichier temporaire du serveur backend, car ce fichier peut disparaître lors d'un redéploiement ou d'un redémarrage.
 
 ### Site e-commerce automatique
+- Wave, Orange Money et la livraison Denkma sont réservés aux comptes commerçants du Sénégal en francs CFA (XOF). En France et dans les autres pays, le commerçant indique ses consignes de paiement et organise lui-même la livraison ; l'accès aux commandes en ligne est conservé.
+- Le guide E-com et le centre d'aide mobile n'affichent les instructions Wave, Orange Money ou Denkma que si le service correspondant est disponible pour le compte.
 - Le nom du site web est personnalisable dans les paramètres e-commerce et s'affiche dans l'en-tête de la vitrine publique.
 - Le domaine du site se connecte depuis la rubrique « Nom de domaine » (Paramètres > Site e-commerce, ou Boutique en ligne sur mobile Starter) : voir `ecommerce-domain.md` pour le parcours complet.
 - Tant que le domaine personnalisé n'est pas prêt (DNS, propriété du domaine et certificat HTTPS), Stockman continue d'ouvrir l'adresse Stockman du site, pour ne jamais envoyer les visiteurs vers un ancien hébergement encore actif sur ce domaine.
@@ -497,6 +503,7 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 - Dans les vues d’analyse qui les utilisent, ouvrez **Filtres** pour modifier la période, la boutique, la catégorie ou le fournisseur lorsque ces options sont disponibles. La barre repliée affiche la période et les sélections actives. Les listes proviennent des données accessibles sur le compte.
 - Pour une période personnalisée, choisissez **Dates**, renseignez les deux dates, puis choisissez **Appliquer**. La date de fin est incluse, et la période est limitée à 365 jours. Le filtre de dates porte sur les ventes de la période ; les niveaux de stock restent ceux d’aujourd’hui.
 - Sur téléphone, le menu, le guide de l’onglet et l’assistant sont accessibles dans l’en-tête du back-office.
+- Sur le web, le centre d'aide s'ouvre dans un panneau latéral. Lorsque l'écran est assez large, la page reste visible derrière le voile, en thème clair comme en thème sombre.
 - Il est recommandé de se connecter depuis un ordinateur pour utiliser Stockman Web plus confortablement. Sur Starter et Pro, **Comprendre l’évolution vers Enterprise** déplie les explications. Les personnes autorisées à gérer la facturation peuvent choisir **Passer à Enterprise** pour afficher directement l’offre, sans déclencher de paiement.
 
 ## 14. Plans & Abonnements
@@ -512,7 +519,8 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 | Pro | 4 900 | 9,99 | 2 | 5 | Non |
 | Enterprise | 9 900 | 14,99 | Illimitées | Illimités | Oui |
 
-- Sur mobile, **Découvrir Enterprise** ouvre **Abonnement** sur [Stockman Web](https://app.stockman.pro) avec le compte déjà connecté, sans ressaisir son mot de passe. Ce raccourci ne change ni le plan ni les accès : Starter et Pro restent en consultation avant un éventuel changement d'offre.
+- Sur mobile, **Découvrir Enterprise** ouvre le **Tableau de bord** sur [Stockman Web](https://app.stockman.pro) avec le compte déjà connecté, sans ressaisir son mot de passe. Ce raccourci ne change ni le plan ni les accès : Starter et Pro restent en consultation avant un éventuel changement d'offre.
+- Dans **Réglages → Mon abonnement**, les responsables de la facturation peuvent consulter leur formule et comparer les offres sans quitter les réglages. Les actions de paiement ou de restauration restent disponibles selon les droits du compte. Les coordonnées de facturation se trouvent sous les offres.
 
 ### Quels onglets voit-on sur mobile ?
 - **Starter** : Produits, Caisse, Compta, Clients et Réglages (plus Fournisseurs si l'équipe Stockman a activé ce module pour le compte). Il n'y a pas d'onglet Accueil : les chiffres clés sont dans la Compta. Les messages de l'administrateur (icône mégaphone, affichée quand il y en a, avec le nombre de messages non lus) et le bouton de thème clair/sombre sont dans l'en-tête, sur tous les onglets.
@@ -548,7 +556,7 @@ Les fournisseurs ont leur propre interface dédiée pour gérer leur catalogue e
 - Si plusieurs produits actifs de la même boutique partagent le même code-barres, Stockman bloque l'ajout et demande de corriger les fiches produits
 
 ### Comment faire un scan en lot (batch scan) ?
-- **Inventaire** → **Scan en lot** (Batch Scan)
+- Sur mobile, ouvrir **Produits** → **Ajouter** → **Scan en lot**.
 - Scanner plusieurs articles en séquence pour effectuer un comptage ou une mise à jour rapide du stock
 - Utile pour les inventaires physiques
 

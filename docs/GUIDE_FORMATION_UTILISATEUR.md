@@ -76,7 +76,7 @@ Après l'inscription, vous arrivez sur le **Tableau de Bord**. En bas de l'écra
 ### 2.1 Ajouter un produit manuellement
 
 1. Appuyez sur l'onglet **📦 Produits** en bas.
-2. Appuyez sur le bouton **« + »** (en bas à droite).
+2. Ouvrez le menu **Ajouter** en haut de la liste. Si l'écran affiche **Aucun produit**, le bouton **Ajouter un produit** ouvre le même menu. Choisissez ensuite **Ajouter un produit** dans les options.
 3. Remplissez les informations :
 
 | Champ | Obligatoire | Exemple | Explication |
@@ -189,7 +189,7 @@ Sucre 1kg,600,750,100,Alimentation,15,Réserve / Bac 3
 **Importez dans Stockman :**
 
 1. Allez dans **📦 Produits**.
-2. Appuyez sur l'icône **« Importer »** (en haut à droite).
+2. Ouvrez **Ajouter** en haut de la liste ou appuyez sur **Ajouter un produit** si l'écran affiche **Aucun produit**. Choisissez ensuite **Import CSV**, juste après **Import texte**.
 3. Sélectionnez votre fichier CSV.
 4. **Mapping intelligent** : Stockman détecte automatiquement les colonnes. Vérifiez chaque correspondance.
 5. **Aperçu** : Vérifiez vos produits avant de valider.

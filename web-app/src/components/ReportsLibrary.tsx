@@ -15,6 +15,7 @@ import {
     Users,
 } from 'lucide-react';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
+import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
 import { getAccessContext } from '../utils/access';
 import {
@@ -58,6 +59,7 @@ type ReportCard = {
 
 export default function ReportsLibrary({ user, features }: ReportsLibraryProps) {
     const { filters } = useAnalyticsFilters();
+    const { t } = useTranslation();
     const { formatCurrency, formatDate } = useDateFormatter();
     const access = useMemo(() => getAccessContext(user), [user]);
     const isOrgAdmin = access.isOrgAdmin;
@@ -257,7 +259,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
     const buildExecutiveExcel = (): ExcelConfig | null => {
         if (!executiveOverview) return null;
         return {
-            title: 'Rapport executif',
+            title: t('reports_text.executive'),
             period: periodLabel,
             storeName: scopeLabel,
             filename: 'rapport_executif_stockman',
@@ -282,7 +284,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                     name: 'Top produits',
                     columns: [
                         { key: 'name', label: 'Produit', width: 28 },
-                        { key: 'quantity', label: 'Quantite', width: 12 },
+                        { key: 'quantity', label: t('stock_history_text.quantity'), width: 12 },
                         { key: 'revenue', label: 'CA', width: 16 },
                         { key: 'gross_profit', label: 'Marge brute', width: 16 },
                     ],
@@ -292,7 +294,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                     name: 'Top categories',
                     columns: [
                         { key: 'name', label: 'Categorie', width: 24 },
-                        { key: 'quantity', label: 'Quantite', width: 12 },
+                        { key: 'quantity', label: t('stock_history_text.quantity'), width: 12 },
                         { key: 'revenue', label: 'CA', width: 16 },
                         { key: 'gross_profit', label: 'Marge brute', width: 16 },
                     ],
@@ -305,7 +307,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
     const buildExecutivePdf = (): PDFConfig | null => {
         if (!executiveOverview) return null;
         return {
-            title: 'Rapport executif',
+            title: t('reports_text.executive'),
             subtitle: executiveOverview.summary,
             period: periodLabel,
             storeName: scopeLabel,
@@ -326,7 +328,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                     title: 'Top produits',
                     columns: [
                         { key: 'name', label: 'Produit' },
-                        { key: 'quantity', label: 'Quantite' },
+                        { key: 'quantity', label: t('stock_history_text.quantity') },
                         { key: 'revenue', label: 'CA' },
                         { key: 'gross_profit', label: 'Marge brute' },
                     ],
@@ -336,7 +338,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                     title: 'Top categories',
                     columns: [
                         { key: 'name', label: 'Categorie' },
-                        { key: 'quantity', label: 'Quantite' },
+                        { key: 'quantity', label: t('stock_history_text.quantity') },
                         { key: 'revenue', label: 'CA' },
                         { key: 'gross_profit', label: 'Marge brute' },
                     ],
@@ -449,7 +451,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
         if (!accountingStats) return null;
         return {
             title: 'Rapport finance',
-            subtitle: accountingStats.summary || 'Synthese financiere de la periode',
+            subtitle: accountingStats.summary || t('reports_text.financial_summary'),
             period: periodLabel,
             storeName: scopeLabel,
             filename: 'rapport_finance_stockman',
@@ -559,7 +561,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                         { key: 'score_label', label: 'Statut', width: 14 },
                         { key: 'total_spend', label: 'Depense', width: 14 },
                         { key: 'orders_count', label: 'Commandes', width: 12 },
-                        { key: 'avg_lead_time_days', label: 'Delai', width: 10 },
+                        { key: 'avg_lead_time_days', label: t('reports_text.lead_time'), width: 10 },
                     ],
                     data: procurementOverview.supplier_ranking,
                 },
@@ -583,7 +585,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
         return {
             title: 'Rapport multi-boutiques',
             period: periodLabel,
-            storeName: 'Consolide',
+            storeName: t('reports_text.consolidated'),
             filename: 'rapport_multi_boutiques_stockman',
             sheets: [
                 {
@@ -649,7 +651,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
     const reportCards: ReportCard[] = [
         {
             id: 'executive',
-            title: 'Cockpit executif',
+            title: t('reports_text.dashboard'),
             description: 'Synthese direction: CA, marge, tickets, rotation et top produits.',
             icon: TrendingUp,
             accent: 'from-sky-500/15 to-sky-500/5 border-sky-500/20',
@@ -686,7 +688,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
             highlights: accountingStats ? [
                 `${formatCurrency(accountingStats.revenue)} de revenus`,
                 `${formatCurrency(accountingStats.net_profit)} de resultat net`,
-                `${invoiceHistory.length} facture(s) sur la periode`,
+                t('reports_text.invoice_count', { count: invoiceHistory.length }),
             ] : [],
             excelLabel: 'Excel',
             pdfLabel: 'PDF',
@@ -722,13 +724,13 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
         {
             id: 'multi_store',
             title: 'Benchmark multi-boutiques',
-            description: 'Comparaison consolidee des boutiques, reservee au pilotage orga.',
+            description: t('reports_text.multi_store_description'),
             icon: Store,
             accent: 'from-primary/15 to-primary/5 border-primary/20',
             available: !isRestaurantBusiness && isOrgAdmin && Boolean(storeComparison),
             highlights: storeComparison ? [
                 `${storeComparison.totals.store_count} boutique(s)`,
-                `${formatCurrency(storeComparison.totals.revenue)} consolide`,
+                t('reports_text.revenue', { revenue: formatCurrency(storeComparison.totals.revenue) }),
                 `Rotation ${storeComparison.totals.stock_turnover_ratio}`,
             ] : [],
             excelLabel: 'Excel',
@@ -808,7 +810,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                         </div>
                         <div className="flex flex-wrap gap-3 text-xs">
                             <span className="px-3 py-2 rounded-2xl bg-white/5 border border-white/10 text-slate-300">
-                                Periode : {periodLabel}
+                                {t('reports_text.period', { period: periodLabel })}
                             </span>
                             <span className="px-3 py-2 rounded-2xl bg-white/5 border border-white/10 text-slate-300">
                                 Portee : {scopeLabel}
@@ -844,7 +846,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
                     <div className="glass-card p-5">
                         <p className="text-[10px] font-black uppercase text-slate-500">Factures chargees</p>
                         <p className="text-2xl font-black text-white mt-2">{invoiceHistory.length}</p>
-                        <p className="text-xs text-slate-400 mt-2">Factures clients de la periode courante.</p>
+                        <p className="text-xs text-slate-400 mt-2">{t('reports_text.current_invoices')}</p>
                     </div>
                     <div className="glass-card p-5">
                         <p className="text-[10px] font-black uppercase text-slate-500">Mode d export</p>

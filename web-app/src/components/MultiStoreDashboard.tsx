@@ -17,6 +17,7 @@ import {
     TrendingUp,
 } from 'lucide-react';
 import { analytics as analyticsApi, AnalyticsKpiDetail, AnalyticsStoreComparison, stores as storesApi, User, ai as aiApi } from '../services/api';
+import { useTranslation } from 'react-i18next';
 import { useAnalyticsFilters } from '../contexts/AnalyticsFiltersContext';
 import KpiCard from './analytics/KpiCard';
 import AnalyticsKpiDetailsModal from './analytics/AnalyticsKpiDetailsModal';
@@ -35,6 +36,7 @@ function formatCurrency(amount: number, currency = 'XOF') {
 }
 
 export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) {
+    const { t } = useTranslation();
     const [stats, setStats] = useState<AnalyticsStoreComparison | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -131,8 +133,8 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
         } catch (err) {
             console.error(err);
             setDetail({
-                title: 'Detail indisponible',
-                description: "Impossible de charger le detail multi-boutiques.",
+                title: t('multi_store_text.detail_title'),
+                description: t('multi_store_text.detail_error'),
                 export_name: 'detail_indisponible',
                 columns: [],
                 rows: [],
@@ -219,7 +221,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                         Vue Multi-Boutiques
                     </h1>
                     <p className="text-slate-400 text-sm mt-1">
-                        Benchmark consolide sur {stats?.totals.store_count ?? 0} boutique(s) {periodLabel}.
+                        {t('multi_store_text.summary', { count: stats?.totals.store_count ?? 0, period: periodLabel })}
                     </p>
                 </div>
                 <button
@@ -240,7 +242,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                 />
                 <KpiCard
                     icon={TrendingUp}
-                    label="CA consolide"
+                    label={t('multi_store_text.revenue')}
                     value={formatCurrency(stats?.totals.revenue ?? 0, stats?.currency || user?.currency)}
                     hint={hasCustomRange ? periodLabel : `${filters.days} derniers jours`}
                     delta={(stats?.totals.revenue_delta ?? 0) * 100}
@@ -248,7 +250,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                 />
                 <KpiCard
                     icon={ShoppingCart}
-                    label="Ventes consolidees"
+                    label={t('multi_store_text.sales')}
                     value={(stats?.totals.sales_count ?? 0).toLocaleString('fr-FR')}
                     hint="Tickets sur la periode"
                     onClick={() => openDetail('sales_count')}
@@ -300,7 +302,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                     {(stats?.stores ?? []).length === 0 ? (
                         <div className="py-12 text-center text-slate-500">
                             <Store size={40} className="mx-auto mb-3 opacity-30" />
-                            <p>Aucune boutique trouvee pour cette selection</p>
+                            <p>{t('multi_store_text.empty')}</p>
                         </div>
                     ) : (
                         (stats?.stores ?? []).map((store) => {

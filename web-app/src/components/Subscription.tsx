@@ -319,35 +319,35 @@ export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseO
                         <div className="max-w-3xl">
                             <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-primary">
                                 <Star size={14} />
-                                Evolution vers Enterprise
+                                {t('subscription_upgrade.heading')}
                             </div>
                             <h3 className="mt-3 text-xl font-black text-white">
-                                Le passage a Enterprise garde votre compte et debloque le web complet.
+                                {t('subscription_upgrade.title')}
                             </h3>
                             <p className="mt-2 text-sm leading-6 text-slate-300">
-                                Vous ne recreez pas un nouveau compte. Vous gardez vos boutiques, vos utilisateurs et vos donnees. Une fois le paiement confirme, votre compte actuel passe en Enterprise et le back-office web sort du mode consultation.
+                                {t('subscription_upgrade.description')}
                             </p>
                             <div className="mt-4 grid gap-3 md:grid-cols-3">
                                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">1. Verifier</p>
-                                    <p className="mt-2 text-sm text-slate-300">Confirmez le pays, la devise et le contact de facturation.</p>
+                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">{t('subscription_upgrade.verify')}</p>
+                                    <p className="mt-2 text-sm text-slate-300">{t('subscription_upgrade.verify_description')}</p>
                                 </div>
                                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">2. Payer</p>
-                                    <p className="mt-2 text-sm text-slate-300">Lancez le paiement Enterprise par carte ou Mobile Money selon la devise.</p>
+                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">{t('subscription_upgrade.pay')}</p>
+                                    <p className="mt-2 text-sm text-slate-300">{t('subscription_upgrade.pay_description')}</p>
                                 </div>
                                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">3. Activer</p>
-                                    <p className="mt-2 text-sm text-slate-300">Le web complet se debloque des que le paiement est confirme par Stripe ou Flutterwave.</p>
+                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">{t('subscription_upgrade.activate')}</p>
+                                    <p className="mt-2 text-sm text-slate-300">{t('subscription_upgrade.activate_description')}</p>
                                 </div>
                             </div>
                         </div>
                         <div className="rounded-2xl border border-white/10 bg-[#0F172A]/60 p-5 lg:max-w-sm">
-                            <p className="text-sm font-black text-white">Ce qui ne change pas</p>
+                            <p className="text-sm font-black text-white">{t('subscription_upgrade.unchanged')}</p>
                             <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                                <li>Votre compte principal reste le meme.</li>
-                                <li>Vos donnees et vos boutiques sont conservees.</li>
-                                <li>Vous pouvez revenir au web app pendant tout le parcours.</li>
+                                <li>{t('subscription_upgrade.account')}</li>
+                                <li>{t('subscription_upgrade.data')}</li>
+                                <li>{t('subscription_upgrade.access')}</li>
                             </ul>
                         </div>
                     </div>
@@ -361,7 +361,7 @@ export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseO
                             <Clock size={22} />
                         </div>
                         <div>
-                            <h3 className="text-lg font-black text-white mb-2">Session demo active</h3>
+                            <h3 className="text-lg font-black text-white mb-2">{t('subscription_upgrade.demo')}</h3>
                             <p className="text-sm text-slate-300 leading-relaxed">
                                     Type: <strong className="text-white">{formatDemoTypeLabel(subDetails.demo_type ?? null)}</strong>
                                 {' - '}Surface: <strong className="text-white">{subDetails.demo_surface || 'mobile'}</strong>

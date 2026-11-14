@@ -565,7 +565,7 @@ export default function AlertsScreen() {
 
                 {activeRuleScope === 'store' && !user?.active_store_id ? (
                   <View style={[styles.ruleCard, { borderColor: colors.warning + '40' }]}>
-                    <Text style={styles.ruleDesc}>Selectionnez d abord une boutique active pour creer des regles locales.</Text>
+                    <Text style={styles.ruleDesc}>{t('alert_rule_text.select_store')}</Text>
                   </View>
                 ) : (
                   visibleRules.map((rule) => {
@@ -689,7 +689,7 @@ export default function AlertsScreen() {
                         </View>
 
                         <View style={[styles.channelsRow, { marginTop: Spacing.md, justifyContent: 'space-between' }]}>
-                          <Text style={styles.ruleDesc}>{hasDraft ? 'Modifications non enregistrees' : 'Regle synchronisee'}</Text>
+                          <Text style={styles.ruleDesc}>{hasDraft ? t('alert_rule_text.unsaved') : t('alert_rule_text.synced')}</Text>
                           <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                             {hasDraft && (
                               <TouchableOpacity style={styles.resetButton} onPress={() => resetDraft(rule)}>
@@ -702,7 +702,7 @@ export default function AlertsScreen() {
                               disabled={savingRuleKey === currentKey}
                             >
                               <Text style={styles.saveButtonText}>
-                                {savingRuleKey === currentKey ? '...' : rule.rule_id.startsWith('draft:') ? 'Creer' : 'Enregistrer'}
+                                {savingRuleKey === currentKey ? '...' : rule.rule_id.startsWith('draft:') ? t('alert_rule_text.create') : t('common.save')}
                               </Text>
                             </TouchableOpacity>
                           </View>

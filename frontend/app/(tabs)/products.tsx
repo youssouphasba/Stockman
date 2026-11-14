@@ -2707,8 +2707,8 @@ export default function ProductsScreen() {
       Alert.alert(
         t('common.success'),
         productIds.length > 1
-          ? t('products.restore_bulk_success', 'Produits restaures avec succes.')
-          : t('products.restore_success', 'Produit restaure avec succes.')
+          ? t('products.restore_bulk_success', 'Produits restaurés avec succès.')
+          : t('products.restore_success', 'Produit restauré avec succès.')
       );
     } catch (err) {
       Alert.alert(t('common.error'), err instanceof ApiError && err.status === 409
@@ -2722,15 +2722,15 @@ export default function ProductsScreen() {
 
   function handlePermanentDelete(productId: string, productName?: string) {
     Alert.alert(
-      t('products.delete_permanent_title', 'Suppression definitive'),
+      t('products.delete_permanent_title', 'Suppression définitive'),
       t('products.delete_permanent_msg', {
         name: productName ?? t('common.this_product'),
-        defaultValue: 'Supprimer definitivement {{name}} de la corbeille ?',
+        defaultValue: 'Supprimer définitivement {{name}} de la corbeille ?',
       }),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: t('products.delete_permanent', 'Supprimer definitivement'),
+          text: t('products.delete_permanent', 'Supprimer définitivement'),
           style: 'destructive',
           onPress: async () => {
             if (!isConnected) {
@@ -2741,9 +2741,9 @@ export default function ProductsScreen() {
               setLoading(true);
               await productsApi.deletePermanent(productId);
               await loadData();
-              Alert.alert(t('common.success'), t('products.delete_permanent_success', 'Produit supprime definitivement.'));
+              Alert.alert(t('common.success'), t('products.delete_permanent_success', 'Produit supprimé définitivement.'));
             } catch {
-              Alert.alert(t('common.error'), t('products.delete_permanent_error', 'Impossible de supprimer definitivement le produit.'));
+              Alert.alert(t('common.error'), t('products.delete_permanent_error', 'Impossible de supprimer définitivement le produit.'));
               await loadData();
             } finally {
               setLoading(false);
@@ -2770,8 +2770,8 @@ export default function ProductsScreen() {
                 await productsApi.delete(productId);
                 await loadData();
                 Alert.alert(
-                  t('products.delete_confirmed_title', 'Produit supprime'),
-                  t('products.delete_restore_hint', 'Le produit a ete supprime. Vous pouvez le restaurer si besoin.'),
+                  t('products.delete_confirmed_title', 'Produit supprimé'),
+                  t('products.delete_restore_hint', 'Le produit a été supprimé. Vous pouvez le restaurer si besoin.'),
                   [
                     { text: t('common.close', 'Fermer'), style: 'cancel' },
                     {
@@ -3805,13 +3805,13 @@ export default function ProductsScreen() {
             </TouchableOpacity>
             </GuideTarget>
             {!isRestaurant && (
-              <GuideTarget id="products.menu.scan">
+              <GuideTarget id="products.menu.text">
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
-                onPress={() => { setShowAddMenu(false); router.push('/inventory/batch-scan'); }}
+                onPress={() => { setShowAddMenu(false); setShowTextImportModal(true); }}
               >
-                <Ionicons name="scan-outline" size={20} color={colors.info} />
-                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.batch_scan', 'Scan en lot')}</Text>
+                <Ionicons name="text-outline" size={20} color={colors.primary} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.text_import', 'Import texte')}</Text>
               </TouchableOpacity>
               </GuideTarget>
             )}
@@ -3827,13 +3827,13 @@ export default function ProductsScreen() {
               </GuideTarget>
             )}
             {!isRestaurant && (
-              <GuideTarget id="products.menu.text">
+              <GuideTarget id="products.menu.scan">
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
-                onPress={() => { setShowAddMenu(false); setShowTextImportModal(true); }}
+                onPress={() => { setShowAddMenu(false); router.push('/inventory/batch-scan'); }}
               >
-                <Ionicons name="text-outline" size={20} color={colors.primary} />
-                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.text_import', 'Import texte')}</Text>
+                <Ionicons name="scan-outline" size={20} color={colors.info} />
+                <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('products.batch_scan', 'Scan en lot')}</Text>
               </TouchableOpacity>
               </GuideTarget>
             )}
@@ -4076,7 +4076,12 @@ export default function ProductsScreen() {
           if (debouncedSearch) {
             setSearch('');
           } else if (canWrite) {
-            openNewProductModal();
+            if (isRestaurant) {
+              openNewProductModal();
+            } else {
+              setShowAddMenu(true);
+              productListRef.current?.scrollToOffset({ offset: 0, animated: true });
+            }
           }
         }}
       />
@@ -4586,7 +4591,7 @@ export default function ProductsScreen() {
                   />
                 )}
                 <Text style={styles.selectAllText}>
-                  {t('products.select_all', 'Tout selectionner')} ({selectedProductIds.size}/{filtered.length})
+                  {t('products.select_all', 'Tout sélectionner')} ({selectedProductIds.size}/{filtered.length})
                 </Text>
               </TouchableOpacity>
             </View>
@@ -5781,13 +5786,13 @@ export default function ProductsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('products.trash_title', 'Corbeille produits')}</Text>
+              <Text style={styles.modalTitle}>{t('products.trash_title', 'Corbeille des produits')}</Text>
               <TouchableOpacity onPress={() => setShowTrashModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <Text style={styles.modalSubtitle}>
-              {t('products.trash_subtitle', 'Produits masques de la liste et de la caisse.')}
+              {t('products.trash_subtitle', 'Produits masqués dans la liste et à la caisse.')}
             </Text>
 
             <ScrollView style={styles.modalScroll}>

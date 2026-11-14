@@ -24,7 +24,7 @@ import { hasPlatformModule } from '../../utils/access';
 import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory } = FileSystem;
 import * as Sharing from 'expo-sharing';
-import { ecommerce as ecommerceApi, notifications as notificationsApi, settings as settingsApi, subscription as subscriptionApi, SubscriptionData, UserSettings, profile, userFeatures, stores as storesApi, Store, type EcommerceSite } from '../../services/api';
+import { ecommerce as ecommerceApi, notifications as notificationsApi, settings as settingsApi, UserSettings, profile, userFeatures, stores as storesApi, Store, type EcommerceSite } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import AiSupportModal from '../../components/AiSupportModal';
@@ -47,6 +47,7 @@ import EcommerceStep from '../../components/EcommerceSettingsStep';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
+import SubscriptionPlans from '../../components/SubscriptionPlans';
 import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
 import { getCommercialPlan, isStarterShopkeeper } from '../../utils/accountRouting';
 
@@ -171,7 +172,7 @@ const SETTINGS_SECTION_KEYS = new Set<SettingsSectionKey>([
 
 type SettingsAccordionSectionProps = {
   sectionKey?: string;
-  title: string;
+  title?: string;
   description: string;
   icon: string;
   accentColor: string;
@@ -321,7 +322,6 @@ export default function SettingsScreen() {
   const [ecommerceStep, setEcommerceStep] = useState<EcommerceStepId | null>(null);
   const [showNotificationOptions, setShowNotificationOptions] = useState(false);
   const [showBillingOptions, setShowBillingOptions] = useState(false);
-  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadVersionRef = useRef(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -508,16 +508,14 @@ export default function SettingsScreen() {
     const version = ++loadVersionRef.current;
     setLoadError(null);
     try {
-      const [result, _features, storesList, ecommerceResult, billingResult] = await Promise.all([
+      const [result, _features, storesList, ecommerceResult] = await Promise.all([
         settingsApi.get(),
         userFeatures.get().catch(() => null),
         storesApi.list().catch(() => []),
         ecommerceApi.getSite().catch(() => null),
-        isStarterSettings && isBillingAdmin ? subscriptionApi.getDetails().catch(() => null) : Promise.resolve(null),
       ]);
       if (version !== loadVersionRef.current) return;
       setLoadedSettingsContext(settingsContext);
-      setSubscriptionData(billingResult);
       setSettingsData(result);
       setBillingContactName(result?.billing_contact_name || '');
       setBillingContactEmail(result?.billing_contact_email || '');
@@ -548,7 +546,7 @@ export default function SettingsScreen() {
     } finally {
       if (version === loadVersionRef.current) setLoading(false);
     }
-  }, [user?.user_id, user?.active_store_id, settingsContext, isStarterSettings, isBillingAdmin]);
+  }, [user?.user_id, user?.active_store_id, settingsContext]);
 
   const handleSubmitDispute = async () => {
     if (!disputeSubject.trim() || !disputeDesc.trim()) {
@@ -1311,7 +1309,7 @@ export default function SettingsScreen() {
         >
         {canManageBillingSettings && (
         <SettingsAccordionSection
-          title={t('settings.section_subscription')}
+          title={isStarterSettings ? undefined : t('settings.section_subscription')}
           description={t('settings.section_subscription_desc')}
           icon="card-outline"
           accentColor={colors.warning}
@@ -1322,41 +1320,12 @@ export default function SettingsScreen() {
           colors={colors}
           variant="nested"
         >
-          <Text style={styles.sectionTitle}>{t('settings.subscription_title')}</Text>
-          {isStarterSettings && <View style={{ gap: 8, marginBottom: 16 }}>
-            <Text style={styles.settingLabel}>{t(`subscription.plan_${getCommercialPlan(user)}`)}</Text>
-            <Text style={styles.settingDesc}>
-              {({ active: 'Actif', expired: 'Expiré', cancelled: 'Résilié' } as Record<string, string>)[subscriptionData?.status || user?.effective_subscription_status || user?.subscription_status || ''] || 'Statut indisponible'}
-            </Text>
-            {subscriptionData?.subscription_end && Number.isFinite(Date.parse(subscriptionData.subscription_end)) && <Text style={styles.settingDesc}>
-              {t('subscription.renewal', { date: new Date(subscriptionData.subscription_end).toLocaleDateString(i18n.language) })}
-            </Text>}
-          </View>}
-          <TouchableOpacity
-            style={styles.supportRow}
-            onPress={() => router.push('/(tabs)/subscription' as any)}
-          >
-            <View style={[styles.supportIconWrapper, { backgroundColor: '#F59E0B' }]}>
-              <Ionicons name="card-outline" size={20} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>{isStarterSettings ? 'Gérer le paiement' : t('settings.my_subscription')}</Text>
-              <Text style={styles.settingDesc}>{t('settings.subscription_view_desc')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          <SubscriptionPlans key={user?.user_id} embedded />
+          <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showBillingOptions }} style={styles.supportRow} onPress={() => setShowBillingOptions((value) => !value)}>
+            <Text style={[styles.settingLabel, { flex: 1 }]}>{t('settings.billing_details')}</Text>
+            <Ionicons name={showBillingOptions ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
           </TouchableOpacity>
-
-          {isStarterSettings && <>
-            <TouchableOpacity accessibilityRole="button" style={styles.supportRow} onPress={() => router.push('/(tabs)/subscription' as any)}>
-              <Ionicons name="swap-horizontal-outline" size={22} color={colors.primary} />
-              <Text style={styles.settingLabel}>Changer d'offre</Text>
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showBillingOptions }} style={styles.supportRow} onPress={() => setShowBillingOptions((value) => !value)}>
-              <Text style={styles.settingLabel}>Coordonnées de facturation</Text>
-              <Ionicons name={showBillingOptions ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          </>}
-          {(!isStarterSettings || showBillingOptions) && <>
+          {showBillingOptions && <>
           <View style={[styles.settingRow, { alignItems: 'flex-start', flexDirection: 'column', gap: Spacing.sm, borderBottomWidth: 0, marginTop: Spacing.md }]}>
             <Text style={styles.settingLabel}>{t('settings.billing_contact')}</Text>
             <Text style={styles.settingDesc}>{t('settings.billing_contact_desc')}</Text>
@@ -1387,7 +1356,10 @@ export default function SettingsScreen() {
                   setSettingsData(updated);
                   setBillingContactName(updated?.billing_contact_name || '');
                   setBillingContactEmail(updated?.billing_contact_email || '');
-                } catch {}
+                  showFeedback(t('settings.billing_contact_saved'));
+                } catch {
+                  showFeedback(t('settings.billing_contact_save_error'), 'error');
+                }
               }}
             >
               <Ionicons name="save-outline" size={18} color={colors.primary} />

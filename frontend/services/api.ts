@@ -2306,6 +2306,8 @@ export type User = {
   phone?: string;
   country_code?: string;
   is_demo?: boolean;
+  ecommerce_mobile_money_available?: boolean;
+  ecommerce_denkma_available?: boolean;
   // Modules activés par l'admin Stockman pour le compte (ex. suppliers).
   platform_modules?: Record<string, boolean>;
   demo_session_id?: string | null;
