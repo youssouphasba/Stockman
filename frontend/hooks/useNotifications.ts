@@ -53,6 +53,11 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             const data = response.notification.request.content.data as any;
             onChangedRef.current?.();
+            if (data?.type === 'app_update') {
+                const storeUrl = String(data?.store_url || data?.deeplink_url || '').trim();
+                if (storeUrl) Linking.openURL(storeUrl).catch(() => null);
+                return;
+            }
             const deeplinkUrl = String(data?.deeplink_url || data?.url || '').trim();
             if (deeplinkUrl) {
                 Linking.openURL(deeplinkUrl).catch(() => null);

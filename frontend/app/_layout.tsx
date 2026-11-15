@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { View, ActivityIndicator, StyleSheet, Platform, Text, TextInput } from 'react-native';
+import Constants from 'expo-constants';
 import PinScreen from './pin';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import OfflineBanner from '../components/OfflineBanner';
@@ -16,6 +17,7 @@ import { getFirstAuthorizedShopkeeperRoute } from '../utils/accountRouting';
 import { useTranslation } from 'react-i18next';
 import { useAnonymousPushRegistration } from '../hooks/useNotifications';
 import AppVersionGate from '../components/AppVersionGate';
+import { appVersion as appVersionApi } from '../services/api';
 
 const TEXT_SCALE_LIMIT = 1.12;
 (Text as any).defaultProps = {
@@ -35,6 +37,14 @@ function RootLayoutNav() {
   const router = useRouter();
   const lastRedirectRef = useRef<string | null>(null);
   useAnonymousPushRegistration(i18n.resolvedLanguage || i18n.language);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.user_id || (Platform.OS !== 'android' && Platform.OS !== 'ios')) return;
+    const version = (Constants as any).nativeAppVersion || Constants.expoConfig?.version;
+    if (typeof version !== 'string' || !version.trim()) return;
+
+    void appVersionApi.reportInstalled({ platform: Platform.OS, version: version.trim() }).catch(() => undefined);
+  }, [isAuthenticated, user?.user_id]);
 
   // Immersive mode for Android + unlock rotation
   useEffect(() => {

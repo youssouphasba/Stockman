@@ -1,6 +1,6 @@
 {
   "name": "stock-management",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -42,6 +42,7 @@
     "expo-file-system": "~55.0.24",
     "expo-font": "~55.0.8",
     "expo-image-picker": "~55.0.22",
+    "expo-in-app-updates": "0.10.0",
     "expo-linear-gradient": "~55.0.16",
     "expo-linking": "~55.0.16",
     "expo-local-authentication": "~55.0.16",

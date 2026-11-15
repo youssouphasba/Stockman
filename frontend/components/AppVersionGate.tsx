@@ -1,26 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
-import React, { ReactNode, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { appVersion, AppVersionSettings } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 
 type VersionState = {
-  loading: boolean;
   blocking: boolean;
   suggested: boolean;
   settings: AppVersionSettings | null;
+  dismissalKey: string | null;
 };
 
-const DISMISSED_UPDATE_KEY = 'dismissed_app_update_version';
-const REQUIRED_UPDATE_TITLE = 'Mise \u00e0 jour requise';
-const UPDATE_ACTION_LABEL = 'Mettre \u00e0 jour';
-const UPDATE_MESSAGE_FALLBACK = 'Une nouvelle version est disponible.';
-const SUGGESTED_UPDATE_TITLE = 'Nouvelle version disponible';
-
-function normalizeVersion(version?: string | null) {
-  return String(version || '0.0.0')
+function normalizeVersion(version: string) {
+  return version
     .split(/[.-]/)
     .map((part) => {
       const value = Number.parseInt(part.replace(/\D/g, ''), 10);
@@ -41,66 +36,97 @@ function compareVersions(current: string, target: string) {
   return 0;
 }
 
-function getInstalledVersion() {
-  return (Constants as any).nativeAppVersion || Constants.expoConfig?.version || '0.0.0';
+function getInstalledVersion(): string | null {
+  const version = (Constants as any).nativeAppVersion || Constants.expoConfig?.version;
+  return typeof version === 'string' && version.trim() ? version : null;
 }
 
 function getAndroidPackage() {
   return Constants.expoConfig?.android?.package || 'com.youssouphasba.stockman';
 }
 
+function getIosStoreUrl() {
+  const appStoreId = String(Constants.expoConfig?.ios?.infoPlist?.AppStoreID || '6760587628');
+  return `https://apps.apple.com/app/id${appStoreId}`;
+}
+
 export default function AppVersionGate({ children }: { children: ReactNode }) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [state, setState] = useState<VersionState>({
-    loading: Platform.OS !== 'web',
     blocking: false,
     suggested: false,
     settings: null,
+    dismissalKey: null,
   });
-
+  const checking = useRef(false);
   const installedVersion = useMemo(() => getInstalledVersion(), []);
 
   useEffect(() => {
     let mounted = true;
 
     async function checkVersion() {
-      if (Platform.OS === 'web') {
-        setState({ loading: false, blocking: false, suggested: false, settings: null });
-        return;
-      }
+      if (Platform.OS === 'web' || checking.current) return;
+      checking.current = true;
 
       try {
-        const settings = await appVersion.get();
-        const latestVersion = Platform.OS === 'ios' ? settings.ios_latest_version : settings.android_latest_version;
-        const minVersion = Platform.OS === 'ios' ? settings.ios_min_version : settings.android_min_version;
-        const belowMinVersion = compareVersions(installedVersion, minVersion) < 0;
-        const belowLatestVersion = compareVersions(installedVersion, latestVersion) < 0;
-        const blocking = belowMinVersion || (settings.force_update && belowLatestVersion);
-        const dismissedVersion = await AsyncStorage.getItem(DISMISSED_UPDATE_KEY);
-        const suggested = !blocking && belowLatestVersion && dismissedVersion !== latestVersion;
+        const settingsPromise = appVersion.get().catch(() => null);
+        let storeUpdate: { updateAvailable?: boolean; storeVersion?: string | number | null } | null = null;
+
+        try {
+          const nativeUpdates = await import('expo-in-app-updates');
+          storeUpdate = await nativeUpdates.checkForUpdate();
+        } catch {
+          storeUpdate = null;
+        }
+
+        const settings = await settingsPromise;
+        if (!storeUpdate || settings?.enabled === false || !mounted) {
+          if (mounted) setState({ blocking: false, suggested: false, settings, dismissalKey: null });
+          return;
+        }
+
+        const updateAvailable = storeUpdate.updateAvailable === true;
+        if (!updateAvailable) {
+          setState({ blocking: false, suggested: false, settings, dismissalKey: null });
+          return;
+        }
+
+        const minVersion = Platform.OS === 'ios' ? settings?.ios_min_version : settings?.android_min_version;
+        const belowMinimum = Boolean(
+          minVersion && installedVersion && compareVersions(installedVersion, minVersion) < 0,
+        );
+        const blocking = belowMinimum || settings?.force_update === true;
+        const storeVersion = String(storeUpdate.storeVersion || 'in-progress');
+        const dismissalKey = `dismissed_app_update_version:${Platform.OS}:${storeVersion}`;
+        const dismissed = await AsyncStorage.getItem(dismissalKey);
 
         if (mounted) {
-          setState({ loading: false, blocking, suggested, settings });
+          setState({ blocking, suggested: !blocking && dismissed !== 'true', settings, dismissalKey });
         }
       } catch {
-        if (mounted) {
-          setState({ loading: false, blocking: false, suggested: false, settings: null });
-        }
+        if (mounted) setState({ blocking: false, suggested: false, settings: null, dismissalKey: null });
+      } finally {
+        checking.current = false;
       }
     }
 
-    checkVersion();
+    void checkVersion();
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') void checkVersion();
+    });
+
     return () => {
       mounted = false;
+      subscription.remove();
     };
   }, [installedVersion]);
 
   async function openStore() {
-    const settings = state.settings;
     const fallbackUrl =
       Platform.OS === 'ios'
-        ? settings?.ios_update_url || Constants.expoConfig?.extra?.mobileAppUrl || 'https://stockman.pro/app'
-        : settings?.android_update_url || `https://play.google.com/store/apps/details?id=${getAndroidPackage()}`;
+        ? state.settings?.ios_update_url || getIosStoreUrl()
+        : state.settings?.android_update_url || `https://play.google.com/store/apps/details?id=${getAndroidPackage()}`;
     const primaryUrl = Platform.OS === 'android' ? `market://details?id=${getAndroidPackage()}` : fallbackUrl;
 
     try {
@@ -111,31 +137,20 @@ export default function AppVersionGate({ children }: { children: ReactNode }) {
   }
 
   async function dismissSuggestion() {
-    const latestVersion = Platform.OS === 'ios' ? state.settings?.ios_latest_version : state.settings?.android_latest_version;
-    if (latestVersion) {
-      await AsyncStorage.setItem(DISMISSED_UPDATE_KEY, latestVersion);
-    }
+    if (state.dismissalKey) await AsyncStorage.setItem(state.dismissalKey, 'true');
     setState((current) => ({ ...current, suggested: false }));
-  }
-
-  if (state.loading) {
-    return (
-      <View style={[styles.screen, { backgroundColor: colors.bgDark }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
   }
 
   if (state.blocking) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.bgDark }]}>
         <View style={[styles.blockCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text }]}>{REQUIRED_UPDATE_TITLE}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('app_update.required_title')}</Text>
           <Text style={[styles.message, { color: colors.textSecondary }]}>
-            {state.settings?.message || UPDATE_MESSAGE_FALLBACK}
+            {state.settings?.message || t('app_update.message')}
           </Text>
           <Pressable style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={openStore}>
-            <Text style={styles.primaryButtonText}>{UPDATE_ACTION_LABEL}</Text>
+            <Text style={styles.primaryButtonText}>{t('app_update.update_action')}</Text>
           </Pressable>
         </View>
       </View>
@@ -148,16 +163,18 @@ export default function AppVersionGate({ children }: { children: ReactNode }) {
       <Modal transparent visible={state.suggested} animationType="fade" onRequestClose={dismissSuggestion}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{SUGGESTED_UPDATE_TITLE}</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('app_update.available_title')}</Text>
             <Text style={[styles.message, { color: colors.textSecondary }]}>
-              {state.settings?.message || UPDATE_MESSAGE_FALLBACK}
+              {state.settings?.message || t('app_update.message')}
             </Text>
             <View style={styles.actions}>
               <Pressable style={[styles.secondaryButton, { borderColor: colors.border }]} onPress={dismissSuggestion}>
-                <Text style={[styles.secondaryButtonText, { color: isDark ? colors.text : colors.textSecondary }]}>Plus tard</Text>
+                <Text style={[styles.secondaryButtonText, { color: isDark ? colors.text : colors.textSecondary }]}>
+                  {t('app_update.later_action')}
+                </Text>
               </Pressable>
               <Pressable style={[styles.primaryButton, styles.modalPrimaryButton, { backgroundColor: colors.primary }]} onPress={openStore}>
-                <Text style={styles.primaryButtonText}>{UPDATE_ACTION_LABEL}</Text>
+                <Text style={styles.primaryButtonText}>{t('app_update.update_action')}</Text>
               </Pressable>
             </View>
           </View>

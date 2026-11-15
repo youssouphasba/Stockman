@@ -3,7 +3,8 @@ import { BackHandler, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../contexts/ThemeContext';
-import { STARTER_SETTINGS_GROUPS, StarterSettingsGroup } from '../utils/starterSettings';
+import { useTranslation } from 'react-i18next';
+import { ENTERPRISE_SETTINGS_GROUPS, STARTER_SETTINGS_GROUPS, StarterSettingsGroup } from '../utils/starterSettings';
 
 type SectionProps = { sectionKey?: string; title?: string; children?: React.ReactNode; hidden?: boolean };
 
@@ -26,49 +27,57 @@ export function collectSettingsSections(children: React.ReactNode): Map<string, 
 
 type Props = {
   enabled: boolean;
+  enterprise?: boolean;
   activeSection: StarterSettingsGroup | null;
   onSectionChange: (section: StarterSettingsGroup | null) => void;
   pendingCount: number;
   children: React.ReactNode;
 };
 
-export default function StarterSettingsLayout({ enabled, activeSection, onSectionChange, pendingCount, children }: Props) {
+export default function StarterSettingsLayout({ enabled, enterprise = false, activeSection, onSectionChange, pendingCount, children }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
+  const sections = enabled ? collectSettingsSections(children) : null;
+  const groups = enterprise
+    ? ENTERPRISE_SETTINGS_GROUPS.filter((item) => item.sections.some((key) => sections?.has(key)))
+    : STARTER_SETTINGS_GROUPS;
+  const group = groups.find((item) => item.id === activeSection);
   useFocusEffect(useCallback(() => {
-    if (!enabled || !activeSection) return;
+    if (!enabled || !group) return;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => { onSectionChange(null); return true; });
     return () => subscription.remove();
-  }, [enabled, activeSection, onSectionChange]));
+  }, [enabled, group, onSectionChange]));
 
-  if (!enabled) return <>{children}</>;
-  const group = STARTER_SETTINGS_GROUPS.find((item) => item.id === activeSection);
+  if (!sections) return <>{children}</>;
   if (!group) {
     return <View>
-      {STARTER_SETTINGS_GROUPS.map((item) => <TouchableOpacity
+      {groups.map((item) => <TouchableOpacity
         key={item.id}
         accessibilityRole="button"
         onPress={() => onSectionChange(item.id)}
         style={{ minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.divider }}
       >
         <Ionicons name={item.icon} size={24} color={colors.primary} />
-        <Text style={{ flex: 1, fontSize: 17, fontWeight: '600', color: colors.text }}>{item.title}</Text>
+        <Text style={{ flex: 1, fontSize: 17, fontWeight: '600', color: colors.text }}>{t('settings.mobile_groups.' + item.id)}</Text>
         {item.id === 'help' && pendingCount > 0 && <Text style={{ color: colors.warning, fontWeight: '700' }}>{pendingCount}</Text>}
         <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
       </TouchableOpacity>)}
     </View>;
   }
 
-  const sections = collectSettingsSections(children);
   return <View>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Retour aux paramètres" onPress={() => onSectionChange(null)} style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('settings.mobile_groups.back')} onPress={() => onSectionChange(null)} style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </TouchableOpacity>
-      <Text accessibilityRole="header" style={{ flex: 1, color: colors.text, fontSize: 21, fontWeight: '700' }}>{group.title}</Text>
+      <Text accessibilityRole="header" style={{ flex: 1, color: colors.text, fontSize: 21, fontWeight: '700' }}>{t('settings.mobile_groups.' + group.id)}</Text>
     </View>
     {group.sections.map((key) => {
       const section = sections.get(key);
       if (!section) return null;
+      if (enterprise && (key === 'organization' || key === 'accountAlerts' || key === 'storeAlerts')) {
+        return React.cloneElement(section, { key });
+      }
       return <View key={key} style={{ marginBottom: 20 }}>
         {section.props.title && key !== 'notifications' && <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 12 }}>{section.props.title}</Text>}
         {section.props.children}

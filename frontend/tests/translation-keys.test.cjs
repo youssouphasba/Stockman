@@ -63,3 +63,12 @@ test('Product deletion and restoration have accented French labels and English t
   assert.equal(i18n.t('products.delete_confirmed_title'), 'Product deleted');
   assert.equal(i18n.t('supplier_catalog_import.imported', { count: 2 }), '2 products added to the supplier catalogue.');
 });
+
+test('Mobile settings group names exist in French and English', () => {
+  const groups = ['online', 'store', 'help', 'account', 'notifications', 'billing', 'information', 'back'];
+  for (const language of ['fr', 'en']) {
+    const settings = readLocale('frontend/locales', language).settings;
+    for (const group of groups) assert.ok(settings.mobile_groups[group]?.trim(), language + ': ' + group);
+    assert.ok(settings.organization_modules?.trim(), language + ': organization_modules');
+  }
+});

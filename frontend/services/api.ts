@@ -533,10 +533,9 @@ export class AuthError extends ApiError {
 }
 
 export type AppVersionSettings = {
-  android_latest_version: string;
-  android_min_version: string;
-  ios_latest_version: string;
-  ios_min_version: string;
+  enabled?: boolean;
+  android_min_version?: string | null;
+  ios_min_version?: string | null;
   force_update: boolean;
   message: string;
   android_update_url?: string | null;
@@ -545,6 +544,8 @@ export type AppVersionSettings = {
 
 export const appVersion = {
   get: () => rawRequest<AppVersionSettings>('/settings/app-version'),
+  reportInstalled: (data: { platform: 'android' | 'ios'; version: string }) =>
+    request<{ message: string; reported_at: string }>('/app-version/report', { method: 'POST', body: data }),
 };
 
 // Auth

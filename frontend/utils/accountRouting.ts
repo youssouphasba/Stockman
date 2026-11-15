@@ -14,6 +14,10 @@ export function isStarterShopkeeper(user: User | null): boolean {
   return user?.role === 'shopkeeper' && !user.is_demo && getCommercialPlan(user) === 'starter';
 }
 
+export function isEnterpriseSettingsAccount(user: User | null): boolean {
+  return (user?.role === 'shopkeeper' || user?.role === 'staff') && !user.is_demo && getCommercialPlan(user) === 'enterprise';
+}
+
 export function getStarterRoute(user: User | null, options: StarterNavigationOptions = {}): string {
   const modules = options.modules || {};
   if ((options.isRestaurant || modules.stock_management !== false) && hasModulePermission(user, 'stock', 'read')) {

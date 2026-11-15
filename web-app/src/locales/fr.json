@@ -1,4 +1,20 @@
 {
+  "admin_app_updates": {
+    "nav_label": "Mises à jour mobiles",
+    "eyebrow": "Application mobile",
+    "title": "Mises à jour",
+    "description": "À l’ouverture, l’application compare sa version installée à celle proposée par le store. Cette action envoie une notification push aux installations enregistrées sur la plateforme sélectionnée.",
+    "platform": "Plateforme",
+    "android": "Android",
+    "ios": "iOS",
+    "notification_title": "Titre de la notification",
+    "message": "Message",
+    "sending": "Envoi en cours…",
+    "send": "Envoyer la notification",
+    "accepted": "{{accepted}} notification(s) acceptée(s) par le service push sur {{unique}} installation(s).",
+    "failed": "{{count}} notification(s) refusée(s).",
+    "send_error": "L’envoi de la notification a échoué."
+  },
   "supplier_actions": {
     "confirm": "Confirmer",
     "cancel": "Annuler",

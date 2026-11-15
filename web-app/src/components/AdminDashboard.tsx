@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Shield, Activity, Users, Store, AlertCircle, CheckCircle2,
     RefreshCw, TrendingUp, Globe, Search, MessageSquare,
@@ -14,6 +15,7 @@ import AdminCatalogPanel from './admin/AdminCatalogPanel';
 import AdminModulesPanel, { AccountModulesCard } from './admin/AdminModulesPanel';
 import AdminAiHealthCard from './admin/AdminAiHealthCard';
 import AdminStoreOverviewPanel from './admin/AdminStoreOverviewPanel';
+import AppUpdateNotificationsPanel from './admin/AppUpdateNotificationsPanel';
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: any; icon: any; color: string; sub: string }) {
     return (
@@ -179,6 +181,13 @@ function getUserLastLogin(user: any) {
     return user?.last_login_at || user?.last_login || null;
 }
 
+function getUserAppVersion(user: any, platform: 'android' | 'ios') {
+    const value = user?.app_versions?.[platform];
+    return value && typeof value.version === 'string'
+        ? { version: value.version, reportedAt: value.reported_at || null }
+        : null;
+}
+
 function getAdminUserLabel(entity: any) {
     return entity?.user_name || entity?.owner_name || entity?.name || entity?.user_email || entity?.owner_email || entity?.email || entity?.user_id || 'Utilisateur inconnu';
 }
@@ -309,9 +318,10 @@ function formatRemainingDuration(seconds: number | null) {
     return `${hours}h ${minutes}m`;
 }
 
-type AdminSection = 'overview' | 'modules' | 'notifications' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'crm' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring';
+type AdminSection = 'overview' | 'modules' | 'notifications' | 'app_updates' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'crm' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring';
 
 export default function AdminDashboard() {
+    const { t } = useTranslation();
     const [activeSection, setActiveSection] = useState<AdminSection>('overview');
     const [health, setHealth] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
@@ -956,9 +966,16 @@ export default function AdminDashboard() {
 
     const exportUsersCsv = () => {
         if (!filteredUsers.length) return;
-        const headers = ['user_id', 'name', 'email', 'plan', 'role', 'country_code', 'is_active', 'created_at', 'last_login_at'];
+        const headers = ['user_id', 'name', 'email', 'plan', 'role', 'country_code', 'android_app_version', 'android_app_version_reported_at', 'ios_app_version', 'ios_app_version_reported_at', 'is_active', 'created_at', 'last_login_at'];
         const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-        const rows = filteredUsers.map(u => headers.map(h => escape(h === 'last_login_at' ? getUserLastLogin(u) : u[h])).join(';'));
+        const rows = filteredUsers.map(u => headers.map(h => {
+            if (h === 'last_login_at') return escape(getUserLastLogin(u));
+            if (h === 'android_app_version') return escape(getUserAppVersion(u, 'android')?.version);
+            if (h === 'android_app_version_reported_at') return escape(getUserAppVersion(u, 'android')?.reportedAt);
+            if (h === 'ios_app_version') return escape(getUserAppVersion(u, 'ios')?.version);
+            if (h === 'ios_app_version_reported_at') return escape(getUserAppVersion(u, 'ios')?.reportedAt);
+            return escape(u[h]);
+        }).join(';'));
         const csv = '\uFEFF' + [headers.join(';'), ...rows].join('\n');
         const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
         const a = document.createElement('a');
@@ -1438,6 +1455,7 @@ export default function AdminDashboard() {
     const tabs = [
         { id: 'overview', icon: TrendingUp, label: 'Vue d\'ensemble' },
         { id: 'notifications', icon: Bell, label: 'Notifications' },
+        { id: 'app_updates', icon: Rocket, label: t('admin_app_updates.nav_label') },
         { id: 'finance', icon: Wallet, label: 'Finance' },
         { id: 'subscriptions', icon: CreditCard, label: 'Abonnements' },
         { id: 'demos', icon: Clock, label: 'Démos' },
@@ -1662,6 +1680,23 @@ export default function AdminDashboard() {
                                             <div className="mt-1 text-sm font-bold text-white">{item.value}</div>
                                         </div>
                                     ))}
+                                </div>
+                                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                    <div className="text-[10px] uppercase tracking-widest text-slate-500">Versions de l’application mobile</div>
+                                    <div className="mt-2 grid grid-cols-2 gap-3">
+                                        {(['android', 'ios'] as const).map(platform => {
+                                            const appVersion = getUserAppVersion(detailData.user || detailUser, platform);
+                                            return (
+                                                <div key={platform} className="rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2">
+                                                    <div className="text-[10px] font-bold uppercase text-slate-500">{platform === 'ios' ? 'iOS' : 'Android'}</div>
+                                                    <div className="mt-1 text-sm font-bold text-white">{appVersion?.version || 'Non remontée'}</div>
+                                                    <div className="mt-1 text-[10px] text-slate-500">
+                                                        {appVersion?.reportedAt ? `Dernière remontée : ${formatAdminDate(appVersion.reportedAt)}` : 'Aucune version reçue'}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                                 <AccountModulesCard
                                     userId={detailUser.user_id}
@@ -2922,6 +2957,7 @@ export default function AdminDashboard() {
                                     <th className="px-6 py-4">Boutiques</th>
                                     <th className="px-6 py-4">Abonnement</th>
                                     <th className="px-6 py-4">Pays</th>
+                                    <th className="px-6 py-4">Version mobile</th>
                                     <th className="px-6 py-4">Dernière connexion</th>
                                     <th className="px-6 py-4">Statut</th>
                                     <th className="px-6 py-4 text-right">Action</th>
@@ -2976,6 +3012,23 @@ export default function AdminDashboard() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-slate-400 font-mono text-xs">{user.country_code || '—'}</td>
+                                        <td className="px-6 py-4 text-xs">
+                                            {(['android', 'ios'] as const).some(platform => getUserAppVersion(user, platform)) ? (
+                                                <div className="space-y-1.5">
+                                                    {(['android', 'ios'] as const).map(platform => {
+                                                        const appVersion = getUserAppVersion(user, platform);
+                                                        return (
+                                                            <div key={platform} className="whitespace-nowrap" title={appVersion?.reportedAt ? `Dernière remontée : ${formatAdminDate(appVersion.reportedAt)}` : undefined}>
+                                                                <span className="text-slate-500">{platform === 'ios' ? 'iOS' : 'Android'}</span>
+                                                                <span className="ml-1.5 font-mono font-bold text-slate-200">{appVersion?.version || '—'}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-500" title="La version sera renseignée lors de la prochaine connexion dans l’application mobile.">Non remontée</span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-xs text-slate-400">
                                             {getUserLastLogin(user)
                                                 ? (() => {
@@ -3953,6 +4006,8 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+
+            {activeSection === 'app_updates' && <AppUpdateNotificationsPanel />}
 
             {activeSection === 'broadcast' && (
                 <div className="grid grid-cols-1 xl:grid-cols-[1.1fr,0.9fr] gap-8">

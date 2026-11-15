@@ -534,7 +534,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     settings: {
         title: "Paramètres",
         steps: [
-            { icon: "globe-outline", title: "Site e-commerce", description: "Ouvrez la première rubrique des Paramètres pour retrouver votre site. Elle s'appelle Boutique en ligne sur Starter mobile et Site e-commerce sur Pro, Enterprise et le web. Les réglages du point de vente restent dans une rubrique séparée." },
+            { icon: "globe-outline", title: "Site e-commerce", description: "Ouvrez la première rubrique des Paramètres pour retrouver votre site. Elle s'appelle Boutique en ligne sur mobile pour Starter et Enterprise, et Site e-commerce sur Pro et sur le web. Les réglages du point de vente restent dans une rubrique séparée." },
             { icon: "globe-outline", title: "Première configuration du site", description: "La proposition initiale est partagée avec E-com. Configurer mon site ouvre Boutique en ligne ; Plus tard n'active rien et permet de continuer normalement. Stockman Basic reste le modèle actuel. Starter et Pro configurent depuis le mobile et conservent la consultation web ; Enterprise peut aussi configurer depuis ses Paramètres web selon ses droits." },
             { icon: "color-palette-outline", title: "Apparence du site", description: "Dans Boutique en ligne, rubrique Apparence, le bloc Apparence du site propose les modèles Stockman Basic, Atelier, Marché, Vitrine, Éclat, Prestige et Bazar : Aperçu les montre avec vos vrais produits, Choisir ce modèle crée un brouillon avec vos textes, votre logo et votre couleur. Apparence du site regroupe aussi le logo, le nom, les textes d'accueil, la couleur de marque (pastilles ou code personnalisé) et, selon le modèle, trois styles prêts à l'emploi, l'ambiance, la typographie, les animations (Aucune, Discrètes ou Expressives, toujours coupées pour les visiteurs qui demandent moins de mouvement) et chaque section : bandeau défilant, collection d'une de vos catégories, bannière, galerie, avis réels de vos clients, questions fréquentes. Sur téléphone, les rangées de produits, de catégories et d'avis défilent au doigt. Le logo se choisit dans la bibliothèque d'images du site : JPEG, PNG ou WebP, 8 Mo au maximum, optimisé automatiquement. Enregistrez un brouillon, ouvrez un aperçu privé valable 30 minutes, même si le site est désactivé, puis publiez après avoir vérifié les changements. La publication n'active pas le site. Sur le web, ces actions, l'historique des versions (dont la version d'origine du site) et l'éditeur visuel (sections et pages personnalisées) sont réservés à Enterprise. Les sections d'une page personnalisée apparaissent ici sous le titre de leur page : leurs textes se modifient comme les autres. Une section masquée depuis l'éditeur visuel est signalée par « (masquée sur le site) » : ses textes restent modifiables, mais elle ne s'affiche pas sur le site." },
             {
@@ -545,7 +545,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "person-outline",
                 title: "Commencer par la bonne rubrique",
-                description: "Les paramètres du site e-commerce sont distincts du support, du compte, de la boutique active, de l'organisation, des alertes et de la sécurité. Les notifications admin peuvent aussi ouvrir directement une rubrique."
+                description: "Sur Enterprise mobile, Ma boutique commence par Utilisateurs et permissions et regroupe aussi les factures, les reçus et la TVA. Aide rassemble le support et la synchronisation. Selon vos droits, retrouvez les modules dans Mon compte et les canaux, les destinataires e-mail et les seuils dans Notifications. Cuisine et Réservations sont réservées aux activités de restauration."
             },
             {
                 icon: "language-outline",
@@ -561,11 +561,6 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 icon: "storefront-outline",
                 title: "Boutique active",
                 description: "Retrouvez ici les réglages liés au point de vente sélectionné : identité, documents de vente et informations pratiques de la boutique active."
-            },
-            {
-                icon: "business-outline",
-                title: "Organisation et pilotage",
-                description: "Cette zone regroupe l'équipe, les accès, les modules visibles et les réglages de gestion avancés. Utilisez-la quand vous pilotez l'activité ou coordonnez plusieurs utilisateurs."
             },
             {
                 icon: "notifications-outline",

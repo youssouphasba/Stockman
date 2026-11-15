@@ -1,21 +1,28 @@
 import type { EcommerceSite, EcommerceSiteUpdate } from '../services/api';
 
 export const STARTER_SETTINGS_GROUPS = [
-  { id: 'online', title: 'Boutique en ligne', icon: 'globe-outline', sections: ['storeEcommerce'] },
-  { id: 'store', title: 'Ma boutique', icon: 'storefront-outline', sections: ['team', 'storeIdentity', 'storeDocuments', 'tax', 'storeEmpty'] },
-  { id: 'help', title: 'Aide', icon: 'help-circle-outline', sections: ['sync', 'support', 'incident'] },
-  { id: 'account', title: 'Mon compte', icon: 'person-outline', sections: ['identity', 'profile', 'security', 'accounts', 'data', 'logout'] },
-  { id: 'notifications', title: 'Notifications', icon: 'notifications-outline', sections: ['notificationsToggle', 'notifications'] },
-  { id: 'billing', title: 'Mon abonnement', icon: 'card-outline', sections: ['billing'] },
-  { id: 'information', title: 'Informations', icon: 'information-circle-outline', sections: ['legal'] },
+  { id: 'online', icon: 'globe-outline', sections: ['storeEcommerce'] },
+  { id: 'store', icon: 'storefront-outline', sections: ['team', 'storeIdentity', 'storeDocuments', 'tax', 'storeEmpty'] },
+  { id: 'help', icon: 'help-circle-outline', sections: ['sync', 'support', 'incident'] },
+  { id: 'account', icon: 'person-outline', sections: ['identity', 'profile', 'security', 'accounts', 'data', 'logout'] },
+  { id: 'notifications', icon: 'notifications-outline', sections: ['notificationsToggle', 'notifications'] },
+  { id: 'billing', icon: 'card-outline', sections: ['billing'] },
+  { id: 'information', icon: 'information-circle-outline', sections: ['legal'] },
 ] as const;
 
-export type StarterSettingsGroup = typeof STARTER_SETTINGS_GROUPS[number]['id'];
+type SettingsGroup = typeof STARTER_SETTINGS_GROUPS[number];
+export const ENTERPRISE_SETTINGS_GROUPS = STARTER_SETTINGS_GROUPS.map((group) => {
+  if (group.id === 'account') return { ...group, sections: group.sections.flatMap((section) => section === 'security' ? [section, 'organization'] : [section]) };
+  if (group.id === 'notifications') return { ...group, sections: [...group.sections, 'accountAlerts', 'storeAlerts'] };
+  return group;
+});
+
+export type StarterSettingsGroup = SettingsGroup['id'];
 
 const SECTION_ALIASES: Record<string, StarterSettingsGroup> = {
   storeGroup: 'store', accountAppGroup: 'account', organizationGroup: 'account',
   alertsGroup: 'notifications', accountAlerts: 'notifications', storeAlerts: 'notifications',
-  supportGroup: 'help', securityGroup: 'account', organization: 'account',
+  supportGroup: 'help', securityGroup: 'account', organization: 'account', enterpriseHub: 'account',
 };
 
 export function getStarterSettingsGroup(section: string): StarterSettingsGroup | null {

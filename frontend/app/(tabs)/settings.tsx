@@ -49,7 +49,7 @@ import * as Updates from 'expo-updates';
 import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
 import SubscriptionPlans from '../../components/SubscriptionPlans';
 import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
-import { getCommercialPlan, isStarterShopkeeper } from '../../utils/accountRouting';
+import { getCommercialPlan, isEnterpriseSettingsAccount, isStarterShopkeeper } from '../../utils/accountRouting';
 
 // Sector selection removed - defined at registration
 
@@ -317,6 +317,8 @@ export default function SettingsScreen() {
   // Module Fournisseurs coupé par l'admin Stockman : son interrupteur et son contact e-mail disparaissent.
   const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
   const isStarterSettings = Platform.OS !== 'web' && isStarterShopkeeper(user);
+  const isEnterpriseSettings = Platform.OS !== 'web' && isEnterpriseSettingsAccount(user);
+  const usesGroupedSettings = isStarterSettings || isEnterpriseSettings;
   const [starterSection, setStarterSection] = useState<StarterSettingsGroup | null>(null);
   const [showDocumentOptions, setShowDocumentOptions] = useState(false);
   const [ecommerceStep, setEcommerceStep] = useState<EcommerceStepId | null>(null);
@@ -413,16 +415,22 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     const sectionParam = Array.isArray(params.section) ? params.section[0] : params.section;
-    if (!sectionParam || !SETTINGS_SECTION_KEYS.has(sectionParam as SettingsSectionKey)) return;
-    const section = sectionParam as SettingsSectionKey;
-    if (isStarterSettings) setStarterSection(getStarterSettingsGroup(section));
+    if (!sectionParam) return;
+    if (usesGroupedSettings) {
+      const group = getStarterSettingsGroup(sectionParam);
+      if (group) setStarterSection(group);
+    }
+    if (!SETTINGS_SECTION_KEYS.has(sectionParam as SettingsSectionKey)) return;
+    const section = isEnterpriseSettings && (sectionParam === 'organizationGroup' || sectionParam === 'enterpriseHub')
+      ? 'organization'
+      : sectionParam as SettingsSectionKey;
     const parent = SETTINGS_SECTION_PARENT[section];
     setExpandedSections((current) => ({
       ...current,
       ...(parent ? { [parent]: true } : {}),
       [section]: true,
     }));
-  }, [params.section, isStarterSettings]);
+  }, [params.section, usesGroupedSettings, isEnterpriseSettings]);
 
   const changeStarterSection = useCallback((section: StarterSettingsGroup | null) => {
     setStarterSection(section);
@@ -436,7 +444,7 @@ export default function SettingsScreen() {
     setEcommerceStep(null);
     setShowNotificationOptions(false);
     setShowBillingOptions(false);
-  }, [user?.user_id]);
+  }, [user?.user_id, isEnterpriseSettings]);
 
   function showFeedback(message: string, tone: 'success' | 'error' = 'success') {
     setFeedback({ tone, message });
@@ -625,7 +633,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('settings:open-ecommerce', () => {
       if (!isOrgAdmin) return;
-      if (isStarterSettings) changeStarterSection('online');
+      if (usesGroupedSettings) changeStarterSection('online');
       setExpandedSections((current) => ({
         ...current,
         storeEcommerce: true,
@@ -633,7 +641,7 @@ export default function SettingsScreen() {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     });
     return () => subscription.remove();
-  }, [isOrgAdmin, isStarterSettings, changeStarterSection]);
+  }, [isOrgAdmin, usesGroupedSettings, changeStarterSection]);
 
   function toggleSection(section: SettingsSectionKey) {
     setExpandedSections((current) => {
@@ -663,8 +671,14 @@ export default function SettingsScreen() {
     });
   }
 
+  function canShowModule(key: string) {
+    if (key === 'suppliers') return suppliersModuleOn;
+    if (key === 'kitchen' || key === 'reservations') return isRestaurant;
+    return true;
+  }
+
   async function toggleModule(key: string) {
-    if (!settingsData) return;
+    if (!canManageOrganizationSettings || !settingsData || !canShowModule(key)) return;
     const newModules = { ...settingsData.modules, [key]: !settingsData.modules[key] };
     try {
       const updated = await settingsApi.update({ modules: newModules });
@@ -1055,7 +1069,7 @@ export default function SettingsScreen() {
             <Text style={styles.outlineButtonText}>Réessayer</Text>
           </TouchableOpacity>
         </View>}
-        <StarterSettingsLayout enabled={isStarterSettings} activeSection={starterSection} onSectionChange={changeStarterSection} pendingCount={pendingCount}>
+        <StarterSettingsLayout enabled={usesGroupedSettings} enterprise={isEnterpriseSettings} activeSection={starterSection} onSectionChange={changeStarterSection} pendingCount={pendingCount}>
         {isOrgAdmin && (
         <SettingsAccordionSection
           title="Site e-commerce"
@@ -1362,7 +1376,7 @@ export default function SettingsScreen() {
         >
         {canManageBillingSettings && (
         <SettingsAccordionSection
-          title={isStarterSettings ? undefined : t('settings.section_subscription')}
+          title={usesGroupedSettings ? undefined : t('settings.section_subscription')}
           description={t('settings.section_subscription_desc')}
           icon="card-outline"
           accentColor={colors.warning}
@@ -1450,7 +1464,7 @@ export default function SettingsScreen() {
             />
           </View>
 
-          <SettingsSlot sectionKey="notificationsToggle" hidden={isStarterSettings}>
+          <SettingsSlot sectionKey="notificationsToggle" hidden={usesGroupedSettings}>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>{t('settings.notifications')}</Text>
@@ -1561,18 +1575,19 @@ export default function SettingsScreen() {
         {/* Modules */}
         {canManageOrganizationSettings && (
         <SettingsAccordionSection
-          title={t('settings.section_modules')}
+          title={t(isEnterpriseSettings ? 'settings.organization_modules' : 'settings.section_modules')}
           description={t('settings.section_modules_desc')}
           icon="grid-outline"
           accentColor={colors.success}
           expanded={expandedSections.organization}
           onToggle={() => toggleSection('organization')}
+          sectionKey="organization"
           styles={styles}
           colors={colors}
           variant="nested"
         >
           <Text style={styles.subsectionTitle}>{t('settings.modules')}</Text>
-          {settingsData && Object.entries(settingsData.modules).filter(([key]) => key !== 'suppliers' || suppliersModuleOn).map(([key, enabled]) => (
+          {settingsData && Object.entries(settingsData.modules).filter(([key]) => canShowModule(key)).map(([key, enabled]) => (
             <View key={key} style={styles.settingRow}>
               <Text style={styles.settingLabel}>{moduleLabels[key] ?? key}</Text>
               <Switch
@@ -1781,7 +1796,7 @@ export default function SettingsScreen() {
           variant="nested"
         >
           <Text style={styles.settingDesc}>{t('settings.no_active_store_docs', 'Aucune boutique active n\'est sélectionnée pour personnaliser les documents.')}</Text>
-          {isStarterSettings && <StoreSelector />}
+          {usesGroupedSettings && <StoreSelector />}
         </SettingsAccordionSection>
         )}
 
@@ -2061,6 +2076,7 @@ export default function SettingsScreen() {
           accentColor={colors.warning}
           expanded={expandedSections.accountAlerts}
           onToggle={() => toggleSection('accountAlerts')}
+          sectionKey="accountAlerts"
           styles={styles}
           colors={colors}
           variant="nested"
@@ -2106,6 +2122,7 @@ export default function SettingsScreen() {
           accentColor={colors.info}
           expanded={expandedSections.storeAlerts}
           onToggle={() => toggleSection('storeAlerts')}
+          sectionKey="storeAlerts"
           styles={styles}
           colors={colors}
           variant="nested"

@@ -2978,6 +2978,11 @@ export const admin = {
     regenerateSubscriptionLinks: (accountId: string) => request<any>(`/admin/subscriptions/${accountId}/payment-links`, { method: 'POST' }),
     sendSubscriptionReminder: (accountId: string, daysLeft = 1) =>
         request<any>(`/admin/subscriptions/${accountId}/send-reminder?days_left=${daysLeft}`, { method: 'POST' }),
+    notifyAppUpdate: (data: { platform: 'android' | 'ios'; title: string; message: string }) =>
+        request<{ platform: string; installations: number; unique_tokens: number; accepted: number; failed: number; store_url: string }>(
+            '/admin/app-updates/notify',
+            { method: 'POST', body: data },
+        ),
     listVerificationEvents: (params?: { type?: string; provider?: string; channel?: string; skip?: number; limit?: number }) => {
         const query = toQueryString(params as Record<string, unknown> | undefined);
         return request<{ items: any[]; total: number }>(`/admin/verification-events${query ? `?${query}` : ''}`);

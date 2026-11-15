@@ -1,4 +1,20 @@
 {
+  "admin_app_updates": {
+    "nav_label": "Mobile updates",
+    "eyebrow": "Mobile app",
+    "title": "App updates",
+    "description": "When the app opens, it compares its installed version with the one offered by the store. This action sends a push notification to installations registered for the selected platform.",
+    "platform": "Platform",
+    "android": "Android",
+    "ios": "iOS",
+    "notification_title": "Notification title",
+    "message": "Message",
+    "sending": "Sending…",
+    "send": "Send notification",
+    "accepted": "{{accepted}} notification(s) accepted by the push service out of {{unique}} installation(s).",
+    "failed": "{{count}} notification(s) rejected.",
+    "send_error": "The notification could not be sent."
+  },
   "supplier_actions": {
     "confirm": "Confirm",
     "cancel": "Cancel",

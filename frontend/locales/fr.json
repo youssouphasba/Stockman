@@ -1,4 +1,11 @@
 {
+  "app_update": {
+    "required_title": "Mise à jour requise",
+    "available_title": "Nouvelle version disponible",
+    "message": "Une nouvelle version de Stockman est disponible dans votre boutique d’applications.",
+    "update_action": "Mettre à jour",
+    "later_action": "Plus tard"
+  },
   "screen_guide": {
     "pos_product_unavailable": "Aucun produit ne peut être mis en surbrillance pour le moment.",
     "close": "Fermer le guide",
@@ -1837,6 +1844,10 @@
         "f9": {
           "t": "Données & RGPD",
           "d": "Exportez toutes vos données en JSON (droit RGPD). La suppression de compte est définitive et irréversible."
+        },
+        "f10": {
+          "t": "Mises à jour de l’application",
+          "d": "À l’ouverture et au retour dans l’application, Stockman demande au Play Store sur Android ou à l’App Store sur iOS si une version plus récente est disponible. La fenêtre s’affiche uniquement lorsque le store confirme qu’une mise à jour peut être installée. Si le store est indisponible, Stockman continue de fonctionner. Une version minimale peut aussi être définie pour rendre une mise à jour obligatoire."
         }
       },
       "subscription": {
@@ -3062,6 +3073,16 @@
     "continuous_on": "Continuous On"
   },
   "settings": {
+    "mobile_groups": {
+      "online": "Boutique en ligne",
+      "store": "Ma boutique",
+      "help": "Aide",
+      "account": "Mon compte",
+      "notifications": "Notifications",
+      "billing": "Mon abonnement",
+      "information": "Informations",
+      "back": "Retour aux réglages"
+    },
     "about": "À propos",
     "account": "Compte",
     "ai_assistant": "Assistant IA",
@@ -3193,6 +3214,7 @@
     "piloting_label": "Centre de pilotage",
     "piloting_desc": "Pilotage multi-boutiques, équipe et emplacements avancés.",
     "section_modules": "Modules visibles",
+    "organization_modules": "Modules de l’organisation",
     "section_modules_desc": "Activez ou désactivez les modules affichés dans l'application.",
     "section_store": "Boutique active",
     "section_store_desc": "Nom, documents et paramètres liés au point de vente sélectionné.",

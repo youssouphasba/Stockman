@@ -5,6 +5,7 @@ const ts = require('typescript');
 const React = require('react');
 
 const root = path.resolve(__dirname, '../..');
+const mobileGroupLabels = JSON.parse(fs.readFileSync(path.join(root, 'locales/fr.json'), 'utf8')).settings.mobile_groups;
 const filename = 'app/(tabs)/settings.tsx';
 const source = fs.readFileSync(path.join(root, filename), 'utf8');
 const ast = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -85,7 +86,7 @@ function createHarness(overrides = {}) {
       if (specifier === 'react') return hooks;
       if (specifier === 'react-native') return natives;
       if (specifier === 'expo-router') return { Link: 'Link', useRouter: () => router, useLocalSearchParams: () => overrides.params || {}, useFocusEffect: (callback) => focusEffects.push(callback) };
-      if (specifier === 'react-i18next') return { useTranslation: () => ({ t: (key, fallback) => typeof fallback === 'string' ? fallback : key, i18n: { language: 'fr' } }) };
+      if (specifier === 'react-i18next') return { useTranslation: () => ({ t: (key, fallback) => key.startsWith('settings.mobile_groups.') ? mobileGroupLabels[key.split('.').at(-1)] : typeof fallback === 'string' ? fallback : key, i18n: { language: 'fr' } }) };
       if (specifier === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) };
       if (specifier === '@expo/vector-icons') return { Ionicons: 'Icon' };
       if (specifier === 'expo-linear-gradient') return { LinearGradient: 'Gradient' };

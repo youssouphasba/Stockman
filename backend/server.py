@@ -84,6 +84,9 @@ from enterprise_access import (
 from ecommerce_themes import LEGACY_MODEL_ID, LEGACY_MODEL_NAME, THEME_SCHEMA_VERSION, compute_theme_capabilities, legacy_theme_identity, resolve_model
 from ecommerce_onboarding import EcommerceOnboarding, can_offer_setup
 from admin_message_links import AdminMessageActionLink, render_admin_message_email_actions
+from app_update_settings import (
+    resolve_app_update_settings,
+)
 import onboarding_guide
 from product_name_matching import POTENTIAL_DUPLICATE_THRESHOLD, product_name_similarity
 import platform_modules
@@ -606,14 +609,22 @@ class PrivacyPolicy(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class AppVersionSettings(BaseModel):
-    android_latest_version: str
-    android_min_version: str
-    ios_latest_version: str
-    ios_min_version: str
+    enabled: bool = True
+    android_min_version: Optional[str] = None
+    ios_min_version: Optional[str] = None
     force_update: bool = False
     message: str
     android_update_url: Optional[str] = None
     ios_update_url: Optional[str] = None
+
+class AppVersionReportRequest(BaseModel):
+    platform: Literal["android", "ios"]
+    version: str = Field(min_length=1, max_length=40)
+
+class AppUpdateNotificationRequest(BaseModel):
+    platform: Literal["android", "ios"]
+    title: str = Field(min_length=1, max_length=80)
+    message: str = Field(min_length=1, max_length=240)
 
 def _read_env_bool(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
@@ -621,41 +632,41 @@ def _read_env_bool(name: str, default: bool = False) -> bool:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on", "oui"}
 
-def _read_app_version_env(*names: str, default: str) -> str:
-    for name in names:
-        value = os.environ.get(name)
-        if value and value.strip():
-            return value.strip()
-    return default
-
 @api_router.get("/settings/app-version", response_model=AppVersionSettings)
 async def get_app_version_settings():
-    android_package = os.environ.get("ANDROID_PACKAGE_NAME", "com.youssouphasba.stockman").strip()
-    android_update_url = _read_app_version_env(
-        "APP_ANDROID_UPDATE_URL",
-        "STOCKMAN_ANDROID_UPDATE_URL",
-        default=f"https://play.google.com/store/apps/details?id={android_package}",
-    )
-    ios_update_url = _read_app_version_env(
-        "APP_IOS_UPDATE_URL",
-        "STOCKMAN_IOS_UPDATE_URL",
-        "MOBILE_APP_URL",
-        default="https://stockman.pro/app",
-    )
+    settings_doc = await db.app_settings.find_one(
+        {"key": "global"}, {"_id": 0, "app_update": 1}
+    ) or {}
+    app_update = resolve_app_update_settings(settings_doc)
     return AppVersionSettings(
-        android_latest_version=_read_app_version_env("APP_ANDROID_LATEST_VERSION", "STOCKMAN_ANDROID_LATEST_VERSION", default="1.0.20"),
-        android_min_version=_read_app_version_env("APP_ANDROID_MIN_VERSION", "STOCKMAN_ANDROID_MIN_VERSION", default="0.0.0"),
-        ios_latest_version=_read_app_version_env("APP_IOS_LATEST_VERSION", "STOCKMAN_IOS_LATEST_VERSION", default="1.0.20"),
-        ios_min_version=_read_app_version_env("APP_IOS_MIN_VERSION", "STOCKMAN_IOS_MIN_VERSION", default="0.0.0"),
+        enabled=app_update["enabled"],
+        android_min_version=app_update["android_min_version"],
+        ios_min_version=app_update["ios_min_version"],
         force_update=_read_env_bool("APP_FORCE_UPDATE", _read_env_bool("STOCKMAN_FORCE_UPDATE", False)),
-        message=_read_app_version_env(
-            "APP_UPDATE_MESSAGE",
-            "STOCKMAN_UPDATE_MESSAGE",
-            default="Une nouvelle version est disponible.",
-        ),
-        android_update_url=android_update_url,
-        ios_update_url=ios_update_url,
+        message=app_update["message"],
+        android_update_url=app_update["android_store_url"],
+        ios_update_url=app_update["ios_store_url"],
     )
+
+@api_router.post("/app-version/report")
+async def report_installed_app_version(data: AppVersionReportRequest, request: Request):
+    current_user = await get_current_user(request)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentification requise.")
+
+    version = data.version.strip()
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9A-Za-z-]+){0,3}", version):
+        raise HTTPException(status_code=422, detail="Format de version invalide.")
+
+    reported_at = datetime.now(timezone.utc)
+    await db.users.update_one(
+        {"user_id": current_user.user_id},
+        {"$set": {
+            f"app_versions.{data.platform}.version": version,
+            f"app_versions.{data.platform}.reported_at": reported_at,
+        }},
+    )
+    return {"message": "Version de l’application enregistrée.", "reported_at": reported_at}
 
 @api_router.get("/cgu")
 async def get_cgu(lang: str = "fr"):
@@ -1067,6 +1078,7 @@ async def create_indexes_and_init():
                 await db.system_message_deliveries.create_index([("demo_session_id", 1), ("scenario", 1), ("milestone", 1), ("channel", 1), ("status", 1)])
                 await db.push_installations.create_index("installation_id", unique=True)
                 await db.push_installations.create_index("expo_push_token")
+                await db.push_installations.create_index([("last_user_id", 1), ("updated_at", -1)])
                 await db.push_installations.create_index([("language", 1), ("is_active", 1), ("updated_at", -1)])
                 await db.push_installations.create_index([("country_code", 1), ("language", 1), ("is_active", 1)])
                 await db.push_installations.create_index([("platform", 1), ("is_active", 1)])
@@ -8386,10 +8398,115 @@ async def admin_non_demo_filter(owner_field: str) -> dict:
     return {**ADMIN_NON_DEMO_FILTER, owner_field: {"$nin": demo_owner_ids}}
 
 
+@admin_router.post("/app-updates/notify")
+async def admin_notify_app_update(data: AppUpdateNotificationRequest, admin: User = Depends(require_superadmin)):
+    platform = data.platform.lower()
+    title = data.title.strip()
+    message = data.message.strip()
+    if not title or not message:
+        raise HTTPException(status_code=422, detail="Le titre et le message sont obligatoires.")
+    installations = await db.push_installations.find(
+        {"platform": platform, "is_active": True},
+        {"_id": 0, "expo_push_token": 1},
+    ).to_list(None)
+    tokens = list(dict.fromkeys(
+        str(item.get("expo_push_token") or "").strip()
+        for item in installations
+        if str(item.get("expo_push_token") or "").startswith(("ExponentPushToken", "ExpoPushToken"))
+    ))
+    if not tokens:
+        raise HTTPException(status_code=400, detail="Aucune installation push active n'est enregistrée pour cette plateforme.")
+
+    app_settings_doc = await db.app_settings.find_one(
+        {"key": "global"}, {"_id": 0, "app_update": 1}
+    ) or {}
+    app_update = resolve_app_update_settings(app_settings_doc)
+    store_url = app_update[f"{platform}_store_url"]
+    accepted = 0
+    failed = 0
+    for start in range(0, len(tokens), 100):
+        batch = tokens[start:start + 100]
+        result = await notification_service.send_push_notification(
+            batch,
+            title,
+            message,
+            {
+                "type": "app_update",
+                "platform": platform,
+                "store_url": store_url,
+                "deeplink_url": store_url,
+            },
+        )
+        tickets = result.get("tickets") or []
+        batch_accepted = sum(1 for ticket in tickets if ticket.get("status") == "ok")
+        accepted += batch_accepted
+        failed += len(batch) - batch_accepted
+
+    logger.info(
+        "App update push requested by admin %s for %s: accepted=%s failed=%s",
+        admin.user_id,
+        platform,
+        accepted,
+        failed,
+    )
+    return {
+        "platform": platform,
+        "installations": len(installations),
+        "unique_tokens": len(tokens),
+        "accepted": accepted,
+        "failed": failed,
+        "store_url": store_url,
+    }
+
+
+async def attach_admin_app_versions(user_docs: List[dict]) -> List[dict]:
+    users_by_id = {str(item.get("user_id")): item for item in user_docs if item.get("user_id")}
+    for user_doc in user_docs:
+        stored_versions = user_doc.get("app_versions")
+        user_doc["app_versions"] = stored_versions if isinstance(stored_versions, dict) else {}
+
+    if not users_by_id:
+        return user_docs
+
+    installations = await db.push_installations.find(
+        {
+            "last_user_id": {"$in": list(users_by_id)},
+            "app_version": {"$exists": True, "$nin": [None, ""]},
+        },
+        {"_id": 0, "last_user_id": 1, "user_ids": 1, "platform": 1, "app_version": 1, "updated_at": 1},
+    ).sort("updated_at", -1).to_list(None)
+
+    for installation in installations:
+        user_id = str(installation.get("last_user_id") or "")
+        raw_linked_user_ids = installation.get("user_ids")
+        linked_user_ids = {
+            str(value) for value in raw_linked_user_ids if value
+        } if isinstance(raw_linked_user_ids, list) else set()
+        user_doc = users_by_id.get(user_id)
+        platform = str(installation.get("platform") or "").lower()
+        version = str(installation.get("app_version") or "").strip()
+        if (
+            not user_doc
+            or (len(linked_user_ids) > 1)
+            or (linked_user_ids and user_id not in linked_user_ids)
+            or platform not in {"android", "ios"}
+            or not version
+        ):
+            continue
+        if not user_doc["app_versions"].get(platform):
+            user_doc["app_versions"][platform] = {
+                "version": version,
+                "reported_at": installation.get("updated_at"),
+            }
+
+    return user_docs
+
+
 @admin_router.get("/users")
 async def admin_list_users(skip: int = 0, limit: int = 100, user: User = Depends(require_superadmin)):
     query = await admin_non_demo_filter("parent_user_id")
     users = await db.users.find(query, {"_id": 0, "password_hash": 0, "hashed_password": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    users = await attach_admin_app_versions(users)
     for user_doc in users:
         if not user_doc.get("last_login_at") and user_doc.get("last_login"):
             user_doc["last_login_at"] = user_doc["last_login"]
@@ -8403,6 +8520,8 @@ async def admin_user_detail(user_id: str, admin: User = Depends(require_superadm
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0})
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    user_doc = (await attach_admin_app_versions([user_doc]))[0]
 
     stores = await db.stores.find({"user_id": user_id}, {"_id": 0, "store_id": 1, "name": 1, "created_at": 1}).to_list(20)
 

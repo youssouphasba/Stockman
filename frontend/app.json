@@ -2,11 +2,11 @@
   "expo": {
     "name": "Stockman",
     "slug": "stockman",
-    "version": "1.0.25",
+    "version": "1.0.26",
     "orientation": "default",
     "android": {
       "package": "com.youssouphasba.stockman",
-      "versionCode": 25,
+      "versionCode": 26,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -23,10 +23,11 @@
     },
     "ios": {
       "bundleIdentifier": "com.youssouphasba.stockman",
-      "buildNumber": "15",
+      "buildNumber": "16",
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
+        "AppStoreID": "6760587628",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
@@ -124,9 +125,11 @@
       "expo-asset"
     ],
     "updates": {
-      "url": "https://u.expo.dev/83fa27c4-f1c0-45aa-9256-096ec479ced6"
+      "url": "https://u.expo.dev/83fa27c4-f1c0-45aa-9256-096ec479ced6",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 3000
     },
-    "runtimeVersion": "1.0.25",
+    "runtimeVersion": "1.0.26",
     "experiments": {
       "typedRoutes": true
     },

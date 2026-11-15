@@ -79,6 +79,8 @@ Une fois que vous m'aurez fourni les clés API, je les ajouterai au fichier `.en
 
 ## 7. Fluidite et reglages
 
+- Enterprise sur mobile : vérifier que **Boutique en ligne** ouvre la première rubrique et que **Aide** suit **Ma boutique**. Dans **Mon compte > Modules de l’organisation**, vérifier que **Cuisine** et **Réservations** apparaissent uniquement pour une activité de restauration, et que modifier un autre module ne réinitialise pas les valeurs masquées. Tester également les liens directs et un compte sans droits d’administration.
+
 - Caisse : avec une connexion lente, ouvrir Produits avant la fin du chargement des clients et des réglages. Vérifier que les articles apparaissent dès leur retour et que l'encaissement ne propose pas de total provisoire. Revenir sur la Caisse pendant un panier en cours : ni le panier ni le catalogue déjà affiché ne doivent disparaître.
 - Produits : ralentir la réponse des catégories et vérifier que la liste se remplit sans les attendre. Changer rapidement de filtre ou de recherche, puis revenir sur l'onglet. Les réponses précédentes ne doivent pas remplacer la liste courante.
 - Accueil : après une première visite en ligne, rouvrir l'application avec une connexion lente. L'Accueil peut reprendre les données en cache de la boutique active. Changer de compte ou de boutique et vérifier que les indicateurs précédents ne réapparaissent pas.
@@ -123,8 +125,23 @@ eas workflow:run .eas/workflows/ota-ios.yml --ref "SHA_DU_COMMIT" --wait
 
 Pour vérifier sur un téléphone qu’une OTA est bien appliquée, ouvrez **Réglages**, puis **Sécurité, légal et données**, puis **Informations légales** : la ligne **Version** affiche le numéro de l’application suivi de « mise à jour du JJ/MM à HH:MM » (heure du téléphone) quand une OTA est en cours d’exécution, ou de « version d’origine » quand l’application tourne encore sur le code livré avec le build.
 
+Les builds de production vérifient les OTA à chaque ouverture et attendent jusqu’à 3 secondes au démarrage pour charger une mise à jour disponible. Si le téléchargement prend plus longtemps ou si le réseau est indisponible, l’application démarre sur la dernière version utilisable et reprend la mise à jour au prochain lancement. Vérifiez ce comportement en ligne, avec une connexion lente et hors ligne. Ce délai est intégré au build natif : une OTA seule ne peut pas le modifier.
+
 Depuis la version 1.0.24, la même rubrique affiche sous la ligne **Version** le canal, la version d’exécution et l’identifiant de la mise à jour en cours, ainsi que le bouton **Rechercher une mise à jour**. Il interroge le serveur : si une mise à jour est trouvée, il la télécharge et redémarre l’application ; sinon, il affiche la raison donnée par expo-updates (rien de plus récent sur le serveur, mise à jour refusée par l’application ou déjà en échec) et le dernier incident enregistré. Les textes peuvent être sélectionnés pour être copiés.
 
 Sur Android, vérifiez le runtime affiché sur un appareil installé depuis Google Play, au moins en français et en anglais. Le runtime doit rester identique lors d’un changement de langue et correspondre à celui annoncé dans Expo. Le plugin Android de Stockman inscrit la valeur de `runtimeVersion` directement dans le manifeste pour éviter qu’une ressource de langue ne la remplace. Si un ancien build affiche `1.0.0` alors qu’Expo annonce `1.0.22`, il faut le remplacer par un build corrigé. Ne publiez pas de rattrapage pour `1.0.0` sur `production` sans avoir vérifié la compatibilité de tous les anciens builds ciblés.
 
 Si Expo cherche le workflow dans `.eas/workflows` à la racine du dépôt, corrigez le répertoire de base dans les réglages GitHub du projet Expo. Le workflow accepte aussi une archive sans métadonnées Git ; dans ce cas, utilisez une copie isolée du commit validé, pas le dossier de travail.
+
+## 11. Vérification des mises à jour publiées dans les stores
+
+La vérification automatique interroge le store de l’appareil : Google Play sur Android et l’App Store sur iOS. Aucun numéro « dernière version » n’est fixé dans Stockman. La fenêtre de mise à jour ne doit apparaître que lorsque le store confirme qu’une version plus récente est installable. Si le store ne répond pas, l’application doit rester utilisable.
+
+- Tester sur Android une version installée plus ancienne que celle publiée sur Google Play, avec l’application distribuée par Play Store et un compte autorisé à accéder à la version.
+- Tester sur iOS une version installée plus ancienne que celle publiée sur l’App Store, dans une région où l’application est disponible.
+- Vérifier qu’aucune fenêtre ne s’affiche quand l’application est à jour ou quand le store est inaccessible.
+- Fermer la fenêtre avec « Plus tard », puis vérifier qu’elle ne réapparaît pas pour la même version ; publier une version suivante et vérifier qu’une nouvelle proposition apparaît.
+- Vérifier qu’une version minimale configurée rend la proposition bloquante seulement si une mise à jour est également proposée par le store.
+- Vérifier qu’une notification envoyée depuis l’administration ouvre la fiche correspondant à sa plateforme.
+
+Le contrôle automatique repose sur un module natif ajouté après les builds déjà distribués. Il doit donc être validé avec les nouveaux builds Android et iOS qui l’intègrent ; une OTA ne suffit pas.

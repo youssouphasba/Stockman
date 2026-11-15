@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const compile = (file) => ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
   compilerOptions: { jsx: ts.JsxEmit.React, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
 }).outputText;
-const { ecommerce } = vm.runInNewContext(compile('constants/guides.ts') + '\nexports.GUIDES;', { exports: {} });
+const { ecommerce, settings } = vm.runInNewContext(compile('constants/guides.ts') + '\nexports.GUIDES;', { exports: {} });
 const { HELP_MODULES } = vm.runInNewContext(compile('constants/helpContent.ts') + '\nexports;', { exports: {} });
 const guideFeatures = vm.runInNewContext(compile('utils/ecommerceGuideFeatures.ts') + '\nexports;', { exports: {} });
 
@@ -98,6 +98,11 @@ test('Guide actions do not fall back to translation keys', () => {
       assert.ok(labels[action]?.trim(), locale + ': ' + action);
     }
   }
+});
+
+test('Settings guide puts Enterprise mobile modules in My account, not a separate organization step', () => {
+  assert.ok(settings.steps.some((step) => step.description.includes('modules dans Mon compte')));
+  assert.ok(!settings.steps.some((step) => step.title === 'Organisation et pilotage'));
 });
 
 test('E-com keeps general steps and only shows eligible services in the guide and help', () => {

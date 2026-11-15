@@ -412,6 +412,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setActiveStoredAccountId(userId);
     setActiveAccountIdState(userId);
     await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
+    setIsRestaurant(false);
     await hydrateAuthenticatedUser(targetSession.user);
     setStoredAccounts(await saveStoredAccountSession(targetSession.user, targetSession.access_token, targetSession.refresh_token));
 

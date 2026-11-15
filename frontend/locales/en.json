@@ -1,4 +1,11 @@
 {
+  "app_update": {
+    "required_title": "Update required",
+    "available_title": "Update available",
+    "message": "A new version of Stockman is available in your app store.",
+    "update_action": "Update",
+    "later_action": "Later"
+  },
   "screen_guide": {
     "pos_product_unavailable": "No product can be highlighted right now.",
     "close": "Close guide",
@@ -1636,6 +1643,10 @@
         "f9": {
           "t": "Data & GDPR",
           "d": "Export all your data as JSON (GDPR right). Account deletion is permanent and irreversible."
+        },
+        "f10": {
+          "t": "App updates",
+          "d": "When the app opens or returns to the foreground, Stockman asks Google Play on Android or the App Store on iOS whether a newer version is available. The prompt appears only when the store confirms an installable update. If the store is unavailable, Stockman keeps working. A minimum version can also be set to require an update."
         }
       },
       "subscription": {
@@ -2728,6 +2739,16 @@
     "title": "Scanner un Produit"
   },
   "settings": {
+    "mobile_groups": {
+      "online": "Online store",
+      "store": "My store",
+      "help": "Help",
+      "account": "My account",
+      "notifications": "Notifications",
+      "billing": "My subscription",
+      "information": "Information",
+      "back": "Back to settings"
+    },
     "about": "About",
     "account": "Account",
     "ai_assistant": "AI Assistant",
@@ -2858,6 +2879,7 @@
     "piloting_label": "Management centre",
     "piloting_desc": "Multi-store management, team and advanced locations.",
     "section_modules": "Visible modules",
+    "organization_modules": "Organization modules",
     "section_modules_desc": "Enable or disable modules shown in the application.",
     "section_store": "Active store",
     "section_store_desc": "Name, documents and settings for the selected point of sale.",

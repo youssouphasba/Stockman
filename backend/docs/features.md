@@ -4,21 +4,27 @@ Ce document est la référence principale de l'assistant IA. Il couvre toutes le
 
 ---
 
-## 0. Controle de version mobile
+## 0. Contrôle de version mobile
 
-Au lancement de l'application mobile, Stockman appelle l'endpoint public `/api/settings/app-version` pour comparer la version installee avec les versions minimales et recommandees configurees cote backend.
+À l’ouverture de l’application mobile et à son retour au premier plan, Stockman interroge directement le store de la plateforme. Google Play indique si une version compatible plus récente est installable sur l’appareil ; sur iOS, la version publiée sur l’App Store est comparée à la version installée. Stockman n’utilise aucune « dernière version » définie par défaut dans son backend.
 
 ### Comportement utilisateur
 
-- Si la version installee est inferieure a la version minimale Android ou iOS, l'application affiche un ecran bloquant **Mise a jour requise** avec le bouton **Mettre a jour**.
-- Sur Android, le bouton ouvre la fiche Play Store de l'application, avec un repli web si le lien natif Play Store n'est pas disponible.
-- Sur iOS, le bouton ouvre l'URL App Store configuree cote backend, avec un repli vers la page mobile Stockman.
-- Si la version installee est ancienne mais encore autorisee, l'application affiche une fenetre **Nouvelle version disponible** avec **Mettre a jour** et **Plus tard**.
-- Si l'appel backend echoue, l'application ne bloque pas l'utilisateur afin d'eviter une coupure injustifiee.
+- La fenêtre **Nouvelle version disponible** apparaît uniquement si le store confirme qu’une mise à jour est disponible pour l’installation.
+- Si une version minimale est configurée et que la version installée est en dessous, la fenêtre devient bloquante.
+- Android ouvre la fiche Google Play de l’application ; iOS ouvre la fiche App Store.
+- Si l’interrogation du store échoue ou si le store est inaccessible, l’application continue de fonctionner sans afficher de fausse alerte.
+- Une version de store déjà proposée et reportée n’est pas reproposée à chaque ouverture ; une nouvelle version publiée déclenche une nouvelle proposition.
 
 ### Configuration backend
 
-Les valeurs sont pilotables par variables d'environnement : `APP_ANDROID_LATEST_VERSION`, `APP_ANDROID_MIN_VERSION`, `APP_IOS_LATEST_VERSION`, `APP_IOS_MIN_VERSION`, `APP_FORCE_UPDATE`, `APP_UPDATE_MESSAGE`, `APP_ANDROID_UPDATE_URL` et `APP_IOS_UPDATE_URL`.
+`/api/settings/app-version` fournit uniquement l’activation, les éventuelles versions minimales, le message et les liens des stores. Les variables disponibles sont `APP_ANDROID_MIN_VERSION`, `APP_IOS_MIN_VERSION`, `APP_FORCE_UPDATE`, `APP_UPDATE_MESSAGE`, `APP_ANDROID_UPDATE_URL` et `APP_IOS_UPDATE_URL`. Les variables `APP_ANDROID_LATEST_VERSION` et `APP_IOS_LATEST_VERSION` ne sont plus utilisées.
+
+Le panneau d’administration **Mises à jour mobiles** envoie une notification push facultative aux installations enregistrées pour la plateforme choisie. Elle ouvre directement la fiche du store, mais ne publie pas de version et ne remplace pas la vérification automatique faite à l’ouverture.
+
+La vérification utilise un module natif. Les versions déjà installées ne le contiennent pas : son activation nécessite un nouveau build Android et iOS. Une mise à jour OTA seule ne peut pas ajouter ce code natif.
+
+Lorsqu’un utilisateur authentifié ouvre l’application mobile, celle-ci transmet au backend la version installée et la plateforme. Dans **Admin > Utilisateurs**, la colonne **Version mobile** et la fiche utilisateur affichent séparément Android et iOS, avec la date de dernière remontée. Les anciennes versions d’installations push restent visibles lorsqu’elles sont associées sans ambiguïté à un compte ; sans donnée remontée, l’interface indique **Non remontée**.
 
 ---
 
@@ -461,6 +467,8 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 
 ## 13. Paramètres de l'Application
 
+Enterprise mobile reprend les rubriques de Starter : **Boutique en ligne**, **Ma boutique**, **Aide**, **Mon compte**, **Notifications**, **Mon abonnement** et **Informations**. Les personnes autorisées retrouvent les **Modules de l’organisation** dans **Mon compte**. Sur mobile, **Cuisine** et **Réservations** figurent dans la liste des modules uniquement pour les activités de restauration. **Notifications** conserve les canaux, les seuils et les destinataires e-mail du compte et de la boutique.
+
 Sur mobile, les réglages de la boutique en ligne se chargent indépendamment des autres rubriques. Dans l'onglet **E-com** de Starter, les commandes déjà chargées restent visibles pendant l'actualisation du même filtre.
 
 ### Comment changer de langue ?
@@ -488,7 +496,7 @@ Sur mobile, les réglages de la boutique en ligne se chargent indépendamment de
 ### Les notifications admin peuvent-elles ouvrir une section précise ?
 - Oui. Depuis **Admin** → **Communication**, le champ **Destination au clic** permet d'ouvrir Accueil, Produits, Ajouter un produit, Alertes, Assistance, Abonnement, Commandes, Caisse, CRM, Comptabilité, Paramètres ou une section précise de **Paramètres**.
 - Pour ajouter un lien externe, choisir **Ajouter un bouton de lien**, puis saisir le **Texte du bouton** et son **Adresse du lien (HTTPS)**. Le bouton est visible dans le message sur mobile et sur le web, et dans l'e-mail si ce canal est sélectionné. Il ne remplace pas la destination interne et ne s'affiche pas dans le push système. L'option n'est pas proposée pour les installations sans compte, qui ne reçoivent que le push.
-- Les sections disponibles dans **Paramètres** couvrent notamment Compte et application, Abonnement et facturation, Profil et apparence, Synchronisation, Organisation et pilotage, Modules visibles, Boutique active, Boutique · Identité, Boutique · Documents, Fiscalité, Alertes et notifications, Canaux de réception, Destinataires, Support et incidents, Assistance, Déclarer un incident, Sécurité du compte, Informations légales, Données et suppression.
+- Sur le web, les réglages incluent notamment **Organisation et pilotage** et **Modules visibles**. Sur mobile Enterprise, les modules autorisés sont accessibles depuis **Mon compte** ; les anciens liens vers Organisation et pilotage y ouvrent cette rubrique. Les autres réglages couvrent notamment Compte et application, Abonnement et facturation, Profil et apparence, Synchronisation, Boutique active, Boutique · Identité, Boutique · Documents, Fiscalité, Alertes et notifications, Canaux de réception, Destinataires, Support et incidents, Assistance, Déclarer un incident, Sécurité du compte, Informations légales, Données et suppression.
 - Quand la notification est envoyée en push, le clic ouvre directement la destination choisie.
 - Quand elle est envoyée en in-app, le centre de notifications affiche un bouton **Ouvrir** si une destination existe.
 - Quand elle est envoyée par e-mail, l'e-mail contient un bouton **Ouvrir dans Stockman** si une destination existe.
