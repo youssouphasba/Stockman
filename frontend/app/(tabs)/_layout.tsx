@@ -883,8 +883,9 @@ function TabLayoutInner() {
         />
       </Tabs>
 
-      {/* Les messages de l'administrateur s'affichent d'abord en fenêtre, jamais pendant le guide de démarrage. */}
-      <AdminMessagePopup enabled={Boolean(user?.user_id) && guideRunState === 'idle'} />
+      {/* Les messages de l'administrateur s'affichent d'abord en fenêtre, jamais pendant le guide de démarrage.
+          La clé recrée la fenêtre à chaque changement de compte : rien ne reste du compte précédent. */}
+      <AdminMessagePopup key={user?.user_id || 'signed-out'} enabled={Boolean(user?.user_id) && guideRunState === 'idle'} />
 
       <EcommerceSetupInvitation
         key={`${user?.user_id}:${user?.active_store_id || ''}`}

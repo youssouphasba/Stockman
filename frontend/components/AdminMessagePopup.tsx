@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, AppState, DeviceEventEmitter, Easing, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { AppState, DeviceEventEmitter, InteractionManager, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
@@ -12,8 +12,9 @@ import {
   useOpenAdminMessageDestination,
 } from './AdminMessagesButton';
 
-// Délai après l'ouverture de l'application, pour laisser l'écran s'afficher avant la fenêtre.
-const SHOW_DELAY_MS = 1200;
+// Délai après l'arrivée sur les onglets, une fois les transitions terminées : juste après la connexion,
+// une fenêtre ouverte pendant le passage de l'écran de connexion aux onglets peut n'afficher que son voile.
+const SHOW_DELAY_MS = 2500;
 
 // Les messages non lus de l'administrateur s'affichent d'abord dans cette fenêtre, un par un.
 // Fermer un message le marque comme lu ; il reste consultable depuis le mégaphone ou l'Accueil.
@@ -22,10 +23,7 @@ export default function AdminMessagePopup({ enabled }: { enabled: boolean }) {
   const { colors } = useTheme();
   const openDestination = useOpenAdminMessageDestination();
   const [queue, setQueue] = useState<UserNotification[]>([]);
-  const [shown, setShown] = useState(false);
   const loadingRef = useRef(false);
-  const fade = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.92)).current;
   const current = queue[0];
 
   const load = useCallback(async () => {
@@ -43,27 +41,24 @@ export default function AdminMessagePopup({ enabled }: { enabled: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (!enabled) return;
-    const timer = setTimeout(() => { void load(); }, SHOW_DELAY_MS);
-    const sub = AppState.addEventListener('change', (state) => { if (state === 'active') void load(); });
-    return () => { clearTimeout(timer); sub.remove(); };
-  }, [enabled, load]);
-
-  const visible = enabled && Boolean(current);
-
-  useEffect(() => {
-    if (!visible) {
-      setShown(false);
+    if (!enabled) {
+      // Guide lancé ou compte fermé : on oublie la file, elle sera relue au prochain affichage possible.
+      setQueue([]);
       return;
     }
-    setShown(true);
-    fade.setValue(0);
-    scale.setValue(0.92);
-    Animated.parallel([
-      Animated.timing(fade, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, friction: 7, tension: 80, useNativeDriver: true }),
-    ]).start();
-  }, [visible, current?.message_id, fade, scale]);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const interaction = InteractionManager.runAfterInteractions(() => {
+      timer = setTimeout(() => {
+        if (AppState.currentState === 'active') void load();
+      }, SHOW_DELAY_MS);
+    });
+    const sub = AppState.addEventListener('change', (state) => { if (state === 'active') void load(); });
+    return () => {
+      interaction.cancel();
+      if (timer) clearTimeout(timer);
+      sub.remove();
+    };
+  }, [enabled, load]);
 
   const dismissCurrent = useCallback(() => {
     if (!current) return;
@@ -74,22 +69,22 @@ export default function AdminMessagePopup({ enabled }: { enabled: boolean }) {
       .catch(() => null);
   }, [current]);
 
-  if (!visible || !shown || !current) return null;
+  if (!enabled || !current) return null;
 
   const remaining = queue.length - 1;
   const canOpen = hasAdminMessageDestination(current.deeplink);
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={dismissCurrent}>
-      <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: Spacing.lg, opacity: fade }}>
+    // Animation native de la fenêtre seulement : une animation maison sur le voile pouvait laisser un écran gris sans contenu.
+    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={dismissCurrent}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: Spacing.lg }}>
         <Pressable style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} onPress={dismissCurrent} />
-        <Animated.View
+        <View
           style={{
             backgroundColor: colors.bgMid,
             borderRadius: BorderRadius.xl,
             padding: Spacing.lg,
             maxHeight: '80%',
-            transform: [{ scale }],
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md }}>
@@ -145,8 +140,8 @@ export default function AdminMessagePopup({ enabled }: { enabled: boolean }) {
               </Text>
             </TouchableOpacity>
           </View>
-        </Animated.View>
-      </Animated.View>
+        </View>
+      </View>
     </Modal>
   );
 }

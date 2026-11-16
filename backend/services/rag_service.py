@@ -22,13 +22,9 @@ class RAGService:
         self.index_path = root_dir / "vector_index.json"
         self.docs_dir = root_dir / "docs"
         self.web_guides_dir = self.docs_dir / "web-guides"
-        self.backend_server_path = root_dir / "server.py"
-        self.enterprise_access_path = root_dir / "enterprise_access.py"
         self.guides_path = root_dir.parent / "frontend" / "constants" / "guides.ts"
         self.help_content_path = root_dir.parent / "frontend" / "constants" / "helpContent.ts"
         self.frontend_locales_dir = root_dir.parent / "frontend" / "locales"
-        self.mobile_root_dir = root_dir.parent / "frontend"
-        self.web_root_dir = root_dir.parent / "web-app"
         self.index: List[Dict[str, Any]] = []
 
         genai.configure(api_key=api_key)
@@ -231,122 +227,6 @@ class RAGService:
             return "mobile"
         return "all"
 
-    def _chunk_code_file(
-        self,
-        path: Path,
-        source: str,
-        audience: Optional[str] = None,
-        platform: Optional[str] = None,
-        chunk_size: int = 80,
-        overlap: int = 10,
-    ) -> List[Dict[str, Any]]:
-        chunks: List[Dict[str, Any]] = []
-        if not path.exists():
-            return chunks
-
-        try:
-            lines = path.read_text(encoding="utf-8").splitlines()
-        except Exception as e:
-            logger.error(f"Error reading code file {path}: {e}")
-            return chunks
-
-        resolved_audience = audience or self._source_audience(source)
-        resolved_platform = platform or self._source_platform(source)
-        step = max(1, chunk_size - overlap)
-
-        for start in range(0, len(lines), step):
-            end = min(len(lines), start + chunk_size)
-            snippet_lines = lines[start:end]
-            if not any(line.strip() for line in snippet_lines):
-                continue
-
-            header = (
-                f"Code metier source={source} plateforme={resolved_platform} "
-                f"audience={resolved_audience} lignes={start + 1}-{end}"
-            )
-            content = header + "\n" + "\n".join(snippet_lines).strip()
-            chunks.append(
-                {
-                    "content": content,
-                    "source": source,
-                    "audience": resolved_audience,
-                    "language": "code",
-                    "platform": resolved_platform,
-                }
-            )
-            if end >= len(lines):
-                break
-
-        return chunks
-
-    def _chunk_business_code(self) -> List[Dict[str, Any]]:
-        chunks: List[Dict[str, Any]] = []
-
-        backend_files = [
-            (self.backend_server_path, "backend/server.py", "default", "all"),
-            (self.enterprise_access_path, "backend/enterprise_access.py", "default", "all"),
-        ]
-        for path, source, audience, platform in backend_files:
-            chunks.extend(
-                self._chunk_code_file(
-                    path,
-                    source,
-                    audience=audience,
-                    platform=platform,
-                    chunk_size=90,
-                    overlap=12,
-                )
-            )
-
-        mobile_files = [
-            ("app/(tabs)/products.tsx", "mobile/products.tsx"),
-            ("app/(tabs)/orders.tsx", "mobile/orders.tsx"),
-            ("app/(tabs)/suppliers.tsx", "mobile/suppliers.tsx"),
-            ("app/(tabs)/subscription.tsx", "mobile/subscription.tsx"),
-            ("app/(tabs)/settings.tsx", "mobile/settings.tsx"),
-            ("app/(tabs)/accounting.tsx", "mobile/accounting.tsx"),
-            ("app/(tabs)/crm.tsx", "mobile/crm.tsx"),
-            ("app/(supplier-tabs)/orders.tsx", "mobile/supplier-orders.tsx"),
-            ("app/(supplier-tabs)/catalog.tsx", "mobile/supplier-catalog.tsx"),
-            ("app/(auth)/login.tsx", "mobile/auth-login.tsx"),
-            ("app/(auth)/register.tsx", "mobile/auth-register.tsx"),
-            ("services/api.ts", "mobile/services-api.ts"),
-        ]
-        for rel_path, source in mobile_files:
-            chunks.extend(
-                self._chunk_code_file(
-                    self.mobile_root_dir / rel_path,
-                    source,
-                    platform="mobile",
-                    chunk_size=75,
-                    overlap=8,
-                )
-            )
-
-        web_files = [
-            ("src/components/Inventory.tsx", "web/inventory.tsx"),
-            ("src/components/Suppliers.tsx", "web/suppliers.tsx"),
-            ("src/components/Accounting.tsx", "web/accounting.tsx"),
-            ("src/components/CRM.tsx", "web/crm.tsx"),
-            ("src/components/POS.tsx", "web/pos.tsx"),
-            ("src/components/Settings.tsx", "web/settings.tsx"),
-            ("src/components/Subscription.tsx", "web/subscription.tsx"),
-            ("src/components/AdminDashboard.tsx", "web/admin-dashboard.tsx"),
-            ("src/services/api.ts", "web/services-api.ts"),
-        ]
-        for rel_path, source in web_files:
-            chunks.extend(
-                self._chunk_code_file(
-                    self.web_root_dir / rel_path,
-                    source,
-                    platform="web",
-                    chunk_size=75,
-                    overlap=8,
-                )
-            )
-
-        return chunks
-
     def _chunk_guides(self) -> List[Dict[str, Any]]:
         """Parse and chunk guides.ts."""
         chunks: List[Dict[str, Any]] = []
@@ -516,7 +396,10 @@ class RAGService:
         all_chunks.extend(self._chunk_help_content())
         all_chunks.extend(self._chunk_localized_help())
         all_chunks.extend(self._chunk_web_guides())
-        all_chunks.extend(self._chunk_business_code())
+
+        # Le code source n'est pas indexé : il représentait 95 % des passages (environ 500 000 tokens)
+        # recalculés par Gemini à chaque déploiement, et ne doit pas servir de réponse aux utilisateurs.
+        # La documentation fonctionnelle (docs/*.md), les guides et l'aide restent la source de l'assistant.
 
         logger.info(f"Indexing {len(all_chunks)} chunks...")
 

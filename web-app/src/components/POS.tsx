@@ -61,6 +61,9 @@ export default function POS() {
     const { t } = useTranslation();
     const { formatCurrency } = useDateFormatter();
     const [allProducts, setAllProducts] = useState<any[]>([]);
+    // Total des produits de la boutique : au-delà des 500 chargés, la recherche et le scan interrogent le serveur.
+    const [productTotal, setProductTotal] = useState(0);
+    const [remoteSearchProducts, setRemoteSearchProducts] = useState<any[]>([]);
     const [categoriesList, setCategoriesList] = useState<any[]>([]);
     const [customersList, setCustomersList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -157,14 +160,15 @@ export default function POS() {
             const [prodsRes, catsRes, custsRes, settingsRes, tablesRes] = await Promise.all([
                 productsApi.list(undefined, 0, 500, undefined, isRestaurantAccount ? true : undefined),
                 categoriesApi.list(),
-                customersApi.list(),
+                customersApi.listAll(),
                 settingsApi.get().catch(() => null),
                 tablesApi.list().catch(() => [])
             ]);
             const fetchedProducts = (prodsRes.items || prodsRes) as any[];
             setAllProducts(fetchedProducts.filter((p: any) => p?.is_active !== false));
+            setProductTotal(Number(prodsRes?.total ?? fetchedProducts.length));
             setCategoriesList(catsRes);
-            setCustomersList(custsRes.items || custsRes);
+            setCustomersList(custsRes.items);
             if (settingsRes) {
                 setStoreSettings(settingsRes);
                 // Auto-select terminal if only one
@@ -521,6 +525,7 @@ export default function POS() {
             // Refresh products
             const prodsRes = await productsApi.list(undefined, 0, 500);
             setAllProducts(prodsRes.items || prodsRes);
+            setProductTotal(Number(prodsRes?.total ?? (prodsRes.items || prodsRes).length));
         } catch (err: any) {
             if (!navigator.onLine) {
                 // Fallback if network dropped exactly during call
@@ -541,12 +546,41 @@ export default function POS() {
         }
     };
 
+    const catalogTruncated = productTotal > allProducts.length;
+
     const handleBarcodeScanned = (sku: string) => {
-        const product = (Array.isArray(allProducts) ? allProducts : []).find(p => p.sku === sku);
+        const code = String(sku || '').trim();
+        const matchesCode = (p: any) => p?.sku === code || p?.barcode === code;
+        const product = (Array.isArray(allProducts) ? allProducts : []).find(matchesCode);
         if (product) {
             addToCart(product);
+        } else if (catalogTruncated && code) {
+            // Produit au-delà de ceux chargés en caisse : on le cherche sur le serveur.
+            productsApi.list(undefined, 0, 20, undefined, restaurantMode ? true : undefined, code)
+                .then((res: any) => {
+                    const found = ((res?.items || res || []) as any[]).find((p) => p?.is_active !== false && matchesCode(p));
+                    if (found) addToCart(found);
+                })
+                .catch(() => { /* scan ignoré si le serveur ne répond pas */ });
         }
     };
+
+    useEffect(() => {
+        const query = search.trim();
+        if (!catalogTruncated || query.length < 2) {
+            setRemoteSearchProducts([]);
+            return;
+        }
+        let cancelled = false;
+        const timer = setTimeout(() => {
+            productsApi.list(undefined, 0, 50, undefined, restaurantMode ? true : undefined, query)
+                .then((res: any) => {
+                    if (!cancelled) setRemoteSearchProducts(((res?.items || res || []) as any[]).filter((p) => p?.is_active !== false));
+                })
+                .catch(() => { if (!cancelled) setRemoteSearchProducts([]); });
+        }, 350);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [catalogTruncated, restaurantMode, search]);
 
     const handleCancelLastSale = async () => {
         if (!lastSale?.sale_id || lastSale?.status === 'cancelled') return;
@@ -564,6 +598,7 @@ export default function POS() {
             setLastSale(cancelledSale);
             const prodsRes = await productsApi.list(undefined, 0, 500);
             setAllProducts(prodsRes.items || prodsRes);
+            setProductTotal(Number(prodsRes?.total ?? (prodsRes.items || prodsRes).length));
             if (restaurantMode) {
                 tablesApi.list().then(res => setTableList(Array.isArray(res) ? res : [])).catch(() => {});
             }
@@ -631,7 +666,11 @@ export default function POS() {
         await loadOpenTableOrder(table);
     };
 
-    const filteredProducts = (Array.isArray(allProducts) ? allProducts : []).filter(p => {
+    const loadedProductIds = new Set((Array.isArray(allProducts) ? allProducts : []).map((p) => p.product_id));
+    const searchableProducts = search.trim()
+        ? [...(Array.isArray(allProducts) ? allProducts : []), ...remoteSearchProducts.filter((p) => !loadedProductIds.has(p.product_id))]
+        : (Array.isArray(allProducts) ? allProducts : []);
+    const filteredProducts = searchableProducts.filter(p => {
         if (p.product_type === 'raw_material') return false; // Exclure les ingrédients du POS
         const matchesSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
             p.sku?.toLowerCase().includes(search.toLowerCase());

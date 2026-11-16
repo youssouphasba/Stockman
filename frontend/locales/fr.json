@@ -1214,7 +1214,9 @@
     "info_total_sales": "Montant cumulé de tous les achats effectués par vos clients.",
     "info_active_30d": "Clients ayant effectué au moins un achat dans les 30 derniers jours.",
     "error_delete_promo": "Error Delete Promo",
-    "error_title_required": "Error Title Required"
+    "error_title_required": "Error Title Required",
+    "show_more_customers_one": "Afficher plus de clients ({{count}} restant)",
+    "show_more_customers_other": "Afficher plus de clients ({{count}} restants)"
   },
   "dashboard": {
     "abc_analysis": "Analyse ABC (Priorités)",
@@ -2452,7 +2454,9 @@
     "view_detailed_history": "Voir l'historique détaillé",
     "amount": "Montant Orders",
     "confirm_send_to": "Confirm Send To",
-    "items_detected": "Items Detected"
+    "items_detected": "Items Detected",
+    "load_more_one": "Voir plus de commandes ({{count}} restante)",
+    "load_more_other": "Voir plus de commandes ({{count}} restantes)"
   },
   "pin": {
     "confirm_title": "Confirmez votre PIN",
@@ -2581,7 +2585,9 @@
     "voice_no_recording": "Aucun enregistrement vocal exploitable n'a été détecté. Veuillez réessayer.",
     "voice_transcription_failed": "La transcription vocale a échoué. Vérifiez votre connexion puis réessayez.",
     "voice_access_denied": "Cette fonction vocale n'est pas accessible pour ce compte actuellement.",
-    "search_customer": "Rechercher..."
+    "search_customer": "Rechercher...",
+    "more_customers_hint_one": "Encore {{count}} client : tapez un nom ou un numéro pour le trouver.",
+    "more_customers_hint_other": "Encore {{count}} clients : tapez un nom ou un numéro pour les trouver."
   },
   "restaurant": {
     "menu_category": "Catégorie menu",

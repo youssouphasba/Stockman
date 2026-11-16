@@ -93,6 +93,9 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
   };
 
   const [orderList, setOrderList] = useState<OrderWithDetails[]>([]);
+  // Commandes fournisseurs chargées par pages (les plus récentes d'abord) : total côté serveur et page suivante.
+  const [orderTotal, setOrderTotal] = useState(0);
+  const [loadingMoreOrders, setLoadingMoreOrders] = useState(false);
   const [currentStore, setCurrentStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -284,6 +287,32 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
     confirmDiscardChanges(() => setShowReturnModal(false));
   };
 
+  const orderQueryArgs = useCallback(() => {
+    const start = selectedPeriod === 'custom' ? appliedStart : undefined;
+    const end = selectedPeriod === 'custom' ? appliedEnd : undefined;
+    const days = typeof selectedPeriod === 'number' ? selectedPeriod : undefined;
+    return [
+      statusFilter ?? undefined,
+      supplierFilter ?? undefined,
+      start || (days ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString() : undefined),
+      end,
+    ] as const;
+  }, [statusFilter, supplierFilter, selectedPeriod, appliedStart, appliedEnd]);
+
+  const loadMoreOrders = useCallback(async () => {
+    if (loadingMoreOrders) return;
+    setLoadingMoreOrders(true);
+    try {
+      const response = await ordersApi.list(...orderQueryArgs(), orderList.length, 50);
+      const known = new Set(orderList.map((order) => order.order_id));
+      setOrderList([...orderList, ...(response.items || []).filter((order) => !known.has(order.order_id))]);
+      setOrderTotal(Number(response.total ?? 0));
+    } catch { /* la liste actuelle reste affichée */ }
+    finally {
+      setLoadingMoreOrders(false);
+    }
+  }, [loadingMoreOrders, orderList, orderQueryArgs]);
+
   const loadData = useCallback(async () => {
     try {
       const start = selectedPeriod === 'custom' ? appliedStart : undefined;
@@ -305,6 +334,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
       ]);
 
       setOrderList(ordersRes.items ?? ordersRes as any);
+      setOrderTotal(Number((ordersRes as any).total ?? (ordersRes.items ?? (ordersRes as any)).length ?? 0));
 
       const stores = storesRes as any;
       if (user?.active_store_id) {
@@ -1527,6 +1557,18 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                   </TouchableOpacity>
                 );
               })
+            )}
+            {orderList.length < orderTotal && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                disabled={loadingMoreOrders}
+                onPress={() => { void loadMoreOrders(); }}
+                style={[styles.actionBtn, { minHeight: 48, alignSelf: 'center', marginTop: Spacing.sm }]}
+              >
+                {loadingMoreOrders
+                  ? <ActivityIndicator color={colors.primary} />
+                  : <Text style={[styles.actionText, { color: colors.primary }]}>{t('orders.load_more', { count: orderTotal - orderList.length, defaultValue: `Voir plus de commandes (${orderTotal - orderList.length} restantes)` })}</Text>}
+              </TouchableOpacity>
             )}
 
           </>)}

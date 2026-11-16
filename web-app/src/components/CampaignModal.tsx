@@ -35,8 +35,9 @@ export default function CampaignModal({ isOpen, onClose }: CampaignModalProps) {
     const loadCustomers = async () => {
         setLoading(true);
         try {
-            const res = await customersApi.list();
-            setCustomers(res.items || res);
+            // Tout le fichier client : une campagne ne doit pas se limiter aux 50 premiers clients.
+            const res = await customersApi.listAll();
+            setCustomers(res.items);
         } catch (err) {
             console.error("Load customers error", err);
         } finally {

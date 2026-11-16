@@ -223,6 +223,10 @@ Sur mobile, pour un commerce, le bouton **Ajouter un produit** de l'écran **Auc
 - Dans la caisse, cliquer sur **Ajouter client** ou icône personne
 - Saisir le nom et le numéro de téléphone → client créé en 2 secondes
 
+### Je ne trouve pas un client ou un produit dans la caisse, alors que j'en ai beaucoup
+- La caisse charge **tous les clients** de la boutique. Le sélecteur en montre 50 ; pour les autres, taper un nom ou un numéro dans la recherche.
+- La caisse charge les 500 premiers produits. Au-delà, la recherche (nom, référence ou code-barres) et le scan interrogent aussi le serveur : un produit absent de la liste chargée reste trouvable et vendable.
+
 ---
 
 ### Mes ventes peuvent-elles être modifiées ou supprimées ?
@@ -276,6 +280,9 @@ Sur mobile, pour un commerce, le bouton **Ajouter un produit** de l'écran **Auc
 2. Sélectionner un fournisseur
 3. Ajouter les produits à commander avec les quantités
 4. Valider la commande (statut : En attente)
+
+### Je ne vois pas mes anciennes commandes fournisseurs
+- Les commandes s'affichent par 50, les plus récentes d'abord. Le bouton **Voir plus de commandes** en bas de la liste charge les suivantes.
 
 ### Comment valider la réception d'une commande ?
 1. Dans les commandes fournisseurs, trouver la commande livrée
@@ -357,6 +364,8 @@ La Marketplace connecte les commerçants à un réseau de fournisseurs vérifié
 ## 8. CRM & Fidélité Client
 
 - La liste Clients s'affiche dès que les fiches sont disponibles, sans attendre les promotions ni les réglages de fidélité. Elle reste consultable pendant l'actualisation de la même boutique.
+- Tout le fichier client est chargé, même avec plusieurs milliers de clients : la première tranche s'affiche tout de suite, le reste arrive en arrière-plan. La recherche, les filtres, les tris, les indicateurs et les campagnes portent sur tous les clients.
+- Les fiches s'affichent par tranches de 40 : la suite apparaît en descendant, ou avec **Afficher plus de clients**.
 
 ### Comment ajouter un client ?
 1. Aller dans **Clients** (CRM)

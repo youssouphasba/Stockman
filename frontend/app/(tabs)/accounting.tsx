@@ -943,10 +943,19 @@ function AccountingWorkspace() {
         setInvoiceItems([{ desc: '', qty: '1', price: '', tva: '0' }]);
         setInvoiceNote('');
         try {
-            const custsRes = await customersApi.list();
-            setCustomersList(custsRes.items ?? custsRes as any);
+            const custsRes = await customersApi.listAll();
+            setCustomersList(custsRes.items);
         } catch { /* ignore */ }
     };
+
+    // Suggestions de clients pour la facture : les noms qui correspondent à la saisie, dans tout le fichier client.
+    const invoiceClientQuery = invoiceClient.trim().toLowerCase();
+    const invoiceClientSuggestions = (invoiceClientQuery
+        ? customersList.filter((customer) => {
+            const name = (customer.name || '').toLowerCase();
+            return name !== invoiceClientQuery && (name.includes(invoiceClientQuery) || Boolean(customer.phone?.includes(invoiceClient.trim())));
+        })
+        : customersList).slice(0, 5);
 
     const addInvoiceLine = () => {
         setInvoiceItems([...invoiceItems, { desc: '', qty: '1', price: '', tva: '0' }]);
@@ -2303,9 +2312,9 @@ function AccountingWorkspace() {
                                     placeholder={t('invoice.client_name_placeholder')}
                                     placeholderTextColor={colors.textMuted}
                                 />
-                                {customersList.length > 0 && !invoiceClient && (
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.sm }}>
-                                        {customersList.slice(0, 5).map(c => (
+                                {invoiceClientSuggestions.length > 0 && (
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.sm }} keyboardShouldPersistTaps="handled">
+                                        {invoiceClientSuggestions.map(c => (
                                             <TouchableOpacity
                                                 key={c.customer_id}
                                                 style={styles.clientChip}

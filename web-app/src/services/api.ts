@@ -2358,8 +2358,24 @@ export const expenses = {
     delete: (id: string) => request<any>(`/expenses/${id}`, { method: 'DELETE' }),
 };
 
+const listCustomersPage = (skip = 0, limit = 50, sortBy = 'name') => request<any>(`/customers?skip=${skip}&limit=${limit}&sort_by=${sortBy}`);
+
 export const customers = {
-    list: (skip = 0, limit = 50, sortBy = 'name') => request<any>(`/customers?skip=${skip}&limit=${limit}&sort_by=${sortBy}`),
+    list: listCustomersPage,
+    // Tous les clients, page par page (le serveur limite une page à 500). onPage affiche la première page sans attendre la suite.
+    listAll: async (sortBy = 'name', onPage?: (items: any[], total: number) => void) => {
+        const items: any[] = [];
+        let total = 0;
+        do {
+            const response = await listCustomersPage(items.length, 500, sortBy);
+            const page: any[] = response?.items ?? (Array.isArray(response) ? response : []);
+            total = Number(response?.total ?? page.length);
+            items.push(...page);
+            onPage?.(items.slice(), total);
+            if (page.length === 0) break;
+        } while (items.length < total && items.length < 20000);
+        return { items, total };
+    },
     get: (id: string) => request<any>(`/customers/${id}`),
     getSales: (id: string) => request<any>(`/customers/${id}/sales`),
     getBirthdays: (days = 7) => request<any[]>(`/customers/birthdays?days=${days}`),

@@ -20538,6 +20538,7 @@ async def get_products(
         query["$or"] = [
             {"name": {"$regex": safe, "$options": "i"}},
             {"sku": {"$regex": safe, "$options": "i"}},
+            {"barcode": {"$regex": safe, "$options": "i"}},
         ]
 
     if product_status == "in_stock":
@@ -22828,8 +22829,9 @@ async def _get_customer_sales_and_ecommerce_stats(
         }},
     ]
 
-    sales_stats = await db.sales.aggregate(sales_pipeline).to_list(1000)
-    ecommerce_stats = await db.ecommerce_orders.aggregate(ecommerce_pipeline).to_list(1000)
+    # Une ligne par client demandé : pas de plafond arbitraire, sinon des clients perdent leurs statistiques.
+    sales_stats = await db.sales.aggregate(sales_pipeline).to_list(None)
+    ecommerce_stats = await db.ecommerce_orders.aggregate(ecommerce_pipeline).to_list(None)
     sales_map = {row["_id"]: row for row in sales_stats}
     ecommerce_map = {row["_id"]: row for row in ecommerce_stats}
 
@@ -23003,14 +23005,16 @@ def _build_crm_segments(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 async def get_customers(
     user: User = Depends(require_permission("crm", "read")),
     sort_by: str = Query("name", pattern="^(name|total_spent|last_purchase|visits)$"),
-    skip: int = 0,
-    limit: int = 50
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=500),
 ):
     owner_id = get_owner_id(user)
-    await backfill_inferred_legacy_store_scope(db.customers, owner_id, user, "customer_id")
+    if skip == 0:
+        await backfill_inferred_legacy_store_scope(db.customers, owner_id, user, "customer_id")
     cust_query = apply_store_scope_with_legacy({"user_id": owner_id}, user)
     total = await db.customers.count_documents(cust_query)
-    customers_raw = await db.customers.find(cust_query).skip(skip).limit(limit).to_list(limit)
+    # Ordre stable entre les pages : sans tri, deux pages successives peuvent répéter ou sauter des clients.
+    customers_raw = await db.customers.find(cust_query).sort([("name", 1), ("customer_id", 1)]).skip(skip).limit(limit).to_list(limit)
     customer_ids = [c["customer_id"] for c in customers_raw if "customer_id" in c]
     stats_map = await _get_customer_sales_and_ecommerce_stats(owner_id, customer_ids, user)
 
@@ -33739,9 +33743,22 @@ class SalesForecastResponse(BaseModel):
     generated_at: str = ""
     currency: str = "XOF"
 
+# Résumé IA des prévisions, gardé 6 heures par compte et par boutique : la carte de l'accueil
+# se recharge souvent, et les chiffres de prévision ne bougent pas d'une minute à l'autre.
+FORECAST_AI_SUMMARY_TTL_SECONDS = 6 * 3600
+_forecast_ai_summary_cache: Dict[Tuple[str, str], Tuple[float, str]] = {}
+
+
 @api_router.get("/sales/forecast")
-async def get_sales_forecast(user: User = Depends(require_permission("stock", "read"))):
-    """Analyze sales trends and predict future sales using velocity data + Gemini AI"""
+async def get_sales_forecast(
+    user: User = Depends(require_permission("stock", "read")),
+    with_ai_summary: bool = Query(False),
+):
+    """Analyze sales trends and predict future sales using velocity data.
+
+    Le résumé Gemini n'est calculé que sur demande (with_ai_summary=true) : seule la carte
+    Prévisions de l'accueil mobile l'affiche. Les autres écrans n'ont besoin que des chiffres.
+    """
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
     user_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "currency": 1})
@@ -33888,7 +33905,12 @@ async def get_sales_forecast(user: User = Depends(require_permission("stock", "r
 
     # Gemini AI summary (optional, only if API key available)
     ai_summary = ""
-    api_key = resolve_gemini_api_key()
+    api_key = resolve_gemini_api_key() if with_ai_summary else ""
+    summary_key = (owner_id, store_id or "")
+    cached_summary = _forecast_ai_summary_cache.get(summary_key)
+    if api_key and cached_summary and datetime.now(timezone.utc).timestamp() - cached_summary[0] < FORECAST_AI_SUMMARY_TTL_SECONDS:
+        ai_summary = cached_summary[1]
+        api_key = ""
     if api_key and forecast_products:
         try:
             genai.configure(api_key=api_key)
@@ -33915,6 +33937,7 @@ Top produits:
             model = build_gemini_model()
             response = model.generate_content(prompt_text)
             ai_summary = response.text
+            _forecast_ai_summary_cache[summary_key] = (datetime.now(timezone.utc).timestamp(), ai_summary)
         except Exception as e:
             logger.error(f"Gemini forecast summary error: {e}")
             ai_summary = ""

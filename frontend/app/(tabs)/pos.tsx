@@ -97,6 +97,8 @@ export default function POSScreen() {
 const POS_REFRESH_TTL_MS = 60_000;
 const POS_PRODUCT_LIMIT = 500;
 const INITIAL_PRODUCT_CARDS = 12;
+// Clients affichés dans le sélecteur de la caisse : au-delà, la recherche trouve les autres.
+const POS_CUSTOMER_RENDER_LIMIT = 50;
 
 function POSWorkspace() {
     const { colors, glassStyle } = useTheme();
@@ -112,6 +114,9 @@ function POSWorkspace() {
     const styles = getStyles(colors, glassStyle, isMobile, screenWidth, isCompactPOS);
     const canWrite = hasPermission('pos', 'write');
     const [productList, setProductList] = useState<Product[]>([]);
+    // Nombre total de produits de la boutique : s'il dépasse ceux chargés, la recherche interroge aussi le serveur.
+    const [productTotal, setProductTotal] = useState(0);
+    const [remoteSearchProducts, setRemoteSearchProducts] = useState<Product[]>([]);
     const [productsLoading, setProductsLoading] = useState(true);
     const [productLoadError, setProductLoadError] = useState<string | null>(null);
     const [refresh] = useState(() => createScreenRefresh<'products' | 'customers' | 'store' | 'settings' | 'tables'>(POS_REFRESH_TTL_MS));
@@ -298,6 +303,7 @@ function POSWorkspace() {
                 const items = await mergePosProductsOfflineState(response.items ?? response);
                 if (!isCurrent()) return false;
                 setProductList(items.filter((product) => product?.is_active !== false));
+                setProductTotal(Number((response as any).total ?? items.length));
                 setProductLoadError(null);
                 return true;
             } catch (error) {
@@ -311,9 +317,10 @@ function POSWorkspace() {
     const loadCustomers = useCallback((replace = false) => refresh.run('customers', async (isCurrent) => {
         try {
             const before = createdCustomers.current.length;
-            const response = await customersApi.list();
+            // Tous les clients, pas seulement la première page : sinon les clients au-delà sont introuvables à la caisse.
+            const response = await customersApi.listAll(undefined, undefined, isCurrent);
             if (!isCurrent()) return false;
-            const items = response.items ?? (Array.isArray(response) ? response : []);
+            const items = response.items;
             const ids = new Set(items.map((item) => item.customer_id));
             const justCreated = createdCustomers.current.slice(before).filter((item) => !ids.has(item.customer_id));
             setCustomerList([...items, ...justCreated]);
@@ -389,8 +396,30 @@ function POSWorkspace() {
             .replace(/[^a-z0-9]+/g, ' ')
             .trim();
 
+    // Gros catalogue : les produits au-delà de ceux chargés restent trouvables par la recherche du serveur.
+    const catalogTruncated = productTotal > productList.length;
+    useEffect(() => {
+        const query = search.trim();
+        if (!catalogTruncated || query.length < 2) {
+            setRemoteSearchProducts([]);
+            return;
+        }
+        let cancelled = false;
+        const timer = setTimeout(() => {
+            productsApi.list(undefined, 0, 50, restaurantMode ? true : undefined, query)
+                .then((response) => mergePosProductsOfflineState(response.items ?? (response as any)))
+                .then((items) => { if (!cancelled) setRemoteSearchProducts(items.filter((product) => product?.is_active !== false)); })
+                .catch(() => { if (!cancelled) setRemoteSearchProducts([]); });
+        }, 350);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [catalogTruncated, restaurantMode, search]);
+
     const filteredProducts = useMemo(() => {
         const tokens = normalizeSearchText(search).split(' ').filter(Boolean);
+        const loadedIds = new Set(productList.map((product) => product.product_id));
+        const extraProducts = tokens.length > 0
+            ? remoteSearchProducts.filter((product) => !loadedIds.has(product.product_id))
+            : [];
         return productList
             .filter(p => {
                 if (p.product_type === 'raw_material') return false;
@@ -406,13 +435,14 @@ function POSWorkspace() {
                 ].filter(Boolean).join(' '));
                 return tokens.every(token => haystack.includes(token));
             })
+            .concat(extraProducts.filter((p) => p.product_type !== 'raw_material' && (!restaurantMode || p.is_menu_item)))
             .sort((a, b) => {
                 const aAvailable = requiresFinishedStock(a) ? Number(a.quantity || 0) > 0 : true;
                 const bAvailable = requiresFinishedStock(b) ? Number(b.quantity || 0) > 0 : true;
                 if (aAvailable !== bAvailable) return aAvailable ? -1 : 1;
                 return normalizeSearchText(a.name).localeCompare(normalizeSearchText(b.name));
             });
-    }, [productList, restaurantMode, search]);
+    }, [productList, remoteSearchProducts, restaurantMode, search]);
 
     const filteredCustomers = useMemo(() => {
         const normalizedSearch = normalizeSearchText(customerSearch);
@@ -426,6 +456,8 @@ function POSWorkspace() {
             return haystack.includes(normalizedSearch);
         });
     }, [customerList, customerSearch]);
+    const shownCustomers = filteredCustomers.slice(0, POS_CUSTOMER_RENDER_LIMIT);
+    const hiddenCustomerCount = filteredCustomers.length - shownCustomers.length;
 
     const getProductScanCodes = (product: Product) =>
         [product.sku, (product as any).barcode]
@@ -1201,7 +1233,20 @@ function POSWorkspace() {
         if (lastScan?.sku === sku && now - lastScan.time < 1500) return;
         lastPosScanRef.current = { sku, time: now };
         if (!continuousScan) setIsScannerVisible(false);
-        const matches = productList.filter(product => getProductScanCodes(product).includes(String(sku || '').trim()));
+        const code = String(sku || '').trim();
+        const matches = productList.filter(product => getProductScanCodes(product).includes(code));
+        if (matches.length === 0 && catalogTruncated && code) {
+            // Produit au-delà de ceux chargés en caisse : on le cherche sur le serveur avant de le dire inconnu.
+            productsApi.list(undefined, 0, 20, restaurantMode ? true : undefined, code)
+                .then((response) => mergePosProductsOfflineState(response.items ?? (response as any)))
+                .then((items) => resolveScannedProducts(code, items.filter((product) => product?.is_active !== false && getProductScanCodes(product).includes(code))))
+                .catch(() => resolveScannedProducts(code, []));
+            return;
+        }
+        resolveScannedProducts(code, matches);
+    };
+
+    const resolveScannedProducts = (sku: string, matches: Product[]) => {
         if (matches.length === 1) {
             const product = matches[0];
             if (!requiresFinishedStock(product) || product.quantity > 0) {
@@ -1695,7 +1740,7 @@ function POSWorkspace() {
                                         >
                                             <Text style={[styles.customerBadgeText, !selectedCustomer && styles.customerBadgeTextActive]}>{t('pos.anonymous_customer')}</Text>
                                         </TouchableOpacity>
-                                        {filteredCustomers.map(customer => (
+                                        {shownCustomers.map(customer => (
                                                 <TouchableOpacity
                                                     key={customer.customer_id}
                                                     style={[styles.customerBadge, selectedCustomer?.customer_id === customer.customer_id && styles.customerBadgeActive]}
@@ -2218,7 +2263,7 @@ function POSWorkspace() {
                                 </View>
                                 {!selectedCustomer ? <Ionicons name="checkmark-circle" size={18} color={colors.primary} /> : null}
                             </TouchableOpacity>
-                            {filteredCustomers.map(customer => {
+                            {shownCustomers.map(customer => {
                                 const isSelected = selectedCustomer?.customer_id === customer.customer_id;
                                 return (
                                     <TouchableOpacity
@@ -2246,6 +2291,11 @@ function POSWorkspace() {
                                     </TouchableOpacity>
                                 );
                             })}
+                            {hiddenCustomerCount > 0 ? (
+                                <Text style={[styles.customerPickerEmptyText, { textAlign: 'center', paddingVertical: Spacing.md }]}>
+                                    {t('pos.more_customers_hint', { count: hiddenCustomerCount, defaultValue: `Encore ${hiddenCustomerCount} clients : tapez un nom ou un numéro pour les trouver.` })}
+                                </Text>
+                            ) : null}
                             {filteredCustomers.length === 0 ? (
                                 <View style={styles.customerPickerEmpty}>
                                     <Ionicons name="people-outline" size={24} color={colors.textMuted} />

@@ -135,6 +135,7 @@ test('POS publishes the restaurant catalog even while the customer and tax endpo
     } },
     mergePosProductsOfflineState: async (items) => items,
     setProductList: (items) => calls.push(items[0]),
+    setProductTotal: () => {},
     setProductLoadError: (error) => assert.equal(error, null),
   });
   await load();
@@ -202,7 +203,7 @@ test('A customer added while the POS list is loading remains selectable', async 
   let renderedIds = [];
   const load = readCallback('loadCustomers', {
     refresh: createPosRefresh(60_000), createdCustomers,
-    customersApi: { list: () => waiting.promise },
+    customersApi: { listAll: () => waiting.promise },
     setCustomerList: (items) => { renderedIds = Array.from(items, (item) => item.customer_id); },
   });
   const request = load();
@@ -223,7 +224,9 @@ test('Clients publishes the current sort without waiting for promotions or loyal
     refresh: createPosRefresh(60_000), latestSort,
     promotionsApi: { list: () => waiting.promise },
     settingsApi: { get: () => waiting.promise },
-    customersApi: { list: (sort) => sort === 'name' ? slowSort.promise : Promise.resolve({ items: [] }) },
+    customersApi: { listAll: (sort) => sort === 'name' ? slowSort.promise : Promise.resolve({ items: [], total: 0 }) },
+    sortCustomers: (customers) => customers,
+    ApiError: class extends Error {},
     mergeCustomersOfflineState: async (customers) => ({ customers, summary: {} }),
     setCustomerList: (value) => states.push(value.length),
     setPendingCrmSummary: () => {}, setPromoList: () => {}, setLoyaltySettings: () => {},

@@ -24,7 +24,7 @@ export default function ForecastCard({ onNavigate }: Props) {
 
   async function loadForecast() {
     try {
-      const result = await sales.forecast();
+      const result = await sales.forecast(true);
       setData(result);
     } catch {
       // silently fail

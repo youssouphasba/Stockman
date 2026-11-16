@@ -2687,17 +2687,39 @@ export const sales = {
   create: (data: SaleCreate) => request<Sale>('/sales', { method: 'POST', body: data }),
   cancel: (saleId: string, reason?: string) =>
     request<Sale>(`/sales/${saleId}/cancel`, { method: 'POST', body: reason ? { reason } : {} }),
-  forecast: () => request<SalesForecastResponse>('/sales/forecast'),
+  // Le résumé IA coûte un appel Gemini : seule la carte Prévisions de l'accueil le demande.
+  forecast: (withAiSummary = false) => request<SalesForecastResponse>(`/sales/forecast${withAiSummary ? '?with_ai_summary=true' : ''}`),
 };
 
 // CRM
+const CUSTOMERS_PAGE_SIZE = 500;
+const CUSTOMERS_MAX = 20000;
+
+function listCustomersPage(sortBy?: string, skip = 0, limit = 50) {
+  const qs = new URLSearchParams();
+  if (sortBy) qs.set('sort_by', sortBy);
+  qs.set('skip', skip.toString());
+  qs.set('limit', limit.toString());
+  return request<PaginatedResponse<Customer>>(`/customers?${qs.toString()}`);
+}
+
 export const customers = {
-  list: (sortBy?: string, skip = 0, limit = 50) => {
-    const qs = new URLSearchParams();
-    if (sortBy) qs.set('sort_by', sortBy);
-    qs.set('skip', skip.toString());
-    qs.set('limit', limit.toString());
-    return request<PaginatedResponse<Customer>>(`/customers?${qs.toString()}`);
+  list: listCustomersPage,
+  // Tous les clients, page par page : la première page est rendue dès qu'elle arrive (onPage),
+  // pour qu'un fichier de plusieurs milliers de clients s'affiche sans attendre la fin du chargement.
+  listAll: async (sortBy?: string, onPage?: (items: Customer[], total: number) => void, isCurrent: () => boolean = () => true) => {
+    const items: Customer[] = [];
+    let total = 0;
+    do {
+      const response = await listCustomersPage(sortBy, items.length, CUSTOMERS_PAGE_SIZE);
+      const page = response.items ?? (Array.isArray(response) ? response as Customer[] : []);
+      total = Number(response.total ?? page.length);
+      items.push(...page);
+      if (!isCurrent()) return { items, total };
+      onPage?.(items.slice(), total);
+      if (page.length === 0) break;
+    } while (items.length < total && items.length < CUSTOMERS_MAX && isCurrent());
+    return { items, total };
   },
   get: (id: string) => request<Customer>(`/customers/${id}`),
   create: (data: CustomerCreate) => request<Customer>('/customers', { method: 'POST', body: data }),

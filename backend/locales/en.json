@@ -916,7 +916,9 @@
     "send_sms": "Send an SMS",
     "info_clients": "Total number of customers registered in your customer file.",
     "info_total_sales": "Cumulative amount of all purchases made by your customers.",
-    "info_active_30d": "Customers who made at least one purchase in the last 30 days."
+    "info_active_30d": "Customers who made at least one purchase in the last 30 days.",
+    "show_more_customers_one": "Show more customers ({{count}} left)",
+    "show_more_customers_other": "Show more customers ({{count}} left)"
   },
   "dashboard": {
     "abc_analysis": "ABC Analysis (Priorities)",
@@ -2016,7 +2018,9 @@
     "updated_at": "Updated at",
     "validate_receipt": "Validate Receipt",
     "validate_reception": "Validate Reception",
-    "view_detailed_history": "View detailed history"
+    "view_detailed_history": "View detailed history",
+    "load_more_one": "Show more orders ({{count}} left)",
+    "load_more_other": "Show more orders ({{count}} left)"
   },
   "pin": {
     "confirm_title": "Confirm your PIN",
@@ -2133,7 +2137,9 @@
     "voice_no_recording": "No usable voice recording was detected. Please try again.",
     "voice_transcription_failed": "Voice transcription failed. Check your connection and try again.",
     "voice_access_denied": "This voice feature is not accessible for this account currently.",
-    "search_customer": "Search..."
+    "search_customer": "Search...",
+    "more_customers_hint_one": "{{count}} more customer: type a name or number to find them.",
+    "more_customers_hint_other": "{{count}} more customers: type a name or number to find them."
   },
   "restaurant": {
     "menu_category": "Menu category",

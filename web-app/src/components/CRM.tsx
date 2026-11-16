@@ -78,6 +78,16 @@ const SEGMENT_STYLES: Record<string, string> = {
     slate: 'border-white/10 bg-white/5 text-slate-300',
 };
 
+// Tri sur tout le fichier client : le serveur ne trie que page par page.
+function sortCustomerRows(list: any[], sortBy: string): any[] {
+    const sorted = list.slice();
+    if (sortBy === 'total_spent') sorted.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
+    else if (sortBy === 'visits') sorted.sort((a, b) => (b.visit_count || 0) - (a.visit_count || 0));
+    else if (sortBy === 'last_purchase') sorted.sort((a, b) => String(b.last_purchase_date || '').localeCompare(String(a.last_purchase_date || '')));
+    else sorted.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'fr', { sensitivity: 'base' }));
+    return sorted;
+}
+
 export default function CRM({ user }: CRMProps) {
     const { t, i18n } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
@@ -183,9 +193,11 @@ export default function CRM({ user }: CRMProps) {
     };
 
     useEffect(() => {
-        loadCustomers();
+        // La liste des clients est chargée par l'effet du tri ci-dessous, qui s'exécute aussi à l'ouverture.
         loadBirthdays();
         loadPromotions();
+        // Prédiction de départ (appel IA) : une seule fois par ouverture de l'écran, pas à chaque tri ni actualisation.
+        aiApi.churnPrediction(i18n.language).then(res => setChurnData(res)).catch(() => { });
     }, []);
 
     useEffect(() => {
@@ -220,12 +232,11 @@ export default function CRM({ user }: CRMProps) {
     const loadCustomers = async () => {
         setLoading(true);
         try {
-            const res = await customersApi.list(0, 200, sortBy);
-            const merged = mergeCustomersOfflineState(res.items || res);
-            setCustomers(merged.customers);
+            // Tout le fichier client, page par page ; le tri se fait ensuite sur l'ensemble.
+            const res = await customersApi.listAll(sortBy);
+            const merged = mergeCustomersOfflineState(res.items);
+            setCustomers(sortCustomerRows(merged.customers, sortBy));
             setPendingCrmSummary(merged.summary);
-            // Auto-trigger churn prediction
-            aiApi.churnPrediction(i18n.language).then(res => setChurnData(res)).catch(() => { });
         } catch (err) {
             console.error("CRM load error", err);
         } finally {

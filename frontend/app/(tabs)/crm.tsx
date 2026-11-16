@@ -86,6 +86,19 @@ const SORT_OPTIONS: { key: SortKey; labelKey: string; icon: string }[] = [
     { key: 'visits', labelKey: 'crm.sort_visits', icon: 'repeat-outline' },
 ];
 
+// Les fiches s'affichent par tranches : des milliers de cartes d'un coup figeraient l'écran.
+const CUSTOMER_RENDER_STEP = 40;
+
+// Tri sur tout le fichier client, une fois toutes les pages reçues (le serveur ne trie que page par page).
+function sortCustomers(list: Customer[], sortBy: SortKey): Customer[] {
+    const sorted = list.slice();
+    if (sortBy === 'total_spent') sorted.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
+    else if (sortBy === 'visits') sorted.sort((a, b) => (b.visit_count || 0) - (a.visit_count || 0));
+    else if (sortBy === 'last_purchase') sorted.sort((a, b) => String(b.last_purchase_date || '').localeCompare(String(a.last_purchase_date || '')));
+    else sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }));
+    return sorted;
+}
+
 const TIER_FILTERS = ['tous', 'bronze', 'argent', 'or', 'platine'] as const;
 type DetailTab = 'infos' | 'achats' | 'contact' | 'compte';
 type CategoryOption = 'particulier' | 'revendeur' | 'vip' | 'autre';
@@ -233,11 +246,18 @@ function CRMWorkspace() {
         return refresh.run('customers', async (isCurrent) => {
             setCustomerLoadError(false);
             try {
-                const response = await customersApi.list(sort);
+                // Tout le fichier client est chargé, page par page : la première page s'affiche tout de suite.
+                let firstPageShown = false;
+                const response = await customersApi.listAll(sort, (items, total) => {
+                    if (firstPageShown || items.length >= total || !isCurrent()) return;
+                    firstPageShown = true;
+                    setCustomerList(sortCustomers(items, sort));
+                    setLoading(false);
+                }, isCurrent);
                 if (!isCurrent()) return false;
-                const mergedCustomers = await mergeCustomersOfflineState(response.items ?? response);
+                const mergedCustomers = await mergeCustomersOfflineState(response.items);
                 if (!isCurrent()) return false;
-                setCustomerList(mergedCustomers.customers);
+                setCustomerList(sortCustomers(mergedCustomers.customers, sort));
                 setPendingCrmSummary(mergedCustomers.summary);
                 setAccessDenied(false);
                 setLoading(false);
@@ -885,9 +905,10 @@ function CRMWorkspace() {
         return (Date.now() - lastPurchase.getTime()) >= 45 * 24 * 60 * 60 * 1000;
     }, []);
 
+    const normalizedSearch = search.trim().toLowerCase();
     const filteredCustomers = customerList.filter(c => {
-        const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-            (c.phone && c.phone.includes(search));
+        const matchSearch = !normalizedSearch || (c.name || '').toLowerCase().includes(normalizedSearch) ||
+            Boolean(c.phone && c.phone.includes(search.trim()));
         const matchTier = tierFilter === 'tous' || (c.tier || 'bronze') === tierFilter;
         const matchSource = sourceFilter === 'all' || (c.customer_source || 'physical') === sourceFilter;
         const matchInsight =
@@ -896,6 +917,16 @@ function CRMWorkspace() {
             (insightFilter === 'debt' && (c.current_debt || 0) > 0);
         return matchSearch && matchTier && matchSource && matchInsight;
     });
+
+    const [visibleCustomerCount, setVisibleCustomerCount] = useState(CUSTOMER_RENDER_STEP);
+    useEffect(() => {
+        setVisibleCustomerCount(CUSTOMER_RENDER_STEP);
+    }, [search, tierFilter, sourceFilter, insightFilter, sortBy]);
+    const visibleCustomers = filteredCustomers.slice(0, visibleCustomerCount);
+    const hiddenCustomerCount = filteredCustomers.length - visibleCustomers.length;
+    const showMoreCustomers = useCallback(() => {
+        setVisibleCustomerCount((count) => count + CUSTOMER_RENDER_STEP);
+    }, []);
 
     // Stats
     const totalClients = customerList.length;
@@ -965,6 +996,12 @@ function CRMWorkspace() {
                     ref={scrollViewRef}
                     contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+                    scrollEventThrottle={250}
+                    onScroll={({ nativeEvent }) => {
+                        // Près du bas de la liste, la tranche suivante de fiches s'affiche d'elle-même.
+                        const distanceToEnd = nativeEvent.contentSize.height - nativeEvent.layoutMeasurement.height - nativeEvent.contentOffset.y;
+                        if (hiddenCustomerCount > 0 && distanceToEnd < 600) showMoreCustomers();
+                    }}
                 >
                     <View style={[styles.header, { paddingTop: insets.top }]}>
                         <Text style={styles.title}>{t('crm.title')}</Text>
@@ -1184,7 +1221,7 @@ function CRMWorkspace() {
                                 </Text>
                             </View>
                         )}
-                        {filteredCustomers.map((customer, customerIndex) => {
+                        {visibleCustomers.map((customer, customerIndex) => {
                             const tc = getTierConfig(customer.tier);
                             const sourceMeta = getCustomerSourceMeta(customer);
                             return (
@@ -1235,6 +1272,17 @@ function CRMWorkspace() {
                                 </GuideTarget>
                             );
                         })}
+                        {hiddenCustomerCount > 0 && (
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                style={[styles.emptyBtn, { alignSelf: 'center', marginTop: Spacing.sm }]}
+                                onPress={showMoreCustomers}
+                            >
+                                <Text style={styles.emptyBtnText}>
+                                    {t('crm.show_more_customers', { count: hiddenCustomerCount, defaultValue: `Afficher plus de clients (${hiddenCustomerCount} restants)` })}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                         {filteredCustomers.length === 0 && (
                             <View style={styles.emptyState}>
                                 <Ionicons name="people-outline" size={48} color={colors.textMuted} />
