@@ -2996,6 +2996,11 @@ export const admin = {
     regenerateSubscriptionLinks: (accountId: string) => request<any>(`/admin/subscriptions/${accountId}/payment-links`, { method: 'POST' }),
     sendSubscriptionReminder: (accountId: string, daysLeft = 1) =>
         request<any>(`/admin/subscriptions/${accountId}/send-reminder?days_left=${daysLeft}`, { method: 'POST' }),
+    getAppUpdateAnnouncement: () => request<{ android: string; ios: string; message: string; android_required: boolean; ios_required: boolean; min_devices: number; detected: Record<'android' | 'ios', { version: string; source: string; devices: number }> }>('/admin/app-updates/announcement'),
+    announceAppUpdate: (data: { platform: 'android' | 'ios'; version: string; message: string; required: boolean }) =>
+        request<{ platform: string; version: string; message: string; required: boolean }>('/admin/app-updates/announce', { method: 'POST', body: data }),
+    withdrawAppUpdate: (platform: 'android' | 'ios') =>
+        request<{ platform: string; version: string }>(`/admin/app-updates/announce/${platform}`, { method: 'DELETE' }),
     notifyAppUpdate: (data: { platform: 'android' | 'ios'; title: string; message: string }) =>
         request<{ platform: string; installations: number; unique_tokens: number; accepted: number; failed: number; store_url: string }>(
             '/admin/app-updates/notify',

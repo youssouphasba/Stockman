@@ -24,6 +24,11 @@ def default_app_update_settings(env=None):
         "android_min_version": _env_value(
             env, "APP_ANDROID_MIN_VERSION", "STOCKMAN_ANDROID_MIN_VERSION"
         ),
+        # Version annoncée depuis l'administration : toute application plus ancienne propose la mise à jour.
+        # Vide par défaut, aucune version n'est inventée.
+        "android_latest_version": _env_value(
+            env, "APP_ANDROID_LATEST_VERSION", "STOCKMAN_ANDROID_LATEST_VERSION"
+        ),
         "android_store_url": _env_value(
             env,
             "APP_ANDROID_UPDATE_URL",
@@ -32,6 +37,9 @@ def default_app_update_settings(env=None):
         ),
         "ios_min_version": _env_value(
             env, "APP_IOS_MIN_VERSION", "STOCKMAN_IOS_MIN_VERSION"
+        ),
+        "ios_latest_version": _env_value(
+            env, "APP_IOS_LATEST_VERSION", "STOCKMAN_IOS_LATEST_VERSION"
         ),
         "ios_store_url": _env_value(
             env,
@@ -52,7 +60,7 @@ def resolve_app_update_settings(settings_doc=None, env=None):
     result["enabled"] = result["enabled"] is not False
     result["message"] = str(result.get("message") or "").strip()
     for key in result:
-        if key.endswith("_min_version") or key.endswith("_url"):
+        if key.endswith("_version") or key.endswith("_url"):
             result[key] = str(result.get(key) or "").strip()
     return result
 
@@ -73,3 +81,4 @@ def _validate_store_url(value, platform):
     ):
         raise ValueError(f"Le lien {platform.upper()} doit être une adresse HTTPS officielle du store ou de Stockman.")
     return url
+

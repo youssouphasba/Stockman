@@ -6,21 +6,31 @@ Ce document est la référence principale de l'assistant IA. Il couvre toutes le
 
 ## 0. Contrôle de version mobile
 
-À l’ouverture de l’application mobile et à son retour au premier plan, Stockman interroge directement le store de la plateforme. Google Play indique si une version compatible plus récente est installable sur l’appareil ; sur iOS, la version publiée sur l’App Store est comparée à la version installée. Stockman n’utilise aucune « dernière version » définie par défaut dans son backend.
+À l’ouverture de l’application mobile, Stockman vérifie automatiquement s’il existe une version plus récente et propose alors de la télécharger.
+
+### Détection automatique
+
+- Les applications à partir de la version 1.0.26 interrogent directement le store : Google Play indique si une version plus récente est installable sur l’appareil, l’App Store donne la version publiée. Elles vérifient aussi au retour au premier plan.
+- Les applications jusqu’à la version 1.0.25 ne savent pas interroger le store : elles comparent leur version à la dernière version envoyée par le serveur. Le serveur la détecte seul : sur iOS, il lit la version publiée sur l’App Store ; sur Android et iOS, il retient la plus haute version ouverte au cours des 60 derniers jours par au moins 3 appareils distincts hors équipe Stockman. Ce seuil évite qu’un build de test installé sur un ou deux téléphones déclenche la fenêtre chez tout le monde. La détection est recalculée toutes les 10 minutes.
+
+### Annonce depuis l’administration (secours)
+
+Si la détection n’a pas encore vu une nouvelle version (par exemple juste après sa publication), l’équipe Stockman peut l’annoncer dans le panneau **Mises à jour mobiles** : plateforme, numéro de version et message facultatif de la fenêtre. Le serveur retient la plus haute des deux versions, détectée ou annoncée. Tout appareil en version plus ancienne affiche la fenêtre à sa prochaine ouverture. Une annonce peut être retirée.
+
+- **Facultative** (par défaut) : la fenêtre **Nouvelle version disponible** propose « Mettre à jour » ou « Plus tard ». Une version reportée n’est pas reproposée à chaque ouverture ; une nouvelle version déclenche une nouvelle proposition.
+- **Obligatoire** : la version annoncée devient la version minimale. En dessous, un écran bloquant remplace l’application avec le seul bouton « Mettre à jour » ; l’application reste inaccessible tant que la mise à jour n’est pas faite. À utiliser seulement quand la version est disponible pour tous sur le store.
+- Le message est commun à Android et à iOS ; laissé vide, le message par défaut s’affiche.
 
 ### Comportement utilisateur
 
-- La fenêtre **Nouvelle version disponible** apparaît uniquement si le store confirme qu’une mise à jour est disponible pour l’installation.
-- Si une version minimale est configurée et que la version installée est en dessous, la fenêtre devient bloquante.
 - Android ouvre la fiche Google Play de l’application ; iOS ouvre la fiche App Store.
-- Si l’interrogation du store échoue ou si le store est inaccessible, l’application continue de fonctionner sans afficher de fausse alerte.
-- Une version de store déjà proposée et reportée n’est pas reproposée à chaque ouverture ; une nouvelle version publiée déclenche une nouvelle proposition.
+- Si le store ou le serveur est inaccessible, l’application continue de fonctionner sans afficher de fausse alerte.
 
 ### Configuration backend
 
-`/api/settings/app-version` fournit uniquement l’activation, les éventuelles versions minimales, le message et les liens des stores. Les variables disponibles sont `APP_ANDROID_MIN_VERSION`, `APP_IOS_MIN_VERSION`, `APP_FORCE_UPDATE`, `APP_UPDATE_MESSAGE`, `APP_ANDROID_UPDATE_URL` et `APP_IOS_UPDATE_URL`. Les variables `APP_ANDROID_LATEST_VERSION` et `APP_IOS_LATEST_VERSION` ne sont plus utilisées.
+`/api/settings/app-version` fournit l’activation, les éventuelles versions minimales, le message, les liens des stores et la dernière version connue (`android_latest_version`, `ios_latest_version`). Les variables `APP_ANDROID_MIN_VERSION`, `APP_IOS_MIN_VERSION`, `APP_FORCE_UPDATE`, `APP_UPDATE_MESSAGE`, `APP_ANDROID_UPDATE_URL`, `APP_IOS_UPDATE_URL`, `APP_ANDROID_LATEST_VERSION` et `APP_IOS_LATEST_VERSION` servent de valeurs de départ ; ce qui est enregistré depuis l’administration les remplace.
 
-Le panneau d’administration **Mises à jour mobiles** envoie une notification push facultative aux installations enregistrées pour la plateforme choisie. Elle ouvre directement la fiche du store, mais ne publie pas de version et ne remplace pas la vérification automatique faite à l’ouverture.
+Le même panneau envoie aussi une notification push facultative aux installations enregistrées pour la plateforme choisie. Elle ouvre directement la fiche du store.
 
 La vérification utilise un module natif. Les versions déjà installées ne le contiennent pas : son activation nécessite un nouveau build Android et iOS. Une mise à jour OTA seule ne peut pas ajouter ce code natif.
 

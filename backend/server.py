@@ -616,10 +616,21 @@ class AppVersionSettings(BaseModel):
     message: str
     android_update_url: Optional[str] = None
     ios_update_url: Optional[str] = None
+    # Lus par les applications jusqu'à 1.0.25 pour proposer la mise à jour.
+    android_latest_version: str = ""
+    ios_latest_version: str = ""
 
 class AppVersionReportRequest(BaseModel):
     platform: Literal["android", "ios"]
     version: str = Field(min_length=1, max_length=40)
+
+class AppUpdateAnnouncementRequest(BaseModel):
+    platform: Literal["android", "ios"]
+    version: str = Field(min_length=1, max_length=40)
+    message: str = Field(default="", max_length=240)
+    # Obligatoire : la version annoncée devient la version minimale ; en dessous, l'application est bloquée
+    # jusqu'à la mise à jour (y compris les versions déjà installées, qui savent appliquer ce minimum).
+    required: bool = False
 
 class AppUpdateNotificationRequest(BaseModel):
     platform: Literal["android", "ios"]
@@ -638,6 +649,7 @@ async def get_app_version_settings():
         {"key": "global"}, {"_id": 0, "app_update": 1}
     ) or {}
     app_update = resolve_app_update_settings(settings_doc)
+    detected = await detect_latest_published_app_versions()
     return AppVersionSettings(
         enabled=app_update["enabled"],
         android_min_version=app_update["android_min_version"],
@@ -646,7 +658,95 @@ async def get_app_version_settings():
         message=app_update["message"],
         android_update_url=app_update["android_store_url"],
         ios_update_url=app_update["ios_store_url"],
+        # Détection automatique d'abord ; la version annoncée par l'admin sert de secours. On garde la plus haute.
+        android_latest_version=_highest_app_version(detected["android"]["version"], app_update["android_latest_version"]),
+        ios_latest_version=_highest_app_version(detected["ios"]["version"], app_update["ios_latest_version"]),
     )
+
+
+# Dernière version publiée, détectée sans intervention pour les applications jusqu'à 1.0.25 (les suivantes
+# interrogent elles-mêmes le store) :
+# - iOS : version publiée sur l'App Store (service public de recherche d'Apple) ;
+# - Android et iOS : plus haute version ouverte récemment par assez d'appareils distincts hors équipe Stockman.
+#   Un build de test installé sur un ou deux téléphones ne suffit pas à déclencher la fenêtre chez tout le monde.
+APP_VERSION_MIN_DEVICES = 3
+APP_VERSION_LOOKBACK_DAYS = 60
+APP_VERSION_CACHE_SECONDS = 600
+_detected_app_versions_cache: Dict[str, Any] = {"at": None, "value": None}
+
+
+def _app_version_key(version: str) -> Optional[tuple]:
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){0,3}", version or ""):
+        return None
+    parts = [int(part) for part in version.split(".")]
+    return tuple(parts + [0] * (4 - len(parts)))
+
+
+def _highest_app_version(*versions: str) -> str:
+    valid = [v for v in (str(x or "").strip() for x in versions) if _app_version_key(v)]
+    return max(valid, key=_app_version_key) if valid else ""
+
+
+async def _fetch_app_store_version() -> str:
+    import httpx as _httpx
+    app_store_id = str(os.environ.get("IOS_APP_STORE_ID") or "6760587628").strip()
+    for country in ("", "fr", "sn"):
+        params = {"id": app_store_id}
+        if country:
+            params["country"] = country
+        try:
+            async with _httpx.AsyncClient(timeout=8.0) as client:
+                response = await client.get("https://itunes.apple.com/lookup", params=params)
+            results = response.json().get("results") or []
+            version = str((results[0] or {}).get("version") or "").strip() if results else ""
+            if _app_version_key(version):
+                return version
+        except Exception as exc:
+            logger.warning("App Store version lookup failed (%s): %s", country or "default", exc)
+    return ""
+
+
+async def detect_latest_published_app_versions() -> Dict[str, Dict[str, Any]]:
+    now = datetime.now(timezone.utc)
+    cached_at = _detected_app_versions_cache["at"]
+    if cached_at and (now - cached_at).total_seconds() < APP_VERSION_CACHE_SECONDS:
+        return _detected_app_versions_cache["value"]
+
+    result: Dict[str, Dict[str, Any]] = {
+        "android": {"version": "", "source": "", "devices": 0},
+        "ios": {"version": "", "source": "", "devices": 0},
+    }
+    try:
+        team_ids = await db.users.distinct("user_id", {"role": {"$in": ["superadmin", "admin"]}})
+        rows = await db.push_installations.aggregate([
+            {"$match": {
+                "platform": {"$in": ["android", "ios"]},
+                "app_version": {"$nin": [None, ""]},
+                "updated_at": {"$gte": now - timedelta(days=APP_VERSION_LOOKBACK_DAYS)},
+                "last_user_id": {"$nin": team_ids},
+            }},
+            {"$group": {"_id": {"platform": "$platform", "version": "$app_version"}, "devices": {"$sum": 1}}},
+        ]).to_list(None)
+        for row in rows:
+            platform = row["_id"].get("platform")
+            version = str(row["_id"].get("version") or "").strip()
+            if platform not in result or not _app_version_key(version) or row["devices"] < APP_VERSION_MIN_DEVICES:
+                continue
+            if _highest_app_version(version, result[platform]["version"]) == version and version != result[platform]["version"]:
+                result[platform] = {"version": version, "source": "devices", "devices": row["devices"]}
+    except Exception as exc:
+        logger.warning("Latest app version detection from devices failed: %s", exc)
+
+    app_store_version = await _fetch_app_store_version()
+    if app_store_version and _highest_app_version(app_store_version, result["ios"]["version"]) == app_store_version:
+        result["ios"] = {"version": app_store_version, "source": "app_store", "devices": result["ios"]["devices"]}
+
+    _detected_app_versions_cache["at"] = now
+    _detected_app_versions_cache["value"] = result
+    return result
+
+
+
 
 @api_router.post("/app-version/report")
 async def report_installed_app_version(data: AppVersionReportRequest, request: Request):
@@ -8454,6 +8554,58 @@ async def admin_non_demo_filter(owner_field: str) -> dict:
     return {**ADMIN_NON_DEMO_FILTER, owner_field: {"$nin": demo_owner_ids}}
 
 
+@admin_router.get("/app-updates/announcement")
+async def admin_get_app_update_announcement(admin: User = Depends(require_superadmin)):
+    settings_doc = await db.app_settings.find_one({"key": "global"}, {"_id": 0, "app_update": 1}) or {}
+    app_update = resolve_app_update_settings(settings_doc)
+    return {
+        "android": app_update["android_latest_version"],
+        "ios": app_update["ios_latest_version"],
+        "message": app_update["message"],
+        "android_required": bool(app_update["android_min_version"]),
+        "ios_required": bool(app_update["ios_min_version"]),
+        "detected": await detect_latest_published_app_versions(),
+        "min_devices": APP_VERSION_MIN_DEVICES,
+    }
+
+
+# Annonce d'une nouvelle version : les applications dont la version est plus ancienne affichent la fenêtre
+# de mise à jour à leur prochaine ouverture, avec le message choisi (ou le message par défaut s'il est vide).
+@admin_router.post("/app-updates/announce")
+async def admin_announce_app_update(data: AppUpdateAnnouncementRequest, admin: User = Depends(require_superadmin)):
+    version = data.version.strip()
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,3}", version):
+        raise HTTPException(status_code=422, detail="La version doit être au format 1.0.26.")
+    await db.app_settings.update_one(
+        {"key": "global"},
+        {"$set": {
+            f"app_update.{data.platform}_latest_version": version,
+            f"app_update.{data.platform}_min_version": version if data.required else "",
+            "app_update.message": data.message.strip(),
+            f"app_update.{data.platform}_announced_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+    logger.info("App update %s %s announced by admin %s (required=%s)", data.platform, version, admin.user_id, data.required)
+    return {"platform": data.platform, "version": version, "message": data.message.strip(), "required": data.required}
+
+
+@admin_router.delete("/app-updates/announce/{platform}")
+async def admin_withdraw_app_update(platform: Literal["android", "ios"], admin: User = Depends(require_superadmin)):
+    await db.app_settings.update_one(
+        {"key": "global"},
+        {"$set": {
+            f"app_update.{platform}_latest_version": "",
+            f"app_update.{platform}_min_version": "",
+            "updated_at": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+    logger.info("App update announcement withdrawn for %s by admin %s", platform, admin.user_id)
+    return {"platform": platform, "version": ""}
+
+
 @admin_router.post("/app-updates/notify")
 async def admin_notify_app_update(data: AppUpdateNotificationRequest, admin: User = Depends(require_superadmin)):
     platform = data.platform.lower()
@@ -8541,9 +8693,10 @@ async def attach_admin_app_versions(user_docs: List[dict]) -> List[dict]:
         user_doc = users_by_id.get(user_id)
         platform = str(installation.get("platform") or "").lower()
         version = str(installation.get("app_version") or "").strip()
+        # Installations triées de la plus récente à la plus ancienne : on garde la dernière utilisée par ce
+        # compte, même si le téléphone sert aussi à d'autres comptes (sinon une vieille version s'affiche).
         if (
             not user_doc
-            or (len(linked_user_ids) > 1)
             or (linked_user_ids and user_id not in linked_user_ids)
             or platform not in {"android", "ios"}
             or not version

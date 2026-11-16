@@ -545,6 +545,9 @@ export type AppVersionSettings = {
   message: string;
   android_update_url?: string | null;
   ios_update_url?: string | null;
+  // Version annoncée depuis l'administration : une installation plus ancienne propose la mise à jour.
+  android_latest_version?: string | null;
+  ios_latest_version?: string | null;
 };
 
 export const appVersion = {

@@ -81,13 +81,19 @@ export default function AppVersionGate({ children }: { children: ReactNode }) {
         }
 
         const settings = await settingsPromise;
-        if (!storeUpdate || settings?.enabled === false || !mounted) {
-          if (mounted) setState({ blocking: false, suggested: false, settings, dismissalKey: null });
+        if (!mounted) return;
+        if (settings?.enabled === false) {
+          setState({ blocking: false, suggested: false, settings, dismissalKey: null });
           return;
         }
 
-        const updateAvailable = storeUpdate.updateAvailable === true;
-        if (!updateAvailable) {
+        // Deux sources : le store (quand il répond) et la version annoncée depuis l'administration.
+        const announcedVersion = Platform.OS === 'ios' ? settings?.ios_latest_version : settings?.android_latest_version;
+        const announcedNewer = Boolean(
+          announcedVersion && installedVersion && compareVersions(installedVersion, announcedVersion) < 0,
+        );
+        const storeNewer = storeUpdate?.updateAvailable === true;
+        if (!announcedNewer && !storeNewer) {
           setState({ blocking: false, suggested: false, settings, dismissalKey: null });
           return;
         }
@@ -97,7 +103,9 @@ export default function AppVersionGate({ children }: { children: ReactNode }) {
           minVersion && installedVersion && compareVersions(installedVersion, minVersion) < 0,
         );
         const blocking = belowMinimum || settings?.force_update === true;
-        const storeVersion = String(storeUpdate.storeVersion || 'in-progress');
+        const storeVersion = announcedNewer
+          ? String(announcedVersion)
+          : String(storeUpdate?.storeVersion || 'in-progress');
         const dismissalKey = `dismissed_app_update_version:${Platform.OS}:${storeVersion}`;
         const dismissed = await AsyncStorage.getItem(dismissalKey);
 
@@ -160,7 +168,8 @@ export default function AppVersionGate({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
-      <Modal transparent visible={state.suggested} animationType="fade" onRequestClose={dismissSuggestion}>
+      {state.suggested && (
+      <Modal transparent visible animationType="fade" onRequestClose={dismissSuggestion}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('app_update.available_title')}</Text>
@@ -180,6 +189,7 @@ export default function AppVersionGate({ children }: { children: ReactNode }) {
           </View>
         </View>
       </Modal>
+      )}
     </>
   );
 }

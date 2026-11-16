@@ -26,7 +26,9 @@ test('Admin user data exposes platform versions and legacy push installation rep
   assert.match(backend, /async def attach_admin_app_versions\(user_docs: List\[dict\]\)/);
   assert.match(backend, /"last_user_id": \{"\$in": list\(users_by_id\)\}/);
   assert.match(backend, /user_doc\["app_versions"\]\[platform\] = \{/);
-  assert.match(backend, /len\(linked_user_ids\) > 1/);
+  // Un téléphone partagé entre plusieurs comptes garde sa version la plus récente pour le dernier compte utilisé.
+  assert.doesNotMatch(backend, /len\(linked_user_ids\) > 1/);
+  assert.match(backend, /linked_user_ids and user_id not in linked_user_ids/);
   assert.match(admin, /<th className="px-6 py-4">Version mobile<\/th>/);
   assert.match(admin, /android_app_version_reported_at/);
   assert.match(admin, /Versions de l’application mobile/);
