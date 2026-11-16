@@ -807,7 +807,9 @@
       "switchError": "Impossible de passer à la vérification email pour le moment.",
       "devCodeTitle": "Code de test (DEV)",
       "devCodeBody": "Votre code OTP : {{code}}"
-    }
+    },
+    "session_expired_title": "Session expirée",
+    "session_expired_message": "Votre session n'est plus valide. Reconnectez-vous pour continuer."
   },
   "batch_scan": {
     "action_required": "Action requise",

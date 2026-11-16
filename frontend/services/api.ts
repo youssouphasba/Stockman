@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import { DeviceEventEmitter, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cache, KEYS } from './cache';
 import NetInfo from '@react-native-community/netinfo';
@@ -317,6 +317,10 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   }
 }
 
+// Émis quand le serveur refuse définitivement la session (renouvellement refusé) :
+// AuthContext déconnecte alors l'appareil au lieu de laisser des écrans en erreur.
+export const SESSION_EXPIRED_EVENT = 'auth:session-expired';
+
 let refreshPromise: Promise<string | null> | null = null;
 let refreshBlockedUntil = 0;
 let lastRefreshFailureStatus: number | null = null;
@@ -480,6 +484,7 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
         }
         if (lastRefreshFailureStatus === 401 || lastRefreshFailureStatus === 403) {
           await removeToken();
+          DeviceEventEmitter.emit(SESSION_EXPIRED_EVENT);
           throw new AuthError('Session expirée. Veuillez vous reconnecter.');
         }
         await removeAccessToken();

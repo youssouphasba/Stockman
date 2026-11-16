@@ -1,9 +1,9 @@
-﻿import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+﻿import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Alert, DeviceEventEmitter, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Linking from 'expo-linking';
-import { ApiError, auth as authApi, stores as storesApi, userFeatures, notifications as notificationsApi, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeRefreshToken, User, PushInstallationPayload } from '../services/api';
+import { ApiError, SESSION_EXPIRED_EVENT, auth as authApi, stores as storesApi, userFeatures, notifications as notificationsApi, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeRefreshToken, User, PushInstallationPayload } from '../services/api';
 import { initPurchases } from '../services/purchases';
 import { cache } from '../services/cache';
 import { isRestaurantBusiness } from '../utils/business';
@@ -87,6 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isBiometricsEnabled, setIsBiometricsEnabled] = useState(false);
   const [hasProduction, setHasProduction] = useState(false);
   const [isRestaurant, setIsRestaurant] = useState(false);
+  // Restauration ou changement de compte en cours : un refus de session y est attendu et déjà géré.
+  const authTransitionRef = useRef(0);
+  const sessionExpiredHandlingRef = useRef(false);
 
   const hydrateAuthenticatedUser = useCallback(async (userData: User) => {
     setUser(userData);
@@ -118,6 +121,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [hydrateAuthenticatedUser, persistCurrentSession]);
 
   const restoreSession = useCallback(async (allowRefreshFallback: boolean = false, options?: RestoreSessionOptions) => {
+    authTransitionRef.current += 1;
+    try {
+      return await restoreSessionInner(allowRefreshFallback, options);
+    } finally {
+      authTransitionRef.current -= 1;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrateAndPersistUser]);
+
+  const restoreSessionInner = async (allowRefreshFallback: boolean = false, options?: RestoreSessionOptions) => {
     const token = await getToken();
     const refreshToken = !token ? await getRefreshToken() : null;
     const hydrateFromActiveToken = async () => {
@@ -198,7 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsRestaurant(false);
     setActiveAccountIdState(null);
     return null;
-  }, [hydrateAndPersistUser]);
+  };
 
   const consumeDemoLink = useCallback(async (url?: string | null) => {
     if (!url) return false;
@@ -373,6 +386,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user;
   }
 
+  // Session refusée par le serveur (expirée, révoquée ou ouverte ailleurs) : on déconnecte l'appareil
+  // sans appeler le serveur, on oublie cette session morte et on garde les actions hors ligne en attente.
+  const handleSessionExpired = async () => {
+    if (authTransitionRef.current > 0 || sessionExpiredHandlingRef.current || !user) return;
+    sessionExpiredHandlingRef.current = true;
+    try {
+      const expiredUserId = user.user_id;
+      setIsAppLocked(false);
+      await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
+      setStoredAccounts(await removeStoredAccountSession(expiredUserId));
+      await clearActiveStoredAccountId();
+      await removeToken();
+      await removeRefreshToken();
+      setUser(null);
+      setHasProduction(false);
+      setIsRestaurant(false);
+      setActiveAccountIdState(null);
+      Alert.alert(
+        t('auth.session_expired_title', 'Session expirée'),
+        t('auth.session_expired_message', 'Votre session n\'est plus valide. Reconnectez-vous pour continuer.'),
+      );
+    } finally {
+      sessionExpiredHandlingRef.current = false;
+    }
+  };
+  const handleSessionExpiredRef = useRef(handleSessionExpired);
+  handleSessionExpiredRef.current = handleSessionExpired;
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(SESSION_EXPIRED_EVENT, () => {
+      void handleSessionExpiredRef.current();
+    });
+    return () => subscription.remove();
+  }, []);
+
   async function logout() {
     const rememberedAccounts = await listStoredAccountSessions();
     try {
@@ -395,6 +442,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function switchAccount(userId: string) {
+    authTransitionRef.current += 1;
+    try {
+      return await switchAccountInner(userId);
+    } finally {
+      authTransitionRef.current -= 1;
+    }
+  }
+
+  async function switchAccountInner(userId: string) {
     const targetSession = await getStoredAccountSession(userId);
     if (!targetSession) return null;
 

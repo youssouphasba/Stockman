@@ -4766,6 +4766,9 @@ export default function AdminDashboard() {
 
                         return (
                             <>
+                                <p className="text-xs text-slate-500">
+                                    Estimation du revenu mensuel récurrent : {mrrStats.paying_accounts ?? 0} {(mrrStats.paying_accounts ?? 0) > 1 ? 'abonnements payants en cours' : 'abonnement payant en cours'}, valorisés au prix de leur plan. Les essais gratuits, les comptes de démonstration, les comptes de l'équipe et les abonnements échus ne sont pas comptés.
+                                </p>
                                 {/* Current MRR summary */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div className="glass-card p-5">
@@ -4792,6 +4795,10 @@ export default function AdminDashboard() {
                                 </div>
 
                                 {/* Monthly bar chart */}
+                                {monthly.length === 0 && (
+                                    <div className="glass-card p-6 text-sm text-slate-500">Aucun paiement d'abonnement enregistré sur les 12 derniers mois.</div>
+                                )}
+
                                 {monthly.length > 0 && (
                                     <div className="glass-card p-6">
                                         <h4 className="text-sm font-black text-white uppercase tracking-widest mb-6">Paiements mensuels (12 mois)</h4>
@@ -4994,7 +5001,7 @@ export default function AdminDashboard() {
                                         <div className="text-xs text-slate-500 truncate mt-1">{catalogAdoption[0]?.display_name || '—'}</div>
                                     </div>
                                     <div className="glass-card p-5">
-                                        <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Total mappings</div>
+                                        <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Produits reliés</div>
                                         <div className="text-2xl font-black text-white">{catalogAdoption.reduce((s, p) => s + p.adoption_count, 0).toLocaleString('fr-FR')}</div>
                                     </div>
                                 </div>
@@ -5002,6 +5009,7 @@ export default function AdminDashboard() {
                                 <div className="glass-card overflow-hidden">
                                     <div className="p-5 border-b border-white/5 bg-white/5">
                                         <h4 className="text-sm font-black text-white uppercase tracking-widest">Top {catalogAdoption.length} produits les plus adoptés</h4>
+                                        <p className="text-xs text-slate-500 mt-1">Produits des catalogues fournisseurs que les commerçants ont reliés à leurs propres produits, en général à la réception d'une commande.</p>
                                     </div>
                                     <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto custom-scrollbar">
                                         {catalogAdoption.map((p: any, i: number) => {
@@ -5011,19 +5019,19 @@ export default function AdminDashboard() {
                                                     <span className="shrink-0 w-7 text-right text-xs font-black text-slate-600">#{i + 1}</span>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-sm font-bold text-white truncate">{p.display_name}</span>
+                                                            <span className={`text-sm font-bold truncate ${p.is_deleted ? 'text-slate-500 italic' : 'text-white'}`} title={p.catalog_id}>{p.display_name}</span>
                                                             {p.is_published && <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Publié</span>}
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
                                                                 <div className="h-full bg-primary/70 rounded-full transition-all" style={{ width: `${barW}%` }} />
                                                             </div>
-                                                            <span className="shrink-0 text-[10px] text-slate-500">{p.sector || '—'}</span>
+                                                            <span className="shrink-0 text-[10px] text-slate-500">{[p.supplier_name || p.sector, p.category].filter(Boolean).join(' · ') || '—'}</span>
                                                         </div>
                                                     </div>
                                                     <div className="shrink-0 text-right">
                                                         <div className="text-sm font-black text-white">{p.adoption_count}</div>
-                                                        <div className="text-[10px] text-slate-500">{p.unique_users} users</div>
+                                                        <div className="text-[10px] text-slate-500">{p.unique_users} {p.unique_users > 1 ? 'commerçants' : 'commerçant'}</div>
                                                     </div>
                                                 </div>
                                             );

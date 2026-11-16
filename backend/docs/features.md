@@ -638,6 +638,9 @@ Lorsque l'équipe Stockman désactive le réglage global **Fournisseurs**, il n'
 
 ## 18. Questions Fréquentes (FAQ)
 
+**Q: Combien de temps reste-t-on connecté ? Pourquoi l'application me demande-t-elle de me reconnecter ?**
+R: Une session reste valable 30 jours sans utilisation ; chaque utilisation la prolonge. Elle prend fin plus tôt après une déconnexion, un changement de mot de passe ou la suppression du compte. Quand le serveur ne reconnaît plus la session, l'application affiche « Session expirée » et ouvre l'écran de connexion ; les actions hors ligne en attente sont conservées et partent après la reconnexion.
+
 **Q: Comment retrouver une vente passée ?**
 R: Aller dans **Activité** et filtrer par "Caisse", ou dans **Comptabilité** pour les ventes d'une période.
 

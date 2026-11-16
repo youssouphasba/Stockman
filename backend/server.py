@@ -8972,7 +8972,10 @@ async def admin_toggle_product(product_id: str, user: User = Depends(require_sup
 
 @admin_router.get("/customers")
 async def admin_list_all_customers(search: Optional[str] = None, skip: int = 0, limit: int = 50, user: User = Depends(require_superadmin)):
-    query = {}
+    # Pas de clients fictifs : ni ceux des comptes de démonstration, ni ceux créés pour s'entraîner
+    # pendant le guide de démarrage.
+    query = await admin_non_demo_filter("user_id")
+    query[onboarding_guide.DEMO_TAG] = {"$ne": True}
     if search:
         _s = safe_regex(search)
         query["$or"] = [
@@ -10048,13 +10051,25 @@ async def admin_mrr_stats(months: int = 12, user: User = Depends(require_superad
             monthly[month_key]["by_plan"][plan] = {}
         monthly[month_key]["by_plan"][plan][currency] = monthly[month_key]["by_plan"][plan].get(currency, 0) + amount
 
-    # Current MRR by plan (active paid accounts)
+    # MRR actuel : seulement les abonnements réellement payants et en cours. Les essais gratuits,
+    # les comptes de démonstration, les comptes de l'équipe et les abonnements échus ne rapportent rien.
+    excluded_owner_ids = await db.users.distinct("user_id", {"$or": [
+        {"$nor": [ADMIN_NON_DEMO_FILTER]},
+        {"role": {"$in": ["superadmin", "admin"]}},
+    ]})
     accounts = await db.business_accounts.find(
-        {"subscription_status": "active"},
-        {"_id": 0, "plan": 1, "currency": 1, "country_code": 1},
+        {"subscription_status": "active", "owner_user_id": {"$nin": excluded_owner_ids}},
+        {"_id": 0, "plan": 1, "currency": 1, "country_code": 1, "subscription_provider": 1, "subscription_end": 1},
     ).to_list(None)
     current_mrr: Dict[str, Dict[str, float]] = {}
+    paying_accounts = 0
     for acc in accounts:
+        if not _is_paying_account(acc):
+            continue
+        sub_end = acc.get("subscription_end")
+        if sub_end and (sub_end if sub_end.tzinfo else sub_end.replace(tzinfo=timezone.utc)) < now:
+            continue
+        paying_accounts += 1
         plan = (acc.get("plan") or "starter").lower()
         resolved = resolve_plan_amount(plan, acc.get("currency"), country_code=acc.get("country_code"))
         currency = resolved["currency"]
@@ -10064,7 +10079,7 @@ async def admin_mrr_stats(months: int = 12, user: User = Depends(require_superad
         current_mrr[plan][currency] = current_mrr[plan].get(currency, 0) + amount
 
     sorted_months = sorted(monthly.values(), key=lambda x: x["month"])
-    return {"monthly": sorted_months, "current_mrr_by_plan": current_mrr}
+    return {"monthly": sorted_months, "current_mrr_by_plan": current_mrr, "paying_accounts": paying_accounts}
 
 
 @admin_router.get("/stats/retention")
@@ -16782,24 +16797,49 @@ async def admin_catalog_adoption(limit: int = 50, user: User = Depends(require_s
     ]
     rows = await db.catalog_product_mappings.aggregate(pipeline).to_list(limit)
 
-    # Enrich with catalog product names
+    # Les correspondances relient un produit du catalogue d'un fournisseur (catalog_products, « cata_… »)
+    # au produit d'un commerçant. Le nom vient donc du catalogue fournisseur, pas du catalogue global.
     catalog_ids = [r["_id"] for r in rows if r["_id"]]
-    catalog_docs = await db.global_catalog.find(
+    supplier_docs = await db.catalog_products.find(
         {"catalog_id": {"$in": catalog_ids}},
+        {"_id": 0, "catalog_id": 1, "name": 1, "category": 1, "supplier_user_id": 1, "publication_status": 1},
+    ).to_list(None)
+    supplier_map = {d["catalog_id"]: d for d in supplier_docs}
+    global_docs = await db.global_catalog.find(
+        {"catalog_id": {"$in": [cid for cid in catalog_ids if cid not in supplier_map]}},
         {"_id": 0, "catalog_id": 1, "display_name": 1, "sector": 1, "category": 1, "is_published": 1},
     ).to_list(None)
-    catalog_map = {d["catalog_id"]: d for d in catalog_docs}
+    global_map = {d["catalog_id"]: d for d in global_docs}
+    supplier_ids = list({d.get("supplier_user_id") for d in supplier_docs if d.get("supplier_user_id")})
+    profiles = await db.supplier_profiles.find(
+        {"user_id": {"$in": supplier_ids}}, {"_id": 0, "user_id": 1, "company_name": 1},
+    ).to_list(None) if supplier_ids else []
+    supplier_names = {p["user_id"]: p.get("company_name") for p in profiles}
 
     result = []
     for r in rows:
         cid = r["_id"]
-        doc = catalog_map.get(cid, {})
+        supplier_doc = supplier_map.get(cid)
+        global_doc = global_map.get(cid, {})
+        if supplier_doc:
+            name = supplier_doc.get("name") or ""
+            supplier_name = supplier_names.get(supplier_doc.get("supplier_user_id")) or ""
+            category = supplier_doc.get("category", "")
+            is_published = supplier_doc.get("publication_status") == "published"
+        else:
+            name = global_doc.get("display_name") or ""
+            supplier_name = ""
+            category = global_doc.get("category", "")
+            is_published = bool(global_doc.get("is_published", False))
         result.append({
             "catalog_id": cid,
-            "display_name": doc.get("display_name", cid),
-            "sector": doc.get("sector", ""),
-            "category": doc.get("category", ""),
-            "is_published": doc.get("is_published", False),
+            # Produit supprimé depuis : on le dit plutôt que d'afficher un identifiant technique.
+            "display_name": name or "Produit supprimé du catalogue",
+            "is_deleted": not (supplier_doc or global_doc),
+            "supplier_name": supplier_name,
+            "sector": supplier_name or global_doc.get("sector", ""),
+            "category": category,
+            "is_published": is_published,
             "adoption_count": r["adoption_count"],
             "unique_users": r["unique_users"],
         })
@@ -17227,11 +17267,13 @@ async def cleanup_logs_loop():
         logger.info(f"Cleanup: Removed {result_act.deleted_count} activity logs older than {retention_days} days")
 
     # 3. Cleanup inactive sessions (I10)
-    # Session is considered stale if last_active > 24 hours
-    session_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
+    # Une session inactive est supprimée au bout de la durée du jeton de renouvellement (30 jours).
+    # Avec l'ancienne règle de 24 heures, un téléphone non ouvert pendant une journée perdait sa session
+    # alors que son jeton de renouvellement était encore valable : l'application restait en erreur.
+    session_threshold = datetime.now(timezone.utc) - timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     result_sessions = await db.user_sessions.delete_many({"last_active": {"$lt": session_threshold}})
     if result_sessions.deleted_count:
-        logger.info(f"Cleanup: Expired {result_sessions.deleted_count} inactive sessions (24h rule)")
+        logger.info(f"Cleanup: Expired {result_sessions.deleted_count} inactive sessions ({REFRESH_TOKEN_EXPIRE_DAYS} days rule)")
 
 # ===================== POS ENDPOINTS =====================
 

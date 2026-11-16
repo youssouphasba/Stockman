@@ -685,7 +685,9 @@
       "errorCode": "Please enter the 6-digit code",
       "errorIncorrect": "Incorrect or expired code",
       "resendTip": "Resend feature coming soon"
-    }
+    },
+    "session_expired_title": "Session expired",
+    "session_expired_message": "Your session is no longer valid. Sign in again to continue."
   },
   "batch_scan": {
     "action_required": "Action required",
