@@ -1,4 +1,5 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTabReselect } from '../../hooks/useTabReselect';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -71,6 +72,9 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
   const { user, isSuperAdmin } = useAuth();
   const { setDrawerContent } = useDrawer();
   const insets = useSafeAreaInsets();
+  // Réappuyer sur l'onglet actif remonte en haut, ou recharge si l'écran est déjà en haut.
+  const scrollRef = useRef<ScrollView>(null);
+  const trackTabScroll = useTabReselect(scrollRef, () => onRefresh());
   const ecommerceWorkspace = requestedEcommerceWorkspace || (
     Platform.OS !== 'web' && !supplierOrders && isEcommerceWorkspaceAccount(user)
   );
@@ -1107,10 +1111,13 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
     >
       <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
         <ScrollView
+          ref={scrollRef}
           style={styles.container}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+          onScroll={trackTabScroll}
+          scrollEventThrottle={100}
         >
           <View style={[styles.headerRow, { paddingTop: insets.top }]}>
             <View>

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useScrollToTop } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -107,6 +108,9 @@ function POSWorkspace() {
     const { user, hasPermission } = useAuth();
     const { isConnected } = useNetwork();
     const insets = useSafeAreaInsets();
+    // Réappuyer sur l'onglet actif remonte en haut du catalogue.
+    const productListRef = useRef<FlatList<any> | null>(null);
+    useScrollToTop(productListRef);
     const { setDrawerContent } = useDrawer();
     const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const isMobile = screenWidth < 768;
@@ -1672,6 +1676,7 @@ function POSWorkspace() {
                             </View>
 
                             <FlatList
+                                ref={productListRef}
                                 key={guidingProduct ? 'guide' : 'catalog'}
                                 data={visibleProducts}
                                 keyExtractor={(product) => product.product_id}

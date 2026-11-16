@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useTabReselect } from '../../hooks/useTabReselect';
 import { useTranslation } from 'react-i18next';
 import {
     View,
@@ -140,6 +141,8 @@ function CRMWorkspace() {
         return refresh.dispose;
     }, [refresh]);
     const scrollViewRef = useRef<ScrollView | null>(null);
+    // Réappuyer sur l'onglet actif remonte en haut, ou recharge si l'écran est déjà en haut.
+    const trackTabScroll = useTabReselect(scrollViewRef, () => onRefresh());
     const customerSectionYRef = useRef(0);
     const [refreshing, setRefreshing] = useState(false);
     const [savingSettings, setSavingSettings] = useState(false);
@@ -997,7 +1000,9 @@ function CRMWorkspace() {
                     contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
                     scrollEventThrottle={250}
-                    onScroll={({ nativeEvent }) => {
+                    onScroll={(event) => {
+                        trackTabScroll(event);
+                        const { nativeEvent } = event;
                         // Près du bas de la liste, la tranche suivante de fiches s'affiche d'elle-même.
                         const distanceToEnd = nativeEvent.contentSize.height - nativeEvent.layoutMeasurement.height - nativeEvent.contentOffset.y;
                         if (hiddenCustomerCount > 0 && distanceToEnd < 600) showMoreCustomers();

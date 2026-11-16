@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
+import { useTabReselect } from '../../hooks/useTabReselect';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -272,6 +273,8 @@ function AccountingWorkspace() {
 
     // Scroll refs for drawer navigation
     const scrollViewRef = useRef<ScrollView>(null);
+    // Réappuyer sur l'onglet actif remonte en haut, ou recharge si l'écran est déjà en haut.
+    const trackTabScroll = useTabReselect(scrollViewRef, () => onRefresh());
     const sectionRefs = {
         kpiGrid: useRef<View>(null),
         expenses: useRef<View>(null),
@@ -1526,6 +1529,8 @@ function AccountingWorkspace() {
                         ref={scrollViewRef}
                         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+                        onScroll={trackTabScroll}
+                        scrollEventThrottle={100}
                     >
                         {/* Header */}
                         <View style={{ paddingTop: Spacing.xs, marginBottom: Spacing.sm }}>

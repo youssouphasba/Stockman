@@ -1,4 +1,5 @@
-﻿import React, { useCallback, useMemo, useState } from 'react';
+﻿import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useTabReselect } from '../../hooks/useTabReselect';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -61,6 +62,9 @@ export default function SuppliersScreen() {
   const { t, i18n } = useTranslation();
   const { user, isSuperAdmin } = useAuth();
   const insets = useSafeAreaInsets();
+  // Réappuyer sur l'onglet actif remonte en haut, ou recharge si l'écran est déjà en haut.
+  const scrollRef = useRef<ScrollView>(null);
+  const trackTabScroll = useTabReselect(scrollRef, () => onRefresh());
   const { setDrawerContent } = useDrawer();
   const styles = getStyles(colors, glassStyle);
   const router = useRouter();
@@ -945,9 +949,12 @@ export default function SuppliersScreen() {
     >
       <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
         <ScrollView
+          ref={scrollRef}
           style={styles.container}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          onScroll={trackTabScroll}
+          scrollEventThrottle={100}
         >
           <View style={[styles.headerRow, { paddingTop: insets.top }]}>
             <View>

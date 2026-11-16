@@ -400,6 +400,14 @@ test('Android back returns to the settings section list before leaving Settings'
   assert.equal(h.values.starterSection, null);
 });
 
+test('Pressing the active Settings tab returns to the section list', () => {
+  const h = createHarness({ states: { starterSection: 'store' } });
+  content(h);
+  h.effects.find((effect) => String(effect).includes("'tabPress'"))();
+  h.events.get('tabPress')();
+  assert.equal(h.values.starterSection, null);
+});
+
 test('Loading a store preserves its explicit blank document fields instead of account defaults', async () => {
   const store = { store_id: 'store', invoice_prefix: '', invoice_label: '', receipt_footer: '', invoice_footer: '' };
   const h = createHarness({ services: {

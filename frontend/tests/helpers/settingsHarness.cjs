@@ -75,6 +75,10 @@ function createHarness(overrides = {}) {
     Linking: { openURL: record('openURL') },
     useWindowDimensions: () => ({ width: 390, height: 844 }),
   }, { get: (object, key) => key in object ? object[key] : String(key) });
+  const navigation = {
+    addListener: (event, callback) => { events.set(event, callback); return () => events.delete(event); },
+    isFocused: () => true,
+  };
   const cache = new Map();
   function load(relativePath) {
     if (cache.has(relativePath)) return cache.get(relativePath);
@@ -85,7 +89,8 @@ function createHarness(overrides = {}) {
     function requireModule(specifier) {
       if (specifier === 'react') return hooks;
       if (specifier === 'react-native') return natives;
-      if (specifier === 'expo-router') return { Link: 'Link', useRouter: () => router, useLocalSearchParams: () => overrides.params || {}, useFocusEffect: (callback) => focusEffects.push(callback) };
+      if (specifier === 'expo-router') return { Link: 'Link', useRouter: () => router, useLocalSearchParams: () => overrides.params || {}, useFocusEffect: (callback) => focusEffects.push(callback), useNavigation: () => navigation };
+      if (specifier === '@react-navigation/native') return { useScrollToTop: () => undefined };
       if (specifier === 'react-i18next') return { useTranslation: () => ({ t: (key, fallback) => key.startsWith('settings.mobile_groups.') ? mobileGroupLabels[key.split('.').at(-1)] : typeof fallback === 'string' ? fallback : key, i18n: { language: 'fr' } }) };
       if (specifier === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) };
       if (specifier === '@expo/vector-icons') return { Ionicons: 'Icon' };

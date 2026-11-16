@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
+import { useTabReselect } from '../../hooks/useTabReselect';
 import {
   View,
   Text,
@@ -330,6 +331,8 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
 
   const [productList, setProductList] = useState<Product[]>([]);
   const productListRef = useRef<FlatList<Product> | null>(null);
+  // Réappuyer sur l'onglet actif remonte en haut, ou recharge si l'écran est déjà en haut.
+  const trackTabScroll = useTabReselect(productListRef, () => onRefresh());
   const [categoryList, setCategoryList] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -4589,6 +4592,8 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
           isSelectionMode && styles.contentWithSelectionToolbar,
         ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        onScroll={trackTabScroll}
+        scrollEventThrottle={100}
       />
 
       {isSelectionMode && (

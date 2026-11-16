@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useTabReselect } from '../../hooks/useTabReselect';
 import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -228,6 +229,8 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
 
   // Scroll refs for drawer navigation
   const scrollViewRef = useRef<ScrollView>(null);
+  // Réappuyer sur l'onglet actif remonte en haut, ou recharge si l'écran est déjà en haut.
+  const trackTabScroll = useTabReselect(scrollViewRef, () => onRefresh());
   const sectionOffsets = useRef<Record<string, number>>({});
   const scrollToSection = useCallback((key: string) => {
     const y = sectionOffsets.current[key];
@@ -1097,6 +1100,8 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        onScroll={trackTabScroll}
+        scrollEventThrottle={100}
       >
         <View style={[styles.headerSection, { paddingTop: insets.top }]}>
           <View style={styles.dashboardHeaderRow}>

@@ -1,4 +1,5 @@
-﻿import React from 'react';
+﻿import React, { useRef } from 'react';
+import { useScrollToTop } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,9 @@ export default function RestaurantHubScreen() {
   const { t } = useTranslation();
   const { colors, glassStyle } = useTheme();
   const insets = useSafeAreaInsets();
+  // Réappuyer sur l'onglet actif remonte en haut de l'écran.
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
   const router = useRouter();
   const styles = getStyles(colors, glassStyle);
 
@@ -63,7 +67,7 @@ export default function RestaurantHubScreen() {
 
   return (
     <LinearGradient colors={[colors.bgDark, colors.bgMid, colors.bgLight]} style={styles.gradient}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}>
+      <ScrollView ref={scrollRef} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xl }]}>
         <View style={styles.hero}>
           <Text style={styles.title}>{t('restaurant.hub.title', 'Pilotage restaurant')}</Text>
           <Text style={styles.subtitle}>

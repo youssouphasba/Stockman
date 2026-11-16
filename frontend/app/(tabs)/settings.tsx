@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useScrollToTop } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -18,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { useFocusEffect, Link, useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, Link, useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasPlatformModule } from '../../utils/access';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -329,6 +330,8 @@ export default function SettingsScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadVersionRef = useRef(0);
   const scrollRef = useRef<ScrollView>(null);
+  // Réappuyer sur l'onglet actif remonte en haut de l'écran.
+  useScrollToTop(scrollRef);
   const settingsContext = `${user?.user_id || ''}:${user?.active_store_id || ''}`;
   const settingsContextRef = useRef(settingsContext);
   settingsContextRef.current = settingsContext;
@@ -438,6 +441,14 @@ export default function SettingsScreen() {
     setStarterSection(section);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, []);
+
+  // Réappuyer sur l'onglet Réglages déjà ouvert referme la section en cours et revient à la liste.
+  const navigation = useNavigation();
+  useEffect(() => {
+    return (navigation as any).addListener('tabPress', () => {
+      if (navigation.isFocused()) changeStarterSection(null);
+    });
+  }, [navigation, changeStarterSection]);
 
   useEffect(() => {
     const sectionParam = Array.isArray(params.section) ? params.section[0] : params.section;
