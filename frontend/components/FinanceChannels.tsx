@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import KpiInfoButton from './KpiInfoButton';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import type { AccountingStats, SalesChannel } from '../services/api';
@@ -67,11 +68,13 @@ type PanelProps = {
   formatCurrency: (value: number) => string;
 };
 
-function Figure({ label, value, hint, tone, half }: { label: string; value: string; hint?: string; tone?: string; half?: boolean }) {
+function Figure({ label, value, hint, tone, half, info }: { label: string; value: string; hint?: string; tone?: string; half?: boolean; info?: string }) {
   const { colors, glassStyle } = useTheme();
   return (
     <View style={[glassStyle, styles.figure, half && styles.half]}>
-      <Text style={[styles.figureLabel, { color: colors.textSecondary }]} numberOfLines={1}>{label}</Text>
+      {/* « i » : ce que la carte compte exactement, affiché au toucher. */}
+      {info ? <KpiInfoButton info={info} color={colors.textMuted} size={16} /> : null}
+      <Text style={[styles.figureLabel, { color: colors.textSecondary }, info ? { paddingRight: 20 } : null]} numberOfLines={1}>{label}</Text>
       <Text style={[styles.figureValue, { color: tone || colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       {hint ? <Text style={[styles.figureHint, { color: colors.textMuted }]}>{hint}</Text> : null}
     </View>
@@ -145,19 +148,19 @@ function EcommercePanel({ stats, formatCurrency }: { stats: AccountingStats; for
       subtitle={t('accounting.ecommerce_flow_subtitle', { defaultValue: 'Annulations exclues. Les frais de livraison Denkma ne font jamais partie du chiffre d’affaires.' })}
     >
       <View style={styles.grid}>
-        <Figure half label={t('accounting.ecommerce_ordered', { defaultValue: 'Commandé' })} value={formatCurrency(flow.ordered.amount)} hint={orders(flow.ordered.count)} />
-        <Figure half label={t('accounting.ecommerce_delivered', { defaultValue: 'Livré (CA)' })} value={formatCurrency(flow.revenue)} hint={orders(flow.delivered.count)} tone={colors.success} />
-        <Figure half label={t('accounting.ecommerce_collected', { defaultValue: 'Encaissé' })} value={formatCurrency(flow.collected)} />
-        <Figure half label={t('accounting.ecommerce_to_collect', { defaultValue: 'À encaisser' })} value={formatCurrency(flow.to_collect.amount)} hint={orders(flow.to_collect.count)} tone={flow.to_collect.amount > 0 ? colors.warning : undefined} />
-        <Figure half label={t('accounting.ecommerce_open', { defaultValue: 'En cours' })} value={formatCurrency(flow.open.amount)} hint={orders(flow.open.count)} tone={colors.textSecondary} />
-        <Figure half label={t('accounting.ecommerce_cancelled', { defaultValue: 'Annulées ou refusées' })} value={formatCurrency(flow.cancelled.amount)} hint={orders(flow.cancelled.count)} tone={colors.textSecondary} />
+        {/* Le chiffre d'affaires livré figure déjà dans les indicateurs en dessous : le circuit n'y revient pas. */}
+        <Figure half label={t('accounting.ecommerce_collected', { defaultValue: 'Encaissé' })} value={formatCurrency(flow.collected)} tone={colors.success} info={t('accounting.info_ecommerce_collected')} />
+        <Figure half label={t('accounting.ecommerce_open', { defaultValue: 'En cours' })} value={formatCurrency(flow.open.amount)} hint={orders(flow.open.count)} tone={colors.textSecondary} info={t('accounting.info_ecommerce_open')} />
+        <Figure half label={t('accounting.ecommerce_cancelled', { defaultValue: 'Annulées ou refusées' })} value={formatCurrency(flow.cancelled.amount)} hint={orders(flow.cancelled.count)} tone={colors.textSecondary} info={t('accounting.info_ecommerce_cancelled')} />
+        <Figure
+          half
+          info={t('accounting.info_delivery_transit')}
+          label={t('accounting.delivery_transit', { defaultValue: 'Livraison en transit' })}
+          value={formatCurrency(flow.delivery_transit.amount)}
+          hint={t('accounting.delivery_transit_hint', { defaultValue: 'Frais payés par les clients, à reverser à Denkma' })}
+          tone={colors.textSecondary}
+        />
       </View>
-      <Figure
-        label={t('accounting.delivery_transit', { defaultValue: 'Livraison en transit' })}
-        value={formatCurrency(flow.delivery_transit.amount)}
-        hint={t('accounting.delivery_transit_hint', { defaultValue: 'Frais payés par les clients, à reverser à Denkma' })}
-        tone={colors.textSecondary}
-      />
     </Section>
   );
 }

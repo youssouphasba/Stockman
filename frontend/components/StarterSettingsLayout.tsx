@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { ENTERPRISE_SETTINGS_GROUPS, STARTER_SETTINGS_GROUPS, StarterSettingsGroup } from '../utils/starterSettings';
+import { MANAGED_SETTINGS_GROUPS, STARTER_SETTINGS_GROUPS, StarterSettingsGroup } from '../utils/starterSettings';
 
 type SectionProps = { sectionKey?: string; title?: string; children?: React.ReactNode; hidden?: boolean };
 
@@ -27,19 +27,19 @@ export function collectSettingsSections(children: React.ReactNode): Map<string, 
 
 type Props = {
   enabled: boolean;
-  enterprise?: boolean;
+  managed?: boolean;
   activeSection: StarterSettingsGroup | null;
   onSectionChange: (section: StarterSettingsGroup | null) => void;
   pendingCount: number;
   children: React.ReactNode;
 };
 
-export default function StarterSettingsLayout({ enabled, enterprise = false, activeSection, onSectionChange, pendingCount, children }: Props) {
+export default function StarterSettingsLayout({ enabled, managed = false, activeSection, onSectionChange, pendingCount, children }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const sections = enabled ? collectSettingsSections(children) : null;
-  const groups = enterprise
-    ? ENTERPRISE_SETTINGS_GROUPS.filter((item) => item.sections.some((key) => sections?.has(key)))
+  const groups = managed
+    ? MANAGED_SETTINGS_GROUPS.filter((item) => item.sections.some((key) => sections?.has(key)))
     : STARTER_SETTINGS_GROUPS;
   const group = groups.find((item) => item.id === activeSection);
   useFocusEffect(useCallback(() => {
@@ -59,7 +59,7 @@ export default function StarterSettingsLayout({ enabled, enterprise = false, act
       >
         <Ionicons name={item.icon} size={24} color={colors.primary} />
         <Text style={{ flex: 1, fontSize: 17, fontWeight: '600', color: colors.text }}>{t('settings.mobile_groups.' + item.id)}</Text>
-        {item.id === 'help' && pendingCount > 0 && <Text style={{ color: colors.warning, fontWeight: '700' }}>{pendingCount}</Text>}
+        {item.id === 'information' && pendingCount > 0 && <Text style={{ color: colors.warning, fontWeight: '700' }}>{pendingCount}</Text>}
         <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
       </TouchableOpacity>)}
     </View>;
@@ -75,7 +75,7 @@ export default function StarterSettingsLayout({ enabled, enterprise = false, act
     {group.sections.map((key) => {
       const section = sections.get(key);
       if (!section) return null;
-      if (enterprise && (key === 'organization' || key === 'accountAlerts' || key === 'storeAlerts')) {
+      if (managed && (key === 'organization' || key === 'accountAlerts' || key === 'storeAlerts')) {
         return React.cloneElement(section, { key });
       }
       return <View key={key} style={{ marginBottom: 20 }}>

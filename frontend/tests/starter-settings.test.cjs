@@ -21,9 +21,8 @@ test('Native Starter settings show Help after My store and separate Information'
   assert.equal(h.calls.length, 0);
 });
 
-test('Pro, web, demo and Starter staff retain the original settings tree', () => {
+test('Web, demo and Starter staff retain the original settings tree', () => {
   for (const options of [
-    { user: { user_id: 'pro', role: 'shopkeeper', subscription_plan: 'pro', effective_plan: 'starter' } },
     { platform: 'web' },
     { platform: 'web', user: { user_id: 'enterprise-web', role: 'shopkeeper', subscription_plan: 'enterprise' } },
     { user: { user_id: 'demo', role: 'shopkeeper', subscription_plan: 'starter', is_demo: true } },
@@ -37,54 +36,63 @@ test('Pro, web, demo and Starter staff retain the original settings tree', () =>
 });
 
 const enterpriseUser = { user_id: 'enterprise', role: 'shopkeeper', subscription_plan: 'enterprise', effective_plan: 'starter', active_store_id: 'store' };
+const proUser = { user_id: 'pro', role: 'shopkeeper', subscription_plan: 'pro', effective_plan: 'starter', active_store_id: 'store' };
 
-test('Enterprise mobile uses the same top-level settings groups as Starter', () => {
-  const h = createHarness({ user: enterpriseUser });
-  const { layout, nodes } = content(h);
-  assert.equal(layout.props.enabled, true);
-  assert.equal(layout.props.enterprise, true);
-  assert.deepEqual(nodes.filter((node) => node.type === 'Text').map((node) => node.props.children), [
-    'Boutique en ligne', 'Ma boutique', 'Aide', 'Mon compte', 'Notifications', 'Mon abonnement', 'Informations',
-  ]);
-  nodes.find((node) => node.type === 'TouchableOpacity').props.onPress();
-  assert.equal(h.values.starterSection, 'online');
+test('Pro and Enterprise mobile share the grouped settings structure with Starter', () => {
+  for (const user of [proUser, enterpriseUser]) {
+    const h = createHarness({ user });
+    const { layout, nodes } = content(h);
+    assert.equal(layout.props.enabled, true);
+    assert.equal(layout.props.managed, true);
+    assert.deepEqual(nodes.filter((node) => node.type === 'Text').map((node) => node.props.children), [
+      'Boutique en ligne', 'Ma boutique', 'Aide', 'Mon compte', 'Notifications', 'Mon abonnement', 'Informations',
+    ]);
+    nodes.find((node) => node.type === 'TouchableOpacity').props.onPress();
+    assert.equal(h.values.starterSection, 'online');
+  }
 });
 
-test('Enterprise advanced settings remain reachable without giving staff new permissions', () => {
-  const h = createHarness({ user: enterpriseUser, states: { starterSection: 'account', expandedSections: { organization: true } } });
-  const { layout: enterpriseLayout } = content(h);
-  const accountNodes = h.renderedNodes(h.layout.default({ ...enterpriseLayout.props, activeSection: 'account' }));
-  assert.ok(accountNodes.some((node) => node.props.children === 'settings.organization_modules'));
-  assert.ok(accountNodes.some((node) => node.props.children === 'settings.modules'));
-  assert.ok(!accountNodes.some((node) => node.props.children === 'settings.section_org'));
-  const notifications = content(createHarness({ user: enterpriseUser, states: {
-    starterSection: 'notifications', expandedSections: { accountAlerts: true, storeAlerts: true },
-  } }));
-  for (const key of ['settings.push_severity_label', 'settings.email_severity_label', 'settings.save_account_recipients', 'settings.save_store_recipients']) {
-    assert.ok(notifications.nodes.some((node) => node.props.children === key), key);
+test('Managed mobile settings preserve permission checks for Pro and Enterprise', () => {
+  for (const user of [proUser, enterpriseUser]) {
+    const h = createHarness({ user, states: { starterSection: 'account', expandedSections: { organization: true } } });
+    const { layout } = content(h);
+    const accountNodes = h.renderedNodes(h.layout.default({ ...layout.props, activeSection: 'account' }));
+    assert.ok(accountNodes.some((node) => node.props.children === 'settings.organization_modules'));
+    assert.ok(accountNodes.some((node) => node.props.children === 'settings.modules'));
+    assert.ok(!accountNodes.some((node) => node.props.children === 'settings.section_org'));
+    const notifications = content(createHarness({ user, states: {
+      starterSection: 'notifications', expandedSections: { accountAlerts: true, storeAlerts: true },
+    } }));
+    for (const key of ['settings.push_severity_label', 'settings.email_severity_label', 'settings.save_account_recipients', 'settings.save_store_recipients']) {
+      assert.ok(notifications.nodes.some((node) => node.props.children === key), key);
+    }
   }
   const staff = createHarness({
     user: { ...enterpriseUser, role: 'staff' },
     auth: { isOrgAdmin: false, isBillingAdmin: false, hasPermission: () => false },
   });
   const { layout, nodes } = content(staff);
-  assert.equal(layout.props.enterprise, true);
+  assert.equal(layout.props.managed, true);
   const labels = nodes.filter((node) => node.type === 'Text').map((node) => node.props.children);
   for (const label of ['Boutique en ligne', 'Ma boutique', 'Organisation', 'Mon abonnement']) assert.ok(!labels.includes(label));
   assert.ok(labels.includes('Mon compte'));
 });
 
-test('Enterprise mobile deep links and the E-com event select their grouped section', () => {
+test('Pro and Enterprise mobile deep links and E-com events select grouped sections', () => {
   for (const [section, group] of Object.entries({ organization: 'account', organizationGroup: 'account', storeAlerts: 'notifications', online: 'online' })) {
-    const h = createHarness({ user: enterpriseUser, params: { section } });
-    h.effects.find((effect) => String(effect).includes('SETTINGS_SECTION_KEYS'))();
-    assert.equal(h.values.starterSection, group);
-    if (group === 'account') assert.equal(h.values.expandedSections.organization, true);
+    for (const user of [proUser, enterpriseUser]) {
+      const h = createHarness({ user, params: { section } });
+      h.effects.find((effect) => String(effect).includes('SETTINGS_SECTION_KEYS'))();
+      assert.equal(h.values.starterSection, group);
+      if (group === 'account') assert.equal(h.values.expandedSections.organization, true);
+    }
   }
-  const h = createHarness({ user: enterpriseUser });
-  h.effects.find((effect) => String(effect).includes('settings:open-ecommerce'))();
-  h.events.get('settings:open-ecommerce')();
-  assert.equal(h.values.starterSection, 'online');
+  for (const user of [proUser, enterpriseUser]) {
+    const h = createHarness({ user });
+    h.effects.find((effect) => String(effect).includes('settings:open-ecommerce'))();
+    h.events.get('settings:open-ecommerce')();
+    assert.equal(h.values.starterSection, 'online');
+  }
 });
 
 test('Restaurant-only modules stay hidden for commerce and are preserved when saving another module', async () => {
@@ -301,14 +309,22 @@ test('Security, language, theme and stored accounts retain their handlers', asyn
   assert.ok(!h.calls.some(([name]) => name === 'logout'));
 });
 
-test('Help preserves sync and support without account actions', () => {
+test('Help keeps support without sync or account actions', () => {
   const h = createHarness({ states: { starterSection: 'help' }, sync: { isOnline: false, pendingCount: 3 } });
   const { nodes } = content(h);
-  assert.ok(nodes.some((node) => node.props.onPress?.name === 'prefetchData' && node.props.disabled));
-  assert.ok(nodes.some((node) => node.props.onPress?.name === 'processQueue' && node.props.disabled));
+  assert.ok(!nodes.some((node) => node.props.onPress?.name === 'processQueue'));
   assert.ok(nodes.some((node) => String(node.props.onPress).includes('setShowSupportModal(true)')));
   assert.ok(!nodes.some((node) => node.props.onPress?.name === 'handleExportData'));
   assert.ok(!nodes.some((node) => String(node.props.onPress).includes('setShowDeleteModal(true)')));
+});
+
+test('Information shows the automatic sync status, with a fallback button only for pending actions', () => {
+  const pending = content(createHarness({ states: { starterSection: 'information' }, sync: { isOnline: false, pendingCount: 3 } }));
+  assert.ok(pending.nodes.some((node) => node.props.onPress?.name === 'processQueue' && node.props.disabled));
+  assert.ok(!pending.nodes.some((node) => node.props.onPress?.name === 'prefetchData'));
+  const idle = content(createHarness({ states: { starterSection: 'information' }, sync: { isOnline: true, pendingCount: 0 } }));
+  assert.ok(idle.nodes.some((node) => node.props.children === 'settings.last_sync'));
+  assert.ok(!idle.nodes.some((node) => node.props.onPress?.name === 'processQueue'));
 });
 
 test('My account preserves export and the existing account deletion modal', async () => {
@@ -323,7 +339,7 @@ test('My account preserves export and the existing account deletion modal', asyn
 });
 
 test('Legacy settings deep links and E-com events select the matching Starter section', () => {
-  const groups = { storeDocuments: 'store', tax: 'store', storeEcommerce: 'online', security: 'account', data: 'account', legal: 'information', billing: 'billing', support: 'help', sync: 'help', accountAlerts: 'notifications' };
+  const groups = { storeDocuments: 'store', tax: 'store', storeEcommerce: 'online', security: 'account', data: 'account', legal: 'information', billing: 'billing', support: 'help', sync: 'information', accountAlerts: 'notifications' };
   for (const [section, group] of Object.entries(groups)) {
     const h = createHarness({ params: { section } });
     h.effects.find((effect) => String(effect).includes('SETTINGS_SECTION_KEYS'))();

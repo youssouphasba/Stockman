@@ -1076,6 +1076,7 @@ async def create_indexes_and_init():
                 await db.system_message_deliveries.create_index([("target_user_id", 1), ("created_at", -1)])
                 await db.system_message_deliveries.create_index([("target_user_id", 1), ("scenario", 1), ("milestone", 1), ("channel", 1), ("status", 1)])
                 await db.system_message_deliveries.create_index([("demo_session_id", 1), ("scenario", 1), ("milestone", 1), ("channel", 1), ("status", 1)])
+                await db.email_unsubscribes.create_index([("email", 1), ("scope", 1)], unique=True)
                 await db.push_installations.create_index("installation_id", unique=True)
                 await db.push_installations.create_index("expo_push_token")
                 await db.push_installations.create_index([("last_user_id", 1), ("updated_at", -1)])
@@ -3878,7 +3879,7 @@ class AccountingStats(BaseModel):
     product_performance: List[Dict[str, Any]] = [] # Detailed per-product stats
     channel: str = "all"  # canal des chiffres de ventes : all | physical | ecommerce
     channels: Dict[str, Dict[str, Any]] = {}  # chiffres de chaque canal sur la période
-    ecommerce: Dict[str, Any] = {}  # circuit E-com : commandé, livré, encaissé, à encaisser
+    ecommerce: Dict[str, Any] = {}  # circuit E-com : commandé, livré, encaissé, en cours, transit
     treasury: Dict[str, Any] = {}  # encaissements, créances et livraison en transit
 
 class DashboardData(BaseModel):
@@ -4585,6 +4586,12 @@ def get_api_public_base_url() -> str:
     ).rstrip("/")
 
 
+def get_email_link_base_url() -> str:
+    # Les liens envoyés aux utilisateurs restent sur un domaine Stockman (relais /api de l'application web) :
+    # un lien vers le domaine Railway partagé fait classer les e-mails en spam.
+    return (os.environ.get("EMAIL_LINK_BASE_URL") or get_web_app_base_url()).rstrip("/")
+
+
 def is_billable_owner_doc(user_doc: Optional[dict]) -> bool:
     if not user_doc:
         return False
@@ -4626,7 +4633,7 @@ def build_signed_billing_payment_link(
     days_left: Optional[int] = None,
 ) -> str:
     token = create_billing_payment_token(account_doc, owner_doc, plan, provider=provider, days_left=days_left)
-    return f"{get_api_public_base_url()}/api/billing/pay?t={quote(token, safe='')}"
+    return f"{get_email_link_base_url()}/api/billing/pay?t={quote(token, safe='')}"
 
 
 def merge_billing_user_payload(owner_doc: dict, account_doc: Optional[dict]) -> dict:
@@ -4742,7 +4749,7 @@ def build_signed_app_open_link(deeplink: str, purpose: str = "activation") -> st
         "exp": int(expires_at.timestamp()),
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-    return f"{get_api_public_base_url()}/api/open-app?t={quote(token, safe='')}"
+    return f"{get_email_link_base_url()}/api/open-app?t={quote(token, safe='')}"
 
 
 def build_web_dashboard_hash_url(tab: str) -> str:
@@ -4808,10 +4815,13 @@ def choose_system_activation_target(
         return None
 
     if product_count <= 0 and permission_allows_write(permissions, "stock"):
+        # Trois relances au plus (J1, J3, J7), puis plus rien : une relance quotidienne sans fin fait passer les e-mails en spam.
         days_since_creation = max(0, (now - created_at).days)
+        if days_since_creation < 1 or days_since_creation >= 14:
+            return None
         return {
             "scenario": "add_first_products",
-            "milestone": f"daily_d{days_since_creation}",
+            "milestone": "j1" if days_since_creation < 3 else "j3" if days_since_creation < 7 else "j7",
             "deeplink": build_app_deeplink("settings", {"source": "activation", "section": "support", "request": "product_setup"}),
             "email_subject": "Besoin d'aide pour créer vos produits ?",
             "push_title": "Besoin d'aide pour démarrer ?",
@@ -4993,18 +5003,58 @@ async def record_system_delivery(
     await db.system_message_deliveries.insert_one(doc)
 
 
-def build_activation_email_html(name: str, body: str, action_url: str) -> str:
+MARKETING_EMAIL_SCOPE = "marketing"
+
+
+def build_marketing_unsubscribe_link(email: str) -> str:
+    # Lien sans date d'expiration : une désinscription doit rester possible depuis un ancien e-mail.
+    token = jwt.encode(
+        {"type": "email_unsubscribe", "email": email.strip().lower(), "scope": MARKETING_EMAIL_SCOPE},
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+    return f"{get_email_link_base_url()}/api/email/unsubscribe?t={quote(token, safe='')}"
+
+
+def build_marketing_email_headers(unsubscribe_url: str) -> Dict[str, str]:
+    # Désinscription en un clic (RFC 8058), exigée par Gmail et Yahoo pour les e-mails de relance.
+    return {
+        "List-Unsubscribe": f"<{unsubscribe_url}>",
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    }
+
+
+async def is_marketing_email_unsubscribed(email: str) -> bool:
+    value = (email or "").strip().lower()
+    if not value:
+        return True
+    return bool(await db.email_unsubscribes.find_one({"email": value, "scope": MARKETING_EMAIL_SCOPE}, {"_id": 1}))
+
+
+def build_activation_email_html(name: str, body: str, action_url: str, unsubscribe_url: str, reason: str) -> str:
     safe_name = (name or "Bonjour").strip()
     return f"""Bonjour {safe_name},<br><br>
 {body}<br><br>
 <a href="{action_url}" style="background:#0f172a;color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block;">Ouvrir dans Stockman</a><br><br>
 Si le bouton ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone.<br><br>
-À bientôt,<br>L'équipe Stockman."""
+À bientôt,<br>L'équipe Stockman.<br><br>
+<span style="color:#64748b;font-size:12px;">{reason} <a href="{unsubscribe_url}" style="color:#64748b;">Ne plus recevoir ces conseils par e-mail</a></span>"""
+
+
+def build_activation_email_text(body: str, action_url: str, unsubscribe_url: str, reason: str, name: Optional[str] = None) -> str:
+    return (
+        (f"Bonjour {name},\n\n" if name else "")
+        + f"{body}\n\n"
+        f"Ouvrir dans Stockman : {action_url}\n\n"
+        "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone.\n\n"
+        "À bientôt,\nL'équipe Stockman.\n\n"
+        f"{reason} Ne plus recevoir ces conseils par e-mail : {unsubscribe_url}"
+    )
 
 
 async def send_system_activation_email(user_doc: dict, account_doc: Optional[dict], target: Dict[str, Any], milestone_filter: dict, now: datetime) -> None:
     email = (user_doc.get("email") or "").strip()
-    if not email:
+    if not email or await is_marketing_email_unsubscribed(email):
         return
     delivery_key = build_system_delivery_key(
         "email",
@@ -5025,15 +5075,17 @@ async def send_system_activation_email(user_doc: dict, account_doc: Optional[dic
         return
     name = user_doc.get("name") or "cher utilisateur"
     action_url = build_signed_app_open_link(target["deeplink"], purpose=target["scenario"])
-    html_body = build_activation_email_html(name, target["email_body"], action_url)
-    text_body = (
-        f"Bonjour {name},\n\n"
-        f"{target['email_body']}\n\n"
-        f"Ouvrir dans Stockman : {action_url}\n\n"
-        "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone.\n\n"
-        "À bientôt,\nL'équipe Stockman."
+    unsubscribe_url = build_marketing_unsubscribe_link(email)
+    reason = "Vous recevez cet e-mail parce que vous avez un compte Stockman."
+    html_body = build_activation_email_html(name, target["email_body"], action_url, unsubscribe_url, reason)
+    text_body = build_activation_email_text(target["email_body"], action_url, unsubscribe_url, reason, name=name)
+    result = await notification_service.send_email_notification(
+        [email],
+        target["email_subject"],
+        html_body,
+        text_body=text_body,
+        headers=build_marketing_email_headers(unsubscribe_url),
     )
-    result = await notification_service.send_email_notification([email], target["email_subject"], html_body, text_body=text_body)
     status = "sent" if result else "failed"
     access_context = build_effective_access_context(user_doc, account_doc)
     await record_system_delivery(
@@ -5122,7 +5174,7 @@ async def send_demo_conversion_email(session_doc: dict, now: datetime) -> None:
     if not email:
         return
     existing_user = await find_existing_non_demo_user_by_email(email)
-    if existing_user:
+    if existing_user or await is_marketing_email_unsubscribed(email):
         return
     scenario = "demo_conversion"
     milestone = "demo_end"
@@ -5137,13 +5189,17 @@ async def send_demo_conversion_email(session_doc: dict, now: datetime) -> None:
     action_url = build_signed_app_open_link(deeplink, purpose="demo_conversion")
     subject = "Créez votre compte Stockman à partir de votre démo"
     body = "Votre démo est terminée. Créez votre compte pour repartir sur un espace propre et continuer avec vos propres produits, clients et ventes."
-    html_body = build_activation_email_html("cher utilisateur", body, action_url)
-    text_body = (
-        f"{body}\n\n"
-        f"Ouvrir dans Stockman : {action_url}\n\n"
-        "Si le lien ne s'ouvre pas, lancez l'application Stockman depuis votre téléphone."
+    unsubscribe_url = build_marketing_unsubscribe_link(email)
+    reason = "Vous recevez cet e-mail parce que vous avez essayé la démo Stockman."
+    html_body = build_activation_email_html("cher utilisateur", body, action_url, unsubscribe_url, reason)
+    text_body = build_activation_email_text(body, action_url, unsubscribe_url, reason)
+    result = await notification_service.send_email_notification(
+        [email],
+        subject,
+        html_body,
+        text_body=text_body,
+        headers=build_marketing_email_headers(unsubscribe_url),
     )
-    result = await notification_service.send_email_notification([email], subject, html_body, text_body=text_body)
     status = "sent" if result else "failed"
     await record_system_delivery(
         channel="email",
@@ -18621,6 +18677,63 @@ async def open_app_from_signed_link(t: str):
     return RedirectResponse(url=normalize_app_deeplink_url(deeplink), status_code=307)
 
 
+def email_unsubscribe_page(title: str, text: str, form_action: Optional[str] = None) -> HTMLResponse:
+    button = (
+        f"<form method=\"post\" action=\"{html.escape(form_action)}\" style=\"margin-top:20px\">"
+        "<button type=\"submit\" style=\"background:#0f172a;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-weight:700;font-size:15px;cursor:pointer\">"
+        "Confirmer la désinscription</button></form>"
+    ) if form_action else ""
+    page = (
+        "<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+        f"<title>{html.escape(title)}</title><style>body{{font-family:system-ui,sans-serif;background:#f7f8f4;color:#0f172a;margin:0;padding:24px}}"
+        "main{max-width:520px;margin:12vh auto;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px}"
+        "h1{font-size:22px;margin:0 0 12px}p{line-height:1.6;margin:0}</style></head>"
+        f"<body><main><h1>{html.escape(title)}</h1><p>{html.escape(text)}</p>{button}</main></body></html>"
+    )
+    return HTMLResponse(page, headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"})
+
+
+def decode_email_unsubscribe_token(t: str) -> Optional[Dict[str, Any]]:
+    try:
+        payload = jwt.decode(t, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+    if payload.get("type") != "email_unsubscribe" or not payload.get("email"):
+        return None
+    return payload
+
+
+@api_router.get("/email/unsubscribe", response_class=HTMLResponse)
+async def email_unsubscribe_confirm(t: str = Query(..., max_length=2000)):
+    # La page demande une confirmation : les antivirus qui ouvrent les liens ne doivent pas désinscrire à la place de la personne.
+    if not decode_email_unsubscribe_token(t):
+        return email_unsubscribe_page("Lien invalide", "Ce lien de désinscription n'est pas valide.")
+    return email_unsubscribe_page(
+        "Ne plus recevoir les conseils Stockman",
+        "Vous ne recevrez plus les e-mails de conseils et de relance. Les e-mails liés à votre compte (codes de vérification, abonnement, commandes) continueront d'être envoyés.",
+        form_action=f"/api/email/unsubscribe?t={quote(t, safe='')}",
+    )
+
+
+@api_router.post("/email/unsubscribe", response_class=HTMLResponse)
+async def email_unsubscribe_apply(t: str = Query(..., max_length=2000)):
+    # Utilisé par le bouton de confirmation et par la désinscription en un clic des messageries (RFC 8058).
+    payload = decode_email_unsubscribe_token(t)
+    if not payload:
+        return email_unsubscribe_page("Lien invalide", "Ce lien de désinscription n'est pas valide.")
+    email = str(payload["email"]).strip().lower()
+    scope = str(payload.get("scope") or MARKETING_EMAIL_SCOPE)
+    await db.email_unsubscribes.update_one(
+        {"email": email, "scope": scope},
+        {"$setOnInsert": {"email": email, "scope": scope, "created_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    return email_unsubscribe_page(
+        "Désinscription confirmée",
+        "Vous ne recevrez plus les e-mails de conseils et de relance de Stockman. Vous pouvez fermer cette page.",
+    )
+
+
 class WebLoginExchange(BaseModel):
     code: str = Field(pattern=r"^[A-Za-z0-9_-]{43}$")
 
@@ -19753,6 +19866,15 @@ async def list_ecommerce_orders(
     total = await db.ecommerce_orders.count_documents(query)
     items = await db.ecommerce_orders.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return {"items": [ecommerce_payment.merchant_view(item) for item in items], "total": total}
+
+
+@api_router.get("/ecommerce/orders/action-count")
+async def count_ecommerce_orders_needing_action(user: User = Depends(require_permission("stock", "read"))):
+    # Pastille de l'onglet E-com : un simple nombre, rafraîchi par l'application, sans notification supplémentaire.
+    query: Dict[str, Any] = {"user_id": get_owner_id(user), **ecommerce_payment.action_required_query()}
+    if user.active_store_id:
+        query["store_id"] = user.active_store_id
+    return {"count": await db.ecommerce_orders.count_documents(query)}
 
 
 @api_router.get("/ecommerce/orders/{order_id}")

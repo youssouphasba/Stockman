@@ -25,6 +25,13 @@ let activeProcessQueuePromise: Promise<{ processed: number; failed: number; dead
 const MAX_RETRIES = 5; // Increased from 3 — more persistent
 const DEAD_LETTER_KEY = 'sync_dead_letter';
 
+// Réseau absent, délai dépassé ou serveur indisponible : l'action est renvoyée plus tard sans consommer d'essai.
+// Les envois automatiques reviennent chaque minute ; seules les vraies erreurs (données refusées) comptent.
+export function isTransientSyncError(error: any): boolean {
+    const status = typeof error?.status === 'number' ? error.status : 0;
+    return status === 0 || status === 408 || status === 429 || status >= 500;
+}
+
 // Callback called when actions are permanently failed (UI can subscribe to this)
 type FailureCallback = (failed: FailedSyncAction[]) => void;
 let onFailureCallback: FailureCallback | null = null;
@@ -128,11 +135,18 @@ export const syncService = {
         let processed = 0;
         let failed = 0;
 
-        for (const action of queue) {
+        for (let index = 0; index < queue.length; index++) {
+            const action = queue[index];
             try {
                 await this.processAction(action);
                 processed++;
             } catch (error: any) {
+                if (isTransientSyncError(error)) {
+                    // Inutile d'insister : l'action et les suivantes gardent leur ordre et leurs essais.
+                    remainingQueue.push(...queue.slice(index));
+                    failed += queue.length - index;
+                    break;
+                }
                 const retries = (action.retries || 0) + 1;
                 const errorMessage = error?.message || String(error);
 

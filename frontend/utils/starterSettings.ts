@@ -3,15 +3,16 @@ import type { EcommerceSite, EcommerceSiteUpdate } from '../services/api';
 export const STARTER_SETTINGS_GROUPS = [
   { id: 'online', icon: 'globe-outline', sections: ['storeEcommerce'] },
   { id: 'store', icon: 'storefront-outline', sections: ['team', 'storeIdentity', 'storeDocuments', 'tax', 'storeEmpty'] },
-  { id: 'help', icon: 'help-circle-outline', sections: ['sync', 'support', 'incident'] },
+  { id: 'help', icon: 'help-circle-outline', sections: ['support', 'incident'] },
   { id: 'account', icon: 'person-outline', sections: ['identity', 'profile', 'security', 'accounts', 'data', 'logout'] },
   { id: 'notifications', icon: 'notifications-outline', sections: ['notificationsToggle', 'notifications'] },
   { id: 'billing', icon: 'card-outline', sections: ['billing'] },
-  { id: 'information', icon: 'information-circle-outline', sections: ['legal'] },
+  // La synchronisation est automatique : son état est une information, pas une aide.
+  { id: 'information', icon: 'information-circle-outline', sections: ['sync', 'legal'] },
 ] as const;
 
 type SettingsGroup = typeof STARTER_SETTINGS_GROUPS[number];
-export const ENTERPRISE_SETTINGS_GROUPS = STARTER_SETTINGS_GROUPS.map((group) => {
+export const MANAGED_SETTINGS_GROUPS = STARTER_SETTINGS_GROUPS.map((group) => {
   if (group.id === 'account') return { ...group, sections: group.sections.flatMap((section) => section === 'security' ? [section, 'organization'] : [section]) };
   if (group.id === 'notifications') return { ...group, sections: [...group.sections, 'accountAlerts', 'storeAlerts'] };
   return group;

@@ -69,10 +69,13 @@ test('Subscribed Pro and Enterprise plans are preserved despite a restricted eff
   for (const plan of ['pro', 'enterprise']) {
     const user = { ...starter, subscription_plan: plan, subscription_status: 'expired' };
     assert.equal(routing.isStarterShopkeeper(user), false);
+    assert.equal(routing.isEcommerceWorkspaceAccount(user), true);
     assert.equal(routing.getDefaultRouteForUser(user), '/(tabs)');
     assert.equal(routing.getStarterNavigationRedirect(user, 'index'), null);
   }
   assert.equal(routing.getCommercialPlan({ ...starter, subscribed_plan: 'enterprise' }), 'enterprise');
+  assert.equal(routing.isEcommerceWorkspaceAccount({ ...starter, role: 'staff', subscription_plan: 'pro' }), true);
+  assert.equal(routing.isEcommerceWorkspaceAccount({ ...starter, role: 'staff', subscription_plan: 'pro', is_demo: true }), false);
 });
 
 test('Supplier, superadmin, staff and demo navigation do not inherit the Starter interface', () => {
@@ -178,7 +181,7 @@ test('Android back uses the authorized initial tab without returning to hidden H
   assert.equal(option('backBehavior', { isStarterShopkeeper: false }), undefined);
 });
 
-test('The E-com tab follows site activation without hiding Clients', () => {
+test('The mobile E-com workspace stays available when the public site is disabled', () => {
   const layout = readSource('app/(tabs)/_layout.tsx');
   const screens = [];
   function visit(node) {
@@ -193,6 +196,7 @@ test('The E-com tab follows site activation without hiding Clients', () => {
         isStarterShopkeeper: starterMode, billingOnly: false, hideDashboard: false,
         hideStock: false, hidePos: false, hideAccounting: false, hideSuppliers: false,
         hideCrm: false, hideOrders: false, isRestaurant: false, hasOperationalAccess: true,
+        mobileEcommerceAccount: platform !== 'web', ecommerceTabBadge: undefined,
         isSuperAdmin: false, productsTabTitle: 'Produits', productsTabIcon: 'cube-outline',
         ecommerceSite: { enabled },
         t: (key) => key, renderTabLabel: (label) => label,
@@ -203,9 +207,26 @@ test('The E-com tab follows site activation without hiding Clients', () => {
   }
   assert.deepEqual(visibleTabs(true), ['products', 'pos', 'accounting', 'suppliers', 'crm', 'ecommerce', 'settings']);
   assert.deepEqual(visibleTabs(true, 'ios'), visibleTabs(true));
-  assert.deepEqual(visibleTabs(true, 'android', false), ['products', 'pos', 'accounting', 'suppliers', 'crm', 'settings']);
-  assert.deepEqual(visibleTabs(true, 'web'), visibleTabs(true, 'android', false));
+  assert.deepEqual(visibleTabs(true, 'android', false), visibleTabs(true));
+  assert.deepEqual(visibleTabs(true, 'web'), ['products', 'pos', 'accounting', 'suppliers', 'crm', 'settings']);
   assert.deepEqual(visibleTabs(false), ['index', 'products', 'pos', 'accounting', 'suppliers', 'crm', 'orders', 'settings']);
+  assert.deepEqual(visibleTabs(false, 'android', false), visibleTabs(false));
+
+  const orderScreen = screens.find((screen) => screen.attributes.properties.find((attribute) => attribute.name?.text === 'name').initializer.text === 'orders');
+  const options = orderScreen.attributes.properties.find((attribute) => attribute.name?.text === 'options');
+  const mobile = evaluate('(' + options.initializer.expression.getText(layout) + ')', {
+    mobileEcommerceAccount: true, ecommerceTabBadge: 3, isStarterShopkeeper: false, hideOrders: false, ecommerceSite: null,
+    t: (key) => key, renderTabLabel: (label) => label, Ionicons: 'Icon',
+  });
+  const web = evaluate('(' + options.initializer.expression.getText(layout) + ')', {
+    mobileEcommerceAccount: false, ecommerceTabBadge: undefined, isStarterShopkeeper: false, hideOrders: false, ecommerceSite: { enabled: true },
+    t: (key) => key, renderTabLabel: (label) => label, Ionicons: 'Icon',
+  });
+  assert.equal(mobile.title, 'E-com');
+  assert.equal(mobile.tabBarLabel, 'E-com');
+  assert.equal(mobile.tabBarBadge, 3);
+  assert.equal(web.tabBarBadge, undefined);
+  assert.equal(web.title, 'tabs.orders');
 });
 
 test('Late settings from a previous account and outdated loads cannot overwrite current preferences', async () => {

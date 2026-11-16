@@ -313,12 +313,16 @@ La Marketplace connecte les commerçants à un réseau de fournisseurs vérifié
 ### Comment accéder à la comptabilité ?
 - Aller dans l'onglet **Comptabilité** (web) ou **Bilan** (mobile)
 
+### Comment voir le chiffre d'affaires du jour sur Starter ?
+- Starter n'a pas d'écran d'accueil : sur mobile, l'onglet **Compta** propose le filtre **Aujourd'hui** avant 7j, 30j, 90j et 1 an.
+- **Aujourd'hui** couvre la journée en cours, de minuit à 23 h 59 selon l'heure du téléphone, et non les dernières 24 heures. Après minuit, tirer l'écran vers le bas passe au nouveau jour.
+
 ### Comment séparer les ventes en boutique et les ventes E-com ?
 - L'écran Finances (web et mobile) propose quatre vues en haut : **Vue d'ensemble**, **Boutique physique**, **E-com** et **Trésorerie**. La période choisie s'applique aux quatre.
 - Sur le web, les résultats s'affichent en premier, juste sous les vues : détail de la vue choisie, cartes d'indicateurs (chiffre d'affaires, marge brute, charges, résultat net, panier moyen, pertes) et valeur du stock. Viennent ensuite le **Pilotage financier** (Enterprise), le diagnostic IA et la vue rentabilité. Le Pilotage est replié par défaut : son en-tête montre l'évolution du CA et du résultat net par rapport à la période précédente, et un clic l'ouvre. Le navigateur mémorise s'il est ouvert ou fermé.
 - **Vue d'ensemble** : tous les canaux réunis, avec la part de la boutique et celle de l'E-com dans le chiffre d'affaires, la marge brute de chacune et, sur le web, le CA par jour en deux couleurs.
 - **Boutique physique** : chiffre d'affaires, marge, panier moyen et ventes de la caisse uniquement.
-- **E-com** : circuit des commandes en ligne. « Commandé » (commandes passées sur la période, annulées et refusées exclues), « Livré (CA) », « Encaissé », « À encaisser » (commandes livrées sans paiement confirmé), puis « En cours », « Annulées ou refusées » et « Livraison en transit ».
+- **E-com** : circuit des commandes en ligne, en quatre cartes : « Encaissé » (montant reçu sur les commandes livrées de la période), « En cours » (commandes pas encore livrées ni annulées, toutes dates), « Annulées ou refusées » et « Livraison en transit » (frais de livraison payés par les clients, à reverser à Denkma ; une livraison Denkma annulée n'y figure pas). Le chiffre d'affaires livré n'est pas répété dans le circuit : il figure dans la carte « Chiffre d'affaires » des indicateurs.
 - **Trésorerie** : sommes reçues sur la période (ventes payées et remboursements de dettes), répartition par moyen de paiement, créances clients dont la part E-com, et frais de livraison Denkma en transit.
 - Dans les vues Boutique physique et E-com, les cartes Charges et Résultat net sont masquées : les charges et les pertes de stock ne sont pas réparties par canal. Elles restent dans la vue d'ensemble.
 - Une vente E-com est créée à la livraison de la commande. Elle compte dans le CA E-com, qu'elle soit payée ou à crédit. Les frais de livraison Denkma n'entrent jamais dans le chiffre d'affaires.
@@ -469,7 +473,7 @@ Il trace toutes les actions effectuées dans la boutique : ventes, mouvements de
 
 Enterprise mobile reprend les rubriques de Starter : **Boutique en ligne**, **Ma boutique**, **Aide**, **Mon compte**, **Notifications**, **Mon abonnement** et **Informations**. Les personnes autorisées retrouvent les **Modules de l’organisation** dans **Mon compte**. Sur mobile, **Cuisine** et **Réservations** figurent dans la liste des modules uniquement pour les activités de restauration. **Notifications** conserve les canaux, les seuils et les destinataires e-mail du compte et de la boutique.
 
-Sur mobile, les réglages de la boutique en ligne se chargent indépendamment des autres rubriques. Dans l'onglet **E-com** de Starter, les commandes déjà chargées restent visibles pendant l'actualisation du même filtre.
+Sur mobile, les réglages de la boutique en ligne se chargent indépendamment des autres rubriques. Dans l'espace **E-com** des comptes Starter, Pro et Enterprise, les commandes déjà chargées restent visibles pendant l'actualisation du même filtre.
 
 ### Comment changer de langue ?
 - **Paramètres** → **Langue** → choisir parmi les 15 langues disponibles
@@ -485,6 +489,12 @@ Sur mobile, les réglages de la boutique en ligne se chargent indépendamment de
 - **Paramètres** → **Notifications**
 - Activer les alertes pour : stock bas, rupture, produits dormants
 - L'application enregistre aussi l'installation mobile avec la langue de l'appareil ou la langue choisie, afin de pouvoir envoyer des notifications adaptées à la langue de l'utilisateur, y compris avant la création d'un compte lorsque l'autorisation push est accordée.
+
+### Quels e-mails automatiques Stockman envoie-t-il, et comment ne plus recevoir les conseils ?
+- Les e-mails liés au compte (codes de vérification, fin d'essai, fin d'abonnement, commandes, support) sont toujours envoyés.
+- Les e-mails de conseils et de relance (créer ses premiers produits, enregistrer sa première vente, activer son abonnement, revenir après une période d'inactivité, créer son compte après la démo) sont limités : trois envois au plus par sujet (par exemple après 1, 3 et 7 jours), puis plus rien.
+- Chaque e-mail de conseils contient en bas le lien **Ne plus recevoir ces conseils par e-mail**. Après confirmation, ces e-mails s'arrêtent ; les e-mails liés au compte continuent. Les messageries comme Gmail proposent aussi un bouton de désinscription qui fait la même chose.
+- Les liens contenus dans les e-mails ouvrent une adresse app.stockman.pro.
 
 ### Comment cibler les installations sans compte depuis l'administration ?
 - Dans **Admin** → **Communication**, choisir la cible **Sans compte**.
@@ -551,7 +561,10 @@ Sur mobile, les réglages de la boutique en ligne se chargent indépendamment de
 ### Quels onglets voit-on sur mobile ?
 - **Starter** : Produits, Caisse, Compta, Clients et Réglages (plus Fournisseurs si l'équipe Stockman a activé ce module pour le compte). Il n'y a pas d'onglet Accueil : les chiffres clés sont dans la Compta. Les messages de l'administrateur (icône mégaphone, affichée quand il y en a, avec le nombre de messages non lus) et le bouton de thème clair/sombre sont dans l'en-tête, sur tous les onglets.
 - **Messages de l'administrateur (tous les plans)** : à l'ouverture de l'application mobile, ou au retour dans l'application, chaque message non lu s'affiche d'abord dans une fenêtre, du plus ancien au plus récent (« Message suivant », puis « J'ai compris » ; « Ouvrir » mène à l'écran ou au lien prévu). Fermer la fenêtre marque le message comme lu ; il reste consultable depuis l'Accueil ou l'icône mégaphone. La fenêtre ne s'affiche jamais pendant le guide de démarrage.
-- **Commandes en ligne** : sur tous les plans, l'onglet n'apparaît qu'une fois la boutique en ligne activée (Commandes sur Pro et Enterprise, E-com sur Starter). Sur le web, l'entrée Commandes de la barre latérale suit la même règle. Tant que le site est désactivé, les commandes déjà reçues restent accessibles depuis le bouton « Commandes » de la rubrique Boutique en ligne (Site e-commerce sur Pro et Enterprise) des Paramètres.
+- **E-com sur mobile** : Starter, Pro et Enterprise disposent du même onglet et du même espace opérationnel, même si la vitrine publique est désactivée ou pas encore configurée. Ils y retrouvent les commandes, la recherche, les filtres par statut, l'historique, les détails, les actions autorisées et les statistiques. L'erreur de chargement des statistiques ne bloque pas les commandes. La configuration de la vitrine reste dans Paramètres > Boutique en ligne. Les permissions et les contrôles d'accès existants continuent de s'appliquer.
+- **Commandes à traiter** : une pastille sur l'onglet E-com (mobile) et sur « Commandes » dans le menu (web) indique le nombre de commandes qui attendent un geste du commerçant : paiement annoncé à vérifier, commande à confirmer, à préparer ou à livrer. Elle se met à jour toute seule, sans notification supplémentaire. Une livraison Denkma en cours n'est pas comptée.
+- Dans la liste, chaque commande qui attend un geste est entourée d'un halo et porte l'étiquette « À faire » suivie de l'action (par exemple « À faire : Paiement reçu »). L'animation est coupée quand le téléphone ou le navigateur demande moins de mouvement. Les actions sont de vrais boutons : la prochaine étape est en couleur pleine, les autres gestes sont encadrés.
+- **Commandes en ligne sur le web** : le comportement actuel reste inchangé et l'entrée de la barre latérale suit toujours l'activation du site. Les commandes déjà reçues lorsque la vitrine est désactivée restent accessibles depuis le raccourci Commandes des Paramètres.
 
 ### Comment mettre à niveau son abonnement ?
 - **Paramètres** → **Abonnement** → **Changer de plan**
@@ -595,6 +608,9 @@ Lorsque l'équipe Stockman désactive le réglage global **Fournisseurs**, il n'
 ### L'application fonctionne-t-elle sans Internet ?
 - Oui, en mode hors-ligne limité : les données récentes sont mises en cache
 - Les ventes effectuées hors-ligne sont synchronisées automatiquement dès que la connexion est rétablie
+- L'envoi des actions en attente est entièrement automatique : au retour du réseau, à l'ouverture de l'application, au retour dans l'application et chaque minute tant qu'il en reste. Une coupure du réseau ou du serveur ne consomme pas d'essai : l'action attend simplement le prochain envoi, dans l'ordre où elle a été faite.
+- Les données utiles hors ligne (produits, clients, catégories, alertes…) sont rechargées toutes seules toutes les 5 minutes ; il n'y a plus de bouton « Pré-charger ».
+- Sur mobile, l'état de la synchronisation (connexion, dernière synchronisation, actions en attente) se trouve dans **Paramètres > Informations**. Le bouton « Synchroniser maintenant » n'apparaît qu'en secours, quand des actions attendent encore.
 - Une bannière orange s'affiche en haut quand l'application est hors-ligne
 
 ---

@@ -1991,6 +1991,8 @@ export const ecommerce = {
         qs.set('limit', String(limit));
         return request<{ items: any[]; total: number }>(`/ecommerce/orders?${qs.toString()}`);
     },
+    // Nombre de commandes qui attendent un geste du commerçant (pastille du menu).
+    getActionCount: () => request<{ count: number }>('/ecommerce/orders/action-count'),
     getOrder: (orderId: string) => request<any>(`/ecommerce/orders/${orderId}`),
     updateOrderStatus: (orderId: string, status: string, paid?: boolean) =>
         request<{ message: string; order: any }>(`/ecommerce/orders/${orderId}/status`, { method: 'PUT', body: paid === undefined ? { status } : { status, paid } }),

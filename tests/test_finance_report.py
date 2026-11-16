@@ -113,6 +113,19 @@ class FinanceReportTests(unittest.TestCase):
         # Les frais d'une commande annulée ne sont pas en transit.
         self.assertEqual(flow["delivery_transit"], {"amount": 15, "count": 1})
 
+    def test_cancelled_denkma_delivery_fees_are_not_in_transit(self):
+        start, end = day(1, 0), day(30, 23)
+        self.db.raw.ecommerce_orders.insert_many([
+            {"order_id": "o1", "user_id": "u1", "created_at": day(1), "status": "delivered", "delivered_at": day(2), "total_amount": 100,
+             "delivery_fee": 15, "delivery": {"provider": "denkma", "denkma_status": "cancelled"}, "payment": {"status": "paid", "paid_at": day(1)}},
+            {"order_id": "o2", "user_id": "u1", "created_at": day(1), "status": "ready", "total_amount": 100,
+             "delivery_fee": 20, "delivery": {"provider": "denkma", "parcel_status": "cancelled"}, "payment": {"status": "paid", "paid_at": day(1)}},
+            {"order_id": "o3", "user_id": "u1", "created_at": day(1), "status": "ready", "total_amount": 100,
+             "delivery_fee": 25, "delivery": {"provider": "denkma", "denkma_status": "accepted"}, "payment": {"status": "paid", "paid_at": day(1)}},
+        ])
+        flow = run(finance_report.ecommerce_flow(self.db, {"user_id": "u1"}, start, end))
+        self.assertEqual(flow["delivery_transit"], {"amount": 25, "count": 1})
+
     def test_totals_without_loading_documents(self):
         self.db.raw.expenses.insert_many([
             {"user_id": "u1", "amount": 30, "category": "rent"},

@@ -49,7 +49,7 @@ import * as Updates from 'expo-updates';
 import StarterSettingsLayout, { SettingsSlot } from '../../components/StarterSettingsLayout';
 import SubscriptionPlans from '../../components/SubscriptionPlans';
 import { buildEcommerceSettingsUpdate, createEcommerceDraft, getStarterSettingsGroup, StarterSettingsGroup } from '../../utils/starterSettings';
-import { getCommercialPlan, isEnterpriseSettingsAccount, isStarterShopkeeper } from '../../utils/accountRouting';
+import { getCommercialPlan, isEnterpriseSettingsAccount, isProSettingsAccount, isStarterShopkeeper } from '../../utils/accountRouting';
 
 // Sector selection removed - defined at registration
 
@@ -317,8 +317,10 @@ export default function SettingsScreen() {
   // Module Fournisseurs coupé par l'admin Stockman : son interrupteur et son contact e-mail disparaissent.
   const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
   const isStarterSettings = Platform.OS !== 'web' && isStarterShopkeeper(user);
+  const isProSettings = Platform.OS !== 'web' && isProSettingsAccount(user);
   const isEnterpriseSettings = Platform.OS !== 'web' && isEnterpriseSettingsAccount(user);
-  const usesGroupedSettings = isStarterSettings || isEnterpriseSettings;
+  const usesManagedSettings = isProSettings || isEnterpriseSettings;
+  const usesGroupedSettings = Platform.OS !== 'web' && (isStarterShopkeeper(user) || isProSettingsAccount(user) || isEnterpriseSettingsAccount(user));
   const [starterSection, setStarterSection] = useState<StarterSettingsGroup | null>(null);
   const [showDocumentOptions, setShowDocumentOptions] = useState(false);
   const [ecommerceStep, setEcommerceStep] = useState<EcommerceStepId | null>(null);
@@ -331,7 +333,7 @@ export default function SettingsScreen() {
   const settingsContextRef = useRef(settingsContext);
   settingsContextRef.current = settingsContext;
   const [loadedSettingsContext, setLoadedSettingsContext] = useState<string | null>(null);
-  const { isOnline, syncStatus, pendingCount, lastSyncLabel, processQueue, prefetchData } = useSync();
+  const { isOnline, syncStatus, pendingCount, lastSyncLabel, processQueue } = useSync();
   const [settingsData, setSettingsData] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [exportingData, setExportingData] = useState(false);
@@ -421,7 +423,7 @@ export default function SettingsScreen() {
       if (group) setStarterSection(group);
     }
     if (!SETTINGS_SECTION_KEYS.has(sectionParam as SettingsSectionKey)) return;
-    const section = isEnterpriseSettings && (sectionParam === 'organizationGroup' || sectionParam === 'enterpriseHub')
+    const section = usesManagedSettings && (sectionParam === 'organizationGroup' || sectionParam === 'enterpriseHub')
       ? 'organization'
       : sectionParam as SettingsSectionKey;
     const parent = SETTINGS_SECTION_PARENT[section];
@@ -430,7 +432,7 @@ export default function SettingsScreen() {
       ...(parent ? { [parent]: true } : {}),
       [section]: true,
     }));
-  }, [params.section, usesGroupedSettings, isEnterpriseSettings]);
+  }, [params.section, usesGroupedSettings, usesManagedSettings]);
 
   const changeStarterSection = useCallback((section: StarterSettingsGroup | null) => {
     setStarterSection(section);
@@ -444,7 +446,7 @@ export default function SettingsScreen() {
     setEcommerceStep(null);
     setShowNotificationOptions(false);
     setShowBillingOptions(false);
-  }, [user?.user_id, isEnterpriseSettings]);
+  }, [user?.user_id, usesGroupedSettings, usesManagedSettings]);
 
   function showFeedback(message: string, tone: 'success' | 'error' = 'success') {
     setFeedback({ tone, message });
@@ -1069,7 +1071,7 @@ export default function SettingsScreen() {
             <Text style={styles.outlineButtonText}>Réessayer</Text>
           </TouchableOpacity>
         </View>}
-        <StarterSettingsLayout enabled={usesGroupedSettings} enterprise={isEnterpriseSettings} activeSection={starterSection} onSectionChange={changeStarterSection} pendingCount={pendingCount}>
+        <StarterSettingsLayout enabled={usesGroupedSettings} managed={usesManagedSettings} activeSection={starterSection} onSectionChange={changeStarterSection} pendingCount={pendingCount}>
         {isOrgAdmin && (
         <SettingsAccordionSection
           title="Site e-commerce"
@@ -1532,30 +1534,19 @@ export default function SettingsScreen() {
               </View>
             </View>
           )}
-          <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
+          {/* L'envoi des actions en attente est automatique ; ce bouton ne sert qu'en secours, quand il en reste. */}
+          {pendingCount > 0 && <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
             <TouchableOpacity
-              style={[styles.syncButton, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}
-              onPress={prefetchData}
-              disabled={!isOnline}
+              style={[styles.syncButton, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}
+              onPress={processQueue}
+              disabled={!isOnline || syncStatus === 'syncing'}
             >
-              <Ionicons name="download-outline" size={18} color={isOnline ? colors.primary : colors.textMuted} />
-              <Text style={{ color: isOnline ? colors.primary : colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>
-                {t('settings.prefetch')}
+              <Ionicons name="sync-outline" size={18} color={isOnline ? colors.success : colors.textMuted} />
+              <Text style={{ color: isOnline ? colors.success : colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>
+                {syncStatus === 'syncing' ? t('settings.syncing') : t('settings.sync_now')}
               </Text>
             </TouchableOpacity>
-            {pendingCount > 0 && (
-              <TouchableOpacity
-                style={[styles.syncButton, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}
-                onPress={processQueue}
-                disabled={!isOnline || syncStatus === 'syncing'}
-              >
-                <Ionicons name="sync-outline" size={18} color={isOnline ? colors.success : colors.textMuted} />
-                <Text style={{ color: isOnline ? colors.success : colors.textMuted, fontSize: FontSize.sm, fontWeight: '600' }}>
-                  {syncStatus === 'syncing' ? t('settings.syncing') : t('settings.sync_now')}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          </View>}
         </SettingsAccordionSection>
 
         </SettingsAccordionSection>
@@ -1575,7 +1566,7 @@ export default function SettingsScreen() {
         {/* Modules */}
         {canManageOrganizationSettings && (
         <SettingsAccordionSection
-          title={t(isEnterpriseSettings ? 'settings.organization_modules' : 'settings.section_modules')}
+          title={t(usesManagedSettings ? 'settings.organization_modules' : 'settings.section_modules')}
           description={t('settings.section_modules_desc')}
           icon="grid-outline"
           accentColor={colors.success}
@@ -2318,7 +2309,7 @@ export default function SettingsScreen() {
         isRestaurant={isRestaurant}
         hasEnterprisePlan={hasEnterprisePlan}
         onLaunchGuide={(guideKey) => {
-          const guide = (GUIDES as any)[isStarterSettings && guideKey === 'settings' ? 'starterSettings' : guideKey];
+          const guide = (GUIDES as any)[usesGroupedSettings && guideKey === 'settings' ? 'mobileSettings' : guideKey];
           if (guide) {
             setHelpGuide(guide);
           }

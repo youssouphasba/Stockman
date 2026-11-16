@@ -10,7 +10,7 @@ import { alerts as alertsApi, demo as demoApi, ecommerce as ecommerceApi, settin
 
 import StoreSelector from '../../components/StoreSelector';
 import EcommerceSetupInvitation from '../../components/EcommerceSetupInvitation';
-import { ActivityIndicator, Alert, DeviceEventEmitter, Linking, Platform, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, AppState, DeviceEventEmitter, Linking, Platform, Text, TextInput, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import ScreenGuide from '../../components/ScreenGuide';
 import { GUIDES } from '../../constants/guides';
 import { useFirstVisit } from '../../hooks/useFirstVisit';
@@ -29,7 +29,7 @@ import AdminMessagePopup from '../../components/AdminMessagePopup';
 import GuideProvider, { useGuide } from '../../onboarding/GuideProvider';
 import GuideHost from '../../onboarding/GuideHost';
 import { useGuideRunState } from '../../onboarding/guideStore';
-import { getStarterNavigationRedirect, getStarterRoute, isStarterShopkeeper as usesStarterNavigation } from '../../utils/accountRouting';
+import { getStarterNavigationRedirect, getStarterRoute, isEcommerceWorkspaceAccount, isStarterShopkeeper as usesStarterNavigation } from '../../utils/accountRouting';
 import { hasPlatformModule } from '../../utils/access';
 
 function TabLayoutInner() {
@@ -63,7 +63,38 @@ function TabLayoutInner() {
     }
   }, [hasOperationalAccess, hasPermission, isRestaurant, user?.user_id]);
 
-  useNotifications(user?.user_id, refreshAlertCount);
+  // Pastille de l'onglet E-com : nombre de commandes qui attendent un geste. Elle se recalcule à l'ouverture,
+  // au retour dans l'application, à chaque notification reçue et après chaque chargement des commandes,
+  // sans requête périodique ni notification supplémentaire.
+  const [ecommerceActionCount, setEcommerceActionCount] = useState(0);
+  const refreshEcommerceActionCount = useCallback(async () => {
+    if (Platform.OS === 'web' || !user?.user_id || !hasOperationalAccess || !hasPermission('stock', 'read') || !isEcommerceWorkspaceAccount(user)) {
+      setEcommerceActionCount(0);
+      return;
+    }
+    try {
+      const result = await ecommerceApi.getActionCount();
+      setEcommerceActionCount(Math.max(0, Number(result?.count) || 0));
+    } catch {
+      // En cas d'échec, la dernière valeur connue reste affichée.
+    }
+  }, [hasOperationalAccess, hasPermission, user]);
+
+  const refreshNotificationCounts = useCallback(() => {
+    void refreshAlertCount();
+    void refreshEcommerceActionCount();
+  }, [refreshAlertCount, refreshEcommerceActionCount]);
+
+  useNotifications(user?.user_id, refreshNotificationCounts);
+
+  useEffect(() => {
+    void refreshEcommerceActionCount();
+    const ordersChanged = DeviceEventEmitter.addListener('ecommerce:orders-changed', refreshEcommerceActionCount);
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refreshEcommerceActionCount();
+    });
+    return () => { ordersChanged.remove(); appState.remove(); };
+  }, [refreshEcommerceActionCount]);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +124,7 @@ function TabLayoutInner() {
   }, [user?.user_id]);
 
   const refreshEcommerceSite = useCallback(async () => {
-    // L'état du site sert aussi à n'afficher l'onglet des commandes en ligne qu'une fois l'E-com activé, sur tous les plans.
+    // L'état du site ne contrôle que le raccourci vers la vitrine publique.
     if (!user?.user_id || !hasOperationalAccess) {
       setEcommerceSite(null);
       return;
@@ -141,6 +172,8 @@ function TabLayoutInner() {
   const hideDashboard = !hasPermission('dashboard', 'read');
   const hasEnterprisePlan = (user?.effective_plan || user?.plan) === 'enterprise';
   const isStarterShopkeeper = usesStarterNavigation(user);
+  const mobileEcommerceAccount = Platform.OS !== 'web' && isEcommerceWorkspaceAccount(user);
+  const ecommerceTabBadge = mobileEcommerceAccount && ecommerceActionCount > 0 ? (ecommerceActionCount > 9 ? '9+' : ecommerceActionCount) : undefined;
   const compactHeader = width <= 400;
   const veryCompactHeader = width < 360;
   const compactTabBar = width <= 400;
@@ -192,9 +225,9 @@ function TabLayoutInner() {
     ['accounting', !hideAccounting],
     ['suppliers', !hideSuppliers],
     ['crm', !hideCrm],
-    ['orders', !(isStarterShopkeeper || hideOrders || !ecommerceSite?.enabled)],
+    ['orders', !(isStarterShopkeeper || hideOrders || (!mobileEcommerceAccount && !ecommerceSite?.enabled))],
     ['restaurant', !isStarterShopkeeper && isRestaurant && hasOperationalAccess],
-    ['ecommerce', isStarterShopkeeper && Platform.OS !== 'web' && hasOperationalAccess && Boolean(ecommerceSite?.enabled)],
+    ['ecommerce', isStarterShopkeeper && hasOperationalAccess && !hideOrders],
     ['settings', true],
     ['admin', !isStarterShopkeeper && isSuperAdmin],
   ] as [string, boolean][]).filter(([, visible]) => visible).map(([name]) => name);
@@ -294,13 +327,13 @@ function TabLayoutInner() {
       case 'accounting': return GUIDES.accounting;
       case 'suppliers': return GUIDES.suppliers;
       case 'crm': return GUIDES.crm;
-      case 'orders': return GUIDES.onlineOrders;
+      case 'orders': return mobileEcommerceAccount ? GUIDES.ecommerce : GUIDES.onlineOrders;
       case 'supplier-orders': return GUIDES.orders;
       case 'ecommerce': return GUIDES.ecommerce;
       case 'alerts': return GUIDES.alerts;
       case 'activity': return GUIDES.activity;
       case 'users': return GUIDES.users;
-      case 'settings': return isStarterShopkeeper && Platform.OS !== 'web' ? GUIDES.starterSettings : GUIDES.settings;
+      case 'settings': return mobileEcommerceAccount ? GUIDES.mobileSettings : GUIDES.settings;
       case 'subscription': return GUIDES.subscription;
       case 'planner': return GUIDES.planner;
       case 'restaurant': return GUIDES.restaurantHub;
@@ -718,9 +751,10 @@ function TabLayoutInner() {
         <Tabs.Screen
           name="orders"
           options={{
-            title: t('tabs.orders'),
-            tabBarLabel: renderTabLabel(t('tabs.orders')),
-            href: isStarterShopkeeper || hideOrders || !ecommerceSite?.enabled ? null : '/orders',
+            title: mobileEcommerceAccount ? 'E-com' : t('tabs.orders'),
+            tabBarLabel: renderTabLabel(mobileEcommerceAccount ? 'E-com' : t('tabs.orders')),
+            href: isStarterShopkeeper || hideOrders || (!mobileEcommerceAccount && !ecommerceSite?.enabled) ? null : '/orders',
+            tabBarBadge: ecommerceTabBadge,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="receipt-outline" size={size} color={color} />
             ),
@@ -749,7 +783,8 @@ function TabLayoutInner() {
           options={{
             title: 'E-com',
             tabBarLabel: renderTabLabel('E-com'),
-            href: isStarterShopkeeper && Platform.OS !== 'web' && hasOperationalAccess && ecommerceSite?.enabled ? '/ecommerce' : null,
+            href: isStarterShopkeeper && mobileEcommerceAccount && hasOperationalAccess && !hideOrders ? '/ecommerce' : null,
+            tabBarBadge: ecommerceTabBadge,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="storefront-outline" size={size} color={color} />
             ),
@@ -894,7 +929,7 @@ function TabLayoutInner() {
         isRestaurant={isRestaurant}
         hasEnterprisePlan={hasEnterprisePlan}
         onLaunchGuide={(guideKey) => {
-          const guide = GUIDES[isStarterShopkeeper && Platform.OS !== 'web' && guideKey === 'settings' ? 'starterSettings' : guideKey];
+          const guide = GUIDES[mobileEcommerceAccount && guideKey === 'settings' ? 'mobileSettings' : guideKey];
           if (guide) {
             setGuideOverride(guide);
             setShowGuide(true);

@@ -182,7 +182,7 @@ test('Mobile shows the proposal only to native operational admins on E-com or Pa
   assert.equal(evaluate({ ...base, currentRoute: 'ecommerce' }), true);
   assert.equal(evaluate({ ...base, currentRoute: 'orders', tab: 'web' }), true);
   assert.equal(evaluate({ ...base, currentRoute: 'orders', source: 'ecommerce' }), true);
-  assert.equal(evaluate({ ...base, currentRoute: 'orders' }), false);
+  assert.equal(evaluate({ ...base, currentRoute: 'orders' }), true); // Sur mobile, l'onglet orders est l'espace E-com de Pro et Enterprise.
   assert.equal(evaluate({ ...base, currentRoute: 'products' }), false);
   assert.equal(evaluate({ ...base, Platform: { OS: 'web' } }), false);
   assert.equal(evaluate({ ...base, isOrgAdmin: false }), false);

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { cache, KEYS } from '../services/cache';
 import { syncService } from '../services/sync';
@@ -19,6 +20,8 @@ interface SyncContextType {
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
 
 const PREFETCH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+// Tant que des actions faites hors ligne restent en attente, l'envoi est retenté chaque minute.
+const QUEUE_RETRY_INTERVAL_MS = 60 * 1000;
 
 export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -76,11 +79,14 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, [isOnline]);
 
-    const processQueue = useCallback(async () => {
+    // « silent » : envoi automatique, sans bandeau « Synchronisation… » à chaque essai. Le bandeau ne s'affiche
+    // que si des actions ont réellement été envoyées.
+    const runQueue = useCallback(async (silent: boolean) => {
         const count = await syncService.getPendingCount();
+        setPendingCount(count);
         if (count === 0) return;
 
-        setSyncStatus('syncing');
+        if (!silent) setSyncStatus('syncing');
         try {
             const result = await syncService.processQueue();
             const remaining = await syncService.getPendingCount();
@@ -91,14 +97,19 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setLastSyncTime(lt);
             }
 
+            if (silent && result.processed === 0) return;
             setSyncStatus(remaining === 0 ? 'synced' : 'error');
             // Reset status after 3 seconds
             setTimeout(() => setSyncStatus('idle'), 3000);
         } catch {
+            if (silent) return;
             setSyncStatus('error');
             setTimeout(() => setSyncStatus('idle'), 3000);
         }
     }, []);
+
+    const processQueue = useCallback(() => runQueue(false), [runQueue]);
+    const processQueueSilently = useCallback(() => runQueue(true), [runQueue]);
 
     const prefetchData = useCallback(async () => {
         if (!isOnline) return;
@@ -133,6 +144,23 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
             void prefetchData();
         }
     }, [isOnline, processQueue, prefetchData]);
+
+    // Envoi automatique des actions en attente : à l'ouverture de l'application, au retour dans l'application
+    // et chaque minute tant qu'il en reste. Le bouton « Synchroniser maintenant » n'est plus nécessaire.
+    useEffect(() => {
+        if (!isOnline) return;
+        void processQueueSilently();
+        const appState = AppState.addEventListener('change', (state) => {
+            if (state === 'active') void processQueueSilently();
+        });
+        return () => appState.remove();
+    }, [isOnline, processQueueSilently]);
+
+    useEffect(() => {
+        if (!isOnline || pendingCount === 0) return;
+        const timer = setInterval(() => { void processQueueSilently(); }, QUEUE_RETRY_INTERVAL_MS);
+        return () => clearInterval(timer);
+    }, [isOnline, pendingCount, processQueueSilently]);
 
     async function safeFetch(endpoint: string, cacheKey: string) {
         try {

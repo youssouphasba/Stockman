@@ -122,10 +122,31 @@ test('Changing E-com filters clears orders belonging to the old filter', async (
   assert.equal(h.scope.webOrdersStatusRef.current, 'preparing');
 });
 
-test('Pro and Enterprise keep the original unfiltered API call', async () => {
+test('The legacy web list keeps its unfiltered API call outside the mobile workspace', async () => {
   const h = orderLoader({ ecommerceWorkspace: false });
   await h.run();
   assert.deepEqual(h.state.calls, [[]]);
+});
+
+test('Starter, Pro and Enterprise use the same workspace on mobile, but not on web or supplier orders', () => {
+  const expression = find(orders, (node) => ts.isVariableDeclaration(node) && node.name.getText(orders) === 'ecommerceWorkspace').initializer;
+  for (const plan of ['starter', 'pro', 'enterprise']) {
+    const user = { role: 'shopkeeper', subscription_plan: plan, is_demo: false };
+    for (const platform of ['android', 'ios']) {
+      assert.equal(evaluate(expression.getText(orders), {
+        requestedEcommerceWorkspace: false, supplierOrders: false, Platform: { OS: platform }, user,
+        isEcommerceWorkspaceAccount: (value) => ['starter', 'pro', 'enterprise'].includes(value.subscription_plan),
+      }), true);
+    }
+    assert.equal(evaluate(expression.getText(orders), {
+      requestedEcommerceWorkspace: false, supplierOrders: false, Platform: { OS: 'web' }, user,
+      isEcommerceWorkspaceAccount: () => true,
+    }), false);
+  }
+  assert.equal(evaluate(expression.getText(orders), {
+    requestedEcommerceWorkspace: false, supplierOrders: true, Platform: { OS: 'android' }, user: { role: 'shopkeeper', subscription_plan: 'enterprise' },
+    isEcommerceWorkspaceAccount: () => true,
+  }), false);
 });
 
 test('The reused detail preserves the full order, including customer, items and amounts', async () => {
@@ -144,14 +165,14 @@ test('The reused detail preserves the full order, including customer, items and 
 });
 
 test('Livrer avec Denkma opens the shipping window for the selected order', async () => {
-  const button = find(orders, (node) => ts.isJsxElement(node) && node.openingElement.tagName.getText(orders) === 'TouchableOpacity' && node.getText(orders).includes('setDenkmaShipOrder(selectedWebOrder)'));
-  const onPress = button.openingElement.attributes.properties.find((node) => node.name?.text === 'onPress');
+  const button = find(orders, (node) => ts.isJsxSelfClosingElement(node) && node.tagName.getText(orders) === 'OrderActionButton' && node.getText(orders).includes('setDenkmaShipOrder(selectedWebOrder)'));
+  const onPress = button.attributes.properties.find((node) => node.name?.text === 'onPress');
   const selected = Object.freeze({ order_id: 'order' });
   let opened;
   evaluate('(' + onPress.initializer.getText(orders).slice(1, -1) + ')', { selectedWebOrder: selected, setDenkmaShipOrder: (value) => { opened = value; } })();
   assert.equal(opened, selected);
   const source = orders.getText();
-  assert.match(source, /\{canShipWithDenkma\(selectedWebOrder\) && \(/);
+  assert.match(source, /\{canShipWithDenkma\(selectedWebOrder\) && <OrderActionButton /);
   assert.doesNotMatch(source, /openDenkmaForOrder/);
 });
 
@@ -191,14 +212,14 @@ test('A Starter E-com deep link loads once through the focus effect, not twice',
   })();
 });
 
-test('Compact screens wrap order actions and preserve 48px targets only in the workspace', () => {
+test('Order actions always wrap and keep 48px targets in the workspace', () => {
   const styles = find(orders, (node) => ts.isVariableDeclaration(node) && node.name.getText(orders) === 'getStyles');
   const getStyles = evaluate('(' + styles.initializer.getText(orders) + ')', {
     StyleSheet: { create: (value) => value }, Spacing: {}, BorderRadius: {}, FontSize: {},
   });
   assert.equal(getStyles({}, {}, true).orderActions.flexWrap, 'wrap');
   assert.equal(getStyles({}, {}, true).actionBtn.minHeight, 48);
-  assert.equal(getStyles({}, {}, false).orderActions.flexWrap, undefined);
+  assert.equal(getStyles({}, {}, false).orderActions.flexWrap, 'wrap');
 });
 
 function statsLoader(overrides = {}) {

@@ -332,6 +332,35 @@ export default function Sidebar({
         return () => window.removeEventListener('ecommerce:changed', refreshEcommerceSite);
     }, [refreshEcommerceSite]);
 
+    // Pastille de « Commandes » : nombre de commandes E-com qui attendent un geste. Recalculée au chargement,
+    // au retour sur l'onglet du navigateur, après chaque chargement des commandes et toutes les deux minutes
+    // tant que la page est visible ; aucune notification n'est envoyée.
+    const [ordersActionCount, setOrdersActionCount] = useState(0);
+    const showsOnlineOrders = Boolean(ecommerceSite?.enabled);
+    useEffect(() => {
+        if (!showsOnlineOrders) {
+            setOrdersActionCount(0);
+            return;
+        }
+        let cancelled = false;
+        const refresh = () => {
+            if (document.visibilityState !== 'visible') return;
+            ecommerceApi.getActionCount()
+                .then((result) => { if (!cancelled) setOrdersActionCount(Math.max(0, Number(result?.count) || 0)); })
+                .catch(() => null);
+        };
+        refresh();
+        const interval = window.setInterval(refresh, 120000);
+        window.addEventListener('ecommerce:orders-changed', refresh);
+        document.addEventListener('visibilitychange', refresh);
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+            window.removeEventListener('ecommerce:orders-changed', refresh);
+            document.removeEventListener('visibilitychange', refresh);
+        };
+    }, [showsOnlineOrders, user?.user_id, user?.active_store_id]);
+
     const activeStore = storeList.find((store) => store.store_id === user?.active_store_id) || null;
     const canSwitchStores = storeList.length > 1;
 
@@ -471,6 +500,14 @@ export default function Sidebar({
                     className={isActive ? 'text-primary shrink-0' : 'group-hover:text-primary transition-colors shrink-0'}
                 />
                 <span className="font-medium text-sm text-left">{item.label}</span>
+                {item.id === 'orders' && ordersActionCount > 0 && (
+                    <span
+                        aria-label={`${ordersActionCount} commande(s) à traiter`}
+                        className="ml-auto min-w-[20px] rounded-full bg-amber-500 px-1.5 py-0.5 text-center text-[11px] font-black leading-4 text-white"
+                    >
+                        {ordersActionCount > 9 ? '9+' : ordersActionCount}
+                    </span>
+                )}
             </a>
         );
     };

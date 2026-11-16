@@ -948,7 +948,7 @@ export default function Accounting() {
             details: [
                 { label: t('guide.accounting.view_overview', "Vue d'ensemble"), description: t('guide.accounting.view_overview_desc', "Tous les canaux réunis, avec la part de la boutique et celle de l'E-com dans le chiffre d'affaires, et le CA par jour en deux couleurs."), type: 'filter' },
                 { label: t('guide.accounting.view_physical', "Boutique physique"), description: t('guide.accounting.view_physical_desc', "Uniquement les ventes de la caisse. Les charges et les pertes de stock ne sont pas réparties par canal : elles restent dans la vue d'ensemble."), type: 'filter' },
-                { label: t('guide.accounting.view_ecommerce', "E-com"), description: t('guide.accounting.view_ecommerce_desc', "Circuit des commandes en ligne : commandé, livré (CA), encaissé et à encaisser, puis commandes en cours, annulées et livraison en transit. Une commande livrée non payée est une vente à crédit."), type: 'filter' },
+                { label: t('guide.accounting.view_ecommerce', "E-com"), description: t('guide.accounting.view_ecommerce_desc', "Circuit des commandes en ligne : montant encaissé, commandes en cours, commandes annulées ou refusées et livraison en transit. Le chiffre d'affaires livré figure dans les indicateurs. Une commande livrée non payée est une vente à crédit."), type: 'filter' },
                 { label: t('guide.accounting.view_treasury', "Trésorerie"), description: t('guide.accounting.view_treasury_desc', "Sommes reçues sur la période par moyen de paiement, créances clients dont la part E-com, et frais de livraison Denkma à reverser, jamais comptés dans le chiffre d'affaires."), type: 'filter' },
             ],
         },

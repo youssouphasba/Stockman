@@ -27,7 +27,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "layers-outline",
                 title: "Vue simplifiée selon le plan",
-                description: "Sur mobile, un compte Starter démarre dans Produits, sans onglet Accueil : les chiffres clés sont dans la Compta. Il garde la Caisse, la Compta, les Clients et les Paramètres, ainsi que l'onglet E-com une fois la boutique en ligne activée. Les messages de l'administrateur (icône mégaphone, affichée quand vous en avez) et le bouton clair/sombre se trouvent dans l'en-tête, sur tous les onglets ; un nouveau message s'ouvre d'abord dans une fenêtre. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
+                description: "Sur mobile, un compte Starter démarre dans Produits, sans onglet Accueil : les chiffres clés sont dans la Compta. Il garde la Caisse, la Compta, les Clients et les Paramètres, ainsi que l'onglet E-com, même si le site public est désactivé. Les commandes déjà reçues restent accessibles. Les messages de l'administrateur (icône mégaphone, affichée quand vous en avez) et le bouton clair/sombre se trouvent dans l'en-tête, sur tous les onglets ; un nouveau message s'ouvre d'abord dans une fenêtre. Les blocs d'analyse avancée, l'inventaire tournant et les briques IA du dashboard restent réservés au plan Enterprise."
             },
             {
                 icon: "pie-chart-outline",
@@ -222,7 +222,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "calendar-outline",
                 title: "Périodes & Filtres",
-                description: "Analysez vos performances sur 7j, 30j, 90j, 365j ou une période personnalisée via le sélecteur en haut."
+                description: "Analysez vos performances sur 7j, 30j, 90j, 365j ou une période personnalisée via le sélecteur en haut. Sur Starter mobile, le filtre « Aujourd'hui » affiche le chiffre de la journée en cours, depuis minuit."
             },
             {
                 icon: "information-circle-outline",
@@ -518,7 +518,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             { icon: "bicycle-outline", title: "screen_guide.ecommerce.denkma_title", description: "screen_guide.ecommerce.denkma_description", requires: "ecommerce_denkma_available" },
         ]
     },
-    starterSettings: {
+    mobileSettings: {
         title: "Paramètres",
         steps: [
             { icon: "globe-outline", title: "Première configuration", description: "Stockman Basic conserve votre site actuel. Lors de la proposition initiale, Configurer mon site ouvre Boutique en ligne sans activer le site. Plus tard enregistre votre choix pour ce site, sur tous vos appareils. Vous pouvez toujours configurer le site ensuite depuis les Paramètres." },
@@ -534,7 +534,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
     settings: {
         title: "Paramètres",
         steps: [
-            { icon: "globe-outline", title: "Site e-commerce", description: "Ouvrez la première rubrique des Paramètres pour retrouver votre site. Elle s'appelle Boutique en ligne sur mobile pour Starter et Enterprise, et Site e-commerce sur Pro et sur le web. Les réglages du point de vente restent dans une rubrique séparée." },
+            { icon: "globe-outline", title: "Site e-commerce", description: "Sur mobile, Boutique en ligne est la première rubrique des Paramètres pour Starter, Pro et Enterprise. Sur le web, les libellés et les droits existants sont conservés. Les réglages du point de vente restent dans une rubrique séparée." },
             { icon: "globe-outline", title: "Première configuration du site", description: "La proposition initiale est partagée avec E-com. Configurer mon site ouvre Boutique en ligne ; Plus tard n'active rien et permet de continuer normalement. Stockman Basic reste le modèle actuel. Starter et Pro configurent depuis le mobile et conservent la consultation web ; Enterprise peut aussi configurer depuis ses Paramètres web selon ses droits." },
             { icon: "color-palette-outline", title: "Apparence du site", description: "Dans Boutique en ligne, rubrique Apparence, le bloc Apparence du site propose les modèles Stockman Basic, Atelier, Marché, Vitrine, Éclat, Prestige et Bazar : Aperçu les montre avec vos vrais produits, Choisir ce modèle crée un brouillon avec vos textes, votre logo et votre couleur. Apparence du site regroupe aussi le logo, le nom, les textes d'accueil, la couleur de marque (pastilles ou code personnalisé) et, selon le modèle, trois styles prêts à l'emploi, l'ambiance, la typographie, les animations (Aucune, Discrètes ou Expressives, toujours coupées pour les visiteurs qui demandent moins de mouvement) et chaque section : bandeau défilant, collection d'une de vos catégories, bannière, galerie, avis réels de vos clients, questions fréquentes. Sur téléphone, les rangées de produits, de catégories et d'avis défilent au doigt. Le logo se choisit dans la bibliothèque d'images du site : JPEG, PNG ou WebP, 8 Mo au maximum, optimisé automatiquement. Enregistrez un brouillon, ouvrez un aperçu privé valable 30 minutes, même si le site est désactivé, puis publiez après avoir vérifié les changements. La publication n'active pas le site. Sur le web, ces actions, l'historique des versions (dont la version d'origine du site) et l'éditeur visuel (sections et pages personnalisées) sont réservés à Enterprise. Les sections d'une page personnalisée apparaissent ici sous le titre de leur page : leurs textes se modifient comme les autres. Une section masquée depuis l'éditeur visuel est signalée par « (masquée sur le site) » : ses textes restent modifiables, mais elle ne s'affiche pas sur le site." },
             {
@@ -545,7 +545,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "person-outline",
                 title: "Commencer par la bonne rubrique",
-                description: "Sur Enterprise mobile, Ma boutique commence par Utilisateurs et permissions et regroupe aussi les factures, les reçus et la TVA. Aide rassemble le support et la synchronisation. Selon vos droits, retrouvez les modules dans Mon compte et les canaux, les destinataires e-mail et les seuils dans Notifications. Cuisine et Réservations sont réservées aux activités de restauration."
+                description: "Sur mobile, l'organisation des Paramètres est cohérente entre Starter, Pro et Enterprise. Ma boutique commence par Utilisateurs et permissions lorsque votre rôle y donne accès, puis regroupe les factures, les reçus et la TVA. Aide rassemble le support et le signalement de problèmes ; l'état de la synchronisation, automatique, se trouve dans Informations. Selon vos droits, retrouvez les modules dans Mon compte et les canaux, les destinataires e-mail et les seuils dans Notifications. Cuisine et Réservations sont réservées aux activités de restauration."
             },
             {
                 icon: "language-outline",

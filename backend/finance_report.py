@@ -229,8 +229,10 @@ async def ecommerce_flow(db: Any, match: Mapping[str, Any], start: datetime, end
                 {"$group": {"_id": None, "amount": {"$sum": _TOTAL}, "count": {"$sum": 1}}},
             ],
             "delivery_transit": [
+                # Une livraison Denkma annulée n'a rien à reverser : le colis est parti autrement.
                 {"$match": {"payment.status": "paid", "payment.paid_at": {"$gte": start, "$lte": end},
-                            "delivery_fee": {"$gt": 0}, "status": {"$nin": CLOSED_WITHOUT_SALE}}},
+                            "delivery_fee": {"$gt": 0}, "status": {"$nin": CLOSED_WITHOUT_SALE},
+                            "delivery.denkma_status": {"$ne": "cancelled"}, "delivery.parcel_status": {"$ne": "cancelled"}}},
                 {"$group": {"_id": None, "amount": {"$sum": "$delivery_fee"}, "count": {"$sum": 1}}},
             ],
         }},

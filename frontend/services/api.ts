@@ -1003,6 +1003,8 @@ export const ecommerce = {
     return request<{ items: any[]; total: number }>(`/ecommerce/orders?${qs.toString()}`);
   },
   getOrder: (orderId: string) => request<any>(`/ecommerce/orders/${orderId}`),
+  // Nombre de commandes qui attendent un geste du commerçant (pastille de l'onglet E-com).
+  getActionCount: () => request<{ count: number }>('/ecommerce/orders/action-count'),
   updateOrderStatus: (orderId: string, status: string, paid?: boolean) =>
     request<{ message: string; order: any }>(`/ecommerce/orders/${orderId}/status`, { method: 'PUT', body: paid === undefined ? { status } : { status, paid } }),
   // « Paiement reçu » : le commerçant confirme que le client l'a payé (paid: false corrige une erreur).

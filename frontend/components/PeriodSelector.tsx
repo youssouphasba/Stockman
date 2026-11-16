@@ -14,6 +14,9 @@ interface PeriodSelectorProps {
     endDate?: string | Date;
     onSelectCustomDate?: (start: Date, end: Date) => void;
     onApplyCustomDate?: (start: string, end: string) => void;
+    // Bouton « Aujourd'hui » facultatif : la journée calendaire en cours, et non les dernières 24 heures.
+    todaySelected?: boolean;
+    onSelectToday?: () => void;
 }
 
 export default function PeriodSelector({
@@ -21,7 +24,9 @@ export default function PeriodSelector({
     onSelectPeriod,
     startDate,
     endDate,
-    onApplyCustomDate
+    onApplyCustomDate,
+    todaySelected = false,
+    onSelectToday,
 }: PeriodSelectorProps) {
     const { colors } = useTheme();
     const { t } = useTranslation();
@@ -108,28 +113,38 @@ export default function PeriodSelector({
     return (
         <View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.periodRow}>
+                {onSelectToday && (
+                    <TouchableOpacity
+                        style={[styles.periodBtn, todaySelected && styles.periodBtnActive]}
+                        onPress={onSelectToday}
+                    >
+                        <Text style={[styles.periodBtnText, todaySelected && styles.periodBtnTextActive]}>
+                            {t('common.today')}
+                        </Text>
+                    </TouchableOpacity>
+                )}
                 {PERIODS.map(p => (
                     <TouchableOpacity
                         key={p.value}
-                        style={[styles.periodBtn, selectedPeriod === p.value && styles.periodBtnActive]}
+                        style={[styles.periodBtn, !todaySelected && selectedPeriod === p.value && styles.periodBtnActive]}
                         onPress={() => onSelectPeriod(p.value)}
                     >
-                        <Text style={[styles.periodBtnText, selectedPeriod === p.value && styles.periodBtnTextActive]}>
+                        <Text style={[styles.periodBtnText, !todaySelected && selectedPeriod === p.value && styles.periodBtnTextActive]}>
                             {p.label}
                         </Text>
                     </TouchableOpacity>
                 ))}
                 <TouchableOpacity
-                    style={[styles.periodBtn, selectedPeriod === 'custom' && styles.periodBtnActive]}
+                    style={[styles.periodBtn, !todaySelected && selectedPeriod === 'custom' && styles.periodBtnActive]}
                     onPress={() => onSelectPeriod('custom')}
                 >
-                    <Text style={[styles.periodBtnText, selectedPeriod === 'custom' && styles.periodBtnTextActive]}>
+                    <Text style={[styles.periodBtnText, !todaySelected && selectedPeriod === 'custom' && styles.periodBtnTextActive]}>
                         {t('common.periods.custom')}
                     </Text>
                 </TouchableOpacity>
             </ScrollView>
 
-            {selectedPeriod === 'custom' && (
+            {!todaySelected && selectedPeriod === 'custom' && (
                 <View style={styles.customDateRow}>
                     <TextInput
                         style={styles.dateInput}

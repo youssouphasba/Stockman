@@ -47,6 +47,7 @@ import {
 
 import { useAuth } from '../../contexts/AuthContext';
 import { hasPlatformModule } from '../../utils/access';
+import { isStarterShopkeeper } from '../../utils/accountRouting';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import FiscalLedgerPanel from '../../components/FiscalLedgerPanel';
@@ -73,6 +74,14 @@ import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 // screenWidth is now read via useWindowDimensions() inside the component
 
 // PERIODS constant removed as it's handled inside the component or by PeriodSelector
+
+// Journée calendaire en cours dans le fuseau du téléphone, envoyée en UTC sans millisecondes.
+function buildTodayRange(now = new Date()): { start: string; end: string } {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const format = (date: Date) => date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+    return { start: format(start), end: format(end) };
+}
 
 const PAYMENT_LABELS: Record<string, string> = {
     cash: 'accounting.payment_cash',
@@ -242,10 +251,12 @@ function AccountingWorkspace() {
     // Applied dates: only updated when user clicks "Appliquer", not on every keystroke
     const [appliedStart, setAppliedStart] = useState<string>('');
     const [appliedEnd, setAppliedEnd] = useState<string>('');
+    // « Aujourd'hui » (Starter mobile) : de minuit à 23 h 59 dans le fuseau du téléphone, et non les dernières 24 heures.
+    const [todayRange, setTodayRange] = useState<{ start: string; end: string } | null>(null);
     const activePeriod = selectedPeriod === 'custom' && (!appliedStart || !appliedEnd) ? lastPresetPeriod : selectedPeriod;
-    const reportDays = typeof activePeriod === 'number' ? activePeriod : undefined;
-    const reportStart = activePeriod === 'custom' ? appliedStart : undefined;
-    const reportEnd = activePeriod === 'custom' ? appliedEnd : undefined;
+    const reportDays = !todayRange && typeof activePeriod === 'number' ? activePeriod : undefined;
+    const reportStart = todayRange ? todayRange.start : activePeriod === 'custom' ? appliedStart : undefined;
+    const reportEnd = todayRange ? todayRange.end : activePeriod === 'custom' ? appliedEnd : undefined;
     const invoiceKey = JSON.stringify([reportDays, reportStart, reportEnd]);
     const statsKey = JSON.stringify([invoiceKey, salesChannel]);
     const stats = statsSnapshot?.key === statsKey ? statsSnapshot.data : null;
@@ -253,6 +264,8 @@ function AccountingWorkspace() {
     const latestQuery = useRef({ reportDays, reportStart, reportEnd, invoiceKey, statsKey, salesChannel });
     latestQuery.current = { reportDays, reportStart, reportEnd, invoiceKey, statsKey, salesChannel };
     const { user, isSuperAdmin } = useAuth();
+    const canSelectToday = Platform.OS !== 'web' && isStarterShopkeeper(user);
+    const periodLabel = todayRange ? t('common.today') : stats?.period_label;
     const suppliersModuleOn = hasPlatformModule(user, 'suppliers');
     const { setDrawerContent } = useDrawer();
     const [currentStore, setCurrentStore] = useState<Store | null>(null);
@@ -435,10 +448,22 @@ function AccountingWorkspace() {
 
     const onRefresh = () => {
         setRefreshing(true);
+        // Après minuit, « Aujourd'hui » passe au nouveau jour ; le changement de période relance le chargement.
+        const nextToday = todayRange ? buildTodayRange() : null;
+        if (nextToday && nextToday.start !== todayRange?.start) {
+            setTodayRange(nextToday);
+            return;
+        }
         void loadData();
     };
 
+    const selectToday = () => {
+        setActiveKpiDetail(null);
+        setTodayRange(buildTodayRange());
+    };
+
     const changePeriod = (period: number | 'custom') => {
+        setTodayRange(null);
         if (period !== 'custom') {
             setLastPresetPeriod(period);
             setStartDate('');
@@ -813,7 +838,7 @@ function AccountingWorkspace() {
         switch (kind) {
             case 'revenue':
                 return [
-                    `${t('accounting.insight_period', 'Période analysée')} : ${stats?.period_label || t('accounting.insight_undefined', 'non définie')}`,
+                    `${t('accounting.insight_period', 'Période analysée')} : ${periodLabel || t('accounting.insight_undefined', 'non définie')}`,
                     `${t('accounting.insight_variation', 'Variation sur la période')} : ${formatCurrency(revenueDelta)}`,
                     bestRevenueDay ? `${t('accounting.insight_best_day', 'Meilleure journée')} : ${new Date(bestRevenueDay.date).toLocaleDateString(i18n.language)} (${formatCurrency(bestRevenueDay.revenue)})` : null,
                 ].filter(Boolean) as string[];
@@ -1015,7 +1040,7 @@ function AccountingWorkspace() {
 
         const storeName = currentStore?.name || t('accounting.default_store_name');
         const storeAddress = currentStore?.address || t('accounting.default_address');
-        const periodLabel = stats.period_label || (reportDays !== undefined ? t('accounting.last_days_label', { count: reportDays }) : t('common.periods.custom'));
+        const reportPeriodLabel = (todayRange ? t('common.today') : stats.period_label) || (reportDays !== undefined ? t('accounting.last_days_label', { count: reportDays }) : t('common.periods.custom'));
 
         const html = `
             <html>
@@ -1053,7 +1078,7 @@ function AccountingWorkspace() {
 
                 <div class="report-title">
                     <h2>${t('accounting.report_title')}</h2>
-                    <p>${t('accounting.period_label')} ${periodLabel}</p>
+                    <p>${t('accounting.period_label')} ${reportPeriodLabel}</p>
                 </div>
 
                 <div class="kpi-grid">
@@ -1124,7 +1149,7 @@ function AccountingWorkspace() {
                 setTimeout(() => document.body.removeChild(iframe), 1000);
             } else {
                 const { uri } = await Print.printToFileAsync({ html });
-                await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: t('accounting.report_activity_dialog', { period: periodLabel }) });
+                await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: t('accounting.report_activity_dialog', { period: reportPeriodLabel }) });
             }
         } catch (error) {
             console.error(error);
@@ -1495,7 +1520,7 @@ function AccountingWorkspace() {
                     >
                         {/* Header */}
                         <View style={{ paddingTop: Spacing.xs, marginBottom: Spacing.sm }}>
-                            <Text style={styles.subtitle}>{stats?.period_label}</Text>
+                            <Text style={styles.subtitle}>{periodLabel}</Text>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.xs, marginTop: Spacing.xs }}>
                                 <TouchableOpacity style={styles.actionBtn} onPress={generateActivityReportPdf}
                                     disabled={!stats || historyStatus.expenses !== 'ready'}
@@ -1517,6 +1542,8 @@ function AccountingWorkspace() {
                                 <PeriodSelector
                                     selectedPeriod={selectedPeriod}
                                     onSelectPeriod={changePeriod}
+                                    todaySelected={Boolean(todayRange)}
+                                    onSelectToday={canSelectToday ? selectToday : undefined}
                                     startDate={startDate}
                                     endDate={endDate}
                                     onApplyCustomDate={(s, e) => {

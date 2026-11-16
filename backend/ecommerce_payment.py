@@ -206,6 +206,20 @@ def new_payment(method: str) -> Dict[str, Any]:
     return {"payment": {"method": method, "status": AWAITING, "token_hash": _hash(token)}, "token": token}
 
 
+def action_required_query() -> Dict[str, Any]:
+    """Commandes qui attendent un geste du commerçant (même règle que « Prochaine étape » dans l'application) :
+    paiement annoncé à vérifier, commande à confirmer ou à préparer, ou livraison à enregistrer hors Denkma.
+    Une livraison Denkma en cours ne demande rien : la commande passe à « Livrée » toute seule."""
+    return {
+        "status": {"$nin": ["delivered", *CLOSED_WITHOUT_SALE]},
+        "$or": [
+            {"payment.status": DECLARED},
+            {"status": {"$in": ["pending", "confirmed", "preparing"]}},
+            {"delivery.provider": {"$ne": "denkma"}},
+        ],
+    }
+
+
 def merchant_view(order: Mapping[str, Any]) -> Dict[str, Any]:
     """Commande telle que le commerçant la reçoit : sans le condensat du jeton du client."""
     payment = order.get("payment")

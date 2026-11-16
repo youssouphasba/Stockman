@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Zap } from 'lucide-react';
 import { ecommerce as ecommerceApi } from '../services/api';
 import Modal from './Modal';
 import DenkmaShipDialog from './DenkmaShipDialog';
@@ -40,6 +40,8 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
         try {
             const res = await ecommerceApi.listOrders();
             setWebOrders(res.items || []);
+            // La pastille du menu se recalcule après chaque chargement de la liste.
+            window.dispatchEvent(new Event('ecommerce:orders-changed'));
         } catch (err) {
             console.error('E-com orders load error', err);
         } finally {
@@ -136,8 +138,16 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                     <div className="flex justify-center py-16"><Loader2 className="animate-spin text-primary" /></div>
                 ) : webOrders.length === 0 ? (
                     <div className="glass-card p-12 text-center text-slate-400">Aucune commande E-com pour le moment.</div>
-                ) : webOrders.map((order) => (
-                    <div key={order.order_id} className="glass-card p-5">
+                ) : webOrders.map((order) => {
+                    // Une commande qui attend un geste du commerçant est entourée d'un halo et porte « À faire ».
+                    const pendingStep = nextStep(order);
+                    const actionNeeded = Boolean(pendingStep?.action);
+                    return (
+                    <div key={order.order_id} className={`glass-card relative p-5 ${actionNeeded ? 'border-amber-400/60' : ''}`}>
+                        {actionNeeded && <>
+                            <div aria-hidden className="pointer-events-none absolute -inset-px rounded-[inherit] ring-2 ring-amber-400/70 shadow-[0_0_24px_rgba(251,191,36,0.35)] motion-safe:animate-pulse" />
+                            <span className="absolute -top-3 left-5 inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-1 text-xs font-black text-white shadow"><Zap size={12} aria-hidden /> À faire : {pendingStep?.label}</span>
+                        </>}
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                             <div>
                                 <div className="flex flex-wrap items-center gap-3">
@@ -195,7 +205,7 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                             // Une seule étape mise en avant ; les autres gestes restent disponibles, en retrait.
                             const step = nextStep(order);
                             const payment = paymentState(order);
-                            const secondary = 'rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-white/10';
+                            const secondary = 'rounded-xl border border-white/25 bg-white/5 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:border-primary/60 hover:bg-primary/10';
                             return (
                                 <div className="mt-4 space-y-3">
                                     {step && (
@@ -216,13 +226,14 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                         {['confirmed', 'preparing'].includes(order.status) && step?.action !== 'ready' && <button onClick={() => void markWebOrderReady(order)} className={secondary}>Prête</button>}
                                         {canShipWithDenkma(order) && <button onClick={() => setDenkmaShipOrder(order)} className={secondary}>Livrer avec Denkma en joignant une photo</button>}
                                         {['confirmed', 'preparing', 'ready'].includes(order.status) && step?.action !== 'deliver' && <button onClick={() => deliverWebOrderNow(order)} className={secondary}>Livrer et créer la vente</button>}
-                                        {['pending', 'confirmed'].includes(order.status) && <button onClick={() => { if (window.confirm('Annuler cette commande ?')) void updateWebOrderStatus(order.order_id, 'cancelled'); }} className="rounded-xl border border-rose-400/20 px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500/10">Annuler la commande</button>}
+                                        {['pending', 'confirmed'].includes(order.status) && <button onClick={() => { if (window.confirm('Annuler cette commande ?')) void updateWebOrderStatus(order.order_id, 'cancelled'); }} className="rounded-xl border border-rose-400/50 bg-rose-500/10 px-4 py-2.5 text-sm font-bold text-rose-200 transition hover:bg-rose-500/20">Annuler la commande</button>}
                                     </div>
                                 </div>
                             );
                         })()}
                     </div>
-                ))}
+                    );
+                })}
             </div>
 
             {deliverWebOrder && (

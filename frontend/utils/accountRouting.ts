@@ -14,6 +14,16 @@ export function isStarterShopkeeper(user: User | null): boolean {
   return user?.role === 'shopkeeper' && !user.is_demo && getCommercialPlan(user) === 'starter';
 }
 
+export function isEcommerceWorkspaceAccount(user: User | null): boolean {
+  return (user?.role === 'shopkeeper' || user?.role === 'staff')
+    && !user.is_demo
+    && ['starter', 'pro', 'enterprise'].includes(getCommercialPlan(user) || '');
+}
+
+export function isProSettingsAccount(user: User | null): boolean {
+  return (user?.role === 'shopkeeper' || user?.role === 'staff') && !user.is_demo && getCommercialPlan(user) === 'pro';
+}
+
 export function isEnterpriseSettingsAccount(user: User | null): boolean {
   return (user?.role === 'shopkeeper' || user?.role === 'staff') && !user.is_demo && getCommercialPlan(user) === 'enterprise';
 }

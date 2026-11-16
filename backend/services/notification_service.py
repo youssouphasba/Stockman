@@ -203,6 +203,7 @@ class NotificationService:
         text_body: Optional[str] = None,
         from_email: Optional[str] = None,
         reply_to: Optional[str] = None,
+        headers: Optional[Dict[str, str]] = None,
     ):
         """
         Send an email notification via Resend.
@@ -229,6 +230,8 @@ class NotificationService:
             payload["text"] = text_body
         if reply_to:
             payload["reply_to"] = str(reply_to).strip()
+        if headers:
+            payload["headers"] = headers
 
         try:
             async with httpx.AsyncClient() as client:

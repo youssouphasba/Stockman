@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Globe, LayoutGrid, Store as StoreIcon, Wallet } from 'lucide-react';
+import { Globe, Info, LayoutGrid, Store as StoreIcon, Wallet } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 import SafeResponsiveContainer from './charts/SafeResponsiveContainer';
 import type { AccountingStats, SalesChannel } from '../services/api';
@@ -70,12 +70,27 @@ type PanelProps = {
     formatCurrency: (value: number) => string;
 };
 
-function Figure({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: 'warn' | 'muted' }) {
+function Figure({ label, value, hint, tone, info }: { label: string; value: string; hint?: string; tone?: 'warn' | 'muted'; info?: string }) {
+    const [showInfo, setShowInfo] = React.useState(false);
     return (
-        <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
+        <div className="relative min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            {/* « i » : ce que la carte compte exactement, au clic (souris ou doigt). */}
+            {info && (
+                <button
+                    type="button"
+                    aria-label={info}
+                    aria-expanded={showInfo}
+                    title={info}
+                    onClick={() => setShowInfo((value) => !value)}
+                    className="absolute right-2 top-2 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
+                >
+                    <Info size={15} />
+                </button>
+            )}
+            <p className={`truncate text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 ${info ? 'pr-6' : ''}`}>{label}</p>
             <p className={`mt-2 truncate text-xl font-black ${tone === 'warn' ? 'text-amber-400' : tone === 'muted' ? 'text-slate-300' : 'text-white'}`}>{value}</p>
             {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
+            {info && showInfo ? <p className="mt-3 rounded-xl border border-white/10 bg-slate-900/80 p-3 text-xs leading-5 text-slate-200">{info}</p> : null}
         </div>
     );
 }
@@ -158,16 +173,12 @@ function EcommercePanel({ stats, formatCurrency }: Omit<PanelProps, 'view'>) {
             <p className="mt-1 text-sm text-slate-400">
                 {t('accounting.ecommerce_flow_subtitle', { defaultValue: 'Annulations exclues. Les frais de livraison Denkma ne font jamais partie du chiffre d’affaires.' })}
             </p>
-            <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                <Figure label={t('accounting.ecommerce_ordered', { defaultValue: 'Commandé' })} value={formatCurrency(flow.ordered.amount)} hint={orders(flow.ordered.count)} />
-                <Figure label={t('accounting.ecommerce_delivered', { defaultValue: 'Livré (CA)' })} value={formatCurrency(flow.revenue)} hint={orders(flow.delivered.count)} />
-                <Figure label={t('accounting.ecommerce_collected', { defaultValue: 'Encaissé' })} value={formatCurrency(flow.collected)} />
-                <Figure label={t('accounting.ecommerce_to_collect', { defaultValue: 'À encaisser' })} value={formatCurrency(flow.to_collect.amount)} hint={orders(flow.to_collect.count)} tone={flow.to_collect.amount > 0 ? 'warn' : undefined} />
-            </div>
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                <Figure label={t('accounting.ecommerce_open', { defaultValue: 'En cours' })} value={formatCurrency(flow.open.amount)} hint={orders(flow.open.count)} tone="muted" />
-                <Figure label={t('accounting.ecommerce_cancelled', { defaultValue: 'Annulées ou refusées' })} value={formatCurrency(flow.cancelled.amount)} hint={orders(flow.cancelled.count)} tone="muted" />
-                <Figure label={t('accounting.delivery_transit', { defaultValue: 'Livraison en transit' })} value={formatCurrency(flow.delivery_transit.amount)}
+            {/* Le chiffre d'affaires livré figure déjà dans les indicateurs : le circuit n'y revient pas. */}
+            <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <Figure label={t('accounting.ecommerce_collected', { defaultValue: 'Encaissé' })} value={formatCurrency(flow.collected)} info={t('accounting.info_ecommerce_collected')} />
+                <Figure label={t('accounting.ecommerce_open', { defaultValue: 'En cours' })} value={formatCurrency(flow.open.amount)} hint={orders(flow.open.count)} tone="muted" info={t('accounting.info_ecommerce_open')} />
+                <Figure label={t('accounting.ecommerce_cancelled', { defaultValue: 'Annulées ou refusées' })} value={formatCurrency(flow.cancelled.amount)} hint={orders(flow.cancelled.count)} tone="muted" info={t('accounting.info_ecommerce_cancelled')} />
+                <Figure label={t('accounting.delivery_transit', { defaultValue: 'Livraison en transit' })} value={formatCurrency(flow.delivery_transit.amount)} info={t('accounting.info_delivery_transit')}
                     hint={t('accounting.delivery_transit_hint', { defaultValue: 'Frais payés par les clients, à reverser à Denkma' })} tone="muted" />
             </div>
         </section>
