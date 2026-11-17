@@ -558,7 +558,7 @@
       "errorRegister": "Registration error",
       "continue": "Continue",
       "selectBusinessType": "Choose a sector",
-      "trialNote": "30 days free • No credit card required"
+      "trialNote": "{{days}} days free • No credit card required"
     },
     "verifyPhone": {
       "title": "Verification",

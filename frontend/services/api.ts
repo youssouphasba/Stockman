@@ -550,6 +550,11 @@ export type AppVersionSettings = {
   ios_latest_version?: string | null;
 };
 
+// Durée de l'essai gratuit offert à l'inscription, réglée par l'admin Stockman.
+export const publicSettings = {
+  getTrial: () => rawRequest<{ months: number; days: number }>('/settings/trial'),
+};
+
 export const appVersion = {
   get: () => rawRequest<AppVersionSettings>('/settings/app-version'),
   reportInstalled: (data: { platform: 'android' | 'ios'; version: string }) =>

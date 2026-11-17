@@ -646,6 +646,33 @@ def _read_env_bool(name: str, default: bool = False) -> bool:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on", "oui"}
 
+_signup_trial_cache: Dict[str, Any] = {"value": None, "at": 0.0}
+SIGNUP_TRIAL_CACHE_SECONDS = 60
+
+
+async def get_signup_trial_settings(use_cache: bool = True) -> Dict[str, int]:
+    """Durée de l'essai gratuit offert à l'inscription (réglée par l'admin, 1 mois par défaut)."""
+    now_ts = datetime.now(timezone.utc).timestamp()
+    cached = _signup_trial_cache["value"]
+    if use_cache and cached and now_ts - _signup_trial_cache["at"] < SIGNUP_TRIAL_CACHE_SECONDS:
+        return cached
+    settings_doc = await db.app_settings.find_one({"key": "global"}, {"_id": 0, "trial": 1}) or {}
+    value = trial_extension.signup_trial_view(settings_doc)
+    _signup_trial_cache.update({"value": value, "at": now_ts})
+    return value
+
+
+async def signup_trial_ends_at(start: Optional[datetime] = None) -> datetime:
+    trial = await get_signup_trial_settings()
+    return (start or datetime.now(timezone.utc)) + timedelta(days=trial["days"])
+
+
+@api_router.get("/settings/trial")
+async def get_public_trial_settings():
+    """Durée de l'essai gratuit affichée sur les écrans d'inscription."""
+    return await get_signup_trial_settings()
+
+
 @api_router.get("/settings/app-version", response_model=AppVersionSettings)
 async def get_app_version_settings():
     settings_doc = await db.app_settings.find_one(
@@ -8952,6 +8979,26 @@ async def admin_extend_trial(user_id: str, data: AdminTrialExtensionRequest, adm
         "trial_ends_at": trial_ends_at,
         "notification": {"title": text["title"], "delivery": delivery},
     }
+
+
+class AdminSignupTrialRequest(BaseModel):
+    months: int = Field(ge=trial_extension.MIN_MONTHS, le=trial_extension.MAX_MONTHS)
+
+
+@admin_router.get("/trial-settings")
+async def admin_get_trial_settings():
+    return await get_signup_trial_settings(use_cache=False)
+
+
+@admin_router.put("/trial-settings")
+async def admin_set_trial_settings(data: AdminSignupTrialRequest, admin: User = Depends(require_admin_access)):
+    """Durée de l'essai gratuit des nouveaux inscrits. Les comptes existants ne changent pas."""
+    await db.app_settings.update_one(
+        {"key": "global"},
+        {"$set": {"trial.signup_months": data.months, "trial.updated_at": datetime.now(timezone.utc), "trial.updated_by": admin.user_id}},
+        upsert=True,
+    )
+    return await get_signup_trial_settings(use_cache=False)
 
 
 @admin_router.get("/me/access")
@@ -18322,7 +18369,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
             raise HTTPException(status_code=400, detail="Le numero de telephone est requis pour verifier ce compte.")
         otp = generate_otp_code() if required_verification == "email" else None
         otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
-        trial_ends_at = datetime.now(timezone.utc) + timedelta(days=30)  # 1 month free trial
+        trial_ends_at = await signup_trial_ends_at()  # essai gratuit réglé par l'admin
         user_doc = {
             "user_id": user_id,
             "email": user_data.email,
@@ -18613,7 +18660,7 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
         if upgrade_web_social_to_enterprise:
             update_payload["plan"] = "enterprise"
             update_payload["subscription_status"] = "active"
-            update_payload["trial_ends_at"] = user_doc.get("trial_ends_at") or datetime.now(timezone.utc) + timedelta(days=30)
+            update_payload["trial_ends_at"] = user_doc.get("trial_ends_at") or await signup_trial_ends_at()
         await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": update_payload})
         user_doc.update(update_payload)
         if upgrade_web_social_to_enterprise:
@@ -18638,7 +18685,7 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
         signup_surface = resolve_signup_surface(data.signup_surface, None)
         initial_plan = "enterprise" if signup_surface == "web" else "starter"
         login_at = datetime.now(timezone.utc)
-        trial_ends_at = login_at + timedelta(days=30)
+        trial_ends_at = await signup_trial_ends_at(login_at)
 
         user_doc = {
             "user_id": user_id,
@@ -19386,7 +19433,7 @@ async def complete_social_profile(data: SocialProfileCompletionUpdate, user: Use
     if upgrade_web_social_to_enterprise:
         update_payload["plan"] = "enterprise"
         update_payload["subscription_status"] = "active"
-        update_payload["trial_ends_at"] = user_doc.get("trial_ends_at") or datetime.now(timezone.utc) + timedelta(days=30)
+        update_payload["trial_ends_at"] = user_doc.get("trial_ends_at") or await signup_trial_ends_at()
 
     await db.users.update_one({"user_id": user.user_id}, {"$set": update_payload})
     normalized_business_name = update_payload.get("name")

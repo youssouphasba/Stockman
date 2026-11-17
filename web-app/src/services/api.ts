@@ -1683,6 +1683,11 @@ export type ProjectDashboard = {
 };
 
 // Ported services (Subset for the MVP)
+export const publicSettings = {
+    // Durée de l'essai gratuit offert à l'inscription, réglée par l'admin.
+    getTrial: () => request<{ months: number; days: number }>('/settings/trial'),
+};
+
 export const auth = {
     exchangeWebLogin: async (code: string) => {
         removeToken();
@@ -3111,6 +3116,8 @@ export const admin = {
     getUserDetail: (userId: string) => request<any>(`/admin/users/${userId}/detail`),
     getTodayQueue: () => request<AdminTodayQueue>('/admin/today'),
     getMyAccess: () => request<AdminAccessView>('/admin/me/access'),
+    getSignupTrial: () => request<{ months: number; days: number }>('/admin/trial-settings'),
+    setSignupTrial: (months: number) => request<{ months: number; days: number }>('/admin/trial-settings', { method: 'PUT', body: { months } }),
     extendTrial: (userId: string, months: number, note = '') => request<{ user_id: string; months: number; trial_ends_at: string; previous_trial_ends_at?: string | null }>(`/admin/users/${userId}/trial-extension`, { method: 'POST', body: { months, note } }),
     getTeam: () => request<{ items: AdminTeamMember[]; catalog: AdminScopeInfo[] }>('/admin/team'),
     setAdminAccess: (userId: string, enabled: boolean, scopes: string[]) => request<{ user_id: string; role: string; admin_scopes: string[] }>(`/admin/users/${userId}/admin-access`, { method: 'PUT', body: { enabled, scopes } }),

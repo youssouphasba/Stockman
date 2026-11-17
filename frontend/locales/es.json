@@ -416,7 +416,7 @@
       "choosePlanSubtitle": "Vous testerez ce plan pendant votre essai gratuit de 30 jours",
       "continueToPlan": "Continuer",
       "planSelected": "Sélectionné",
-      "trialNote": "30 jours gratuits • Sans carte bancaire"
+      "trialNote": "{{days}} días gratis • Sin tarjeta bancaria"
     },
     "verifyPhone": {
       "title": "Verificación",

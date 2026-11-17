@@ -47,6 +47,17 @@ class TrialExtensionTests(unittest.TestCase):
         self.assertEqual(text["title"], "Stockman gives you 2 free months")
         self.assertTrue(text["content"].endswith("Merci pour votre fidélité."))
 
+    def test_signup_trial_defaults_to_one_month(self):
+        self.assertEqual(te.signup_trial_view(None), {"months": 1, "days": 30})
+        self.assertEqual(te.signup_trial_view({"trial": {}}), {"months": 1, "days": 30})
+
+    def test_signup_trial_uses_the_admin_setting(self):
+        self.assertEqual(te.signup_trial_view({"trial": {"signup_months": 3}}), {"months": 3, "days": 90})
+
+    def test_invalid_signup_setting_falls_back_to_one_month(self):
+        for value in (0, 13, "abc", None, -2):
+            self.assertEqual(te.signup_trial_view({"trial": {"signup_months": value}})["months"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

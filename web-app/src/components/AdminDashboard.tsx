@@ -23,6 +23,7 @@ import AdminUserHistory from './admin/AdminUserHistory';
 import AdminAccessCard from './admin/AdminAccessCard';
 import AdminTeamPanel from './admin/AdminTeamPanel';
 import AdminTrialExtensionCard from './admin/AdminTrialExtensionCard';
+import AdminSignupTrialCard from './admin/AdminSignupTrialCard';
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: any; icon: any; color: string; sub: string }) {
     return (
@@ -2556,6 +2557,7 @@ export default function AdminDashboard() {
 
             {activeSection === 'subscriptions' && (
                 <div className="space-y-8">
+                    {myAccess?.is_superadmin ? <AdminSignupTrialCard showToast={showToast} /> : null}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <StatCard label="Comptes payants" value={subscriptionOverview.active_paid_accounts || 0} icon={Wallet} color="bg-emerald-500" sub="Actifs" />
                         <StatCard label="Trials actifs" value={subscriptionOverview.active_trials || 0} icon={Clock} color="bg-amber-500" sub={`${subscriptionOverview.trials_expiring_3d || 0} expirent sous 3 jours`} />

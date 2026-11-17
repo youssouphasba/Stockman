@@ -43,6 +43,7 @@ class AdminAccessRulesTests(unittest.TestCase):
             "/api/admin/logs",
             "/api/admin/health",
             "/api/admin/set-plan",
+            "/api/admin/trial-settings",
         ):
             self.assertFalse(aa.can_access("admin", every_scope, path), path)
 

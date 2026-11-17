@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { CheckCircle2, Eye, EyeOff, X, ChevronDown, Search } from 'lucide-react';
-import { auth, type AuthResponse } from '../services/api';
+import { auth, publicSettings, type AuthResponse } from '../services/api';
 import { COUNTRIES } from '@/data/countries';
 
 const SECTORS = [
@@ -58,6 +58,10 @@ type Props = {
 };
 
 export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
+  const [trialMonths, setTrialMonths] = useState(1);
+  useEffect(() => {
+    publicSettings.getTrial().then(data => setTrialMonths(data.months)).catch(() => undefined);
+  }, []);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -220,7 +224,7 @@ export default function EnterpriseSignupModal({ onClose, onSuccess }: Props) {
           <div className="px-6 pb-6 pt-0">
             <div className="mb-5">
               <span className="text-xs font-bold bg-primary/20 text-primary px-3 py-1 rounded-full">
-                1 mois gratuit - sans carte bancaire
+                {trialMonths === 1 ? '1 mois gratuit' : `${trialMonths} mois gratuits`} - sans carte bancaire
               </span>
               <h2 className="text-xl font-bold text-white mt-3">Créer mon compte Enterprise</h2>
               <p className="text-slate-400 text-sm mt-1">

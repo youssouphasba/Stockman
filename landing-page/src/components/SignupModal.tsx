@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { API_URL } from '../config';
 
 const SECTORS = [
@@ -71,6 +71,15 @@ interface Props {
 }
 
 export default function SignupModal({ plan, onClose }: Props) {
+  // Durée de l'essai gratuit offert à l'inscription, réglée par l'admin Stockman.
+  const [trialMonths, setTrialMonths] = useState(1);
+  useEffect(() => {
+    fetch(`${API_URL}/api/settings/trial`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => { if (data?.months) setTrialMonths(Number(data.months)); })
+      .catch(() => undefined);
+  }, []);
+  const trialLabel = trialMonths === 1 ? '1 mois' : `${trialMonths} mois`;
   const [step, setStep] = useState<Step>('form');
 
   const [name, setName] = useState('');
@@ -167,9 +176,9 @@ export default function SignupModal({ plan, onClose }: Props) {
         {step === 'form' ? (
           <>
             <div className="signup-modal-header">
-              <span className="signup-modal-badge">1 mois gratuit — sans carte bancaire</span>
+              <span className="signup-modal-badge">{trialMonths === 1 ? '1 mois gratuit' : `${trialMonths} mois gratuits`} — sans carte bancaire</span>
               <h2>Créer mon compte {planLabel}</h2>
-              <p>Accès complet à toutes les fonctionnalités pendant 1 mois.</p>
+              <p>Accès complet à toutes les fonctionnalités pendant {trialLabel}.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="signup-form">

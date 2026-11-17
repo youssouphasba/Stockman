@@ -15,6 +15,22 @@ from typing import Any, Dict, Optional
 DAYS_PER_MONTH = 30
 MIN_MONTHS = 1
 MAX_MONTHS = 12
+# Essai offert à l'inscription, modifiable par l'admin (de 1 à 12 mois).
+DEFAULT_SIGNUP_MONTHS = 1
+
+
+def normalize_signup_months(value) -> int:
+    try:
+        months = int(value)
+    except (TypeError, ValueError):
+        return DEFAULT_SIGNUP_MONTHS
+    return months if MIN_MONTHS <= months <= MAX_MONTHS else DEFAULT_SIGNUP_MONTHS
+
+
+def signup_trial_view(settings_doc) -> dict:
+    """Durée de l'essai offert à l'inscription, lue dans app_settings (clé « global »)."""
+    months = normalize_signup_months(((settings_doc or {}).get("trial") or {}).get("signup_months"))
+    return {"months": months, "days": months * DAYS_PER_MONTH}
 
 
 def is_paying_account(account: Optional[Dict[str, Any]]) -> bool:

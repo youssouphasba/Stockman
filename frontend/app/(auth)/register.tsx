@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { ApiError, auth } from '../../services/api';
+import { ApiError, auth, publicSettings } from '../../services/api';
 import { COUNTRIES, Country } from '../../constants/countries';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { getFlagFromCountryCode } from '../../utils/flags';
@@ -65,6 +65,11 @@ export default function RegisterScreen() {
   const { width, height } = useWindowDimensions();
   const compact = width < 390 || height < 760;
   const styles = useMemo(() => createStyles(colors, glassStyle, compact), [colors, glassStyle, compact]);
+  // Durée de l'essai gratuit réglée par l'admin ; 30 jours si le serveur ne répond pas.
+  const [trialDays, setTrialDays] = useState(30);
+  useEffect(() => {
+    publicSettings.getTrial().then((data) => { if (data?.days) setTrialDays(data.days); }).catch(() => undefined);
+  }, []);
   const authText = {
     title: t('auth.register.title', 'Créer un compte'),
     chooseProfile: t('auth.register.chooseProfile', 'Choisissez votre profil'),
@@ -91,7 +96,7 @@ export default function RegisterScreen() {
     howDidYouHear: t('auth.register.howDidYouHear', 'Comment avez-vous connu Stockman ?'),
     howDidYouHearPlaceholder: t('auth.register.howDidYouHearPlaceholder', 'Ex. : Facebook, ami, client, Google'),
     createAccount: t('auth.register.createAccount', 'Créer mon compte'),
-    trialNote: t('auth.register.trialNote', '30 jours gratuits • Sans carte bancaire'),
+    trialNote: t('auth.register.trialNote', { days: trialDays, defaultValue: '{{days}} jours gratuits • Sans carte bancaire' }),
     errorFillRequired: t('auth.register.errorFillRequired', 'Veuillez remplir tous les champs obligatoires.'),
     errorSelectSector: t('auth.register.errorSelectSector', "Veuillez sélectionner votre secteur d'activité."),
     errorPasswordLength: t('auth.register.errorPasswordLength', 'Le mot de passe doit contenir au moins 8 caractères.'),

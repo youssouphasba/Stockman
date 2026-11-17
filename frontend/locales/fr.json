@@ -750,7 +750,7 @@
       "supplierComingSoon": "Bientôt disponible",
       "supplierAvailabilityUnavailable": "Disponibilité temporairement inconnue",
       "title": "Créer un compte",
-      "trialNote": "30 jours gratuits • Sans carte bancaire"
+      "trialNote": "{{days}} jours gratuits • Sans carte bancaire"
     },
     "completeSocialProfile": {
       "title": "Finalisez votre compte",
