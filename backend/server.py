@@ -16311,7 +16311,7 @@ async def admin_active_sessions():
         })
     return enriched
 
-api_router.include_router(admin_router)
+# Les routes admin sont montées une seule fois, en bas du fichier, derrière require_superadmin.
 
 
 # ===================== GLOBAL CATALOG API =====================
