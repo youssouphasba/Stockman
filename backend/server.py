@@ -94,6 +94,7 @@ import admin_ops
 import admin_access
 import trial_extension
 import deleted_accounts
+import admin_store_analytics
 import ai_health
 import fiscal_ledger
 from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
@@ -11012,56 +11013,58 @@ async def admin_verification_events(
     return {"items": items, "total": total}
 
 @admin_router.get("/stores")
-async def admin_list_stores(skip: int = 0, limit: int = 50):
-    """List all stores with owner info and product counts (Optimized)"""
+async def admin_list_stores(
+    skip: int = 0,
+    limit: int = 50,
+    search: Optional[str] = None,
+    country: Optional[str] = None,
+    plan: Optional[str] = None,
+    activity: Optional[str] = None,
+    billing: Optional[str] = None,
+    sort: str = "revenue_30d",
+):
+    """Boutiques avec activité, CA 30 jours et tendance ; recherche, filtres, tri, pagination et synthèse globale."""
+    skip = max(int(skip or 0), 0)
+    limit = max(1, min(int(limit or 50), 200))
+    now = datetime.now(timezone.utc)
     query = await admin_non_demo_filter("user_id")
-    pipeline = [
-        {"$match": query},
-        {"$sort": {"created_at": -1}},
-        {"$skip": skip},
-        {"$limit": limit},
-        # Join Owner
-        {"$lookup": {
-            "from": "users",
-            "localField": "user_id",
-            "foreignField": "user_id",
-            "as": "owner"
-        }},
-        {"$unwind": {"path": "$owner", "preserveNullAndEmptyArrays": True}},
-        # Lookup products count
-        {"$lookup": {
-            "from": "products",
-            "localField": "store_id",
-            "foreignField": "store_id",
-            "pipeline": [{"$count": "count"}],
-            "as": "products_agg"
-        }},
-        # Lookup sales stats
-        {"$lookup": {
-            "from": "sales",
-            "localField": "store_id",
-            "foreignField": "store_id",
-            "pipeline": [
-                {"$group": {"_id": None, "total": {"$sum": "$total_amount"}, "count": {"$sum": 1}}}
-            ],
-            "as": "sales_agg"
-        }},
-        # Projection
-        {"$project": {
-            "_id": 0,
-            "store_id": 1, "user_id": 1, "name": 1, "address": 1, "created_at": 1,
-            "country_code": "$owner.country_code",
-            "currency": "$owner.currency",
-            "business_type": "$owner.business_type",
-            "owner_name": {"$ifNull": ["$owner.name", "Inconnu"]},
-            "owner_email": {"$ifNull": ["$owner.email", ""]},
-            "product_count": {"$ifNull": [{"$arrayElemAt": ["$products_agg.count", 0]}, 0]},
-            "total_revenue": {"$ifNull": [{"$arrayElemAt": ["$sales_agg.total", 0]}, 0]},
-            "sales_count": {"$ifNull": [{"$arrayElemAt": ["$sales_agg.count", 0]}, 0]}
-        }}
-    ]
-
-    stores = await db.stores.aggregate(pipeline).to_list(limit)
+    all_stores = await db.stores.find(
+        query, {"_id": 0, "store_id": 1, "user_id": 1, "name": 1, "address": 1, "created_at": 1},
+    ).to_list(20000)
+    store_ids_all = [store.get("store_id") for store in all_stores if store.get("store_id")]
+    owner_ids = list({store.get("user_id") for store in all_stores if store.get("user_id")})
+    owners = {
+        doc.get("user_id"): doc
+        for doc in await db.users.find(
+            {"user_id": {"$in": owner_ids}},
+            {"_id": 0, "user_id": 1, "name": 1, "email": 1, "country_code": 1, "currency": 1, "business_type": 1, "plan": 1},
+        ).to_list(None)
+    }
+    accounts = {
+        doc.get("owner_user_id"): doc
+        for doc in await db.business_accounts.find(
+            {"owner_user_id": {"$in": owner_ids}},
+            {"_id": 0, "owner_user_id": 1, "plan": 1, "subscription_status": 1, "subscription_provider": 1, "trial_ends_at": 1},
+        ).to_list(None)
+    }
+    sales_stats = {
+        row.get("_id"): row
+        for row in await db.sales.aggregate(admin_store_analytics.sales_stats_pipeline(store_ids_all, now)).to_list(None)
+    }
+    product_counts = {
+        row.get("_id"): int(row.get("count") or 0)
+        for row in await db.products.aggregate([
+            {"$match": {"store_id": {"$in": store_ids_all}, "is_active": {"$ne": False}}},
+            {"$group": {"_id": "$store_id", "count": {"$sum": 1}}},
+        ]).to_list(None)
+    }
+    rows = admin_store_analytics.build_store_rows(all_stores, owners, accounts, sales_stats, product_counts, now)
+    summary = admin_store_analytics.summarize(rows, now)
+    countries = sorted({row.get("country_code") for row in rows if row.get("country_code")})
+    filtered = admin_store_analytics.filter_rows(rows, search=search, country=country, plan=plan, activity=activity, billing=billing)
+    filtered = admin_store_analytics.sort_rows(filtered, sort if sort in admin_store_analytics.SORTS else "revenue_30d")
+    total = len(filtered)
+    stores = filtered[skip:skip + limit]
     store_ids = [store.get("store_id") for store in stores if store.get("store_id")]
     if store_ids:
         product_rows = await db.products.find(
@@ -11157,8 +11160,7 @@ async def admin_list_stores(skip: int = 0, limit: int = 50):
 
         for store in stores:
             store.update(metrics.get(store.get("store_id"), {}))
-    total = await db.stores.count_documents(query)
-    return {"items": stores, "total": total}
+    return {"items": stores, "total": total, "skip": skip, "limit": limit, "summary": summary, "countries": countries}
 
 
 @admin_router.get("/stores/{store_id}/overview")
@@ -11196,6 +11198,14 @@ async def admin_get_store_overview(
         for item in (sale.get("items") or [])
         if item.get("product_id")
     }
+
+    recent_sales = await db.sales.find(
+        apply_completed_sales_scope({"store_id": store_id, "created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=90)}}),
+        {"_id": 0, "created_at": 1, "total_amount": 1, "payment_method": 1, "payments": 1, "source": 1,
+         "items.product_id": 1, "items.product_name": 1, "items.quantity": 1, "items.total": 1,
+         "items.selling_price": 1, "items.purchase_price": 1},
+    ).to_list(20000)
+    sales_analysis = admin_store_analytics.build_sales_analysis(recent_sales, datetime.now(timezone.utc))
 
     stock_movements = await db.stock_movements.find(
         {"store_id": store_id},
@@ -11402,6 +11412,7 @@ async def admin_get_store_overview(
             "currency": owner.get("currency"),
             "business_type": owner.get("business_type"),
         },
+        "sales": sales_analysis,
         "stock": {
             "summary": {
                 "total_products": len(products),

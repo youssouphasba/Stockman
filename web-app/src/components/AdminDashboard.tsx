@@ -348,6 +348,7 @@ export default function AdminDashboard() {
     const [users, setUsers] = useState<any[]>([]);
     const [deletedUsers, setDeletedUsers] = useState<any[]>([]);
     const [stores, setStores] = useState<any[]>([]);
+    const [storesWithoutProductsTotal, setStoresWithoutProductsTotal] = useState<number | null>(null);
     const [disputes, setDisputes] = useState<any[]>([]);
     const [disputeFilter, setDisputeFilter] = useState<'all' | 'open' | 'resolved'>('all');
     const [securityEvents, setSecurityEvents] = useState<any[]>([]);
@@ -755,6 +756,7 @@ export default function AdminDashboard() {
         try {
             const data = await adminApi.listStores();
             setStores(Array.isArray(data.items) ? data.items : Array.isArray(data) ? data : []);
+            setStoresWithoutProductsTotal(typeof data?.summary?.without_products === 'number' ? data.summary.without_products : null);
         } finally { setRefreshing(false); }
     };
 
@@ -838,7 +840,6 @@ export default function AdminDashboard() {
         if (activeSection === 'notifications') loadAdminNotifications();
         if (activeSection === 'demos') loadDemos();
         if (activeSection === 'users') loadUsers();
-        if (activeSection === 'stores') loadStores();
         if (activeSection === 'disputes') loadDisputes();
         if (activeSection === 'security') loadSecurity();
         if (activeSection === 'support') loadTickets();
@@ -1468,7 +1469,7 @@ export default function AdminDashboard() {
             usersWithoutStore: difficultySegments.noStore.length,
             inactiveUsers: difficultySegments.inactive30.length,
             riskySecurity: securityInsights.activeAlerts,
-            storesWithoutProducts: storesInsights.withoutProducts.length,
+            storesWithoutProducts: storesWithoutProductsTotal ?? storesInsights.withoutProducts.length,
         };
     }, [
         difficultySegments.inactive30.length,
@@ -1479,6 +1480,7 @@ export default function AdminDashboard() {
         statsSummary.open_tickets,
         statsSummary.trials_expiring_soon,
         storesInsights.withoutProducts.length,
+        storesWithoutProductsTotal,
         subscriptionAlertsSummary.summary.total,
         subscriptionOverview.trials_expiring_3d,
     ]);
@@ -1968,8 +1970,7 @@ export default function AdminDashboard() {
                         else if (activeSection === 'notifications') loadAdminNotifications();
                         else if (activeSection === 'demos') loadDemos();
                         else if (activeSection === 'users') loadUsers();
-                        else if (activeSection === 'stores') loadStores();
-                        else if (activeSection === 'products' || activeSection === 'catalog') setSectionRefreshTick((current) => current + 1);
+                        else if (activeSection === 'stores' || activeSection === 'products' || activeSection === 'catalog') setSectionRefreshTick((current) => current + 1);
                         else if (activeSection === 'disputes') loadDisputes();
                         else if (activeSection === 'security') loadSecurity();
                         else if (activeSection === 'support') loadTickets();
@@ -3205,7 +3206,7 @@ export default function AdminDashboard() {
 
             {/* -- STORES -- */}
             {activeSection === 'stores' && (
-                <AdminStoreOverviewPanel stores={stores} refreshing={refreshing} onRefresh={loadStores} showToast={showToast} />
+                <AdminStoreOverviewPanel refreshToken={sectionRefreshTick} showToast={showToast} onOpenOwner={(owner) => void openUserDetail(owner)} />
             )}
 
             {/* -- DISPUTES -- */}

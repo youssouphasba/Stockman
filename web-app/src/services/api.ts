@@ -3036,7 +3036,13 @@ export const admin = {
     },
     listUsers: (skip = 0, limit = 100) => request<any[]>(`/admin/users?skip=${skip}&limit=${limit}`),
     listDeletedUsers: (limit = 500) => request<any[]>(`/admin/users/deleted?limit=${limit}`),
-    listStores: (skip = 0, limit = 50) => request<any>(`/admin/stores?skip=${skip}&limit=${limit}`),
+    listStores: (params: { skip?: number; limit?: number; search?: string; country?: string; plan?: string; activity?: string; billing?: string; sort?: string } = {}) => {
+        const query = new URLSearchParams();
+        Object.entries({ skip: 0, limit: 50, ...params }).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+        });
+        return request<any>(`/admin/stores?${query.toString()}`);
+    },
     getStoreOverview: (storeId: string) => request<any>(`/admin/stores/${encodeURIComponent(storeId)}/overview`),
     getStoreInventory: (storeId: string, params?: { search?: string; stock_status?: string; skip?: number; limit?: number }) => {
         const qs = toQueryString(params as Record<string, unknown> | undefined);

@@ -84,7 +84,7 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
 
     const loadStores = async () => {
         try {
-            const response = await adminApi.listStores(0, 200);
+            const response = await adminApi.listStores({ limit: 200, sort: 'name' });
             const items = Array.isArray(response?.items) ? response.items : [];
             setStores(items.map((store: any) => ({
                 store_id: store.store_id,

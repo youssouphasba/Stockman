@@ -151,11 +151,15 @@ Sur mobile, pour un commerce, le bouton **Ajouter un produit** de l'écran **Auc
 - Quand une commande E-com est livrée, elle est convertie en vente et sa sortie de stock n'est pas comptée comme une perte comptable.
 - Sur mobile, un bouton visible dans l'en-tête ouvre directement le site e-commerce de la boutique active.
 - Sur le web admin, un bouton visible sous le logo ouvre le site e-commerce dans un nouvel onglet.
-- Dans l'admin web, l'onglet **Boutiques** affiche désormais un résumé exploitable par boutique sans noyer l'écran dans tout le détail.
-- Chaque boutique peut être ouverte en mode **analyse** pour afficher un aperçu structuré du **stock**, des **alertes**, des **clients** et des **fournisseurs**.
-- Le stock complet reste accessible à la demande depuis **Voir tout le stock**, avec l'inventaire détaillé filtré sur la boutique choisie.
+- Dans l'admin web, l'onglet **Boutiques** présente toutes les boutiques dans un tableau paginé (25 par page) : boutique, commerçant, forfait et abonnement (payant, essai, expiré), activité, CA des 30 derniers jours avec sa progression par rapport aux 30 jours précédents, ventes sur 30 jours et depuis la création, nombre de produits et état du stock (ruptures, stock bas, produits périmés ou qui périment sous 30 jours, alertes). Un clic sur le commerçant ouvre sa fiche.
+- L'activité d'une boutique dépend de sa dernière vente payée : **Active** (vente dans les 7 derniers jours), **Ralentie** (entre 8 et 30 jours), **Inactive** (plus de 30 jours) ou **Jamais vendu**.
+- La liste se filtre par recherche (nom de boutique, adresse, commerçant, e-mail, sans tenir compte des accents), pays, forfait, abonnement et activité, et se trie par CA 30 jours, progression, dernière vente, date de création, nombre de produits ou nom.
+- En haut de l'onglet, une synthèse donne le nombre total de boutiques et de nouvelles boutiques du mois, les boutiques actives, ralenties, inactives et sans vente (un clic filtre la liste), le CA des 30 derniers jours **par devise** (les devises ne sont jamais additionnées), et la répartition des boutiques par pays et par activité commerciale.
+- Chaque boutique peut être ouverte en mode **analyse** pour afficher les **ventes**, le **stock**, les **alertes**, les **clients** et les **fournisseurs**.
+- La section **Ventes** de l'analyse montre le CA et le nombre de ventes sur 7, 30 et 90 jours, le panier moyen, une courbe du CA par jour sur 30 jours, la marge sur 30 jours, les produits les plus vendus, la répartition par moyen de paiement et par canal (boutique physique ou e-commerce). Seules les ventes payées comptent. La marge n'est calculée que sur les produits dont le prix d'achat est renseigné ; l'écran indique la part du CA concernée.
+- Le stock complet reste accessible à la demande depuis le bouton **Stock**, avec l'inventaire détaillé filtré sur la boutique choisie.
 - Les autres blocs ouvrent des vues complètes dédiées pour consulter toutes les alertes, tous les clients ou tous les fournisseurs liés à cette boutique.
-- Les résumés ne sont pas limités à une période fixe : ils reflètent l'état global de la boutique, avec un aperçu léger et un accès immédiat au détail.
+- Les sections Stock, Alertes, Clients et Fournisseurs reflètent l'état global de la boutique, sans période fixe.
 - Les anciennes fiches qui pointent encore vers `/uploads/products/...` peuvent perdre leur image si le fichier serveur d'origine n'existe plus ; il faut alors remettre la photo sur la fiche produit.
 
 ### Comment modifier le stock d'un produit ?
