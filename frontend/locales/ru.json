@@ -2015,6 +2015,7 @@
     "title": "Моя подписка",
     "trial_banner": "1 месяц бесплатной пробной версии, затем {{price}}/месяц. Без обязательств.",
     "trial_remaining": "{{count}} дней осталось бесплатного пробного периода",
+    "trial_ends_on": "Пробный период заканчивается {{date}}",
     "demo_label": "Демо",
     "enterprise_manage_web": "План Enterprise управляется только через веб.",
     "enterprise_section_title": "Управление Enterprise",

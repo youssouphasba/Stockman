@@ -2015,6 +2015,7 @@
     "title": "我的订阅",
     "trial_banner": "1个月免费试用，然后{{price}}/月。无需承诺。",
     "trial_remaining": "免费试用剩余{{count}}天",
+    "trial_ends_on": "试用期于 {{date}} 结束",
     "demo_label": "演示",
     "enterprise_manage_web": "Enterprise计划仅在网页端管理。",
     "enterprise_section_title": "Enterprise管理",

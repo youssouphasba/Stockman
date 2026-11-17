@@ -173,6 +173,8 @@ export default function SubscriptionPlans({ embedded = false }: { embedded?: boo
     const isFreeTrial = data?.is_trial ?? false;
     const remainingDays = data?.remaining_days || 0;
     const accessPhase = data?.subscription_access_phase || 'active';
+    // Plus la fin de l’essai approche, plus l’encadré devient voyant.
+    const trialTone = remainingDays <= 3 ? '#EF4444' : remainingDays <= 7 ? '#F59E0B' : colors.primary;
     const isEnterpriseManagedOnWeb = effectivePlan === 'enterprise' || currentPlan === 'enterprise';
     const activePlanConfig = PLANS.find((plan) => plan.key === currentPlan);
     const selectedPlanConfig = PLANS.find((plan) => plan.key === selectedPlan) ?? PLANS[1];
@@ -329,15 +331,36 @@ export default function SubscriptionPlans({ embedded = false }: { embedded?: boo
                         {!embedded && <Text style={styles.headerTitle}>{t('subscription.title')}</Text>}
                         {activePlanConfig ? (
                             <Text style={styles.cardSubtitle}>
-                                {planLabel} · {isFreeTrial
-                                    ? t('subscription.trial_remaining', { count: remainingDays, days: remainingDays })
-                                    : isActive
-                                        ? t('subscription.plan_active')
-                                        : t('subscription.no_active_plan')}
+                                {isFreeTrial
+                                    ? planLabel
+                                    : `${planLabel} · ${isActive ? t('subscription.plan_active') : t('subscription.no_active_plan')}`}
                             </Text>
                         ) : null}
                     </View>
                 </View>
+
+                {isFreeTrial ? (
+                    <View
+                        accessible
+                        accessibilityRole="summary"
+                        style={[styles.trialCard, { borderColor: trialTone, backgroundColor: `${trialTone}${isDark ? '26' : '1A'}` }]}
+                    >
+                        <View style={[styles.trialCount, { backgroundColor: trialTone }]}>
+                            <Text style={styles.trialCountValue}>{remainingDays}</Text>
+                            <Ionicons name="hourglass-outline" size={14} color="white" />
+                        </View>
+                        <View style={styles.headerCopy}>
+                            <Text style={[styles.trialTitle, { color: trialTone }]}>
+                                {t('subscription.trial_remaining', { count: remainingDays, days: remainingDays })}
+                            </Text>
+                            {data.trial_ends_at ? (
+                                <Text style={styles.trialSubtitle}>
+                                    {t('subscription.trial_ends_on', { date: new Date(data.trial_ends_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }) })}
+                                </Text>
+                            ) : null}
+                        </View>
+                    </View>
+                ) : null}
 
                 <View style={styles.planCards} accessibilityRole="tablist">
                     {PLANS.map((plan) => (
@@ -563,6 +586,11 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     },
     sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
     cardSubtitle: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
+    trialCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 16, borderWidth: 1.5, marginBottom: 14 },
+    trialCount: { minWidth: 58, height: 58, paddingHorizontal: 8, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    trialCountValue: { fontSize: 24, fontWeight: '800', color: 'white', lineHeight: 28 },
+    trialTitle: { fontSize: 16, fontWeight: '800', lineHeight: 21 },
+    trialSubtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 3 },
     helperText: { fontSize: 12, color: isDark ? '#FCD34D' : '#92400E', marginTop: 8, lineHeight: 18 },
     demoHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
     renewalText: { fontSize: 13, color: colors.textSecondary, marginTop: 10, lineHeight: 18 },

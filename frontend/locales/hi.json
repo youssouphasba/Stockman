@@ -2115,6 +2115,7 @@
     "title": "मेरी सदस्यता",
     "trial_banner": "3 महीने मुफ्त परीक्षण, फिर {{price}}/महीना। कोई प्रतिबद्धता नहीं।",
     "trial_remaining": "मुफ्त परीक्षण के {{count}} दिन शेष",
+    "trial_ends_on": "परीक्षण {{date}} को समाप्त होगा",
     "demo_label": "Demo",
     "enterprise_manage_web": "The Enterprise plan is managed on the web only. Mobile plan changes are not available for this account.",
     "enterprise_no_subscribe": "The Enterprise plan cannot be subscribed directly from this screen.",

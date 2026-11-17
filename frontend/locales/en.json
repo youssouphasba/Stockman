@@ -3110,6 +3110,7 @@
     "trial_remaining": "Free trial in progress",
     "trial_remaining_one": "{{count}} day of free trial remaining",
     "trial_remaining_other": "{{count}} days of free trial remaining",
+    "trial_ends_on": "Trial ends on {{date}}",
     "enterprise_not_here": "The Enterprise plan cannot be subscribed from this screen.",
     "demo_active": "Active demo session",
     "expiration": "Expiration",

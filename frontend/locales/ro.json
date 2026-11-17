@@ -2115,6 +2115,7 @@
     "title": "Abonamentul Meu",
     "trial_banner": "1 lună de probă gratuită, apoi {{price}}/lună. Fără angajament.",
     "trial_remaining": "{{count}} zile rămase din perioada de probă gratuită",
+    "trial_ends_on": "Perioada de probă se încheie pe {{date}}",
     "demo_label": "Demo",
     "enterprise_manage_web": "The Enterprise plan is managed on the web only. Mobile plan changes are not available for this account.",
     "enterprise_no_subscribe": "The Enterprise plan cannot be subscribed directly from this screen.",

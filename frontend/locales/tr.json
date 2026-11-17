@@ -2115,6 +2115,7 @@
     "title": "AboneliÄŸim",
     "trial_banner": "1 ay ücretsiz deneme, ardından {{price}}/ay. Taahhütsüz.",
     "trial_remaining": "{{count}} gün ücretsiz deneme süresi kaldı",
+    "trial_ends_on": "Deneme süresi {{date}} tarihinde sona eriyor",
     "demo_label": "Demo",
     "enterprise_manage_web": "The Enterprise plan is managed on the web only. Mobile plan changes are not available for this account.",
     "enterprise_no_subscribe": "The Enterprise plan cannot be subscribed directly from this screen.",

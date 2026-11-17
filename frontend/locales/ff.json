@@ -1991,7 +1991,8 @@
     "restored_success": "Yaajgol maa artiraama.",
     "title": "Yaajgol am",
     "trial_banner": "3 lewru eeltugol alaa jaango, caggal É—uum {{price}}/lewru. Alaa timmingol.",
-    "trial_remaining": "{{count}} ñalawma ngoodi e eeltugol alaa jaango"
+    "trial_remaining": "{{count}} ñalawma ngoodi e eeltugol alaa jaango",
+    "trial_ends_on": "Fin de l’essai : {{date}}"
   },
   "supplier": {
     "accept": "Accept",

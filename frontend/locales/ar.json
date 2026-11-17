@@ -2023,6 +2023,7 @@
     "title": "اشتراكي",
     "trial_banner": "3 أشهر تجربة مجانية، ثم {{price}}/شهرياً. بدون التزام.",
     "trial_remaining": "{{count}} أيام متبقية من التجربة المجانية",
+    "trial_ends_on": "تنتهي الفترة التجريبية في {{date}}",
     "demo_label": "تجريبي",
     "enterprise_manage_web": "تتم إدارة خطة Enterprise من الويب فقط.",
     "enterprise_section_title": "إدارة Enterprise",

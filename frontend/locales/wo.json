@@ -1993,7 +1993,8 @@
     "restored_success": "Sa abonnement dellusi na.",
     "title": "Sama Abonnement",
     "trial_banner": "1 month free trial, then {{price}}/month. No commitment.",
-    "trial_remaining": "{{count}} fan yu des ci esey bi"
+    "trial_remaining": "{{count}} fan yu des ci esey bi",
+    "trial_ends_on": "Fin de l’essai : {{date}}"
   },
   "supplier": {
     "accept": "Nangu",

@@ -3455,6 +3455,7 @@
     "trial_remaining": "Essai gratuit en cours",
     "trial_remaining_one": "{{count}} jour d’essai gratuit restant",
     "trial_remaining_other": "{{count}} jours d’essai gratuit restants",
+    "trial_ends_on": "Fin de l’essai : {{date}}",
     "billing_country_locked": "Le pays de facturation est défini lors de l'inscription et ne peut pas être modifié.",
     "billing_country_support": "Si une correction est nécessaire, elle doit passer par le support avant facturation.",
     "billing_region": "Région tarifaire : {{region}}",

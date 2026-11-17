@@ -2115,6 +2115,7 @@
     "title": "A minha Subscrição",
     "trial_banner": "1 month free trial, then {{price}}/month. No commitment.",
     "trial_remaining": "{{count}} dias restantes de teste gratuito",
+    "trial_ends_on": "O teste termina em {{date}}",
     "demo_label": "Demo",
     "enterprise_manage_web": "O plano Enterprise é gerido apenas na web.",
     "enterprise_no_subscribe": "O plano Enterprise não pode ser subscrito a partir deste ecrã.",

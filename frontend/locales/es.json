@@ -2115,6 +2115,7 @@
     "title": "Mi Suscripción",
     "trial_banner": "3 meses de prueba gratuita, luego {{price}}/mes. Sin compromiso.",
     "trial_remaining": "{{count}} días restantes de prueba gratuita",
+    "trial_ends_on": "La prueba termina el {{date}}",
     "demo_label": "Demo",
     "enterprise_manage_web": "El plan Enterprise se gestiona solo desde la web.",
     "enterprise_no_subscribe": "El plan Enterprise no se puede suscribir desde esta pantalla.",
