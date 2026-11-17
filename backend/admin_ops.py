@@ -43,6 +43,7 @@ ACTION_LABELS: Dict[str, str] = {
     "POST /admin/subscriptions/{account_id}/grace": "Délai de grâce accordé",
     "POST /admin/subscriptions/{account_id}/read-only": "Lecture seule modifiée",
     "POST /admin/users/{user_id}/trial-extension": "Mois gratuits offerts",
+    "POST /admin/users/{user_id}/trial-extension/undo": "Offre de mois gratuits annulée",
     "PUT /admin/trial-settings": "Durée de l'essai gratuit modifiée",
     "POST /admin/users/{user_id}/toggle": "Compte activé ou désactivé",
     "PUT /admin/users/{user_id}/feature-flags": "Fonctions du compte modifiées",

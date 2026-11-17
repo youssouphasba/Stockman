@@ -7,7 +7,7 @@ import { admin as adminApi } from '../../services/api';
 type Props = {
     userId: string;
     account: any;
-    onExtended: (trialEndsAt: string) => void;
+    onExtended: (trialEndsAt: string | null) => void;
     showToast: (message: string, type?: 'success' | 'error') => void;
 };
 
@@ -18,6 +18,7 @@ export default function AdminTrialExtensionCard({ userId, account, onExtended, s
     const [months, setMonths] = useState(1);
     const [note, setNote] = useState('');
     const [saving, setSaving] = useState(false);
+    const [undoing, setUndoing] = useState(false);
 
     const provider = String(account?.subscription_provider || 'none');
     const paying = provider !== 'none' && provider !== '';
@@ -39,6 +40,24 @@ export default function AdminTrialExtensionCard({ userId, account, onExtended, s
             showToast(error?.message || 'Impossible de prolonger l’essai.', 'error');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const undoLast = async () => {
+        if (!window.confirm('Annuler la dernière offre de mois gratuits ? La fin d’essai d’avant cette offre sera remise.')) return;
+        const notify = window.confirm('Prévenir le commerçant de la correction par notification et e-mail ?\n\nOK : le prévenir. Annuler : ne rien lui envoyer.');
+        setUndoing(true);
+        try {
+            const result = await adminApi.undoTrialExtension(userId, notify);
+            onExtended(result.trial_ends_at);
+            const months = result.cancelled_months === 1 ? '1 mois gratuit' : `${result.cancelled_months} mois gratuits`;
+            showToast(result.trial_ends_at
+                ? `Offre de ${months} annulée. Essai jusqu’au ${formatDate(result.trial_ends_at)}.${notify ? ' Commerçant prévenu.' : ''}`
+                : `Offre de ${months} annulée.${notify ? ' Commerçant prévenu.' : ''}`);
+        } catch (error: any) {
+            showToast(error?.message || 'Impossible d’annuler la dernière offre.', 'error');
+        } finally {
+            setUndoing(false);
         }
     };
 
@@ -79,9 +98,14 @@ export default function AdminTrialExtensionCard({ userId, account, onExtended, s
                         placeholder="Mot ajouté au message (facultatif), par exemple : Merci pour votre retour."
                         className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-slate-500"
                     />
-                    <button onClick={() => void submit()} disabled={saving} className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50">
-                        {saving ? 'Envoi…' : 'Offrir et prévenir le commerçant'}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button onClick={() => void submit()} disabled={saving || undoing} className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50">
+                            {saving ? 'Envoi…' : 'Offrir et prévenir le commerçant'}
+                        </button>
+                        <button onClick={() => void undoLast()} disabled={saving || undoing} className="text-xs font-bold text-rose-300 hover:underline disabled:opacity-50" title="En cas d’erreur : remet la fin d’essai d’avant la dernière offre">
+                            {undoing ? 'Annulation…' : 'Annuler la dernière offre'}
+                        </button>
+                    </div>
                 </>
             ) : null}
         </div>

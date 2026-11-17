@@ -59,5 +59,45 @@ class TrialExtensionTests(unittest.TestCase):
             self.assertEqual(te.signup_trial_view({"trial": {"signup_months": value}})["months"], 1)
 
 
+class UndoTrialExtensionTests(unittest.TestCase):
+    def events(self):
+        first_end = NOW + timedelta(days=60)
+        second_end = NOW + timedelta(days=90)
+        return [
+            {"event_id": "e1", "event_type": "trial_extended", "created_at": NOW - timedelta(minutes=5),
+             "metadata": {"months": 1, "previous_trial_ends_at": (NOW + timedelta(days=30)).isoformat(), "trial_ends_at": first_end.isoformat()}},
+            {"event_id": "e2", "event_type": "trial_extended", "created_at": NOW,
+             "metadata": {"months": 1, "previous_trial_ends_at": first_end.isoformat(), "trial_ends_at": second_end.isoformat()}},
+        ], first_end, second_end
+
+    def test_latest_offer_is_undone_when_the_trial_end_is_unchanged(self):
+        events, _first, second = self.events()
+        event, reason = te.undoable_extension(events, second)
+        self.assertEqual((event["event_id"], reason), ("e2", ""))
+
+    def test_already_reverted_offers_are_skipped(self):
+        events, first, _second = self.events()
+        events[1]["reverted_at"] = NOW
+        event, _ = te.undoable_extension(events, first)
+        self.assertEqual(event["event_id"], "e1")
+
+    def test_refused_when_the_trial_end_changed_since(self):
+        events, _first, second = self.events()
+        event, reason = te.undoable_extension(events, second + timedelta(days=7))
+        self.assertIsNone(event)
+        self.assertIn("a changé", reason)
+
+    def test_refused_without_any_offer(self):
+        event, reason = te.undoable_extension([], NOW)
+        self.assertIsNone(event)
+        self.assertIn("Aucune offre", reason)
+
+    def test_correction_text(self):
+        text = te.correction_text(NOW + timedelta(days=30), "wo")
+        self.assertEqual(text["title"], "Correction de votre essai gratuit")
+        self.assertIn("17/12/2026", text["content"])
+        self.assertIn("ends on", te.correction_text(NOW, "en")["content"])
+
+
 if __name__ == "__main__":
     unittest.main()

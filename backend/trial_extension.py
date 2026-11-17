@@ -9,8 +9,8 @@ Un compte qui paie déjà son abonnement n'est pas concerné : pour lui, on acco
 un délai de grâce.
 """
 
-from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 DAYS_PER_MONTH = 30
 MIN_MONTHS = 1
@@ -68,4 +68,55 @@ def notification_text(months: int, trial_end: datetime, language: Optional[str] 
     note = (note or "").strip()
     if note:
         content = f"{content}\n\n{note}"
+    return {"title": title, "content": content}
+
+
+def _parse_iso(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str) and value:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def undoable_extension(events: List[Dict[str, Any]], current_end: Optional[datetime]) -> Tuple[Optional[Dict[str, Any]], str]:
+    """Dernière offre de mois gratuits encore annulable, ou la raison du refus.
+
+    On n'annule que la plus récente offre non annulée, et seulement si la fin d'essai
+    actuelle est toujours celle qu'elle a fixée : sinon une autre modification est passée
+    entre-temps et remettre l'ancienne date l'effacerait.
+    """
+    candidates = [e for e in events if e.get("event_type") == "trial_extended" and not e.get("reverted_at")]
+    if not candidates:
+        return None, "Aucune offre de mois gratuits à annuler sur ce compte."
+    latest = max(candidates, key=lambda e: _parse_iso(e.get("created_at")) or datetime.min.replace(tzinfo=timezone.utc))
+    metadata = latest.get("metadata") or {}
+    set_end = _parse_iso(metadata.get("trial_ends_at"))
+    if current_end is not None and current_end.tzinfo is None:
+        current_end = current_end.replace(tzinfo=timezone.utc)
+    if not set_end or not current_end or abs((set_end - current_end).total_seconds()) > 60:
+        return None, "La fin d'essai a changé depuis la dernière offre : annulation impossible automatiquement."
+    return latest, ""
+
+
+def correction_text(trial_end: Optional[datetime], language: Optional[str] = None) -> Dict[str, str]:
+    """Message de correction quand une offre de mois gratuits envoyée par erreur est annulée."""
+    lang = "fr" if (language or "fr").lower()[:2] in {"fr", "wo", "ff"} else "en"
+    if lang == "fr":
+        title = "Correction de votre essai gratuit"
+        content = (
+            f"Un message précédent vous annonçait des mois gratuits par erreur. Votre essai gratuit se termine le {trial_end.strftime('%d/%m/%Y')}."
+            if trial_end else "Un message précédent vous annonçait des mois gratuits par erreur. Nous vous prions de nous en excuser."
+        )
+    else:
+        title = "Correction to your free trial"
+        content = (
+            f"A previous message announced extra free months by mistake. Your free trial ends on {trial_end.strftime('%d/%m/%Y')}."
+            if trial_end else "A previous message announced extra free months by mistake. We apologise for the confusion."
+        )
     return {"title": title, "content": content}

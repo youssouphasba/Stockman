@@ -8996,6 +8996,84 @@ async def admin_extend_trial(user_id: str, data: AdminTrialExtensionRequest, adm
     }
 
 
+class AdminTrialExtensionUndoRequest(BaseModel):
+    notify: bool = False
+
+
+@admin_router.post("/users/{user_id}/trial-extension/undo")
+async def admin_undo_trial_extension(user_id: str, data: AdminTrialExtensionUndoRequest, admin: User = Depends(require_admin_access)):
+    """Annule la dernière offre de mois gratuits (envoyée par erreur) et remet la fin d'essai précédente."""
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    owner_id = user_doc.get("parent_user_id") or user_id
+    owner_doc = user_doc if owner_id == user_id else await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+    account_doc = await ensure_business_account_for_user_doc(dict(owner_doc))
+    current_end = _normalize_admin_datetime((account_doc or {}).get("trial_ends_at") or owner_doc.get("trial_ends_at"))
+    events = await db.subscription_events.find(
+        {"owner_user_id": owner_id, "event_type": "trial_extended"},
+        {"_id": 0},
+    ).sort("created_at", -1).limit(20).to_list(20)
+    event, reason = trial_extension.undoable_extension(events, current_end)
+    if not event:
+        raise HTTPException(status_code=400, detail=reason)
+
+    metadata = event.get("metadata") or {}
+    previous_end = _normalize_admin_datetime(metadata.get("previous_trial_ends_at"))
+    now = datetime.now(timezone.utc)
+    updates: Dict[str, Any] = {"trial_ends_at": previous_end}
+    if not previous_end or previous_end <= now:
+        # L'essai était déjà terminé avant l'offre : le compte repasse comme il était.
+        updates["subscription_status"] = "expired"
+    await update_business_account_for_owner(owner_id, updates)
+    await db.subscription_events.update_one(
+        {"event_id": event.get("event_id")},
+        {"$set": {"reverted_at": now, "reverted_by": admin.user_id}},
+    )
+    await log_subscription_event(
+        event_type="trial_extension_cancelled",
+        provider="admin",
+        source="admin",
+        owner_user_id=owner_id,
+        account_id=(account_doc or {}).get("account_id"),
+        plan=(account_doc or {}).get("plan") or owner_doc.get("plan"),
+        status=updates.get("subscription_status", "active"),
+        message=f"Offre de {metadata.get('months')} mois gratuit(s) annulée par {admin.name}",
+        metadata={"cancelled_event_id": event.get("event_id"), "trial_ends_at": _iso_or_none(previous_end), "notified": data.notify},
+    )
+
+    notification = None
+    if data.notify:
+        text = trial_extension.correction_text(previous_end, owner_doc.get("language"))
+        message = AdminMessage(
+            type="individual",
+            title=text["title"],
+            content=text["content"],
+            target=owner_id,
+            target_user_ids=[owner_id],
+            channels=["in_app", "email"],
+            sent_by=admin.name,
+            deeplink={"screen": "subscription"},
+        )
+        recipients = await _resolve_admin_message_recipients(owner_id, [owner_id])
+        try:
+            delivery = await _deliver_admin_message(message, recipients)
+        except Exception as exc:
+            logger.warning("Trial correction notification failed for %s: %s", owner_id, exc)
+            delivery = {"error": str(exc)}
+        message.delivery = delivery
+        await db.admin_messages.insert_one(message.model_dump())
+        notification = {"title": text["title"], "delivery": delivery}
+
+    return {
+        "user_id": owner_id,
+        "cancelled_months": metadata.get("months"),
+        "trial_ends_at": previous_end,
+        "subscription_status": updates.get("subscription_status", "active"),
+        "notification": notification,
+    }
+
+
 class AdminSignupTrialRequest(BaseModel):
     months: int = Field(ge=trial_extension.MIN_MONTHS, le=trial_extension.MAX_MONTHS)
 

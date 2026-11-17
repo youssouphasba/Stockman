@@ -3126,6 +3126,7 @@ export const admin = {
     getMyAccess: () => request<AdminAccessView>('/admin/me/access'),
     getSignupTrial: () => request<{ months: number; days: number }>('/admin/trial-settings'),
     setSignupTrial: (months: number) => request<{ months: number; days: number }>('/admin/trial-settings', { method: 'PUT', body: { months } }),
+    undoTrialExtension: (userId: string, notify: boolean) => request<{ user_id: string; cancelled_months: number; trial_ends_at: string | null; subscription_status: string }>(`/admin/users/${userId}/trial-extension/undo`, { method: 'POST', body: { notify } }),
     extendTrial: (userId: string, months: number, note = '') => request<{ user_id: string; months: number; trial_ends_at: string; previous_trial_ends_at?: string | null }>(`/admin/users/${userId}/trial-extension`, { method: 'POST', body: { months, note } }),
     getTeam: () => request<{ items: AdminTeamMember[]; catalog: AdminScopeInfo[] }>('/admin/team'),
     setAdminAccess: (userId: string, enabled: boolean, scopes: string[]) => request<{ user_id: string; role: string; admin_scopes: string[] }>(`/admin/users/${userId}/admin-access`, { method: 'PUT', body: { enabled, scopes } }),
