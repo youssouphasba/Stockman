@@ -50,6 +50,8 @@ class AdminAccessRulesTests(unittest.TestCase):
         self.assertTrue(aa.can_access("admin", ["finance"], "/api/admin/stats/mrr"))
         self.assertFalse(aa.can_access("admin", ["stats"], "/api/admin/stats/mrr"))
         self.assertTrue(aa.can_access("admin", ["stats"], "/api/admin/stats/retention"))
+        self.assertTrue(aa.can_access("admin", ["finance"], "/api/admin/users/u1/trial-extension"))
+        self.assertFalse(aa.can_access("admin", ["accounts"], "/api/admin/users/u1/trial-extension"))
 
     def test_unknown_scopes_are_dropped(self):
         self.assertEqual(aa.normalize_scopes(["finance", "root", "support"]), ["support", "finance"])

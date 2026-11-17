@@ -23,6 +23,7 @@ const EVENT_LABELS: Record<string, string> = {
     subscription_cancelled: 'Abonnement résilié',
     subscription_updated: 'Abonnement modifié',
     manual_grace_granted: 'Délai de grâce accordé',
+    trial_extended: 'Mois gratuits offerts',
     manual_read_only_enabled: 'Lecture seule activée',
     manual_read_only_disabled: 'Lecture seule retirée',
     reminder_sent: 'Relance envoyée',

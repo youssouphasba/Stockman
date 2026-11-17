@@ -59,6 +59,7 @@ _RULES: List[Tuple[re.Pattern, Optional[str]]] = [(re.compile(pattern), scope) f
     (r"^/admin/(today|search|me/access)$", SHARED),
     (r"^/admin/notifications(/|$)", SHARED),
     (r"^/admin/users/[^/]+/detail$", SHARED),
+    (r"^/admin/users/[^/]+/trial-extension$", "finance"),
     # Périmètres.
     (r"^/admin/(support|disputes|messages)(/|$)", "support"),
     (r"^/admin/(subscriptions|generate-payment-link)(/|$)", "finance"),

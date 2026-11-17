@@ -3111,6 +3111,7 @@ export const admin = {
     getUserDetail: (userId: string) => request<any>(`/admin/users/${userId}/detail`),
     getTodayQueue: () => request<AdminTodayQueue>('/admin/today'),
     getMyAccess: () => request<AdminAccessView>('/admin/me/access'),
+    extendTrial: (userId: string, months: number, note = '') => request<{ user_id: string; months: number; trial_ends_at: string; previous_trial_ends_at?: string | null }>(`/admin/users/${userId}/trial-extension`, { method: 'POST', body: { months, note } }),
     getTeam: () => request<{ items: AdminTeamMember[]; catalog: AdminScopeInfo[] }>('/admin/team'),
     setAdminAccess: (userId: string, enabled: boolean, scopes: string[]) => request<{ user_id: string; role: string; admin_scopes: string[] }>(`/admin/users/${userId}/admin-access`, { method: 'PUT', body: { enabled, scopes } }),
     search: (query: string) => request<AdminSearchResult>(`/admin/search?q=${encodeURIComponent(query)}`),

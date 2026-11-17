@@ -22,6 +22,7 @@ import AdminAuditPanel from './admin/AdminAuditPanel';
 import AdminUserHistory from './admin/AdminUserHistory';
 import AdminAccessCard from './admin/AdminAccessCard';
 import AdminTeamPanel from './admin/AdminTeamPanel';
+import AdminTrialExtensionCard from './admin/AdminTrialExtensionCard';
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: any; icon: any; color: string; sub: string }) {
     return (
@@ -1691,6 +1692,15 @@ export default function AdminDashboard() {
                                 })()}
 
                                 {/* Info tab */}
+                                {drawerTab === 'info' && detailUser.role && !['supplier', 'staff', 'admin', 'superadmin'].includes(detailUser.role) && !detailUser.parent_user_id
+                                    && (myAccess?.is_superadmin || myAccess?.scopes?.includes('finance')) ? (
+                                    <AdminTrialExtensionCard
+                                        userId={detailUser.user_id}
+                                        account={detailData.account}
+                                        showToast={showToast}
+                                        onExtended={(trialEndsAt) => setDetailData((current: any) => (current ? { ...current, account: { ...(current.account || {}), trial_ends_at: trialEndsAt, subscription_status: 'active' } } : current))}
+                                    />
+                                ) : null}
                                 {drawerTab === 'info' && myAccess?.is_superadmin && detailUser.role ? (
                                     <AdminAccessCard
                                         user={detailUser}
