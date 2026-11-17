@@ -2967,6 +2967,25 @@ export const legal = {
     getPrivacy: (lang = 'fr') => request<{ content: string; updated_at?: string }>(`/privacy?lang=${encodeURIComponent(lang)}`),
 };
 
+export type AdminScopeInfo = { key: string; label: string; description: string };
+export type AdminAccessView = { role: string; is_superadmin: boolean; scopes: string[]; sections: string[] | null; catalog: AdminScopeInfo[] };
+export type AdminTeamMember = { user_id: string; name?: string; email?: string; role: 'admin' | 'superadmin'; admin_scopes?: string[]; last_login?: string; last_login_at?: string };
+export type AdminTodayItem = { user_id?: string | null; name: string; email?: string; detail: string; meta?: string; urgent?: boolean; ref?: string | null; date?: string | null };
+export type AdminTodayGroup = { code: string; title: string; hint: string; section: string; severity: 'critical' | 'warning' | 'info'; total: number; items: AdminTodayItem[] };
+export type AdminTodayQueue = { generated_at: string; total: number; urgent: number; groups: AdminTodayGroup[] };
+export type AdminSearchResult = {
+    query: string;
+    users: { user_id: string; name: string; email: string; phone: string; role: string; plan: string; owner_user_id: string }[];
+    stores: { store_id: string; name: string; user_id: string; address?: string }[];
+    tickets: { ticket_id: string; subject: string; user_id: string; user_name?: string; status: string; created_at?: string }[];
+};
+export type AdminAuditEntry = {
+    log_id: string; created_at: string; admin_id: string; admin_name: string; admin_email: string;
+    method: string; route: string; action: string; label: string; outcome: 'success' | 'error'; status_code: number;
+    target_type?: string | null; target_id?: string | null; target_user_ids?: string[];
+    path_params?: Record<string, string>; query_params?: Record<string, unknown>; payload?: unknown;
+};
+
 export const admin = {
     getHealth: () => request<any>('/admin/health'),
     getGlobalStats: () => request<any>('/admin/stats'),
@@ -3090,6 +3109,15 @@ export const admin = {
     bulkSetUserPlan: (userIds: string[], plan: string) => request<any>('/admin/users/bulk-plan', { method: 'POST', body: { user_ids: userIds, plan } }),
     updateUserNote: (userId: string, note: string) => request<any>(`/admin/users/${userId}/note`, { method: 'PUT', body: { note } }),
     getUserDetail: (userId: string) => request<any>(`/admin/users/${userId}/detail`),
+    getTodayQueue: () => request<AdminTodayQueue>('/admin/today'),
+    getMyAccess: () => request<AdminAccessView>('/admin/me/access'),
+    getTeam: () => request<{ items: AdminTeamMember[]; catalog: AdminScopeInfo[] }>('/admin/team'),
+    setAdminAccess: (userId: string, enabled: boolean, scopes: string[]) => request<{ user_id: string; role: string; admin_scopes: string[] }>(`/admin/users/${userId}/admin-access`, { method: 'PUT', body: { enabled, scopes } }),
+    search: (query: string) => request<AdminSearchResult>(`/admin/search?q=${encodeURIComponent(query)}`),
+    getAuditLogs: (params: { target_user_id?: string; outcome?: 'success' | 'error'; limit?: number } = {}) => {
+        const search = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)]));
+        return request<{ items: AdminAuditEntry[] }>(`/admin/audit-logs${search.toString() ? `?${search}` : ''}`);
+    },
     relaunchOnboardingGuide: (userId: string) => request<any>(`/admin/users/${userId}/onboarding-guide/relaunch`, { method: 'POST' }),
     getModulePolicy: () => request<any>('/admin/modules'),
     getAiHealth: () => request<any>('/admin/ai/health'),

@@ -5,6 +5,7 @@ inconnu lève une erreur afin qu'un test ne passe jamais par accident.
 """
 
 import copy
+import re
 from types import SimpleNamespace
 
 from pymongo import ReturnDocument
@@ -47,6 +48,12 @@ def _matches_condition(value, condition):
             elif op == "$nin":
                 if value is not _MISSING and value in expected:
                     return False
+            elif op == "$regex":
+                flags = re.IGNORECASE if "i" in str(condition.get("$options", "")) else 0
+                if not isinstance(value, str) or not re.search(expected, value, flags):
+                    return False
+            elif op == "$options":
+                continue
             elif op == "$ne":
                 if value is not _MISSING and value == expected:
                     return False

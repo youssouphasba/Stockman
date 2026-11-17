@@ -90,6 +90,8 @@ from app_update_settings import (
 import onboarding_guide
 from product_name_matching import POTENTIAL_DUPLICATE_THRESHOLD, product_name_similarity
 import platform_modules
+import admin_ops
+import admin_access
 import ai_health
 import fiscal_ledger
 from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
@@ -1077,6 +1079,8 @@ async def create_indexes_and_init():
                 await db.subscription_events.create_index("event_id", unique=True)
                 await db.subscription_events.create_index([("created_at", -1)])
                 await db.subscription_events.create_index([("account_id", 1), ("created_at", -1)])
+                await db.admin_audit_logs.create_index([("created_at", -1)])
+                await db.admin_audit_logs.create_index([("target_user_ids", 1), ("created_at", -1)])
                 await db.subscription_events.create_index([("provider", 1), ("created_at", -1)])
                 await db.customer_invoices.create_index("invoice_id", unique=True)
                 await db.customer_invoices.create_index([("user_id", 1), ("store_id", 1), ("issued_at", -1)])
@@ -3046,6 +3050,7 @@ class User(UserBase):
     parent_user_id: Optional[str] = None
     account_id: Optional[str] = None
     account_roles: List[str] = []
+    admin_scopes: List[str] = []
     store_permissions: Dict[str, Dict[str, str]] = {}
     effective_permissions: Dict[str, str] = {}
     effective_plan: str = "starter"
@@ -5659,6 +5664,8 @@ def sanitize_user_doc(user_doc: dict) -> dict:
         user_doc["auth_type"] = "email"
     if user_doc.get("account_roles") is None:
         user_doc["account_roles"] = []
+    if user_doc.get("admin_scopes") is None:
+        user_doc["admin_scopes"] = []
     if user_doc.get("account_id") is None:
         user_doc["account_id"] = None
     if user_doc.get("is_demo") is None:
@@ -6593,6 +6600,61 @@ async def require_admin_or_superadmin(user: User = Depends(require_auth)) -> Use
     return user
 
 
+async def require_admin_access(request: Request, user: User = Depends(require_auth)) -> User:
+    """Superadmin : tout. Membre d'équipe (rôle admin) : seulement ses périmètres."""
+    if user.role == "superadmin":
+        return user
+    if not admin_access.can_access(user.role, user.admin_scopes, request.url.path):
+        raise HTTPException(status_code=403, detail=i18n.t("errors.forbidden", user.language))
+    # Un membre d'équipe ne modifie jamais le compte d'un autre membre de l'équipe.
+    target_user_id = request.path_params.get("user_id")
+    if target_user_id and request.method not in {"GET", "HEAD", "OPTIONS"}:
+        target = await db.users.find_one({"user_id": target_user_id}, {"_id": 0, "role": 1})
+        if target and target.get("role") in {"admin", "superadmin"}:
+            raise HTTPException(status_code=403, detail=i18n.t("errors.forbidden", user.language))
+    return user
+
+
+async def audit_admin_request(request: Request, admin: User = Depends(require_admin_access)):
+    """Trace dans le journal admin chaque modification faite depuis l'admin."""
+    if request.method in {"GET", "HEAD", "OPTIONS"}:
+        yield
+        return
+    payload: Any = None
+    if "application/json" in (request.headers.get("content-type") or ""):
+        try:
+            raw = await request.body()
+            payload = json.loads(raw) if raw else None
+        except Exception:
+            payload = None
+    outcome, status_code = "success", 200
+    try:
+        yield
+    except HTTPException as exc:
+        outcome, status_code = "error", exc.status_code
+        raise
+    except Exception:
+        outcome, status_code = "error", 500
+        raise
+    finally:
+        try:
+            route = request.scope.get("route")
+            await admin_ops.record_admin_action(
+                db,
+                admin={"user_id": admin.user_id, "name": admin.name, "email": admin.email},
+                method=request.method,
+                route_path=getattr(route, "path", request.url.path),
+                path_params=dict(request.path_params),
+                query_params=dict(request.query_params),
+                payload=payload,
+                outcome=outcome,
+                status_code=status_code,
+                now=datetime.now(timezone.utc),
+            )
+        except Exception as exc:  # le journal ne doit jamais bloquer l'action elle-même
+            logger.warning("Admin audit log failed: %s", exc)
+
+
 def _iso_or_none(value: Any) -> Optional[str]:
     if isinstance(value, datetime):
         aware = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
@@ -6909,7 +6971,7 @@ async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
 async def generate_payment_link(
     user_id: str,
     plan: str = "starter",
-    admin: User = Depends(require_superadmin),
+    admin: User = Depends(require_admin_access),
 ):
     """GÃ©nÃ¨re un lien Stripe Checkout pour un user (superadmin only).
     Le lien peut Ãªtre envoyÃ© par WhatsApp/SMS au client."""
@@ -6948,7 +7010,7 @@ async def generate_payment_link(
 @admin_router.post("/subscriptions/{account_id}/payment-links")
 async def regenerate_subscription_payment_links(
     account_id: str,
-    admin: User = Depends(require_superadmin),
+    admin: User = Depends(require_admin_access),
 ):
     """Regenere les liens Stripe/Flutterwave pour un compte (admin only)."""
     account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0})
@@ -7019,7 +7081,7 @@ async def regenerate_subscription_payment_links(
 async def admin_send_subscription_reminder(
     account_id: str,
     days_left: int = 1,
-    admin: User = Depends(require_superadmin),
+    admin: User = Depends(require_admin_access),
 ):
     """Envoie un rappel dâ€™abonnement immÃ©diat (email + push)."""
     days_left = max(1, min(days_left, 30))
@@ -7488,7 +7550,7 @@ async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMo
     )
     return {"status": "ok"}
 
-@api_router.post("/admin/set-plan")
+@api_router.post("/admin/set-plan", dependencies=[Depends(audit_admin_request)])
 async def admin_set_plan(user_id: str, plan: str, admin: User = Depends(require_superadmin)):
     """Force le plan d'un user â€” SUPERADMIN ONLY. Pour tests et migrations."""
     valid_plans = ("starter", "pro", "enterprise")
@@ -7500,7 +7562,7 @@ async def admin_set_plan(user_id: str, plan: str, admin: User = Depends(require_
     await update_business_account_for_owner(user_id, {"plan": plan, "subscription_status": "active"})
     return {"status": "ok", "user_id": user_id, "plan": plan}
 
-@api_router.post("/admin/set-plan-all")
+@api_router.post("/admin/set-plan-all", dependencies=[Depends(audit_admin_request)])
 async def admin_set_plan_all(plan: str, role: str = "shopkeeper", admin: User = Depends(require_superadmin)):
     """Force le plan sur tous les users d'un rÃ´le â€” SUPERADMIN ONLY. Pour tests."""
     valid_plans = ("starter", "pro", "enterprise")
@@ -7511,7 +7573,7 @@ async def admin_set_plan_all(plan: str, role: str = "shopkeeper", admin: User = 
         await update_business_account_for_owner(owner["user_id"], {"plan": plan, "subscription_status": "active"})
     return {"status": "ok", "modified": len(owners), "plan": plan}
 
-@api_router.delete("/admin/users")
+@api_router.delete("/admin/users", dependencies=[Depends(audit_admin_request)])
 async def admin_delete_user(email: str, admin: User = Depends(require_superadmin)):
     """Supprime un compte et toutes ses donnÃ©es â€” SUPERADMIN ONLY. Pour nettoyer les comptes de test."""
     target = await db.users.find_one({"email": email})
@@ -8502,7 +8564,7 @@ async def delete_planner_item(
 # ===================== ADMIN ROUTES =====================
 
 @admin_router.get("/health")
-async def admin_health(user: User = Depends(require_superadmin)):
+async def admin_health(user: User = Depends(require_admin_access)):
     """System health check for superadmin"""
     try:
         await db.command("ping")
@@ -8519,7 +8581,7 @@ async def admin_health(user: User = Depends(require_superadmin)):
     }
 
 @admin_router.get("/stats")
-async def admin_global_stats(user: User = Depends(require_superadmin)):
+async def admin_global_stats(user: User = Depends(require_admin_access)):
     """Advanced global statistics"""
     user_count = await db.users.count_documents({})
     store_count = await db.stores.count_documents({})
@@ -8555,7 +8617,7 @@ async def admin_non_demo_filter(owner_field: str) -> dict:
 
 
 @admin_router.get("/app-updates/announcement")
-async def admin_get_app_update_announcement(admin: User = Depends(require_superadmin)):
+async def admin_get_app_update_announcement(admin: User = Depends(require_admin_access)):
     settings_doc = await db.app_settings.find_one({"key": "global"}, {"_id": 0, "app_update": 1}) or {}
     app_update = resolve_app_update_settings(settings_doc)
     return {
@@ -8572,7 +8634,7 @@ async def admin_get_app_update_announcement(admin: User = Depends(require_supera
 # Annonce d'une nouvelle version : les applications dont la version est plus ancienne affichent la fenêtre
 # de mise à jour à leur prochaine ouverture, avec le message choisi (ou le message par défaut s'il est vide).
 @admin_router.post("/app-updates/announce")
-async def admin_announce_app_update(data: AppUpdateAnnouncementRequest, admin: User = Depends(require_superadmin)):
+async def admin_announce_app_update(data: AppUpdateAnnouncementRequest, admin: User = Depends(require_admin_access)):
     version = data.version.strip()
     if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,3}", version):
         raise HTTPException(status_code=422, detail="La version doit être au format 1.0.26.")
@@ -8592,7 +8654,7 @@ async def admin_announce_app_update(data: AppUpdateAnnouncementRequest, admin: U
 
 
 @admin_router.delete("/app-updates/announce/{platform}")
-async def admin_withdraw_app_update(platform: Literal["android", "ios"], admin: User = Depends(require_superadmin)):
+async def admin_withdraw_app_update(platform: Literal["android", "ios"], admin: User = Depends(require_admin_access)):
     await db.app_settings.update_one(
         {"key": "global"},
         {"$set": {
@@ -8607,7 +8669,7 @@ async def admin_withdraw_app_update(platform: Literal["android", "ios"], admin: 
 
 
 @admin_router.post("/app-updates/notify")
-async def admin_notify_app_update(data: AppUpdateNotificationRequest, admin: User = Depends(require_superadmin)):
+async def admin_notify_app_update(data: AppUpdateNotificationRequest, admin: User = Depends(require_admin_access)):
     platform = data.platform.lower()
     title = data.title.strip()
     message = data.message.strip()
@@ -8712,7 +8774,7 @@ async def attach_admin_app_versions(user_docs: List[dict]) -> List[dict]:
 
 
 @admin_router.get("/users")
-async def admin_list_users(skip: int = 0, limit: int = 100, user: User = Depends(require_superadmin)):
+async def admin_list_users(skip: int = 0, limit: int = 100, user: User = Depends(require_admin_access)):
     query = await admin_non_demo_filter("parent_user_id")
     users = await db.users.find(query, {"_id": 0, "password_hash": 0, "hashed_password": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     users = await attach_admin_app_versions(users)
@@ -8724,7 +8786,7 @@ async def admin_list_users(skip: int = 0, limit: int = 100, user: User = Depends
     return users
 
 @admin_router.get("/users/{user_id}/detail")
-async def admin_user_detail(user_id: str, admin: User = Depends(require_superadmin)):
+async def admin_user_detail(user_id: str, admin: User = Depends(require_admin_access)):
     """Panel dÃ©taillÃ© d'un utilisateur : stores, ventes, IA, activitÃ© rÃ©cente."""
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0})
     if not user_doc:
@@ -8752,10 +8814,25 @@ async def admin_user_detail(user_id: str, admin: User = Depends(require_superadm
         {"_id": 0},
     ).sort("created_at", -1).limit(20).to_list(20)
 
-    account = await db.business_accounts.find_one(
-        {"account_id": user_id},
-        {"_id": 0, "plan": 1, "subscription_status": 1, "subscription_provider": 1, "subscription_end": 1, "trial_ends_at": 1},
-    )
+    account_projection = {
+        "_id": 0, "account_id": 1, "plan": 1, "subscription_status": 1, "subscription_provider": 1,
+        "subscription_end": 1, "trial_ends_at": 1, "manual_access_grace_until": 1, "manual_read_only_enabled": 1,
+    }
+    account = await db.business_accounts.find_one({"account_id": user_id}, account_projection)
+    if not account:
+        account = await db.business_accounts.find_one({"owner_user_id": user_id}, account_projection)
+
+    support_tickets = await db.support_tickets.find(
+        {"user_id": user_id},
+        {"_id": 0, "ticket_id": 1, "subject": 1, "status": 1, "priority": 1, "created_at": 1, "updated_at": 1},
+    ).sort("created_at", -1).limit(10).to_list(10)
+    subscription_events = []
+    if account and account.get("account_id"):
+        subscription_events = await db.subscription_events.find(
+            {"account_id": account["account_id"]},
+            {"_id": 0, "event_type": 1, "provider": 1, "status": 1, "amount": 1, "currency": 1, "plan": 1, "created_at": 1, "message": 1},
+        ).sort("created_at", -1).limit(10).to_list(10)
+    admin_actions = await admin_ops.list_admin_actions(db, target_user_id=user_id, limit=30)
 
     return {
         "user": user_doc,
@@ -8768,9 +8845,101 @@ async def admin_user_detail(user_id: str, admin: User = Depends(require_superadm
         "recent_activity": recent_activity,
         "system_messages": system_messages,
         "account": account or {},
+        "support_tickets": support_tickets,
+        "subscription_events": subscription_events,
+        "admin_actions": admin_actions,
         "onboarding_guide": onboarding_guide.admin_view(user_doc),
         "modules": await admin_account_modules_view(user_doc),
     }
+
+
+async def admin_team_user_ids() -> List[str]:
+    return await db.users.distinct("user_id", {"role": {"$in": ["superadmin", "admin"]}})
+
+
+@admin_router.get("/audit-logs")
+async def admin_audit_logs(
+    target_user_id: Optional[str] = None,
+    admin_id: Optional[str] = None,
+    outcome: Optional[str] = None,
+    limit: int = 100,
+):
+    """Journal des modifications faites depuis l'admin, de la plus récente à la plus ancienne."""
+    return {"items": await admin_ops.list_admin_actions(
+        db, target_user_id=target_user_id, admin_id=admin_id, outcome=outcome, limit=limit,
+    )}
+
+
+@admin_router.get("/today")
+async def admin_today_queue():
+    """Dossiers à traiter aujourd'hui, avec le nom de chaque client concerné."""
+    return await admin_ops.build_today_queue(db, datetime.now(timezone.utc), await admin_team_user_ids())
+
+
+@admin_router.get("/search")
+async def admin_global_search(q: str = Query("", max_length=80)):
+    """Recherche d'un compte, d'une boutique ou d'un ticket par nom, e-mail ou téléphone."""
+    return await admin_ops.global_search(db, q, await admin_team_user_ids())
+
+
+@admin_router.get("/me/access")
+async def admin_my_access(user: User = Depends(require_admin_access)):
+    """Sections de l'admin visibles par la personne connectée."""
+    return admin_access.access_view(user.role, user.admin_scopes)
+
+
+@admin_router.get("/team")
+async def admin_list_team():
+    """Membres de l'équipe Stockman et leurs périmètres."""
+    members = await db.users.find(
+        {"role": {"$in": ["superadmin", "admin"]}},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1, "role": 1, "admin_scopes": 1, "last_login": 1, "last_login_at": 1},
+    ).sort("name", 1).to_list(200)
+    return {"items": members, "catalog": admin_access.access_view("superadmin", [])["catalog"]}
+
+
+class AdminAccessRequest(BaseModel):
+    enabled: bool
+    scopes: List[str] = Field(default_factory=list)
+
+
+@admin_router.put("/users/{user_id}/admin-access")
+async def admin_set_admin_access(user_id: str, data: AdminAccessRequest, admin: User = Depends(require_admin_access)):
+    """Donne ou retire l'accès à l'admin, limité à certains périmètres (superadmin uniquement)."""
+    if admin.role != "superadmin":
+        raise HTTPException(status_code=403, detail=i18n.t("errors.forbidden", admin.language))
+    target = await db.users.find_one({"user_id": user_id}, {"_id": 0, "role": 1, "admin_previous_role": 1, "parent_user_id": 1})
+    if not target:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if target.get("role") == "superadmin":
+        raise HTTPException(status_code=400, detail="Un superadmin a déjà tous les droits.")
+    if user_id == admin.user_id:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas modifier votre propre accès.")
+    now = datetime.now(timezone.utc)
+    if data.enabled:
+        if target.get("role") in {"staff", "supplier"} or target.get("parent_user_id"):
+            raise HTTPException(
+                status_code=400,
+                detail="Ce compte appartient à une boutique ou à un fournisseur. Créez un compte dédié pour ce membre de l'équipe.",
+            )
+        scopes = admin_access.normalize_scopes(data.scopes)
+        if not scopes:
+            raise HTTPException(status_code=400, detail="Choisissez au moins un périmètre.")
+        update: Dict[str, Any] = {"role": "admin", "admin_scopes": scopes, "admin_access_updated_at": now}
+        if target.get("role") != "admin":
+            update["admin_previous_role"] = target.get("role") or "shopkeeper"
+        await db.users.update_one({"user_id": user_id}, {"$set": update})
+        return {"user_id": user_id, "role": "admin", "admin_scopes": scopes}
+    if target.get("role") != "admin":
+        return {"user_id": user_id, "role": target.get("role"), "admin_scopes": []}
+    previous_role = target.get("admin_previous_role") or "shopkeeper"
+    if previous_role in {"admin", "superadmin"}:
+        previous_role = "shopkeeper"
+    await db.users.update_one(
+        {"user_id": user_id},
+        {"$set": {"role": previous_role, "admin_scopes": [], "admin_access_updated_at": now}, "$unset": {"admin_previous_role": ""}},
+    )
+    return {"user_id": user_id, "role": previous_role, "admin_scopes": []}
 
 
 async def admin_account_modules_view(user_doc: dict) -> Optional[Dict[str, Any]]:
@@ -8798,7 +8967,7 @@ class AdminAccountModulesRequest(BaseModel):
 
 
 @admin_router.get("/ai/health")
-async def admin_ai_health(admin: User = Depends(require_superadmin)):
+async def admin_ai_health(admin: User = Depends(require_admin_access)):
     """État du service d'IA : génération (Gemini) et recherche documentaire de l'assistant (RAG)."""
     return {
         "model": DEFAULT_GEMINI_MODEL,
@@ -8809,7 +8978,7 @@ async def admin_ai_health(admin: User = Depends(require_superadmin)):
 
 
 @admin_router.post("/ai/health/check")
-async def admin_ai_health_check(admin: User = Depends(require_superadmin)):
+async def admin_ai_health_check(admin: User = Depends(require_admin_access)):
     """Teste tout de suite la génération et les embeddings, et relance l'indexation manquante."""
     generation: Dict[str, Any] = {"ok": False}
     try:
@@ -8833,18 +9002,18 @@ async def admin_ai_health_check(admin: User = Depends(require_superadmin)):
 
 
 @admin_router.get("/modules")
-async def admin_get_module_policy(admin: User = Depends(require_superadmin)):
+async def admin_get_module_policy(admin: User = Depends(require_admin_access)):
     return {"policy": await platform_modules.get_policy(db), **platform_modules.catalog()}
 
 
 @admin_router.put("/modules")
-async def admin_set_module_policy(data: AdminModulePolicyRequest, admin: User = Depends(require_superadmin)):
+async def admin_set_module_policy(data: AdminModulePolicyRequest, admin: User = Depends(require_admin_access)):
     policy = await platform_modules.save_policy(db, data.modules)
     return {"policy": policy, **platform_modules.catalog()}
 
 
 @admin_router.put("/users/{user_id}/modules")
-async def admin_set_account_modules(user_id: str, data: AdminAccountModulesRequest, admin: User = Depends(require_superadmin)):
+async def admin_set_account_modules(user_id: str, data: AdminAccountModulesRequest, admin: User = Depends(require_admin_access)):
     """Force un module pour le compte entier (propriétaire et équipe), ou revient aux règles générales."""
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0})
     if not user_doc:
@@ -8875,7 +9044,7 @@ async def admin_set_account_modules(user_id: str, data: AdminAccountModulesReque
 
 
 @admin_router.post("/users/{user_id}/onboarding-guide/relaunch")
-async def admin_relaunch_onboarding_guide(user_id: str, admin: User = Depends(require_superadmin)):
+async def admin_relaunch_onboarding_guide(user_id: str, admin: User = Depends(require_admin_access)):
     """Refait suivre le guide de démarrage mobile à un commerçant, depuis le début."""
     if not await db.users.find_one({"user_id": user_id}, {"_id": 0, "user_id": 1}):
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
@@ -8892,7 +9061,7 @@ async def admin_user_system_messages(
     scenario: Optional[str] = None,
     skip: int = 0,
     limit: int = Query(50, ge=1, le=200),
-    admin: User = Depends(require_superadmin),
+    admin: User = Depends(require_admin_access),
 ):
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "user_id": 1})
     if not user_doc:
@@ -8914,7 +9083,7 @@ class AdminUserNoteRequest(BaseModel):
     note: str
 
 @admin_router.put("/users/{user_id}/note")
-async def admin_update_user_note(user_id: str, data: AdminUserNoteRequest, admin: User = Depends(require_superadmin)):
+async def admin_update_user_note(user_id: str, data: AdminUserNoteRequest, admin: User = Depends(require_admin_access)):
     """Ajouter / modifier une note interne sur un compte utilisateur."""
     result = await db.users.update_one({"user_id": user_id}, {"$set": {"admin_note": data.note.strip()}})
     if result.matched_count == 0:
@@ -8927,7 +9096,7 @@ class AdminBulkPlanRequest(BaseModel):
     plan: str
 
 @admin_router.post("/users/bulk-plan")
-async def admin_bulk_set_plan(data: AdminBulkPlanRequest, admin: User = Depends(require_superadmin)):
+async def admin_bulk_set_plan(data: AdminBulkPlanRequest, admin: User = Depends(require_admin_access)):
     """Changer le plan de plusieurs utilisateurs en une fois."""
     valid_plans = ("starter", "pro", "enterprise")
     if data.plan not in valid_plans:
@@ -8957,7 +9126,7 @@ async def admin_list_all_products(
     tag: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     query = {}
     if category_id:
@@ -9086,7 +9255,7 @@ async def admin_list_all_products(
     return {"items": enriched_products, "total": total}
 
 @admin_router.delete("/products/{product_id}")
-async def admin_delete_product(product_id: str, user: User = Depends(require_superadmin)):
+async def admin_delete_product(product_id: str, user: User = Depends(require_admin_access)):
     """Permanently delete any product (Superadmin only)"""
     result = await db.products.delete_one({"product_id": product_id})
     if result.deleted_count == 0:
@@ -9102,7 +9271,7 @@ async def admin_delete_product(product_id: str, user: User = Depends(require_sup
     return {"message": "Produit supprimÃ© par l'administrateur"}
 
 @admin_router.put("/products/{product_id}/toggle")
-async def admin_toggle_product(product_id: str, user: User = Depends(require_superadmin)):
+async def admin_toggle_product(product_id: str, user: User = Depends(require_admin_access)):
     """Activate/Deactivate any product (Superadmin only)"""
     product = await db.products.find_one({"product_id": product_id})
     if not product:
@@ -9124,7 +9293,7 @@ async def admin_toggle_product(product_id: str, user: User = Depends(require_sup
     return {"product_id": product_id, "is_active": new_status}
 
 @admin_router.get("/customers")
-async def admin_list_all_customers(search: Optional[str] = None, skip: int = 0, limit: int = 50, user: User = Depends(require_superadmin)):
+async def admin_list_all_customers(search: Optional[str] = None, skip: int = 0, limit: int = 50, user: User = Depends(require_admin_access)):
     # Pas de clients fictifs : ni ceux des comptes de démonstration, ni ceux créés pour s'entraîner
     # pendant le guide de démarrage.
     query = await admin_non_demo_filter("user_id")
@@ -9207,7 +9376,7 @@ async def enrich_admin_user_references(items: List[dict], user_id_fields: Option
 
 
 @admin_router.get("/logs")
-async def admin_global_logs(module: Optional[str] = None, user_id: Optional[str] = None, skip: int = 0, limit: int = 100, user: User = Depends(require_superadmin)):
+async def admin_global_logs(module: Optional[str] = None, user_id: Optional[str] = None, skip: int = 0, limit: int = 100, user: User = Depends(require_admin_access)):
     query = {}
     if module: query["module"] = module
     if user_id: query["user_id"] = user_id
@@ -9264,7 +9433,7 @@ def is_admin_notification_unread(item: Dict[str, Any], last_read_at: Optional[da
 
 
 @admin_router.get("/notifications")
-async def admin_notifications(limit: int = 80, user: User = Depends(require_superadmin)):
+async def admin_notifications(limit: int = 80, user: User = Depends(require_admin_access)):
     now = datetime.now(timezone.utc)
     since = now - timedelta(days=30)
     read_state = await db.admin_notification_reads.find_one({"admin_user_id": user.user_id}, {"_id": 0}) or {}
@@ -9405,7 +9574,7 @@ async def admin_notifications(limit: int = 80, user: User = Depends(require_supe
 
 
 @admin_router.post("/notifications/read")
-async def mark_admin_notifications_read(data: AdminNotificationsReadUpdate, user: User = Depends(require_superadmin)):
+async def mark_admin_notifications_read(data: AdminNotificationsReadUpdate, user: User = Depends(require_admin_access)):
     now = datetime.now(timezone.utc)
     if data.section and data.section != "all":
         await db.admin_notification_reads.update_one(
@@ -9422,7 +9591,7 @@ async def mark_admin_notifications_read(data: AdminNotificationsReadUpdate, user
     return {"marked": True, "read_at": now}
 
 @admin_router.post("/support/tickets/{ticket_id}/reply", response_model=SupportTicket)
-async def admin_reply_ticket(ticket_id: str, reply: SupportReply, user: User = Depends(require_superadmin)):
+async def admin_reply_ticket(ticket_id: str, reply: SupportReply, user: User = Depends(require_admin_access)):
     msg = SupportMessage(sender_id=user.user_id, sender_name="Admin Stockman", content=reply.content)
     await db.support_tickets.update_one(
         {"ticket_id": ticket_id},
@@ -10174,7 +10343,7 @@ async def admin_subscription_accounts(
 
 
 @admin_router.get("/stats/mrr")
-async def admin_mrr_stats(months: int = 12, user: User = Depends(require_superadmin)):
+async def admin_mrr_stats(months: int = 12, user: User = Depends(require_admin_access)):
     """MRR breakdown: monthly payment volume by plan + current MRR by plan."""
     months = max(1, min(months, 24))
     now = datetime.now(timezone.utc)
@@ -10236,7 +10405,7 @@ async def admin_mrr_stats(months: int = 12, user: User = Depends(require_superad
 
 
 @admin_router.get("/stats/retention")
-async def admin_retention_stats(months: int = 12, user: User = Depends(require_superadmin)):
+async def admin_retention_stats(months: int = 12, user: User = Depends(require_admin_access)):
     """Monthly signups, churns (expired/cancelled), and net growth."""
     months = max(1, min(months, 24))
     now = datetime.now(timezone.utc)
@@ -10863,7 +11032,7 @@ async def admin_list_stores(skip: int = 0, limit: int = 50):
 @admin_router.get("/stores/{store_id}/overview")
 async def admin_get_store_overview(
     store_id: str,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     store = await db.stores.find_one({"store_id": store_id}, {"_id": 0})
     if not store:
@@ -11168,7 +11337,7 @@ async def admin_get_store_inventory(
     stock_status: Optional[str] = None,
     skip: int = 0,
     limit: int = 200,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     store = await db.stores.find_one({"store_id": store_id}, {"_id": 0})
     if not store:
@@ -11311,7 +11480,7 @@ class AdminUserNoteRequest(BaseModel):
     note: str
 
 @admin_router.put("/users/{user_id}/note")
-async def admin_set_user_note(user_id: str, data: AdminUserNoteRequest, user: User = Depends(require_superadmin)):
+async def admin_set_user_note(user_id: str, data: AdminUserNoteRequest, user: User = Depends(require_admin_access)):
     await db.users.update_one({"user_id": user_id}, {"$set": {"admin_note": data.note}})
     return {"user_id": user_id, "admin_note": data.note}
 
@@ -11320,7 +11489,7 @@ class AdminFeatureFlagsRequest(BaseModel):
     flags: Dict[str, bool]
 
 @admin_router.put("/users/{user_id}/feature-flags")
-async def admin_set_feature_flags(user_id: str, data: AdminFeatureFlagsRequest, user: User = Depends(require_superadmin)):
+async def admin_set_feature_flags(user_id: str, data: AdminFeatureFlagsRequest, user: User = Depends(require_admin_access)):
     """Set per-user feature flag overrides. Flags are merged with existing ones."""
     await db.users.update_one(
         {"user_id": user_id},
@@ -11334,7 +11503,7 @@ class AdminCustomLimitsRequest(BaseModel):
     limits: Dict[str, Any]
 
 @admin_router.put("/users/{user_id}/custom-limits")
-async def admin_set_custom_limits(user_id: str, data: AdminCustomLimitsRequest, user: User = Depends(require_superadmin)):
+async def admin_set_custom_limits(user_id: str, data: AdminCustomLimitsRequest, user: User = Depends(require_admin_access)):
     """Override plan limits for a specific user (max_stores, max_users, ai_calls_monthly, etc.)"""
     await db.users.update_one(
         {"user_id": user_id},
@@ -11621,7 +11790,7 @@ async def list_collections():
     return result
 
 @admin_router.get("/collections/{name}")
-async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Optional[str] = None, user: User = Depends(require_superadmin)):
+async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Optional[str] = None, user: User = Depends(require_admin_access)):
     """View documents in a collection with pagination and search (superadmin only, disabled in production)."""
     if IS_PROD:
         raise HTTPException(status_code=403, detail="Endpoint dÃ©sactivÃ© en production")
@@ -16042,7 +16211,7 @@ async def admin_list_disputes(status: Optional[str] = None, type: Optional[str] 
     return {"items": disputes, "total": total}
 
 @admin_router.post("/disputes/{dispute_id}/reply")
-async def admin_reply_dispute(dispute_id: str, reply: SupportReply, user: User = Depends(require_superadmin)):
+async def admin_reply_dispute(dispute_id: str, reply: SupportReply, user: User = Depends(require_admin_access)):
     """Reply to a dispute"""
     msg = DisputeMessage(sender_id=user.user_id, sender_name="Admin Stockman", content=reply.content)
     result = await db.disputes.update_one(
@@ -16116,7 +16285,7 @@ async def admin_dispute_stats():
 # ===================== COMMUNICATION ENDPOINTS =====================
 
 @admin_router.post("/messages/send")
-async def admin_send_message(data: AdminMessageCreate, user: User = Depends(require_superadmin)):
+async def admin_send_message(data: AdminMessageCreate, user: User = Depends(require_admin_access)):
     """Send a targeted message"""
     channels = list(dict.fromkeys(data.channels or ["in_app"]))
     if "in_app" not in channels:
@@ -16189,7 +16358,7 @@ def clean_admin_notification_suggestion_text(value: Any, max_length: int) -> str
 
 
 @admin_router.post("/messages/suggest", response_model=AdminNotificationSuggestionResponse)
-async def admin_suggest_notification_message(data: AdminNotificationSuggestionRequest, user: User = Depends(require_superadmin)):
+async def admin_suggest_notification_message(data: AdminNotificationSuggestionRequest, user: User = Depends(require_admin_access)):
     objective = clean_admin_notification_suggestion_text(data.objective, 500)
     if not objective:
         raise HTTPException(status_code=400, detail="L'objectif est requis.")
@@ -16772,7 +16941,7 @@ async def production_dashboard(user: User = Depends(require_auth)):
 # ===================== ADMIN CATALOGUE GLOBAL =====================
 
 @admin_router.get("/catalog/stats")
-async def admin_catalog_stats(user: User = Depends(require_superadmin)):
+async def admin_catalog_stats(user: User = Depends(require_admin_access)):
     """Stats globales du catalogue communautaire."""
     return await catalog_service.admin_stats()
 
@@ -16788,7 +16957,7 @@ async def admin_catalog_list(
     tag: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     """Liste paginÃ©e des produits du catalogue global (admin)."""
     return await catalog_service.admin_list(
@@ -16805,7 +16974,7 @@ async def admin_catalog_list(
 
 
 @admin_router.put("/catalog/{catalog_id}/verify")
-async def admin_catalog_verify(catalog_id: str, user: User = Depends(require_superadmin)):
+async def admin_catalog_verify(catalog_id: str, user: User = Depends(require_admin_access)):
     """Marquer un produit du catalogue comme vÃ©rifiÃ©."""
     success = await catalog_service.admin_verify(catalog_id)
     if not success:
@@ -16860,7 +17029,7 @@ class AdminCatalogDuplicateRequest(BaseModel):
 @admin_router.post("/catalog/products")
 async def admin_catalog_create(
     data: AdminCatalogProductUpsert,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     try:
         doc = await catalog_service.admin_create(data.model_dump(exclude_none=True))
@@ -16878,7 +17047,7 @@ async def admin_catalog_create(
 @admin_router.post("/catalog/products/bulk")
 async def admin_catalog_bulk_upsert(
     data: AdminCatalogBulkUpsertRequest,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     result = await catalog_service.admin_bulk_upsert([
         row.model_dump(exclude_none=True) for row in data.rows
@@ -16895,7 +17064,7 @@ async def admin_catalog_bulk_upsert(
 @admin_router.post("/catalog/duplicate")
 async def admin_catalog_duplicate(
     data: AdminCatalogDuplicateRequest,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     try:
         doc = await catalog_service.admin_duplicate(data.catalog_id)
@@ -16915,7 +17084,7 @@ async def admin_catalog_duplicate(
 @admin_router.put("/catalog/bulk")
 async def admin_catalog_bulk_update(
     data: AdminCatalogBulkUpdateRequest,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     result = await catalog_service.admin_bulk_update(
         data.catalog_ids,
@@ -16933,13 +17102,13 @@ async def admin_catalog_bulk_update(
 @admin_router.get("/catalog/assistant")
 async def admin_catalog_assistant(
     catalog_id: Optional[str] = None,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     return await catalog_service.admin_assistant(catalog_id=catalog_id)
 
 
 @admin_router.get("/stats/catalog-adoption")
-async def admin_catalog_adoption(limit: int = 50, user: User = Depends(require_superadmin)):
+async def admin_catalog_adoption(limit: int = 50, user: User = Depends(require_admin_access)):
     """Top catalog products by adoption count (number of stores using them)."""
     limit = max(1, min(limit, 200))
     pipeline = [
@@ -17000,7 +17169,7 @@ async def admin_catalog_adoption(limit: int = 50, user: User = Depends(require_s
 
 
 @admin_router.get("/stats/api-health")
-async def admin_api_health(days: int = 7, user: User = Depends(require_superadmin)):
+async def admin_api_health(days: int = 7, user: User = Depends(require_admin_access)):
     """Activity breakdown by module + AI endpoint latency stats."""
     days = max(1, min(days, 90))
     since = datetime.utcnow() - timedelta(days=days)
@@ -17061,7 +17230,7 @@ async def admin_api_health(days: int = 7, user: User = Depends(require_superadmi
 async def admin_catalog_update(
     catalog_id: str,
     data: AdminCatalogProductUpsert,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     try:
         doc = await catalog_service.admin_update(catalog_id, data.model_dump(exclude_none=True))
@@ -17079,7 +17248,7 @@ async def admin_catalog_update(
 
 
 @admin_router.post("/catalog/merge")
-async def admin_catalog_merge(data: CatalogMergeRequest, user: User = Depends(require_superadmin)):
+async def admin_catalog_merge(data: CatalogMergeRequest, user: User = Depends(require_admin_access)):
     """Fusionner des doublons du catalogue."""
     result = await catalog_service.admin_merge(data.keep_id, data.merge_ids)
     if "error" in result:
@@ -17099,7 +17268,7 @@ class AdminCatalogBulkDeleteRequest(BaseModel):
 @admin_router.post("/catalog/bulk-delete")
 async def admin_catalog_bulk_delete(
     data: AdminCatalogBulkDeleteRequest,
-    user: User = Depends(require_superadmin),
+    user: User = Depends(require_admin_access),
 ):
     """Supprimer plusieurs produits du catalogue global en une fois."""
     deleted = 0
@@ -17116,7 +17285,7 @@ async def admin_catalog_bulk_delete(
 
 
 @admin_router.delete("/catalog/{catalog_id}")
-async def admin_catalog_delete(catalog_id: str, user: User = Depends(require_superadmin)):
+async def admin_catalog_delete(catalog_id: str, user: User = Depends(require_admin_access)):
     """Supprimer un produit du catalogue global."""
     success = await catalog_service.admin_delete(catalog_id)
     if not success:
@@ -35795,7 +35964,7 @@ async def payment_cancel():
 
 
 app.include_router(api_router)
-app.include_router(admin_router, prefix="/api", dependencies=[Depends(require_superadmin)])
+app.include_router(admin_router, prefix="/api", dependencies=[Depends(require_admin_access), Depends(audit_admin_request)])
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 _is_production = os.environ.get("ENV", os.environ.get("ENVIRONMENT", "development")) == "production"

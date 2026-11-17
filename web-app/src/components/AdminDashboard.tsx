@@ -6,9 +6,9 @@ import {
     Shield, Activity, Users, Store, AlertCircle, CheckCircle2,
     RefreshCw, TrendingUp, Globe, Search, MessageSquare,
     Lock, Unlock, Trash2, Crown, Clock, Package, Download, Filter,
-    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper, Brain, Rocket, Link2, ExternalLink
+    BarChart2, Zap, Bell, ChevronDown, X, CreditCard, Wallet, AlertTriangle, Mail, Newspaper, Brain, Rocket, Link2, ExternalLink, ScrollText, UserCog
 } from 'lucide-react';
-import { admin as adminApi, setRefreshToken, setToken, type AdminMessageActionLink } from '../services/api';
+import { admin as adminApi, setRefreshToken, setToken, type AdminAccessView, type AdminMessageActionLink } from '../services/api';
 import { ADMIN_MESSAGE_ACTION_LABEL_LIMIT, ADMIN_MESSAGE_ACTION_URL_LIMIT, isAdminMessageActionUrl } from '../lib/adminMessageActionLink';
 import AdminProductsPanel from './admin/AdminProductsPanel';
 import AdminCatalogPanel from './admin/AdminCatalogPanel';
@@ -16,6 +16,12 @@ import AdminModulesPanel, { AccountModulesCard } from './admin/AdminModulesPanel
 import AdminAiHealthCard from './admin/AdminAiHealthCard';
 import AdminStoreOverviewPanel from './admin/AdminStoreOverviewPanel';
 import AppUpdateNotificationsPanel from './admin/AppUpdateNotificationsPanel';
+import AdminTodayPanel from './admin/AdminTodayPanel';
+import AdminGlobalSearch from './admin/AdminGlobalSearch';
+import AdminAuditPanel from './admin/AdminAuditPanel';
+import AdminUserHistory from './admin/AdminUserHistory';
+import AdminAccessCard from './admin/AdminAccessCard';
+import AdminTeamPanel from './admin/AdminTeamPanel';
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: any; icon: any; color: string; sub: string }) {
     return (
@@ -318,7 +324,7 @@ function formatRemainingDuration(seconds: number | null) {
     return `${hours}h ${minutes}m`;
 }
 
-type AdminSection = 'overview' | 'modules' | 'notifications' | 'app_updates' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'crm' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring';
+type AdminSection = 'overview' | 'modules' | 'notifications' | 'app_updates' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'crm' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring' | 'audit' | 'team';
 
 export default function AdminDashboard() {
     const { t } = useTranslation();
@@ -413,7 +419,7 @@ export default function AdminDashboard() {
     const [detailLoading, setDetailLoading] = useState(false);
     const [userTimeline, setUserTimeline] = useState<any[]>([]);
     const [userTimelineLoading, setUserTimelineLoading] = useState(false);
-    const [drawerTab, setDrawerTab] = useState<'info' | 'flags' | 'limits'>('info');
+    const [drawerTab, setDrawerTab] = useState<'info' | 'history' | 'flags' | 'limits'>('info');
     const [flagsSaving, setFlagsSaving] = useState(false);
     const [limitsSaving, setLimitsSaving] = useState(false);
     const [localFlags, setLocalFlags] = useState<Record<string, boolean>>({});
@@ -572,7 +578,16 @@ export default function AdminDashboard() {
         }
     };
 
-    useEffect(() => { loadInitialData(); }, []);
+    // Sections visibles : toutes pour le superadmin, seulement ses périmètres pour un membre de l'équipe.
+    const [myAccess, setMyAccess] = useState<AdminAccessView | null>(null);
+    useEffect(() => {
+        loadInitialData();
+        adminApi.getMyAccess().then(setMyAccess).catch(() => setMyAccess(null));
+    }, []);
+    useEffect(() => {
+        const sections = myAccess?.sections;
+        if (sections && sections.length && !sections.includes(activeSection)) setActiveSection(sections[0] as AdminSection);
+    }, [myAccess, activeSection]);
 
     const loadInitialData = async () => {
         setLoading(true);
@@ -1036,7 +1051,16 @@ export default function AdminDashboard() {
                 adminApi.getUserDetail(user.user_id),
                 adminApi.getUserLogs(user.user_id, 50),
             ]);
-            if (data.status === 'fulfilled') setDetailData(data.value);
+            if (data.status === 'fulfilled') {
+                setDetailData(data.value);
+                // Ouverte depuis la recherche ou la file du jour, la fiche ne connaît que le nom : on la complète.
+                const fullUser = data.value?.user;
+                if (fullUser) {
+                    setDetailUser((current: any) => (current?.user_id === fullUser.user_id ? { ...current, ...fullUser } : current));
+                    if (!user.feature_flags) setLocalFlags(fullUser.feature_flags || {});
+                    if (!user.custom_limits) setLocalLimits(Object.fromEntries(Object.entries(fullUser.custom_limits || {}).map(([k, v]) => [k, String(v)])));
+                }
+            }
             if (timeline.status === 'fulfilled') setUserTimeline(Array.isArray(timeline.value) ? timeline.value : []);
         } catch { /* non-bloquant */ }
         finally { setDetailLoading(false); setUserTimelineLoading(false); }
@@ -1473,6 +1497,8 @@ export default function AdminDashboard() {
         { id: 'leads', icon: Mail, label: 'Leads' },
         { id: 'ai_usage', icon: Brain, label: 'IA & Usage' },
         { id: 'logs', icon: Activity, label: 'Activité' },
+        { id: 'audit', icon: ScrollText, label: 'Journal admin' },
+        { id: 'team', icon: UserCog, label: 'Équipe' },
         { id: 'anomalies', icon: AlertTriangle, label: 'Anomalies' },
         { id: 'mrr', icon: TrendingUp, label: 'MRR' },
         { id: 'retention', icon: Users, label: 'Rétention' },
@@ -1588,7 +1614,7 @@ export default function AdminDashboard() {
                         </div>
                         {/* Drawer tabs */}
                         <div className="flex border-b border-white/10 px-4 gap-1 bg-[#0F172A] sticky top-[73px] z-10">
-                            {([['info', 'Infos'], ['flags', 'Feature flags'], ['limits', 'Limites']] as const).map(([id, label]) => (
+                            {([['info', 'Infos'], ['history', 'Historique'], ['flags', 'Feature flags'], ['limits', 'Limites']] as const).map(([id, label]) => (
                                 <button key={id} onClick={() => setDrawerTab(id)} className={`px-4 py-3 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${drawerTab === id ? 'border-primary text-white' : 'border-transparent text-slate-500 hover:text-white'}`}>
                                     {label}
                                 </button>
@@ -1599,6 +1625,7 @@ export default function AdminDashboard() {
                         ) : detailData ? (
                             <div className="p-5 space-y-5">
                                 {/* Feature flags tab */}
+                                {drawerTab === 'history' && <AdminUserHistory userId={detailUser.user_id} detail={detailData} />}
                                 {drawerTab === 'flags' && (() => {
                                     const FLAG_DEFS = [
                                         { key: 'web_access', label: 'Accès web', desc: 'Accès au dashboard web même sans plan enterprise' },
@@ -1664,6 +1691,14 @@ export default function AdminDashboard() {
                                 })()}
 
                                 {/* Info tab */}
+                                {drawerTab === 'info' && myAccess?.is_superadmin && detailUser.role ? (
+                                    <AdminAccessCard
+                                        user={detailUser}
+                                        catalog={myAccess.catalog}
+                                        showToast={showToast}
+                                        onChanged={(update) => setDetailUser((current: any) => (current ? { ...current, ...update } : current))}
+                                    />
+                                ) : null}
                                 {drawerTab === 'info' && <><div className="grid grid-cols-2 gap-3">
                                     {[
                                         { label: 'Plan', value: <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${PLAN_COLORS[detailData.account?.plan || detailUser.plan] || PLAN_COLORS.starter}`}>{detailData.account?.plan || detailUser.plan || 'starter'}</span> },
@@ -1893,12 +1928,13 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            <header className="flex justify-between items-center mb-10">
+            <header className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-center mb-10">
                 <div>
                     <h1 className="text-3xl font-black text-white mb-1 uppercase tracking-tighter">Backoffice Admin</h1>
                     <p className="text-slate-400 text-sm">Supervision globale du système Stockman.</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <AdminGlobalSearch onOpenUser={openUserDetail} onOpenSection={(section) => setActiveSection(section as AdminSection)} />
                     <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold uppercase tracking-widest ${['ok', 'online', 'healthy'].includes(String(healthSummary.status || '')) ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
                         <Activity size={16} />
                         {['ok', 'online', 'healthy'].includes(String(healthSummary.status || '')) ? 'Opérationnel' : 'Erreur'}
@@ -1949,7 +1985,7 @@ export default function AdminDashboard() {
 
             {/* Nav Tabs */}
             <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-                {tabs.map(tab => {
+                {tabs.filter(tab => !myAccess?.sections || myAccess.sections.includes(tab.id)).map(tab => {
                     const badgeCount = Number(adminNotifications.badges?.[tab.id] || 0);
                     return (
                     <button
@@ -1967,6 +2003,10 @@ export default function AdminDashboard() {
                     </button>
                 )})}
             </div>
+
+            {activeSection === 'audit' && <AdminAuditPanel onOpenUser={openUserDetail} />}
+
+            {activeSection === 'team' && <AdminTeamPanel onOpenUser={openUserDetail} />}
 
             {activeSection === 'notifications' && (
                 <div className="space-y-6">
@@ -2048,6 +2088,8 @@ export default function AdminDashboard() {
             {/* -- OVERVIEW -- */}
             {activeSection === 'overview' && (
                 <div className="space-y-8">
+                    <AdminTodayPanel onOpenUser={openUserDetail} onOpenSection={(section) => setActiveSection(section as AdminSection)} />
+
                     {/* KPI Row 1 */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                         <StatCard label="Shopkeepers" value={statsSummary.users_by_role.shopkeeper || 0} icon={Users} color="bg-primary" sub={`+${statsSummary.signups_today || 0} aujourd'hui`} />
