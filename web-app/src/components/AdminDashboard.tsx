@@ -346,6 +346,7 @@ export default function AdminDashboard() {
     const [demoSessions, setDemoSessions] = useState<any[]>([]);
     const [demoSessionsTotal, setDemoSessionsTotal] = useState(0);
     const [users, setUsers] = useState<any[]>([]);
+    const [deletedUsers, setDeletedUsers] = useState<any[]>([]);
     const [stores, setStores] = useState<any[]>([]);
     const [disputes, setDisputes] = useState<any[]>([]);
     const [disputeFilter, setDisputeFilter] = useState<'all' | 'open' | 'resolved'>('all');
@@ -637,7 +638,14 @@ export default function AdminDashboard() {
 
     const loadUsers = async () => {
         setRefreshing(true);
-        try { setUsers(await adminApi.listUsers(0, 500)); }
+        try {
+            const [activeUsers, removedUsers] = await Promise.all([
+                adminApi.listUsers(0, 500),
+                adminApi.listDeletedUsers(500).catch(() => []),
+            ]);
+            setUsers(activeUsers);
+            setDeletedUsers(removedUsers);
+        }
         finally { setRefreshing(false); }
     };
 
@@ -877,6 +885,7 @@ export default function AdminDashboard() {
         try {
             await adminApi.deleteUser(confirmDeleteUser.email);
             setUsers(prev => prev.filter(u => u.user_id !== confirmDeleteUser.user_id));
+            adminApi.listDeletedUsers(500).then(setDeletedUsers).catch(() => undefined);
             showToast(`Compte "${confirmDeleteUser.name}" supprimé avec toutes ses données.`);
         } catch {
             showToast('Erreur lors de la suppression.', 'error');
@@ -925,7 +934,9 @@ export default function AdminDashboard() {
     };
 
     const filteredUsers = useMemo(() => {
-        let result = users;
+        let result = userStatusFilter === 'deleted'
+            ? deletedUsers
+            : userStatusFilter ? users : [...users, ...deletedUsers];
         if (userSearch.trim() === 'nostore_special') {
             result = result.filter(u => !u.store_ids || u.store_ids.length === 0);
         } else if (userSearch.trim()) {
@@ -959,7 +970,9 @@ export default function AdminDashboard() {
             result = result.filter(u => !getUserLastLogin(u) && !u.first_login_at);
         }
         return result;
-    }, [users, userSearch, userPlanFilter, userStatusFilter, userActivityFilter]);
+    }, [users, deletedUsers, userSearch, userPlanFilter, userStatusFilter, userActivityFilter]);
+
+    const selectableUsers = useMemo(() => filteredUsers.filter(u => !u.is_deleted), [filteredUsers]);
 
     const messageRecipientCountries = useMemo(() => {
         return Array.from(new Set(users.map(user => user.country_code).filter(Boolean))).sort();
@@ -983,7 +996,7 @@ export default function AdminDashboard() {
 
     const exportUsersCsv = () => {
         if (!filteredUsers.length) return;
-        const headers = ['user_id', 'name', 'email', 'plan', 'role', 'country_code', 'android_app_version', 'android_app_version_reported_at', 'ios_app_version', 'ios_app_version_reported_at', 'is_active', 'created_at', 'last_login_at'];
+        const headers = ['user_id', 'name', 'email', 'plan', 'role', 'country_code', 'android_app_version', 'android_app_version_reported_at', 'ios_app_version', 'ios_app_version_reported_at', 'is_active', 'created_at', 'last_login_at', 'deleted_at', 'deleted_by', 'deleted_by_admin_name'];
         const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
         const rows = filteredUsers.map(u => headers.map(h => {
             if (h === 'last_login_at') return escape(getUserLastLogin(u));
@@ -2894,7 +2907,7 @@ export default function AdminDashboard() {
                     <div className="p-5 border-b border-white/5 bg-white/5 space-y-3">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <h3 className="text-base font-black text-white uppercase tracking-tighter">
-                                Utilisateurs {refreshing ? '' : `(${filteredUsers.length} / ${users.length})`}
+                                Utilisateurs {refreshing ? '' : `(${filteredUsers.length} / ${users.length + deletedUsers.length})`}
                             </h3>
                             <div className="flex items-center gap-2">
                                 <button
@@ -2948,6 +2961,7 @@ export default function AdminDashboard() {
                                 <option value="">Tous les statuts</option>
                                 <option value="active">Actifs</option>
                                 <option value="banned">Bannis</option>
+                                <option value="deleted">Supprimés ({deletedUsers.length})</option>
                             </select>
                             <select
                                 value={userActivityFilter}
@@ -3001,8 +3015,8 @@ export default function AdminDashboard() {
                                 <tr className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5">
                                     <th className="px-6 py-4">
                                         <input type="checkbox"
-                                            checked={filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.has(u.user_id))}
-                                            onChange={() => setSelectedUserIds(filteredUsers.every(u => selectedUserIds.has(u.user_id)) ? new Set() : new Set(filteredUsers.map(u => u.user_id)))}
+                                            checked={selectableUsers.length > 0 && selectableUsers.every(u => selectedUserIds.has(u.user_id))}
+                                            onChange={() => setSelectedUserIds(selectableUsers.every(u => selectedUserIds.has(u.user_id)) ? new Set() : new Set(selectableUsers.map(u => u.user_id)))}
                                             className="h-3.5 w-3.5 rounded border-white/20 bg-slate-950 text-primary"
                                         />
                                     </th>
@@ -3013,12 +3027,56 @@ export default function AdminDashboard() {
                                     <th className="px-6 py-4">Pays</th>
                                     <th className="px-6 py-4">Version mobile</th>
                                     <th className="px-6 py-4">Dernière connexion</th>
+                                    <th className="px-6 py-4">Inscription</th>
+                                    <th className="px-6 py-4">Suppression</th>
                                     <th className="px-6 py-4">Statut</th>
                                     <th className="px-6 py-4 text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5 text-sm">
-                                {filteredUsers.map(user => (
+                                {filteredUsers.map(user => user.is_deleted ? (
+                                    <tr key={`deleted-${user.user_id}-${user.deleted_at}`} className="bg-rose-500/[0.03] text-slate-400" title="Compte supprimé : ses données ont été effacées.">
+                                        <td className="px-6 py-4" />
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-300 font-black text-xs shrink-0">
+                                                    {(user.name || user.email || '?').charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="text-slate-300 font-bold line-through decoration-rose-400/60">{user.name || '—'}</p>
+                                                    <p className="text-[10px] text-slate-500">{user.email}</p>
+                                                    {user.phone ? <p className="text-[10px] text-slate-500">{user.phone}</p> : null}
+                                                    <p className="text-[10px] text-slate-600 font-mono">{user.user_id}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {user.plan ? (
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border opacity-70 ${PLAN_COLORS[user.plan] || PLAN_COLORS.starter}`}>{user.plan}</span>
+                                            ) : <span className="text-slate-600">—</span>}
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-500">{user.stores_count ?? '—'}</td>
+                                        <td className="px-6 py-4 text-xs">
+                                            {user.was_paying
+                                                ? <span className="font-bold text-amber-300">Payant</span>
+                                                : user.plan ? <span className="text-slate-500">Essai ou gratuit</span> : <span className="text-slate-600">—</span>}
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-500 font-mono text-xs">{user.country_code || '—'}</td>
+                                        <td className="px-6 py-4 text-xs text-slate-600">—</td>
+                                        <td className="px-6 py-4 text-xs text-slate-500">{getUserLastLogin(user) ? formatAdminDate(getUserLastLogin(user)).split(' ')[0] : '—'}</td>
+                                        <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">{user.created_at ? formatAdminDate(user.created_at).split(' ')[0] : '—'}</td>
+                                        <td className="px-6 py-4 text-xs whitespace-nowrap">
+                                            <p className="font-bold text-rose-300">{formatAdminDate(user.deleted_at)}</p>
+                                            <p className="text-[10px] text-slate-500">
+                                                {user.deleted_by === 'admin' ? `Depuis l’admin${user.deleted_by_admin_name ? ` (${user.deleted_by_admin_name})` : ''}` : 'Par l’utilisateur'}
+                                            </p>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase border bg-slate-500/10 text-slate-300 border-slate-500/20">Supprimé</span>
+                                        </td>
+                                        <td className="px-6 py-4" />
+                                    </tr>
+                                ) : (
                                     <tr key={user.user_id} className={`hover:bg-white/5 transition-all group cursor-pointer ${selectedUserIds.has(user.user_id) ? 'bg-primary/5' : ''}`} onClick={(e) => { if ((e.target as HTMLElement).closest('button, input')) return; void openUserDetail(user); }}>
                                         <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                             <input type="checkbox"
@@ -3096,6 +3154,8 @@ export default function AdminDashboard() {
                                                 : <span className="text-slate-600">Jamais</span>
                                             }
                                         </td>
+                                        <td className="px-6 py-4 text-xs text-slate-400 whitespace-nowrap">{user.created_at ? formatAdminDate(user.created_at).split(' ')[0] : '—'}</td>
+                                        <td className="px-6 py-4 text-xs text-slate-600">—</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${user.is_active !== false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
                                                 {user.is_active !== false ? 'Actif' : 'Banni'}
@@ -3135,7 +3195,7 @@ export default function AdminDashboard() {
                                     </tr>
                                 ))}
                                 {filteredUsers.length === 0 && (
-                                    <tr><td colSpan={9} className="px-6 py-16 text-center text-slate-600">Aucun utilisateur trouvé</td></tr>
+                                    <tr><td colSpan={12} className="px-6 py-16 text-center text-slate-600">Aucun utilisateur trouvé</td></tr>
                                 )}
                             </tbody>
                         </table>

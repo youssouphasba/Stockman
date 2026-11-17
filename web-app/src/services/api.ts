@@ -3035,6 +3035,7 @@ export const admin = {
         return request<{ items: any[]; total: number }>(`/admin/verification-events${query ? `?${query}` : ''}`);
     },
     listUsers: (skip = 0, limit = 100) => request<any[]>(`/admin/users?skip=${skip}&limit=${limit}`),
+    listDeletedUsers: (limit = 500) => request<any[]>(`/admin/users/deleted?limit=${limit}`),
     listStores: (skip = 0, limit = 50) => request<any>(`/admin/stores?skip=${skip}&limit=${limit}`),
     getStoreOverview: (storeId: string) => request<any>(`/admin/stores/${encodeURIComponent(storeId)}/overview`),
     getStoreInventory: (storeId: string, params?: { search?: string; stock_status?: string; skip?: number; limit?: number }) => {

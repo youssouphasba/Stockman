@@ -93,6 +93,7 @@ import platform_modules
 import admin_ops
 import admin_access
 import trial_extension
+import deleted_accounts
 import ai_health
 import fiscal_ledger
 from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
@@ -7603,16 +7604,22 @@ async def admin_set_plan_all(plan: str, role: str = "shopkeeper", admin: User = 
 
 @api_router.delete("/admin/users", dependencies=[Depends(audit_admin_request)])
 async def admin_delete_user(email: str, admin: User = Depends(require_superadmin)):
-    """Supprime un compte et toutes ses donnÃ©es â€” SUPERADMIN ONLY. Pour nettoyer les comptes de test."""
+    """Supprime un compte et toutes ses données (superadmin uniquement)."""
     target = await db.users.find_one({"email": email})
     if not target:
-        raise HTTPException(status_code=404, detail=f"Aucun user trouvÃ© avec l'email : {email}")
+        raise HTTPException(status_code=404, detail=f"Aucun utilisateur trouvé avec l’e-mail : {email}")
     if target.get("role") == "superadmin":
         raise HTTPException(status_code=403, detail="Impossible de supprimer un superadmin.")
 
     owner_id = target["user_id"]
+    archived_account = await db.business_accounts.find_one(
+        {"$or": [{"owner_user_id": owner_id}, {"account_id": target.get("account_id") or owner_id}]}, {"_id": 0}
+    )
+    await deleted_accounts.archive_deleted_account(
+        db, target, archived_account, deleted_accounts.ORIGIN_ADMIN, {"user_id": admin.user_id, "name": admin.name},
+    )
 
-    # Cascade delete : toutes les collections liÃ©es Ã  ce compte
+    # Suppression en cascade : toutes les collections liées à ce compte
     collections = [
         "products", "sales", "customers", "expenses", "batches", "stock_movements",
         "alerts", "alert_rules", "suppliers", "supplier_products", "orders",
@@ -8812,6 +8819,12 @@ async def admin_list_users(skip: int = 0, limit: int = 100, user: User = Depends
         if not user_doc.get("first_login_at") and user_doc.get("last_login_at"):
             user_doc["first_login_at"] = user_doc["last_login_at"]
     return users
+
+@admin_router.get("/users/deleted")
+async def admin_list_deleted_users(limit: int = 500, user: User = Depends(require_admin_access)):
+    """Comptes supprimés (par l'utilisateur ou depuis l'admin), du plus récent au plus ancien."""
+    return await deleted_accounts.list_deleted_accounts(db, limit)
+
 
 @admin_router.get("/users/{user_id}/detail")
 async def admin_user_detail(user_id: str, admin: User = Depends(require_admin_access)):
@@ -35631,24 +35644,18 @@ async def delete_account(
     if current_session_id:
         await revoke_session(current_session_id, "account_deleted")
 
-    # ARCHIVE BEFORE DELETION (Retention Policy)
-    archive_data = {
-        "original_user_id": user.user_id,
-        "email": user.email,
-        "name": user.name,
-        "role": user.role,
-        "deleted_at": datetime.now(timezone.utc),
-        "reason": "Suppression par l'utilisateur (Droit Ã  l'oubli)",
-        # We could add more info here if needed
-    }
-    await db.deleted_users_archive.insert_one(archive_data)
+    # Trace courte du compte supprimé, visible dans la liste Utilisateurs de l'admin.
+    archived_account = await db.business_accounts.find_one(
+        {"$or": [{"owner_user_id": owner_id}, {"account_id": user.account_id}]}, {"_id": 0}
+    ) if user.role in ["shopkeeper", "superadmin", "admin"] else None
+    await deleted_accounts.archive_deleted_account(db, user_doc, archived_account, deleted_accounts.ORIGIN_SELF)
 
     # If user is a staff member, just delete the user entry and sessions
     if user.role not in ["shopkeeper", "superadmin", "admin"]:
          await db.user_sessions.delete_many({"user_id": user.user_id})
          await db.users.delete_one({"user_id": user.user_id})
          await db.credentials.delete_one({"user_id": user.user_id})
-         return {"message": "Compte employÃ© et sessions supprimÃ©s."}
+         return {"message": "Compte employé et sessions supprimés."}
 
     # If user is owner, CASCADE DELETE EVERYTHING
     # Collections to clean based on user_id or owner_id
@@ -35689,7 +35696,7 @@ async def delete_account(
     response.delete_cookie(key="session_token", path="/", samesite=cookie_settings["samesite"], secure=cookie_settings["secure"])
     response.delete_cookie(key="refresh_token", path="/", samesite=cookie_settings["samesite"], secure=cookie_settings["secure"])
 
-    return {"message": "Compte et donnÃ©es supprimÃ©s dÃ©finitivement. Au revoir."}
+    return {"message": "Compte et données supprimés définitivement. Au revoir."}
 
 # ===================== PAYMENT ROUTES =====================
 from services.payment import (
