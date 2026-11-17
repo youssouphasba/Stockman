@@ -99,7 +99,7 @@
             "f1": "1 Utente",
             "f2": "1 Negozio",
             "f3": "Accesso completo a tutte le funzionalità",
-            "f4": "3 mesi di prova gratuita",
+            "f4": "Prova gratuita inclusa",
             "cta": "Inizia"
         },
         "business": {
@@ -108,8 +108,8 @@
             "f2": "2 Negozi",
             "f3": "Accesso completo a tutte le funzionalità",
             "f4": "Marketplace Bouton-à-Bouton",
-            "f5": "3 mesi di prova gratuita",
-            "cta": "Prova gratuita 14 giorni"
+            "f5": "Prova gratuita inclusa",
+            "cta": "Prova gratuita"
         },
         "enterprise": {
             "name": "Enterprise",
@@ -544,7 +544,7 @@
             "q1": "Come cambio la mia password?",
             "a1": "Vai su Impostazioni > Sicurezza > Cambia password.",
             "q2": "Come funziona la prova gratuita?",
-            "a2": "Ottieni automaticamente 14 giorni di prova gratuita con tutte le funzionalità sbloccate al momento della registrazione."
+            "a2": "Ottieni automaticamente una prova gratuita con tutte le funzionalità sbloccate al momento della registrazione. La sua durata è indicata durante la registrazione. Nessuna carta di credito richiesta."
         },
         "technical_support": {
             "title": "Supporto tecnico",

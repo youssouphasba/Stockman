@@ -99,7 +99,7 @@
             "f1": "1 Benutzer",
             "f2": "1 Geschäft",
             "f3": "Vollzugriff auf alle Funktionen",
-            "f4": "3 Monate kostenlose Testversion",
+            "f4": "Kostenlose Testphase inklusive",
             "cta": "Starten"
         },
         "business": {
@@ -108,8 +108,8 @@
             "f2": "2 Geschäfte",
             "f3": "Vollzugriff auf alle Funktionen",
             "f4": "Marketplace Bouton-à-Bouton",
-            "f5": "3-monatige kostenlose Testversion",
-            "cta": "14 Tage kostenlos testen"
+            "f5": "Kostenlose Testphase inklusive",
+            "cta": "Kostenlos testen"
         },
         "enterprise": {
             "name": "Enterprise",
@@ -544,7 +544,7 @@
             "q1": "Wie ändere ich mein Passwort?",
             "a1": "Gehen Sie zu Einstellungen > Sicherheit > Passwort ändern.",
             "q2": "Wie funktioniert die kostenlose Testversion?",
-            "a2": "Sie erhalten automatisch eine 14-tägige kostenlose Testversion mit allen freigeschalteten Funktionen bei der Registrierung."
+            "a2": "Sie erhalten bei der Registrierung automatisch eine kostenlose Testphase mit allen freigeschalteten Funktionen. Ihre Dauer wird bei der Registrierung angezeigt. Keine Kreditkarte erforderlich."
         },
         "technical_support": {
             "title": "Technischer Support",

@@ -99,7 +99,7 @@
             "f1": "1 Utilizador",
             "f2": "1 Loja",
             "f3": "Acesso completo a todas as funcionalidades",
-            "f4": "3 meses de teste gratuito",
+            "f4": "Teste gratuito incluído",
             "cta": "Start"
         },
         "business": {
@@ -108,8 +108,8 @@
             "f2": "2 Lojas",
             "f3": "Acesso completo a todas as funcionalidades",
             "f4": "Marketplace Bouton-à-Bouton",
-            "f5": "3 meses de teste gratuito",
-            "cta": "14-Day Free Trial"
+            "f5": "Teste gratuito incluído",
+            "cta": "Teste gratuito"
         },
         "enterprise": {
             "name": "Enterprise",
@@ -544,7 +544,7 @@
             "q1": "Como mudar a minha palavra-passe?",
             "a1": "Vá a Definições > Segurança > Alterar palavra-passe.",
             "q2": "Como funciona o teste gratuito?",
-            "a2": "Recebe automaticamente 14 dias de teste gratuito com todas as funcionalidades desbloqueadas ao registar-se."
+            "a2": "Recebe automaticamente um teste gratuito com todas as funcionalidades desbloqueadas ao registar-se. A sua duração é indicada no momento do registo. Não é pedido cartão bancário."
         },
         "technical_support": {
             "title": "Suporte Técnico",

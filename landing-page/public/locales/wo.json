@@ -99,8 +99,8 @@
             "f1": "1 Jëfandikukat",
             "f2": "1 Bitik",
             "f3": "Yéeg dëkk bi yépp",
-            "f4": "3 weer nguir jaare bu am solo",
-            "cta": "1 Mois Gratuit"
+            "f4": "Essai gratuit inclus",
+            "cta": "Essai gratuit"
         },
         "business": {
             "name": "Pro",
@@ -108,8 +108,8 @@
             "f2": "2 Bitik",
             "f3": "Yéeg dëkk bi yépp",
             "f4": "Marketplace Bouton-à-Bouton",
-            "f5": "3 weer nguir jaare bu am solo",
-            "cta": "1 Mois Gratuit"
+            "f5": "Essai gratuit inclus",
+            "cta": "Essai gratuit"
         },
         "enterprise": {
             "name": "Enterprise",
@@ -544,7 +544,7 @@
             "q1": "Naka laay soppé kod bi?",
             "a1": "Démal ci Paramètres > Sécurité > Changer mot de passe.",
             "q2": "Naka la natt feyeer bi di doxé?",
-            "a2": "Dina nu la jox 14 bës yu feyeer ak bépp xarala yu bees boo sosee sa sët."
+            "a2": "Vous bénéficiez automatiquement d'un essai gratuit avec toutes les fonctionnalités débloquées dès l'inscription. Sa durée est indiquée au moment de l'inscription. Aucune carte bancaire n'est demandée."
         },
         "technical_support": {
             "title": "Ndimal xarala",

@@ -99,8 +99,8 @@
             "f1": "1 Utilizator",
             "f2": "1 Magazin",
             "f3": "Acces complet la toate funcțiile",
-            "f4": "1 lună de probă gratuită",
-            "cta": "1 Mois Gratuit"
+            "f4": "Perioadă de probă gratuită inclusă",
+            "cta": "Probă gratuită"
         },
         "business": {
             "name": "Pro",
@@ -108,8 +108,8 @@
             "f2": "2 Magazine",
             "f3": "Acces complet la toate funcțiile",
             "f4": "Marketplace Bouton-à-Bouton",
-            "f5": "1 lună de probă gratuită",
-            "cta": "1 Mois Gratuit"
+            "f5": "Perioadă de probă gratuită inclusă",
+            "cta": "Probă gratuită"
         },
         "enterprise": {
             "name": "Enterprise",
@@ -544,7 +544,7 @@
             "q1": "Cum îmi schimb parola?",
             "a1": "Mergeți la Setări > Securitate > Schimbă parola.",
             "q2": "Cum funcționează perioada de probă gratuită?",
-            "a2": "Primiți automat 14 zile de probă gratuită cu toate funcționalitățile deblocate la înregistrare."
+            "a2": "Primiți automat o perioadă de probă gratuită cu toate funcționalitățile deblocate la înregistrare. Durata ei este afișată la înregistrare. Nu se cere card bancar."
         },
         "technical_support": {
             "title": "Suport tehnic",

@@ -369,7 +369,7 @@ export default function SignupModal({ plan, onClose }: Props) {
             <div className="signup-success-icon">🎉</div>
             <h2>Compte créé !</h2>
             <p>
-              Votre essai gratuit de <strong>1 mois</strong> démarre maintenant.
+              Votre essai gratuit de <strong>{trialLabel}</strong> démarre maintenant.
               Téléchargez l'application et connectez-vous avec votre email et mot de passe.
             </p>
 

@@ -99,7 +99,7 @@
             "f1": "1 Kullanıcı",
             "f2": "1 Mağaza",
             "f3": "Tüm özelliklere tam erişim",
-            "f4": "1 aylık ücretsiz deneme",
+            "f4": "Ücretsiz deneme dahil",
             "cta": "Başlat"
         },
         "business": {
@@ -108,8 +108,8 @@
             "f2": "2 Mağaza",
             "f3": "Tüm özelliklere tam erişim",
             "f4": "Marketplace Bouton-à-Bouton",
-            "f5": "1 aylık ücretsiz deneme",
-            "cta": "14 Günlük Ücretsiz Deneme"
+            "f5": "Ücretsiz deneme dahil",
+            "cta": "Ücretsiz deneme"
         },
         "enterprise": {
             "name": "Kurumsal",
@@ -544,7 +544,7 @@
             "q1": "Şifremi nasıl değiştiririm?",
             "a1": "Ayarlar > Güvenlik > Şifreyi Değiştir'e gidin.",
             "q2": "Ücretsiz deneme nasıl çalışır?",
-            "a2": "Kayıt olduktan sonra tüm özellikler açık şekilde otomatik olarak 14 günlük ücretsiz deneme süresi kazanırsınız."
+            "a2": "Kayıt olduğunuzda tüm özellikler açık şekilde otomatik olarak ücretsiz deneme süresi kazanırsınız. Sürenin uzunluğu kayıt sırasında gösterilir. Banka kartı istenmez."
         },
         "technical_support": {
             "title": "Teknik Destek",

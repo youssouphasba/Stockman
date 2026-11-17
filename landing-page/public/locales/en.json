@@ -102,7 +102,7 @@
     },
     "pricing": {
         "title": "Choose your plan",
-        "subtitle": "3-month free trial on all plans. No commitment.",
+        "subtitle": "Free trial on all plans. No commitment.",
         "month": "/month",
         "popular": "Popular",
         "starter": {
@@ -110,8 +110,8 @@
             "f1": "1 User",
             "f2": "1 Store",
             "f3": "Full access to all features",
-            "f4": "3-month free trial",
-            "cta": "1 Month Free"
+            "f4": "Free trial included",
+            "cta": "Free trial"
         },
         "business": {
             "name": "Pro",
@@ -119,8 +119,8 @@
             "f2": "2 Stores",
             "f3": "Full access to all features",
             "f4": "Button-to-Button Marketplace",
-            "f5": "3-month free trial",
-            "cta": "1 Month Free"
+            "f5": "Free trial included",
+            "cta": "Free trial"
         },
         "enterprise": {
             "name": "Enterprise",
@@ -591,7 +591,7 @@
             "q1": "How do I change my password?",
             "a1": "Go to Settings > Security > Change Password.",
             "q2": "How does the free trial work?",
-            "a2": "You automatically get a 14-day free trial with all features unlocked upon registration."
+            "a2": "You automatically get a free trial with all features unlocked as soon as you sign up. Its length is shown when you sign up. No credit card is required."
         },
         "technical_support": {
             "title": "Technical Support",

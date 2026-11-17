@@ -99,8 +99,8 @@
             "f1": "1 Użytkownik",
             "f2": "1 Sklep",
             "f3": "Pełny dostęp do wszystkich funkcji",
-            "f4": "3-miesięczny bezpłatny okres próbny",
-            "cta": "1 Mois Gratuit"
+            "f4": "Bezpłatny okres próbny w cenie",
+            "cta": "Bezpłatny okres próbny"
         },
         "business": {
             "name": "Pro",
@@ -108,8 +108,8 @@
             "f2": "2 Sklepy",
             "f3": "Pełny dostęp do wszystkich funkcji",
             "f4": "Marketplace Bouton-à-Bouton",
-            "f5": "3-miesięczny bezpłatny okres próbny",
-            "cta": "1 Mois Gratuit"
+            "f5": "Bezpłatny okres próbny w cenie",
+            "cta": "Bezpłatny okres próbny"
         },
         "enterprise": {
             "name": "Enterprise",
@@ -544,7 +544,7 @@
             "q1": "Jak zmienić hasło?",
             "a1": "Przejdź do Ustawienia > Bezpieczeństwo > Zmień hasło.",
             "q2": "Jak działa darmowy okres próbny?",
-            "a2": "Przy rejestracji automatycznie otrzymujesz 14-dniowy darmowy okres próbny ze wszystkimi odblokowanymi funkcjami."
+            "a2": "Przy rejestracji automatycznie otrzymujesz bezpłatny okres próbny ze wszystkimi odblokowanymi funkcjami. Jego długość jest podana podczas rejestracji. Karta płatnicza nie jest wymagana."
         },
         "technical_support": {
             "title": "Wsparcie techniczne",
