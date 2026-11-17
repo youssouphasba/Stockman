@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Bot, CheckCircle2, ChevronLeft, ChevronRight, Copy, Download, Edit3, GitMerge, Layers3, PackagePlus, RefreshCw, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
+import AdminCatalogUsage from './AdminCatalogUsage';
+import AdminMarketplaceAdoption from './AdminMarketplaceAdoption';
 import { BUSINESS_SECTORS, getBusinessSectorLabel } from '../../data/businessSectors';
 
 type ToastType = 'success' | 'error';
@@ -270,7 +272,37 @@ function loadBatchImportCheckpoint(): BatchImportCheckpoint | null {
     }
 }
 
-export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
+export default function AdminCatalogPanel(props: Props) {
+    const [tab, setTab] = useState<'entries' | 'usage' | 'coverage' | 'marketplace'>('entries');
+    const tabs: [typeof tab, string][] = [
+        ['entries', 'Fiches'],
+        ['usage', 'Usage et prix'],
+        ['coverage', 'Couverture'],
+        ['marketplace', 'Catalogues fournisseurs'],
+    ];
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-wrap gap-2">
+                {tabs.map(([key, label]) => (
+                    <button
+                        key={key}
+                        type="button"
+                        onClick={() => setTab(key)}
+                        className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest border ${tab === key ? 'border-primary/30 bg-primary/15 text-primary' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+            {tab === 'entries' ? <AdminCatalogEntries {...props} /> : null}
+            {tab === 'usage' || tab === 'coverage' ? <AdminCatalogUsage view={tab} refreshToken={props.refreshToken} showToast={props.showToast} /> : null}
+            {tab === 'marketplace' ? <AdminMarketplaceAdoption refreshToken={props.refreshToken} /> : null}
+        </div>
+    );
+}
+
+// Sous-onglet Fiches : création, correction et publication des fiches du catalogue global.
+function AdminCatalogEntries({ refreshToken, showToast }: Props) {
     const [items, setItems] = useState<CatalogEntry[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [assistant, setAssistant] = useState<any>(null);
@@ -386,7 +418,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
         },
     ) => {
         if (!rows.length) {
-            showToast('Ajoute au moins une ligne valide.', 'error');
+            showToast('Ajoutez au moins une ligne valide.', 'error');
             return;
         }
 
@@ -431,7 +463,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
             }
             resetBatchImportState();
         } catch (error: any) {
-            showToast(error?.message || "L'import a été interrompu. Tu peux le reprendre depuis l'état sauvegardé.", 'error');
+            showToast(error?.message || "L'import a été interrompu. Vous pouvez le reprendre depuis l'état sauvegardé.", 'error');
             setBatchSubmitting(false);
             setBatchResumeAvailable(true);
         } finally {
@@ -588,7 +620,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
         const rows = batchRows.length ? batchRows : manualRows;
 
         if (!rows.length) {
-            showToast('Ajoute au moins une ligne valide.', 'error');
+            showToast('Ajoutez au moins une ligne valide.', 'error');
             return;
         }
         await runBatchImport(rows, { fileName: batchFileName, batchText });
@@ -617,7 +649,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
     const createVariants = async () => {
         const values = inputToList(variantValues);
         if (!variantBaseName.trim() || !values.length) {
-            showToast('Ajoute un nom de base et des variantes.', 'error');
+            showToast('Ajoutez un nom de base et des variantes.', 'error');
             return;
         }
 
@@ -648,7 +680,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
 
     const applyBulkEdit = async () => {
         if (!selectedEntries.length) {
-            showToast('Sélectionne au moins un produit.', 'error');
+            showToast('Sélectionnez au moins un produit.', 'error');
             return;
         }
 
@@ -659,7 +691,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
         if (bulkEdit.supplier_hint.trim()) updates.supplier_hint = bulkEdit.supplier_hint.trim();
 
         if (!Object.keys(updates).length) {
-            showToast('Choisis au moins une modification.', 'error');
+            showToast('Choisissez au moins une modification.', 'error');
             return;
         }
 
@@ -822,7 +854,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 className="text-xl font-black text-white">Catalogue global par secteur</h2>
-                        <p className="text-sm text-slate-300">Création en lot reprenable, duplication, workflow de publication, édition massive et assistant catalogue.</p>
+                        <p className="text-sm text-slate-300">Créez, dupliquez, corrigez et publiez les fiches proposées aux commerçants, seules ou en lot.</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
                         <button type="button" onClick={() => void openCreate()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 font-bold text-white">
@@ -866,7 +898,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                             Assistant catalogue
                         </div>
                         <p className="mt-2 text-sm text-slate-300">
-                            Préremplis rapidement ta fiche produit avec un modèle, puis affine avec les suggestions de catégorie, d'unité, de rapprochement marketplace et de doublons.
+                            Préremplissez une fiche avec un modèle, puis affinez-la avec les suggestions de catégorie, d'unité, de rapprochement marketplace et de doublons.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                             {TEMPLATES.map((template) => (
@@ -893,8 +925,8 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
 
                     <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
                         <div className="flex items-center justify-between">
-                            <div className="text-sm font-black text-white">Vue d'orchestration</div>
-                            <div className="text-xs text-slate-500">Clique pour filtrer</div>
+                            <div className="text-sm font-black text-white">Fiches à compléter</div>
+                            <div className="text-xs text-slate-500">Cliquez pour filtrer</div>
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
                             <button type="button" onClick={() => setFilters((f) => ({ ...f, assistant_bucket: 'missing_image' }))} className="rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-rose-500/30 hover:bg-rose-500/5">
@@ -1146,7 +1178,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-2xl font-black text-white">{editingEntry ? 'Modifier le produit catalogue' : 'Nouveau produit catalogue'}</h3>
-                                <p className="mt-1 text-sm text-slate-200">L'IA propose des pistes, mais c'est toi qui valides les catégories, unités et rapprochements.</p>
+                                <p className="mt-1 text-sm text-slate-200">L'IA propose des pistes, mais c'est vous qui validez les catégories, unités et rapprochements.</p>
                             </div>
                             <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>
@@ -1225,7 +1257,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                             <h3 className="text-xl font-black text-white">Fusionner {selectedEntries.length} produits</h3>
                             <button type="button" onClick={() => setMergeModalOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>
-                        <p className="mt-2 text-sm text-slate-200">Choisis le produit à conserver. Les autres seront supprimés et leurs données fusionnées dedans.</p>
+                        <p className="mt-2 text-sm text-slate-200">Choisissez la fiche à conserver. Les autres seront supprimées et leurs données fusionnées dans celle-ci.</p>
                         <div className="mt-4 space-y-2">
                             {selectedEntries.map((entry) => (
                                 <label
@@ -1263,7 +1295,7 @@ export default function AdminCatalogPanel({ refreshToken, showToast }: Props) {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-2xl font-black text-white">Création en lot</h3>
-                                <p className="mt-1 text-sm text-slate-200">Tu peux soit coller des lignes rapides, soit importer un vrai CSV admin avec en-tête. L'import garde maintenant sa progression pour pouvoir reprendre après fermeture.</p>
+                                <p className="mt-1 text-sm text-slate-200">Collez des lignes rapides ou importez un fichier CSV avec en-tête. L'import garde sa progression : vous pouvez le reprendre après avoir fermé la fenêtre.</p>
                             </div>
                             <button type="button" onClick={() => setBatchOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
                         </div>

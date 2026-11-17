@@ -1786,7 +1786,21 @@
     "validate_in": "Eingang bestätigen",
     "validate_out": "Ausgang bestätigen",
     "variant_name_placeholder": "Name der Variante (z.B. XL, Rot...)",
-    "variants": "Varianten"
+    "variants": "Varianten",
+    "catalog_picker": {
+      "title": "Aus dem Katalog wählen",
+      "subtitle": "Markieren Sie nur die Produkte, die Sie verkaufen. Ohne Ihre Auswahl wird nichts hinzugefügt.",
+      "search_placeholder": "Produkt oder Barcode suchen",
+      "count": "{{count}} Produkte verfügbar",
+      "select_visible": "Alle auswählen",
+      "unselect_visible": "Auswahl aufheben",
+      "already_in_store": "Bereits in Ihrem Geschäft",
+      "empty": "Keine Produkte für Ihre Branche verfügbar.",
+      "load_error": "Der Katalog konnte nicht geladen werden.",
+      "hint": "Produkte werden mit Bestand und Preisen von null hinzugefügt: Ergänzen Sie sie danach.",
+      "submit": "{{count}} Produkte hinzufügen",
+      "after_import": "Denken Sie daran, Preise und Bestand einzutragen."
+    }
   },
   "reminders": {
     "birthdays_desc": "Notification for upcoming customer birthdays",

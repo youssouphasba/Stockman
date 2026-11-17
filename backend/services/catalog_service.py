@@ -24,6 +24,12 @@ from constants.sectors import BUSINESS_SECTORS, normalize_sector
 logger = logging.getLogger(__name__)
 
 
+# Fiches proposées aux commerçants : publiées ou vérifiées par l'équipe Stockman.
+# Les fiches remontées automatiquement depuis les imports des commerçants restent
+# en attente de relecture et ne sont jamais proposées telles quelles.
+MERCHANT_VISIBLE_FILTER: Dict[str, Any] = {"$or": [{"publication_status": "published"}, {"verified": True}]}
+
+
 class CatalogService:
     def __init__(self, db):
         self.db = db
@@ -150,19 +156,27 @@ class CatalogService:
     ) -> Dict[str, Any]:
         """Retourne les produits du catalogue triés par popularité."""
         sector = normalize_sector(sector)
-        query: Dict[str, Any] = {"sector": sector}
+        query: Dict[str, Any] = {"sector": sector, **MERCHANT_VISIBLE_FILTER}
+        query["$and"] = []
 
         if country_code:
-            query["country_codes"] = country_code
+            # Une fiche sans pays renseigné vaut pour tous les pays.
+            query["$and"].append({"$or": [
+                {"country_codes": country_code},
+                {"country_codes": {"$size": 0}},
+                {"country_codes": {"$exists": False}},
+            ]})
 
         if search and search.strip():
             import re
             safe = re.escape(search.strip())
-            query["$or"] = [
+            query["$and"].append({"$or": [
                 {"display_name": {"$regex": safe, "$options": "i"}},
                 {"aliases": {"$regex": safe, "$options": "i"}},
                 {"barcodes": search.strip()},
-            ]
+            ]})
+        if not query["$and"]:
+            del query["$and"]
 
         total = await self.db.global_catalog.count_documents(query)
         cursor = self.db.global_catalog.find(
@@ -191,6 +205,7 @@ class CatalogService:
     async def get_sectors_with_counts(self) -> List[Dict[str, Any]]:
         """Retourne la liste des secteurs avec le nombre de produits dans chacun."""
         pipeline = [
+            {"$match": MERCHANT_VISIBLE_FILTER},
             {"$group": {"_id": "$sector", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
         ]
@@ -224,7 +239,7 @@ class CatalogService:
             return {"imported": 0}
 
         catalog_products = await self.db.global_catalog.find(
-            {"catalog_id": {"$in": catalog_ids}}, {"_id": 0}
+            {"catalog_id": {"$in": catalog_ids}, **MERCHANT_VISIBLE_FILTER}, {"_id": 0}
         ).to_list(len(catalog_ids))
 
         candidate_names = list({
@@ -299,6 +314,8 @@ class CatalogService:
                 "min_stock": 0,
                 "image_url": cp.get("image_url"),
                 "is_active": True,
+                # Lien vers la fiche du catalogue global : mesure l'usage du catalogue dans l'admin.
+                "global_catalog_id": cp.get("catalog_id"),
                 "created_at": now,
                 "updated_at": now,
             })
@@ -321,11 +338,15 @@ class CatalogService:
         user_id: str,
         store_id: str,
     ) -> Dict[str, Any]:
-        """Importe TOUS les produits d'un secteur/pays dans le compte."""
+        """Importe tous les produits proposés d'un secteur/pays (anciennes versions de l'application)."""
         sector = normalize_sector(sector)
-        query: Dict[str, Any] = {"sector": sector}
+        query: Dict[str, Any] = {"sector": sector, **MERCHANT_VISIBLE_FILTER}
         if country_code:
-            query["country_codes"] = country_code
+            query["$and"] = [{"$or": [
+                {"country_codes": country_code},
+                {"country_codes": {"$size": 0}},
+                {"country_codes": {"$exists": False}},
+            ]}]
 
         catalog_products = await self.db.global_catalog.find(
             query, {"catalog_id": 1, "_id": 0}

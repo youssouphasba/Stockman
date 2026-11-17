@@ -1786,7 +1786,21 @@
     "validate_in": "确认入库",
     "validate_out": "确认出库",
     "variant_name_placeholder": "变体名称 (例如：XL, 红色...)",
-    "variants": "变体"
+    "variants": "变体",
+    "catalog_picker": {
+      "title": "从目录中选择",
+      "subtitle": "只勾选您销售的商品。未经您选择不会添加任何商品。",
+      "search_placeholder": "搜索商品或条形码",
+      "count": "可选商品 {{count}} 个",
+      "select_visible": "全选",
+      "unselect_visible": "取消全选",
+      "already_in_store": "已在您的店铺中",
+      "empty": "暂无适合您业务的商品。",
+      "load_error": "无法加载目录。",
+      "hint": "商品添加后库存和价格为零：请稍后补充。",
+      "submit": "添加 {{count}} 个商品",
+      "after_import": "请记得填写价格和库存。"
+    }
   },
   "reminders": {
     "birthdays_desc": "Notification for upcoming customer birthdays",

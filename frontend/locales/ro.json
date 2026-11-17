@@ -1786,7 +1786,21 @@
     "validate_in": "Validate entry",
     "validate_out": "Validate exit",
     "variant_name_placeholder": "Variant name (e.g., XL, Red...)",
-    "variants": "Variantes"
+    "variants": "Variantes",
+    "catalog_picker": {
+      "title": "Alege din catalog",
+      "subtitle": "Bifați doar produsele pe care le vindeți. Nimic nu se adaugă fără alegerea dvs.",
+      "search_placeholder": "Căutați un produs sau un cod de bare",
+      "count": "{{count}} produse disponibile",
+      "select_visible": "Bifează tot",
+      "unselect_visible": "Debifează tot",
+      "already_in_store": "Deja în magazinul dvs.",
+      "empty": "Niciun produs disponibil pentru activitatea dvs.",
+      "load_error": "Catalogul nu a putut fi încărcat.",
+      "hint": "Produsele se adaugă cu stoc și prețuri zero: completați-le apoi.",
+      "submit": "Adaugă {{count}} produse",
+      "after_import": "Nu uitați să completați prețurile și stocul."
+    }
   },
   "reminders": {
     "birthdays_desc": "Notification for upcoming customer birthdays",

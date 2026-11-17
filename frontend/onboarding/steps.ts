@@ -159,8 +159,8 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     id: 'other_catalog', chapter: 'products', kind: 'info', host: 'root', target: 'products.menu.catalog', route: 'products', optional: true,
-    title: 'Import catalogue',
-    body: 'Partez du catalogue de votre secteur : il ne reste qu’à compléter les prix et les quantités.',
+    title: 'Ajouter depuis le catalogue',
+    body: 'Cochez dans le catalogue de votre secteur les produits que vous vendez : il ne reste qu’à compléter leurs prix et leurs quantités.',
   },
   {
     id: 'tab_pos', chapter: 'pos', kind: 'tap', host: 'root', target: 'tab.pos',

@@ -28,6 +28,7 @@ import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import CatalogPickerModal from '../../components/CatalogPickerModal';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasPlatformModule } from '../../utils/access';
@@ -811,6 +812,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
 
   // Global Catalog states
   const [catalogLoading, setCatalogLoading] = useState(false);
+  const [showCatalogPicker, setShowCatalogPicker] = useState(false);
   const [showTextImportModal, setShowTextImportModal] = useState(false);
   // Défilement du formulaire produit : le guide de démarrage y amène chaque champ à l'écran.
   const productFormScrollRef = useRef<ScrollView>(null);
@@ -1277,17 +1279,18 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
       else Alert.alert(t('common.info'), msg);
       return;
     }
+    // Le commerçant choisit les produits : rien n'est ajouté automatiquement.
+    setShowCatalogPicker(true);
+  };
+
+  const handleCatalogImported = async (count: number) => {
+    setShowCatalogPicker(false);
+    const msg = `${t('products.catalog_import_success', { count })}\n${t('products.catalog_picker.after_import')}`;
+    if (Platform.OS === 'web') window.alert(msg);
+    else Alert.alert(t('common.success'), msg);
     setCatalogLoading(true);
     try {
-      const result = await catalogApi.importAll(userSector);
-      const msg = t('products.catalog_import_success', { count: result.imported });
-      if (Platform.OS === 'web') window.alert(msg);
-      else Alert.alert(t('common.success'), msg);
       await loadData();
-    } catch (error: any) {
-      const errMsg = error.message || t('products.catalog_import_error');
-      if (Platform.OS === 'web') window.alert(errMsg);
-      else Alert.alert(t('common.error'), errMsg);
     } finally {
       setCatalogLoading(false);
     }
@@ -5977,6 +5980,15 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
               )}
             </TouchableOpacity>
       </KeyboardAwareModal>
+
+      {showCatalogPicker && userSector ? (
+        <CatalogPickerModal
+          sector={userSector}
+          countryCode={user?.country_code || undefined}
+          onClose={() => setShowCatalogPicker(false)}
+          onImported={(count) => void handleCatalogImported(count)}
+        />
+      ) : null}
 
       {/* Scanner Modal */}
       < BarcodeScanner

@@ -1786,7 +1786,21 @@
     "validate_in": "Validar entrada",
     "validate_out": "Validar saída",
     "variant_name_placeholder": "Last Namee da variante (ex: XL, Vermelho...)",
-    "variants": "Variantes"
+    "variants": "Variantes",
+    "catalog_picker": {
+      "title": "Escolher no catálogo",
+      "subtitle": "Marque apenas os produtos que vende. Nada é adicionado sem a sua escolha.",
+      "search_placeholder": "Pesquisar um produto ou código de barras",
+      "count": "{{count}} produtos disponíveis",
+      "select_visible": "Marcar tudo",
+      "unselect_visible": "Desmarcar tudo",
+      "already_in_store": "Já está na sua loja",
+      "empty": "Nenhum produto disponível para a sua atividade.",
+      "load_error": "Não foi possível carregar o catálogo.",
+      "hint": "Os produtos são adicionados com stock e preços a zero: complete-os depois.",
+      "submit": "Adicionar {{count}} produtos",
+      "after_import": "Lembre-se de indicar os preços e o stock."
+    }
   },
   "reminders": {
     "birthdays_desc": "Notification for upcoming customer birthdays",

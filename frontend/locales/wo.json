@@ -1788,7 +1788,25 @@
     "validate_in": "Validate entry",
     "validate_out": "Validate exit",
     "variant_name_placeholder": "Tur variante (Misaal: XL, Xonk...)",
-    "variants": "Variantes"
+    "variants": "Variantes",
+    "catalog_picker": {
+      "title": "Choisir dans le catalogue",
+      "subtitle": "Cochez seulement les produits que vous vendez. Rien n’est ajouté sans votre choix.",
+      "search_placeholder": "Rechercher un produit ou un code-barres",
+      "count": "{{count}} produits proposés",
+      "count_one": "{{count}} produit proposé",
+      "count_other": "{{count}} produits proposés",
+      "select_visible": "Tout cocher",
+      "unselect_visible": "Tout décocher",
+      "already_in_store": "Déjà dans votre boutique",
+      "empty": "Aucun produit proposé pour votre activité.",
+      "load_error": "Impossible de charger le catalogue.",
+      "hint": "Les produits sont ajoutés avec un stock et des prix à zéro : complétez-les ensuite.",
+      "submit": "Ajouter {{count}} produits",
+      "submit_one": "Ajouter {{count}} produit",
+      "submit_other": "Ajouter {{count}} produits",
+      "after_import": "Pensez à renseigner leurs prix et leur stock."
+    }
   },
   "reminders": {
     "birthdays_desc": "Fattaliku X fan laata",

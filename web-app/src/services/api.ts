@@ -2142,9 +2142,10 @@ export const production = {
 
 export const catalog = {
     getSectors: () => request<any[]>('/catalog/sectors'),
-    browse: (params: { sector?: string; search?: string; skip?: number; limit?: number }) => {
+    browse: (params: { sector?: string; country?: string; search?: string; skip?: number; limit?: number }) => {
         const qs = new URLSearchParams();
         if (params.sector) qs.set('sector', params.sector);
+        if (params.country) qs.set('country', params.country);
         if (params.search) qs.set('search', params.search);
         qs.set('skip', (params.skip || 0).toString());
         qs.set('limit', (params.limit || 50).toString());
@@ -3141,7 +3142,15 @@ export const admin = {
     setAccountModules: (userId: string, modules: Record<string, boolean | null>) => request<any>(`/admin/users/${userId}/modules`, { method: 'PUT', body: { modules } }),
     setFeatureFlags: (userId: string, flags: Record<string, boolean>) => request<any>(`/admin/users/${userId}/feature-flags`, { method: 'PUT', body: { flags } }),
     setCustomLimits: (userId: string, limits: Record<string, number>) => request<any>(`/admin/users/${userId}/custom-limits`, { method: 'PUT', body: { limits } }),
-    toggleProduct: (id: string) => request<any>(`/admin/products/${id}/toggle`, { method: 'PUT' }),
+    toggleProduct: (id: string, reason?: string) => request<any>(`/admin/products/${id}/toggle`, { method: 'PUT', body: reason ? { reason } : {} }),
+    getProductsInsights: (params: { country?: string; sector?: string; refresh?: boolean } = {}) => {
+        const query = new URLSearchParams();
+        if (params.country) query.set('country', params.country);
+        if (params.sector) query.set('sector', params.sector);
+        if (params.refresh) query.set('refresh', 'true');
+        return request<any>(`/admin/products/insights?${query.toString()}`);
+    },
+    getCatalogUsage: (refresh = false) => request<any>(`/admin/catalog/usage${refresh ? '?refresh=true' : ''}`),
     deleteProduct: (id: string) => request<any>(`/admin/products/${id}`, { method: 'DELETE' }),
     listTickets: (status?: string) => request<any[]>(`/admin/support/tickets${status ? `?status=${status}` : ''}`),
     replyTicket: (id: string, content: string) => request<any>(`/admin/support/tickets/${id}/reply`, { method: 'POST', body: { content } }),

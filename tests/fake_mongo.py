@@ -54,6 +54,9 @@ def _matches_condition(value, condition):
                     return False
             elif op == "$options":
                 continue
+            elif op == "$size":
+                if not isinstance(value, list) or len(value) != expected:
+                    return False
             elif op == "$ne":
                 if value is not _MISSING and value == expected:
                     return False
@@ -147,6 +150,10 @@ class FakeCursor:
         self._docs.sort(key=lambda doc: doc.get(key), reverse=direction < 0)
         return self
 
+    def skip(self, count):
+        self._docs = self._docs[count:]
+        return self
+
     def limit(self, count):
         self._docs = self._docs[:count]
         return self
@@ -186,6 +193,11 @@ class FakeCollection:
         self._check_unique(doc)
         self.docs.append(doc)
         return SimpleNamespace(inserted_id=doc.get("_id"))
+
+    async def insert_many(self, docs, ordered=True):
+        for doc in docs:
+            await self.insert_one(doc)
+        return SimpleNamespace(inserted_ids=[doc.get("_id") for doc in docs])
 
     async def count_documents(self, query):
         return sum(1 for doc in self.docs if matches(doc, query))

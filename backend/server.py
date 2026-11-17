@@ -95,6 +95,7 @@ import admin_access
 import trial_extension
 import deleted_accounts
 import admin_store_analytics
+import admin_product_insights
 import ai_health
 import fiscal_ledger
 from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
@@ -9261,7 +9262,8 @@ async def admin_list_all_products(
     limit: int = 50,
     user: User = Depends(require_admin_access),
 ):
-    query = {}
+    # Pas de produits des comptes de démonstration.
+    query = await admin_non_demo_filter("user_id")
     if category_id:
         query["category_id"] = category_id
     if min_stock is not None:
@@ -9353,6 +9355,7 @@ async def admin_list_all_products(
                     "phone": 1,
                     "business_type": 1,
                     "account_id": 1,
+                    "currency": 1,
                 },
             ).to_list(len(owner_ids))
             for owner_doc in owner_docs:
@@ -9378,6 +9381,7 @@ async def admin_list_all_products(
                 BUSINESS_SECTORS.get("autre", {}),
             ).get("label", "Autre")
             p["account_id"] = owner_doc.get("account_id")
+            p["currency"] = owner_doc.get("currency")
             enriched_products.append(p)
     except Exception as e:
         logger.error(f"Error enriching products: {e}")
@@ -9385,14 +9389,133 @@ async def admin_list_all_products(
         enriched_products = products
 
     total = await db.products.count_documents(query)
-    return {"items": enriched_products, "total": total}
+    # Compteurs sur tous les produits filtrés, pas seulement sur la page.
+    summary = {
+        "total": total,
+        "active": await db.products.count_documents({**query, "is_active": {"$ne": False}}) if "is_active" not in query else (total if query["is_active"] else 0),
+        "low_stock": await db.products.count_documents({**query, "$expr": {"$and": [
+            {"$gt": [{"$ifNull": ["$min_stock", 0]}, 0]},
+            {"$gt": [{"$ifNull": ["$quantity", 0]}, 0]},
+            {"$lte": [{"$ifNull": ["$quantity", 0]}, {"$ifNull": ["$min_stock", 0]}]},
+        ]}}),
+        "out_of_stock": await db.products.count_documents({**query, "quantity": {"$lte": 0}}) if "quantity" not in query else None,
+    }
+    summary["inactive"] = max(total - summary["active"], 0)
+    return {"items": enriched_products, "total": total, "summary": summary}
+
+
+class AdminProductToggleRequest(BaseModel):
+    reason: Optional[str] = Field(default=None, max_length=300)
+
+
+_ADMIN_INSIGHTS_CACHE: Dict[str, Any] = {}
+_ADMIN_INSIGHTS_TTL_SECONDS = 300
+
+
+async def _admin_products_dataset(force: bool = False) -> Dict[str, Any]:
+    """Produits actifs et commerçants (hors démo), gardés 5 minutes pour les analyses de l'admin."""
+    cached = _ADMIN_INSIGHTS_CACHE.get("dataset")
+    now_ts = datetime.now(timezone.utc).timestamp()
+    if cached and not force and now_ts - cached["at"] < _ADMIN_INSIGHTS_TTL_SECONDS:
+        return cached
+    owner_query = {**ADMIN_NON_DEMO_FILTER, "parent_user_id": {"$in": [None, ""]}, "role": {"$nin": ["superadmin", "admin", "staff"]}}
+    owners = {
+        doc["user_id"]: {**doc, "sector": normalize_sector(doc.get("business_type") or "")}
+        for doc in await db.users.find(
+            owner_query,
+            {"_id": 0, "user_id": 1, "name": 1, "email": 1, "country_code": 1, "currency": 1, "business_type": 1},
+        ).to_list(None)
+        if doc.get("user_id")
+    }
+    products = await db.products.find(
+        {"user_id": {"$in": list(owners)}, "is_active": {"$ne": False}},
+        {"_id": 0, "product_id": 1, "user_id": 1, "store_id": 1, "name": 1, "barcode": 1, "sku": 1, "category": 1,
+         "category_id": 1, "unit": 1, "selling_price": 1, "purchase_price": 1, "quantity": 1, "global_catalog_id": 1},
+    ).to_list(300000)
+    dataset = {"at": now_ts, "owners": owners, "products": products, "computed_at": datetime.now(timezone.utc).isoformat()}
+    _ADMIN_INSIGHTS_CACHE["dataset"] = dataset
+    return dataset
+
+
+async def _admin_catalog_entries() -> Dict[str, Any]:
+    from services.catalog_service import MERCHANT_VISIBLE_FILTER
+    entries = await db.global_catalog.find(
+        {},
+        {"_id": 0, "catalog_id": 1, "display_name": 1, "canonical_name": 1, "barcodes": 1, "sector": 1, "category": 1,
+         "country_codes": 1, "reference_price": 1, "sale_price": 1},
+    ).to_list(20000)
+    visible_ids = set(await db.global_catalog.distinct("catalog_id", MERCHANT_VISIBLE_FILTER))
+    return {"entries": entries, "visible_ids": visible_ids}
+
+
+def _filter_owners(owners: Dict[str, dict], country: Optional[str], sector: Optional[str]) -> Dict[str, dict]:
+    sector_key = normalize_sector(sector) if sector else None
+    return {
+        user_id: owner for user_id, owner in owners.items()
+        if (not country or owner.get("country_code") == country) and (not sector_key or owner.get("sector") == sector_key)
+    }
+
+
+@admin_router.get("/products/insights")
+async def admin_products_insights(country: Optional[str] = None, sector: Optional[str] = None, refresh: bool = False):
+    """Qualité des fiches, produits les plus vendus sur 30 jours et produits à ajouter au catalogue."""
+    dataset = await _admin_products_dataset(force=refresh)
+    owners = _filter_owners(dataset["owners"], country, sector)
+    products = [p for p in dataset["products"] if p.get("user_id") in owners]
+    since = datetime.now(timezone.utc) - timedelta(days=30)
+    sold_rows = await db.sales.aggregate([
+        {"$match": apply_completed_sales_scope({"user_id": {"$in": list(owners)}, "created_at": {"$gte": since}})},
+        {"$unwind": "$items"},
+        {"$group": {
+            "_id": {"user": "$user_id", "store": "$store_id", "name": {"$toLower": "$items.product_name"}},
+            "quantity": {"$sum": "$items.quantity"},
+            "sales": {"$sum": 1},
+        }},
+    ]).to_list(None)
+    catalog = await _admin_catalog_entries()
+    index = admin_product_insights.build_catalog_index(catalog["entries"], catalog["visible_ids"])
+    countries = sorted({o.get("country_code") for o in dataset["owners"].values() if o.get("country_code")})
+    return {
+        "computed_at": dataset["computed_at"],
+        "countries": countries,
+        "sectors": [{"key": key, "label": info.get("label", key)} for key, info in BUSINESS_SECTORS.items()],
+        "quality": admin_product_insights.quality_report(products, owners),
+        "top_sold": admin_product_insights.top_sold(sold_rows, owners),
+        "candidates": admin_product_insights.catalog_candidates(products, owners, index),
+    }
+
+
+@admin_router.get("/catalog/usage")
+async def admin_catalog_usage(refresh: bool = False):
+    """Usage de chaque fiche du catalogue, prix observés chez les commerçants et couverture secteur × pays."""
+    dataset = await _admin_products_dataset(force=refresh)
+    catalog = await _admin_catalog_entries()
+    since = datetime.now(timezone.utc) - timedelta(days=30)
+    sold = {
+        row["_id"]: row
+        for row in await db.sales.aggregate([
+            {"$match": apply_completed_sales_scope({"user_id": {"$in": list(dataset["owners"])}, "created_at": {"$gte": since}})},
+            {"$unwind": "$items"},
+            {"$group": {"_id": "$items.product_id", "quantity": {"$sum": "$items.quantity"}}},
+        ]).to_list(None)
+        if row.get("_id")
+    }
+    usage = admin_product_insights.catalog_usage(catalog["entries"], catalog["visible_ids"], dataset["products"], dataset["owners"], sold)
+    coverage = admin_product_insights.coverage_matrix(
+        catalog["entries"], catalog["visible_ids"], dataset["owners"],
+        {key: info.get("label", key) for key, info in BUSINESS_SECTORS.items()},
+    )
+    return {"computed_at": dataset["computed_at"], **usage, "coverage": coverage}
+
 
 @admin_router.delete("/products/{product_id}")
 async def admin_delete_product(product_id: str, user: User = Depends(require_admin_access)):
-    """Permanently delete any product (Superadmin only)"""
+    """Suppression définitive d'un produit de commerçant : superadmin uniquement, réservé aux cas exceptionnels."""
+    if user.role != "superadmin":
+        raise HTTPException(status_code=403, detail="Seul le superadmin peut supprimer un produit de commerçant.")
     result = await db.products.delete_one({"product_id": product_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     # Log the action
     await log_activity(
@@ -9404,24 +9527,32 @@ async def admin_delete_product(product_id: str, user: User = Depends(require_adm
     return {"message": "Produit supprimÃ© par l'administrateur"}
 
 @admin_router.put("/products/{product_id}/toggle")
-async def admin_toggle_product(product_id: str, user: User = Depends(require_admin_access)):
-    """Activate/Deactivate any product (Superadmin only)"""
+async def admin_toggle_product(
+    product_id: str,
+    data: Optional[AdminProductToggleRequest] = None,
+    user: User = Depends(require_admin_access),
+):
+    """Retire un produit de la vente ou l'y remet : superadmin uniquement, avec un motif pour le retrait."""
+    if user.role != "superadmin":
+        raise HTTPException(status_code=403, detail="Seul le superadmin peut retirer un produit de commerçant de la vente.")
     product = await db.products.find_one({"product_id": product_id})
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     new_status = not product.get("is_active", True)
-    await db.products.update_one(
-        {"product_id": product_id},
-        {"$set": {"is_active": new_status, "updated_at": datetime.now(timezone.utc)}}
-    )
+    reason = ((data.reason if data else None) or "").strip()
+    if not new_status and not reason:
+        raise HTTPException(status_code=400, detail="Indiquez le motif du retrait de la vente.")
+    updates: Dict[str, Any] = {"is_active": new_status, "updated_at": datetime.now(timezone.utc)}
+    if not new_status:
+        updates["admin_deactivation"] = {"reason": reason, "by": user.user_id, "at": datetime.now(timezone.utc)}
+    await db.products.update_one({"product_id": product_id}, {"$set": updates})
 
-    # Log the action
     await log_activity(
         user_id=user.user_id,
         module="admin",
         action="toggle_product",
-        details={"product_id": product_id, "is_active": new_status}
+        details={"product_id": product_id, "is_active": new_status, "reason": reason or None}
     )
     return {"product_id": product_id, "is_active": new_status}
 
@@ -16643,8 +16774,29 @@ async def browse_catalog(
     limit: int = 100,
     user: User = Depends(require_auth),
 ):
-    """Parcourir le catalogue global par secteur et pays."""
-    return await catalog_service.browse(sector, country, search, skip, limit)
+    """Parcourir le catalogue global par secteur et pays.
+
+    Chaque fiche indique si la boutique active l'a déjà (lien de catalogue, nom ou code-barres),
+    pour que le commerçant choisisse seulement ce qui lui manque.
+    """
+    result = await catalog_service.browse(sector, country, search, skip, max(1, min(int(limit or 100), 200)))
+    products = result.get("products") or []
+    if products and user.active_store_id:
+        owned = await db.products.find(
+            {"user_id": get_owner_id(user), "store_id": user.active_store_id, "is_active": {"$ne": False}},
+            {"_id": 0, "name": 1, "barcode": 1, "sku": 1, "global_catalog_id": 1},
+        ).to_list(None)
+        owned_ids = {p.get("global_catalog_id") for p in owned if p.get("global_catalog_id")}
+        owned_names = {str(p.get("name") or "").strip().casefold() for p in owned}
+        owned_codes = {str(v).strip() for p in owned for v in (p.get("barcode"), p.get("sku")) if str(v or "").strip()}
+        for product in products:
+            codes = {str(code).strip() for code in (product.get("barcodes") or []) if str(code or "").strip()}
+            product["in_store"] = bool(
+                product.get("catalog_id") in owned_ids
+                or str(product.get("display_name") or "").strip().casefold() in owned_names
+                or codes & owned_codes
+            )
+    return result
 
 
 class CatalogImportRequest(BaseModel):

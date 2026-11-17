@@ -2299,5 +2299,19 @@
     "whatsapp_invite_prompt": "Erişim bilgilerini WhatsApp ile göndermek istiyor musunuz?",
     "whatsapp_invite_send": "Gönder",
     "whatsapp_not_installed": "WhatsApp bu cihazda yüklü değil."
+  },
+  "catalog_picker": {
+    "title": "Katalogdan seç",
+    "subtitle": "Yalnızca sattığınız ürünleri işaretleyin. Seçiminiz olmadan hiçbir şey eklenmez.",
+    "search_placeholder": "Ürün veya barkod ara",
+    "count": "{{count}} ürün mevcut",
+    "select_visible": "Tümünü seç",
+    "unselect_visible": "Seçimi kaldır",
+    "already_in_store": "Mağazanızda zaten var",
+    "empty": "İşletmeniz için ürün yok.",
+    "load_error": "Katalog yüklenemedi.",
+    "hint": "Ürünler sıfır stok ve sıfır fiyatla eklenir: sonra tamamlayın.",
+    "submit": "{{count}} ürün ekle",
+    "after_import": "Fiyatlarını ve stoklarını girmeyi unutmayın."
   }
 }

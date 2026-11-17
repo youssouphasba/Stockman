@@ -1786,7 +1786,21 @@
     "validate_in": "Validate entry",
     "validate_out": "Validate exit",
     "variant_name_placeholder": "Variant name (e.g., XL, Red...)",
-    "variants": "Variantes"
+    "variants": "Variantes",
+    "catalog_picker": {
+      "title": "Wybierz z katalogu",
+      "subtitle": "Zaznacz tylko produkty, które sprzedajesz. Nic nie zostanie dodane bez Twojego wyboru.",
+      "search_placeholder": "Szukaj produktu lub kodu kreskowego",
+      "count": "Dostępne produkty: {{count}}",
+      "select_visible": "Zaznacz wszystko",
+      "unselect_visible": "Odznacz wszystko",
+      "already_in_store": "Już w Twoim sklepie",
+      "empty": "Brak produktów dla Twojej działalności.",
+      "load_error": "Nie udało się wczytać katalogu.",
+      "hint": "Produkty są dodawane z zerowym stanem i cenami: uzupełnij je później.",
+      "submit": "Dodaj produkty ({{count}})",
+      "after_import": "Pamiętaj, aby uzupełnić ceny i stan."
+    }
   },
   "reminders": {
     "birthdays_desc": "Powiadomienie o nadchodzących urodzinach klientów",

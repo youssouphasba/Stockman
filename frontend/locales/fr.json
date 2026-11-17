@@ -3008,7 +3008,7 @@
     "batch_scan": "Scan en lot",
     "import_csv": "Import CSV",
     "text_import": "Import texte",
-    "import_catalog": "Import catalogue secteur",
+    "import_catalog": "Ajouter depuis le catalogue",
     "export_pdf": "Export PDF inventaire",
     "supplier": "Fournisseur",
     "no_supplier": "Aucun",
@@ -3051,7 +3051,25 @@
     "location_label": "Emplacement",
     "location_module_description": "Organisez vos allées, zones, niveaux et étagères, puis affectez vos produits au bon emplacement.",
     "location_module_title": "Gérer les emplacements",
-    "no_location": "Sans emplacement"
+    "no_location": "Sans emplacement",
+    "catalog_picker": {
+      "title": "Choisir dans le catalogue",
+      "subtitle": "Cochez seulement les produits que vous vendez. Rien n’est ajouté sans votre choix.",
+      "search_placeholder": "Rechercher un produit ou un code-barres",
+      "count": "{{count}} produits proposés",
+      "count_one": "{{count}} produit proposé",
+      "count_other": "{{count}} produits proposés",
+      "select_visible": "Tout cocher",
+      "unselect_visible": "Tout décocher",
+      "already_in_store": "Déjà dans votre boutique",
+      "empty": "Aucun produit proposé pour votre activité.",
+      "load_error": "Impossible de charger le catalogue.",
+      "hint": "Les produits sont ajoutés avec un stock et des prix à zéro : complétez-les ensuite.",
+      "submit": "Ajouter {{count}} produits",
+      "submit_one": "Ajouter {{count}} produit",
+      "submit_other": "Ajouter {{count}} produits",
+      "after_import": "Pensez à renseigner leurs prix et leur stock."
+    }
   },
   "reminders": {
     "birthdays_desc": "Notification pour les anniversaires",

@@ -2711,7 +2711,7 @@
     "batch_scan": "Batch scan",
     "import_csv": "CSV Import",
     "text_import": "Text import",
-    "import_catalog": "Sector catalog import",
+    "import_catalog": "Add from the catalog",
     "export_pdf": "Export inventory PDF",
     "location_label": "Location",
     "location_help": "Assign this product to an aisle, zone, level, shelf, or any other storage reference.",
@@ -2719,7 +2719,25 @@
     "location_module_title": "Manage locations",
     "location_module_description": "Organize aisles, zones, levels and shelves, then assign each product to the right storage reference.",
     "supplier": "Supplier",
-    "no_supplier": "None"
+    "no_supplier": "None",
+    "catalog_picker": {
+      "title": "Pick from the catalog",
+      "subtitle": "Tick only the products you sell. Nothing is added unless you choose it.",
+      "search_placeholder": "Search a product or a barcode",
+      "count": "{{count}} products available",
+      "count_one": "{{count}} product available",
+      "count_other": "{{count}} products available",
+      "select_visible": "Select all",
+      "unselect_visible": "Clear selection",
+      "already_in_store": "Already in your store",
+      "empty": "No products available for your business.",
+      "load_error": "Unable to load the catalog.",
+      "hint": "Products are added with zero stock and zero prices: complete them afterwards.",
+      "submit": "Add {{count}} products",
+      "submit_one": "Add {{count}} product",
+      "submit_other": "Add {{count}} products",
+      "after_import": "Remember to set their prices and stock."
+    }
   },
   "reminders": {
     "birthdays_desc": "Notification for upcoming customer birthdays",

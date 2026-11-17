@@ -1786,7 +1786,21 @@
     "validate_in": "Подтвердить приход",
     "validate_out": "Подтвердить расход",
     "variant_name_placeholder": "Название варианта (напр.: XL, Красный...)",
-    "variants": "Варианты"
+    "variants": "Варианты",
+    "catalog_picker": {
+      "title": "Выбрать из каталога",
+      "subtitle": "Отметьте только товары, которые вы продаёте. Без вашего выбора ничего не добавляется.",
+      "search_placeholder": "Найти товар или штрихкод",
+      "count": "Доступно товаров: {{count}}",
+      "select_visible": "Выбрать все",
+      "unselect_visible": "Снять выбор",
+      "already_in_store": "Уже есть в вашем магазине",
+      "empty": "Для вашей деятельности нет товаров.",
+      "load_error": "Не удалось загрузить каталог.",
+      "hint": "Товары добавляются с нулевым остатком и ценами: заполните их позже.",
+      "submit": "Добавить товары ({{count}})",
+      "after_import": "Не забудьте указать цены и остатки."
+    }
   },
   "reminders": {
     "birthdays_desc": "Notification for upcoming customer birthdays",

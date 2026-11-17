@@ -39,7 +39,6 @@ import {
     supplierProducts as supplierProductsApi,
     ai as aiApi,
     auth,
-    catalog as catalogApi,
     locations as locationsApi,
     stores as storesApi,
     stock as stockApi,
@@ -52,6 +51,7 @@ import {
     UserFeatures,
 } from '../services/api';
 import Modal from './Modal';
+import CatalogPickerModal from './CatalogPickerModal';
 import BulkImportModal from './BulkImportModal';
 import TextImportModal from './TextImportModal';
 import ProductHistoryModal from './ProductHistoryModal';
@@ -178,6 +178,7 @@ export default function Inventory() {
     }, []);
     const deleteJobNotificationRef = useRef<string | null>(null);
     const [catalogImportLoading, setCatalogImportLoading] = useState(false);
+    const [isCatalogPickerOpen, setIsCatalogPickerOpen] = useState(false);
     const [stockHealth, setStockHealth] = useState<AnalyticsStockHealth | null>(null);
     const [stockHealthLoading, setStockHealthLoading] = useState(true);
     const [pendingInventorySummary, setPendingInventorySummary] = useState(() => getPendingInventorySummary());
@@ -771,14 +772,17 @@ export default function Inventory() {
             return;
         }
         setShowCreateMenu(false);
+        // Le commerçant choisit les produits : rien n'est ajouté automatiquement.
+        setIsCatalogPickerOpen(true);
+    };
+
+    const handleCatalogImported = async (count: number) => {
+        setIsCatalogPickerOpen(false);
+        alert(`${t('catalog_picker.imported', { count, defaultValue: '{{count}} produit(s) ajouté(s) depuis le catalogue.' })} ${t('catalog_picker.after_import', { defaultValue: 'Pensez à renseigner leurs prix et leur stock.' })}`);
         setCatalogImportLoading(true);
         try {
-            const result = await catalogApi.importAll(sector, currentUser.country_code);
-            alert(`${result.imported || 0} produits ont ete importes pour ${currentFeatures?.sector_label || sector}.`);
             await fetchProducts();
             await loadStockHealth();
-        } catch (err: any) {
-            alert(err.message || "Erreur lors de l'import du catalogue métier");
         } finally {
             setCatalogImportLoading(false);
         }
@@ -1849,6 +1853,16 @@ export default function Inventory() {
     return (
         <div className="flex-1 p-4 md:p-8 overflow-y-auto">
             <ScreenGuide steps={inventorySteps} guideKey="inventory_tour" />
+            {currentFeatures?.sector ? (
+                <CatalogPickerModal
+                    isOpen={isCatalogPickerOpen}
+                    sector={currentFeatures.sector}
+                    sectorLabel={currentFeatures?.sector_label}
+                    countryCode={currentUser?.country_code}
+                    onClose={() => setIsCatalogPickerOpen(false)}
+                    onImported={(count) => void handleCatalogImported(count)}
+                />
+            ) : null}
             <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8 md:mb-10">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{t('common.stock')}</h1>
@@ -2005,11 +2019,11 @@ export default function Inventory() {
                                     <Layers size={16} className="text-amber-400" />
                                     <div>
                                         <p className="font-bold">
-                                            {catalogImportLoading
-                                                ? 'Import du catalogue?'
-                                            : `Importer le catalogue ${currentFeatures?.sector_label || 'du metier'}`}
+                                            {t('catalog_picker.menu_title', { defaultValue: 'Ajouter depuis le catalogue' })}
                                         </p>
-                                        <p className="text-xs theme-text-muted">Précharge un catalogue adapté à ton type d'activité.</p>
+                                        <p className="text-xs theme-text-muted">
+                                            {t('catalog_picker.menu_subtitle', { defaultValue: 'Choisissez les produits de votre activité à ajouter.' })}
+                                        </p>
                                     </div>
                                 </button>
                             </div>

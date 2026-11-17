@@ -1,8 +1,9 @@
 ﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, RefreshCw, ShieldCheck, ShieldOff, Store, Trash2 } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCw, ShieldCheck, ShieldOff, Store } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
+import AdminProductInsights from './AdminProductInsights';
 import { BUSINESS_SECTORS, getBusinessSectorLabel } from '../../data/businessSectors';
 
 type ToastType = 'success' | 'error';
@@ -10,13 +11,20 @@ type ToastType = 'success' | 'error';
 type AdminProductsPanelProps = {
     refreshToken: number;
     showToast: (message: string, type?: ToastType) => void;
+    isSuperadmin?: boolean;
+    onOpenOwner?: (owner: { user_id: string; name?: string; email?: string }) => void;
 };
+
+const PAGE_SIZE = 50;
 
 type AdminProduct = {
     product_id: string;
     name: string;
     category?: string | null;
     quantity?: number | null;
+    min_stock?: number | null;
+    currency?: string | null;
+    owner_user_id?: string | null;
     selling_price?: number | null;
     store_id?: string | null;
     store_name?: string | null;
@@ -53,9 +61,17 @@ const DEFAULT_FILTERS: ProductFilters = {
     min_stock: '',
 };
 
-function formatMoney(value?: number | null) {
+function formatMoney(value?: number | null, currency?: string | null) {
     if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
-    return `${Number(value).toLocaleString('fr-FR')} F`;
+    if (!Number(value)) return 'Non renseigné';
+    const suffix = currency === 'XOF' || currency === 'XAF' ? 'FCFA' : currency === 'EUR' ? '€' : currency || '';
+    return `${Number(value).toLocaleString('fr-FR', { maximumFractionDigits: currency === 'EUR' ? 2 : 0 })} ${suffix}`.trim();
+}
+
+function isBelowThreshold(product: { quantity?: number | null; min_stock?: number | null }) {
+    const quantity = Number(product.quantity || 0);
+    const threshold = Number(product.min_stock || 0);
+    return quantity <= 0 || (threshold > 0 && quantity <= threshold);
 }
 
 function formatDate(value?: string | null) {
@@ -71,14 +87,16 @@ function formatDate(value?: string | null) {
     });
 }
 
-export default function AdminProductsPanel({ refreshToken, showToast }: AdminProductsPanelProps) {
+export default function AdminProductsPanel({ refreshToken, showToast, isSuperadmin = false, onOpenOwner }: AdminProductsPanelProps) {
+    const [view, setView] = useState<'analysis' | 'list'>('analysis');
+    const [page, setPage] = useState(0);
+    const [summary, setSummary] = useState<{ active: number; inactive: number; low_stock: number; out_of_stock: number | null } | null>(null);
     const [stores, setStores] = useState<AdminStoreOption[]>([]);
     const [products, setProducts] = useState<AdminProduct[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
-    const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
     const [draftFilters, setDraftFilters] = useState<ProductFilters>(DEFAULT_FILTERS);
     const [filters, setFilters] = useState<ProductFilters>(DEFAULT_FILTERS);
 
@@ -103,8 +121,9 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
             business_sector?: string;
             is_active?: boolean;
             min_stock?: number;
+            skip: number;
             limit: number;
-        } = { limit: 200 };
+        } = { skip: page * PAGE_SIZE, limit: PAGE_SIZE };
 
         if (nextFilters.search.trim()) params.search = nextFilters.search.trim();
         if (nextFilters.store_id) params.store_id = nextFilters.store_id;
@@ -119,13 +138,16 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
         const response = await adminApi.listAllProducts(params);
         setProducts(Array.isArray(response?.items) ? response.items : []);
         setTotal(Number(response?.total || 0));
+        setSummary(response?.summary || null);
     };
 
     useEffect(() => {
-        void loadStores();
-    }, []);
+        if (view === 'list' && !stores.length) void loadStores();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [view]);
 
     useEffect(() => {
+        if (view !== 'list') return;
         let cancelled = false;
 
         const run = async () => {
@@ -149,14 +171,16 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
         return () => {
             cancelled = true;
         };
-    }, [filters, refreshToken]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters, refreshToken, page, view]);
 
-    const stats = useMemo(() => {
-        const activeCount = products.filter((product) => product.is_active !== false).length;
-        const inactiveCount = products.length - activeCount;
-        const lowStockCount = products.filter((product) => Number(product.quantity || 0) <= 5).length;
-        return { activeCount, inactiveCount, lowStockCount };
-    }, [products]);
+    const stats = useMemo(() => ({
+        activeCount: summary?.active ?? 0,
+        inactiveCount: summary?.inactive ?? 0,
+        lowStockCount: summary?.low_stock ?? 0,
+        outOfStockCount: summary?.out_of_stock ?? null,
+    }), [summary]);
+    const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
     const handleRefresh = async () => {
         try {
@@ -170,9 +194,20 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
     };
 
     const handleToggle = async (product: AdminProduct) => {
+        const deactivating = product.is_active !== false;
+        let reason: string | undefined;
+        if (deactivating) {
+            const input = window.prompt(`Motif du retrait de la vente de « ${product.name} » (enregistré dans le journal admin) :`, '');
+            if (input === null) return;
+            reason = input.trim();
+            if (!reason) {
+                showToast('Indiquez un motif pour retirer ce produit de la vente.', 'error');
+                return;
+            }
+        }
         setTogglingProductId(product.product_id);
         try {
-            const response = await adminApi.toggleProduct(product.product_id);
+            const response = await adminApi.toggleProduct(product.product_id, reason);
             setProducts((current) =>
                 current.map((item) =>
                     item.product_id === product.product_id
@@ -185,46 +220,57 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                     ? 'Produit retiré de la vente.'
                     : 'Produit remis en vente.',
             );
-        } catch {
-            showToast("Impossible de modifier l'état du produit.", 'error');
+        } catch (error: any) {
+            showToast(error?.message || "Impossible de modifier l'état du produit.", 'error');
         } finally {
             setTogglingProductId(null);
         }
     };
 
-    const handleDelete = async (product: AdminProduct) => {
-        const confirmed = window.confirm(`Supprimer définitivement "${product.name}" ?`);
-        if (!confirmed) return;
-        setDeletingProductId(product.product_id);
-        try {
-            await adminApi.deleteProduct(product.product_id);
-            setProducts((current) => current.filter((item) => item.product_id !== product.product_id));
-            setTotal((current) => Math.max(0, current - 1));
-            showToast('Produit supprimé.');
-        } catch {
-            showToast("Impossible de supprimer ce produit.", 'error');
-        } finally {
-            setDeletingProductId(null);
-        }
-    };
-
     const submitFilters = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setPage(0);
         setFilters(draftFilters);
     };
 
     const resetFilters = () => {
         setDraftFilters(DEFAULT_FILTERS);
+        setPage(0);
         setFilters(DEFAULT_FILTERS);
     };
 
+    const tabs = (
+        <div className="flex gap-2">
+            {([['analysis', 'Analyse'], ['list', 'Liste des produits']] as const).map(([key, label]) => (
+                <button
+                    key={key}
+                    type="button"
+                    onClick={() => setView(key)}
+                    className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest border ${view === key ? 'border-primary/30 bg-primary/15 text-primary' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}
+                >
+                    {label}
+                </button>
+            ))}
+        </div>
+    );
+
+    if (view === 'analysis') {
+        return (
+            <div className="space-y-6">
+                {tabs}
+                <AdminProductInsights refreshToken={refreshToken} showToast={showToast} onOpenOwner={onOpenOwner} />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
+            {tabs}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="glass-card p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Produits remontés</div>
-                    <div className="text-3xl font-black text-white">{total}</div>
-                    <div className="text-sm text-slate-300 mt-2">Produits visibles avec les filtres actifs.</div>
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Produits</div>
+                    <div className="text-3xl font-black text-white">{total.toLocaleString('fr-FR')}</div>
+                    <div className="text-sm text-slate-300 mt-2">Avec les filtres actifs, démonstrations exclues.</div>
                 </div>
                 <div className="glass-card p-5">
                     <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">En vente</div>
@@ -237,9 +283,11 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                     <div className="text-sm text-slate-300 mt-2">Produits retirés de la vente.</div>
                 </div>
                 <div className="glass-card p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Stock faible</div>
-                    <div className="text-3xl font-black text-rose-400">{stats.lowStockCount}</div>
-                    <div className="text-sm text-slate-300 mt-2">Quantité inférieure ou égale à 5.</div>
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Stock bas ou rupture</div>
+                    <div className="text-3xl font-black text-rose-400">{stats.lowStockCount + (stats.outOfStockCount || 0)}</div>
+                    <div className="text-sm text-slate-300 mt-2">
+                        {stats.outOfStockCount !== null ? `${stats.outOfStockCount} en rupture · ` : ''}{stats.lowStockCount} sous le seuil fixé par le commerçant.
+                    </div>
                 </div>
             </div>
 
@@ -248,7 +296,9 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                     <div>
                         <h2 className="text-xl font-black text-white">Produits en vente</h2>
                         <p className="text-sm text-slate-300">
-                            Filtrer par boutique et par type de business, puis retirer ou remettre un produit en vente.
+                            {isSuperadmin
+                                ? 'Filtrer par boutique et par secteur. Le retrait de la vente demande un motif, enregistré dans le journal admin.'
+                                : 'Filtrer par boutique et par secteur. Seul le superadmin peut retirer un produit de la vente.'}
                         </p>
                     </div>
                     <button
@@ -351,7 +401,7 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                             </thead>
                             <tbody>
                                 {products.map((product) => {
-                                    const isLowStock = Number(product.quantity || 0) <= 5;
+                                    const isLowStock = isBelowThreshold(product);
                                     const isActive = product.is_active !== false;
                                     return (
                                         <tr key={product.product_id} className="border-b border-white/5 align-top">
@@ -369,9 +419,14 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                                                     <Store size={15} className="text-slate-500" />
                                                     {product.store_name || 'Boutique inconnue'}
                                                 </div>
-                                                <div className="text-sm text-slate-300 mt-1">
+                                                <button
+                                                    type="button"
+                                                    disabled={!onOpenOwner || !product.owner_user_id}
+                                                    onClick={() => product.owner_user_id && onOpenOwner?.({ user_id: product.owner_user_id, name: product.owner_info?.name || undefined, email: product.owner_info?.email || undefined })}
+                                                    className="block text-left text-sm text-slate-300 mt-1 hover:underline disabled:no-underline"
+                                                >
                                                     {product.owner_info?.name || 'Inconnu'}
-                                                </div>
+                                                </button>
                                                 <div className="text-xs text-slate-500">
                                                     {product.owner_info?.email || 'N/A'}
                                                 </div>
@@ -391,12 +446,12 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                                                 {isLowStock && (
                                                     <div className="inline-flex items-center gap-1 text-xs text-rose-300 mt-1">
                                                         <AlertTriangle size={12} />
-                                                        Stock faible
+                                                        {Number(product.quantity || 0) <= 0 ? 'Rupture' : `Seuil : ${Number(product.min_stock || 0).toLocaleString('fr-FR')}`}
                                                     </div>
                                                 )}
                                             </td>
                                             <td className="py-4 pr-4 text-white font-medium">
-                                                {formatMoney(product.selling_price)}
+                                                {formatMoney(product.selling_price, product.currency)}
                                             </td>
                                             <td className="py-4 pr-4">
                                                 <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${isActive ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border-amber-500/20'}`}>
@@ -405,7 +460,7 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                                                 </span>
                                             </td>
                                             <td className="py-4">
-                                                <div className="flex flex-wrap gap-2">
+                                                {isSuperadmin ? (
                                                     <button
                                                         type="button"
                                                         onClick={() => void handleToggle(product)}
@@ -415,22 +470,28 @@ export default function AdminProductsPanel({ refreshToken, showToast }: AdminPro
                                                         {isActive ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
                                                         {togglingProductId === product.product_id ? 'Mise à jour…' : isActive ? 'Retirer' : 'Remettre'}
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => void handleDelete(product)}
-                                                        disabled={deletingProductId === product.product_id}
-                                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm font-semibold hover:bg-rose-500/15 disabled:opacity-50"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                        {deletingProductId === product.product_id ? 'Suppression…' : 'Supprimer'}
-                                                    </button>
-                                                </div>
+                                                ) : <span className="text-xs text-slate-600">—</span>}
                                             </td>
                                         </tr>
                                     );
                                 })}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {total > PAGE_SIZE && (
+                    <div className="mt-4 flex items-center justify-between gap-3 text-xs text-slate-400">
+                        <span>{(page * PAGE_SIZE + 1).toLocaleString('fr-FR')}–{Math.min((page + 1) * PAGE_SIZE, total).toLocaleString('fr-FR')} sur {total.toLocaleString('fr-FR')}</span>
+                        <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0 || loading} className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10 disabled:opacity-40">
+                                <ChevronLeft size={13} /> Précédent
+                            </button>
+                            <span>Page {page + 1} / {pageCount}</span>
+                            <button type="button" onClick={() => setPage(p => Math.min(pageCount - 1, p + 1))} disabled={page >= pageCount - 1 || loading} className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10 disabled:opacity-40">
+                                Suivant <ChevronRight size={13} />
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

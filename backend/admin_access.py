@@ -33,7 +33,7 @@ SCOPES: Dict[str, Dict[str, object]] = {
     "catalog": {
         "label": "Catalogue",
         "description": "Catalogue partagé, produits et adoption.",
-        "sections": ["products", "catalog", "catalog_adoption"],
+        "sections": ["products", "catalog"],
     },
     "communication": {
         "label": "Communication",

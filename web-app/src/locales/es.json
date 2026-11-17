@@ -2317,5 +2317,19 @@
     "whatsapp_invite_prompt": "¿Quieres enviar los accesos por WhatsApp?",
     "whatsapp_invite_send": "Send",
     "whatsapp_not_installed": "WhatsApp no está instalado en este dispositivo."
+  },
+  "catalog_picker": {
+    "title": "Elegir del catálogo",
+    "subtitle": "Marque solo los productos que vende. No se añade nada sin su elección.",
+    "search_placeholder": "Buscar un producto o un código de barras",
+    "count": "{{count}} productos disponibles",
+    "select_visible": "Marcar todo",
+    "unselect_visible": "Desmarcar todo",
+    "already_in_store": "Ya está en su tienda",
+    "empty": "No hay productos disponibles para su actividad.",
+    "load_error": "No se pudo cargar el catálogo.",
+    "hint": "Los productos se añaden con stock y precios a cero: complételos después.",
+    "submit": "Añadir {{count}} productos",
+    "after_import": "Recuerde indicar sus precios y su stock."
   }
 }
