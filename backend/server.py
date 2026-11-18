@@ -133,6 +133,7 @@ logger = logging.getLogger(__name__)
 
 from services.import_service import ImportService
 from services.notification_service import NotificationService
+import app_release_watch
 from services.catalog_service import CatalogService
 from services.firebase_service import init_firebase, verify_firebase_phone_token, verify_firebase_id_token
 from constants.sectors import BUSINESS_SECTORS, normalize_sector, PRODUCTION_SECTORS, RESTAURANT_SECTORS, is_production_sector
@@ -739,6 +740,47 @@ async def _fetch_app_store_version() -> str:
     return ""
 
 
+# Alerte « version fantôme » (logique dans app_release_watch.py).
+async def _fetch_app_store_release() -> Optional[Dict[str, Any]]:
+    import httpx as _httpx
+    app_store_id = str(os.environ.get("IOS_APP_STORE_ID") or "6760587628").strip()
+    for country in ("", "fr", "sn"):
+        params = {"id": app_store_id}
+        if country:
+            params["country"] = country
+        try:
+            async with _httpx.AsyncClient(timeout=8.0) as client:
+                response = await client.get("https://itunes.apple.com/lookup", params=params)
+            results = response.json().get("results") or []
+            app = (results[0] or {}) if results else {}
+            version = str(app.get("version") or "").strip()
+            released_at = parse_datetime_value(app.get("currentVersionReleaseDate"))
+            if _app_version_key(version) and released_at:
+                return {"version": version, "released_at": released_at}
+        except Exception as exc:
+            logger.warning("App Store release lookup failed (%s): %s", country or "default", exc)
+    return None
+
+
+async def _notify_superadmins(title: str, body: str, html_body: str, data: Dict[str, Any]) -> None:
+    admins = await db.users.find({"role": "superadmin"}, {"_id": 0, "email": 1, "push_tokens": 1}).to_list(20)
+    tokens = list({token for admin in admins for token in (admin.get("push_tokens") or []) if token})
+    if tokens:
+        await notification_service.send_push_notification(tokens, title, body, data)
+    emails = [admin.get("email") for admin in admins if admin.get("email")]
+    if emails:
+        await notification_service.send_email_notification(emails, f"Stockman · {title}", html_body, text_body=body)
+
+
+async def check_ghost_app_versions_loop():
+    """Prévient les superadmins quand la version iOS en ligne n'est signalée par aucun appareil."""
+    release = await _fetch_app_store_release()
+    if not release:
+        return
+    await app_release_watch.check_ghost_version(
+        db, "ios", release["version"], release["released_at"], datetime.now(timezone.utc), _notify_superadmins
+    )
+
 async def detect_latest_published_app_versions() -> Dict[str, Dict[str, Any]]:
     now = datetime.now(timezone.utc)
     cached_at = _detected_app_versions_cache["at"]
@@ -1042,6 +1084,7 @@ async def run_startup_migrations():
         asyncio.create_task(supervised_loop("ai_anomalies", check_ai_anomalies_loop, 43200))
         asyncio.create_task(supervised_loop("log_cleanup", cleanup_logs_loop, 86400))
         asyncio.create_task(supervised_loop("late_deliveries", check_late_deliveries_loop, 21600))
+        asyncio.create_task(supervised_loop("ghost_app_versions", check_ghost_app_versions_loop, 21600))
         # Annulations de livraison que Denkma n'a pas pu recevoir : reprises jusqu'à sa confirmation.
         asyncio.create_task(supervised_loop("denkma_cancellations", lambda: ecommerce_denkma_service.retry_cancellations(), 300))
     except Exception as e:
@@ -13006,6 +13049,27 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
         low_revenue_days = len([value for value in daily_rev.values() if value <= (avg_daily_rev * 0.4)])
         active_days_14 = len(daily_rev)
 
+        margin_issues = []
+        volume_changes = []
+        for p in products:
+            purchase = _safe_float(p.get("purchase_price"), 0.0)
+            selling = _safe_float(p.get("selling_price"), 0.0)
+            if purchase > 0 and selling > 0:
+                margin = (selling - purchase) / selling * 100
+                if margin < 5:
+                    margin_issues.append(f"- {p['name']}: marge={margin:.1f}% (achat={purchase}, vente={selling})")
+                elif margin > 80:
+                    margin_issues.append(f"- {p['name']}: marge trÃ¨s Ã©levÃ©e={margin:.1f}%")
+
+            pid = p.get("product_id", "")
+            s7 = product_sales_7d.get(pid, 0)
+            s_prev_daily = product_sales_prev.get(pid, 0) / 23.0
+            s7_daily = s7 / 7.0
+            if s_prev_daily > 0 and s7_daily > s_prev_daily * 3:
+                volume_changes.append(f"- {p['name']}: pic x{s7_daily/s_prev_daily:.1f}")
+            elif s_prev_daily > 1 and s7_daily < s_prev_daily * 0.3:
+                volume_changes.append(f"- {p['name']}: chute x{s_prev_daily/max(s7_daily,0.1):.1f}")
+
         # Hard guards to reduce noisy alerts:
         # each anomaly type must be supported by concrete metrics.
         signal_map: Dict[str, bool] = {
@@ -13021,27 +13085,6 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
 
         revenue_data = [f"{d}: {r:.0f} {currency} ({c} ventes)" for d, r, c in
                         sorted([(d, daily_rev[d], daily_count[d]) for d in daily_rev], key=lambda x: x[0])[-14:]]
-
-        margin_issues = []
-        volume_changes = []
-        for p in products:
-            purchase = p.get("purchase_price", 0)
-            selling = p.get("selling_price", 0)
-            if purchase > 0 and selling > 0:
-                margin = (selling - purchase) / selling * 100
-                if margin < 5:
-                    margin_issues.append(f"- {p['name']}: marge={margin:.1f}% (achat={purchase}, vente={selling})")
-                elif margin > 80:
-                    margin_issues.append(f"- {p['name']}: marge trÃ¨s Ã©levÃ©e={margin:.1f}%")
-
-            pid = p["product_id"]
-            s7 = product_sales_7d.get(pid, 0)
-            s_prev_daily = product_sales_prev.get(pid, 0) / 23.0
-            s7_daily = s7 / 7.0
-            if s_prev_daily > 0 and s7_daily > s_prev_daily * 3:
-                volume_changes.append(f"- {p['name']}: pic x{s7_daily/s_prev_daily:.1f}")
-            elif s_prev_daily > 1 and s7_daily < s_prev_daily * 0.3:
-                volume_changes.append(f"- {p['name']}: chute x{s_prev_daily/max(s7_daily,0.1):.1f}")
 
         lang_instr = get_language_instruction(lang)
         prompt = f"""Tu es un analyste business expert. Analyse ces donnÃ©es d'un commerce et dÃ©tecte les ANOMALIES.
