@@ -8220,6 +8220,45 @@ async def register_push_token(data: PushTokenRegistration, user: User = Depends(
         )
     return {"message": "Jeton enregistré avec succès"}
 
+class PushDeviceToken(BaseModel):
+    token: str = Field(..., min_length=10, max_length=300)
+
+
+class PushDevicePrune(PushDeviceToken):
+    # Comptes encore mémorisés et valides sur cet appareil ; les autres n'y reçoivent plus rien.
+    keep_user_ids: List[str] = Field(default_factory=list, max_length=30)
+
+
+@api_router.post("/notifications/devices/unregister")
+async def unregister_push_device(data: PushDeviceToken, user: User = Depends(require_auth)):
+    """Retire cet appareil des notifications du compte (déconnexion ou compte retiré de l'appareil)."""
+    token = data.token.strip()
+    await db.users.update_one({"user_id": user.user_id}, {"$pull": {"push_tokens": token}})
+    await db.push_installations.update_many({"expo_push_token": token}, {"$pull": {"user_ids": user.user_id}})
+    await db.push_installations.update_many(
+        {"expo_push_token": token, "last_user_id": user.user_id},
+        {"$unset": {"last_user_id": ""}},
+    )
+    return {"message": "Appareil retiré des notifications de ce compte"}
+
+
+@api_router.post("/notifications/devices/prune")
+async def prune_push_device(data: PushDevicePrune, user: User = Depends(require_auth)):
+    """L'appareil qui présente son jeton ne garde que les comptes qu'il mémorise encore."""
+    token = data.token.strip()
+    keep = {str(user_id).strip() for user_id in data.keep_user_ids if str(user_id).strip()}
+    keep.add(user.user_id)
+    result = await db.users.update_many(
+        {"push_tokens": token, "user_id": {"$nin": sorted(keep)}},
+        {"$pull": {"push_tokens": token}},
+    )
+    await db.push_installations.update_many(
+        {"expo_push_token": token},
+        {"$pull": {"user_ids": {"$nin": sorted(keep)}}},
+    )
+    return {"removed_accounts": result.modified_count}
+
+
 @api_router.post("/notifications/test-push")
 async def test_push_notification(user: User = Depends(require_auth)):
     """Send a test push notification to the current user"""

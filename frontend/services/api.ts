@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cache, KEYS } from './cache';
 import NetInfo from '@react-native-community/netinfo';
 import { SyncAction, syncService } from './sync';
+import { getActiveStoredAccountId, updateStoredAccountTokens } from './accountSessions';
 
 import Constants from 'expo-constants';
 import { getLocales } from 'expo-localization';
@@ -348,13 +349,20 @@ async function doRefresh(): Promise<string | null> {
       const newToken = refreshData.access_token;
       await setToken(newToken);
       if (refreshData.refresh_token) await setRefreshToken(refreshData.refresh_token);
+      // Le compte mémorisé garde les jetons à jour : un retour sur ce compte ne réutilise pas
+      // un jeton de renouvellement déjà consommé, que le serveur refuserait.
+      const activeAccountId = await getActiveStoredAccountId().catch(() => null);
+      if (activeAccountId) {
+        await updateStoredAccountTokens(activeAccountId, newToken, refreshData.refresh_token || storedRefresh).catch(() => undefined);
+      }
       return newToken;
     }
 
     lastRefreshFailureStatus = refreshRes.status;
     if (refreshRes.status === 401 || refreshRes.status === 403) {
       refreshBlockedUntil = Date.now() + 10000;
-      await removeToken();
+      // Un changement de compte a pu remplacer la session entre-temps : on n'efface que celle refusée.
+      if ((await getRefreshToken()) === storedRefresh) await removeToken();
       return null;
     }
     if (refreshRes.status === 429) {
@@ -374,6 +382,56 @@ async function refreshWithMutex(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = doRefresh().finally(() => { refreshPromise = null; });
   return refreshPromise;
+}
+
+// Appel avec la session d'un compte mémorisé, sans toucher à la session active ni la renouveler.
+async function fetchWithAccessToken(endpoint: string, accessToken: string, init: { method?: string; body?: any } = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  try {
+    return await fetch(`${API_URL}/api${endpoint}`, {
+      method: init.method || 'GET',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: init.body ? JSON.stringify(init.body) : undefined,
+      signal: controller.signal,
+    } as any);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export type AccountSessionCheck =
+  | { status: 'valid'; user: User; access_token: string; refresh_token: string | null }
+  | { status: 'expired' }
+  | { status: 'unreachable' };
+
+// Vérifie la session d'un compte mémorisé avant d'y basculer : renouvelée si besoin,
+// « expired » si le serveur la refuse, « unreachable » sans réseau.
+export async function checkAccountSession(accessToken: string, refreshToken?: string | null): Promise<AccountSessionCheck> {
+  try {
+    let response = await fetchWithAccessToken('/auth/me', accessToken);
+    if (response.ok) {
+      return { status: 'valid', user: await response.json(), access_token: accessToken, refresh_token: refreshToken ?? null };
+    }
+    if (response.status !== 401) return { status: 'unreachable' };
+    if (!refreshToken) return { status: 'expired' };
+    const refreshRes = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (refreshRes.status === 401 || refreshRes.status === 403) return { status: 'expired' };
+    if (!refreshRes.ok) return { status: 'unreachable' };
+    const refreshed = await refreshRes.json();
+    const nextAccess = refreshed.access_token as string;
+    const nextRefresh = (refreshed.refresh_token as string | undefined) || refreshToken;
+    response = await fetchWithAccessToken('/auth/me', nextAccess);
+    if (response.status === 401) return { status: 'expired' };
+    if (!response.ok) return { status: 'unreachable' };
+    return { status: 'valid', user: await response.json(), access_token: nextAccess, refresh_token: nextRefresh };
+  } catch {
+    return { status: 'unreachable' };
+  }
 }
 
 // Low-level request that doesn't intercept for sync (used by syncService)
@@ -481,6 +539,12 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
 
         if (lastRefreshFailureStatus === 429) {
           throw new ApiError('Trop de tentatives. Veuillez réessayer dans une minute.', 429);
+        }
+        // Requête partie avec la session d'un autre compte (changement de compte entre-temps) :
+        // la session active n'est pas en cause, on ne la ferme pas.
+        const currentToken = await getToken();
+        if (currentToken && currentToken !== token) {
+          throw new AuthError('Session expirée. Veuillez vous reconnecter.');
         }
         if (lastRefreshFailureStatus === 401 || lastRefreshFailureStatus === 403) {
           await removeToken();
@@ -1639,12 +1703,20 @@ export const notifications = {
     rawRequest<{ message: string }>('/notifications/installations/register', { method: 'POST', body: payload }),
   registerToken: (token: string, metadata?: Partial<PushInstallationPayload>) =>
     request<{ message: string }>('/notifications/register-token', { method: 'POST', body: { ...(metadata || {}), token } }),
-  registerTokenWithAccessToken: (token: string, accessToken: string, metadata?: Partial<PushInstallationPayload>) =>
-    rawRequest<{ message: string }>('/notifications/register-token', {
+  // Renvoie le code HTTP : 401 signifie que ce compte mémorisé n'a plus de session valide.
+  registerTokenWithAccessToken: async (token: string, accessToken: string, metadata?: Partial<PushInstallationPayload>) => {
+    const response = await fetchWithAccessToken('/notifications/register-token', accessToken, {
       method: 'POST',
       body: { ...(metadata || {}), token },
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }),
+    });
+    return response.status;
+  },
+  unregisterDeviceWithAccessToken: async (token: string, accessToken: string) => {
+    const response = await fetchWithAccessToken('/notifications/devices/unregister', accessToken, { method: 'POST', body: { token } });
+    return response.status;
+  },
+  pruneDevice: (token: string, keepUserIds: string[]) =>
+    request<{ removed_accounts: number }>('/notifications/devices/prune', { method: 'POST', body: { token, keep_user_ids: keepUserIds } }),
   testPush: () => request<{ message: string }>('/notifications/test-push', { method: 'POST' }),
 };
 

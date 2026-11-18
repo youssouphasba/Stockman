@@ -118,6 +118,23 @@ export async function removeStoredAccountSession(userId: string): Promise<Stored
   return nextAccounts;
 }
 
+// Jetons renouvelés pour un compte mémorisé, sans changer l'ordre des comptes. Sans cela, le
+// compte garde un jeton de renouvellement déjà utilisé et sa session est refusée au retour.
+export async function updateStoredAccountTokens(
+  userId: string,
+  accessToken: string,
+  refreshToken?: string | null,
+): Promise<void> {
+  const existing = await listStoredAccountSessions();
+  let changed = false;
+  const nextAccounts = existing.map((entry) => {
+    if (entry.user.user_id !== userId) return entry;
+    changed = true;
+    return { ...entry, access_token: accessToken, refresh_token: refreshToken ?? entry.refresh_token ?? null };
+  });
+  if (changed) await writeStoredAccountSessions(nextAccounts);
+}
+
 export async function getStoredAccountSession(userId: string): Promise<StoredAccountSession | null> {
   const existing = await listStoredAccountSessions();
   return existing.find((entry) => entry.user.user_id === userId) || null;

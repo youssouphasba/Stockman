@@ -515,6 +515,12 @@ Sur mobile, les réglages de la boutique en ligne se chargent indépendamment de
 - Activer les alertes pour : stock bas, rupture, produits dormants
 - L'application enregistre aussi l'installation mobile avec la langue de l'appareil ou la langue choisie, afin de pouvoir envoyer des notifications adaptées à la langue de l'utilisateur, y compris avant la création d'un compte lorsque l'autorisation push est accordée.
 
+### Je reçois les notifications de plusieurs comptes sur mon téléphone : est-ce normal ?
+- Oui, si plusieurs comptes sont mémorisés sur ce téléphone (changement de compte rapide). Chaque compte mémorisé et encore connecté envoie ses notifications.
+- Le nom du compte (boutique, nom ou e-mail) précède alors le titre de la notification. La toucher bascule d'abord sur ce compte, puis ouvre l'écran concerné.
+- **Se déconnecter** ou **Retirer ce compte** (dans la fenêtre de changement de compte) arrête ses notifications sur ce téléphone et le retire de la liste.
+- Si la session d'un compte mémorisé a été fermée (déconnexion depuis un autre appareil, mot de passe changé), il quitte la liste et ne notifie plus ce téléphone. Le changement de compte affiche alors un message et vous laisse sur le compte actuel : ajoutez-le de nouveau avec son adresse e-mail et son mot de passe.
+
 ### Quels e-mails automatiques Stockman envoie-t-il, et comment ne plus recevoir les conseils ?
 - Les e-mails liés au compte (codes de vérification, fin d'essai, fin d'abonnement, commandes, support) sont toujours envoyés.
 - Les e-mails de conseils et de relance (créer ses premiers produits, enregistrer sa première vente, activer son abonnement, revenir après une période d'inactivité, créer son compte après la démo) sont limités : trois envois au plus par sujet (par exemple après 1, 3 et 7 jours), puis plus rien.

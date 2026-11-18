@@ -1,9 +1,10 @@
 ﻿import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Alert, DeviceEventEmitter, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Linking from 'expo-linking';
-import { ApiError, SESSION_EXPIRED_EVENT, auth as authApi, stores as storesApi, userFeatures, notifications as notificationsApi, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeRefreshToken, User, PushInstallationPayload } from '../services/api';
+import { ApiError, SESSION_EXPIRED_EVENT, checkAccountSession, auth as authApi, stores as storesApi, userFeatures, notifications as notificationsApi, getToken, setToken, removeToken, setRefreshToken, getRefreshToken, removeRefreshToken, User, PushInstallationPayload } from '../services/api';
 import { initPurchases } from '../services/purchases';
 import { cache } from '../services/cache';
 import { isRestaurantBusiness } from '../utils/business';
@@ -21,7 +22,24 @@ import {
   saveStoredAccountSession,
   setActiveStoredAccountId,
   StoredAccountSession,
+  updateStoredAccountTokens,
 } from '../services/accountSessions';
+
+// Dernier jeton de notification de l'appareil : la déconnexion d'un compte l'en retire.
+const DEVICE_PUSH_TOKEN_KEY = 'stockman_device_push_token_v1';
+
+// Retire l'appareil des notifications d'un compte, avec sa session renouvelée au besoin.
+async function unregisterDeviceForAccount(accessToken: string | null, refreshToken?: string | null) {
+  try {
+    const pushToken = await AsyncStorage.getItem(DEVICE_PUSH_TOKEN_KEY);
+    if (!pushToken || !accessToken) return;
+    const check = await checkAccountSession(accessToken, refreshToken);
+    if (check.status !== 'valid') return;
+    await notificationsApi.unregisterDeviceWithAccessToken(pushToken, check.access_token);
+  } catch {
+    // Sans réseau, le nettoyage se fera au prochain enregistrement de l'appareil.
+  }
+}
 
 type RestoreSessionOptions = {
   preserveDemoSession?: boolean;
@@ -421,12 +439,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function logout() {
-    const rememberedAccounts = await listStoredAccountSessions();
+    const loggedOutUserId = user?.user_id;
+    // L'appareil cesse de recevoir les notifications de ce compte, puis le compte quitte la liste
+    // des comptes mémorisés : sa session est fermée, il ne pourrait plus être rouvert sans mot de passe.
+    await unregisterDeviceForAccount(await getToken(), await getRefreshToken());
     try {
       await authApi.logout();
     } catch (error) {
       // ignore server-side failure
     }
+    const rememberedAccounts = loggedOutUserId
+      ? await removeStoredAccountSession(loggedOutUserId)
+      : await listStoredAccountSessions();
 
     setIsAppLocked(false);
     await cache.clear();
@@ -452,16 +476,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function switchAccountInner(userId: string) {
     const targetSession = await getStoredAccountSession(userId);
-    if (!targetSession) return null;
+    if (!targetSession) {
+      throw new Error(t('account_switcher.account_missing', 'Ce compte n\'est plus mémorisé sur cet appareil.'));
+    }
 
-    const previousUser = user;
-    const previousActiveAccountId = activeAccountId;
-    const previousAccessToken = await getToken();
-    const previousRefreshToken = await getRefreshToken();
+    // La session du compte visé est vérifiée avant de quitter le compte actuel : si elle a été fermée,
+    // on reste sur le compte actuel au lieu de se retrouver déconnecté.
+    const check = await checkAccountSession(targetSession.access_token, targetSession.refresh_token);
+    if (check.status === 'expired') {
+      setStoredAccounts(await removeStoredAccountSession(userId));
+      throw new Error(t(
+        'account_switcher.session_closed',
+        'La session de ce compte a été fermée. Ajoutez-le de nouveau avec son adresse e-mail et son mot de passe.',
+      ));
+    }
 
-    await setToken(targetSession.access_token);
-    if (targetSession.refresh_token) {
-      await setRefreshToken(targetSession.refresh_token);
+    // Le compte quitté garde ses jetons les plus récents pour y revenir plus tard.
+    if (user) {
+      const currentAccess = await getToken();
+      if (currentAccess) await updateStoredAccountTokens(user.user_id, currentAccess, await getRefreshToken());
+    }
+
+    const nextAccess = check.status === 'valid' ? check.access_token : targetSession.access_token;
+    const nextRefresh = check.status === 'valid' ? check.refresh_token : targetSession.refresh_token;
+    await setToken(nextAccess);
+    if (nextRefresh) {
+      await setRefreshToken(nextRefresh);
     } else {
       await removeRefreshToken();
     }
@@ -469,50 +509,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setActiveAccountIdState(userId);
     await cache.clear({ preserveSyncQueue: true, preserveLastSync: true });
     setIsRestaurant(false);
-    await hydrateAuthenticatedUser(targetSession.user);
-    setStoredAccounts(await saveStoredAccountSession(targetSession.user, targetSession.access_token, targetSession.refresh_token));
 
-    let freshUser: User;
-    try {
-      freshUser = await authApi.me();
-    } catch (error) {
-      if (!(error instanceof ApiError && error.status === 401)) {
-        return targetSession.user;
-      }
-
-      setStoredAccounts(await removeStoredAccountSession(userId));
-      if (previousAccessToken) {
-        await setToken(previousAccessToken);
-      } else {
-        await removeToken();
-      }
-      if (previousRefreshToken) {
-        await setRefreshToken(previousRefreshToken);
-      } else {
-        await removeRefreshToken();
-      }
-      if (previousUser) {
-        await hydrateAuthenticatedUser(previousUser);
-      } else {
-        setUser(null);
-        setHasProduction(false);
-        setIsRestaurant(false);
-      }
-      if (previousActiveAccountId) {
-        await setActiveStoredAccountId(previousActiveAccountId);
-      } else {
-        await clearActiveStoredAccountId();
-      }
-      setActiveAccountIdState(previousActiveAccountId);
-      return null;
+    if (check.status === 'valid') {
+      await hydrateAndPersistUser(check.user);
+      return check.user;
     }
-
-    await hydrateAndPersistUser(freshUser);
-    return freshUser;
+    // Sans réseau : on ouvre le compte avec les informations mémorisées.
+    await hydrateAuthenticatedUser(targetSession.user);
+    setStoredAccounts(await saveStoredAccountSession(targetSession.user, nextAccess, nextRefresh));
+    return targetSession.user;
   }
 
   async function removeStoredAccount(userId: string) {
     const isCurrentAccount = user?.user_id === userId;
+    const removedSession = await getStoredAccountSession(userId);
+    if (isCurrentAccount) {
+      await unregisterDeviceForAccount(await getToken(), await getRefreshToken());
+    } else if (removedSession) {
+      await unregisterDeviceForAccount(removedSession.access_token, removedSession.refresh_token);
+    }
     const updatedAccounts = await removeStoredAccountSession(userId);
     setStoredAccounts(updatedAccounts);
 
@@ -563,18 +578,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // L'appareil reçoit les notifications de chaque compte mémorisé encore connecté ; un compte dont la
+  // session a été fermée quitte la liste, et le serveur retire l'appareil des comptes oubliés.
   const registerPushTokenForStoredAccounts = useCallback(async (pushToken: string, metadata?: Partial<PushInstallationPayload>) => {
+    await AsyncStorage.setItem(DEVICE_PUSH_TOKEN_KEY, pushToken).catch(() => undefined);
     const accounts = await listStoredAccountSessions();
-    setStoredAccounts(accounts);
+    const activeId = await getActiveStoredAccountId();
+    const keep: string[] = [];
+    const closed: string[] = [];
     await Promise.all(
       accounts.map(async (account) => {
+        const accountId = account.user.user_id;
         try {
-          await notificationsApi.registerTokenWithAccessToken(pushToken, account.access_token, metadata);
+          let accessToken = account.access_token;
+          let refreshToken = account.refresh_token;
+          if (accountId === activeId) {
+            accessToken = (await getToken()) || accessToken;
+            refreshToken = (await getRefreshToken()) || refreshToken;
+          }
+          let status = await notificationsApi.registerTokenWithAccessToken(pushToken, accessToken, metadata);
+          if (status === 401) {
+            const check = await checkAccountSession(accessToken, refreshToken);
+            if (check.status === 'expired') {
+              closed.push(accountId);
+              return;
+            }
+            if (check.status === 'valid') {
+              if (accountId === activeId) {
+                await setToken(check.access_token);
+                if (check.refresh_token) await setRefreshToken(check.refresh_token);
+              }
+              await updateStoredAccountTokens(accountId, check.access_token, check.refresh_token);
+              status = await notificationsApi.registerTokenWithAccessToken(pushToken, check.access_token, metadata);
+            }
+          }
+          keep.push(accountId);
         } catch (error) {
-          console.warn(`Push token registration failed for account ${account.user.user_id}`, error);
+          // Sans réseau, le compte reste inscrit tel quel.
+          keep.push(accountId);
+          console.warn(`Push token registration failed for account ${accountId}`, error);
         }
       }),
     );
+    let remaining = accounts;
+    for (const accountId of closed) {
+      if (accountId !== activeId) remaining = await removeStoredAccountSession(accountId);
+    }
+    setStoredAccounts(remaining);
+    if (keep.length) {
+      await notificationsApi.pruneDevice(pushToken, keep).catch(() => undefined);
+    }
   }, []);
 
   async function setPin(pin: string) {

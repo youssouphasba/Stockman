@@ -25,12 +25,16 @@ Notifications.setNotificationHandler({
 
 export function useNotifications(userId?: string, onNotificationsChanged?: () => void) {
     const [expoPushToken, setExpoPushToken] = useState('');
-    const { registerPushTokenForStoredAccounts } = useAuth();
+    const { registerPushTokenForStoredAccounts, switchAccount } = useAuth();
     const notificationListener = useRef<any>(null);
     const responseListener = useRef<any>(null);
     const registerRef = useRef(registerPushTokenForStoredAccounts);
     const onChangedRef = useRef(onNotificationsChanged);
+    const switchRef = useRef(switchAccount);
+    const userIdRef = useRef(userId);
     registerRef.current = registerPushTokenForStoredAccounts;
+    switchRef.current = switchAccount;
+    userIdRef.current = userId;
     onChangedRef.current = onNotificationsChanged;
 
     useEffect(() => {
@@ -50,9 +54,16 @@ export function useNotifications(userId?: string, onNotificationsChanged?: () =>
             onChangedRef.current?.();
         });
 
-        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+        responseListener.current = Notifications.addNotificationResponseReceivedListener(async response => {
             const data = response.notification.request.content.data as any;
             onChangedRef.current?.();
+            // Notification d'un autre compte mémorisé sur l'appareil : on bascule d'abord sur ce compte,
+            // pour ne jamais ouvrir son contenu dans le compte connecté.
+            const targetUserId = data?.target_user_id ? String(data.target_user_id) : '';
+            if (targetUserId && userIdRef.current && targetUserId !== userIdRef.current) {
+                const switched = await switchRef.current(targetUserId).catch(() => null);
+                if (!switched) return;
+            }
             if (data?.type === 'app_update') {
                 const storeUrl = String(data?.store_url || data?.deeplink_url || '').trim();
                 if (storeUrl) Linking.openURL(storeUrl).catch(() => null);

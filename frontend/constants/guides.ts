@@ -555,7 +555,7 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
             {
                 icon: "swap-horizontal-outline",
                 title: "Comptes sur cet appareil",
-                description: "Ajoutez plusieurs comptes sur le même téléphone avec leur adresse e-mail et leur mot de passe. Vous pourrez ensuite passer d'un espace commerçant, staff ou fournisseur à un autre sans vous reconnecter complètement à chaque fois."
+                description: "Ajoutez plusieurs comptes sur le même téléphone avec leur adresse e-mail et leur mot de passe. Vous pourrez ensuite passer d'un espace commerçant, staff ou fournisseur à un autre sans vous reconnecter complètement à chaque fois. Le téléphone reçoit les notifications de chaque compte mémorisé : le nom du compte précède alors le titre, et toucher la notification ouvre le bon compte. « Se déconnecter » ou « Retirer ce compte » arrête ses notifications sur ce téléphone."
             },
             {
                 icon: "storefront-outline",

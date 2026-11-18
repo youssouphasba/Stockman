@@ -158,7 +158,10 @@ class NotificationService:
         If caller_owner_id is provided, verify the target user belongs to the
         same tenant.
         """
-        user_doc = await db.users.find_one({"user_id": user_id}, {"push_tokens": 1, "parent_user_id": 1})
+        user_doc = await db.users.find_one(
+            {"user_id": user_id},
+            {"push_tokens": 1, "parent_user_id": 1, "store_name": 1, "name": 1, "email": 1},
+        )
         if not user_doc:
             return {
                 "ok": False,
@@ -191,7 +194,32 @@ class NotificationService:
                 "user_id": user_id,
             }
 
-        result = await self.send_push_notification(tokens, title, body, data)
+        # Le compte visé voyage avec la notification : un appareil qui a mémorisé plusieurs comptes
+        # bascule sur le bon compte quand on la touche.
+        payload = {**(data or {}), "target_user_id": user_id}
+        shared_tokens = []
+        for token in tokens:
+            if await db.users.count_documents({"push_tokens": token}) > 1:
+                shared_tokens.append(token)
+        own_tokens = [token for token in tokens if token not in shared_tokens]
+        results = []
+        if own_tokens:
+            results.append(await self.send_push_notification(own_tokens, title, body, payload))
+        if shared_tokens:
+            # Sur un appareil partagé entre plusieurs comptes, le nom du compte précède le titre.
+            label = str(user_doc.get("store_name") or user_doc.get("name") or user_doc.get("email") or "").strip()
+            shared_title = f"{label} · {title}" if label else title
+            results.append(await self.send_push_notification(shared_tokens, shared_title, body, payload))
+        result = results[0] if len(results) == 1 else {
+            "ok": any(item.get("ok") for item in results),
+            "reason": None if any(item.get("ok") for item in results) else results[0].get("reason"),
+            "message": results[0].get("message"),
+            "attempted_tokens": sum(item.get("attempted_tokens", 0) for item in results),
+            "valid_tokens": sum(item.get("valid_tokens", 0) for item in results),
+            "invalid_tokens": [token for item in results for token in item.get("invalid_tokens", [])],
+            "tickets": [ticket for item in results for ticket in item.get("tickets", [])],
+            "errors": [error for item in results for error in item.get("errors", [])],
+        }
         result["user_id"] = user_id
         return result
 
