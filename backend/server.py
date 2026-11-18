@@ -777,7 +777,7 @@ async def check_ghost_app_versions_loop():
     release = await _fetch_app_store_release()
     if not release:
         return
-    await app_release_watch.check_ghost_version(
+    await app_release_watch.check_ghost_release(
         db, "ios", release["version"], release["released_at"], datetime.now(timezone.utc), _notify_superadmins
     )
 
@@ -8182,6 +8182,14 @@ async def upsert_push_installation(data: PushInstallationRegistration, user_id: 
         build_push_installation_update(data, user_id),
         upsert=True,
     )
+    # Historique des versions lancées par les clients (l'équipe teste avant la mise en ligne).
+    platform = (data.platform or "").strip().lower()
+    if data.app_version and platform in ("ios", "android"):
+        is_team = False
+        if user_id:
+            is_team = bool(await db.users.find_one({"user_id": user_id, "role": {"$in": ["superadmin", "admin"]}}, {"_id": 1}))
+        if not is_team:
+            await app_release_watch.record_version_seen(db, platform, data.app_version, datetime.now(timezone.utc))
 
 @api_router.post("/notifications/installations/register")
 async def register_push_installation(data: PushInstallationRegistration, request: Request):
