@@ -137,7 +137,7 @@ Sur mobile, pour un commerce, le bouton **Ajouter un produit** de l'écran **Auc
 - Le site affiche les produits actifs de la boutique active, avec nom, description, prix de vente, stock disponible, unité, image et catégorie.
 - Les clients peuvent ajouter des produits au panier et envoyer une commande avec nom, téléphone, email, adresse et note.
 - La vitrine affiche jusqu'à 50 produits par page, avec pagination au-delà.
-- Le clic sur une carte produit ouvre une fiche détaillée avec image agrandie, description, prix, stock, favori et ajout au panier.
+- Le clic sur une carte produit ouvre une fiche détaillée avec image agrandie, description, prix, stock, favori, ajout au panier et bouton « Partager ». Chaque produit a sa propre adresse (`/shop/ma-boutique/produit/<id>`, ou `/produit/<id>` sur un domaine vérifié), avec photo, nom et prix dans l'aperçu WhatsApp ou Facebook : voir `ecommerce-pages-produit.md`.
 - Sur mobile, le panier s'ouvre dans un panneau dédié depuis l'en-tête au lieu d'apparaître en bas de page.
 - L'en-tête public reste sobre : il affiche le nom du site, le panier et le menu, sans exposer le numéro de téléphone du commerçant.
 - La vitrine affiche désormais une identité de boutique visible dès l'en-tête avec un monogramme de marque par défaut, même quand aucun logo image n'a encore été configuré.

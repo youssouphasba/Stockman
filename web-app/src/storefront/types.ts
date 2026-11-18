@@ -57,6 +57,8 @@ export type ThemeDocumentData = {
 export type StorefrontPayload = {
     site: StorefrontSite;
     products: StorefrontProduct[];
+    // Nombre de produits publiés ; truncated : le site n'en affiche qu'une partie (plafond du catalogue public).
+    catalog?: { total: number; truncated: boolean };
     theme?: { model_id: string; document: ThemeDocumentData; media: Record<string, StorefrontMedia> };
     preview?: { expires_at?: string | null; source?: string; site_enabled?: boolean };
 };

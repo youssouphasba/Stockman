@@ -20,7 +20,21 @@ function basicBody() {
 
 test('Stockman Basic keeps its exact render; the private preview only adds isolated branches', () => {
   const { text } = basicBody();
-  assert.equal(sha256(text), '9a89f6e7a94eff1fbc0a0a81edcb6e482d68bbb8f472f04f09094c562a25be7e');
+  assert.equal(sha256(text), 'd3de7d7708ff3436dfe24aa4f463fef3ca0b3b0ac5db47f24a042004d2257955');
+  // Adresse propre à chaque produit, partage et panier conservé : branches isolées ; sans elles, on retrouve le rendu d'avant.
+  const productLinkBranches = [
+    ["  // Fiche produit ouverte : elle a sa propre adresse sur le site public (partage, référencement).\n  const productRoute = useProductRoute(slug, payload?.products, isPreview);\n  const selectedProduct = productRoute.product;\n  // Le panier du site public est gardé sur l'appareil ; celui d'un aperçu reste en mémoire.\n  usePersistentCart(slug, payload?.products, !isPreview, cart, setCart);\n", ""],
+    ["  const [menuOpen, setMenuOpen] = useState(false);\n", "  const [menuOpen, setMenuOpen] = useState(false);\n  const [selectedProduct, setSelectedProduct] = useState<PublicProduct | null>(null);\n"],
+    ["              <div className=\"mt-5\">\n                <ShareProduct slug={slug} productId={selectedProduct.product_id} name={selectedProduct.name} disabled={isPreview} className=\"inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50\" />\n              </div>\n", ""],
+  ];
+  let withoutLinks = text;
+  for (const [branch, original] of productLinkBranches) {
+    assert.equal(withoutLinks.split(branch).length - 1, 1, branch.slice(0, 60));
+    withoutLinks = withoutLinks.replace(branch, original);
+  }
+  withoutLinks = withoutLinks.split('productRoute.open(product)').join('setSelectedProduct(product)').split('productRoute.close()').join('setSelectedProduct(null)');
+  for (const name of ['productRoute', 'usePersistentCart', 'ShareProduct']) assert.equal(withoutLinks.includes(name), false, name);
+  assert.equal(sha256(withoutLinks), '9a89f6e7a94eff1fbc0a0a81edcb6e482d68bbb8f472f04f09094c562a25be7e');
   // En retirant les seules branches de l'aperçu privé, on retrouve octet pour octet le rendu public historique.
   // Le paiement (Wave, Orange Money, à la livraison) n'ajoute que des branches isolées : sans elles, le rendu qui suit est celui d'avant.
   const paymentBranches = [
@@ -32,7 +46,7 @@ test('Stockman Basic keeps its exact render; the private preview only adds isola
     ["          <p className=\"font-black\">{paymentOptions ? 'À savoir sur le paiement' : 'Paiement'}</p>\n", "          <p className=\"font-black\">Paiement</p>\n"],
     [" : submitting ? 'Envoi...' : paymentMethod && paymentMethod !== 'on_delivery' ? 'Commander et payer' : 'Envoyer la commande'}", " : submitting ? 'Envoi...' : 'Envoyer la commande'}"],
   ];
-  let withoutPayment = text;
+  let withoutPayment = withoutLinks;
   for (const [branch, original] of paymentBranches) {
     assert.equal(withoutPayment.split(branch).length - 1, 1, branch.slice(0, 60));
     withoutPayment = withoutPayment.replace(branch, original);

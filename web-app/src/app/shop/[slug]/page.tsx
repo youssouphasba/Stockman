@@ -1,47 +1,18 @@
+import type { Metadata } from 'next';
 import StorefrontClient from './StorefrontClient';
+import { fetchShopBySlug, requestOrigin, shopMetadata } from '../../../storefront/server';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-async function fetchPublicShop(slug: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://stockman-production-149d.up.railway.app';
-  // Une minute de cache : un changement de modèle publié apparaît rapidement, sans surcharger l'API.
-  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/public/ecommerce/${slug}`, {
-    next: { revalidate: 60 },
-  });
-  if (!response.ok) return null;
-  return response.json();
-}
-
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const payload = await fetchPublicShop(slug).catch(() => null);
-  const site = payload?.site;
-  const title = site?.hero_title || site?.name || 'Boutique Stockman';
-  const description = site?.welcome_message || site?.delivery_info || 'Catalogue en ligne et commandes web.';
-  const image = payload?.products?.find((product: any) => typeof product.image === 'string' && product.image.startsWith('http'))?.image;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: 'website',
-      images: image ? [{ url: image }] : undefined,
-    },
-    twitter: {
-      card: image ? 'summary_large_image' : 'summary',
-      title,
-      description,
-      images: image ? [image] : undefined,
-    },
-  };
+  return shopMetadata(await fetchShopBySlug(slug), await requestOrigin());
 }
 
 export default async function ShopPage({ params }: PageProps) {
   const { slug } = await params;
-  const payload = await fetchPublicShop(slug).catch(() => null);
+  const payload = await fetchShopBySlug(slug);
   return <StorefrontClient slug={slug} modelId={payload?.site?.model_id} />;
 }

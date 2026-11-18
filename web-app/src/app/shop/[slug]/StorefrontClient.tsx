@@ -6,6 +6,8 @@ import { resolveEcommerceModel } from '../../../lib/ecommerceThemes';
 import ThemeStorefront from '../../../storefront/ThemeStorefront';
 import DenkmaDeliveryPicker, { useDenkmaDelivery } from '../../../storefront/DenkmaDelivery';
 import { OrderPaymentPanel, PaymentChoice, offeredPaymentMethod, paymentOptionsFor, usePlacedOrder, type PaymentOptions } from '../../../storefront/OrderPayment';
+import { usePersistentCart, useProductRoute } from '../../../storefront/productLinks';
+import ShareProduct from '../../../storefront/ShareProduct';
 import { Building2, Grid2X2, Heart, Mail, MapPin, Menu, MessageSquare, Minus, Phone, Plus, Search, Send, ShoppingBag, SlidersHorizontal, Trash2, X } from 'lucide-react';
 
 type PublicProduct = {
@@ -124,7 +126,6 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<PublicProduct | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [viewTracked, setViewTracked] = useState(false);
@@ -214,6 +215,11 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
   const brandOnColor = getBrandOnColor(brandColor);
   const privatePreview = Boolean(previewToken);
   const isPreview = privatePreview || searchParams.get('preview') === '1';
+  // Fiche produit ouverte : elle a sa propre adresse sur le site public (partage, référencement).
+  const productRoute = useProductRoute(slug, payload?.products, isPreview);
+  const selectedProduct = productRoute.product;
+  // Le panier du site public est gardé sur l'appareil ; celui d'un aperçu reste en mémoire.
+  usePersistentCart(slug, payload?.products, !isPreview, cart, setCart);
   const previewExpiry = formatPreviewExpiry(payload?.preview?.expires_at);
   const denkma = useDenkmaDelivery(slug, Boolean(payload?.site.denkma_delivery), isPreview);
   // Paiement : choix du client avant la commande, puis page de paiement de la commande passée.
@@ -676,9 +682,9 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
                       key={product.product_id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setSelectedProduct(product)}
+                      onClick={() => productRoute.open(product)}
                       onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') setSelectedProduct(product);
+                        if (event.key === 'Enter' || event.key === ' ') productRoute.open(product);
                       }}
                       className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                     >
@@ -962,7 +968,7 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
       )}
 
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/50 px-4 py-6" onClick={() => setSelectedProduct(null)}>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/50 px-4 py-6" onClick={() => productRoute.close()}>
           <div className="mx-auto grid max-w-4xl gap-6 rounded-3xl bg-white p-4 shadow-2xl md:grid-cols-[1fr_1fr] md:p-6" onClick={(event) => event.stopPropagation()}>
             <div className="aspect-square overflow-hidden rounded-2xl bg-slate-100">
               {selectedProduct.image ? (
@@ -979,7 +985,7 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
                   {selectedProduct.category && <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{selectedProduct.category}</p>}
                   <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">{selectedProduct.name}</h2>
                 </div>
-                <button type="button" onClick={() => setSelectedProduct(null)} className="rounded-full border border-slate-200 p-2 text-slate-600" aria-label="Fermer la fiche produit">
+                <button type="button" onClick={() => productRoute.close()} className="rounded-full border border-slate-200 p-2 text-slate-600" aria-label="Fermer la fiche produit">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -992,6 +998,9 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
               ) : (
                 <p className="mt-6 text-sm leading-7 text-slate-500">Aucune description détaillée n'a été renseignée pour ce produit.</p>
               )}
+              <div className="mt-5">
+                <ShareProduct slug={slug} productId={selectedProduct.product_id} name={selectedProduct.name} disabled={isPreview} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50" />
+              </div>
               <div className="mt-auto flex gap-3 pt-8">
                 <button
                   type="button"
@@ -1007,7 +1016,7 @@ function StockmanBasicStorefront({ slug, previewToken }: { slug: string; preview
                   onClick={() => {
                     addToCart(selectedProduct);
                     setCartOpen(true);
-                    setSelectedProduct(null);
+                    productRoute.close();
                   }}
                   disabled={!selectedProduct.available}
                   className="flex h-14 flex-1 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:bg-slate-300 disabled:text-slate-500"

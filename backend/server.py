@@ -105,6 +105,7 @@ from ecommerce_domains import MARKER_SERVICE, DomainServiceError, EcommerceDomai
 from ecommerce_denkma import DenkmaError, EcommerceDenkmaService, serves as denkma_serves
 import ecommerce_payment
 import ecommerce_sale
+from ecommerce_catalog import PRODUCT_ID_PATTERN, PublicCatalog
 import finance_report
 from ecommerce_payment import EcommercePaymentService, PaymentError
 from services.pricing import (
@@ -194,6 +195,7 @@ catalog_service = CatalogService(db)
 # Les URL publiques des médias suivent le domaine de l'application web (résolu à l'appel).
 ecommerce_media_library = EcommerceMediaLibrary(db, base_url=lambda: get_web_app_base_url())
 ecommerce_theme_service = EcommerceThemeService(db, media=ecommerce_media_library)
+ecommerce_public_catalog = PublicCatalog(db)
 notification_service = NotificationService()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
@@ -2122,6 +2124,76 @@ async def get_public_ecommerce_site_by_domain(
     requested_domain = domain or get_normalized_request_host(request)
     account_doc = await get_public_ecommerce_account_by_domain(requested_domain)
     return await build_public_ecommerce_payload(account_doc)
+
+
+# Les chemins qui commencent par « _ » ne peuvent pas être l'adresse d'une boutique (lettres, chiffres, tirets).
+@app.get("/api/public/ecommerce/_by-domain/products/{product_id}")
+async def get_public_ecommerce_product_by_domain(
+    request: Request,
+    product_id: str = Path(..., pattern=PRODUCT_ID_PATTERN),
+    domain: Optional[str] = Query(None, max_length=255),
+):
+    account_doc = await get_public_ecommerce_account_by_domain(domain or get_normalized_request_host(request))
+    return await build_public_product_payload(account_doc, product_id)
+
+
+@app.get("/api/public/ecommerce/_sitemap")
+async def get_public_ecommerce_sitemap(
+    request: Request,
+    slug: Optional[str] = Query(None, pattern="^[a-z0-9-]{2,80}$"),
+    domain: Optional[str] = Query(None, max_length=255),
+):
+    """Produits d'une boutique pour son plan du site ; sans boutique désignée, la liste des boutiques
+    en ligne sans domaine vérifié (celles qui en ont un sont référencées sur leur domaine)."""
+    if slug:
+        return await build_public_sitemap_payload(await get_public_ecommerce_account_by_slug(slug))
+    if domain:
+        return await build_public_sitemap_payload(await get_public_ecommerce_account_by_domain(domain))
+    rows = await db.business_accounts.find(
+        {"ecommerce_enabled": True, "ecommerce_slug": {"$exists": True, "$ne": None}, "ecommerce_domain_status": {"$ne": "verified"}},
+        {"_id": 0, "ecommerce_slug": 1},
+    ).limit(10000).to_list(10000)
+    return {"sites": sorted({row["ecommerce_slug"] for row in rows if row.get("ecommerce_slug")})}
+
+
+@app.get("/api/public/ecommerce/{slug}/products/{product_id}")
+async def get_public_ecommerce_product(
+    slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$"),
+    product_id: str = Path(..., pattern=PRODUCT_ID_PATTERN),
+):
+    return await build_public_product_payload(await get_public_ecommerce_account_by_slug(slug), product_id)
+
+
+PUBLIC_PRODUCT_IMAGE_HEADERS = {
+    # L'adresse change avec la fiche produit (« ?v= ») ; une semaine de cache, revalidée par ETag.
+    "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+    "X-Content-Type-Options": "nosniff",
+    "Cross-Origin-Resource-Policy": "cross-origin",
+}
+
+
+@app.get("/api/public/ecommerce/{slug}/products/{product_id}/image")
+async def get_public_ecommerce_product_image(
+    request: Request,
+    slug: str = Path(..., pattern="^[a-z0-9-]{2,80}$"),
+    product_id: str = Path(..., pattern=PRODUCT_ID_PATTERN),
+):
+    account_doc = await get_public_ecommerce_account_by_slug(slug)
+    _owner_doc, _store_doc, store_id = await resolve_public_storefront(account_doc)
+    image = await ecommerce_public_catalog.read_image(
+        account_doc.get("owner_user_id"),
+        store_id,
+        bool(account_doc.get("ecommerce_show_out_of_stock_products")),
+        product_id,
+    )
+    if not image:
+        raise HTTPException(status_code=404, detail="Image introuvable")
+    if image.get("redirect"):
+        return RedirectResponse(image["redirect"], status_code=302)
+    etag = f'"{image["etag"]}"'
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers={**PUBLIC_PRODUCT_IMAGE_HEADERS, "ETag": etag})
+    return Response(content=image["data"], media_type=image["media_type"], headers={**PUBLIC_PRODUCT_IMAGE_HEADERS, "ETag": etag})
 
 
 @app.get("/api/public/ecommerce/{slug}")
@@ -4634,7 +4706,8 @@ async def ensure_ecommerce_site_for_owner(owner_id: str, store_id: Optional[str]
 _PUBLISHED_THEME = object()
 
 
-async def build_public_ecommerce_payload(account_doc: Dict[str, Any], theme: Any = _PUBLISHED_THEME) -> Dict[str, Any]:
+async def resolve_public_storefront(account_doc: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any], Optional[str]]:
+    """Propriétaire et boutique physique dont le stock alimente le site public."""
     owner_id = account_doc.get("owner_user_id")
     store_id = account_doc.get("ecommerce_default_store_id")
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0, "name": 1, "phone": 1, "email": 1, "currency": 1})
@@ -4646,51 +4719,68 @@ async def build_public_ecommerce_payload(account_doc: Dict[str, Any], theme: Any
         store_id = (store_doc or {}).get("store_id")
     if not owner_doc or not store_doc:
         raise HTTPException(status_code=404, detail="Boutique en ligne introuvable")
+    return owner_doc, store_doc, store_id
 
-    products_query = {
-        "user_id": owner_id,
-        "store_id": store_id,
-        "is_active": {"$ne": False},
-        "selling_price": {"$gt": 0},
-    }
-    if not account_doc.get("ecommerce_show_out_of_stock_products"):
-        products_query["quantity"] = {"$gt": 0}
-    products = await db.products.find(
-        products_query,
-        {
-            "_id": 0,
-            "product_id": 1,
-            "name": 1,
-            "description": 1,
-            "selling_price": 1,
-            "quantity": 1,
-            "unit": 1,
-            "image": 1,
-            "category_id": 1,
+
+def public_site_base_url(account_doc: Dict[str, Any]) -> str:
+    """Adresse de référence du site : le domaine connecté une fois vérifié, sinon l'adresse Stockman."""
+    custom_domain = account_doc.get("ecommerce_custom_domain")
+    if custom_domain and account_doc.get("ecommerce_domain_status") == "verified":
+        return f"https://{custom_domain}"
+    return f"{get_web_app_base_url()}/shop/{account_doc.get('ecommerce_slug')}"
+
+
+async def build_public_product_payload(account_doc: Dict[str, Any], product_id: str) -> Dict[str, Any]:
+    """Fiche d'un produit seul, pour la page produit (titre, aperçu de partage, référencement)."""
+    owner_doc, store_doc, store_id = await resolve_public_storefront(account_doc)
+    product = await ecommerce_public_catalog.get_product(
+        account_doc.get("owner_user_id"),
+        store_id,
+        bool(account_doc.get("ecommerce_show_out_of_stock_products")),
+        account_doc.get("ecommerce_slug") or "",
+        product_id,
+    )
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit introuvable")
+    theme = await ecommerce_theme_service.public_theme(account_doc)
+    return {
+        "site": {
+            "slug": account_doc.get("ecommerce_slug"),
+            "name": account_doc.get("ecommerce_site_name") or store_doc.get("receipt_business_name") or store_doc.get("name") or owner_doc.get("name"),
+            "currency": store_doc.get("currency") or owner_doc.get("currency") or account_doc.get("currency") or "XOF",
+            "logo_url": account_doc.get("ecommerce_logo_url"),
+            "model_id": theme["model_id"] if theme else legacy_theme_identity().get("model_id"),
+            "base_url": public_site_base_url(account_doc),
         },
-    ).sort("name", 1).limit(2000).to_list(2000)
-    category_ids = [product.get("category_id") for product in products if product.get("category_id")]
-    categories = {}
-    if category_ids:
-        category_docs = await db.categories.find(
-            {"category_id": {"$in": category_ids}, "user_id": owner_id},
-            {"_id": 0, "category_id": 1, "name": 1},
-        ).to_list(len(category_ids))
-        categories = {category.get("category_id"): category.get("name") for category in category_docs}
+        "product": product,
+    }
 
-    public_products = []
-    for product in products:
-        public_products.append({
-            "product_id": product.get("product_id"),
-            "name": product.get("name"),
-            "description": product.get("description"),
-            "selling_price": float(product.get("selling_price") or 0),
-            "quantity": float(product.get("quantity") or 0),
-            "unit": product.get("unit") or "piece",
-            "image": product.get("image"),
-            "category": categories.get(product.get("category_id")),
-            "available": float(product.get("quantity") or 0) > 0,
-        })
+
+async def build_public_sitemap_payload(account_doc: Dict[str, Any]) -> Dict[str, Any]:
+    _owner_doc, _store_doc, store_id = await resolve_public_storefront(account_doc)
+    products = await ecommerce_public_catalog.sitemap_products(
+        account_doc.get("owner_user_id"),
+        store_id,
+        bool(account_doc.get("ecommerce_show_out_of_stock_products")),
+    )
+    return {
+        "site": {"slug": account_doc.get("ecommerce_slug"), "base_url": public_site_base_url(account_doc)},
+        "products": products,
+    }
+
+
+async def build_public_ecommerce_payload(account_doc: Dict[str, Any], theme: Any = _PUBLISHED_THEME) -> Dict[str, Any]:
+    owner_id = account_doc.get("owner_user_id")
+    owner_doc, store_doc, store_id = await resolve_public_storefront(account_doc)
+
+    # Les photos sont servies par adresse ; un aperçu privé les recopie, car son site peut ne pas être en ligne.
+    catalog = await ecommerce_public_catalog.list_products(
+        owner_id,
+        store_id,
+        bool(account_doc.get("ecommerce_show_out_of_stock_products")),
+        account_doc.get("ecommerce_slug") or "",
+        inline_images=theme is not _PUBLISHED_THEME,
+    )
 
     payload = {
         "site": {
@@ -4716,7 +4806,8 @@ async def build_public_ecommerce_payload(account_doc: Dict[str, Any], theme: Any
             # Le client choisit alors sa position ou un point relais Denkma au lieu d'écrire une adresse.
             "denkma_delivery": ecommerce_denkma_service.offered(account_doc),
         },
-        "products": public_products,
+        "products": catalog["products"],
+        "catalog": {"total": catalog["total"], "truncated": catalog["truncated"]},
     }
     # Un aperçu fournit son propre thème ; sinon le thème publié d'un modèle à sections est servi.
     if theme is _PUBLISHED_THEME:

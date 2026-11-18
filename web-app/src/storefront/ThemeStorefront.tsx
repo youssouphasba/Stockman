@@ -12,6 +12,8 @@ import { renderSection, sectionLabel, type MotionStyle, type SectionContext } fr
 import { buildTokens, FONT_PAIRINGS } from './tokens';
 import { enumSetting, type StorefrontPayload, type StorefrontProduct, type StorefrontRoute } from './types';
 import { useStorefrontCommerce } from './useStorefrontCommerce';
+import { useProductRoute } from './productLinks';
+import ShareProduct from './ShareProduct';
 import { LIVE_PREVIEW_EDIT, LIVE_PREVIEW_INSERT, LIVE_PREVIEW_READY, LIVE_PREVIEW_SELECT, readLivePreviewMessage } from './livePreview';
 import { documentTitle, hashForRoute, resolvePage, routeFromHash, siteNavigation } from './routes';
 
@@ -76,11 +78,13 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
     const [highlighted, setHighlighted] = useState<string | null>(null);
     const localSelection = useRef<string | null>(null);
     const [catalogFilter, setCatalogFilter] = useState<{ query: string; category: string | null }>({ query: '', category: null });
-    const [product, setProduct] = useState<StorefrontProduct | null>(null);
     const [cartOpen, setCartOpen] = useState(false);
     const [added, setAdded] = useState<{ product: StorefrontProduct; at: number } | null>(null);
     const [root, setRoot] = useState<HTMLDivElement | null>(null);
     const commerce = useStorefrontCommerce(payload, preview);
+    // Fiche produit ouverte : elle a sa propre adresse sur le site public (partage, référencement).
+    const productRoute = useProductRoute(slug, payload?.products, preview);
+    const product = productRoute.product;
     // Le client revient de l'application de son opérateur : la page de paiement de sa commande se rouvre.
     const placedOrder = commerce.placedOrder.placed;
     const paymentExpected = Boolean(placedOrder && placedOrder.status !== 'paid' && !['on_delivery', 'other'].includes(placedOrder.method));
@@ -251,7 +255,7 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
         pageId: currentPage?.id || '',
         edit,
         navigate,
-        openProduct: setProduct,
+        openProduct: productRoute.open,
         catalogQuery: catalogFilter.query,
         catalogCategory: catalogFilter.category,
     };
@@ -316,8 +320,9 @@ export default function ThemeStorefront({ slug, previewToken, initialPayload, fa
                     currency={payload.site.currency}
                     outline={tokens.accentNeedsOutline}
                     inCart={commerce.cart[product.product_id]?.quantity || 0}
-                    onClose={() => setProduct(null)}
-                    onAdd={(item, quantity) => { addToCart(item, quantity); setProduct(null); setAdded(null); setCartOpen(true); }}
+                    onClose={productRoute.close}
+                    onAdd={(item, quantity) => { addToCart(item, quantity); productRoute.close(); setAdded(null); setCartOpen(true); }}
+                    share={<ShareProduct slug={slug} productId={product.product_id} name={product.name} disabled={preview} className="inline-flex min-h-11 items-center gap-2 rounded-[var(--sf-radius-pill)] border border-[var(--sf-border)] px-4 text-sm font-medium text-[var(--sf-text)] transition hover:border-[var(--sf-text)]" />}
                 />
             )}
             {cartOpen && <CartDrawer commerce={commerce} site={payload.site} preview={preview} outline={tokens.accentNeedsOutline} onClose={() => setCartOpen(false)} />}

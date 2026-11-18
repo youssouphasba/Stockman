@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { StorefrontPayload, StorefrontProduct } from './types';
 import { usePlacedOrder } from './OrderPayment';
+import { usePersistentCart } from './productLinks';
 
 export type CartLine = { product: StorefrontProduct; quantity: number };
 export type OrderForm = { name: string; phone: string; email: string; address: string; notes: string };
@@ -45,6 +46,8 @@ export function useStorefrontCommerce(payload: StorefrontPayload | null, preview
     // Dernière commande passée sur cet appareil : sa page de paiement reste accessible dans le panier.
     const placedOrder = usePlacedOrder(slug, !preview);
     const placeOrder = placedOrder.place;
+    // Le panier du site public est gardé sur l'appareil ; celui de l'aperçu privé reste en mémoire.
+    usePersistentCart(slug, payload?.products, !preview, cart, setCart);
 
     // Les statistiques de visite ne comptent jamais un aperçu privé.
     useEffect(() => {

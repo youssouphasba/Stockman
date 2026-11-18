@@ -1,54 +1,13 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import HomeClient from "./HomeClient";
 import StorefrontClient from "./shop/[slug]/StorefrontClient";
-
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://stockman-production-149d.up.railway.app").replace(/\/$/, "");
-const PRIMARY_WEB_HOSTS = new Set(["app.stockman.pro", "stockman.pro", "www.stockman.pro", "localhost", "127.0.0.1"]);
-
-function normalizeHost(value: string | null | undefined) {
-  return (value || "").split(",")[0].trim().split(":")[0].trim().toLowerCase().replace(/\.$/, "");
-}
-
-function isCustomStorefrontHost(host: string) {
-  return !!host && !PRIMARY_WEB_HOSTS.has(host) && !host.endsWith(".vercel.app");
-}
-
-async function fetchPublicShopByDomain(host: string) {
-  const response = await fetch(`${API_BASE_URL}/api/public/ecommerce/by-domain?domain=${encodeURIComponent(host)}`, {
-    next: { revalidate: 60 },
-  });
-  if (!response.ok) return null;
-  return response.json();
-}
+import { fetchShopByDomain, isCustomStorefrontHost, requestHost, requestOrigin, shopMetadata } from "../storefront/server";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const headerStore = await headers();
-  const host = normalizeHost(headerStore.get("x-forwarded-host") || headerStore.get("host"));
+  const host = await requestHost();
   if (isCustomStorefrontHost(host)) {
-    const payload = await fetchPublicShopByDomain(host).catch(() => null);
-    const site = payload?.site;
-    if (site?.slug) {
-      const title = site.hero_title || site.name || "Boutique Stockman";
-      const description = site.welcome_message || site.delivery_info || "Catalogue en ligne et commandes web.";
-      const image = payload?.products?.find((product: any) => typeof product.image === "string" && product.image.startsWith("http"))?.image;
-      return {
-        title,
-        description,
-        openGraph: {
-          title,
-          description,
-          type: "website",
-          images: image ? [{ url: image }] : undefined,
-        },
-        twitter: {
-          card: image ? "summary_large_image" : "summary",
-          title,
-          description,
-          images: image ? [image] : undefined,
-        },
-      };
-    }
+    const payload = await fetchShopByDomain(host);
+    if (payload?.site?.slug) return shopMetadata(payload, await requestOrigin());
   }
   return metadata;
 }
@@ -84,10 +43,9 @@ const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const headerStore = await headers();
-  const host = normalizeHost(headerStore.get("x-forwarded-host") || headerStore.get("host"));
+  const host = await requestHost();
   if (isCustomStorefrontHost(host)) {
-    const payload = await fetchPublicShopByDomain(host).catch(() => null);
+    const payload = await fetchShopByDomain(host);
     const slug = payload?.site?.slug;
     if (slug) {
       return <StorefrontClient slug={slug} modelId={payload?.site?.model_id} />;

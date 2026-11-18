@@ -101,13 +101,14 @@ function useEscape(onClose: () => void) {
     }, [onClose]);
 }
 
-export function ProductDialog({ product, currency, outline, inCart, onClose, onAdd }: {
+export function ProductDialog({ product, currency, outline, inCart, onClose, onAdd, share }: {
     product: StorefrontProduct;
     currency: string;
     outline: boolean;
     inCart: number;
     onClose: () => void;
     onAdd: (product: StorefrontProduct, quantity: number) => void;
+    share?: React.ReactNode;
 }) {
     const closeRef = useRef<HTMLButtonElement>(null);
     const [quantity, setQuantity] = useState(1);
@@ -140,6 +141,7 @@ export function ProductDialog({ product, currency, outline, inCart, onClose, onA
                         {product.available ? 'Disponible' : 'Rupture de stock : ce produit ne peut pas être commandé pour le moment.'}
                     </p>
                     {product.description && <p className="mt-5 whitespace-pre-line text-sm leading-7 text-[var(--sf-text)]">{product.description}</p>}
+                    {share && <div className="mt-5">{share}</div>}
                     <div className="mt-auto flex items-center gap-3 pt-8">
                         {canAdd && (
                             <div className="inline-flex h-12 shrink-0 items-center rounded-[var(--sf-radius-pill)] border border-[var(--sf-border)]" role="group" aria-label="Quantité">
