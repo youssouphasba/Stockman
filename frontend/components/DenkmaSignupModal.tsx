@@ -7,6 +7,8 @@ import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { ecommerce, type DenkmaConnection } from '../services/api';
 import { clearPhoneVerificationState, confirmPhoneCode, sendPhoneVerification } from '../services/firebasePhoneAuth';
 import { accuracyProblem, denkmaPhone, signupProblem } from '../utils/denkmaSignup';
+import { useTranslation } from 'react-i18next';
+import i18n from '../services/i18n';
 
 type Props = {
   initialBusinessName?: string;
@@ -23,12 +25,13 @@ const PRIVACY_URL = 'https://denkma.com/privacy/';
 
 function smsError(error: any): string {
   const code = String(error?.code || '');
-  if (code.includes('invalid-verification-code')) return 'Code incorrect. Vérifiez le SMS reçu et réessayez.';
-  if (code.includes('code-expired') || code.includes('session-expired')) return 'Ce code a expiré. Demandez un nouveau SMS.';
-  if (code.includes('too-many-requests')) return 'Trop de tentatives. Patientez quelques minutes avant de redemander un code.';
-  if (code.includes('invalid-phone-number')) return 'Ce numéro de téléphone est invalide.';
-  if (code.includes('network')) return 'Pas de connexion internet. Vérifiez votre réseau et réessayez.';
-  return error?.message || "L'envoi du SMS a échoué. Réessayez.";
+  const tr = (key: string, fallback: string) => i18n.t(`denkma_signup.${key}`, { defaultValue: fallback });
+  if (code.includes('invalid-verification-code')) return tr('sms_invalid_code', 'Code incorrect. Vérifiez le SMS reçu et réessayez.');
+  if (code.includes('code-expired') || code.includes('session-expired')) return tr('sms_code_expired', 'Ce code a expiré. Demandez un nouveau SMS.');
+  if (code.includes('too-many-requests')) return tr('sms_too_many', 'Trop de tentatives. Patientez quelques minutes avant de redemander un code.');
+  if (code.includes('invalid-phone-number')) return tr('sms_invalid_phone', 'Ce numéro de téléphone est invalide.');
+  if (code.includes('network')) return tr('sms_network', 'Pas de connexion internet. Vérifiez votre réseau et réessayez.');
+  return error?.message || tr('sms_failed', 'L’envoi du SMS a échoué. Réessayez.');
 }
 
 const DENKMA_PHONE_SCOPE = 'denkma-signup';
@@ -38,6 +41,7 @@ const DENKMA_PHONE_SCOPE = 'denkma-signup';
 // Le compte est ensuite validé par Denkma avant la première expédition.
 // À afficher seulement quand il est ouvert ({open && <DenkmaSignupModal />}).
 export default function DenkmaSignupModal({ initialBusinessName, initialOwnerName, initialPhone, onClose, onCreated }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const [subtype, setSubtype] = useState<'merchant' | 'enterprise'>('merchant');
   const [businessName, setBusinessName] = useState(initialBusinessName || '');
@@ -62,7 +66,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) {
-        setError('Autorisez la localisation pour enregistrer votre point de collecte.');
+        setError(t('denkma_signup.autorisez_la_localisation_pour_enregistrer_votre'));
         return;
       }
       const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
@@ -79,7 +83,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
         // Sans adresse proposée, le commerçant saisit la ville lui-même.
       }
     } catch {
-      setError('Impossible de vous localiser. Activez la localisation du téléphone et réessayez.');
+      setError(t('denkma_signup.impossible_de_vous_localiser_activez_la'));
     } finally {
       setLocating(false);
     }
@@ -107,7 +111,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
 
   async function create() {
     if (!position || code.trim().length < 6) {
-      setError('Saisissez le code à 6 chiffres reçu par SMS.');
+      setError(t('denkma_signup.saisissez_le_code_a_6_chiffres'));
       return;
     }
     setBusy(true);
@@ -140,7 +144,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
     } catch (err: any) {
       // Le code SMS a été utilisé : en cas de refus, une nouvelle vérification est nécessaire.
       setStep('form');
-      setError(err?.message || "Denkma n'a pas pu créer votre compte. Réessayez.");
+      setError(err?.message || t('denkma_signup.denkma_n_a_pas_pu_creer'));
     } finally {
       setBusy(false);
     }
@@ -163,10 +167,10 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
       <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bgDark || colors.card }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 56 : Spacing.lg, paddingBottom: Spacing.sm }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.text, fontSize: FontSize.lg, fontWeight: '700' }}>Créer mon compte Denkma Pro</Text>
-            <Text style={muted}>Livraison de vos commandes en ligne au Sénégal</Text>
+            <Text style={{ color: colors.text, fontSize: FontSize.lg, fontWeight: '700' }}>{t('denkma_signup.creer_mon_compte_denkma_pro')}</Text>
+            <Text style={muted}>{t('denkma_signup.livraison_de_vos_commandes_en_ligne')}</Text>
           </View>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Fermer" onPress={close} style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('denkma_signup.fermer')} onPress={close} style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -174,9 +178,9 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
         {step === 'form' ? (
           <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.xl * 2 }} keyboardShouldPersistTaps="handled">
             <View style={section}>
-              <Text style={heading}>1. Votre commerce</Text>
+              <Text style={heading}>{t('denkma_signup.1_votre_commerce')}</Text>
               <View style={{ flexDirection: 'row', gap: Spacing.sm }} accessibilityRole="radiogroup">
-                {([['merchant', 'Commerçant'], ['enterprise', 'Entreprise']] as const).map(([value, name]) => {
+                {([['merchant', t('denkma_signup.commercant')], ['enterprise', 'Entreprise']] as const).map(([value, name]) => {
                   const active = subtype === value;
                   return (
                     <TouchableOpacity key={value} accessibilityRole="radio" accessibilityState={{ checked: active }} onPress={() => setSubtype(value)} style={{ flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: BorderRadius.md, borderWidth: 1, borderColor: active ? colors.primary : colors.divider, backgroundColor: active ? colors.primary + '20' : 'transparent' }}>
@@ -185,72 +189,72 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
                   );
                 })}
               </View>
-              <TextInput style={input} value={businessName} onChangeText={setBusinessName} placeholder="Nom du commerce" placeholderTextColor={colors.textMuted} accessibilityLabel="Nom du commerce" maxLength={160} />
-              <TextInput style={input} value={ownerName} onChangeText={setOwnerName} placeholder="Nom du responsable" placeholderTextColor={colors.textMuted} accessibilityLabel="Nom du responsable" maxLength={120} />
-              <TextInput style={input} value={phone} onChangeText={setPhone} placeholder="Numéro de téléphone (+221 ou +33)" placeholderTextColor={colors.textMuted} accessibilityLabel="Numéro de téléphone du compte Denkma Pro" keyboardType="phone-pad" maxLength={32} />
-              <Text style={muted}>Ce numéro sera confirmé par SMS. Il servira à vous connecter à Denkma Pro.</Text>
+              <TextInput style={input} value={businessName} onChangeText={setBusinessName} placeholder={t('denkma_signup.nom_du_commerce')} placeholderTextColor={colors.textMuted} accessibilityLabel={t('denkma_signup.nom_du_commerce')} maxLength={160} />
+              <TextInput style={input} value={ownerName} onChangeText={setOwnerName} placeholder={t('denkma_signup.nom_du_responsable')} placeholderTextColor={colors.textMuted} accessibilityLabel={t('denkma_signup.nom_du_responsable')} maxLength={120} />
+              <TextInput style={input} value={phone} onChangeText={setPhone} placeholder={t('denkma_signup.numero_de_telephone_221_ou_33')} placeholderTextColor={colors.textMuted} accessibilityLabel={t('denkma_signup.numero_de_telephone_du_compte_denkma')} keyboardType="phone-pad" maxLength={32} />
+              <Text style={muted}>{t('denkma_signup.ce_numero_sera_confirme_par_sms')}</Text>
             </View>
 
             <View style={section}>
-              <Text style={heading}>2. Point de collecte</Text>
-              <Text style={muted}>Placez-vous à l'endroit où le livreur viendra chercher vos colis, puis enregistrez la position.</Text>
+              <Text style={heading}>{t('denkma_signup.2_point_de_collecte')}</Text>
+              <Text style={muted}>{t('denkma_signup.placez_vous_a_l_endroit_ou')}</Text>
               <TouchableOpacity accessibilityRole="button" disabled={locating} onPress={() => void locate()} style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: '#2563EB40', backgroundColor: '#2563EB15' }}>
                 {locating ? <ActivityIndicator color="#2563EB" /> : <Ionicons name="locate-outline" size={18} color="#2563EB" />}
                 <Text style={{ color: '#2563EB', fontSize: FontSize.sm, fontWeight: '700' }}>{locating ? 'Localisation...' : position ? 'Relocaliser' : 'Utiliser ma position actuelle'}</Text>
               </TouchableOpacity>
               {position && (
                 <Text style={[muted, { color: imprecise ? colors.warning : colors.success }]}>
-                  {imprecise || `Position enregistrée${position.accuracy != null ? ` (précision ± ${Math.round(position.accuracy)} m)` : ''}.`}
+                  {imprecise || (position.accuracy != null ? t('denkma_signup.position_saved_accuracy', { meters: Math.round(position.accuracy) }) : t('denkma_signup.position_saved'))}
                 </Text>
               )}
-              <TextInput style={input} value={label} onChangeText={setLabel} placeholder="Rue, repère (ex. : face à la pharmacie)" placeholderTextColor={colors.textMuted} accessibilityLabel="Description du point de collecte" maxLength={240} />
+              <TextInput style={input} value={label} onChangeText={setLabel} placeholder={t('denkma_signup.rue_repere_ex_face_a_la')} placeholderTextColor={colors.textMuted} accessibilityLabel={t('denkma_signup.description_du_point_de_collecte')} maxLength={240} />
               <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-                <TextInput style={[input, { flex: 1 }]} value={district} onChangeText={setDistrict} placeholder="Quartier" placeholderTextColor={colors.textMuted} accessibilityLabel="Quartier" maxLength={120} />
-                <TextInput style={[input, { flex: 1 }]} value={city} onChangeText={setCity} placeholder="Ville" placeholderTextColor={colors.textMuted} accessibilityLabel="Ville" maxLength={120} />
+                <TextInput style={[input, { flex: 1 }]} value={district} onChangeText={setDistrict} placeholder={t('denkma_signup.quartier')} placeholderTextColor={colors.textMuted} accessibilityLabel={t('denkma_signup.quartier')} maxLength={120} />
+                <TextInput style={[input, { flex: 1 }]} value={city} onChangeText={setCity} placeholder={t('denkma_signup.ville')} placeholderTextColor={colors.textMuted} accessibilityLabel={t('denkma_signup.ville')} maxLength={120} />
               </View>
             </View>
 
             <View style={section}>
-              <Text style={heading}>3. Code PIN Denkma</Text>
-              <Text style={muted}>De 4 à 12 chiffres. Avec votre numéro, il vous connecte à l'application Denkma pour recharger votre compte transport et suivre vos colis.</Text>
-              <TextInput style={input} value={pin} onChangeText={(value) => setPin(value.replace(/\D/g, ''))} placeholder="Code PIN" placeholderTextColor={colors.textMuted} accessibilityLabel="Code PIN Denkma" keyboardType="number-pad" secureTextEntry maxLength={12} />
-              <TextInput style={input} value={pinConfirmation} onChangeText={(value) => setPinConfirmation(value.replace(/\D/g, ''))} placeholder="Confirmez le code PIN" placeholderTextColor={colors.textMuted} accessibilityLabel="Confirmation du code PIN" keyboardType="number-pad" secureTextEntry maxLength={12} />
+              <Text style={heading}>{t('denkma_signup.3_code_pin_denkma')}</Text>
+              <Text style={muted}>{t('denkma_signup.de_4_a_12_chiffres_avec')}</Text>
+              <TextInput style={input} value={pin} onChangeText={(value) => setPin(value.replace(/\D/g, ''))} placeholder={t('denkma_signup.code_pin')} placeholderTextColor={colors.textMuted} accessibilityLabel={t('denkma_signup.code_pin_denkma')} keyboardType="number-pad" secureTextEntry maxLength={12} />
+              <TextInput style={input} value={pinConfirmation} onChangeText={(value) => setPinConfirmation(value.replace(/\D/g, ''))} placeholder={t('denkma_signup.confirmez_le_code_pin')} placeholderTextColor={colors.textMuted} accessibilityLabel={t('denkma_signup.confirmation_du_code_pin')} keyboardType="number-pad" secureTextEntry maxLength={12} />
             </View>
 
             <View style={[section, { flexDirection: 'row', alignItems: 'center', gap: Spacing.md }]}>
               <View style={{ flex: 1, gap: 4 }}>
-                <Text style={text}>J'accepte les conditions d'utilisation et la politique de confidentialité de Denkma.</Text>
+                <Text style={text}>{t('denkma_signup.j_accepte_les_conditions_d_utilisation')}</Text>
                 <View style={{ flexDirection: 'row', gap: Spacing.md }}>
-                  <Text accessibilityRole="link" onPress={() => void Linking.openURL(TERMS_URL)} style={[muted, { color: colors.primary, textDecorationLine: 'underline' }]}>Conditions</Text>
-                  <Text accessibilityRole="link" onPress={() => void Linking.openURL(PRIVACY_URL)} style={[muted, { color: colors.primary, textDecorationLine: 'underline' }]}>Confidentialité</Text>
+                  <Text accessibilityRole="link" onPress={() => void Linking.openURL(TERMS_URL)} style={[muted, { color: colors.primary, textDecorationLine: 'underline' }]}>{t('denkma_signup.conditions')}</Text>
+                  <Text accessibilityRole="link" onPress={() => void Linking.openURL(PRIVACY_URL)} style={[muted, { color: colors.primary, textDecorationLine: 'underline' }]}>{t('denkma_signup.confidentialite')}</Text>
                 </View>
               </View>
-              <Switch value={acceptedLegal} onValueChange={setAcceptedLegal} accessibilityLabel="J'accepte les conditions de Denkma" trackColor={{ true: colors.primary, false: colors.divider }} />
+              <Switch value={acceptedLegal} onValueChange={setAcceptedLegal} accessibilityLabel={t('denkma_signup.j_accepte_les_conditions_de_denkma')} trackColor={{ true: colors.primary, false: colors.divider }} />
             </View>
 
             {!!error && <Text accessibilityRole="alert" style={{ color: colors.danger, fontSize: FontSize.sm, lineHeight: 20 }}>{error}</Text>}
 
             <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => void sendCode()} style={{ minHeight: 52, borderRadius: BorderRadius.md, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: Spacing.sm, backgroundColor: '#2563EB', opacity: busy ? 0.6 : 1 }}>
               {busy ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="chatbubble-ellipses-outline" size={20} color="#FFFFFF" />}
-              <Text style={{ color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '700' }}>{busy ? 'Envoi du SMS...' : 'Recevoir le code par SMS'}</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '700' }}>{busy ? t('denkma_signup.envoi_du_sms') : t('denkma_signup.recevoir_le_code_par_sms')}</Text>
             </TouchableOpacity>
-            <Text style={[muted, { textAlign: 'center' }]}>Denkma vérifie ensuite votre commerce. Vous pourrez expédier dès la validation de votre compte.</Text>
+            <Text style={[muted, { textAlign: 'center' }]}>{t('denkma_signup.denkma_verifie_ensuite_votre_commerce_vous')}</Text>
           </ScrollView>
         ) : (
           <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md }} keyboardShouldPersistTaps="handled">
-            <Text style={text}>Saisissez le code à 6 chiffres envoyé par SMS au {denkmaPhone(phone)}.</Text>
-            <TextInput style={[input, { fontSize: FontSize.lg, letterSpacing: 6, textAlign: 'center' }]} value={code} onChangeText={(value) => setCode(value.replace(/\D/g, ''))} placeholder="000000" placeholderTextColor={colors.textMuted} accessibilityLabel="Code reçu par SMS" keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="sms-otp" maxLength={6} autoFocus />
+            <Text style={text}>{t('denkma_signup.saisissez_le_code_a_6_chiffres_2')} {denkmaPhone(phone)}.</Text>
+            <TextInput style={[input, { fontSize: FontSize.lg, letterSpacing: 6, textAlign: 'center' }]} value={code} onChangeText={(value) => setCode(value.replace(/\D/g, ''))} placeholder="000000" placeholderTextColor={colors.textMuted} accessibilityLabel={t('denkma_signup.code_recu_par_sms')} keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="sms-otp" maxLength={6} autoFocus />
             {!!error && <Text accessibilityRole="alert" style={{ color: colors.danger, fontSize: FontSize.sm, lineHeight: 20 }}>{error}</Text>}
             <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => void create()} style={{ minHeight: 52, borderRadius: BorderRadius.md, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: Spacing.sm, backgroundColor: '#2563EB', opacity: busy ? 0.6 : 1 }}>
               {busy ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />}
-              <Text style={{ color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '700' }}>{busy ? 'Création du compte...' : 'Créer mon compte Denkma Pro'}</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '700' }}>{busy ? t('denkma_signup.creation_du_compte') : t('denkma_signup.creer_mon_compte_denkma_pro')}</Text>
             </TouchableOpacity>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => { setError(null); setStep('form'); }} style={{ minHeight: 44, justifyContent: 'center' }}>
-                <Text style={[text, { color: colors.primary }]}>Modifier mes informations</Text>
+                <Text style={[text, { color: colors.primary }]}>{t('denkma_signup.modifier_mes_informations')}</Text>
               </TouchableOpacity>
               <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => void sendCode()} style={{ minHeight: 44, justifyContent: 'center' }}>
-                <Text style={[text, { color: colors.primary }]}>Renvoyer le code</Text>
+                <Text style={[text, { color: colors.primary }]}>{t('denkma_signup.renvoyer_le_code')}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

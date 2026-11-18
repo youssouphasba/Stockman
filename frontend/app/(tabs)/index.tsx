@@ -146,7 +146,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
   const DEFERRED_DASHBOARD_LOAD_DELAY_MS = 350;
   const DEFERRED_DASHBOARD_STEP_DELAY_MS = 200;
   const MOBILE_PERF_ENABLED = process.env.EXPO_PUBLIC_STOCKMAN_PERF === '1';
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { openModal } = useLocalSearchParams<{ openModal?: string }>();
   const { user, hasPermission, isRestaurant } = useAuth();
   const insets = useSafeAreaInsets();
@@ -797,7 +797,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
       : null;
     const topProds = (data.top_selling_today ?? []).map((p, i) =>
       `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee;">#${i + 1}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;">${p.name}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">${p.qty}</td></tr>`
-    ).join('') || '<tr><td colspan="3" style="padding:12px;text-align:center;color:#999;">Aucune vente aujourd\'hui</td></tr>';
+    ).join('') || `<tr><td colspan="3" style="padding:12px;text-align:center;color:#999;">${t('dashboard_screen.no_sales_today')}</td></tr>`;
 
     const storeName = user?.store_name || user?.name || 'Stockman';
     const html = `
@@ -836,10 +836,10 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
         </div>
         <h3 style="font-size:14px;margin-bottom:8px;">${t('dashboard.top_products_today')}</h3>
         <table>
-          <thead><tr><th>#</th><th>${t('common.name') || 'Produit'}</th><th style="text-align:right;">${t('dashboard.units') || 'Qté'}</th></tr></thead>
+          <thead><tr><th>#</th><th>${t('common.name') || 'Produit'}</th><th style="text-align:right;">${t('dashboard.units') || t('dashboard_screen.qte')}</th></tr></thead>
           <tbody>${topProds}</tbody>
         </table>
-        <div class="footer">Généré par Stockman — ${new Date().toLocaleString('fr-FR')}</div>
+        <div class="footer">${t('common.generated_by_stockman', { date: new Date().toLocaleString(i18n.language) })}</div>
       </body></html>`;
 
     try {
@@ -1166,7 +1166,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
             style={styles.accountSwitcherIconButton}
             onPress={() => setShowAccountSwitcher(true)}
             accessibilityRole="button"
-            accessibilityLabel="Ouvrir le changement de compte"
+            accessibilityLabel={t('dashboard_screen.ouvrir_le_changement_de_compte')}
           >
             <Ionicons name="swap-horizontal-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
@@ -1273,7 +1273,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
                 <TextInput
                   value={nlQuery}
                   onChangeText={t => { setNlQuery(t); setNlResult(null); }}
-                  placeholder="Posez une question, ex: top produits"
+                  placeholder={t('dashboard_screen.posez_une_question_ex_top_produits')}
                   placeholderTextColor={colors.textMuted}
                   style={{ flex: 1, fontSize: 13, color: colors.text, paddingVertical: 10, marginLeft: 8 }}
                   onSubmitEditing={async () => {
@@ -1284,7 +1284,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
                       const res = await aiApi.naturalQuery(nlQuery.trim());
                       setNlResult(res);
                     } catch {
-                      setNlResult({ answer: 'Erreur lors de la recherche.', data: [] });
+                      setNlResult({ answer: t('dashboard_screen.erreur_lors_de_la_recherche'), data: [] });
                     } finally {
                       setNlLoading(false);
                     }
@@ -1345,7 +1345,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
         {/* Vague 4: Multi-store Rebalance */}
         {rebalance && rebalance.suggestions?.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Rééquilibrage suggéré</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>{t('dashboard_screen.reequilibrage_suggere')}</Text>
             {rebalance.suggestions.slice(0, 3).map((s: any, i: number) => (
               <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                 <View style={{ flex: 1 }}>
@@ -1365,14 +1365,14 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
         {/* Vague 4: Store Benchmark */}
         {showDashboardAiSections && showAdvancedDashboardSections && storeBenchmark && storeBenchmark.stores?.length >= 2 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Performance boutiques</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>{t('dashboard_screen.performance_boutiques')}</Text>
             {storeBenchmark.stores.map((s: any) => (
               <View key={s.store_id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>{s.store_name}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 1 }}>
-                    Marge <Text style={{ color: s.gross_margin_pct >= 30 ? '#10b981' : s.gross_margin_pct >= 15 ? '#f59e0b' : '#ef4444', fontWeight: '700' }}>{s.gross_margin_pct}%</Text>
-                    {'  •  '}Rotation {s.stock_rotation}
+                    {t('dashboard_screen.marge')} <Text style={{ color: s.gross_margin_pct >= 30 ? '#10b981' : s.gross_margin_pct >= 15 ? '#f59e0b' : '#ef4444', fontWeight: '700' }}>{s.gross_margin_pct}%</Text>
+                    {'  •  '}{t('dashboard_screen.rotation')} {s.stock_rotation}
                   </Text>
                 </View>
                 <Text style={{ color: colors.primary, fontWeight: '800', fontSize: 13 }}>{s.performance_score}</Text>
@@ -1404,7 +1404,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 3 }}>
                       <Ionicons name={pct >= 0 ? 'trending-up' : 'trending-down'} size={12} color={pct >= 0 ? colors.success : colors.danger} />
                       <Text style={{ fontSize: 11, fontWeight: '700', color: pct >= 0 ? colors.success : colors.danger }}>
-                        {pct >= 0 ? '+' : ''}{pct.toFixed(0)}% vs hier
+                        {pct >= 0 ? '+' : ''}{pct.toFixed(0)}{t('dashboard_screen.vs_hier')}
                       </Text>
                     </View>
                   );
@@ -1422,7 +1422,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 3 }}>
                       <Ionicons name={diff >= 0 ? 'trending-up' : 'trending-down'} size={12} color={diff >= 0 ? colors.success : colors.danger} />
                       <Text style={{ fontSize: 11, fontWeight: '700', color: diff >= 0 ? colors.success : colors.danger }}>
-                        {diff >= 0 ? '+' : ''}{diff} vs hier
+                        {diff >= 0 ? '+' : ''}{diff} {t('dashboard_screen.vs_hier_2')}
                       </Text>
                     </View>
                   );
@@ -2060,7 +2060,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
                         {statsData.abc_analysis.A.slice(0, 5).map((item, i) => (
                           <View key={i} style={styles.abcDetailRow}>
                             <Text style={styles.abcDetailName}>{item.name}</Text>
-                            <Text style={styles.abcDetailValue}>{item.percentage.toFixed(1)}% du CA</Text>
+                            <Text style={styles.abcDetailValue}>{item.percentage.toFixed(1)}{t('dashboard_screen.du_ca')}</Text>
                           </View>
                         ))}
                       </View>
@@ -2225,7 +2225,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
                             }}
                           >
                             <Text style={{ color: '#fff', fontSize: FontSize.xs, fontWeight: '700' }}>
-                              Ouvrir
+                              {t('dashboard_screen.ouvrir')}
                             </Text>
                           </TouchableOpacity>
                         )}

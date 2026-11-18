@@ -20,84 +20,85 @@ type AdminMessageTarget = 'all' | 'shopkeeper' | 'supplier' | 'staff' | 'specifi
 type AdminMessageDestination = { id: string; label: string; deeplink?: Record<string, string> };
 
 import { useTranslation } from 'react-i18next';
+import i18n from '../../services/i18n';
 
 const COUNTRY_NAMES: Record<string, string> = {
-    'SN': 'Sénégal',
-    'CI': 'Côte d\'Ivoire',
+    get 'SN'() { return i18n.t('admin_screen.senegal', { defaultValue: "Sénégal" }); },
+    get 'CI'() { return i18n.t('admin_screen.cote_d_ivoire', { defaultValue: "Côte d'Ivoire" }); },
     'ML': 'Mali',
     'BF': 'Burkina Faso',
     'TG': 'Togo',
-    'BJ': 'Bénin',
+    get 'BJ'() { return i18n.t('admin_screen.benin', { defaultValue: "Bénin" }); },
     'NE': 'Niger',
-    'GN': 'Guinée',
+    get 'GN'() { return i18n.t('admin_screen.guinee', { defaultValue: "Guinée" }); },
     'CM': 'Cameroun',
     'FR': 'France',
     'US': 'USA',
     'MA': 'Maroc',
     'TN': 'Tunisie',
-    'DZ': 'Algérie',
+    get 'DZ'() { return i18n.t('admin_screen.algerie', { defaultValue: "Algérie" }); },
     'GA': 'Gabon',
     'CG': 'Congo',
     'CD': 'RDC',
 };
 
 const ADMIN_INSTALLATION_LANGUAGES = [
-    { code: 'all', label: 'Toutes les langues' },
-    { code: 'fr', label: 'Français' },
-    { code: 'en', label: 'English' },
-    { code: 'wo', label: 'Wolof' },
-    { code: 'ff', label: 'Pulaar' },
-    { code: 'ar', label: 'Arabe' },
-    { code: 'es', label: 'Espagnol' },
-    { code: 'pt', label: 'Portugais' },
+    { code: 'all', get label() { return i18n.t('admin_screen.toutes_les_langues', { defaultValue: "Toutes les langues" }); } },
+    { code: 'fr', get label() { return i18n.t('admin_screen.francais', { defaultValue: "Français" }); } },
+    { code: 'en', get label() { return i18n.t('admin_screen.english', { defaultValue: "English" }); } },
+    { code: 'wo', get label() { return i18n.t('admin_screen.wolof', { defaultValue: "Wolof" }); } },
+    { code: 'ff', get label() { return i18n.t('admin_screen.pulaar', { defaultValue: "Pulaar" }); } },
+    { code: 'ar', get label() { return i18n.t('admin_screen.arabe', { defaultValue: "Arabe" }); } },
+    { code: 'es', get label() { return i18n.t('admin_screen.espagnol', { defaultValue: "Espagnol" }); } },
+    { code: 'pt', get label() { return i18n.t('admin_screen.portugais', { defaultValue: "Portugais" }); } },
 ];
 
 const ADMIN_INSTALLATION_COUNTRIES = [
-    { code: 'all', label: 'Tous les pays' },
+    { code: 'all', get label() { return i18n.t('admin_screen.tous_les_pays', { defaultValue: "Tous les pays" }); } },
     ...Object.entries(COUNTRY_NAMES).map(([code, name]) => ({ code, label: `${name} (${code})` })),
 ];
 
 const ADMIN_INSTALLATION_PLATFORMS = [
-    { code: 'all', label: 'Toutes les plateformes' },
-    { code: 'android', label: 'Android' },
-    { code: 'ios', label: 'iOS' },
+    { code: 'all', get label() { return i18n.t('admin_screen.toutes_les_plateformes', { defaultValue: "Toutes les plateformes" }); } },
+    { code: 'android', get label() { return i18n.t('admin_screen.android', { defaultValue: "Android" }); } },
+    { code: 'ios', get label() { return i18n.t('admin_screen.ios', { defaultValue: "iOS" }); } },
 ];
 
 const ADMIN_MESSAGE_DESTINATIONS: AdminMessageDestination[] = [
-    { id: 'none', label: 'Aucune destination' },
-    { id: 'home', label: 'Accueil', deeplink: { screen: 'home' } },
-    { id: 'products', label: 'Produits', deeplink: { screen: 'products' } },
-    { id: 'products_create', label: 'Produits · Ajouter un produit', deeplink: { screen: 'products', action: 'create' } },
-    { id: 'alerts', label: 'Alertes', deeplink: { screen: 'alerts' } },
-    { id: 'assistance', label: 'Assistance', deeplink: { screen: 'settings', section: 'support' } },
-    { id: 'orders', label: 'Commandes', deeplink: { screen: 'orders' } },
-    { id: 'pos', label: 'Caisse', deeplink: { screen: 'pos' } },
-    { id: 'crm', label: 'CRM', deeplink: { screen: 'crm' } },
-    { id: 'accounting', label: 'Comptabilité', deeplink: { screen: 'accounting' } },
-    { id: 'subscription', label: 'Abonnement', deeplink: { screen: 'subscription' } },
-    { id: 'settings', label: 'Paramètres', deeplink: { screen: 'settings' } },
-    { id: 'settings_account', label: 'Paramètres · Compte et application', deeplink: { screen: 'settings', section: 'accountAppGroup' } },
-    { id: 'settings_billing', label: 'Paramètres · Abonnement et facturation', deeplink: { screen: 'settings', section: 'billing' } },
-    { id: 'settings_profile', label: 'Paramètres · Profil et apparence', deeplink: { screen: 'settings', section: 'profile' } },
-    { id: 'settings_sync', label: 'Paramètres · Synchronisation', deeplink: { screen: 'settings', section: 'sync' } },
-    { id: 'settings_org', label: 'Paramètres · Organisation et pilotage', deeplink: { screen: 'settings', section: 'organizationGroup' } },
-    { id: 'settings_team', label: 'Paramètres · Équipe et accès', deeplink: { screen: 'settings', section: 'team' } },
-    { id: 'settings_modules', label: 'Paramètres · Modules visibles', deeplink: { screen: 'settings', section: 'organization' } },
-    { id: 'settings_store', label: 'Paramètres · Boutique active', deeplink: { screen: 'settings', section: 'storeGroup' } },
-    { id: 'settings_store_identity', label: 'Paramètres · Boutique · Identité', deeplink: { screen: 'settings', section: 'storeIdentity' } },
-    { id: 'settings_store_docs', label: 'Paramètres · Boutique · Documents', deeplink: { screen: 'settings', section: 'storeDocuments' } },
-    { id: 'settings_tax', label: 'Paramètres · Fiscalité', deeplink: { screen: 'settings', section: 'tax' } },
-    { id: 'settings_alerts', label: 'Paramètres · Alertes et notifications', deeplink: { screen: 'settings', section: 'alertsGroup' } },
-    { id: 'settings_channels', label: 'Paramètres · Canaux de réception', deeplink: { screen: 'settings', section: 'notifications' } },
-    { id: 'settings_account_recipients', label: 'Paramètres · Destinataires du compte', deeplink: { screen: 'settings', section: 'accountAlerts' } },
-    { id: 'settings_store_recipients', label: 'Paramètres · Destinataires de la boutique', deeplink: { screen: 'settings', section: 'storeAlerts' } },
-    { id: 'settings_support', label: 'Paramètres · Support et incidents', deeplink: { screen: 'settings', section: 'supportGroup' } },
-    { id: 'settings_assistance', label: 'Paramètres · Assistance', deeplink: { screen: 'settings', section: 'support' } },
-    { id: 'settings_incident', label: 'Paramètres · Déclarer un incident', deeplink: { screen: 'settings', section: 'incident' } },
-    { id: 'settings_security_group', label: 'Paramètres · Sécurité, légal et données', deeplink: { screen: 'settings', section: 'securityGroup' } },
-    { id: 'settings_security', label: 'Paramètres · Sécurité du compte', deeplink: { screen: 'settings', section: 'security' } },
-    { id: 'settings_legal', label: 'Paramètres · Informations légales', deeplink: { screen: 'settings', section: 'legal' } },
-    { id: 'settings_data', label: 'Paramètres · Données et suppression', deeplink: { screen: 'settings', section: 'data' } },
+    { id: 'none', get label() { return i18n.t('admin_screen.aucune_destination', { defaultValue: "Aucune destination" }); } },
+    { id: 'home', get label() { return i18n.t('admin_screen.accueil', { defaultValue: "Accueil" }); }, deeplink: { screen: 'home' } },
+    { id: 'products', get label() { return i18n.t('admin_screen.produits', { defaultValue: "Produits" }); }, deeplink: { screen: 'products' } },
+    { id: 'products_create', get label() { return i18n.t('admin_screen.produits_ajouter_un_produit', { defaultValue: "Produits · Ajouter un produit" }); }, deeplink: { screen: 'products', action: 'create' } },
+    { id: 'alerts', get label() { return i18n.t('admin_screen.alertes', { defaultValue: "Alertes" }); }, deeplink: { screen: 'alerts' } },
+    { id: 'assistance', get label() { return i18n.t('admin_screen.assistance', { defaultValue: "Assistance" }); }, deeplink: { screen: 'settings', section: 'support' } },
+    { id: 'orders', get label() { return i18n.t('admin_screen.commandes', { defaultValue: "Commandes" }); }, deeplink: { screen: 'orders' } },
+    { id: 'pos', get label() { return i18n.t('admin_screen.caisse', { defaultValue: "Caisse" }); }, deeplink: { screen: 'pos' } },
+    { id: 'crm', get label() { return i18n.t('admin_screen.crm', { defaultValue: "CRM" }); }, deeplink: { screen: 'crm' } },
+    { id: 'accounting', get label() { return i18n.t('admin_screen.comptabilite', { defaultValue: "Comptabilité" }); }, deeplink: { screen: 'accounting' } },
+    { id: 'subscription', get label() { return i18n.t('admin_screen.abonnement', { defaultValue: "Abonnement" }); }, deeplink: { screen: 'subscription' } },
+    { id: 'settings', get label() { return i18n.t('admin_screen.parametres', { defaultValue: "Paramètres" }); }, deeplink: { screen: 'settings' } },
+    { id: 'settings_account', get label() { return i18n.t('admin_screen.parametres_compte_et_application', { defaultValue: "Paramètres · Compte et application" }); }, deeplink: { screen: 'settings', section: 'accountAppGroup' } },
+    { id: 'settings_billing', get label() { return i18n.t('admin_screen.parametres_abonnement_et_facturation', { defaultValue: "Paramètres · Abonnement et facturation" }); }, deeplink: { screen: 'settings', section: 'billing' } },
+    { id: 'settings_profile', get label() { return i18n.t('admin_screen.parametres_profil_et_apparence', { defaultValue: "Paramètres · Profil et apparence" }); }, deeplink: { screen: 'settings', section: 'profile' } },
+    { id: 'settings_sync', get label() { return i18n.t('admin_screen.parametres_synchronisation', { defaultValue: "Paramètres · Synchronisation" }); }, deeplink: { screen: 'settings', section: 'sync' } },
+    { id: 'settings_org', get label() { return i18n.t('admin_screen.parametres_organisation_et_pilotage', { defaultValue: "Paramètres · Organisation et pilotage" }); }, deeplink: { screen: 'settings', section: 'organizationGroup' } },
+    { id: 'settings_team', get label() { return i18n.t('admin_screen.parametres_equipe_et_acces', { defaultValue: "Paramètres · Équipe et accès" }); }, deeplink: { screen: 'settings', section: 'team' } },
+    { id: 'settings_modules', get label() { return i18n.t('admin_screen.parametres_modules_visibles', { defaultValue: "Paramètres · Modules visibles" }); }, deeplink: { screen: 'settings', section: 'organization' } },
+    { id: 'settings_store', get label() { return i18n.t('admin_screen.parametres_boutique_active', { defaultValue: "Paramètres · Boutique active" }); }, deeplink: { screen: 'settings', section: 'storeGroup' } },
+    { id: 'settings_store_identity', get label() { return i18n.t('admin_screen.parametres_boutique_identite', { defaultValue: "Paramètres · Boutique · Identité" }); }, deeplink: { screen: 'settings', section: 'storeIdentity' } },
+    { id: 'settings_store_docs', get label() { return i18n.t('admin_screen.parametres_boutique_documents', { defaultValue: "Paramètres · Boutique · Documents" }); }, deeplink: { screen: 'settings', section: 'storeDocuments' } },
+    { id: 'settings_tax', get label() { return i18n.t('admin_screen.parametres_fiscalite', { defaultValue: "Paramètres · Fiscalité" }); }, deeplink: { screen: 'settings', section: 'tax' } },
+    { id: 'settings_alerts', get label() { return i18n.t('admin_screen.parametres_alertes_et_notifications', { defaultValue: "Paramètres · Alertes et notifications" }); }, deeplink: { screen: 'settings', section: 'alertsGroup' } },
+    { id: 'settings_channels', get label() { return i18n.t('admin_screen.parametres_canaux_de_reception', { defaultValue: "Paramètres · Canaux de réception" }); }, deeplink: { screen: 'settings', section: 'notifications' } },
+    { id: 'settings_account_recipients', get label() { return i18n.t('admin_screen.parametres_destinataires_du_compte', { defaultValue: "Paramètres · Destinataires du compte" }); }, deeplink: { screen: 'settings', section: 'accountAlerts' } },
+    { id: 'settings_store_recipients', get label() { return i18n.t('admin_screen.parametres_destinataires_de_la_boutique', { defaultValue: "Paramètres · Destinataires de la boutique" }); }, deeplink: { screen: 'settings', section: 'storeAlerts' } },
+    { id: 'settings_support', get label() { return i18n.t('admin_screen.parametres_support_et_incidents', { defaultValue: "Paramètres · Support et incidents" }); }, deeplink: { screen: 'settings', section: 'supportGroup' } },
+    { id: 'settings_assistance', get label() { return i18n.t('admin_screen.parametres_assistance', { defaultValue: "Paramètres · Assistance" }); }, deeplink: { screen: 'settings', section: 'support' } },
+    { id: 'settings_incident', get label() { return i18n.t('admin_screen.parametres_declarer_un_incident', { defaultValue: "Paramètres · Déclarer un incident" }); }, deeplink: { screen: 'settings', section: 'incident' } },
+    { id: 'settings_security_group', get label() { return i18n.t('admin_screen.parametres_securite_legal_et_donnees', { defaultValue: "Paramètres · Sécurité, légal et données" }); }, deeplink: { screen: 'settings', section: 'securityGroup' } },
+    { id: 'settings_security', get label() { return i18n.t('admin_screen.parametres_securite_du_compte', { defaultValue: "Paramètres · Sécurité du compte" }); }, deeplink: { screen: 'settings', section: 'security' } },
+    { id: 'settings_legal', get label() { return i18n.t('admin_screen.parametres_informations_legales', { defaultValue: "Paramètres · Informations légales" }); }, deeplink: { screen: 'settings', section: 'legal' } },
+    { id: 'settings_data', get label() { return i18n.t('admin_screen.parametres_donnees_et_suppression', { defaultValue: "Paramètres · Données et suppression" }); }, deeplink: { screen: 'settings', section: 'data' } },
 ];
 
 export default function AdminDashboard() {
@@ -109,15 +110,15 @@ export default function AdminDashboard() {
         { id: 'global', label: t('admin.segments.global'), icon: 'grid' },
         { id: 'users', label: t('admin.segments.users'), icon: 'people' },
         { id: 'stores', label: t('admin.segments.stores'), icon: 'business' },
-        { id: 'subscriptions', label: 'Abonnements', icon: 'card' },
-        { id: 'demos', label: 'Démos', icon: 'sparkles' },
+        { id: 'subscriptions', label: t('admin_screen.abonnements'), icon: 'card' },
+        { id: 'demos', label: t('admin_screen.demos'), icon: 'sparkles' },
         { id: 'stock', label: t('admin.segments.stock'), icon: 'cube' },
         { id: 'finance', label: t('admin.segments.finance'), icon: 'cash' },
         { id: 'crm', label: t('admin.segments.crm'), icon: 'person-add' },
         { id: 'support', label: t('admin.segments.support'), icon: 'help-buoy' },
         { id: 'disputes', label: t('admin.segments.disputes'), icon: 'warning' },
         { id: 'comms', label: t('admin.segments.comms'), icon: 'megaphone' },
-        { id: 'leads', label: 'Leads', icon: 'mail' },
+        { id: 'leads', label: t('admin_screen.leads'), icon: 'mail' },
         { id: 'security', label: t('admin.segments.security'), icon: 'shield' },
         { id: 'logs', label: t('admin.segments.logs'), icon: 'list' },
         { id: 'settings', label: t('admin.segments.settings'), icon: 'settings' },
@@ -312,7 +313,7 @@ export default function AdminDashboard() {
         try {
             const canOpen = await Linking.canOpenURL(url);
             if (!canOpen) {
-                Alert.alert('Action indisponible', 'Cette action ne peut pas être ouverte sur cet appareil.');
+                Alert.alert(t('admin_screen.action_indisponible'), t('admin_screen.cette_action_ne_peut_pas_etre'));
                 return;
             }
             await Linking.openURL(url);
@@ -321,11 +322,11 @@ export default function AdminDashboard() {
         }
     };
     const handleCall = (phone?: string | null) => {
-        if (!phone) return Alert.alert("Numéro indisponible", "Aucun numéro de téléphone n'est disponible pour ce contact.");
+        if (!phone) return Alert.alert(t('admin_screen.numero_indisponible'), t('admin_screen.aucun_numero_de_telephone_n_est'));
         openExternal(`tel:${phone}`);
     };
     const handleEmail = (email?: string | null) => {
-        if (!email) return Alert.alert("Adresse indisponible", "Aucune adresse e-mail n'est disponible pour ce contact.");
+        if (!email) return Alert.alert(t('admin_screen.adresse_indisponible'), t('admin_screen.aucune_adresse_e_mail_n_est'));
         openExternal(`mailto:${email}`);
     };
     const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString() : '—';
@@ -354,13 +355,13 @@ export default function AdminDashboard() {
     };
     const formatDemoStatusLabel = (status?: string | null) => {
         if (status === 'active') return 'Active';
-        if (status === 'expired') return 'Expirée';
-        if (status === 'cleaned') return 'Nettoyée';
+        if (status === 'expired') return t('admin_screen.expiree');
+        if (status === 'cleaned') return t('admin_screen.nettoyee');
         return status || '—';
     };
     const formatRemainingDuration = (seconds?: number | null) => {
         if (seconds === null || seconds === undefined) return '—';
-        if (seconds <= 0) return 'Expirée';
+        if (seconds <= 0) return t('admin_screen.expiree');
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         if (hours <= 0) return `${minutes} min`;
@@ -390,16 +391,16 @@ export default function AdminDashboard() {
     };
     const handleDeleteUser = async (u: any) => {
         Alert.alert(
-            'Supprimer ce compte ?',
-            `Cette action est irréversible. Toutes les données de "${u.name}" (${u.email}) seront supprimées : produits, ventes, clients, boutiques, staff...`,
+            t('admin_screen.supprimer_ce_compte'),
+            t('admin_screen.delete_user_warning', { name: u.name, email: u.email }),
             [
                 { text: t('admin.actions.cancel'), style: 'cancel' },
                 {
-                    text: 'Supprimer', style: 'destructive', onPress: async () => {
+                    text: t('admin_screen.supprimer'), style: 'destructive', onPress: async () => {
                         try {
                             await admin.deleteUser(u.email);
                             loadData();
-                            Alert.alert('Compte supprimé', `"${u.name}" et toutes ses données ont été supprimés.`);
+                            Alert.alert(t('admin_screen.compte_supprime'), t('admin_screen.user_deleted', { name: u.name }));
                         } catch {
                             Alert.alert(t('admin.actions.error'));
                         }
@@ -437,7 +438,7 @@ export default function AdminDashboard() {
         try {
             await admin.grantSubscriptionGrace(accountId, days);
             await loadData();
-            Alert.alert('Succès', `Grâce de ${days} jours accordée.`);
+            Alert.alert(t('admin_screen.succes'), t('admin_screen.grace_granted', { count: days }));
         } catch {
             Alert.alert(t('admin.actions.error'));
         } finally {
@@ -450,7 +451,7 @@ export default function AdminDashboard() {
             if (enabled) await admin.enableSubscriptionReadOnly(accountId);
             else await admin.disableSubscriptionReadOnly(accountId);
             await loadData();
-            Alert.alert('Succès', enabled ? 'Lecture seule activée.' : 'Lecture seule retirée.');
+            Alert.alert(t('admin_screen.succes'), enabled ? t('admin_screen.lecture_seule_activee') : t('admin_screen.lecture_seule_retiree'));
         } catch {
             Alert.alert(t('admin.actions.error'));
         } finally {
@@ -462,7 +463,7 @@ export default function AdminDashboard() {
     };
     const handleAssistTicket = async (ticket: SupportTicket) => {
         if (ticket.request_type !== 'remote_assistance') {
-            Alert.alert('Assistance', "Ce ticket n'est pas une demande d'assistance à distance.");
+            Alert.alert(t('admin_screen.assistance'), t('admin_screen.ce_ticket_n_est_pas_une'));
             return;
         }
         setAssistingTicketId(ticket.ticket_id);
@@ -526,7 +527,7 @@ export default function AdminDashboard() {
 
     const handleGenerateNotificationMessage = async () => {
         const objective = msgAiObjective.trim() || msgContent.trim();
-        if (!objective) return Alert.alert('Aide IA', "Indique l'objectif de la notification.");
+        if (!objective) return Alert.alert(t('admin_screen.aide_ia'), t('admin_screen.indique_l_objectif_de_la_notification'));
         const finalTarget = msgTarget === 'specific' ? targetUserId.trim() || 'specific' : msgTarget;
         try {
             setMsgAiGenerating(true);
@@ -546,7 +547,7 @@ export default function AdminDashboard() {
             }
             setMsgAiRationale(suggestion.rationale || '');
         } catch {
-            Alert.alert('Aide IA', "Impossible de générer une proposition pour le moment.");
+            Alert.alert(t('admin_screen.aide_ia'), t('admin_screen.impossible_de_generer_une_proposition_pour'));
         } finally {
             setMsgAiGenerating(false);
         }
@@ -607,14 +608,14 @@ export default function AdminDashboard() {
                 </Text>
             </Card>
 
-            <SectionHeader title="Actions rapides" colors={colors} />
+            <SectionHeader title={t('admin_screen.actions_rapides')} colors={colors} />
             <View style={st.actionGrid}>
-                <ActionButton label="Utilisateurs" icon="people-outline" color="#3B82F6" onPress={() => setSeg('users')} />
-                <ActionButton label="Abonnements" icon="card-outline" color="#8B5CF6" onPress={() => setSeg('subscriptions')} />
-                <ActionButton label="Tickets" icon="help-buoy-outline" color="#F59E0B" onPress={() => setSeg('support')} />
-                <ActionButton label="Stock bas" icon="alert-circle-outline" color="#EF4444" onPress={() => setSeg('stock')} />
-                <ActionButton label="Message global" icon="megaphone-outline" color="#06B6D4" onPress={() => setSeg('comms')} />
-                <ActionButton label="Data explorer" icon="server-outline" color="#10B981" onPress={() => router.push('/(admin)/data-explorer')} />
+                <ActionButton label={t('admin_screen.utilisateurs')} icon="people-outline" color="#3B82F6" onPress={() => setSeg('users')} />
+                <ActionButton label={t('admin_screen.abonnements')} icon="card-outline" color="#8B5CF6" onPress={() => setSeg('subscriptions')} />
+                <ActionButton label={t('admin_screen.tickets')} icon="help-buoy-outline" color="#F59E0B" onPress={() => setSeg('support')} />
+                <ActionButton label={t('admin_screen.stock_bas')} icon="alert-circle-outline" color="#EF4444" onPress={() => setSeg('stock')} />
+                <ActionButton label={t('admin_screen.message_global')} icon="megaphone-outline" color="#06B6D4" onPress={() => setSeg('comms')} />
+                <ActionButton label={t('admin_screen.data_explorer')} icon="server-outline" color="#10B981" onPress={() => router.push('/(admin)/data-explorer')} />
             </View>
 
             {/* Retention */}
@@ -842,24 +843,24 @@ export default function AdminDashboard() {
                     <View style={st.detailGrid}>
                         {renderInfoLine('Plan', formatPlanLabel(u.effective_plan || u.subscription_plan || u.plan))}
                         {renderInfoLine('Abonnement', u.effective_subscription_status || u.subscription_status || '—')}
-                        {renderInfoLine('Accès', formatAccessPhase(u.subscription_access_phase))}
+                        {renderInfoLine(t('admin_screen.acces'), formatAccessPhase(u.subscription_access_phase))}
                         {renderInfoLine('Compte', u.account_id || u.parent_user_id || u.user_id)}
-                        {renderInfoLine('Boutique active', u.active_store_id)}
-                        {renderInfoLine('Créé le', formatDateTime(u.created_at))}
+                        {renderInfoLine(t('admin_screen.boutique_active'), u.active_store_id)}
+                        {renderInfoLine(t('admin_screen.cree_le'), formatDateTime(u.created_at))}
                     </View>
                     <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-                        <Badge label={u.is_email_verified ? 'E-mail vérifié' : 'E-mail non vérifié'} color={u.is_email_verified ? '#10B981' : '#F59E0B'} />
-                        <Badge label={u.is_phone_verified ? 'Téléphone vérifié' : 'Téléphone non vérifié'} color={u.is_phone_verified ? '#10B981' : '#F59E0B'} />
-                        {u.requires_payment_attention ? <Badge label="Paiement à vérifier" color="#EF4444" /> : null}
-                        {u.is_demo ? <Badge label="Démo" color="#8B5CF6" /> : null}
+                        <Badge label={u.is_email_verified ? t('admin_screen.e_mail_verifie') : t('admin_screen.e_mail_non_verifie')} color={u.is_email_verified ? '#10B981' : '#F59E0B'} />
+                        <Badge label={u.is_phone_verified ? t('admin_screen.telephone_verifie') : t('admin_screen.telephone_non_verifie')} color={u.is_phone_verified ? '#10B981' : '#F59E0B'} />
+                        {u.requires_payment_attention ? <Badge label={t('admin_screen.paiement_a_verifier')} color="#EF4444" /> : null}
+                        {u.is_demo ? <Badge label={t('admin_screen.demo')} color="#8B5CF6" /> : null}
                     </View>
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                        {u.phone ? <ActionButton label="Appeler" icon="call-outline" color={colors.primary} onPress={() => handleCall(u.phone)} /> : null}
-                        {u.email ? <ActionButton label="E-mail" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(u.email)} /> : null}
-                        {u.phone ? <ActionButton label="WhatsApp" icon="logo-whatsapp" color="#10B981" onPress={() => openExternal(`https://wa.me/${String(u.phone).replace(/[^0-9]/g, '')}`)} /> : null}
-                        <ActionButton label="Notifier" icon="notifications-outline" color="#06B6D4" onPress={() => openUserCommunication(u)} />
-                        <ActionButton label={u.is_active === false ? 'Réactiver' : 'Suspendre'} icon={u.is_active === false ? 'checkmark-circle-outline' : 'pause-circle-outline'} color={u.is_active === false ? '#10B981' : '#F59E0B'} onPress={() => handleToggleUser(u)} />
-                        <ActionButton label="Supprimer" icon="trash-outline" color="#DC2626" onPress={() => handleDeleteUser(u)} />
+                        {u.phone ? <ActionButton label={t('admin_screen.appeler')} icon="call-outline" color={colors.primary} onPress={() => handleCall(u.phone)} /> : null}
+                        {u.email ? <ActionButton label={t('admin_screen.e_mail')} icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(u.email)} /> : null}
+                        {u.phone ? <ActionButton label={t('admin_screen.whatsapp')} icon="logo-whatsapp" color="#10B981" onPress={() => openExternal(`https://wa.me/${String(u.phone).replace(/[^0-9]/g, '')}`)} /> : null}
+                        <ActionButton label={t('admin_screen.notifier')} icon="notifications-outline" color="#06B6D4" onPress={() => openUserCommunication(u)} />
+                        <ActionButton label={u.is_active === false ? t('admin_screen.reactiver') : 'Suspendre'} icon={u.is_active === false ? 'checkmark-circle-outline' : 'pause-circle-outline'} color={u.is_active === false ? '#10B981' : '#F59E0B'} onPress={() => handleToggleUser(u)} />
+                        <ActionButton label={t('admin_screen.supprimer')} icon="trash-outline" color="#DC2626" onPress={() => handleDeleteUser(u)} />
                     </View>
                 </Card>
             ))}
@@ -899,14 +900,14 @@ export default function AdminDashboard() {
                                 {renderMetricPill('CA', fmtMoney(s.total_revenue), '#10B981')}
                             </View>
                             <View style={st.detailGrid}>
-                                {renderInfoLine('ID boutique', s.store_id)}
-                                {renderInfoLine('ID propriétaire', s.user_id)}
-                                {renderInfoLine('Créée le', formatDateTime(s.created_at))}
+                                {renderInfoLine(t('admin_screen.id_boutique'), s.store_id)}
+                                {renderInfoLine(t('admin_screen.id_proprietaire'), s.user_id)}
+                                {renderInfoLine(t('admin_screen.creee_le'), formatDateTime(s.created_at))}
                             </View>
                             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                                <ActionButton label="Contacter" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(s.owner_email)} />
-                                <ActionButton label="Voir utilisateurs" icon="people-outline" color="#3B82F6" onPress={() => { setSeg('users'); setSearch(s.owner_email || s.owner_name || ''); }} />
-                                <ActionButton label="Voir stock" icon="cube-outline" color="#10B981" onPress={() => { setSeg('stock'); setSearch(s.store_id); }} />
+                                <ActionButton label={t('admin_screen.contacter')} icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(s.owner_email)} />
+                                <ActionButton label={t('admin_screen.voir_utilisateurs')} icon="people-outline" color="#3B82F6" onPress={() => { setSeg('users'); setSearch(s.owner_email || s.owner_name || ''); }} />
+                                <ActionButton label={t('admin_screen.voir_stock')} icon="cube-outline" color="#10B981" onPress={() => { setSeg('stock'); setSearch(s.store_id); }} />
                             </View>
                         </Card>
                     ))}
@@ -922,10 +923,10 @@ export default function AdminDashboard() {
         <View>
             <FilterBar
                 filters={[
-                    { id: 'all', label: 'Tous' },
-                    { id: 'active', label: 'Actifs' },
-                    { id: 'expired', label: 'Expirés' },
-                    { id: 'cancelled', label: 'Annulés' },
+                    { id: 'all', label: t('admin_screen.tous') },
+                    { id: 'active', label: t('admin_screen.actifs') },
+                    { id: 'expired', label: t('admin_screen.expires') },
+                    { id: 'cancelled', label: t('admin_screen.annules') },
                 ]}
                 active={subscriptionStatusFilter}
                 onSelect={setSubscriptionStatusFilter as any}
@@ -933,30 +934,30 @@ export default function AdminDashboard() {
             />
             <FilterBar
                 filters={[
-                    { id: 'all', label: 'Tous les providers' },
-                    { id: 'stripe', label: 'Stripe' },
-                    { id: 'flutterwave', label: 'Flutterwave' },
-                    { id: 'revenuecat', label: 'RevenueCat' },
-                    { id: 'none', label: 'Sans provider' },
+                    { id: 'all', label: t('admin_screen.tous_les_providers') },
+                    { id: 'stripe', label: t('admin_screen.stripe') },
+                    { id: 'flutterwave', label: t('admin_screen.flutterwave') },
+                    { id: 'revenuecat', label: t('admin_screen.revenuecat') },
+                    { id: 'none', label: t('admin_screen.sans_provider') },
                 ]}
                 active={subscriptionProviderFilter}
                 onSelect={setSubscriptionProviderFilter as any}
                 colors={colors}
             />
-            <SearchBar value={subscriptionSearch} onChangeText={setSubscriptionSearch} placeholder="Compte, propriétaire, e-mail, devise..." colors={colors} />
+            <SearchBar value={subscriptionSearch} onChangeText={setSubscriptionSearch} placeholder={t('admin_screen.compte_proprietaire_e_mail_devise')} colors={colors} />
 
             {subscriptionOverview && (
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <StatCard label="Payants actifs" value={subscriptionOverview.active_paid_accounts || 0} icon="card" color="#3B82F6" colors={colors} />
-                    <StatCard label="Trials actifs" value={subscriptionOverview.active_trials || 0} icon="flash" color="#8B5CF6" colors={colors} />
-                    <StatCard label="Trials < 7 j" value={subscriptionOverview.trials_expiring_7d || 0} icon="time" color="#F59E0B" colors={colors} />
-                    <StatCard label="Expirations proches" value={subscriptionOverview.subscriptions_expiring_soon || 0} icon="alert-circle" color="#EF4444" colors={colors} />
+                    <StatCard label={t('admin_screen.payants_actifs')} value={subscriptionOverview.active_paid_accounts || 0} icon="card" color="#3B82F6" colors={colors} />
+                    <StatCard label={t('admin_screen.trials_actifs')} value={subscriptionOverview.active_trials || 0} icon="flash" color="#8B5CF6" colors={colors} />
+                    <StatCard label={t('admin_screen.trials_7_j')} value={subscriptionOverview.trials_expiring_7d || 0} icon="time" color="#F59E0B" colors={colors} />
+                    <StatCard label={t('admin_screen.expirations_proches')} value={subscriptionOverview.subscriptions_expiring_soon || 0} icon="alert-circle" color="#EF4444" colors={colors} />
                 </View>
             )}
 
             {subscriptionAlerts?.items?.length > 0 && (
                 <View style={{ marginBottom: 16 }}>
-                    <SectionHeader title="Alertes abonnements" count={subscriptionAlerts.items.length} colors={colors} />
+                    <SectionHeader title={t('admin_screen.alertes_abonnements')} count={subscriptionAlerts.items.length} colors={colors} />
                     {subscriptionAlerts.items.map((alert: any, index: number) => (
                         <Card key={`${alert.code}-${index}`} colors={colors}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -969,7 +970,7 @@ export default function AdminDashboard() {
                 </View>
             )}
 
-            <SectionHeader title="Comptes abonnés" count={subscriptionAccounts.length} colors={colors} />
+            <SectionHeader title={t('admin_screen.comptes_abonnes')} count={subscriptionAccounts.length} colors={colors} />
             {subscriptionAccounts.map((account: any) => {
                 const actionGraceId = `${account.account_id}:grace:7`;
                 const actionReadOnlyId = `${account.account_id}:readonly:${account.manual_read_only_enabled ? 'off' : 'on'}`;
@@ -988,11 +989,11 @@ export default function AdminDashboard() {
                                 {formatProviderLabel(account.subscription_provider)} · {formatAccessPhase(account.subscription_access_phase)} · {account.country_code || '—'} · {account.currency || '—'}
                             </Text>
                             <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                Boutiques : {account.stores_count || 0} · Utilisateurs : {account.users_count || 0}
+                                {t('admin_screen.boutiques')} {account.stores_count || 0} {t('admin_screen.utilisateurs_2')} {account.users_count || 0}
                             </Text>
                             {(account.last_payment_amount || account.last_payment_at) && (
                                 <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                    Dernier paiement : {account.last_payment_amount ? fmtMoney(account.last_payment_amount, account.last_payment_currency || account.currency) : '—'} · {formatDateTime(account.last_payment_at)}
+                                    {t('admin_screen.dernier_paiement')} {account.last_payment_amount ? fmtMoney(account.last_payment_amount, account.last_payment_currency || account.currency) : '—'} · {formatDateTime(account.last_payment_at)}
                                 </Text>
                             )}
 
@@ -1024,13 +1025,13 @@ export default function AdminDashboard() {
                     </Card>
                 );
             })}
-            {subscriptionAccounts.length === 0 && <EmptyState icon="card-outline" message="Aucun compte ne correspond aux filtres." colors={colors} />}
+            {subscriptionAccounts.length === 0 && <EmptyState icon="card-outline" message={t('admin_screen.aucun_compte_ne_correspond_aux_filtres')} colors={colors} />}
 
-            <SectionHeader title="Événements récents" count={subscriptionEvents.length} colors={colors} />
+            <SectionHeader title={t('admin_screen.evenements_recents')} count={subscriptionEvents.length} colors={colors} />
             {subscriptionEvents.slice(0, 12).map((event: any, index: number) => (
                 <Card key={event.event_id || `${event.account_id}-${index}`} colors={colors}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>{event.event_type || 'événement'}</Text>
+                        <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>{event.event_type || t('admin_screen.evenement')}</Text>
                         <Badge label={formatProviderLabel(event.provider)} color="#8B5CF6" />
                     </View>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{event.account_id || '—'} · {event.status || '—'}</Text>
@@ -1044,10 +1045,10 @@ export default function AdminDashboard() {
         <View>
             <FilterBar
                 filters={[
-                    { id: 'all', label: 'Tous statuts' },
-                    { id: 'active', label: 'Actives' },
-                    { id: 'expired', label: 'Expirées' },
-                    { id: 'cleaned', label: 'Nettoyées' },
+                    { id: 'all', label: t('admin_screen.tous_statuts') },
+                    { id: 'active', label: t('admin_screen.actives') },
+                    { id: 'expired', label: t('admin_screen.expirees') },
+                    { id: 'cleaned', label: t('admin_screen.nettoyees') },
                 ]}
                 active={demoStatusFilter}
                 onSelect={setDemoStatusFilter as any}
@@ -1055,10 +1056,10 @@ export default function AdminDashboard() {
             />
             <FilterBar
                 filters={[
-                    { id: 'all', label: 'Tous types' },
-                    { id: 'retail', label: 'Commerce' },
-                    { id: 'restaurant', label: 'Restaurant' },
-                    { id: 'enterprise', label: 'Enterprise' },
+                    { id: 'all', label: t('admin_screen.tous_types') },
+                    { id: 'retail', label: t('admin_screen.commerce') },
+                    { id: 'restaurant', label: t('admin_screen.restaurant') },
+                    { id: 'enterprise', label: t('admin_screen.enterprise') },
                 ]}
                 active={demoTypeFilter}
                 onSelect={setDemoTypeFilter as any}
@@ -1066,28 +1067,28 @@ export default function AdminDashboard() {
             />
             <FilterBar
                 filters={[
-                    { id: 'all', label: 'Toutes surfaces' },
-                    { id: 'mobile', label: 'Mobile' },
-                    { id: 'web', label: 'Web' },
+                    { id: 'all', label: t('admin_screen.toutes_surfaces') },
+                    { id: 'mobile', label: t('admin_screen.mobile') },
+                    { id: 'web', label: t('admin_screen.web') },
                 ]}
                 active={demoSurfaceFilter}
                 onSelect={setDemoSurfaceFilter as any}
                 colors={colors}
             />
-            <SearchBar value={demoSearch} onChangeText={setDemoSearch} placeholder="Session, e-mail, compte..." colors={colors} />
+            <SearchBar value={demoSearch} onChangeText={setDemoSearch} placeholder={t('admin_screen.session_e_mail_compte')} colors={colors} />
 
             {demoOverview && (
                 <>
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                        <StatCard label="Actives" value={demoOverview.active_sessions || 0} icon="flash" color="#10B981" colors={colors} />
-                        <StatCard label="Expirées" value={demoOverview.expired_sessions || 0} icon="time" color="#F59E0B" colors={colors} />
-                        <StatCard label="Nettoyées" value={demoOverview.cleaned_sessions || 0} icon="trash" color="#8B5CF6" colors={colors} />
-                        <StatCard label="Contacts captés" value={demoOverview.contacts_captured || 0} icon="mail" color="#3B82F6" colors={colors} />
+                        <StatCard label={t('admin_screen.actives')} value={demoOverview.active_sessions || 0} icon="flash" color="#10B981" colors={colors} />
+                        <StatCard label={t('admin_screen.expirees')} value={demoOverview.expired_sessions || 0} icon="time" color="#F59E0B" colors={colors} />
+                        <StatCard label={t('admin_screen.nettoyees')} value={demoOverview.cleaned_sessions || 0} icon="trash" color="#8B5CF6" colors={colors} />
+                        <StatCard label={t('admin_screen.contacts_captes')} value={demoOverview.contacts_captured || 0} icon="mail" color="#3B82F6" colors={colors} />
                     </View>
 
                     {Object.keys(demoOverview.by_currency || {}).length > 0 && (
                         <Card colors={colors} style={{ marginBottom: 12 }}>
-                            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 13, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Par devise</Text>
+                            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 13, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('admin_screen.par_devise')}</Text>
                             {Object.entries(demoOverview.by_currency as Record<string, number>).map(([currency, count]) => {
                                 const total = demoOverview.total_sessions || 1;
                                 const pct = Math.round((count / total) * 100);
@@ -1109,7 +1110,7 @@ export default function AdminDashboard() {
 
                     {Object.keys(demoOverview.by_country || {}).length > 0 && (
                         <Card colors={colors} style={{ marginBottom: 12 }}>
-                            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 13, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Par pays</Text>
+                            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 13, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('admin_screen.par_pays')}</Text>
                             {Object.entries(demoOverview.by_country as Record<string, number>).slice(0, 10).map(([country, count]) => {
                                 const total = demoOverview.total_sessions || 1;
                                 const pct = Math.round((count / total) * 100);
@@ -1128,7 +1129,7 @@ export default function AdminDashboard() {
                 </>
             )}
 
-            <SectionHeader title="Sessions démo" count={demoSessionsTotal || demoSessions.length} colors={colors} />
+            <SectionHeader title={t('admin_screen.sessions_demo')} count={demoSessionsTotal || demoSessions.length} colors={colors} />
             {demoSessions.map((session: any) => (
                 <Card key={session.demo_session_id} colors={colors}>
                     <View style={{ gap: 8 }}>
@@ -1146,18 +1147,18 @@ export default function AdminDashboard() {
                             {formatDemoTypeLabel(session.demo_type)} · {(session.surface || '—').toUpperCase()} · {session.country_code || '—'} · {session.currency || '—'}
                         </Text>
                         <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                            Contact : {session.contact_email || 'Non capté'}
+                            {t('admin_screen.contact')} {session.contact_email || t('admin_screen.non_capte')}
                         </Text>
                         <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                            Début : {formatDateTime(session.started_at || session.created_at)}
+                            {t('admin_screen.debut')} {formatDateTime(session.started_at || session.created_at)}
                         </Text>
                         <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                            Expiration : {formatDateTime(session.expires_at)} · Restant : {formatRemainingDuration(session.remaining_seconds)}
+                            {t('admin_screen.expiration')} {formatDateTime(session.expires_at)} {t('admin_screen.restant')} {formatRemainingDuration(session.remaining_seconds)}
                         </Text>
                     </View>
                 </Card>
             ))}
-            {demoSessions.length === 0 && <EmptyState icon="sparkles-outline" message="Aucune session démo ne correspond aux filtres." colors={colors} />}
+            {demoSessions.length === 0 && <EmptyState icon="sparkles-outline" message={t('admin_screen.aucune_session_demo_ne_correspond_aux')} colors={colors} />}
         </View>
     );
 
@@ -1173,9 +1174,9 @@ export default function AdminDashboard() {
                             <Text style={{ color: colors.textMuted, fontSize: 12 }}>
                                 {t('admin.stock.units', { count: (p as any).quantity || (p as any).current_stock || 0 })} · {t('admin.stock.seller')}: {(p as any).seller_name || (p as any).owner_name}
                             </Text>
-                            <Text style={{ color: colors.textMuted, fontSize: 10 }}>ID: {p.product_id}</Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 10 }}>{t('admin_screen.id')} {p.product_id}</Text>
                         </View>
-                        <Badge label={p.is_active ? 'Actif' : 'Masqué'} color={p.is_active ? '#10B981' : '#6B7280'} />
+                        <Badge label={p.is_active ? 'Actif' : t('admin_screen.masque')} color={p.is_active ? '#10B981' : '#6B7280'} />
                     </View>
                     <View style={st.metricRow}>
                         {renderMetricPill('Stock', formatNumber((p as any).quantity || (p as any).current_stock || 0), ((p as any).quantity || 0) <= (p.min_stock || 0) ? '#EF4444' : '#10B981')}
@@ -1185,10 +1186,10 @@ export default function AdminDashboard() {
                     <View style={st.detailGrid}>
                         {renderInfoLine('Stock minimum', p.min_stock)}
                         {renderInfoLine('Stock maximum', p.max_stock)}
-                        {renderInfoLine('Catégorie', (p as any).category_name || p.category_id)}
+                        {renderInfoLine(t('admin_screen.categorie'), (p as any).category_name || p.category_id)}
                         {renderInfoLine('Boutique', (p as any).store_name || (p as any).store_id || p.location_id)}
                         {renderInfoLine('SKU', p.sku)}
-                        {renderInfoLine('Créé le', formatDateTime(p.created_at))}
+                        {renderInfoLine(t('admin_screen.cree_le'), formatDateTime(p.created_at))}
                     </View>
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                         <ActionButton
@@ -1249,17 +1250,17 @@ export default function AdminDashboard() {
                                 <Text style={{ color: colors.text, fontWeight: '600' }}>{c.name}</Text>
                                 <Text style={{ color: colors.textMuted, fontSize: 11 }} numberOfLines={1}>{c.phone || c.email || 'N/A'}</Text>
                                 <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
-                                    {c.store_name ? <Text style={{ color: colors.textSecondary, fontSize: 11 }}>Boutique : {c.store_name}</Text> : null}
-                                    {c.last_purchase_at ? <Text style={{ color: colors.textMuted, fontSize: 11 }}>Dernier achat : {new Date(c.last_purchase_at).toLocaleDateString()}</Text> : null}
+                                    {c.store_name ? <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{t('admin_screen.boutique')} {c.store_name}</Text> : null}
+                                    {c.last_purchase_at ? <Text style={{ color: colors.textMuted, fontSize: 11 }}>{t('admin_screen.dernier_achat')} {new Date(c.last_purchase_at).toLocaleDateString()}</Text> : null}
                                 </View>
                             </View>
                         </View>
                         {c.total_purchases > 0 && <Text style={{ color: '#10B981', fontWeight: '700', marginLeft: 8 }}>{fmtMoney(c.total_purchases, user?.currency)}</Text>}
                     </View>
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                        {c.phone ? <ActionButton label="Appeler" icon="call-outline" color={colors.primary} onPress={() => handleCall(c.phone)} /> : null}
-                        {c.email ? <ActionButton label="E-mail" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(c.email)} /> : null}
-                        {c.phone ? <ActionButton label="WhatsApp" icon="logo-whatsapp" color="#10B981" onPress={() => openExternal(`https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}`)} /> : null}
+                        {c.phone ? <ActionButton label={t('admin_screen.appeler')} icon="call-outline" color={colors.primary} onPress={() => handleCall(c.phone)} /> : null}
+                        {c.email ? <ActionButton label={t('admin_screen.e_mail')} icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(c.email)} /> : null}
+                        {c.phone ? <ActionButton label={t('admin_screen.whatsapp')} icon="logo-whatsapp" color="#10B981" onPress={() => openExternal(`https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}`)} /> : null}
                     </View>
                 </Card>
             ))}
@@ -1273,7 +1274,7 @@ export default function AdminDashboard() {
                 filters={[
                     { id: 'all', label: t('admin.support.filterAll') },
                     { id: 'open', label: t('admin.support.filterOpen') },
-                    { id: 'in_progress', label: 'En cours' },
+                    { id: 'in_progress', label: t('admin_screen.en_cours') },
                     { id: 'pending', label: t('admin.support.filterPending') },
                     { id: 'closed', label: t('admin.support.filterClosed') }
                 ]}
@@ -1294,15 +1295,15 @@ export default function AdminDashboard() {
                         {renderInfoLine('Type', t_info.type)}
                         {renderInfoLine('Plan', t_info.plan)}
                         {renderInfoLine('Surface', t_info.support_surface)}
-                        {renderInfoLine('Priorité', t_info.priority)}
+                        {renderInfoLine(t('admin_screen.priorite'), t_info.priority)}
                         {renderInfoLine('ID ticket', t_info.ticket_id)}
-                        {renderInfoLine('Créé le', formatDateTime(t_info.created_at))}
-                        {renderInfoLine('Mis à jour', formatDateTime(t_info.updated_at))}
+                        {renderInfoLine(t('admin_screen.cree_le'), formatDateTime(t_info.created_at))}
+                        {renderInfoLine(t('admin_screen.mis_a_jour'), formatDateTime(t_info.updated_at))}
                         {renderInfoLine('Messages', t_info.messages?.length || 0)}
                     </View>
                     {t_info.messages?.length > 0 && (
                         <View style={{ backgroundColor: colors.inputBg, borderRadius: 10, padding: 10, marginTop: 10, borderWidth: 1, borderColor: colors.glassBorder }}>
-                            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>Dernier message</Text>
+                            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 4 }}>{t('admin_screen.dernier_message')}</Text>
                             <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={4}>
                                 {t_info.messages[t_info.messages.length - 1]?.content}
                             </Text>
@@ -1313,7 +1314,7 @@ export default function AdminDashboard() {
                             <>
                                 {t_info.request_type === 'remote_assistance' ? (
                                     <ActionButton
-                                        label={assistingTicketId === t_info.ticket_id ? 'Ouverture...' : 'Accéder au compte'}
+                                        label={assistingTicketId === t_info.ticket_id ? 'Ouverture...' : t('admin_screen.acceder_au_compte')}
                                         icon="log-in-outline"
                                         color="#10B981"
                                         onPress={() => handleAssistTicket(t_info)}
@@ -1323,7 +1324,7 @@ export default function AdminDashboard() {
                                 <ActionButton label={t('admin.actions.close')} icon="checkmark-circle-outline" color="#10B981" onPress={() => handleCloseTicket(t_info.ticket_id)} />
                             </>
                         )}
-                        {t_info.user_email ? <ActionButton label="E-mail" icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(t_info.user_email)} /> : null}
+                        {t_info.user_email ? <ActionButton label={t('admin_screen.e_mail')} icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(t_info.user_email)} /> : null}
                     </View>
                     {replyingTo === t_info.ticket_id && (
                         <View style={{ marginTop: 12, gap: 8 }}>
@@ -1367,7 +1368,7 @@ export default function AdminDashboard() {
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                     <StatCard label={t('admin.disputes.statsOpen') || 'Ouverts'} value={disputeStats.open} icon="alert-circle" color="#F59E0B" colors={colors} />
                     <StatCard label={t('admin.disputes.statsInvestigating') || 'En cours'} value={disputeStats.investigating} icon="search" color="#3B82F6" colors={colors} />
-                    <StatCard label={t('admin.disputes.statsResolved') || 'Résolus'} value={disputeStats.resolved} icon="checkmark-circle" color="#10B981" colors={colors} />
+                    <StatCard label={t('admin.disputes.statsResolved') || t('admin_screen.resolus')} value={disputeStats.resolved} icon="checkmark-circle" color="#10B981" colors={colors} />
                 </View>
             )}
             <SectionHeader title={t('admin.segments.disputes')} count={disputes.length} colors={colors} />
@@ -1384,7 +1385,7 @@ export default function AdminDashboard() {
 
                     {d.resolution && (
                         <View style={{ marginTop: 8, padding: 8, backgroundColor: colors.bgLight, borderRadius: 8, borderWidth: 1, borderColor: '#10B98133' }}>
-                            <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '700' }}>{t('admin.disputes.resolutionLabel') || 'RÉSOLUTION :'}</Text>
+                            <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '700' }}>{t('admin.disputes.resolutionLabel') || t('admin_screen.resolution')}</Text>
                             <Text style={{ color: colors.text, fontSize: 12 }}>{d.resolution}</Text>
                         </View>
                     )}
@@ -1441,11 +1442,11 @@ export default function AdminDashboard() {
                     multiline
                 />
                 <View style={{ backgroundColor: colors.inputBg, borderRadius: 10, borderWidth: 1, borderColor: colors.glassBorder, padding: 10, marginBottom: 8, gap: 8 }}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700' }}>Aide IA</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700' }}>{t('admin_screen.aide_ia')}</Text>
                     <TextInput
                         value={msgAiObjective}
                         onChangeText={setMsgAiObjective}
-                        placeholder="Objectif de la notification"
+                        placeholder={t('admin_screen.objectif_de_la_notification')}
                         placeholderTextColor={colors.textMuted}
                         style={{ color: colors.text, minHeight: 54 }}
                         multiline
@@ -1455,7 +1456,7 @@ export default function AdminDashboard() {
                         disabled={msgAiGenerating}
                         style={{ backgroundColor: '#8B5CF6', borderRadius: 8, padding: 10, alignItems: 'center', opacity: msgAiGenerating ? 0.7 : 1 }}
                     >
-                        <Text style={{ color: '#fff', fontWeight: '700' }}>{msgAiGenerating ? 'Génération...' : 'Générer avec l’IA'}</Text>
+                        <Text style={{ color: '#fff', fontWeight: '700' }}>{msgAiGenerating ? t('admin_screen.generation') : t('admin_screen.generer_avec_l_ia')}</Text>
                     </TouchableOpacity>
                     {!!msgAiRationale && (
                         <Text style={{ color: colors.textMuted, fontSize: 11 }}>{msgAiRationale}</Text>
@@ -1463,15 +1464,15 @@ export default function AdminDashboard() {
                 </View>
                 <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}>{t('admin.comms.targetLabel')}:</Text>
                 <Text style={{ color: colors.textMuted, fontSize: 11, marginBottom: 8 }}>
-                    Pour cibler les personnes qui ont installé l'application sans créer de compte, choisissez Installations sans compte.
+                    {t('admin_screen.pour_cibler_les_personnes_qui_ont')}
                 </Text>
                 <FilterBar
                     filters={[
                         { id: 'all', label: t('admin.comms.targetAll') },
-                        { id: 'anonymous_installations', label: 'Installations sans compte' },
+                        { id: 'anonymous_installations', label: t('admin_screen.installations_sans_compte') },
                         { id: 'shopkeeper', label: t('admin.comms.targetShopkeepers') },
                         { id: 'supplier', label: t('admin.comms.targetSuppliers') },
-                        { id: 'staff', label: 'Staff' },
+                        { id: 'staff', label: t('admin_screen.staff') },
                         { id: 'specific', label: t('admin.comms.targetSpecific') }
                     ]}
                     active={msgTarget}
@@ -1497,7 +1498,7 @@ export default function AdminDashboard() {
 
                 {msgTarget === 'anonymous_installations' && (
                     <View style={{ gap: 8, marginTop: 8, marginBottom: 8 }}>
-                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Filtres installations anonymes :</Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t('admin_screen.filtres_installations_anonymes')}</Text>
                         <FilterBar
                             filters={ADMIN_INSTALLATION_COUNTRIES.map((item) => ({ id: item.code, label: item.label }))}
                             active={msgInstallationCountry}
@@ -1517,12 +1518,12 @@ export default function AdminDashboard() {
                             colors={colors}
                         />
                         <Text style={{ color: colors.textMuted, fontSize: 11 }}>
-                            Les installations sans compte reçoivent uniquement des notifications push. Le filtre pays permet d'envoyer le bon texte à la bonne audience linguistique.
+                            {t('admin_screen.les_installations_sans_compte_recoivent_uniqueme')}
                         </Text>
                     </View>
                 )}
 
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, marginBottom: 6 }}>Destination au clic :</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, marginBottom: 6 }}>{t('admin_screen.destination_au_clic')}</Text>
                 <FilterBar
                     filters={ADMIN_MESSAGE_DESTINATIONS.map((item) => ({ id: item.id, label: item.label }))}
                     active={msgDestination}
@@ -1569,12 +1570,12 @@ export default function AdminDashboard() {
                     </View>
                 )}
 
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, marginBottom: 6 }}>Canaux :</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, marginBottom: 6 }}>{t('admin_screen.canaux')}</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                     {[
-                        { id: 'in_app' as AdminChannel, label: 'In-app' },
-                        { id: 'push' as AdminChannel, label: 'Push' },
-                        { id: 'email' as AdminChannel, label: 'Email' },
+                        { id: 'in_app' as AdminChannel, label: t('admin_screen.in_app') },
+                        { id: 'push' as AdminChannel, label: t('admin_screen.push') },
+                        { id: 'email' as AdminChannel, label: t('admin_screen.email') },
                     ].map((channel) => {
                         const active = msgChannels.includes(channel.id);
                         const disabled = channel.id === 'in_app' || msgTarget === 'anonymous_installations';
@@ -1615,7 +1616,7 @@ export default function AdminDashboard() {
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={2}>{m.content}</Text>
                     <AdminMessageLinkButton link={m.action_link} />
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>
-                        Cible : {m.target} · {m.sent_by} · {new Date(m.sent_at).toLocaleDateString()}
+                        {t('admin_screen.cible')} {m.target} · {m.sent_by} · {new Date(m.sent_at).toLocaleDateString()}
                     </Text>
                 </Card>
             ))}
@@ -1625,7 +1626,7 @@ export default function AdminDashboard() {
 
     const renderLeads = () => (
         <View>
-            <SectionHeader title="Contact Messages" count={leadContacts.length} colors={colors} />
+            <SectionHeader title={t('admin_screen.contact_messages')} count={leadContacts.length} colors={colors} />
             {leadsLoading && <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />}
             {leadContacts.map((c: any, i: number) => (
                 <Card key={c._id || i} colors={colors}>
@@ -1634,14 +1635,14 @@ export default function AdminDashboard() {
                         <Badge label={c.type || 'contact'} color="#3B82F6" />
                     </View>
                     <Text style={{ color: colors.primary, fontSize: 13, marginBottom: 4 }}>{c.email}</Text>
-                    {c.company ? <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>Entreprise : {c.company}</Text> : null}
+                    {c.company ? <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>{t('admin_screen.entreprise')} {c.company}</Text> : null}
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 4 }}>{c.message}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11 }}>{new Date(c.created_at).toLocaleDateString()}</Text>
                 </Card>
             ))}
-            {!leadsLoading && leadContacts.length === 0 && <EmptyState icon="mail-outline" message="No contact messages yet" colors={colors} />}
+            {!leadsLoading && leadContacts.length === 0 && <EmptyState icon="mail-outline" message={t('admin_screen.no_contact_messages_yet')} colors={colors} />}
 
-            <SectionHeader title="Newsletter Subscribers" count={leadSubscribers.length} colors={colors} />
+            <SectionHeader title={t('admin_screen.newsletter_subscribers')} count={leadSubscribers.length} colors={colors} />
             {leadSubscribers.map((s: any, i: number) => (
                 <Card key={s._id || i} colors={colors}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1650,7 +1651,7 @@ export default function AdminDashboard() {
                     </View>
                 </Card>
             ))}
-            {!leadsLoading && leadSubscribers.length === 0 && <EmptyState icon="newspaper-outline" message="No subscribers yet" colors={colors} />}
+            {!leadsLoading && leadSubscribers.length === 0 && <EmptyState icon="newspaper-outline" message={t('admin_screen.no_subscribers_yet')} colors={colors} />}
         </View>
     );
 
@@ -1660,7 +1661,7 @@ export default function AdminDashboard() {
                 filters={[
                     { id: 'all', label: t('admin.security.filterAll') },
                     { id: 'login_success', label: t('admin.security.filterLoginSuccess') || 'Connexions' },
-                    { id: 'login_failed', label: t('admin.security.filterLoginFailed') || 'échecs' },
+                    { id: 'login_failed', label: t('admin.security.filterLoginFailed') || t('admin_screen.echecs') },
                     { id: 'password_changed', label: t('admin.security.filterPwdChanged') || 'MDP changed' }
                 ]}
                 active={secFilter}
@@ -1672,8 +1673,8 @@ export default function AdminDashboard() {
                     <StatCard label={t('admin.security.statsFailures')} value={secStats.failed_logins_24h || 0} icon="lock-closed" color="#EF4444" colors={colors} />
                     <StatCard label={t('admin.security.statsSuspicious')} value={secStats.successful_logins_24h || 0} icon="eye" color="#F59E0B" colors={colors} />
                     <StatCard label={t('admin.security.statsAlerts')} value={secStats.blocked_users || 0} icon="notifications" color="#EF4444" colors={colors} />
-                    <StatCard label="Vérifications" value={verificationEvents.length} icon="mail" color="#3B82F6" colors={colors} />
-                    <StatCard label="Sessions actives" value={activeSessions.length} icon="pulse" color="#8B5CF6" colors={colors} />
+                    <StatCard label={t('admin_screen.verifications')} value={verificationEvents.length} icon="mail" color="#3B82F6" colors={colors} />
+                    <StatCard label={t('admin_screen.sessions_actives')} value={activeSessions.length} icon="pulse" color="#8B5CF6" colors={colors} />
                 </View>
             )}
             <SectionHeader title={t('admin.segments.security')} count={secEvents.length} colors={colors} />
@@ -1694,12 +1695,12 @@ export default function AdminDashboard() {
             })}
             {secEvents.length === 0 && <EmptyState icon="shield-outline" message={t('admin.security.empty')} colors={colors} />}
 
-            <SectionHeader title="Journal des vérifications" count={verificationEvents.length} colors={colors} />
+            <SectionHeader title={t('admin_screen.journal_des_verifications')} count={verificationEvents.length} colors={colors} />
             <FilterBar
                 filters={[
-                    { id: 'all', label: 'Tous les providers' },
-                    { id: 'firebase', label: 'Firebase' },
-                    { id: 'resend', label: 'Resend' },
+                    { id: 'all', label: t('admin_screen.tous_les_providers') },
+                    { id: 'firebase', label: t('admin_screen.firebase') },
+                    { id: 'resend', label: t('admin_screen.resend') },
                 ]}
                 active={verificationProviderFilter}
                 onSelect={setVerificationProviderFilter as any}
@@ -1714,27 +1715,27 @@ export default function AdminDashboard() {
                         <Badge label={formatProviderLabel(event.provider)} color={event.provider === 'firebase' ? '#3B82F6' : '#10B981'} />
                     </View>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                        {event.email || event.phone || event.user_id || 'Utilisateur non précisé'}
+                        {event.email || event.phone || event.user_id || t('admin_screen.utilisateur_non_precise')}
                     </Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>{formatDateTime(event.created_at)}</Text>
                 </Card>
             ))}
-            {verificationEvents.length === 0 && <EmptyState icon="mail-outline" message="Aucune vérification remontée." colors={colors} />}
+            {verificationEvents.length === 0 && <EmptyState icon="mail-outline" message={t('admin_screen.aucune_verification_remontee')} colors={colors} />}
 
-            <SectionHeader title="Sessions actives" count={activeSessions.length} colors={colors} />
+            <SectionHeader title={t('admin_screen.sessions_actives')} count={activeSessions.length} colors={colors} />
             {activeSessions.map((session: any, index: number) => (
                 <Card key={session.session_id || `${session.user_id}-${index}`} colors={colors}>
                     <Text style={{ color: colors.text, fontWeight: '700' }}>{session.user_name || 'Inconnu'}</Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>{session.user_email || session.user_id || '—'}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 6 }}>
-                        Créée : {formatDateTime(session.created_at)}
+                        {t('admin_screen.creee')} {formatDateTime(session.created_at)}
                     </Text>
                     <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
-                        Expire : {formatDateTime(session.expires_at)}
+                        {t('admin_screen.expire')} {formatDateTime(session.expires_at)}
                     </Text>
                 </Card>
             ))}
-            {activeSessions.length === 0 && <EmptyState icon="pulse-outline" message="Aucune session active remontée." colors={colors} />}
+            {activeSessions.length === 0 && <EmptyState icon="pulse-outline" message={t('admin_screen.aucune_session_active_remontee')} colors={colors} />}
         </View>
     );
 
@@ -1775,7 +1776,7 @@ export default function AdminDashboard() {
                     {[
                         { label: t('admin.health.version_label') || 'Version', value: health?.version || '1.0.0', icon: 'information-circle' },
                         { label: t('admin.health.status_label') || 'Statut', value: health?.status || 'Active', icon: 'server' },
-                        { label: t('admin.health.db_label') || 'Base de données', value: health?.database || 'Connected', icon: 'hardware-chip' },
+                        { label: t('admin.health.db_label') || t('admin_screen.base_de_donnees'), value: health?.database || 'Connected', icon: 'hardware-chip' },
                     ].map((item, i) => (
                         <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: i < 2 ? 1 : 0, borderColor: colors.divider }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

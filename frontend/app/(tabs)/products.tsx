@@ -2338,7 +2338,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
           if (hasEnterpriseLocations && !isRestaurant && editingProduct.location_id !== (nextLocationId || undefined)) {
             await productsApi.transferLocation(editingProduct.product_id, {
               to_location_id: nextLocationId || null,
-              note: 'Emplacement mis à jour depuis la fiche produit',
+              note: t('products_screen.location_note'),
             });
           }
           savedProductId = editingProduct.product_id;
@@ -2361,7 +2361,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
                 await spApi.unlink(existingLink.link_id);
               } catch (error: any) {
                 supplierSyncErrors.push(
-                  error?.message || `Impossible de retirer ${getSupplierNameById(existingLink.supplier_id)}.`
+                  error?.message || t('products_screen.supplier_unlink_failed', { name: getSupplierNameById(existingLink.supplier_id) })
                 );
               }
             }
@@ -2379,7 +2379,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
                 });
               } catch (error: any) {
                 supplierSyncErrors.push(
-                  error?.message || `Impossible de lier ${getSupplierNameById(supplierId)}.`
+                  error?.message || t('products_screen.supplier_link_failed', { name: getSupplierNameById(supplierId) })
                 );
               }
               continue;
@@ -2390,7 +2390,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
                 await spApi.update(existingLink.link_id, { is_preferred: shouldBePrimary });
               } catch (error: any) {
                 supplierSyncErrors.push(
-                  error?.message || `Impossible de mettre à jour ${getSupplierNameById(supplierId)}.`
+                  error?.message || t('products_screen.supplier_update_failed', { name: getSupplierNameById(supplierId) })
                 );
               }
             }
@@ -2399,7 +2399,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
           if (supplierSyncErrors.length > 0) {
             Alert.alert(
               t('common.warning', 'Attention'),
-              `Le produit a bien été enregistré, mais certaines liaisons fournisseurs ont échoué.\n\n${supplierSyncErrors[0]}`
+              t('products_screen.saved_supplier_links_failed', { error: supplierSyncErrors[0] })
             );
           }
         }
@@ -3766,7 +3766,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
               onPress={handleExportCSV}
             >
               <Ionicons name="download-outline" size={20} color={colors.primary} />
-              <Text numberOfLines={1} style={styles.headerActionText}>Exporter</Text>
+              <Text numberOfLines={1} style={styles.headerActionText}>{t('products_screen.exporter')}</Text>
             </TouchableOpacity>
             {canWrite && (
               <TouchableOpacity
@@ -3793,7 +3793,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
               >
                 <Ionicons name={isSelectionMode ? "close" : "list-outline"} size={20} color={isSelectionMode ? colors.primaryLight : colors.text} />
                 <Text numberOfLines={1} style={[styles.headerActionText, isSelectionMode && { color: colors.primary }]}>
-                  {isSelectionMode ? 'Fermer la sélection' : 'Sélection'}
+                  {isSelectionMode ? t('products_screen.fermer_la_selection') : t('products_screen.selection')}
                 </Text>
               </TouchableOpacity>
               <GuideTarget id="products.add">
@@ -3934,7 +3934,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
               <View style={styles.sectionToggleCopy}>
                 <Text style={styles.sectionToggleTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>{t('products.sort_and_filters', 'Trier et filtrer')}</Text>
                 <Text style={styles.sectionToggleDescription} numberOfLines={2} ellipsizeMode="tail">
-                  {`${filtered.length} produit${filtered.length > 1 ? 's' : ''} visible${filtered.length > 1 ? 's' : ''} - ${activeProductControlCount > 0 ? `${activeProductControlCount} réglage${activeProductControlCount > 1 ? 's' : ''} actif${activeProductControlCount > 1 ? 's' : ''}` : 'aucun réglage avancé'}`}
+                  {`${t('products_screen.visible_products', { count: filtered.length })} - ${activeProductControlCount > 0 ? t('products_screen.active_settings', { count: activeProductControlCount }) : t('products_screen.aucun_reglage_avance')}`}
                 </Text>
               </View>
               <Ionicons
@@ -4425,7 +4425,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
             {correlationsMap[product.product_id]?.length > 0 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, marginBottom: 8, flexWrap: 'wrap' }}>
                 <Ionicons name="link-outline" size={13} color={colors.primary} />
-                <Text style={{ fontSize: 11, color: colors.textMuted }}>Acheté avec : </Text>
+                <Text style={{ fontSize: 11, color: colors.textMuted }}>{t('products_screen.achete_avec')} </Text>
                 {correlationsMap[product.product_id].slice(0, 3).map((c, i) => (
                   <View key={i} style={{ backgroundColor: colors.primary + '15', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
                     <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{c.name}</Text>
@@ -5269,7 +5269,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
                   <View style={styles.formRow}>
                     <View style={styles.formHalf}>
                       <FormField
-                        label={'Pas de vente'}
+                        label={t('products_screen.pas_de_vente')}
                         value={formQuantityPrecision}
                         onChangeText={setFormQuantityPrecision}
                         keyboardType="numeric"
@@ -5278,10 +5278,10 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
                       />
                     </View>
                     <View style={[styles.formHalf, { justifyContent: 'center' }]}>
-                      <Text style={[styles.formLabel, { marginBottom: 6 }]}>Vente fractionnee</Text>
+                      <Text style={[styles.formLabel, { marginBottom: 6 }]}>{t('products_screen.vente_fractionnee')}</Text>
                       <View style={{ backgroundColor: colors.primary + '10', borderRadius: BorderRadius.md, padding: 12, borderWidth: 1, borderColor: colors.primary + '25' }}>
                         <Text style={{ color: colors.text, fontSize: 12, fontWeight: '600', lineHeight: 18 }}>
-                          Prix et stock geres au {formUnit}. Minimum conseille : {formatMeasurementQuantity(parseFloat(formQuantityPrecision) || defaultPrecisionForUnit(formUnit), formUnit)}.
+                          {t('products_screen.fractional_hint', { unit: formUnit, min: formatMeasurementQuantity(parseFloat(formQuantityPrecision) || defaultPrecisionForUnit(formUnit), formUnit) })}
                         </Text>
                       </View>
                     </View>
@@ -5548,7 +5548,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
               onPress={handleExportHistoryCSV}
             >
               <Ionicons name="download-outline" size={18} color={colors.success} />
-              <Text style={[styles.actionText, { color: colors.success }]}>{t('common.export')} CSV</Text>
+              <Text style={[styles.actionText, { color: colors.success }]}>{t('common.export')} {t('products_screen.csv')}</Text>
             </TouchableOpacity>
 
             <View style={{ marginBottom: Spacing.sm }}>

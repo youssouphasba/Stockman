@@ -236,11 +236,11 @@ export default function UsersScreen() {
     const toggleAccountRole = (role: 'billing_admin' | 'org_admin') => {
         if (role === 'org_admin' && !accountRoles.includes('org_admin')) {
             Alert.alert(
-                'Admin opérations',
-                'Ce rôle donne un accès complet aux opérations, aux magasins et à la gestion de l’équipe.',
+                t('users_screen.admin_operations'),
+                t('users_screen.ce_role_donne_un_acces_complet'),
                 [
                     { text: t('common.cancel'), style: 'cancel' },
-                    { text: 'Accorder', onPress: () => setAccountRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]) },
+                    { text: t('users_screen.accorder'), onPress: () => setAccountRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]) },
                 ]
             );
             return;
@@ -318,7 +318,7 @@ export default function UsersScreen() {
                 <View style={{ flex: 1 }}>
                     <Text style={styles.permLabel}>{label}</Text>
                     <Text style={styles.overrideHint}>
-                        {isOverridden ? 'Spécifique à ce magasin' : 'Suit les permissions générales'}
+                        {isOverridden ? t('users_screen.specifique_a_ce_magasin') : t('users_screen.suit_les_permissions_generales')}
                     </Text>
                 </View>
                 <TouchableOpacity
@@ -390,7 +390,7 @@ export default function UsersScreen() {
                                 <Text style={styles.userEmail}>{u.email}</Text>
                                 {!!(u.store_ids || []).length && (
                                     <Text style={styles.storeSummary}>
-                                        {(u.store_ids || []).length} magasin(s) assigne(s)
+                                        {(u.store_ids || []).length} {t('users_screen.magasin_s_assigne_s')}
                                     </Text>
                                 )}
                                 <View style={styles.userPerms}>
@@ -457,7 +457,7 @@ export default function UsersScreen() {
                                             style={styles.input}
                                             value={email}
                                             onChangeText={setEmail}
-                                            placeholder="email@exemple.com"
+                                            placeholder={t('users_screen.email_exemple_com')}
                                             keyboardType="email-address"
                                             autoCapitalize="none"
                                             placeholderTextColor={colors.textMuted}
@@ -481,11 +481,11 @@ export default function UsersScreen() {
                                 {renderPermissionRow(t('users.accounting_label'), 'accounting')}
                                 {renderPermissionRow(t('users.crm_label'), 'crm')}
                                 {hasPlatformModule(currentUser, 'suppliers') && renderPermissionRow(t('users.suppliers_label'), 'suppliers')}
-                                {renderPermissionRow(t('users.staff_label') || 'Gestion équipe', 'staff')}
+                                {renderPermissionRow(t('users.staff_label') || t('users_screen.gestion_equipe'), 'staff')}
 
-                                <Text style={styles.sectionTitle}>Magasins assignes</Text>
+                                <Text style={styles.sectionTitle}>{t('users_screen.magasins_assignes')}</Text>
                                 <Text style={styles.sectionHelp}>
-                                    Choisis les magasins visibles par cet employe. Les droits generaux s appliquent partout, puis tu peux affiner magasin par magasin.
+                                    {t('users_screen.choisis_les_magasins_visibles_par_cet')}
                                 </Text>
                                 <View style={styles.storeList}>
                                     {stores.map((store) => {
@@ -518,7 +518,7 @@ export default function UsersScreen() {
                                                 <View style={{ flex: 1 }}>
                                                     <Text style={styles.storeScopeTitle}>{store?.name || storeId}</Text>
                                                     <Text style={styles.overrideHint}>
-                                                        {storePermissions[storeId] ? 'Droits specifiques configures' : 'Suit les permissions generales'}
+                                                        {storePermissions[storeId] ? 'Droits specifiques configures' : t('users_screen.suit_les_permissions_generales_2')}
                                                     </Text>
                                                 </View>
                                                 <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
@@ -539,13 +539,13 @@ export default function UsersScreen() {
 
                                 {isOrgAdmin && (
                                     <>
-                                        <Text style={styles.sectionTitle}>Rôles du compte</Text>
+                                        <Text style={styles.sectionTitle}>{t('users_screen.roles_du_compte')}</Text>
                                         <Text style={styles.sectionHelp}>
-                                            `Admin facturation` gere l abonnement. `Admin operations` gere les magasins, les modules et l equipe.
+                                            {t('users_screen.admin_facturation_gere_l_abonnement_admin')}
                                         </Text>
                                         <View style={styles.permRow}>
                                             <View style={{ flex: 1 }}>
-                                                <Text style={styles.permLabel}>Admin facturation</Text>
+                                                <Text style={styles.permLabel}>{t('users_screen.admin_facturation')}</Text>
                                             </View>
                                             <Switch
                                                 value={accountRoles.includes('billing_admin')}
@@ -556,7 +556,7 @@ export default function UsersScreen() {
                                         </View>
                                         <View style={styles.permRow}>
                                             <View style={{ flex: 1 }}>
-                                                <Text style={styles.permLabel}>Admin opérations</Text>
+                                                <Text style={styles.permLabel}>{t('users_screen.admin_operations')}</Text>
                                             </View>
                                             <Switch
                                                 value={accountRoles.includes('org_admin')}

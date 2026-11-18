@@ -19,6 +19,12 @@ import pt from '../locales/pt.json';
 import tr from '../locales/tr.json';
 import ar from '../locales/ar.json';
 import ru from '../locales/ru.json';
+import { setOrderPaymentTranslator } from '../utils/orderPayment';
+import { setDenkmaShippingTranslator } from '../utils/denkmaShipping';
+import { setDenkmaSignupTranslator } from '../utils/denkmaSignup';
+import { setEcommerceAppearanceTranslator } from '../utils/ecommerceAppearance';
+import { setEcommerceDomainTranslator } from '../utils/ecommerceDomain';
+import { setEcommerceSetupTranslator } from '../utils/ecommerceSetup';
 
 const resources = {
     fr: { translation: fr },
@@ -87,7 +93,8 @@ i18n
     .use(initReactI18next)
     .init({
         resources,
-        fallbackLng: 'fr',
+        // Texte manquant dans une langue : le wolof et le peul reprennent le français, les autres l'anglais.
+        fallbackLng: { wo: ['fr'], ff: ['fr'], fr: [], default: ['en', 'fr'] },
         interpolation: {
             escapeValue: false,
         },
@@ -95,5 +102,13 @@ i18n
             useSuspense: false,
         },
     });
+
+// Libellés de paiement des commandes en ligne (fichier partagé avec le web, sans dépendance à i18next).
+setOrderPaymentTranslator((key, fallback, vars) => i18n.t(key, { defaultValue: fallback, ...(vars || {}) }));
+setDenkmaShippingTranslator((key, fallback, vars) => i18n.t(key, { defaultValue: fallback, ...(vars || {}) }));
+setDenkmaSignupTranslator((key, fallback, vars) => i18n.t(key, { defaultValue: fallback, ...(vars || {}) }));
+setEcommerceAppearanceTranslator((key, fallback, vars) => i18n.t(key, { defaultValue: fallback, ...(vars || {}) }));
+setEcommerceDomainTranslator((key, fallback, vars) => i18n.t(key, { defaultValue: fallback, ...(vars || {}) }));
+setEcommerceSetupTranslator((key, fallback, vars) => i18n.t(key, { defaultValue: fallback, ...(vars || {}) }));
 
 export default i18n;

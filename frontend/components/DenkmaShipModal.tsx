@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { ecommerce } from '../services/api';
 import { amountDue, denkmaDelivery, denkmaDestination } from '../utils/denkmaShipping';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   order: any;
@@ -21,6 +22,7 @@ type Photo = { uri: string; type: string };
 // À afficher seulement quand il est ouvert ({open && <DenkmaShipModal />}) : un Modal transparent
 // toujours monté bloque les gestes sur iOS.
 export default function DenkmaShipModal({ order, formatAmount, onClose, onShipped }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const [paid, setPaid] = useState(false);
   const [photo, setPhoto] = useState<Photo | null>(null);
@@ -34,7 +36,7 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
       if (source === 'camera') {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
-          setError("Autorisez l'appareil photo, ou choisissez une photo existante.");
+          setError(t('denkma_ship.autorisez_l_appareil_photo_ou_choisissez'));
           return;
         }
       }
@@ -45,7 +47,7 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
         setPhoto({ uri: asset.uri, type: asset.mimeType && ['image/jpeg', 'image/png', 'image/webp'].includes(asset.mimeType) ? asset.mimeType : 'image/jpeg' });
       }
     } catch {
-      setError('Impossible de récupérer la photo. Réessayez.');
+      setError(t('denkma_ship.impossible_de_recuperer_la_photo_reessayez'));
     }
   }
 
@@ -60,7 +62,7 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
       const updated = await ecommerce.shipWithDenkma(order.order_id, form);
       onShipped(updated);
     } catch (err: any) {
-      setError(err?.message || "L'expédition n'a pas pu être demandée. Réessayez.");
+      setError(err?.message || t('denkma_ship.l_expedition_n_a_pas_pu'));
     } finally {
       setBusy(false);
     }
@@ -78,10 +80,10 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
         <View style={{ maxHeight: '92%', backgroundColor: colors.bgDark || colors.card, borderTopLeftRadius: BorderRadius.lg, borderTopRightRadius: BorderRadius.lg, padding: Spacing.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontSize: FontSize.lg, fontWeight: '700' }}>Livrer avec Denkma</Text>
+              <Text style={{ color: colors.text, fontSize: FontSize.lg, fontWeight: '700' }}>{t('denkma_ship.livrer_avec_denkma')}</Text>
               <Text style={muted}>{order.order_number}</Text>
             </View>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Fermer" onPress={onClose} style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('denkma_ship.fermer')} onPress={onClose} style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -89,28 +91,28 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
             {delivery && (
               <View style={card}>
                 <Text style={[text, { fontWeight: '700' }]}>{denkmaDestination(delivery)}</Text>
-                <Text style={text}>Frais Denkma réservés sur votre compte transport : {formatAmount(delivery.fee || 0)}</Text>
-                <Text style={muted}>Le livreur vient chercher le colis au point de collecte enregistré dans Denkma Pro.</Text>
+                <Text style={text}>{t('denkma_ship.frais_denkma_reserves_sur_votre_compte')} {formatAmount(delivery.fee || 0)}</Text>
+                <Text style={muted}>{t('denkma_ship.le_livreur_vient_chercher_le_colis')}</Text>
               </View>
             )}
 
             <View style={[card, { flexDirection: 'row', alignItems: 'center', gap: Spacing.md }]}>
               <View style={{ flex: 1 }}>
-                <Text style={[text, { fontWeight: '700' }]}>1. Le client a payé {formatAmount(amountDue(order))}</Text>
-                <Text style={muted}>Articles et livraison. Denkma ne collecte pas le paiement des marchandises.</Text>
+                <Text style={[text, { fontWeight: '700' }]}>{t('denkma_ship.1_le_client_a_paye')} {formatAmount(amountDue(order))}</Text>
+                <Text style={muted}>{t('denkma_ship.articles_et_livraison_denkma_ne_collecte')}</Text>
               </View>
-              <Switch value={paid} onValueChange={setPaid} accessibilityLabel="Le client a payé sa commande" trackColor={{ true: colors.primary, false: colors.divider }} />
+              <Switch value={paid} onValueChange={setPaid} accessibilityLabel={t('denkma_ship.le_client_a_paye_sa_commande')} trackColor={{ true: colors.primary, false: colors.divider }} />
             </View>
 
             <View style={card}>
-              <Text style={[text, { fontWeight: '700' }]}>2. Photo du colis prêt (facultatif)</Text>
-              <Text style={muted}>Gardez une preuve de l'état du colis au départ, si vous le souhaitez.</Text>
-              {photo && <Image source={{ uri: photo.uri }} style={{ width: '100%', height: 180, borderRadius: BorderRadius.md, marginTop: Spacing.sm }} resizeMode="cover" accessibilityLabel="Photo du colis" />}
+              <Text style={[text, { fontWeight: '700' }]}>{t('denkma_ship.2_photo_du_colis_pret_facultatif')}</Text>
+              <Text style={muted}>{t('denkma_ship.gardez_une_preuve_de_l_etat')}</Text>
+              {photo && <Image source={{ uri: photo.uri }} style={{ width: '100%', height: 180, borderRadius: BorderRadius.md, marginTop: Spacing.sm }} resizeMode="cover" accessibilityLabel={t('denkma_ship.photo_du_colis')} />}
               <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
                 {(['camera', 'library'] as const).map((source) => (
                   <TouchableOpacity key={source} accessibilityRole="button" onPress={() => void pick(source)} disabled={busy} style={{ flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.md }}>
                     <Ionicons name={source === 'camera' ? 'camera-outline' : 'images-outline'} size={18} color={colors.text} />
-                    <Text style={text}>{source === 'camera' ? (photo ? 'Reprendre' : 'Prendre la photo') : 'Galerie'}</Text>
+                    <Text style={text}>{source === 'camera' ? (photo ? 'Reprendre' : t('denkma_ship.prendre_la_photo')) : 'Galerie'}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -120,9 +122,9 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
 
             <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: !ready }} disabled={!ready} onPress={() => void ship()} style={{ minHeight: 52, borderRadius: BorderRadius.md, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: Spacing.sm, backgroundColor: ready ? '#2563EB' : colors.divider }}>
               {busy ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="bicycle-outline" size={20} color="#FFFFFF" />}
-              <Text style={{ color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '700' }}>{busy ? 'Expédition en cours...' : 'Expédier avec Denkma'}</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '700' }}>{busy ? t('denkma_ship.expedition_en_cours') : t('denkma_ship.expedier_avec_denkma')}</Text>
             </TouchableOpacity>
-            <Text style={[muted, { textAlign: 'center' }]}>Stockman réserve le transport, déclare le colis prêt et demande l'enlèvement. Le suivi s'affiche ensuite dans la commande.</Text>
+            <Text style={[muted, { textAlign: 'center' }]}>{t('denkma_ship.stockman_reserve_le_transport_declare_le')}</Text>
           </ScrollView>
         </View>
       </View>

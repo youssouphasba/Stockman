@@ -1644,7 +1644,7 @@ function AccountingWorkspace() {
                                     <Text style={[styles.kpiValue, { color: colors.warning }]}>
                                         {formatCurrency((stats as any)?.tax_collected ?? 0)}
                                     </Text>
-                                    <Text style={styles.kpiSubValue}>TVA</Text>
+                                    <Text style={styles.kpiSubValue}>{t('accounting_screen.tva')}</Text>
                                 </TouchableOpacity>
                             )}
                         </View>}
@@ -1653,7 +1653,7 @@ function AccountingWorkspace() {
                             <View style={[styles.offlineBanner, { borderColor: colors.warning + '35', backgroundColor: colors.warning + '14' }]}>
                                 <Ionicons name="cloud-offline-outline" size={18} color={colors.warning} />
                                 <Text style={[styles.offlineBannerText, { color: colors.warning }]}>
-                                    {pendingSummary.pendingInvoices} facture(s) et {pendingSummary.pendingExpenses} dépense(s) attendent encore la synchronisation. Les totaux ci-dessus restent ceux du dernier cache confirmé.
+                                    {t('accounting_screen.pending_sync_summary', { invoices: pendingSummary.pendingInvoices, expenses: pendingSummary.pendingExpenses })}
                                 </Text>
                             </View>
                         )}
@@ -1865,7 +1865,7 @@ function AccountingWorkspace() {
                                     <Text style={styles.sectionTitle}>{t('accounting.revenue_trend')}</Text>
                                     <Text style={styles.sectionSubtitle}>
                                         {revenueSeries.length > 1
-                                            ? `Variation sur la période : ${revenueDelta >= 0 ? '+' : ''}${formatCurrency(revenueDelta)}${bestRevenueDay ? ` • pic le ${new Date(bestRevenueDay.date).toLocaleDateString(i18n.language)}` : ''}`
+                                            ? `${t('accounting_screen.period_variation', { value: `${revenueDelta >= 0 ? '+' : ''}${formatCurrency(revenueDelta)}` })}${bestRevenueDay ? ` • ${t('accounting_screen.peak_on', { date: new Date(bestRevenueDay.date).toLocaleDateString(i18n.language) })}` : ''}`
                                             : t('accounting_extra.revenue_trend')}
                                     </Text>
                                     <View style={styles.chartContainer}>
@@ -2408,14 +2408,14 @@ function AccountingWorkspace() {
                                         onPress={handleShareWhatsApp}
                                     >
                                         <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-                                        <Text style={[styles.actionBtnText, { color: '#fff' }]}>WhatsApp</Text>
+                                        <Text style={[styles.actionBtnText, { color: '#fff' }]}>{t('accounting_screen.whatsapp')}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         style={[styles.actionBtn, { flex: 1, backgroundColor: '#007AFF', borderColor: '#007AFF' }]}
                                         onPress={handleShareEmail}
                                     >
                                         <Ionicons name="mail-outline" size={18} color="#fff" />
-                                        <Text style={[styles.actionBtnText, { color: '#fff' }]}>Email</Text>
+                                        <Text style={[styles.actionBtnText, { color: '#fff' }]}>{t('accounting_screen.email')}</Text>
                                     </TouchableOpacity>
                                 </View>
                             </ScrollView>
@@ -2459,7 +2459,7 @@ function AccountingWorkspace() {
                                         style={[styles.input, styles.customCategoryInput]}
                                         value={expenseCategoryDraft}
                                         onChangeText={setExpenseCategoryDraft}
-                                        placeholder="Ex : Marketing, Entretien, Frais bancaires"
+                                        placeholder={t('accounting_screen.ex_marketing_entretien_frais_bancaires')}
                                         placeholderTextColor={colors.textMuted}
                                     />
                                     <TouchableOpacity
@@ -2481,7 +2481,7 @@ function AccountingWorkspace() {
                                     </TouchableOpacity>
                                 </View>
                                 <Text style={styles.categoryHint}>
-                                    Les catégories ajoutées ici seront réutilisables pour vos prochaines dépenses sur ce compte.
+                                    {t('accounting_screen.les_categories_ajoutees_ici_seront_reutilisables')}
                                 </Text>
 
                                 <Text style={styles.fieldLabel}>{t('accounting.amount')}</Text>

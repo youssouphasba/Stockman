@@ -13,6 +13,7 @@ import {
     productsApi,
     Project, ProjectCreate, ProjectDashboard, ProjectMaterial,
 } from '../services/api';
+import i18n from '../services/i18n';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -20,16 +21,16 @@ const { width: SCREEN_W } = Dimensions.get('window');
 type SubTab = 'projects' | 'materials' | 'situations';
 
 const CORPS_OPTIONS = [
-    { key: 'gros_oeuvre', label: 'Gros œuvre', icon: '🧱' },
-    { key: 'plomberie', label: 'Plomberie', icon: '🚿' },
-    { key: 'electricite', label: 'Électricité', icon: '⚡' },
-    { key: 'peinture', label: 'Peinture', icon: '🎨' },
-    { key: 'carrelage', label: 'Carrelage', icon: '🧱' },
-    { key: 'menuiserie', label: 'Menuiserie', icon: '🪑' },
-    { key: 'toiture', label: 'Toiture', icon: '🏠' },
-    { key: 'ferronnerie', label: 'Ferronnerie', icon: '⚒️' },
-    { key: 'etancheite', label: 'Étanchéité', icon: '💧' },
-    { key: 'autre', label: 'Autre', icon: '📦' },
+    { key: 'gros_oeuvre', get label() { return i18n.t('project_view.gros_uvre', { defaultValue: "Gros œuvre" }); }, icon: '🧱' },
+    { key: 'plomberie', get label() { return i18n.t('project_view.plomberie', { defaultValue: "Plomberie" }); }, icon: '🚿' },
+    { key: 'electricite', get label() { return i18n.t('project_view.electricite', { defaultValue: "Électricité" }); }, icon: '⚡' },
+    { key: 'peinture', get label() { return i18n.t('project_view.peinture', { defaultValue: "Peinture" }); }, icon: '🎨' },
+    { key: 'carrelage', get label() { return i18n.t('project_view.carrelage', { defaultValue: "Carrelage" }); }, icon: '🧱' },
+    { key: 'menuiserie', get label() { return i18n.t('project_view.menuiserie', { defaultValue: "Menuiserie" }); }, icon: '🪑' },
+    { key: 'toiture', get label() { return i18n.t('project_view.toiture', { defaultValue: "Toiture" }); }, icon: '🏠' },
+    { key: 'ferronnerie', get label() { return i18n.t('project_view.ferronnerie', { defaultValue: "Ferronnerie" }); }, icon: '⚒️' },
+    { key: 'etancheite', get label() { return i18n.t('project_view.etancheite', { defaultValue: "Étanchéité" }); }, icon: '💧' },
+    { key: 'autre', get label() { return i18n.t('project_view.autre', { defaultValue: "Autre" }); }, icon: '📦' },
 ];
 
 // ─── Main Component ───
@@ -120,7 +121,7 @@ export default function ProjectView({ currency }: { currency: string }) {
             setNewName(''); setNewClient(''); setNewAddress(''); setNewBudget(''); setNewDesc('');
             loadData();
         } catch (e: any) {
-            Alert.alert('Erreur', e.message);
+            Alert.alert(t('project_view.erreur'), e.message);
         }
     };
 
@@ -130,7 +131,7 @@ export default function ProjectView({ currency }: { currency: string }) {
             await projectsApi.update(p.project_id, { status: 'en_cours' });
             loadData();
         } catch (e: any) {
-            Alert.alert('Erreur', e.message);
+            Alert.alert(t('project_view.erreur'), e.message);
         }
     };
 
@@ -146,7 +147,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                         try {
                             await projectsApi.complete(p.project_id);
                             loadData();
-                        } catch (e: any) { Alert.alert('Erreur', e.message); }
+                        } catch (e: any) { Alert.alert(t('project_view.erreur'), e.message); }
                     }
                 },
             ]
@@ -165,7 +166,7 @@ export default function ProjectView({ currency }: { currency: string }) {
             setAllocProductId(''); setAllocQty(''); setAllocCorps('autre');
             loadData();
         } catch (e: any) {
-            Alert.alert('Erreur', e.message);
+            Alert.alert(t('project_view.erreur'), e.message);
         }
     };
 
@@ -181,7 +182,7 @@ export default function ProjectView({ currency }: { currency: string }) {
             setLaborName(''); setLaborRole(''); setLaborDays(''); setLaborRate(''); setLaborCorps('autre');
             loadData();
         } catch (e: any) {
-            Alert.alert('Erreur', e.message);
+            Alert.alert(t('project_view.erreur'), e.message);
         }
     };
 
@@ -197,7 +198,7 @@ export default function ProjectView({ currency }: { currency: string }) {
             setSitLabel(''); setSitPercent(''); setSitAmount(''); setSitNotes('');
             loadData();
         } catch (e: any) {
-            Alert.alert('Erreur', e.message);
+            Alert.alert(t('project_view.erreur'), e.message);
         }
     };
 
@@ -518,7 +519,7 @@ export default function ProjectView({ currency }: { currency: string }) {
                                 onPress={() => setAllocProductId(p.product_id)}
                             >
                                 <Text style={[{ color: colors.text, flex: 1 }]}>{p.name}</Text>
-                                <Text style={{ color: colors.textSecondary }}>Stock: {p.quantity} {p.unit}</Text>
+                                <Text style={{ color: colors.textSecondary }}>{t('project_view.stock')} {p.quantity} {p.unit}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>

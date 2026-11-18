@@ -28,12 +28,12 @@ export default function VerifyEmailScreen() {
   const { verifyEmail, user, logout } = useAuth();
   const router = useRouter();
   const authText = {
-    title: 'Vérifiez votre email',
-    label: 'Code email',
+    title: t('verify_email_screen.verifiez_votre_email'),
+    label: t('verify_email_screen.code_email'),
     placeholder: '000000',
-    verify: 'Vérifier mon email',
-    resend: 'Renvoyer le code',
-    usePhone: 'Recevoir le code par SMS',
+    verify: t('verify_email_screen.verifier_mon_email'),
+    resend: t('verify_email_screen.renvoyer_le_code'),
+    usePhone: t('verify_email_screen.recevoir_le_code_par_sms'),
   };
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -164,7 +164,7 @@ export default function VerifyEmailScreen() {
             </View>
             <Text style={styles.title}>{authText.title}</Text>
             <Text style={styles.subtitle}>
-              {`Nous avons envoyé un code à 6 chiffres à ${user?.email || t('common.none')}.`}
+              {t('verify_email_screen.code_sent_to', { email: user?.email || t('common.none') })}
             </Text>
           </View>
 

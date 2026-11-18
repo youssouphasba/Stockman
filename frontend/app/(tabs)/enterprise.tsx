@@ -189,7 +189,7 @@ export default function EnterpriseScreen() {
   const handleCreateStore = async () => {
     const trimmedName = newStoreName.trim();
     if (!trimmedName) {
-      Alert.alert(t('common.error'), 'Saisissez au moins le nom de la boutique.');
+      Alert.alert(t('common.error'), t('enterprise_screen.saisissez_au_moins_le_nom_de'));
       return;
     }
 
@@ -257,10 +257,10 @@ export default function EnterpriseScreen() {
                 </TouchableOpacity>
               ) : null}
             </View>
-            <Text style={styles.headerEyebrow}>Enterprise</Text>
-            <Text style={styles.headerTitle}>Pilotage mobile</Text>
+            <Text style={styles.headerEyebrow}>{t('enterprise_screen.enterprise')}</Text>
+            <Text style={styles.headerTitle}>{t('enterprise_screen.pilotage_mobile')}</Text>
             <Text style={styles.headerSubtitle}>
-              Supervisez les boutiques, l'équipe et les emplacements avancés depuis le même backend que le web.
+              {t('enterprise_screen.supervisez_les_boutiques_l_equipe_et')}
             </Text>
           </View>
 
@@ -322,7 +322,7 @@ export default function EnterpriseScreen() {
               <View style={styles.section}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.sectionTitle}>{t('enterprise.account_stores')}</Text>
-                  <Text style={styles.sectionMeta}>{storeList.length} au total</Text>
+                  <Text style={styles.sectionMeta}>{t('enterprise_screen.stores_total', { count: storeList.length })}</Text>
                 </View>
                 {storeList.length === 0 ? (
                   <View style={styles.emptyCard}>
@@ -344,7 +344,7 @@ export default function EnterpriseScreen() {
                               <Text style={styles.storeTitle}>{store.name}</Text>
                               {isActive ? (
                                 <View style={styles.activeBadge}>
-                                  <Text style={styles.activeBadgeText}>Active</Text>
+                                  <Text style={styles.activeBadgeText}>{t('enterprise_screen.active')}</Text>
                                 </View>
                               ) : null}
                             </View>

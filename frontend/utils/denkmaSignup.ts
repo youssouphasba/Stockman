@@ -41,23 +41,32 @@ export function denkmaPhone(value: string | null | undefined): string | null {
   return null;
 }
 
+
+// Traduction des textes affichés : français par défaut, branchée sur i18n par l'application.
+type TextTranslator = (key: string, fallback: string, vars?: Record<string, string | number>) => string;
+const fillText = (text: string, vars?: Record<string, string | number>) => text.replace(/\{\{(\w+)\}\}/g, (_match, name) => String(vars?.[name] ?? ''));
+let translateText: TextTranslator = (_key, fallback, vars) => fillText(fallback, vars);
+export function setDenkmaSignupTranslator(fn: TextTranslator): void {
+  translateText = fn;
+}
+const tr = (key: string, fallback: string, vars?: Record<string, string | number>) => translateText(`denkma_signup_rules.${key}`, fallback, vars);
 export function accuracyProblem(accuracy: number | null): string | null {
   if (accuracy == null || accuracy <= MAX_PICKUP_ACCURACY_M) return null;
-  return `Position trop imprécise (± ${Math.round(accuracy)} m). Placez-vous à l'extérieur ou près d'une fenêtre, puis relocalisez-vous.`;
+  return tr('accuracy', "Position trop imprécise (± {{meters}} m). Placez-vous à l'extérieur ou près d'une fenêtre, puis relocalisez-vous.", { meters: Math.round(accuracy) });
 }
 
 // Premier point à corriger, ou null quand le formulaire peut partir.
 export function signupProblem(form: DenkmaSignupForm): string | null {
-  if (form.businessName.trim().length < 2) return 'Indiquez le nom de votre commerce.';
-  if (form.ownerName.trim().length < 2) return 'Indiquez le nom du responsable.';
-  if (!denkmaPhone(form.phone)) return 'Denkma Pro est disponible avec un numéro du Sénégal ou de France.';
-  if (!form.located) return 'Enregistrez la position de votre point de collecte.';
+  if (form.businessName.trim().length < 2) return tr('business_name', 'Indiquez le nom de votre commerce.');
+  if (form.ownerName.trim().length < 2) return tr('owner_name', 'Indiquez le nom du responsable.');
+  if (!denkmaPhone(form.phone)) return tr('phone', 'Denkma Pro est disponible avec un numéro du Sénégal ou de France.');
+  if (!form.located) return tr('located', 'Enregistrez la position de votre point de collecte.');
   const accuracy = accuracyProblem(form.accuracy);
   if (accuracy) return accuracy;
-  if (form.label.trim().length < 2) return 'Décrivez le point de collecte (rue, repère) pour le livreur.';
-  if (form.city.trim().length < 2) return 'Indiquez la ville du point de collecte.';
-  if (!/^\d{4,12}$/.test(form.pin)) return 'Choisissez un code PIN de 4 à 12 chiffres.';
-  if (form.pin !== form.pinConfirmation) return 'Les deux codes PIN ne sont pas identiques.';
-  if (!form.acceptedLegal) return 'Acceptez les conditions de Denkma pour créer votre compte.';
+  if (form.label.trim().length < 2) return tr('label', 'Décrivez le point de collecte (rue, repère) pour le livreur.');
+  if (form.city.trim().length < 2) return tr('city', 'Indiquez la ville du point de collecte.');
+  if (!/^\d{4,12}$/.test(form.pin)) return tr('pin', 'Choisissez un code PIN de 4 à 12 chiffres.');
+  if (form.pin !== form.pinConfirmation) return tr('pin_confirmation', 'Les deux codes PIN ne sont pas identiques.');
+  if (!form.acceptedLegal) return tr('legal', 'Acceptez les conditions de Denkma pour créer votre compte.');
   return null;
 }

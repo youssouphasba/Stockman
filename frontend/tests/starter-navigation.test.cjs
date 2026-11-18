@@ -134,7 +134,7 @@ test('Closing a Pro dashboard modal leaves the dashboard route unchanged', () =>
 
 test('The Settings orders action works with an active or disabled public site', () => {
   const settings = readSource('app/(tabs)/settings.tsx');
-  const link = findNode(settings, (node) => ts.isJsxElement(node) && node.openingElement.tagName.getText(settings) === 'TouchableOpacity' && node.getText(settings).includes('>Commandes en ligne</Text>'));
+  const link = findNode(settings, (node) => ts.isJsxElement(node) && node.openingElement.tagName.getText(settings) === 'TouchableOpacity' && node.getText(settings).includes(">{t('settings_screen.commandes_en_ligne')}</Text>"));
   let parent = link.parent;
   while (parent && !(ts.isJsxExpression(parent) && parent.expression && ts.isBinaryExpression(parent.expression) && parent.expression.left.getText(settings).includes('isOrgAdmin'))) parent = parent.parent;
   assert.ok(parent);
@@ -143,7 +143,7 @@ test('The Settings orders action works with an active or disabled public site', 
     let destination;
     const element = evaluate('(' + link.getText(settings) + ')', {
       React, TouchableOpacity: 'button', Ionicons: 'icon', Text: 'span',
-      styles: {}, Spacing: { md: 16, sm: 8 }, colors: {},
+      styles: {}, Spacing: { md: 16, sm: 8 }, colors: {}, t: (key) => key,
       router: { push: (route) => { destination = route; } },
     });
     element.props.onPress();

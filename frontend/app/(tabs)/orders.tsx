@@ -242,8 +242,8 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
     (orderIdParam && !isWebLink) || (productIdParam && !isWebLink) || deliveryOrderIdParam || tabParam === 'supplier'
   );
   const webStatusLabels: Record<string, string> = {
-    all: 'Historique complet', pending: 'En attente', confirmed: 'Confirmées',
-    preparing: 'En préparation', ready: 'Prêtes', delivered: 'Terminées', cancelled: 'Annulées',
+    all: t('orders_screen.historique_complet'), pending: t('orders_screen.en_attente'), confirmed: t('orders_screen.confirmees'),
+    preparing: t('orders_screen.en_preparation'), ready: t('orders_screen.pretes'), delivered: t('orders_screen.terminees'), cancelled: t('orders_screen.annulees'),
   };
   const visibleWebOrders = ecommerceWorkspace && orderSearch.trim()
     ? webOrders.filter((order) => [order.order_number, order.customer_name, order.customer_phone, order.customer_email]
@@ -440,7 +440,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
       if (request === webOrderDetailRequestRef.current) setSelectedWebOrder(order);
     } catch {
       if (request !== webOrderDetailRequestRef.current) return;
-      Alert.alert(t('common.error'), 'Impossible d’ouvrir la commande E-com.');
+      Alert.alert(t('common.error'), t('orders_screen.impossible_d_ouvrir_la_commande_e'));
       setShowWebOrderDetailModal(false);
     }
   }
@@ -451,7 +451,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
       await loadWebOrders();
       if (ecommerceWorkspace) setEcommerceRefreshKey((value) => value + 1);
     } catch (err: any) {
-      Alert.alert(t('common.error'), err?.message || 'Impossible de mettre à jour la commande E-com.');
+      Alert.alert(t('common.error'), err?.message || t('orders_screen.impossible_de_mettre_a_jour_la'));
     }
   };
 
@@ -463,7 +463,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
       await loadWebOrders();
       if (ecommerceWorkspace) setEcommerceRefreshKey((value) => value + 1);
     } catch (err: any) {
-      Alert.alert(t('common.error'), err?.message || 'Impossible de mettre à jour le paiement de la commande.');
+      Alert.alert(t('common.error'), err?.message || t('orders_screen.impossible_de_mettre_a_jour_le'));
     }
   };
 
@@ -482,9 +482,9 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
     };
     const warning = unpaidReadyWarning(order);
     if (!warning) { void proceed(); return; }
-    Alert.alert('Paiement non reçu', warning, [
-      { text: 'Attendre le paiement', style: 'cancel' },
-      { text: 'Continuer', onPress: () => { void proceed(); } },
+    Alert.alert(t('orders_screen.paiement_non_recu'), warning, [
+      { text: t('orders_screen.attendre_le_paiement'), style: 'cancel' },
+      { text: t('orders_screen.continuer'), onPress: () => { void proceed(); } },
     ]);
   };
 
@@ -493,10 +493,10 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
     const deliver = (paid?: boolean) => { void updateWebOrderStatus(order.order_id, 'delivered', paid).then(() => done?.()); };
     const question = deliveryPaymentQuestion(order);
     if (!question) { deliver(); return; }
-    Alert.alert('Livrer la commande', question, [
-      { text: 'Retour', style: 'cancel' },
-      { text: 'Vente à crédit', onPress: () => deliver(false) },
-      { text: 'Le client a payé', onPress: () => deliver(true) },
+    Alert.alert(t('orders_screen.livrer_la_commande'), question, [
+      { text: t('orders_screen.retour'), style: 'cancel' },
+      { text: t('orders_screen.vente_a_credit'), onPress: () => deliver(false) },
+      { text: t('orders_screen.le_client_a_paye'), onPress: () => deliver(true) },
     ]);
   };
 
@@ -515,7 +515,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
   useFocusEffect(
     useCallback(() => {
       if (ecommerceOnly) {
-        setDrawerContent('Commandes en ligne', [
+        setDrawerContent(t('orders_screen.commandes_en_ligne'), [
           { label: t('common.refresh', 'Actualiser'), icon: 'refresh-outline', onPress: onRefresh },
         ]);
         return;
@@ -1037,8 +1037,8 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
   })();
 
   const orderPanelSummary = activeTab === 'orders'
-    ? `${activeOrderFilterCount > 0 ? `${activeOrderFilterCount} filtre${activeOrderFilterCount > 1 ? 's' : ''} actif${activeOrderFilterCount > 1 ? 's' : ''}` : 'Aucun filtre avancé'}${selectedPeriod === 30 ? ' • 30 jours' : ''}`
-    : `${returnStatusFilter ? 'Statut filtré' : 'Tous les retours'}${orderSearch ? ' • recherche active' : ''}`;
+    ? `${activeOrderFilterCount > 0 ? t('orders_screen.active_filters', { count: activeOrderFilterCount }) : t('orders_screen.aucun_filtre_avance')}${selectedPeriod === 30 ? ` • ${t('orders_screen.last_30_days')}` : ''}`
+    : `${returnStatusFilter ? t('orders_screen.statut_filtre') : t('orders_screen.tous_les_retours')}${orderSearch ? ` • ${t('orders_screen.search_active')}` : ''}`;
 
   const orderFilterSnapshot = useMemo(() => {
     let count = 0;
@@ -1121,13 +1121,13 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
         >
           <View style={[styles.headerRow, { paddingTop: insets.top }]}>
             <View>
-              <Text style={styles.pageTitle}>{ecommerceWorkspace ? 'E-com' : ecommerceOnly ? 'Commandes en ligne' : t('orders.supplier_title', 'Commandes fournisseurs')}</Text>
+              <Text style={styles.pageTitle}>{ecommerceWorkspace ? 'E-com' : ecommerceOnly ? t('orders_screen.commandes_en_ligne') : t('orders.supplier_title', 'Commandes fournisseurs')}</Text>
               <Text style={styles.subtitle}>
                 {activeTab === 'orders'
                   ? t('orders.orders_count', { count: orderList.length })
                   : activeTab === 'returns'
                   ? t('orders.returns_count', { count: returnsList.length })
-                  : `${ecommerceWorkspace ? webOrdersTotal : webOrders.length} commande(s) E-com`}
+                  : t('orders_screen.ecom_orders_count', { count: ecommerceWorkspace ? webOrdersTotal : webOrders.length })}
               </Text>
             </View>
             <View style={styles.headerActionsRow}>
@@ -1142,17 +1142,17 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                   ) : (
                     <Ionicons name="scan-outline" size={20} color={colors.primary} />
                   )}
-                  <Text numberOfLines={1} style={[styles.headerActionText, { color: colors.primary }]}>Importer facture</Text>
+                  <Text numberOfLines={1} style={[styles.headerActionText, { color: colors.primary }]}>{t('orders_screen.importer_facture')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.headerActionChip} onPress={exportOrdersPdf}>
                   <Ionicons name="document-text-outline" size={20} color={colors.text} />
-                  <Text numberOfLines={1} style={styles.headerActionText}>Exporter</Text>
+                  <Text numberOfLines={1} style={styles.headerActionText}>{t('orders_screen.exporter')}</Text>
                 </TouchableOpacity>
               </View>}
               <View style={styles.headerActionsGrid}>
                 <TouchableOpacity style={styles.headerActionChip} onPress={() => setShowGuide(true)}>
                   <Ionicons name="help-circle-outline" size={20} color={colors.text} />
-                  <Text numberOfLines={1} style={styles.headerActionText}>Guide</Text>
+                  <Text numberOfLines={1} style={styles.headerActionText}>{t('orders_screen.guide')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.headerActionChip, styles.headerPrimaryActionChip]}
@@ -1172,7 +1172,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 >
                   <Ionicons name={ecommerceOnly ? 'refresh-outline' : 'add'} size={20} color="#fff" />
                   <Text numberOfLines={1} style={styles.headerPrimaryActionText}>
-                    {activeTab === 'orders' ? 'Nouvelle commande' : activeTab === 'web' ? 'Actualiser' : 'Nouveau retour'}
+                    {activeTab === 'orders' ? t('orders_screen.nouvelle_commande') : activeTab === 'web' ? 'Actualiser' : t('orders_screen.nouveau_retour')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1232,7 +1232,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
           </>}
 
           {ecommerceWorkspace && ecommerceView === 'orders' && <>
-            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: Spacing.sm }}>Commandes récentes</Text>
+            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: Spacing.sm }}>{t('orders_screen.commandes_recentes')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingBottom: Spacing.md }}>
               {Object.entries(webStatusLabels).map(([status, label]) => <TouchableOpacity
                 key={status}
@@ -1264,7 +1264,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
               style={{ flex: 1, color: colors.text, fontSize: FontSize.sm }}
               value={orderSearch}
               onChangeText={setOrderSearch}
-              placeholder={activeTab === 'orders' ? t('orders.search_orders_placeholder', 'Rechercher une commande, un fournisseur ou un produit') : activeTab === 'web' ? 'Rechercher une commande E-com ou un client' : t('orders.search_returns_placeholder', 'Rechercher un retour, un fournisseur ou un produit')}
+              placeholder={activeTab === 'orders' ? t('orders.search_orders_placeholder', 'Rechercher une commande, un fournisseur ou un produit') : activeTab === 'web' ? t('orders_screen.rechercher_une_commande_e_com_ou') : t('orders.search_returns_placeholder', 'Rechercher un retour, un fournisseur ou un produit')}
               placeholderTextColor={colors.textMuted}
             />
             {orderSearch.length > 0 && (
@@ -1280,7 +1280,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
             activeOpacity={0.85}
           >
             <View style={styles.sectionToggleCopy}>
-              <Text style={styles.sectionToggleTitle}>Filtres</Text>
+              <Text style={styles.sectionToggleTitle}>{t('orders_screen.filtres')}</Text>
               <Text style={styles.sectionToggleDescription}>{orderPanelSummary}</Text>
             </View>
             <Ionicons
@@ -1302,15 +1302,15 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
               ) : visibleWebOrders.length === 0 ? (
                 (ecommerceWorkspace && webOrdersError ? null : <View style={styles.emptyState}>
                   <Ionicons name="globe-outline" size={64} color={colors.textMuted} />
-                  <Text style={styles.emptyTitle}>Aucune commande E-com</Text>
-                  <Text style={styles.emptyText}>Les commandes envoyées depuis le site e-commerce apparaîtront ici.</Text>
+                  <Text style={styles.emptyTitle}>{t('orders_screen.aucune_commande_e_com')}</Text>
+                  <Text style={styles.emptyText}>{t('orders_screen.les_commandes_envoyees_depuis_le_site')}</Text>
                 </View>)
               ) : visibleWebOrders.map((order) => {
                 const step = nextStep(order);
                 // Une commande qui attend un geste du commerçant est entourée d'un halo et porte « À faire ».
                 const actionNeeded = Boolean(step?.action);
                 return (
-                <ActionGlow key={order.order_id} active={actionNeeded} color={colors.warning} label={actionNeeded ? `À faire : ${step?.label}` : undefined}>
+                <ActionGlow key={order.order_id} active={actionNeeded} color={colors.warning} label={actionNeeded ? t('orders_screen.to_do', { label: step?.label }) : undefined}>
                 <TouchableOpacity
                   style={styles.orderCard}
                   activeOpacity={0.85}
@@ -1323,30 +1323,30 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                   <View style={styles.orderHeader}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.orderSupplier}>{order.order_number}</Text>
-                      <Text style={styles.orderDate}>{order.customer_name} · {order.customer_phone || order.customer_email || 'Contact non renseigné'}</Text>
+                      <Text style={styles.orderDate}>{order.customer_name} · {order.customer_phone || order.customer_email || t('orders_screen.contact_non_renseigne')}</Text>
                     </View>
                     <Text style={[styles.statusBadge, { color: colors.primary }]}>{orderStatusLabel(order.status)}</Text>
                   </View>
                   <View style={styles.orderDetails}>
                     <View style={styles.orderDetail}>
-                      <Text style={styles.orderDetailLabel}>Articles</Text>
+                      <Text style={styles.orderDetailLabel}>{t('orders_screen.articles')}</Text>
                       <Text style={styles.orderDetailValue}>{(order.items || []).length}</Text>
                     </View>
                     <View style={styles.orderDetail}>
-                      <Text style={styles.orderDetailLabel}>Total</Text>
+                      <Text style={styles.orderDetailLabel}>{t('orders_screen.total')}</Text>
                       <Text style={styles.orderDetailValue}>{formatCurrency(amountDue(order), user?.currency)}</Text>
                     </View>
                   </View>
                   <Text style={[styles.orderDate, { color: paymentToneColor(paymentState(order).tone), fontWeight: '600' }]}>{paymentState(order).label}</Text>
-                  {collectionCode(denkmaDelivery(order)) ? <Text style={[styles.orderDate, { color: colors.primary, fontWeight: '700' }]}>Code à donner au livreur : {collectionCode(denkmaDelivery(order))}</Text> : null}
+                  {collectionCode(denkmaDelivery(order)) ? <Text style={[styles.orderDate, { color: colors.primary, fontWeight: '700' }]}>{t('orders_screen.code_a_donner_au_livreur')} {collectionCode(denkmaDelivery(order))}</Text> : null}
                   {order.customer_address ? <Text numberOfLines={1} style={styles.orderDate}>{order.customer_address}</Text> : null}
-                  <Text style={[styles.orderDate, { marginTop: Spacing.xs }]}>Appuyez pour voir les détails</Text>
+                  <Text style={[styles.orderDate, { marginTop: Spacing.xs }]}>{t('orders_screen.appuyez_pour_voir_les_details')}</Text>
                   <View style={styles.orderActions}>
-                    {step?.action === 'payment' && <OrderActionButton variant="primary" color={colors.success} icon="checkmark-circle-outline" label="Paiement reçu" onPress={() => updateWebOrderPayment(order.order_id, true)} />}
-                    {order.status === 'pending' && step?.action !== 'payment' && <OrderActionButton variant={step?.action === 'confirm' ? 'primary' : 'secondary'} icon="checkmark-outline" label="Confirmer" onPress={() => updateWebOrderStatus(order.order_id, 'confirmed')} />}
-                    {['confirmed', 'preparing'].includes(order.status) && <OrderActionButton variant={step?.action === 'ready' ? 'primary' : 'secondary'} color={colors.warning} icon="cube-outline" label="Prête" onPress={() => markWebOrderReady(order)} />}
-                    {['confirmed', 'preparing', 'ready'].includes(order.status) && <OrderActionButton variant={step?.action === 'deliver' ? 'primary' : 'secondary'} color={colors.success} icon="bicycle-outline" label="Livrer" onPress={() => deliverWebOrder(order)} />}
-                    {['pending', 'confirmed'].includes(order.status) && <OrderActionButton color={colors.danger} icon="close-outline" label="Annuler" onPress={() => updateWebOrderStatus(order.order_id, 'cancelled')} />}
+                    {step?.action === 'payment' && <OrderActionButton variant="primary" color={colors.success} icon="checkmark-circle-outline" label={t('orders_screen.paiement_recu')} onPress={() => updateWebOrderPayment(order.order_id, true)} />}
+                    {order.status === 'pending' && step?.action !== 'payment' && <OrderActionButton variant={step?.action === 'confirm' ? 'primary' : 'secondary'} icon="checkmark-outline" label={t('orders_screen.confirmer')} onPress={() => updateWebOrderStatus(order.order_id, 'confirmed')} />}
+                    {['confirmed', 'preparing'].includes(order.status) && <OrderActionButton variant={step?.action === 'ready' ? 'primary' : 'secondary'} color={colors.warning} icon="cube-outline" label={t('orders_screen.prete')} onPress={() => markWebOrderReady(order)} />}
+                    {['confirmed', 'preparing', 'ready'].includes(order.status) && <OrderActionButton variant={step?.action === 'deliver' ? 'primary' : 'secondary'} color={colors.success} icon="bicycle-outline" label={t('orders_screen.livrer')} onPress={() => deliverWebOrder(order)} />}
+                    {['pending', 'confirmed'].includes(order.status) && <OrderActionButton color={colors.danger} icon="close-outline" label={t('orders_screen.annuler')} onPress={() => updateWebOrderStatus(order.order_id, 'cancelled')} />}
                   </View>
                 </TouchableOpacity>
                 </ActionGlow>
@@ -1358,7 +1358,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 onPress={() => { void loadWebOrders(true); }}
                 style={[styles.actionBtn, { minHeight: 48, alignSelf: 'center' }]}
               >
-                {webOrdersLoading ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.actionText, { color: colors.primary }]}>Voir plus de commandes</Text>}
+                {webOrdersLoading ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.actionText, { color: colors.primary }]}>{t('orders_screen.voir_plus_de_commandes')}</Text>}
               </TouchableOpacity>}
             </View>
           )}
@@ -1825,7 +1825,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <View>
-                  <Text style={styles.modalTitle}>Commande E-com</Text>
+                  <Text style={styles.modalTitle}>{t('orders_screen.commande_e_com')}</Text>
                   <Text style={styles.modalSubtitle}>{selectedWebOrder.order_number}</Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowWebOrderDetailModal(false)}>
@@ -1836,7 +1836,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 <View style={styles.orderHeader}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.orderSupplier}>{selectedWebOrder.customer_name}</Text>
-                    <Text style={styles.orderDate}>{selectedWebOrder.customer_phone || selectedWebOrder.customer_email || 'Contact non renseigné'}</Text>
+                    <Text style={styles.orderDate}>{selectedWebOrder.customer_phone || selectedWebOrder.customer_email || t('orders_screen.contact_non_renseigne')}</Text>
                     {selectedWebOrder.customer_address ? <Text style={styles.orderDate}>{selectedWebOrder.customer_address}</Text> : null}
                   </View>
                   <Text style={[styles.statusBadge, { color: colors.primary }]}>{orderStatusLabel(selectedWebOrder.status)}</Text>
@@ -1846,7 +1846,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                     <View key={`${item.product_id || item.product_name}-${index}`} style={styles.detailRow}>
                       <View style={{ flex: 1, paddingRight: Spacing.sm }}>
                         <Text style={styles.detailRowText}>{item.product_name}</Text>
-                        <Text style={styles.detailRowSubtext}>Quantité : {item.quantity}</Text>
+                        <Text style={styles.detailRowSubtext}>{t('orders_screen.quantite')} {item.quantity}</Text>
                       </View>
                       <Text style={styles.detailRowText}>{formatCurrency(item.total || 0, user?.currency)}</Text>
                     </View>
@@ -1854,13 +1854,13 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 </View>
                 {selectedWebOrder.notes ? (
                   <View style={[styles.infoCard, { marginTop: Spacing.md }]}>
-                    <Text style={styles.infoCardTitle}>Note client</Text>
+                    <Text style={styles.infoCardTitle}>{t('orders_screen.note_client')}</Text>
                     <Text style={styles.infoCardText}>{selectedWebOrder.notes}</Text>
                   </View>
                 ) : null}
                 {denkmaDelivery(selectedWebOrder) ? (
                   <View style={[styles.infoCard, { marginTop: Spacing.md }]}>
-                    <Text style={styles.infoCardTitle}>Livraison Denkma</Text>
+                    <Text style={styles.infoCardTitle}>{t('orders_screen.livraison_denkma')}</Text>
                     <Text style={styles.infoCardText}>{denkmaDestination(denkmaDelivery(selectedWebOrder)!)}</Text>
                     <Text style={styles.infoCardText}>
                       {denkmaState(denkmaDelivery(selectedWebOrder)!).label}
@@ -1868,21 +1868,21 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                     </Text>
                     {selectedWebOrder.delivery.error ? <Text style={[styles.infoCardText, { color: colors.danger }]}>{selectedWebOrder.delivery.error}</Text> : null}
                     {collectionCode(selectedWebOrder.delivery) ? (
-                      <View accessible accessibilityLabel={`Code à donner au livreur : ${collectionCode(selectedWebOrder.delivery)}`} style={{ marginTop: Spacing.sm, padding: Spacing.md, borderRadius: 12, backgroundColor: colors.primary + '15', alignItems: 'center' }}>
-                        <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '700' }}>CODE À DONNER AU LIVREUR</Text>
+                      <View accessible accessibilityLabel={t('orders_screen.courier_code_value', { code: collectionCode(selectedWebOrder.delivery) })} style={{ marginTop: Spacing.sm, padding: Spacing.md, borderRadius: 12, backgroundColor: colors.primary + '15', alignItems: 'center' }}>
+                        <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: '700' }}>{t('orders_screen.code_a_donner_au_livreur_2')}</Text>
                         <Text style={{ color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: 4, marginTop: 4 }}>{collectionCode(selectedWebOrder.delivery)}</Text>
                       </View>
                     ) : null}
                     <OrderActionButton
                       color="#2563EB"
                       icon="refresh-outline"
-                      label="Actualiser le suivi"
+                      label={t('orders_screen.actualiser_le_suivi')}
                       style={{ alignSelf: 'flex-start', marginTop: Spacing.sm }}
                       onPress={async () => {
                         try {
                           setSelectedWebOrder(await ecommerceApi.refreshDenkma(selectedWebOrder.order_id));
                         } catch (error: any) {
-                          Alert.alert(t('common.error'), error?.message || 'Le suivi Denkma est indisponible pour le moment.');
+                          Alert.alert(t('common.error'), error?.message || t('orders_screen.le_suivi_denkma_est_indisponible_pour'));
                         }
                       }}
                     />
@@ -1890,17 +1890,17 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 ) : null}
                 <View style={[styles.orderDetails, { marginTop: Spacing.md }]}>
                   <View style={styles.orderDetail}>
-                    <Text style={styles.orderDetailLabel}>Articles</Text>
+                    <Text style={styles.orderDetailLabel}>{t('orders_screen.articles')}</Text>
                     <Text style={styles.orderDetailValue}>{(selectedWebOrder.items || []).length}</Text>
                   </View>
                   {denkmaDelivery(selectedWebOrder) ? (
                     <View style={styles.orderDetail}>
-                      <Text style={styles.orderDetailLabel}>Livraison</Text>
+                      <Text style={styles.orderDetailLabel}>{t('orders_screen.livraison')}</Text>
                       <Text style={styles.orderDetailValue}>{formatCurrency(selectedWebOrder.delivery_fee || denkmaDelivery(selectedWebOrder)?.fee || 0, user?.currency)}</Text>
                     </View>
                   ) : null}
                   <View style={styles.orderDetail}>
-                    <Text style={styles.orderDetailLabel}>Total</Text>
+                    <Text style={styles.orderDetailLabel}>{t('orders_screen.total')}</Text>
                     <Text style={styles.orderDetailValue}>{formatCurrency(amountDue(selectedWebOrder), user?.currency)}</Text>
                   </View>
                 </View>
@@ -1910,14 +1910,14 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                   return (
                     <>
                       <View style={[styles.infoCard, { marginTop: Spacing.md }]}>
-                        <Text style={styles.infoCardTitle}>Paiement</Text>
+                        <Text style={styles.infoCardTitle}>{t('orders_screen.paiement')}</Text>
                         <Text style={[styles.infoCardText, { color: paymentToneColor(payment.tone), fontWeight: '700' }]}>{payment.label}</Text>
                         <Text style={styles.infoCardText}>{payment.hint}</Text>
                         {canConfirmPayment(selectedWebOrder) && step?.action !== 'payment' ? (
                           <OrderActionButton
                             color={colors.success}
                             icon="checkmark-circle-outline"
-                            label="Paiement reçu"
+                            label={t('orders_screen.paiement_recu')}
                             style={{ alignSelf: 'flex-start', marginTop: Spacing.sm }}
                             onPress={() => updateWebOrderPayment(selectedWebOrder.order_id, true)}
                           />
@@ -1926,18 +1926,18 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                           <OrderActionButton
                             variant="subtle"
                             icon="arrow-undo-outline"
-                            label="Paiement confirmé par erreur"
+                            label={t('orders_screen.paiement_confirme_par_erreur')}
                             style={{ alignSelf: 'flex-start', marginTop: Spacing.sm }}
-                            onPress={() => Alert.alert('Paiement confirmé par erreur ?', 'La commande repassera en attente de paiement.', [
-                              { text: 'Non', style: 'cancel' },
-                              { text: 'Oui, annuler la confirmation', style: 'destructive', onPress: () => { void updateWebOrderPayment(selectedWebOrder.order_id, false); } },
+                            onPress={() => Alert.alert(t('orders_screen.paiement_confirme_par_erreur_2'), t('orders_screen.la_commande_repassera_en_attente_de'), [
+                              { text: t('orders_screen.non'), style: 'cancel' },
+                              { text: t('orders_screen.oui_annuler_la_confirmation'), style: 'destructive', onPress: () => { void updateWebOrderPayment(selectedWebOrder.order_id, false); } },
                             ])}
                           />
                         ) : null}
                       </View>
                       {step ? (
                         <View style={[styles.infoCard, { marginTop: Spacing.md, borderColor: colors.primary + '55', borderWidth: 1 }]}>
-                          <Text style={[styles.infoCardTitle, { color: colors.primary }]}>Prochaine étape</Text>
+                          <Text style={[styles.infoCardTitle, { color: colors.primary }]}>{t('orders_screen.prochaine_etape')}</Text>
                           <Text style={styles.infoCardText}>{step.hint}</Text>
                           {step.action ? (
                             <TouchableOpacity
@@ -1954,11 +1954,11 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                   );
                 })()}
                 <View style={[styles.orderActions, { marginTop: Spacing.lg }]}>
-                  {canShipWithDenkma(selectedWebOrder) && <OrderActionButton color="#2563EB" icon="bicycle-outline" label="Livrer avec Denkma" onPress={() => setDenkmaShipOrder(selectedWebOrder)} />}
-                  {selectedWebOrder.status === 'pending' && nextStep(selectedWebOrder)?.action !== 'confirm' && <OrderActionButton icon="checkmark-outline" label="Confirmer sans attendre le paiement" onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'confirmed'); setShowWebOrderDetailModal(false); }} />}
-                  {['confirmed', 'preparing'].includes(selectedWebOrder.status) && nextStep(selectedWebOrder)?.action !== 'ready' && <OrderActionButton color={colors.warning} icon="cube-outline" label="Prête" onPress={() => markWebOrderReady(selectedWebOrder, () => setShowWebOrderDetailModal(false))} />}
-                  {['confirmed', 'preparing', 'ready'].includes(selectedWebOrder.status) && nextStep(selectedWebOrder)?.action !== 'deliver' && <OrderActionButton color={colors.success} icon="bicycle-outline" label="Livrer" onPress={() => deliverWebOrder(selectedWebOrder, () => setShowWebOrderDetailModal(false))} />}
-                  {['pending', 'confirmed'].includes(selectedWebOrder.status) && <OrderActionButton color={colors.danger} icon="close-outline" label="Annuler" onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'cancelled'); setShowWebOrderDetailModal(false); }} />}
+                  {canShipWithDenkma(selectedWebOrder) && <OrderActionButton color="#2563EB" icon="bicycle-outline" label={t('orders_screen.livrer_avec_denkma')} onPress={() => setDenkmaShipOrder(selectedWebOrder)} />}
+                  {selectedWebOrder.status === 'pending' && nextStep(selectedWebOrder)?.action !== 'confirm' && <OrderActionButton icon="checkmark-outline" label={t('orders_screen.confirmer_sans_attendre_le_paiement')} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'confirmed'); setShowWebOrderDetailModal(false); }} />}
+                  {['confirmed', 'preparing'].includes(selectedWebOrder.status) && nextStep(selectedWebOrder)?.action !== 'ready' && <OrderActionButton color={colors.warning} icon="cube-outline" label={t('orders_screen.prete')} onPress={() => markWebOrderReady(selectedWebOrder, () => setShowWebOrderDetailModal(false))} />}
+                  {['confirmed', 'preparing', 'ready'].includes(selectedWebOrder.status) && nextStep(selectedWebOrder)?.action !== 'deliver' && <OrderActionButton color={colors.success} icon="bicycle-outline" label={t('orders_screen.livrer')} onPress={() => deliverWebOrder(selectedWebOrder, () => setShowWebOrderDetailModal(false))} />}
+                  {['pending', 'confirmed'].includes(selectedWebOrder.status) && <OrderActionButton color={colors.danger} icon="close-outline" label={t('orders_screen.annuler')} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'cancelled'); setShowWebOrderDetailModal(false); }} />}
                 </View>
               </ScrollView>
             </View>
@@ -1972,7 +1972,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 setDenkmaShipOrder(null);
                 setSelectedWebOrder(updated);
                 void loadWebOrders();
-                Alert.alert('Enlèvement demandé', 'Denkma va venir chercher le colis. Le suivi s’affiche dans la commande.');
+                Alert.alert(t('orders_screen.enlevement_demande'), t('orders_screen.denkma_va_venir_chercher_le_colis'));
               }}
             />
           )}
@@ -2074,7 +2074,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                   {/* Notes */}
                   {detailOrder.notes ? (
                     <View style={styles.detailSection}>
-                      <Text style={styles.detailSectionTitle}>Notes</Text>
+                      <Text style={styles.detailSectionTitle}>{t('orders_screen.notes')}</Text>
                       <Text style={styles.detailNotes}>{detailOrder.notes}</Text>
                     </View>
                   ) : null}
@@ -2146,7 +2146,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                   {detailOrder.status === 'delivered' && detailOrder.is_connected && detailOrder.supplier_user_id && (
                     <TouchableOpacity style={styles.rateBtn} onPress={() => openRating(detailOrder)}>
                       <Ionicons name="star-outline" size={20} color={colors.warning} />
-                      <Text style={styles.rateBtnText}>Noter ce fournisseur</Text>
+                      <Text style={styles.rateBtnText}>{t('orders_screen.noter_ce_fournisseur')}</Text>
                     </TouchableOpacity>
                   )}
                 </ScrollView>

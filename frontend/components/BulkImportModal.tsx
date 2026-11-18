@@ -361,7 +361,7 @@ export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpda
                         <View style={styles.summaryCard}>
                             <Text style={styles.summaryText}>{t('bulk_import.file_label', { name: file?.assets?.[0]?.name || 'Products.csv' })}</Text>
                             {importProfile?.auto_mapping && (
-                                <Text style={styles.summaryText}>Source détectée : {importProfile.label}</Text>
+                                <Text style={styles.summaryText}>{t('bulk_import.detected_source', { source: importProfile.label })}</Text>
                             )}
                             <Text style={styles.summaryText}>{t('bulk_import.products_to_import', { count: rawData.length })}</Text>
                             <Text style={styles.summaryText}>{t('bulk_import.mapped_columns', { count: Object.keys(mapping).length })}</Text>

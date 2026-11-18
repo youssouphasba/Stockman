@@ -162,7 +162,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "à l'instant";
+    if (diffMins < 1) return t('chat_modal.a_l_instant');
     if (diffMins < 60) return `${diffMins}min`;
     const diffHours = Math.floor(diffMins / 60);
     if (diffHours < 24) return `${diffHours}h`;
@@ -218,7 +218,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
               </Text>
               {view === 'chat' && activeConvo && (
                 <Text style={{ fontSize: 10, color: colors.textMuted }}>
-                  {user?.user_id === activeConvo.shopkeeper_id ? 'Fournisseur' : 'Commerçant'}
+                  {user?.user_id === activeConvo.shopkeeper_id ? 'Fournisseur' : t('chat_modal.commercant')}
                 </Text>
               )}
             </View>
@@ -237,10 +237,10 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
                 <Ionicons name="chatbubbles-outline" size={64} color={colors.textMuted} />
                 <Text style={{ color: colors.text, fontSize: FontSize.lg, fontWeight: '700', marginTop: Spacing.md }}>
-                  Aucune conversation
+                  {t('chat_modal.aucune_conversation')}
                 </Text>
                 <Text style={{ color: colors.textMuted, fontSize: FontSize.sm, textAlign: 'center', marginTop: Spacing.xs }}>
-                  Ouvrez le profil d'un fournisseur sur la Marketplace pour démarrer une conversation
+                  {t('chat_modal.ouvrez_le_profil_d_un_fournisseur')}
                 </Text>
               </View>
             ) : (
@@ -269,7 +269,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
                         </View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
                           <Text style={{ fontSize: 13, color: colors.textMuted, flex: 1 }} numberOfLines={1}>
-                            {convo.last_message || 'Nouvelle conversation'}
+                            {convo.last_message || t('chat_modal.nouvelle_conversation')}
                           </Text>
                           {unread > 0 && (
                             <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
@@ -309,7 +309,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
               <View style={[styles.inputBar, { backgroundColor: colors.bgDark, borderTopColor: colors.divider }]}>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.glass, color: colors.text, borderColor: colors.glassBorder }]}
-                  placeholder="Écrire un message..."
+                  placeholder={t('chat_modal.ecrire_un_message')}
                   placeholderTextColor={colors.textMuted}
                   value={newMessage}
                   onChangeText={setNewMessage}

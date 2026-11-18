@@ -23,7 +23,7 @@ export default function AiDailySummary() {
       setSummary(result.summary);
       setExpanded(true);
     } catch {
-      setSummary(t('ai.error_summarizing') || 'Impossible de générer le résumé. Réessayez plus tard.');
+      setSummary(t('ai.error_summarizing') || t('ai_daily_summary.impossible_de_generer_le_resume_reessayez'));
     } finally {
       setLoading(false);
     }
@@ -39,9 +39,9 @@ export default function AiDailySummary() {
           <Ionicons name="sparkles" size={18} color={colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.ai_daily_summary') || 'Résumé IA du jour'}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.ai_daily_summary') || t('ai_daily_summary.resume_ia_du_jour')}</Text>
           {!summary && !loading && (
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>{t('dashboard.ai_tap_to_generate') || 'Appuyez pour générer'}</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>{t('dashboard.ai_tap_to_generate') || t('ai_daily_summary.appuyez_pour_generer')}</Text>
           )}
         </View>
         {loading ? (

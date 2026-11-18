@@ -86,7 +86,7 @@ function formatDemoTypeLabel(demoType: string | null | undefined, t: (key: strin
         case 'enterprise':
             return t('auth.login.demoEnterprise');
         default:
-            return 'Démo';
+            return t('subscription_plans.demo');
     }
 }
 
@@ -269,7 +269,7 @@ export default function SubscriptionPlans({ embedded = false }: { embedded?: boo
         if (isEnterpriseManagedOnWeb) {
             Alert.alert(
                 t('common.info'),
-                "Ce compte Enterprise est piloté sur le web. La restauration des achats intégrés mobile n'est pas utilisée pour cette formule."
+                t('subscription_plans.ce_compte_enterprise_est_pilote_sur')
             );
             return;
         }
@@ -487,18 +487,18 @@ export default function SubscriptionPlans({ embedded = false }: { embedded?: boo
 
                 {accessPhase !== 'active' ? (
                     <View style={[styles.card, styles.attentionCard]}>
-                        <Text style={styles.sectionTitle}>Continuité d&apos;activité</Text>
+                        <Text style={styles.sectionTitle}>{t('subscription_plans.continuite_d_activite')}</Text>
                         <Text style={styles.cardSubtitle}>
-                            Votre compte est actuellement en phase {accessPhase}. Vous pouvez continuer à utiliser l&apos;application sans perdre vos données, puis régulariser le paiement dès que possible.
+                            {t('subscription_plans.access_phase_notice', { phase: t(`subscription_plans.phase_${accessPhase}`, { defaultValue: accessPhase }) })}
                         </Text>
                         {data?.grace_until ? (
                             <Text style={styles.helperText}>
-                                Fin de grâce : {new Date(data.grace_until).toLocaleDateString('fr-FR')}
+                                {t('subscription_plans.fin_de_grace')} {new Date(data.grace_until).toLocaleDateString('fr-FR')}
                             </Text>
                         ) : null}
                         {data?.read_only_after ? (
                             <Text style={styles.helperText}>
-                                Passage en lecture seule : {new Date(data.read_only_after).toLocaleDateString('fr-FR')}
+                                {t('subscription_plans.passage_en_lecture_seule')} {new Date(data.read_only_after).toLocaleDateString('fr-FR')}
                             </Text>
                         ) : null}
                     </View>
@@ -511,7 +511,7 @@ export default function SubscriptionPlans({ embedded = false }: { embedded?: boo
                             <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('subscription.demo_active', 'Session démo active')}</Text>
                         </View>
                         <Text style={styles.cardSubtitle}>
-                            Type : {formatDemoTypeLabel(data.demo_type, t)} · Surface : {data.demo_surface || 'mobile'}
+                            {t('subscription_plans.type')} {formatDemoTypeLabel(data.demo_type, t)} {t('subscription_plans.surface')} {data.demo_surface || 'mobile'}
                         </Text>
                         {Platform.OS !== 'ios' ? (
                             <Text style={styles.helperText}>

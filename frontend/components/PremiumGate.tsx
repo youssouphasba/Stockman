@@ -39,7 +39,7 @@ export default function PremiumGate({ featureName, description, benefits, icon =
 
                 <View style={[styles.benefitsCard, glassStyle]}>
                     <Text style={[styles.benefitsTitle, { color: colors.text }]}>
-                        {t('subscription.unlock_to_access') || 'Activez un plan pour accéder à :'}
+                        {t('subscription.unlock_to_access') || t('premium_gate.activez_un_plan_pour_acceder_a')}
                     </Text>
                     {Array.isArray(benefits) && benefits.map((b, i) => (
                         <View key={i} style={styles.benefitRow}>
@@ -61,7 +61,7 @@ export default function PremiumGate({ featureName, description, benefits, icon =
                     >
                         <Ionicons name="star" size={20} color="white" />
                         <Text style={styles.upgradeText}>
-                            {t('subscription.see_plans') || 'Voir les plans'}
+                            {t('subscription.see_plans') || t('premium_gate.voir_les_plans')}
                         </Text>
                     </LinearGradient>
                 </TouchableOpacity>

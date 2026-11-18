@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../services/i18n';
 import { useFocusEffect, Link, useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasPlatformModule } from '../../utils/access';
@@ -228,42 +229,37 @@ function getAppVersionLabel(): string {
   try {
     const version = Constants.expoConfig?.version || Updates.runtimeVersion || '';
     const publishedAt = Updates.createdAt;
-    if (Updates.isEmbeddedLaunch || !publishedAt) return `${version} · version d'origine`;
+    if (Updates.isEmbeddedLaunch || !publishedAt) return i18n.t('settings_screen.version_embedded', { version, defaultValue: "{{version}} · version d'origine" });
     const pad = (value: number) => String(value).padStart(2, '0');
     const date = `${pad(publishedAt.getDate())}/${pad(publishedAt.getMonth() + 1)}`;
     const time = `${pad(publishedAt.getHours())}:${pad(publishedAt.getMinutes())}`;
-    return `${version} · mise à jour du ${date} à ${time}`;
+    return i18n.t('settings_screen.version_updated', { version, date, time, defaultValue: '{{version}} · mise à jour du {{date}} à {{time}}' });
   } catch {
     return Constants.expoConfig?.version || '';
   }
 }
 
 // Raisons renvoyées par expo-updates quand aucune mise à jour à distance n'est appliquée.
-const UPDATE_REASONS: Record<string, string> = {
-  noUpdateAvailableOnServer: "le serveur n'a rien de plus récent pour cette version",
-  updateRejectedBySelectionPolicy: "la mise à jour reçue a été refusée par l'application",
-  updatePreviouslyFailed: 'cette mise à jour a déjà échoué au lancement',
-  rollbackRejectedBySelectionPolicy: "le retour à la version d'origine a été refusé",
-  rollbackNoEmbedded: "aucune version d'origine disponible",
-};
+const UPDATE_REASONS = ['noUpdateAvailableOnServer', 'updateRejectedBySelectionPolicy', 'updatePreviouslyFailed', 'rollbackRejectedBySelectionPolicy', 'rollbackNoEmbedded'];
 
 // Diagnostic des mises à jour à distance : canal, version d'exécution, mise à jour en cours,
 // et recherche manuelle qui affiche la raison exacte quand rien n'est appliqué.
 function UpdatesDiagnostic({ colors, styles }: { colors: any; styles: any }) {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
   let info = '';
   try {
-    const current = Updates.updateId ? Updates.updateId.slice(0, 8) : 'aucune';
-    info = `Canal ${Updates.channel || '—'} · exécution ${Updates.runtimeVersion || '—'} · mise à jour ${current}${Updates.isEmbeddedLaunch ? " (version d'origine)" : ''}`;
+    const current = Updates.updateId ? Updates.updateId.slice(0, 8) : t('settings_screen.ota_none');
+    info = t('settings_screen.ota_info', { channel: Updates.channel || '—', runtime: Updates.runtimeVersion || '—', update: current }) + (Updates.isEmbeddedLaunch ? t('settings_screen.ota_embedded_suffix') : '');
   } catch { /* informations indisponibles */ }
 
   const lastProblem = async () => {
     try {
       const entries = await Updates.readLogEntriesAsync(10 * 60 * 1000);
       const problem = [...entries].reverse().find((entry) => entry.level === 'error' || entry.level === 'warn');
-      return problem ? ` Dernier incident : ${problem.message}` : '';
+      return problem ? t('settings_screen.ota_last_problem', { message: problem.message }) : '';
     } catch {
       return '';
     }
@@ -271,7 +267,7 @@ function UpdatesDiagnostic({ colors, styles }: { colors: any; styles: any }) {
 
   const check = async () => {
     if (__DEV__ || !Updates.isEnabled) {
-      setResult('Les mises à jour à distance sont désactivées dans cette version.');
+      setResult(t('settings_screen.ota_disabled'));
       return;
     }
     setBusy(true);
@@ -279,15 +275,15 @@ function UpdatesDiagnostic({ colors, styles }: { colors: any; styles: any }) {
     try {
       const response: any = await Updates.checkForUpdateAsync();
       if (response.isAvailable) {
-        setResult('Mise à jour trouvée : téléchargement puis redémarrage…');
+        setResult(t('settings_screen.ota_found'));
         await Updates.fetchUpdateAsync();
         await Updates.reloadAsync();
         return;
       }
-      const reason = UPDATE_REASONS[response.reason] || response.reason || 'raison inconnue';
-      setResult(`Aucune mise à jour : ${reason}.${await lastProblem()}`);
+      const reason = UPDATE_REASONS.includes(response.reason) ? t(`settings_screen.ota_reason_${response.reason}`) : response.reason || t('settings_screen.ota_reason_unknown');
+      setResult(t('settings_screen.ota_no_update', { reason }) + await lastProblem());
     } catch (error: any) {
-      setResult(`Erreur : ${error?.message || String(error)}.${await lastProblem()}`);
+      setResult(t('settings_screen.ota_error', { message: error?.message || String(error) }) + await lastProblem());
     } finally {
       setBusy(false);
     }
@@ -298,7 +294,7 @@ function UpdatesDiagnostic({ colors, styles }: { colors: any; styles: any }) {
       {!!info && <Text selectable style={[styles.aboutLabel, { fontSize: 12 }]}>{info}</Text>}
       <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => void check()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         {busy ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="cloud-download-outline" size={16} color={colors.primary} />}
-        <Text style={[styles.aboutLabel, { color: colors.primary }]}>Rechercher une mise à jour</Text>
+        <Text style={[styles.aboutLabel, { color: colors.primary }]}>{t('settings_screen.ota_check')}</Text>
       </TouchableOpacity>
       {!!result && <Text selectable style={[styles.aboutLabel, { fontSize: 12 }]}>{result}</Text>}
     </View>
@@ -470,17 +466,17 @@ export default function SettingsScreen() {
     }
 
     Alert.alert(
-      'Désactiver le code PIN',
-      "L'application ne demandera plus de code PIN à l'ouverture.",
+      t('settings_screen.desactiver_le_code_pin'),
+      t('settings_screen.l_application_ne_demandera_plus_de'),
       [
         { text: t('common.cancel', 'Annuler'), style: 'cancel' },
         {
-          text: 'Désactiver',
+          text: t('settings_screen.desactiver'),
           style: 'destructive',
           onPress: () => {
             void togglePin(false)
-              .then(() => showFeedback('Le code PIN a été désactivé.'))
-              .catch(() => showFeedback('Impossible de désactiver le code PIN pour le moment.', 'error'));
+              .then(() => showFeedback(t('settings_screen.le_code_pin_a_ete_desactive')))
+              .catch(() => showFeedback(t('settings_screen.impossible_de_desactiver_le_code_pin'), 'error'));
           },
         },
       ],
@@ -489,14 +485,14 @@ export default function SettingsScreen() {
 
   function handleToggleBiometrics() {
     if (!isPinSet) {
-      Alert.alert('Code PIN requis', "Activez d'abord le code PIN pour utiliser la biométrie.");
+      Alert.alert(t('settings_screen.code_pin_requis'), t('settings_screen.activez_d_abord_le_code_pin'));
       return;
     }
 
     const nextValue = !isBiometricsEnabled;
     void toggleBiometrics(nextValue)
-      .then(() => showFeedback(nextValue ? 'La biométrie est activée.' : 'La biométrie est désactivée.'))
-      .catch(() => showFeedback('Impossible de modifier la biométrie pour le moment.', 'error'));
+      .then(() => showFeedback(nextValue ? t('settings_screen.la_biometrie_est_activee') : t('settings_screen.la_biometrie_est_desactivee')))
+      .catch(() => showFeedback(t('settings_screen.impossible_de_modifier_la_biometrie_pour'), 'error'));
   }
 
   const handleExportData = async () => {
@@ -593,7 +589,7 @@ export default function SettingsScreen() {
       if (isCurrent()) {
         setLoadedSettingsContext(settingsContext);
         setSettingsData(null);
-        setLoadError('Impossible de charger les paramètres. Réessayez lorsque la connexion est disponible.');
+        setLoadError(t('settings_screen.impossible_de_charger_les_parametres_reessayez'));
       }
     } finally {
       if (isCurrent()) {
@@ -697,9 +693,9 @@ export default function SettingsScreen() {
       const updated = await settingsApi.update({ modules: newModules });
       setSettingsData(updated);
       DeviceEventEmitter.emit('settings:navigation-changed', updated);
-      showFeedback('Modules mis à jour.');
+      showFeedback(t('settings_screen.modules_mis_a_jour'));
     } catch {
-      showFeedback('Impossible de mettre à jour les modules.', 'error');
+      showFeedback(t('settings_screen.impossible_de_mettre_a_jour_les'), 'error');
     }
   }
 
@@ -709,9 +705,9 @@ export default function SettingsScreen() {
       const updated = await settingsApi.update({ push_notifications: !settingsData.push_notifications });
       setSettingsData(updated);
       setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(updated?.notification_preferences || {}) });
-      showFeedback('Préférences de notification mises à jour.');
+      showFeedback(t('settings_screen.preferences_de_notification_mises_a_jour'));
     } catch {
-      showFeedback('Impossible de mettre à jour les notifications.', 'error');
+      showFeedback(t('settings_screen.impossible_de_mettre_a_jour_les_2'), 'error');
     }
   }
 
@@ -725,9 +721,9 @@ export default function SettingsScreen() {
         },
       } as any);
       setSettingsData(updated);
-      showFeedback('Zone manager mise à jour.');
+      showFeedback(t('settings_screen.zone_manager_mise_a_jour'));
     } catch {
-      showFeedback('Impossible de mettre à jour la zone manager.', 'error');
+      showFeedback(t('settings_screen.impossible_de_mettre_a_jour_la'), 'error');
     }
   }
 
@@ -748,9 +744,9 @@ export default function SettingsScreen() {
       } as any);
       setSettingsData(updated);
       setNotificationPreferences({ ...DEFAULT_NOTIFICATION_PREFERENCES, ...(updated?.notification_preferences || {}) });
-      showFeedback('Préférences de notification enregistrées.');
+      showFeedback(t('settings_screen.preferences_de_notification_enregistrees'));
     } catch {
-      showFeedback('Impossible de mettre à jour vos notifications.', 'error');
+      showFeedback(t('settings_screen.impossible_de_mettre_a_jour_vos'), 'error');
     }
   }
 
@@ -773,9 +769,9 @@ export default function SettingsScreen() {
       } as any);
       setSettingsData(updated);
       setNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.notification_contacts || {}) });
-      showFeedback('E-mails de notification du compte enregistrés.');
+      showFeedback(t('settings_screen.e_mails_de_notification_du_compte'));
     } catch {
-      showFeedback('Impossible de mettre à jour les e-mails de notification.', 'error');
+      showFeedback(t('settings_screen.impossible_de_mettre_a_jour_les_3'), 'error');
     }
   }
 
@@ -786,9 +782,9 @@ export default function SettingsScreen() {
       } as any);
       setSettingsData(updated);
       setStoreNotificationContacts({ ...DEFAULT_NOTIFICATION_CONTACTS, ...(updated?.store_notification_contacts || {}) });
-      showFeedback('E-mails de notification de la boutique enregistrés.');
+      showFeedback(t('settings_screen.e_mails_de_notification_de_la'));
     } catch {
-      showFeedback('Impossible de mettre à jour les e-mails de la boutique.', 'error');
+      showFeedback(t('settings_screen.impossible_de_mettre_a_jour_les_4'), 'error');
     }
   }
 
@@ -831,15 +827,15 @@ export default function SettingsScreen() {
         invoice_footer: updatedStore.invoice_footer,
         invoice_payment_terms: updatedStore.invoice_payment_terms,
       }) : prev);
-      showFeedback('Boutique mise à jour.');
+      showFeedback(t('settings_screen.boutique_mise_a_jour'));
     } catch {
-      showFeedback('Impossible de mettre à jour la boutique active.', 'error');
+      showFeedback(t('settings_screen.impossible_de_mettre_a_jour_la_2'), 'error');
     }
   }
 
   async function saveEcommerceSettings(nextEnabled?: boolean) {
     if (!ecommerceSite || !currentStore || !ecommerceDraft.store_id) {
-      showFeedback('Sélectionnez une boutique et chargez les réglages du site avant de les enregistrer.', 'error');
+      showFeedback(t('settings_screen.selectionnez_une_boutique_et_chargez_les'), 'error');
       return;
     }
     const saveContext = settingsContext;
@@ -850,9 +846,9 @@ export default function SettingsScreen() {
       setEcommerceSite(updated);
       DeviceEventEmitter.emit('ecommerce:changed');
       setEcommerceDraft(createEcommerceDraft(updated));
-      showFeedback('Réglages e-commerce enregistrés.', 'success');
+      showFeedback(t('settings_screen.reglages_e_commerce_enregistres'), 'success');
     } catch {
-      showFeedback("Impossible d'enregistrer les réglages e-commerce.", 'error');
+      showFeedback(t('settings_screen.impossible_d_enregistrer_les_reglages_e'), 'error');
     } finally {
       setEcommerceSaving(false);
     }
@@ -863,17 +859,17 @@ export default function SettingsScreen() {
   const ecommerceContactCount = [ecommerceDraft.contact_email, ecommerceDraft.contact_phone, ecommerceDraft.whatsapp_phone, ecommerceDraft.contact_address]
     .filter((value) => (value || '').trim()).length;
   const ecommerceContactSummary = ecommerceContactCount === 0
-    ? 'À compléter'
+    ? t('settings_screen.a_completer')
     : ecommerceContactCount === 4
-      ? 'Coordonnées complètes'
-      : `${ecommerceContactCount} sur 4 ${ecommerceContactCount > 1 ? 'renseignées' : 'renseignée'}`;
+      ? t('settings_screen.coordonnees_completes')
+      : t('settings_screen.contact_count', { count: ecommerceContactCount });
   const ecommerceWallets = ecommerceSite?.mobile_money_available === false ? [] : [
     (ecommerceDraft.wave_phone || '').trim() ? 'Wave' : '',
     (ecommerceDraft.orange_money_phone || '').trim() ? 'Orange Money' : '',
   ].filter(Boolean);
   const ecommercePaymentSummary = ecommerceWallets.length
-    ? `${ecommerceWallets.join(', ')}${ecommerceDraft.pay_on_delivery !== false ? ', à la livraison' : ''}`
-    : (ecommerceDraft.payment_instructions || '').trim() ? 'Consignes de paiement renseignées' : '';
+    ? `${ecommerceWallets.join(', ')}${ecommerceDraft.pay_on_delivery !== false ? t('settings_screen.a_la_livraison') : ''}`
+    : (ecommerceDraft.payment_instructions || '').trim() ? t('settings_screen.consignes_de_paiement_renseignees') : '';
   const ecommerceFieldLabel = { color: colors.text, fontSize: FontSize.sm, fontWeight: '600' as const, marginTop: Spacing.xs };
   const toggleEcommerceStep = (step: EcommerceStepId) => setEcommerceStep((current) => (current === step ? null : step));
 
@@ -883,7 +879,7 @@ export default function SettingsScreen() {
       const separator = ecommerceSite.site_url.includes('?') ? '&' : '?';
       await Linking.openURL(`${ecommerceSite.site_url}${separator}preview=1`);
     } catch {
-      showFeedback("Impossible d'ouvrir le site pour le moment.", 'error');
+      showFeedback(t('settings_screen.impossible_d_ouvrir_le_site_pour'), 'error');
     }
   }
 
@@ -1043,7 +1039,7 @@ export default function SettingsScreen() {
       <View style={[styles.content, { gap: 16 }]}>
         <Text style={{ color: colors.danger }}>{loadError}</Text>
         <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} onPress={() => { setLoading(true); void loadSettings(); }}>
-          <Text style={styles.outlineButtonText}>Réessayer</Text>
+          <Text style={styles.outlineButtonText}>{t('settings_screen.reessayer')}</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>;
@@ -1079,16 +1075,16 @@ export default function SettingsScreen() {
         {loadError && <View style={{ paddingVertical: 16, gap: 12 }}>
           <Text style={{ color: colors.danger }}>{loadError}</Text>
           <TouchableOpacity accessibilityRole="button" onPress={() => { setLoading(true); void loadSettings(); }} style={styles.outlineButton}>
-            <Text style={styles.outlineButtonText}>Réessayer</Text>
+            <Text style={styles.outlineButtonText}>{t('settings_screen.reessayer')}</Text>
           </TouchableOpacity>
         </View>}
         <StarterSettingsLayout enabled={usesGroupedSettings} managed={usesManagedSettings} activeSection={starterSection} onSectionChange={changeStarterSection} pendingCount={pendingCount}>
         {isOrgAdmin && (
         <SettingsAccordionSection
-          title="Site e-commerce"
+          title={t('settings_screen.site_e_commerce')}
           description={ecommerceSite
-            ? `${ecommerceSite.enabled ? 'En ligne' : 'Hors ligne'} · apparence, coordonnées, livraison, paiement et domaine.`
-            : 'Votre boutique en ligne : apparence, coordonnées, livraison, paiement et domaine.'}
+            ? `${ecommerceSite.enabled ? t('settings_screen.site_online') : t('settings_screen.site_offline')} · ${t('settings_screen.site_sections')}`
+            : t('settings_screen.votre_boutique_en_ligne_apparence_coordonnees')}
           icon="globe-outline"
           accentColor={colors.primary}
           expanded={expandedSections.storeEcommerce}
@@ -1098,21 +1094,21 @@ export default function SettingsScreen() {
           colors={colors}
         >
           {!currentStore && <View style={{ gap: 12 }}>
-            <Text style={styles.settingDesc}>Sélectionnez une boutique pour configurer votre site et son catalogue.</Text>
+            <Text style={styles.settingDesc}>{t('settings_screen.selectionnez_une_boutique_pour_configurer_votre')}</Text>
             <StoreSelector />
           </View>}
           {currentStore && !ecommerceSite && <View style={{ gap: 12 }}>
             {ecommerceLoading
               ? <ActivityIndicator color={colors.primary} />
               : <>
-                <Text style={styles.settingDesc}>Les réglages du site ne sont pas disponibles. Rechargez-les pour préparer votre boutique en ligne.</Text>
+                <Text style={styles.settingDesc}>{t('settings_screen.les_reglages_du_site_ne_sont')}</Text>
                 <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} onPress={() => { void loadEcommerceSettings(); }}>
-                  <Text style={styles.outlineButtonText}>Charger ma boutique en ligne</Text>
+                  <Text style={styles.outlineButtonText}>{t('settings_screen.charger_ma_boutique_en_ligne')}</Text>
                 </TouchableOpacity>
               </>}
             <TouchableOpacity accessibilityRole="button" style={styles.supportRow} onPress={() => router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any)}>
               <Ionicons name="receipt-outline" size={22} color={colors.primary} />
-              <Text style={styles.settingLabel}>Commandes en ligne</Text>
+              <Text style={styles.settingLabel}>{t('settings_screen.commandes_en_ligne')}</Text>
             </TouchableOpacity>
           </View>}
           {currentStore && ecommerceSite && <>
@@ -1120,7 +1116,7 @@ export default function SettingsScreen() {
             <View style={[styles.statusDot, { backgroundColor: ecommerceSite.enabled ? colors.success : colors.textMuted }]} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[styles.settingLabel, { fontWeight: '700' }]}>
-                {ecommerceSite.enabled ? 'Votre site est en ligne' : 'Votre site est hors ligne'}
+                {ecommerceSite.enabled ? t('settings_screen.votre_site_est_en_ligne') : t('settings_screen.votre_site_est_hors_ligne')}
               </Text>
               <Text selectable style={styles.settingDesc}>{ecommerceSite.site_url}</Text>
             </View>
@@ -1128,7 +1124,7 @@ export default function SettingsScreen() {
               value={!!ecommerceSite.enabled}
               onValueChange={(value) => saveEcommerceSettings(value)}
               disabled={ecommerceSaving}
-              accessibilityLabel="Mettre le site en ligne"
+              accessibilityLabel={t('settings_screen.mettre_le_site_en_ligne')}
               trackColor={{ false: colors.divider, true: colors.primary + '66' }}
               thumbColor={ecommerceSite.enabled ? colors.primary : colors.textMuted}
             />
@@ -1140,7 +1136,7 @@ export default function SettingsScreen() {
               onPress={() => { void openEcommercePreview(); }}
             >
               <Ionicons name="open-outline" size={18} color={colors.primary} />
-              <Text style={styles.outlineButtonText}>Voir mon site</Text>
+              <Text style={styles.outlineButtonText}>{t('settings_screen.voir_mon_site')}</Text>
             </TouchableOpacity>}
             <TouchableOpacity
               accessibilityRole="button"
@@ -1148,13 +1144,13 @@ export default function SettingsScreen() {
               onPress={() => router.push({ pathname: '/(tabs)/orders', params: { tab: 'web', source: 'ecommerce' } } as any)}
             >
               <Ionicons name="receipt-outline" size={18} color={colors.primary} />
-              <Text style={styles.outlineButtonText}>Commandes</Text>
+              <Text style={styles.outlineButtonText}>{t('settings_screen.commandes')}</Text>
             </TouchableOpacity>
           </View>
 
           <EcommerceStep
-            title="Produits affichés"
-            summary={`${ecommerceStoreName ? `${ecommerceStoreName} · ` : ''}${ecommerceDraft.show_out_of_stock_products ? 'ruptures affichées' : 'ruptures masquées'}`}
+            title={t('settings_screen.produits_affiches')}
+            summary={`${ecommerceStoreName ? `${ecommerceStoreName} · ` : ''}${ecommerceDraft.show_out_of_stock_products ? t('settings_screen.ruptures_affichees') : t('settings_screen.ruptures_masquees')}`}
             icon="pricetags-outline"
             open={ecommerceStep === 'products'}
             onToggle={() => toggleEcommerceStep('products')}
@@ -1162,7 +1158,7 @@ export default function SettingsScreen() {
             colors={colors}
           >
             {storeList.length > 1 && <>
-              <Text style={ecommerceFieldLabel}>Boutique liée</Text>
+              <Text style={ecommerceFieldLabel}>{t('settings_screen.boutique_liee')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {storeList.map((store) => (
                   <TouchableOpacity
@@ -1184,14 +1180,14 @@ export default function SettingsScreen() {
             </>}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingLabel}>Afficher les produits en rupture</Text>
-                <Text style={styles.settingDesc}>Ils restent visibles, mais ne peuvent pas être commandés.</Text>
+                <Text style={styles.settingLabel}>{t('settings_screen.afficher_les_produits_en_rupture')}</Text>
+                <Text style={styles.settingDesc}>{t('settings_screen.ils_restent_visibles_mais_ne_peuvent')}</Text>
               </View>
               <Switch
                 value={!!ecommerceDraft.show_out_of_stock_products}
                 onValueChange={(value) => setEcommerceDraft((draft: any) => ({ ...draft, show_out_of_stock_products: value }))}
                 disabled={ecommerceSaving}
-                accessibilityLabel="Afficher les produits en rupture"
+                accessibilityLabel={t('settings_screen.afficher_les_produits_en_rupture')}
                 trackColor={{ false: colors.divider, true: colors.primary + '66' }}
                 thumbColor={ecommerceDraft.show_out_of_stock_products ? colors.primary : colors.textMuted}
               />
@@ -1199,8 +1195,8 @@ export default function SettingsScreen() {
           </EcommerceStep>
 
           <EcommerceStep
-            title="Apparence"
-            summary={ecommerceSite.model_name ? `Modèle ${ecommerceSite.model_name}` : 'Modèle, couleurs, textes et images'}
+            title={t('settings_screen.apparence')}
+            summary={ecommerceSite.model_name ? t('settings_screen.model_named', { name: ecommerceSite.model_name }) : t('settings_screen.modele_couleurs_textes_et_images')}
             icon="color-palette-outline"
             open={ecommerceStep === 'appearance'}
             onToggle={() => toggleEcommerceStep('appearance')}
@@ -1223,7 +1219,7 @@ export default function SettingsScreen() {
           </EcommerceStep>
 
           <EcommerceStep
-            title="Coordonnées"
+            title={t('settings_screen.coordonnees')}
             summary={ecommerceContactSummary}
             incomplete={ecommerceContactCount === 0}
             icon="call-outline"
@@ -1232,51 +1228,51 @@ export default function SettingsScreen() {
             styles={styles}
             colors={colors}
           >
-            <Text style={ecommerceFieldLabel}>E-mail</Text>
+            <Text style={ecommerceFieldLabel}>{t('settings_screen.e_mail')}</Text>
             <TextInput
               style={styles.input}
               value={ecommerceDraft.contact_email || ''}
               onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_email: value }))}
-              placeholder="contact@maboutique.com"
+              placeholder={t('settings_screen.contact_maboutique_com')}
               placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
-              accessibilityLabel="E-mail de contact"
+              accessibilityLabel={t('settings_screen.e_mail_de_contact')}
             />
-            <Text style={ecommerceFieldLabel}>Téléphone</Text>
+            <Text style={ecommerceFieldLabel}>{t('settings_screen.telephone')}</Text>
             <TextInput
               style={styles.input}
               value={ecommerceDraft.contact_phone || ''}
               onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_phone: value }))}
-              placeholder="Numéro affiché sur le site"
+              placeholder={t('settings_screen.numero_affiche_sur_le_site')}
               placeholderTextColor={colors.textMuted}
               keyboardType="phone-pad"
-              accessibilityLabel="Téléphone de contact"
+              accessibilityLabel={t('settings_screen.telephone_de_contact')}
             />
-            <Text style={ecommerceFieldLabel}>WhatsApp</Text>
+            <Text style={ecommerceFieldLabel}>{t('settings_screen.whatsapp')}</Text>
             <TextInput
               style={styles.input}
               value={ecommerceDraft.whatsapp_phone || ''}
               onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, whatsapp_phone: value }))}
-              placeholder="Numéro du bouton WhatsApp"
+              placeholder={t('settings_screen.numero_du_bouton_whatsapp')}
               placeholderTextColor={colors.textMuted}
               keyboardType="phone-pad"
-              accessibilityLabel="Numéro WhatsApp"
+              accessibilityLabel={t('settings_screen.numero_whatsapp')}
             />
-            <Text style={ecommerceFieldLabel}>Adresse</Text>
+            <Text style={ecommerceFieldLabel}>{t('settings_screen.adresse')}</Text>
             <TextInput
               style={styles.input}
               value={ecommerceDraft.contact_address || ''}
               onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, contact_address: value }))}
-              placeholder="Adresse affichée sur le site"
+              placeholder={t('settings_screen.adresse_affichee_sur_le_site')}
               placeholderTextColor={colors.textMuted}
-              accessibilityLabel="Adresse de contact"
+              accessibilityLabel={t('settings_screen.adresse_de_contact')}
             />
           </EcommerceStep>
 
           <EcommerceStep
-            title="Livraison"
-            summary={(ecommerceDraft.delivery_info || '').trim() ? 'Consignes renseignées' : 'Consignes à compléter'}
+            title={t('settings_screen.livraison')}
+            summary={(ecommerceDraft.delivery_info || '').trim() ? t('settings_screen.consignes_renseignees') : t('settings_screen.consignes_a_completer')}
             incomplete={!(ecommerceDraft.delivery_info || '').trim()}
             icon="bicycle-outline"
             open={ecommerceStep === 'delivery'}
@@ -1284,22 +1280,22 @@ export default function SettingsScreen() {
             styles={styles}
             colors={colors}
           >
-            <Text style={ecommerceFieldLabel}>Consignes de livraison</Text>
+            <Text style={ecommerceFieldLabel}>{t('settings_screen.consignes_de_livraison')}</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={ecommerceDraft.delivery_info || ''}
               onChangeText={(value) => setEcommerceDraft((draft: any) => ({ ...draft, delivery_info: value }))}
-              placeholder="Zones desservies, retrait, délais et frais"
+              placeholder={t('settings_screen.zones_desservies_retrait_delais_et_frais')}
               placeholderTextColor={colors.textMuted}
               multiline
-              accessibilityLabel="Consignes de livraison"
+              accessibilityLabel={t('settings_screen.consignes_de_livraison')}
             />
             <DenkmaSettingsCard canEdit={canManageStoreSettings} styles={styles} onFeedback={showFeedback} />
           </EcommerceStep>
 
           <EcommerceStep
-            title="Paiement"
-            summary={ecommercePaymentSummary || 'À compléter'}
+            title={t('settings_screen.paiement')}
+            summary={ecommercePaymentSummary || t('settings_screen.a_completer')}
             incomplete={!ecommercePaymentSummary}
             icon="wallet-outline"
             open={ecommerceStep === 'payment'}
@@ -1311,7 +1307,7 @@ export default function SettingsScreen() {
           </EcommerceStep>
 
           <EcommerceStep
-            title="Nom de domaine"
+            title={t('settings_screen.nom_de_domaine')}
             summary={ecommerceSite.custom_domain || 'Adresse Stockman'}
             icon="link-outline"
             open={ecommerceStep === 'domain'}
@@ -1324,7 +1320,7 @@ export default function SettingsScreen() {
 
           {ecommerceDirty && (
             <View accessibilityRole="alert" style={{ marginTop: Spacing.md, padding: Spacing.md, gap: Spacing.sm, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.primary + '40', backgroundColor: colors.primary + '12' }}>
-              <Text style={[styles.settingLabel, { fontWeight: '600' }]}>Vous avez des modifications non enregistrées.</Text>
+              <Text style={[styles.settingLabel, { fontWeight: '600' }]}>{t('settings_screen.vous_avez_des_modifications_non_enregistrees')}</Text>
               <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                 <TouchableOpacity
                   accessibilityRole="button"
@@ -1332,7 +1328,7 @@ export default function SettingsScreen() {
                   onPress={() => setEcommerceDraft(createEcommerceDraft(ecommerceSite))}
                   disabled={ecommerceSaving}
                 >
-                  <Text style={styles.outlineButtonText}>Annuler</Text>
+                  <Text style={styles.outlineButtonText}>{t('settings_screen.annuler')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   accessibilityRole="button"
@@ -1420,7 +1416,7 @@ export default function SettingsScreen() {
               style={styles.input}
               value={billingContactEmail}
               onChangeText={setBillingContactEmail}
-              placeholder="email@entreprise.com"
+              placeholder={t('settings_screen.email_entreprise_com')}
               keyboardType="email-address"
               autoCapitalize="none"
               placeholderTextColor={colors.textMuted}
@@ -1730,7 +1726,7 @@ export default function SettingsScreen() {
             />
             {isStarterSettings && <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showDocumentOptions }} style={styles.supportRow} onPress={() => setShowDocumentOptions((value) => !value)}>
               <Ionicons name="options-outline" size={22} color={colors.primary} />
-              <Text style={[styles.settingLabel, { flex: 1 }]}>Plus d'options</Text>
+              <Text style={[styles.settingLabel, { flex: 1 }]}>{t('settings_screen.plus_d_options')}</Text>
               <Ionicons name={showDocumentOptions ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
             </TouchableOpacity>}
             {(!isStarterSettings || showDocumentOptions) && <>
@@ -1942,7 +1938,7 @@ export default function SettingsScreen() {
           variant="nested"
         >
           {isStarterSettings && <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showNotificationOptions }} style={styles.supportRow} onPress={() => setShowNotificationOptions((value) => !value)}>
-            <Text style={[styles.settingLabel, { flex: 1 }]}>Plus d'options</Text>
+            <Text style={[styles.settingLabel, { flex: 1 }]}>{t('settings_screen.plus_d_options')}</Text>
             <Ionicons name={showNotificationOptions ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
           </TouchableOpacity>}
           {(!isStarterSettings || showNotificationOptions) && <>
@@ -2294,8 +2290,8 @@ export default function SettingsScreen() {
               <Ionicons name="swap-horizontal-outline" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Comptes sur cet appareil</Text>
-              <Text style={styles.settingDesc}>Ajouter un autre compte ou basculer entre vos espaces commerçant, staff et fournisseur.</Text>
+              <Text style={styles.settingLabel}>{t('settings_screen.comptes_sur_cet_appareil')}</Text>
+              <Text style={styles.settingDesc}>{t('settings_screen.ajouter_un_autre_compte_ou_basculer')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </View>

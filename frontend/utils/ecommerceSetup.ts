@@ -1,11 +1,20 @@
 // Ce fichier existe en deux copies identiques : frontend/utils/ecommerceSetup.ts (mobile)
 // et web-app/src/lib/ecommerceSetup.ts (web). Le test ecommerce-setup.test.cjs vérifie leur parité.
+
+// Traduction des textes affichés : français par défaut, branchée sur i18n par l'application.
+type TextTranslator = (key: string, fallback: string, vars?: Record<string, string | number>) => string;
+const fillText = (text: string, vars?: Record<string, string | number>) => text.replace(/\{\{(\w+)\}\}/g, (_match, name) => String(vars?.[name] ?? ''));
+let translateText: TextTranslator = (_key, fallback, vars) => fillText(fallback, vars);
+export function setEcommerceSetupTranslator(fn: TextTranslator): void {
+  translateText = fn;
+}
+const tr = (key: string, fallback: string, vars?: Record<string, string | number>) => translateText(`ecommerce_setup.${key}`, fallback, vars);
 export const ECOMMERCE_SETUP_MESSAGE = {
-  title: 'Bienvenue dans votre boutique en ligne !',
-  description: "Votre boutique dispose déjà d'un modèle de site prêt à personnaliser. Configurez-le maintenant ou poursuivez votre activité.",
-  configure: 'Configurer mon site',
-  later: 'Plus tard',
-  error: "Impossible d'enregistrer votre choix. Vérifiez votre connexion puis réessayez.",
+  get title() { return tr('title', 'Bienvenue dans votre boutique en ligne !'); },
+  get description() { return tr('description', "Votre boutique dispose déjà d'un modèle de site prêt à personnaliser. Configurez-le maintenant ou poursuivez votre activité."); },
+  get configure() { return tr('configure', 'Configurer mon site'); },
+  get later() { return tr('later', 'Plus tard'); },
+  get error() { return tr('error', "Impossible d'enregistrer votre choix. Vérifiez votre connexion puis réessayez."); },
 };
 
 export type SetupStatus = { state: string; can_configure: boolean; site_slug: string | null };

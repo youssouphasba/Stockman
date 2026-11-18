@@ -66,7 +66,7 @@ export default function LoginScreen() {
   const compact = width < 390 || height < 760;
   const styles = React.useMemo(() => createStyles(colors, glassStyle, compact), [colors, glassStyle, compact]);
   const authText = {
-    title: 'Stockman',
+    title: t('login_screen.stockman'),
     subtitle: t('auth.login.subtitle', 'Connectez-vous pour continuer.'),
     email: t('auth.login.email', 'Email'),
     password: t('auth.login.password', 'Mot de passe'),
@@ -293,12 +293,12 @@ export default function LoginScreen() {
             return;
           }
           if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-            setError('Google Play Services est indisponible ou doit être mis à jour sur cet appareil.');
+            setError(t('login_screen.google_play_services_est_indisponible_ou'));
             setSocialLoading(null);
             return;
           }
           if (e.code === statusCodes.IN_PROGRESS) {
-            setError('Une tentative de connexion Google est déjà en cours.');
+            setError(t('login_screen.une_tentative_de_connexion_google_est'));
             setSocialLoading(null);
             return;
           }
@@ -410,11 +410,11 @@ export default function LoginScreen() {
     if (type === 'enterprise') {
       if (Platform.OS !== 'web') {
         Alert.alert(
-          'Démo Enterprise',
-          'Utilisez un ordinateur pour tester pleinement cet outil.',
+          t('login_screen.demo_enterprise'),
+          t('login_screen.utilisez_un_ordinateur_pour_tester_pleinement'),
           [
-            { text: 'Annuler', style: 'cancel' },
-            { text: 'OK', onPress: () => { void Linking.openURL(ENTERPRISE_DEMO_URL); } },
+            { text: t('login_screen.annuler'), style: 'cancel' },
+            { text: t('login_screen.ok'), onPress: () => { void Linking.openURL(ENTERPRISE_DEMO_URL); } },
           ],
         );
         return;

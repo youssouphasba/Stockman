@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { ecommerce } from '../services/api';
-import { MEDIA_UPLOAD_ERROR, parseThemeError, type ThemeMediaItem } from '../utils/ecommerceAppearance';
+import { mediaUploadError, parseThemeError, type ThemeMediaItem } from '../utils/ecommerceAppearance';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   kind: 'logo' | 'image';
@@ -20,6 +21,7 @@ type Props = {
 
 // Le parent n'affiche ce composant que lorsqu'il est ouvert (rendu conditionnel exigé sur iOS).
 export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId, canEdit, styles, onSelect, onClose }: Props) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [items, setItems] = useState<ThemeMediaItem[] | null>(null);
   const [usage, setUsage] = useState<{ total: number; limit: number } | null>(null);
@@ -38,7 +40,7 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
       setItems(result.media);
       setUsage({ total: result.total, limit: result.limit });
     } catch (err) {
-      if (mounted.current) setError(parseThemeError(err, "Impossible de charger vos images. Vérifiez votre connexion puis réessayez.").message);
+      if (mounted.current) setError(parseThemeError(err, t('ecommerce_media.impossible_de_charger_vos_images_verifiez')).message);
     } finally {
       if (mounted.current) setBusy(null);
     }
@@ -74,7 +76,7 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
       if (!mounted.current) return;
       onSelect(item);
     } catch (err) {
-      if (mounted.current) setError(parseThemeError(err, MEDIA_UPLOAD_ERROR).message);
+      if (mounted.current) setError(parseThemeError(err, mediaUploadError()).message);
     } finally {
       if (mounted.current) setBusy(null);
     }
@@ -95,17 +97,17 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
         return next;
       });
     } catch (err) {
-      if (mounted.current) setError(parseThemeError(err, "Impossible d'enregistrer la description de l'image.").message);
+      if (mounted.current) setError(parseThemeError(err, t('ecommerce_media.impossible_d_enregistrer_la_description_de')).message);
     } finally {
       if (mounted.current) setBusy(null);
     }
   }
 
   function confirmDelete(item: ThemeMediaItem) {
-    Alert.alert('Supprimer cette image ?', 'Elle sera retirée de votre bibliothèque. Cette action est définitive.', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('ecommerce_media.supprimer_cette_image'), t('ecommerce_media.elle_sera_retiree_de_votre_bibliotheque'), [
+      { text: t('ecommerce_media.annuler'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('ecommerce_media.supprimer'),
         style: 'destructive',
         onPress: async () => {
           setBusy(`delete:${item.media_id}`);
@@ -116,7 +118,7 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
             setItems((current) => (current || []).filter((entry) => entry.media_id !== item.media_id));
             setUsage((current) => (current ? { ...current, total: Math.max(0, current.total - 1) } : current));
           } catch (err) {
-            if (mounted.current) setError(parseThemeError(err, "Impossible de supprimer cette image.").message);
+            if (mounted.current) setError(parseThemeError(err, t('ecommerce_media.impossible_de_supprimer_cette_image')).message);
           } finally {
             if (mounted.current) setBusy(null);
           }
@@ -130,13 +132,13 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
       <View style={{ flex: 1, backgroundColor: colors.bgDark, paddingTop: Spacing.lg }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, gap: Spacing.sm }}>
           <Text style={{ flex: 1, color: colors.text, fontSize: FontSize.lg, fontWeight: '800' }} accessibilityRole="header">{title}</Text>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Fermer" onPress={onClose} style={{ padding: Spacing.sm, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('ecommerce_media.fermer')} onPress={onClose} style={{ padding: Spacing.sm, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="close" size={26} color={colors.text} />
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ padding: Spacing.md, gap: Spacing.md }}>
           <Text style={styles.settingDesc}>
-            Formats acceptés : JPEG, PNG ou WebP, 8 Mo au maximum. Les images sont optimisées automatiquement et leurs métadonnées sont supprimées.
+            {t('ecommerce_media.formats_acceptes_jpeg_png_ou_webp')}
           </Text>
           {canEdit && (
             <TouchableOpacity
@@ -147,13 +149,13 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
               style={[styles.outlineButton, { minHeight: 48 }, !!busy && { opacity: 0.5 }]}
             >
               {busy === 'upload' ? <ActivityIndicator color={colors.primary} /> : <Ionicons name="cloud-upload-outline" size={20} color={colors.primary} />}
-              <Text style={styles.outlineButtonText}>{busy === 'upload' ? 'Import et optimisation...' : 'Importer une image'}</Text>
+              <Text style={styles.outlineButtonText}>{busy === 'upload' ? 'Import et optimisation...' : t('ecommerce_media.importer_une_image')}</Text>
             </TouchableOpacity>
           )}
           {error && <Text accessibilityRole="alert" style={{ color: errorText, fontWeight: '600' }}>{error}</Text>}
           {busy === 'load' && <ActivityIndicator color={colors.primary} />}
           {items && items.length === 0 && busy !== 'load' && (
-            <Text style={styles.settingDesc}>Aucune image dans votre bibliothèque pour le moment.</Text>
+            <Text style={styles.settingDesc}>{t('ecommerce_media.aucune_image_dans_votre_bibliotheque_pour')}</Text>
           )}
           {items?.map((item) => {
             const selected = item.media_id === selectedId;
@@ -164,7 +166,7 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
                 style={{ flexDirection: 'row', gap: Spacing.sm, alignItems: 'center', padding: Spacing.sm, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: selected ? colors.primary : colors.divider, backgroundColor: colors.card }}
               >
                 {item.thumbnail_url ? (
-                  <Image source={{ uri: item.thumbnail_url }} style={{ width: 64, height: 64, borderRadius: 8 }} resizeMode="cover" accessibilityLabel={item.alt || 'Image de la bibliothèque'} />
+                  <Image source={{ uri: item.thumbnail_url }} style={{ width: 64, height: 64, borderRadius: 8 }} resizeMode="cover" accessibilityLabel={item.alt || t('ecommerce_media.image_de_la_bibliotheque')} />
                 ) : null}
                 <View style={{ flex: 1, gap: 4 }}>
                   <TextInput
@@ -173,12 +175,12 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
                     maxLength={200}
                     onChangeText={(text) => setAltDrafts((current) => ({ ...current, [item.media_id]: text }))}
                     onEndEditing={() => { void saveAlt(item); }}
-                    placeholder="Description de l'image (accessibilité)"
+                    placeholder={t('ecommerce_media.description_de_l_image_accessibilite')}
                     placeholderTextColor={colors.textMuted}
                     style={[styles.input, { paddingVertical: Spacing.sm }]}
-                    accessibilityLabel="Description de l'image"
+                    accessibilityLabel={t('ecommerce_media.description_de_l_image')}
                   />
-                  <Text style={styles.settingDesc}>{item.width} × {item.height} px{item.in_use ? ' · utilisée sur le site' : ''}</Text>
+                  <Text style={styles.settingDesc}>{item.width} × {item.height} {t('ecommerce_media.px')}{item.in_use ? t('ecommerce_media.utilisee_sur_le_site') : ''}</Text>
                 </View>
                 <View style={{ gap: Spacing.xs }}>
                   <TouchableOpacity
@@ -193,7 +195,7 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
                   {canEdit && !item.in_use && (
                     <TouchableOpacity
                       accessibilityRole="button"
-                      accessibilityLabel="Supprimer cette image"
+                      accessibilityLabel={t('ecommerce_media.supprimer_cette_image_2')}
                       disabled={!!busy}
                       onPress={() => confirmDelete(item)}
                       style={{ minHeight: 40, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.5 : 1 }}
@@ -205,7 +207,7 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
               </View>
             );
           })}
-          {usage && <Text style={styles.settingDesc}>Bibliothèque du site : {usage.total} image{usage.total > 1 ? 's' : ''} sur {usage.limit} possibles.</Text>}
+          {usage && <Text style={styles.settingDesc}>{t('ecommerce_media.library_usage', { count: usage.total, limit: usage.limit })}</Text>}
         </ScrollView>
       </View>
     </Modal>

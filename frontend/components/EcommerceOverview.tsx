@@ -6,8 +6,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { ecommerce as ecommerceApi, EcommerceStats } from '../services/api';
 import { formatCurrency } from '../utils/format';
+import { useTranslation } from 'react-i18next';
 
 export default function EcommerceOverview({ refreshKey }: { refreshKey: number }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { colors } = useTheme();
   const [stats, setStats] = useState<EcommerceStats | null>(null);
@@ -38,7 +40,7 @@ export default function EcommerceOverview({ refreshKey }: { refreshKey: number }
   const actionStyle = { minHeight: 48, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, paddingVertical: 12 };
   const metrics = stats ? [
     ['Commandes', String(stats.orders_total)],
-    ['En attente', String(stats.pending_orders)],
+    [t('ecommerce_overview.en_attente'), String(stats.pending_orders)],
     [`CA E-com · ${stats.period_days} jours`, formatCurrency(stats.revenue_30d, stats.site?.currency || user?.currency)],
     [`Panier moyen · ${stats.period_days} jours`, formatCurrency(stats.average_order_30d, stats.site?.currency || user?.currency)],
     [`Visites · ${stats.period_days} jours`, String(stats.visits_30d)],
@@ -47,12 +49,12 @@ export default function EcommerceOverview({ refreshKey }: { refreshKey: number }
 
   return (
     <View style={{ marginBottom: 20, gap: 12 }}>
-      {loading ? <ActivityIndicator accessibilityLabel="Chargement des statistiques E-com" color={colors.primary} /> : <>
+      {loading ? <ActivityIndicator accessibilityLabel={t('ecommerce_overview.chargement_des_statistiques_e_com')} color={colors.primary} /> : <>
         {error ? <View>
-          <Text style={{ color: colors.textMuted }}>Statistiques indisponibles.</Text>
+          <Text style={{ color: colors.textMuted }}>{t('ecommerce_overview.statistiques_indisponibles')}</Text>
           <TouchableOpacity accessibilityRole="button" style={actionStyle} onPress={() => setRetry((value) => value + 1)}>
             <Ionicons name="refresh-outline" size={20} color={colors.primary} />
-            <Text style={{ color: colors.primary }}>Réessayer</Text>
+            <Text style={{ color: colors.primary }}>{t('ecommerce_overview.reessayer')}</Text>
           </TouchableOpacity>
         </View> : <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
           {metrics.map(([label, value]) => <View key={label} style={{ width: '50%', minHeight: 88, paddingVertical: 12, paddingRight: 12, borderTopWidth: 1, borderColor: colors.border }}>

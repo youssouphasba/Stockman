@@ -25,6 +25,15 @@ export type DenkmaOrderDelivery = {
 
 type OrderLike = { status?: string; total_amount?: number | null; amount_due?: number | null; delivery_fee?: number | null; delivery?: DenkmaOrderDelivery | null };
 
+// Traduction des textes affichés : français par défaut, branchée sur i18n par l'application.
+type TextTranslator = (key: string, fallback: string, vars?: Record<string, string | number>) => string;
+const fillText = (text: string, vars?: Record<string, string | number>) => text.replace(/\{\{(\w+)\}\}/g, (_match, name) => String(vars?.[name] ?? ''));
+let translateText: TextTranslator = (_key, fallback, vars) => fillText(fallback, vars);
+export function setDenkmaShippingTranslator(fn: TextTranslator): void {
+  translateText = fn;
+}
+const tr = (key: string, fallback: string, vars?: Record<string, string | number>) => translateText(`denkma_shipping.${key}`, fallback, vars);
+
 const ORDER_STATES: Record<string, string> = {
   draft: 'Informations à compléter chez Denkma',
   awaiting_destination: 'Position du client attendue',
@@ -64,22 +73,23 @@ export function denkmaDelivery(order: OrderLike | null | undefined): DenkmaOrder
 
 export function denkmaDestination(delivery: DenkmaOrderDelivery): string {
   return delivery.mode === 'home_to_relay'
-    ? `Point relais : ${delivery.relay_name || 'choisi par le client'}`
-    : 'À domicile : position confirmée par le client';
+    ? tr('relay_point', 'Point relais : {{name}}', { name: delivery.relay_name || tr('relay_chosen', 'choisi par le client') })
+    : tr('home_delivery', 'À domicile : position confirmée par le client');
 }
 
 export function denkmaState(delivery: DenkmaOrderDelivery): { label: string; tone: 'neutral' | 'progress' | 'warning' | 'success' } {
   // Une annulation n'est annoncée qu'une fois confirmée par Denkma.
-  if (delivery.cancel_state === 'pending') return { label: 'Annulation de la livraison en cours chez Denkma', tone: 'warning' };
-  if (delivery.cancel_state === 'refused') return { label: delivery.cancel_error || "Denkma n'a pas pu annuler cette livraison", tone: 'warning' };
+  if (delivery.cancel_state === 'pending') return { label: tr('cancel_pending', 'Annulation de la livraison en cours chez Denkma'), tone: 'warning' };
+  if (delivery.cancel_state === 'refused') return { label: delivery.cancel_error || tr('cancel_refused', "Denkma n'a pas pu annuler cette livraison"), tone: 'warning' };
   if (delivery.parcel_status) {
-    const label = PARCEL_STATES[delivery.parcel_status] || delivery.parcel_status;
+    const label = PARCEL_STATES[delivery.parcel_status] ? tr(`parcel_${delivery.parcel_status}`, PARCEL_STATES[delivery.parcel_status]) : delivery.parcel_status;
     const tone = delivery.parcel_status === 'delivered' ? 'success' : ['delivery_failed', 'cancelled', 'returned', 'disputed', 'incident_reported', 'expired', 'suspended'].includes(delivery.parcel_status) ? 'warning' : 'progress';
     return { label, tone };
   }
-  if (delivery.waiting_for === 'photo') return { label: "Transport réservé : ajoutez la photo du colis pour lancer l'enlèvement", tone: 'warning' };
-  if (delivery.status === 'sync_failed') return { label: "À reprendre au moment de l'expédition", tone: 'warning' };
-  const label = ORDER_STATES[delivery.denkma_status || ''] || 'Prête à expédier';
+  if (delivery.waiting_for === 'photo') return { label: tr('waiting_photo', "Transport réservé : ajoutez la photo du colis pour lancer l'enlèvement"), tone: 'warning' };
+  if (delivery.status === 'sync_failed') return { label: tr('sync_failed', "À reprendre au moment de l'expédition"), tone: 'warning' };
+  const orderState = delivery.denkma_status || '';
+  const label = ORDER_STATES[orderState] ? tr(`order_${orderState}`, ORDER_STATES[orderState]) : tr('order_ready_for_quote', 'Prête à expédier');
   const tone = delivery.denkma_status === 'awaiting_funding' || delivery.denkma_status === 'cancelled' ? 'warning' : delivery.denkma_status && SHIPPED.includes(delivery.denkma_status) ? 'progress' : 'neutral';
   return { label, tone };
 }

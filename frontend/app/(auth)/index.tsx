@@ -78,11 +78,11 @@ export default function AuthEntryScreen() {
     if (type === 'enterprise') {
       if (Platform.OS !== 'web') {
         Alert.alert(
-          'Démo Enterprise',
-          'Utilisez un ordinateur pour tester pleinement cet outil.',
+          t('auth_welcome.demo_enterprise'),
+          t('auth_welcome.utilisez_un_ordinateur_pour_tester_pleinement'),
           [
-            { text: 'Annuler', style: 'cancel' },
-            { text: 'OK', onPress: () => { void Linking.openURL(ENTERPRISE_DEMO_URL); } },
+            { text: t('auth_welcome.annuler'), style: 'cancel' },
+            { text: t('auth_welcome.ok'), onPress: () => { void Linking.openURL(ENTERPRISE_DEMO_URL); } },
           ]
         );
         return;
@@ -104,8 +104,8 @@ export default function AuthEntryScreen() {
           <View style={styles.iconCircle}>
             <Ionicons name="shield-checkmark-outline" size={34} color={colors.primary} />
           </View>
-          <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit>Pilotez votre commerce avec Stockman</Text>
-          <Text style={styles.subtitle} numberOfLines={2}>Stocks, ventes, commandes et fournisseurs : tout au même endroit.</Text>
+          <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit>{t('auth_welcome.pilotez_votre_commerce_avec_stockman')}</Text>
+          <Text style={styles.subtitle} numberOfLines={2}>{t('auth_welcome.stocks_ventes_commandes_et_fournisseurs_tout')}</Text>
         </View>
 
         <View style={styles.card}>
@@ -126,7 +126,7 @@ export default function AuthEntryScreen() {
           <Link href="/(auth)/register" asChild>
             <TouchableOpacity style={[styles.cta, styles.ctaSecondary]}>
               <Ionicons name="person-add-outline" size={20} color={colors.primary} />
-              <Text style={styles.ctaSecondaryText} numberOfLines={1} ellipsizeMode="tail">Créer mon compte gratuit</Text>
+              <Text style={styles.ctaSecondaryText} numberOfLines={1} ellipsizeMode="tail">{t('auth_welcome.creer_mon_compte_gratuit')}</Text>
             </TouchableOpacity>
           </Link>
 
@@ -178,8 +178,8 @@ export default function AuthEntryScreen() {
         >
             <View style={pickerStyles.sheet}>
               <View style={[pickerStyles.header, { borderBottomColor: colors.glassBorder }]}>
-                <Text style={[pickerStyles.title, { color: colors.text }]}>Choisissez votre pays</Text>
-                <Text style={[pickerStyles.subtitle, { color: colors.textMuted }]}>La démo utilisera votre devise locale.</Text>
+                <Text style={[pickerStyles.title, { color: colors.text }]}>{t('auth_welcome.choisissez_votre_pays')}</Text>
+                <Text style={[pickerStyles.subtitle, { color: colors.textMuted }]}>{t('auth_welcome.la_demo_utilisera_votre_devise_locale')}</Text>
               </View>
               <View style={[pickerStyles.searchWrap, { borderBottomColor: colors.glassBorder }]}>
                 <Ionicons name="search-outline" size={16} color={colors.textMuted} style={{ marginRight: 8 }} />
@@ -187,7 +187,7 @@ export default function AuthEntryScreen() {
                   style={[pickerStyles.searchInput, { color: colors.text }]}
                   value={countrySearch}
                   onChangeText={setCountrySearch}
-                  placeholder="Pays ou devise…"
+                  placeholder={t('auth_welcome.pays_ou_devise')}
                   placeholderTextColor={colors.textMuted}
                   autoFocus
                 />
@@ -200,7 +200,7 @@ export default function AuthEntryScreen() {
                 keyboardShouldPersistTaps="handled"
                 ListEmptyComponent={
                   <Text style={[pickerStyles.emptyText, { color: colors.textMuted }]}>
-                    Aucun pays ne correspond à votre recherche.
+                    {t('auth_welcome.aucun_pays_ne_correspond_a_votre')}
                   </Text>
                 }
                 renderItem={({ item }) => (
@@ -219,7 +219,7 @@ export default function AuthEntryScreen() {
                 style={[pickerStyles.cancelBtn, { borderColor: colors.glassBorder }]}
                 onPress={() => { setShowCountryPicker(false); setCountrySearch(''); }}
               >
-                <Text style={[pickerStyles.cancelText, { color: colors.textMuted }]}>Annuler</Text>
+                <Text style={[pickerStyles.cancelText, { color: colors.textMuted }]}>{t('auth_welcome.annuler')}</Text>
               </TouchableOpacity>
             </View>
         </KeyboardAwareModal>

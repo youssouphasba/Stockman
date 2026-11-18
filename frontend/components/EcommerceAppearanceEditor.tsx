@@ -19,6 +19,7 @@ import {
   type ThemeMediaItem,
   type ThemeModelSummary,
 } from '../utils/ecommerceAppearance';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   // Styles de l'écran Paramètres, pour garder la même apparence que les autres réglages du site.
@@ -29,6 +30,7 @@ type Props = {
 const INITIAL_VIEW: AppearanceView = { status: 'loading', state: null, base: {}, values: {}, busy: null, error: null, conflict: false, notice: null };
 
 export default function EcommerceAppearanceEditor({ styles, onPublished }: Props) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [view, setView] = useState<AppearanceView>(INITIAL_VIEW);
   const controller = useRef<ReturnType<typeof createAppearanceController> | null>(null);
@@ -79,21 +81,21 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert('Aperçu privé', "Impossible d'ouvrir l'aperçu pour le moment.");
+      Alert.alert(t('ecommerce_appearance.apercu_prive'), t('ecommerce_appearance.impossible_d_ouvrir_l_apercu_pour'));
     }
   }
 
   function confirmPublish() {
     const changes = controller.current?.pendingChanges() || [];
     const modelChange = state && state.draft && state.draft.document.model_id !== state.published.model_id
-      ? `Nouveau modèle : ${state.model.name}.\n` : '';
-    const details = changes.length ? changes.slice(0, 12).map(describeThemeChange).join('\n') : 'Le brouillon enregistré sera publié.';
+      ? t('ecommerce_appearance.new_model', { name: state.model.name }) + '\n' : '';
+    const details = changes.length ? changes.slice(0, 12).map(describeThemeChange).join('\n') : t('ecommerce_appearance.le_brouillon_enregistre_sera_publie');
     const more = changes.length > 12 ? `\n… et ${changes.length - 12} autre${changes.length - 12 > 1 ? 's' : ''} modification${changes.length - 12 > 1 ? 's' : ''}.` : '';
-    const disabledNote = state?.site_enabled ? '' : "\n\nLe site est désactivé : la publication n'active pas le site.";
-    Alert.alert('Publier ces changements ?', `${modelChange}${details}${more}${disabledNote}`, [
-      { text: 'Annuler', style: 'cancel' },
+    const disabledNote = state?.site_enabled ? '' : t('ecommerce_appearance.le_site_est_desactive_la_publication');
+    Alert.alert(t('ecommerce_appearance.publier_ces_changements'), `${modelChange}${details}${more}${disabledNote}`, [
+      { text: t('ecommerce_appearance.annuler'), style: 'cancel' },
       {
-        text: 'Publier',
+        text: t('ecommerce_appearance.publier'),
         onPress: () => {
           void controller.current?.publish().then((published) => {
             if (published) publishedRef.current?.();
@@ -105,23 +107,23 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
 
   function confirmDiscard() {
     Alert.alert(
-      hasDraft ? 'Abandonner le brouillon ?' : 'Annuler les modifications ?',
-      'Le site public ne changera pas.',
+      hasDraft ? t('ecommerce_appearance.abandonner_le_brouillon') : t('ecommerce_appearance.annuler_les_modifications'),
+      t('ecommerce_appearance.le_site_public_ne_changera_pas'),
       [
-        { text: 'Garder', style: 'cancel' },
-        { text: hasDraft ? 'Abandonner' : 'Annuler les modifications', style: 'destructive', onPress: () => { void controller.current?.discard(); } },
+        { text: t('ecommerce_appearance.garder'), style: 'cancel' },
+        { text: hasDraft ? 'Abandonner' : t('ecommerce_appearance.annuler_les_modifications_2'), style: 'destructive', onPress: () => { void controller.current?.discard(); } },
       ],
     );
   }
 
   function confirmModel(model: ThemeModelSummary) {
-    const replaceNote = hasDraft || dirty ? '\n\nLe brouillon en cours et vos modifications non enregistrées seront remplacés.' : '';
+    const replaceNote = hasDraft || dirty ? t('ecommerce_appearance.le_brouillon_en_cours_et_vos') : '';
     Alert.alert(
-      `Choisir le modèle ${model.name} ?`,
-      `Un brouillon est créé avec vos textes, votre logo et votre couleur. Le site public ne change qu'à la publication.${replaceNote}`,
+      t('ecommerce_appearance.choose_model_title', { name: model.name }),
+      t('ecommerce_appearance.choose_model_message') + replaceNote,
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Choisir', onPress: () => { void controller.current?.changeModel(model.id); } },
+        { text: t('ecommerce_appearance.annuler'), style: 'cancel' },
+        { text: t('ecommerce_appearance.choisir'), onPress: () => { void controller.current?.changeModel(model.id); } },
       ],
     );
   }
@@ -138,18 +140,18 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
             {item?.thumbnail_url ? (
               <Image source={{ uri: item.thumbnail_url }} style={{ width: 64, height: 64 }} resizeMode="cover" accessibilityLabel={item.alt || field.label} />
             ) : (
-              <Ionicons name="image-outline" size={24} color={colors.textMuted} accessibilityLabel={value ? 'Image indisponible' : 'Aucune image'} />
+              <Ionicons name="image-outline" size={24} color={colors.textMuted} accessibilityLabel={value ? 'Image indisponible' : t('ecommerce_appearance.aucune_image')} />
             )}
           </View>
           {canEdit && (
             <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={() => setPickerField(field)} style={[styles.outlineButton, { minHeight: 44 }, disabled && { opacity: 0.5 }]}>
               <Ionicons name="images-outline" size={18} color={colors.primary} />
-              <Text style={styles.outlineButtonText}>{value ? "Changer l'image" : 'Choisir une image'}</Text>
+              <Text style={styles.outlineButtonText}>{value ? "Changer l'image" : t('ecommerce_appearance.choisir_une_image')}</Text>
             </TouchableOpacity>
           )}
           {canEdit && !!value && (
             <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={() => setValue('')} style={[styles.outlineButton, { minHeight: 44 }, disabled && { opacity: 0.5 }]}>
-              <Text style={styles.outlineButtonText}>Retirer</Text>
+              <Text style={styles.outlineButtonText}>{t('ecommerce_appearance.retirer')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -180,7 +182,7 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
           {custom && (
             <View style={[styles.chip, { flexDirection: 'row', alignItems: 'center', marginRight: 0, minHeight: 44, borderColor: colors.primary }]}>
               <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: current, marginRight: 6 }} />
-              <Text style={styles.chipText}>Couleur actuelle {current}</Text>
+              <Text style={styles.chipText}>{t('ecommerce_appearance.couleur_actuelle')} {current}</Text>
             </View>
           )}
           {field.type === 'color' && canEdit && (
@@ -193,9 +195,9 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
                 autoCapitalize="characters"
                 autoCorrect={false}
                 maxLength={7}
-                placeholder="Couleur personnalisée, par exemple #0E7490"
+                placeholder={t('ecommerce_appearance.couleur_personnalisee_par_exemple_0e7490')}
                 placeholderTextColor={colors.textMuted}
-                accessibilityLabel={`${field.label} : couleur personnalisée au format #RRGGBB`}
+                accessibilityLabel={t('ecommerce_appearance.custom_color_label', { label: field.label })}
                 onChangeText={(text) => {
                   setHexDrafts((drafts) => ({ ...drafts, [field.id]: text }));
                   const color = normalizeHexColor(text);
@@ -216,7 +218,7 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
       const categories = state?.categories || [];
       const missing = !!value && !categories.includes(value);
       if (!categories.length && !value) {
-        return <Text style={styles.settingDesc}>Aucune catégorie dans votre catalogue pour le moment : classez vos produits pour utiliser cette section.</Text>;
+        return <Text style={styles.settingDesc}>{t('ecommerce_appearance.aucune_categorie_dans_votre_catalogue_pour')}</Text>;
       }
       return (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel={field.label}>
@@ -242,7 +244,7 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
       const checked = value === 'true';
       return (
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={styles.settingDesc}>{checked ? 'Activé' : 'Désactivé'}</Text>
+          <Text style={styles.settingDesc}>{checked ? t('ecommerce_appearance.active') : t('ecommerce_appearance.desactive')}</Text>
           <Switch
             value={checked}
             disabled={disabled}
@@ -268,7 +270,7 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Augmenter : ${field.label}`} disabled={disabled || number >= max} onPress={() => step(1)} style={[styles.outlineButton, { minHeight: 44, minWidth: 44 }, (disabled || number >= max) && { opacity: 0.4 }]}>
             <Ionicons name="add" size={18} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.settingDesc}>de {min} à {max}</Text>
+          <Text style={styles.settingDesc}>{t('ecommerce_appearance.range', { min, max })}</Text>
         </View>
       );
     }
@@ -294,21 +296,21 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
     <View style={{ borderWidth: 1, borderColor: colors.divider, borderRadius: BorderRadius.md, padding: Spacing.md, gap: Spacing.sm, marginBottom: Spacing.md }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
         <Ionicons name="color-palette-outline" size={20} color={colors.primary} />
-        <Text style={[styles.settingLabel, { flex: 1, fontWeight: '700' }]} accessibilityRole="header">Apparence du site</Text>
-        {state && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>{hasDraft ? 'Brouillon non publié' : 'Version publiée'}</Text>}
+        <Text style={[styles.settingLabel, { flex: 1, fontWeight: '700' }]} accessibilityRole="header">{t('ecommerce_appearance.apparence_du_site')}</Text>
+        {state && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>{hasDraft ? t('ecommerce_appearance.brouillon_non_publie') : t('ecommerce_appearance.version_publiee')}</Text>}
       </View>
       <Text style={styles.settingDesc}>
-        Choisissez un modèle, préparez vos changements en brouillon, vérifiez-les dans un aperçu privé, puis publiez-les. Le site public ne change qu'à la publication.
+        {t('ecommerce_appearance.choisissez_un_modele_preparez_vos_changements')}
       </Text>
 
-      {view.status === 'loading' && <Text style={styles.settingDesc}>Chargement de l'apparence du site...</Text>}
+      {view.status === 'loading' && <Text style={styles.settingDesc}>{t('ecommerce_appearance.chargement_de_l_apparence_du_site')}</Text>}
 
       {view.status === 'error' && (
         <View style={{ gap: Spacing.sm }}>
           <Text accessibilityRole="alert" style={{ color: errorText, fontWeight: '600' }}>{view.error?.message}</Text>
           <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} onPress={() => { void controller.current?.load(); }}>
             <Ionicons name="refresh-outline" size={18} color={colors.primary} />
-            <Text style={styles.outlineButtonText}>Réessayer</Text>
+            <Text style={styles.outlineButtonText}>{t('ecommerce_appearance.reessayer')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -317,30 +319,30 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
         <View style={{ gap: Spacing.sm }}>
           {showGallery && (
             <View style={{ gap: Spacing.sm }}>
-              <Text style={[styles.settingLabel, { fontSize: FontSize.sm, fontWeight: '700' }]}>Modèles</Text>
+              <Text style={[styles.settingLabel, { fontSize: FontSize.sm, fontWeight: '700' }]}>{t('ecommerce_appearance.modeles')}</Text>
               {state.models.map((model) => {
                 const current = model.id === currentModel;
                 return (
                   <View key={model.id} style={{ borderWidth: 1, borderColor: current ? colors.primary : colors.divider, borderRadius: BorderRadius.md, padding: Spacing.sm, gap: 6, backgroundColor: current ? colors.primary + '12' : 'transparent' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
                       <Text style={{ color: colors.text, fontSize: FontSize.md, fontWeight: '800' }}>{model.name}</Text>
-                      {model.published && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>· En ligne</Text>}
-                      {model.draft && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>· Brouillon</Text>}
+                      {model.published && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>{t('ecommerce_appearance.en_ligne')}</Text>}
+                      {model.draft && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '700' }}>{t('ecommerce_appearance.brouillon')}</Text>}
                     </View>
                     <Text style={styles.settingDesc}>{model.description}</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }}>
                       {capabilities?.preview && (
-                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Aperçu du modèle ${model.name}`} disabled={busy} onPress={() => { void controller.current?.previewModel(model.id).then(openUrl); }} style={[styles.outlineButton, { minHeight: 40 }, busy && { opacity: 0.5 }]}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('ecommerce_appearance.preview_model', { name: model.name })} disabled={busy} onPress={() => { void controller.current?.previewModel(model.id).then(openUrl); }} style={[styles.outlineButton, { minHeight: 40 }, busy && { opacity: 0.5 }]}>
                           <Ionicons name="eye-outline" size={16} color={colors.primary} />
-                          <Text style={styles.outlineButtonText}>Aperçu</Text>
+                          <Text style={styles.outlineButtonText}>{t('ecommerce_appearance.apercu')}</Text>
                         </TouchableOpacity>
                       )}
                       {current ? (
-                        <Text style={[styles.settingDesc, { alignSelf: 'center', fontWeight: '700' }]}>Modèle en cours</Text>
+                        <Text style={[styles.settingDesc, { alignSelf: 'center', fontWeight: '700' }]}>{t('ecommerce_appearance.modele_en_cours')}</Text>
                       ) : (
-                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Choisir le modèle ${model.name}`} disabled={busy} onPress={() => confirmModel(model)} style={[styles.outlineButton, { minHeight: 40 }, busy && { opacity: 0.5 }]}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('ecommerce_appearance.choose_model', { name: model.name })} disabled={busy} onPress={() => confirmModel(model)} style={[styles.outlineButton, { minHeight: 40 }, busy && { opacity: 0.5 }]}>
                           <Ionicons name="swap-horizontal-outline" size={16} color={colors.primary} />
-                          <Text style={styles.outlineButtonText}>{view.busy === 'model' ? 'Préparation...' : 'Choisir ce modèle'}</Text>
+                          <Text style={styles.outlineButtonText}>{view.busy === 'model' ? t('ecommerce_appearance.preparation') : t('ecommerce_appearance.choisir_ce_modele')}</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -350,20 +352,20 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
             </View>
           )}
 
-          <Text style={styles.settingDesc}>Modèle {hasDraft ? 'du brouillon' : 'publié'} : {state.model.name}</Text>
-          {!canEdit && <Text style={styles.settingDesc}>L'apparence ne peut pas être modifiée pour le moment : votre accès est en lecture seule.</Text>}
+          <Text style={styles.settingDesc}>{hasDraft ? t('ecommerce_appearance.draft_model', { name: state.model.name }) : t('ecommerce_appearance.published_model', { name: state.model.name })}</Text>
+          {!canEdit && <Text style={styles.settingDesc}>{t('ecommerce_appearance.l_apparence_ne_peut_pas_etre')}</Text>}
           {state.published.issues.length > 0 && (
             <Text style={{ color: errorText, fontSize: FontSize.xs, fontWeight: '600' }}>
-              Une valeur publiée n'est pas compatible avec le format actuel : {state.published.issues[0].message}. Corrigez le champ concerné avant d'enregistrer.
+              {t('ecommerce_appearance.published_value_invalid', { message: state.published.issues[0].message })}
             </Text>
           )}
           {contrastWarning && <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '600' }}>{contrastWarning}</Text>}
 
           {canEdit && presets.length > 0 && (
             <View style={{ borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: Spacing.sm, gap: Spacing.sm }}>
-              <Text style={[styles.settingLabel, { fontWeight: '700' }]}>Styles prêts à l'emploi</Text>
-              <Text style={styles.settingDesc}>Un geste change l'ambiance, la typographie, la forme et les animations. Vos textes, vos images et votre couleur de marque restent les mêmes.</Text>
-              <View style={{ gap: Spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel="Styles prêts à l'emploi">
+              <Text style={[styles.settingLabel, { fontWeight: '700' }]}>{t('ecommerce_appearance.styles_prets_a_l_emploi')}</Text>
+              <Text style={styles.settingDesc}>{t('ecommerce_appearance.un_geste_change_l_ambiance_la')}</Text>
+              <View style={{ gap: Spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel={t('ecommerce_appearance.styles_prets_a_l_emploi')}>
                 {presets.map((preset) => {
                   const active = activePreset === preset.id;
                   return (
@@ -420,7 +422,7 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
               {view.conflict && (
                 <TouchableOpacity accessibilityRole="button" style={styles.outlineButton} disabled={busy} onPress={() => { void controller.current?.reload(); }}>
                   <Ionicons name="refresh-outline" size={18} color={colors.primary} />
-                  <Text style={styles.outlineButtonText}>Recharger en gardant mes saisies</Text>
+                  <Text style={styles.outlineButtonText}>{t('ecommerce_appearance.recharger_en_gardant_mes_saisies')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -431,12 +433,12 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }}>
               <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: busy || !dirty }} style={[styles.outlineButton, { minHeight: 44 }, (busy || !dirty) && { opacity: 0.5 }]} disabled={busy || !dirty} onPress={() => { void controller.current?.saveDraft(); }}>
                 <Ionicons name="save-outline" size={18} color={colors.primary} />
-                <Text style={styles.outlineButtonText}>{view.busy === 'save' ? 'Enregistrement...' : 'Enregistrer le brouillon'}</Text>
+                <Text style={styles.outlineButtonText}>{view.busy === 'save' ? 'Enregistrement...' : t('ecommerce_appearance.enregistrer_le_brouillon')}</Text>
               </TouchableOpacity>
               {capabilities?.preview && (
                 <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: busy }} style={[styles.outlineButton, { minHeight: 44 }, busy && { opacity: 0.5 }]} disabled={busy} onPress={() => { void controller.current?.preview().then(openUrl); }}>
                   <Ionicons name="eye-outline" size={18} color={colors.primary} />
-                  <Text style={styles.outlineButtonText}>{view.busy === 'preview' ? "Préparation de l'aperçu..." : 'Prévisualiser'}</Text>
+                  <Text style={styles.outlineButtonText}>{view.busy === 'preview' ? t('ecommerce_appearance.preparation_de_l_apercu') : t('ecommerce_appearance.previsualiser')}</Text>
                 </TouchableOpacity>
               )}
               {capabilities?.publish && (
@@ -454,7 +456,7 @@ export default function EcommerceAppearanceEditor({ styles, onPublished }: Props
               {(hasDraft || dirty) && (
                 <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: busy }} style={[styles.outlineButton, { minHeight: 44 }, busy && { opacity: 0.5 }]} disabled={busy} onPress={confirmDiscard}>
                   <Ionicons name="trash-outline" size={18} color={colors.primary} />
-                  <Text style={styles.outlineButtonText}>{hasDraft ? 'Abandonner le brouillon' : 'Annuler les modifications'}</Text>
+                  <Text style={styles.outlineButtonText}>{hasDraft ? t('ecommerce_appearance.abandonner_le_brouillon_2') : t('ecommerce_appearance.annuler_les_modifications_2')}</Text>
                 </TouchableOpacity>
               )}
             </View>

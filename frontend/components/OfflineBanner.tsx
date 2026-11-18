@@ -5,8 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { FontSize, Spacing } from '../constants/theme';
 import { useSync } from '../contexts/SyncContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function OfflineBanner() {
+    const { t } = useTranslation();
     const { colors } = useTheme();
     const { isOnline, syncStatus, pendingCount, lastSyncLabel, processQueue } = useSync();
     const insets = useSafeAreaInsets();
@@ -40,12 +42,12 @@ export default function OfflineBanner() {
             : 'cloud-offline-outline';
 
     const message = isSynced
-        ? 'Synchronisation terminée'
+        ? t('offline_banner.synchronisation_terminee')
         : isSyncing
-            ? 'Synchronisation en cours...'
+            ? t('offline_banner.syncing')
             : pendingCount > 0
-                ? `Hors ligne — ${pendingCount} action${pendingCount > 1 ? 's' : ''} en attente`
-                : 'Mode hors ligne';
+                ? t('offline_banner.offline_pending', { count: pendingCount })
+                : t('offline_banner.offline');
 
     return (
         <Animated.View

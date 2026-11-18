@@ -3,6 +3,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
 const React = require('react');
+const { frT } = require('./frT.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const mobileGroupLabels = JSON.parse(fs.readFileSync(path.join(root, 'locales/fr.json'), 'utf8')).settings.mobile_groups;
@@ -91,7 +92,7 @@ function createHarness(overrides = {}) {
       if (specifier === 'react-native') return natives;
       if (specifier === 'expo-router') return { Link: 'Link', useRouter: () => router, useLocalSearchParams: () => overrides.params || {}, useFocusEffect: (callback) => focusEffects.push(callback), useNavigation: () => navigation };
       if (specifier === '@react-navigation/native') return { useScrollToTop: () => undefined };
-      if (specifier === 'react-i18next') return { useTranslation: () => ({ t: (key, fallback) => key.startsWith('settings.mobile_groups.') ? mobileGroupLabels[key.split('.').at(-1)] : typeof fallback === 'string' ? fallback : key, i18n: { language: 'fr' } }) };
+      if (specifier === 'react-i18next') return { useTranslation: () => ({ t: (key, fallback) => key.startsWith('settings.mobile_groups.') ? mobileGroupLabels[key.split('.').at(-1)] : key.startsWith('settings_screen.') ? frT(key, fallback) : typeof fallback === 'string' ? fallback : key, i18n: { language: 'fr' } }) };
       if (specifier === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) };
       if (specifier === '@expo/vector-icons') return { Ionicons: 'Icon' };
       if (specifier === 'expo-linear-gradient') return { LinearGradient: 'Gradient' };

@@ -73,7 +73,7 @@ export default function CategorySubcategoryPicker({
       {subcategories.length > 0 && (
         <>
           <Text style={[styles.label, { color: colors.textMuted, marginTop: Spacing.sm }]}>
-            Sous-catégorie
+            {t('category_picker.sous_categorie')}
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.row}>
             {subcategories.map((sub) => {

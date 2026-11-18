@@ -281,7 +281,7 @@ export default function AlertsScreen() {
       const updated = await settingsApi.update({ reminder_rules: newRules } as any);
       setReminderRules(updated?.reminder_rules ?? newRules);
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de sauvegarder les rappels intelligents.');
+      Alert.alert(t('common.error'), t('alerts_screen.impossible_de_sauvegarder_les_rappels_intelligen'));
     } finally {
       setReminderSaving(false);
     }
@@ -328,7 +328,7 @@ export default function AlertsScreen() {
       });
       resetDraft(rule);
     } catch {
-      Alert.alert(t('common.error'), 'Impossible de sauvegarder cette regle.');
+      Alert.alert(t('common.error'), t('alerts_screen.impossible_de_sauvegarder_cette_regle'));
     } finally {
       setSavingRuleKey(null);
     }
@@ -553,13 +553,13 @@ export default function AlertsScreen() {
                     style={[styles.scopeChip, activeRuleScope === 'account' && styles.scopeChipActive]}
                     onPress={() => setActiveRuleScope('account')}
                   >
-                    <Text style={[styles.scopeChipText, activeRuleScope === 'account' && styles.scopeChipTextActive]}>Compte</Text>
+                    <Text style={[styles.scopeChipText, activeRuleScope === 'account' && styles.scopeChipTextActive]}>{t('alerts_screen.compte')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.scopeChip, activeRuleScope === 'store' && styles.scopeChipActive]}
                     onPress={() => setActiveRuleScope('store')}
                   >
-                    <Text style={[styles.scopeChipText, activeRuleScope === 'store' && styles.scopeChipTextActive]}>Boutique active</Text>
+                    <Text style={[styles.scopeChipText, activeRuleScope === 'store' && styles.scopeChipTextActive]}>{t('alerts_screen.boutique_active')}</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -589,7 +589,7 @@ export default function AlertsScreen() {
 
                         {config?.hasThreshold && (
                           <View style={styles.thresholdRow}>
-                            <Text style={styles.thresholdLabel}>Seuil</Text>
+                            <Text style={styles.thresholdLabel}>{t('alerts_screen.seuil')}</Text>
                             <TextInput
                               style={styles.thresholdInput}
                               value={String(rule.threshold_percentage ?? 0)}
@@ -602,10 +602,10 @@ export default function AlertsScreen() {
                         )}
 
                         <View style={styles.channelsRow}>
-                          <Text style={styles.channelLabel}>Canaux</Text>
+                          <Text style={styles.channelLabel}>{t('alerts_screen.canaux')}</Text>
                           <View style={styles.channelBadge}>
                             <Ionicons name="notifications-outline" size={12} color={colors.primaryLight} />
-                            <Text style={styles.channelText}>App</Text>
+                            <Text style={styles.channelText}>{t('alerts_screen.app')}</Text>
                           </View>
                           {CHANNEL_OPTIONS.map((channel) => {
                             const enabled = rule.notification_channels.includes(channel.value);
@@ -632,7 +632,7 @@ export default function AlertsScreen() {
                         </View>
 
                         <View style={[styles.channelsRow, { marginTop: Spacing.sm, alignItems: 'flex-start' }]}>
-                          <Text style={styles.channelLabel}>Groupes</Text>
+                          <Text style={styles.channelLabel}>{t('alerts_screen.groupes')}</Text>
                           <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs }}>
                             {CONTACT_GROUPS.map((group) => {
                               const enabled = (rule.recipient_keys || []).includes(group.key);
@@ -655,7 +655,7 @@ export default function AlertsScreen() {
                         </View>
 
                         <View style={{ marginTop: Spacing.sm, gap: Spacing.xs }}>
-                          <Text style={styles.thresholdLabel}>Emails additionnels</Text>
+                          <Text style={styles.thresholdLabel}>{t('alerts_screen.emails_additionnels')}</Text>
                           <TextInput
                             style={[styles.inputInline, { minHeight: 46 }]}
                             value={(rule.recipient_emails || []).join(', ')}
@@ -663,7 +663,7 @@ export default function AlertsScreen() {
                               ...current,
                               recipient_emails: value.split(',').map((item) => item.trim()).filter(Boolean),
                             }))}
-                            placeholder="stock@entreprise.com, direction@entreprise.com"
+                            placeholder={t('alerts_screen.stock_entreprise_com_direction_entreprise_com')}
                             autoCapitalize="none"
                             keyboardType="email-address"
                             placeholderTextColor={colors.textMuted}
@@ -671,7 +671,7 @@ export default function AlertsScreen() {
                         </View>
 
                         <View style={[styles.channelsRow, { marginTop: Spacing.sm, alignItems: 'flex-start' }]}>
-                          <Text style={styles.channelLabel}>Severite</Text>
+                          <Text style={styles.channelLabel}>{t('alerts_screen.severite')}</Text>
                           <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs }}>
                             {SEVERITY_OPTIONS.map((severity) => {
                               const enabled = rule.minimum_severity === severity.value;
@@ -693,7 +693,7 @@ export default function AlertsScreen() {
                           <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                             {hasDraft && (
                               <TouchableOpacity style={styles.resetButton} onPress={() => resetDraft(rule)}>
-                                <Text style={styles.resetButtonText}>Annuler</Text>
+                                <Text style={styles.resetButtonText}>{t('alerts_screen.annuler')}</Text>
                               </TouchableOpacity>
                             )}
                             <TouchableOpacity
@@ -714,9 +714,9 @@ export default function AlertsScreen() {
 
                 {reminderReadableDomains.length > 0 && (
                   <View style={[styles.ruleCard, { marginTop: Spacing.md }]}>
-                    <Text style={styles.ruleTitle}>Rappels intelligents</Text>
+                    <Text style={styles.ruleTitle}>{t('alerts_screen.rappels_intelligents')}</Text>
                     <Text style={styles.ruleDesc}>
-                      Centralise les rappels stock, CRM et finance directement dans Alertes.
+                      {t('alerts_screen.centralise_les_rappels_stock_crm_et')}
                     </Text>
                     <View style={{ marginTop: Spacing.sm, opacity: reminderSaving ? 0.6 : 1 }}>
                       <ReminderRulesSettingsComponent

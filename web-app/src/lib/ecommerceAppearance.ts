@@ -127,28 +127,37 @@ export type AppearanceView = {
   notice: string | null;
 };
 
+
+// Traduction des textes affichés : français par défaut, branchée sur i18n par l'application.
+type TextTranslator = (key: string, fallback: string, vars?: Record<string, string | number>) => string;
+const fillText = (text: string, vars?: Record<string, string | number>) => text.replace(/\{\{(\w+)\}\}/g, (_match, name) => String(vars?.[name] ?? ''));
+let translateText: TextTranslator = (_key, fallback, vars) => fillText(fallback, vars);
+export function setEcommerceAppearanceTranslator(fn: TextTranslator): void {
+  translateText = fn;
+}
+const tr = (key: string, fallback: string, vars?: Record<string, string | number>) => translateText(`ecommerce_appearance_lib.${key}`, fallback, vars);
 export const THEME_COLOR_SWATCHES: ReadonlyArray<{ label: string; value: string }> = [
-  { label: 'Émeraude', value: '#047857' },
-  { label: 'Bleu', value: '#2563EB' },
-  { label: 'Noir premium', value: '#111827' },
-  { label: 'Rose', value: '#DB2777' },
-  { label: 'Orange', value: '#EA580C' },
-  { label: 'Violet', value: '#7C3AED' },
+  { get label() { return tr('swatch_emerald', 'Émeraude'); }, value: '#047857' },
+  { get label() { return tr('swatch_blue', 'Bleu'); }, value: '#2563EB' },
+  { get label() { return tr('swatch_black', 'Noir premium'); }, value: '#111827' },
+  { get label() { return tr('swatch_pink', 'Rose'); }, value: '#DB2777' },
+  { get label() { return tr('swatch_orange', 'Orange'); }, value: '#EA580C' },
+  { get label() { return tr('swatch_violet', 'Violet'); }, value: '#7C3AED' },
 ];
 
 export const APPEARANCE_MESSAGES = {
-  loadError: "Impossible de charger l'apparence du site. Vérifiez votre connexion puis réessayez.",
-  saveError: "Impossible d'enregistrer le brouillon. Vérifiez votre connexion puis réessayez.",
-  previewError: "Impossible de préparer l'aperçu. Vérifiez votre connexion puis réessayez.",
-  publishError: "Impossible de publier l'apparence du site. Vérifiez votre connexion puis réessayez.",
-  discardError: "Impossible d'abandonner le brouillon. Vérifiez votre connexion puis réessayez.",
-  draftSaved: "Brouillon enregistré. Le site public n'a pas changé.",
-  published: 'Apparence publiée sur votre site.',
-  publishedDisabled: "Apparence publiée. Le site reste désactivé tant que vous ne l'activez pas.",
-  draftDiscarded: "Brouillon abandonné. Le site public n'a pas changé.",
-  changesCancelled: 'Modifications annulées.',
-  nothingToPublish: 'Aucune modification à publier.',
-  modelError: "Impossible de changer de modèle. Vérifiez votre connexion puis réessayez.",
+  get loadError() { return tr('loadError', "Impossible de charger l'apparence du site. Vérifiez votre connexion puis réessayez."); },
+  get saveError() { return tr('saveError', "Impossible d'enregistrer le brouillon. Vérifiez votre connexion puis réessayez."); },
+  get previewError() { return tr('previewError', "Impossible de préparer l'aperçu. Vérifiez votre connexion puis réessayez."); },
+  get publishError() { return tr('publishError', "Impossible de publier l'apparence du site. Vérifiez votre connexion puis réessayez."); },
+  get discardError() { return tr('discardError', "Impossible d'abandonner le brouillon. Vérifiez votre connexion puis réessayez."); },
+  get draftSaved() { return tr('draftSaved', "Brouillon enregistré. Le site public n'a pas changé."); },
+  get published() { return tr('published', 'Apparence publiée sur votre site.'); },
+  get publishedDisabled() { return tr('publishedDisabled', "Apparence publiée. Le site reste désactivé tant que vous ne l'activez pas."); },
+  get draftDiscarded() { return tr('draftDiscarded', "Brouillon abandonné. Le site public n'a pas changé."); },
+  get changesCancelled() { return tr('changesCancelled', 'Modifications annulées.'); },
+  get nothingToPublish() { return tr('nothingToPublish', 'Aucune modification à publier.'); },
+  get modelError() { return tr('modelError', "Impossible de changer de modèle. Vérifiez votre connexion puis réessayez."); },
 };
 
 const CONFLICT_CODES = ['conflict', 'published_changed', 'draft_changed', 'site_changed'];
@@ -196,6 +205,9 @@ export function normalizeThemeValue(field: ThemeField, value: string): ThemeType
 
 // Message d'erreur affiché si l'envoi d'une image échoue sans explication du serveur.
 export const MEDIA_UPLOAD_ERROR = "Impossible d'importer cette image. Vérifiez votre connexion puis réessayez.";
+export function mediaUploadError(): string {
+  return tr('media_upload_error', MEDIA_UPLOAD_ERROR);
+}
 
 // Seuls les champs réellement modifiés changent : une valeur équivalente garde sa forme d'origine.
 export function writeThemeValues(document: ThemeDocument, fields: ThemeField[], values: ThemeValues): ThemeDocument {
@@ -226,7 +238,7 @@ export function groupThemeFields(fields: ThemeField[]): ThemeFieldGroup[] {
     const id = field.group || 'fields';
     let group = groups.find((item) => item.id === id);
     if (!group) {
-      group = { id, label: field.group_label || 'Réglages', fields: [] };
+      group = { id, label: field.group_label || tr('settings_group', 'Réglages'), fields: [] };
       groups.push(group);
     }
     group.fields.push(field);
@@ -287,11 +299,11 @@ export function brandContrastWarning(values: ThemeValues): string | null {
   const scheme = values['global.color_scheme'] || 'light';
   const background = SCHEME_BACKGROUNDS[scheme];
   if (!/^#[0-9A-F]{6}$/.test(color) || !background || contrastRatio(color, background) >= 3) return null;
-  return "Votre couleur de marque se distingue peu du fond de cette ambiance. Les boutons recevront un contour pour rester visibles ; vous pouvez aussi choisir une couleur plus contrastée.";
+  return tr('brand_contrast', "Votre couleur de marque se distingue peu du fond de cette ambiance. Les boutons recevront un contour pour rester visibles ; vous pouvez aussi choisir une couleur plus contrastée.");
 }
 
 function quote(value: string): string {
-  if (!value) return '(vide)';
+  if (!value) return tr('empty_value', '(vide)');
   const compact = value.replace(/\s+/g, ' ');
   return `« ${compact.length > 60 ? `${compact.slice(0, 57)}…` : compact} »`;
 }
@@ -299,17 +311,18 @@ function quote(value: string): string {
 export function describeThemeChange(change: ThemeChange): string {
   const field = change.field;
   if (field.type === 'media_id') {
-    const action = !change.before ? 'nouvelle image' : !change.after ? 'image retirée' : 'image remplacée';
+    const action = !change.before ? tr('image_new', 'nouvelle image') : !change.after ? tr('image_removed', 'image retirée') : tr('image_replaced', 'image remplacée');
     return `${field.label} : ${action}`;
   }
   if (field.type === 'boolean') {
-    return `${field.label} : ${change.after === 'true' ? 'activé' : change.after === 'false' ? 'désactivé' : 'valeur par défaut'}`;
+    return `${field.label} : ${change.after === 'true' ? tr('value_on', 'activé') : change.after === 'false' ? tr('value_off', 'désactivé') : tr('value_default', 'valeur par défaut')}`;
   }
   if (field.type === 'enum') {
     const label = (value: string) => field.options?.find((option) => option.value === value)?.label || value;
-    return `${field.label} : ${change.before ? label(change.before) : '(par défaut)'} → ${change.after ? label(change.after) : '(par défaut)'}`;
+    const byDefault = tr('by_default', '(par défaut)');
+    return `${field.label} : ${change.before ? label(change.before) : byDefault} → ${change.after ? label(change.after) : byDefault}`;
   }
-  if (field.type === 'integer') return `${field.label} : ${change.before || '(par défaut)'} → ${change.after || '(par défaut)'}`;
+  if (field.type === 'integer') return `${field.label} : ${change.before || tr('by_default', '(par défaut)')} → ${change.after || tr('by_default', '(par défaut)')}`;
   return `${field.label} : ${quote(change.before)} → ${quote(change.after)}`;
 }
 
@@ -354,13 +367,14 @@ export function formatThemeDate(value: string | null): string {
 export function describeAppearanceStatus(view: AppearanceView): string {
   const state = view.state;
   if (!state) return '';
-  if (themeChanges(state.fields, view.base, view.values).length) return 'Modifications non enregistrées.';
+  if (themeChanges(state.fields, view.base, view.values).length) return tr('status_unsaved', 'Modifications non enregistrées.');
   if (state.draft) {
     const date = formatThemeDate(state.draft.updated_at);
-    const author = state.draft.updated_by ? ` par ${state.draft.updated_by}` : '';
-    return `Brouillon enregistré${date ? ` le ${date}` : ''}${author}. Il n'est pas encore publié.`;
+    const author = state.draft.updated_by ? tr('status_draft_author', ' par {{author}}', { author: state.draft.updated_by }) : '';
+    const when = date ? tr('status_draft_date', ' le {{date}}', { date }) : '';
+    return tr('status_draft', "Brouillon enregistré{{when}}{{author}}. Il n'est pas encore publié.", { when, author });
   }
-  return 'Aucune modification en attente : le formulaire affiche la version publiée.';
+  return tr('status_clean', 'Aucune modification en attente : le formulaire affiche la version publiée.');
 }
 
 function editedDocument(state: ThemeState): ThemeDocument {
@@ -499,7 +513,7 @@ export function createAppearanceController(api: AppearanceApi, update: (view: Ap
       const next = await api.changeThemeModel({ site_slug: state.site_slug, lock_version: state.lock_version, model_id: modelId });
       accept(next);
       const name = next.models.find((model) => model.id === modelId)?.name || next.model.name;
-      emit({ busy: null, notice: `Brouillon créé avec le modèle ${name}. Vérifiez-le dans l'aperçu avant de le publier.` });
+      emit({ busy: null, notice: tr('model_changed', "Brouillon créé avec le modèle {{name}}. Vérifiez-le dans l'aperçu avant de le publier.", { name }) });
       return !disposed;
     } catch (error) {
       fail(error, APPEARANCE_MESSAGES.modelError);

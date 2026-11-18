@@ -20,7 +20,7 @@ export default function AccessDenied({ message, onRetry }: Props) {
     const router = useRouter();
     const { colors, glassStyle } = useTheme();
 
-    const displayMessage = message || t('errors.access_denied') || 'Accès refusé. Contactez votre manager.';
+    const displayMessage = message || t('errors.access_denied') || t('access_denied.acces_refuse_contactez_votre_manager');
 
     return (
         <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
@@ -29,7 +29,7 @@ export default function AccessDenied({ message, onRetry }: Props) {
                     <Ionicons name="lock-closed" size={40} color="#EF4444" />
                 </View>
                 <Text style={[styles.title, { color: colors.text }]}>
-                    {t('errors.access_denied_title') || 'Accès restreint'}
+                    {t('errors.access_denied_title') || t('access_denied.acces_restreint')}
                 </Text>
                 <Text style={[styles.message, { color: colors.textSecondary }]}>
                     {displayMessage}
@@ -42,7 +42,7 @@ export default function AccessDenied({ message, onRetry }: Props) {
                         >
                             <Ionicons name="refresh" size={16} color={colors.primary} />
                             <Text style={[styles.retryText, { color: colors.primary }]}>
-                                {t('common.retry') || 'Réessayer'}
+                                {t('common.retry') || t('access_denied.reessayer')}
                             </Text>
                         </TouchableOpacity>
                     )}

@@ -377,7 +377,7 @@ function TabLayoutInner() {
         await Linking.openURL(`${site.site_url}${separator}preview=1`);
       }
     } catch (error: any) {
-      Alert.alert(t('common.error'), error?.message || "Impossible d'ouvrir le site e-commerce.");
+      Alert.alert(t('common.error'), error?.message || t('tabs_layout.impossible_d_ouvrir_le_site_e'));
     } finally {
       setOpeningEcommerceSite(false);
     }
@@ -391,7 +391,7 @@ function TabLayoutInner() {
       setEcommerceStats(await ecommerceApi.getStats());
     } catch (error: any) {
       setEcommerceStats(null);
-      Alert.alert(t('common.error'), error?.message || "Impossible de charger les statistiques E-com.");
+      Alert.alert(t('common.error'), error?.message || t('tabs_layout.impossible_de_charger_les_statistiques_e'));
     } finally {
       setEcommerceStatsLoading(false);
     }
@@ -434,14 +434,14 @@ function TabLayoutInner() {
       >
         <View style={{ gap: 12 }}>
           <View>
-            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>E-com</Text>
-            <Text style={{ color: colors.textMuted, marginTop: 4 }}>Gérez votre site, vos statistiques et les réglages essentiels.</Text>
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>{t('tabs_layout.e_com')}</Text>
+            <Text style={{ color: colors.textMuted, marginTop: 4 }}>{t('tabs_layout.gerez_votre_site_vos_statistiques_et')}</Text>
           </View>
           {[
-            { label: 'Voir le site', icon: 'globe-outline', action: () => { setShowEcommerceActions(false); openEcommerceSite(); } },
-            { label: 'Commandes en ligne', icon: 'receipt-outline', action: openEcommerceOrders },
-            { label: 'Voir les statistiques E-com', icon: 'stats-chart-outline', action: openEcommerceStats },
-            { label: 'Paramètres E-com', icon: 'settings-outline', action: openEcommerceSettings },
+            { label: t('tabs_layout.voir_le_site'), icon: 'globe-outline', action: () => { setShowEcommerceActions(false); openEcommerceSite(); } },
+            { label: t('tabs_layout.commandes_en_ligne'), icon: 'receipt-outline', action: openEcommerceOrders },
+            { label: t('tabs_layout.voir_les_statistiques_e_com'), icon: 'stats-chart-outline', action: openEcommerceStats },
+            { label: t('tabs_layout.parametres_e_com'), icon: 'settings-outline', action: openEcommerceSettings },
           ].map((item) => (
             <TouchableOpacity
               key={item.label}
@@ -465,13 +465,13 @@ function TabLayoutInner() {
         <View style={{ gap: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>Statistiques E-com</Text>
-              <Text style={{ color: colors.textMuted, marginTop: 4 }}>Données des 30 derniers jours, hors visites en mode aperçu.</Text>
+              <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>{t('tabs_layout.statistiques_e_com')}</Text>
+              <Text style={{ color: colors.textMuted, marginTop: 4 }}>{t('tabs_layout.donnees_des_30_derniers_jours_hors')}</Text>
             </View>
             <TouchableOpacity
               onPress={() => setShowEcommerceStats(false)}
               accessibilityRole="button"
-              accessibilityLabel="Fermer les statistiques E-com"
+              accessibilityLabel={t('tabs_layout.fermer_les_statistiques_e_com')}
               style={{
                 width: 40,
                 height: 40,
@@ -487,7 +487,7 @@ function TabLayoutInner() {
             </TouchableOpacity>
           </View>
           {ecommerceStatsLoading ? (
-            <Text style={{ color: colors.textMuted, textAlign: 'center', paddingVertical: 24 }}>Chargement des statistiques...</Text>
+            <Text style={{ color: colors.textMuted, textAlign: 'center', paddingVertical: 24 }}>{t('tabs_layout.chargement_des_statistiques')}</Text>
           ) : ecommerceStats ? (
             <>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -496,7 +496,7 @@ function TabLayoutInner() {
                   ['Visiteurs uniques', ecommerceStats.unique_visitors_30d],
                   ['Ajouts panier', ecommerceStats.add_to_cart_30d],
                   ['Commandes', ecommerceStats.orders_30d],
-                  ['Produits en panier', ecommerceStats.products_in_cart_30d],
+                  [t('tabs_layout.produits_en_panier'), ecommerceStats.products_in_cart_30d],
                   ['Conversion', `${ecommerceStats.conversion_rate_30d}%`],
                 ].map(([label, value]) => (
                   <View key={label} style={{ width: '48%', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.glass, borderRadius: 16, padding: 12 }}>
@@ -506,31 +506,31 @@ function TabLayoutInner() {
                 ))}
               </View>
               <View style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.glass, borderRadius: 16, padding: 14 }}>
-                <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Chiffre d'affaires E-com</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>{t('tabs_layout.chiffre_d_affaires_e_com')}</Text>
                 <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', marginTop: 6 }}>{formatEcommerceAmount(ecommerceStats.revenue_30d, ecommerceStats.site?.currency || 'XOF')}</Text>
-                <Text style={{ color: colors.textMuted, marginTop: 4 }}>Panier moyen : {formatEcommerceAmount(ecommerceStats.average_order_30d, ecommerceStats.site?.currency || 'XOF')}</Text>
+                <Text style={{ color: colors.textMuted, marginTop: 4 }}>{t('tabs_layout.panier_moyen')} {formatEcommerceAmount(ecommerceStats.average_order_30d, ecommerceStats.site?.currency || 'XOF')}</Text>
               </View>
               <View style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.glass, borderRadius: 16, padding: 14 }}>
-                <Text style={{ color: colors.text, fontWeight: '800', marginBottom: 8 }}>Produits les plus ajoutés au panier</Text>
+                <Text style={{ color: colors.text, fontWeight: '800', marginBottom: 8 }}>{t('tabs_layout.produits_les_plus_ajoutes_au_panier')}</Text>
                 {ecommerceStats.top_cart_products.length ? ecommerceStats.top_cart_products.map((item) => (
                   <View key={item.product_id} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingVertical: 6 }}>
                     <Text style={{ flex: 1, color: colors.textMuted }} numberOfLines={1}>{item.name}</Text>
                     <Text style={{ color: colors.text, fontWeight: '800' }}>{Number(item.quantity).toLocaleString('fr-FR')}</Text>
                   </View>
-                )) : <Text style={{ color: colors.textMuted }}>Aucun ajout au panier sur la période.</Text>}
+                )) : <Text style={{ color: colors.textMuted }}>{t('tabs_layout.aucun_ajout_au_panier_sur_la')}</Text>}
               </View>
               <View style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.glass, borderRadius: 16, padding: 14 }}>
-                <Text style={{ color: colors.text, fontWeight: '800', marginBottom: 8 }}>Produits les plus commandés</Text>
+                <Text style={{ color: colors.text, fontWeight: '800', marginBottom: 8 }}>{t('tabs_layout.produits_les_plus_commandes')}</Text>
                 {ecommerceStats.top_ordered_products.length ? ecommerceStats.top_ordered_products.map((item) => (
                   <View key={item.product_id} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingVertical: 6 }}>
                     <Text style={{ flex: 1, color: colors.textMuted }} numberOfLines={1}>{item.name}</Text>
                     <Text style={{ color: colors.text, fontWeight: '800' }}>{Number(item.quantity).toLocaleString('fr-FR')}</Text>
                   </View>
-                )) : <Text style={{ color: colors.textMuted }}>Aucune commande sur la période.</Text>}
+                )) : <Text style={{ color: colors.textMuted }}>{t('tabs_layout.aucune_commande_sur_la_periode')}</Text>}
               </View>
             </>
           ) : (
-            <Text style={{ color: colors.danger, textAlign: 'center', paddingVertical: 24 }}>Impossible de charger les statistiques E-com.</Text>
+            <Text style={{ color: colors.danger, textAlign: 'center', paddingVertical: 24 }}>{t('tabs_layout.impossible_de_charger_les_statistiques_e')}</Text>
           )}
           <TouchableOpacity
             onPress={() => setShowEcommerceStats(false)}
@@ -545,7 +545,7 @@ function TabLayoutInner() {
               paddingHorizontal: 16,
             }}
           >
-            <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>Fermer</Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>{t('tabs_layout.fermer')}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAwareModal>
@@ -781,7 +781,7 @@ function TabLayoutInner() {
         <Tabs.Screen
           name="ecommerce"
           options={{
-            title: 'E-com',
+            title: t('tabs_layout.e_com'),
             tabBarLabel: renderTabLabel('E-com'),
             href: isStarterShopkeeper && mobileEcommerceAccount && hasOperationalAccess && !hideOrders ? '/ecommerce' : null,
             tabBarBadge: ecommerceTabBadge,
@@ -835,7 +835,7 @@ function TabLayoutInner() {
         <Tabs.Screen
           name="enterprise"
           options={{
-            title: 'Enterprise',
+            title: t('tabs_layout.enterprise'),
             href: null,
           }}
         />

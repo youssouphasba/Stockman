@@ -4,6 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
 const { test } = require('node:test');
+const { frText } = require('./helpers/frT.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -115,7 +116,8 @@ test('Denkma Pro signup follows the Denkma phone and pickup rules before sending
 test('The signup screen is mounted only when open and offers the existing-account connection too', () => {
   const card = read('frontend/components/DenkmaSettingsCard.tsx');
   assert.match(card, /\{signingUp && \(\s*<DenkmaSignupModal/);
-  assert.match(card, /J'ai déjà un compte Denkma Pro/);
+  assert.match(card, /t\('denkma_settings\.j_ai_deja_un_compte_denkma'\)/);
+  assert.equal(frText('denkma_settings.j_ai_deja_un_compte_denkma'), "J'ai déjà un compte Denkma Pro");
   assert.match(read('frontend/components/DenkmaSignupModal.tsx'), /source: 'gps'/);
 });
 
@@ -125,7 +127,8 @@ test('Once linked, the card sends the merchant to the Denkma app to top up and t
   assert.equal(s.denkmaAppUrl('ios'), 'https://apps.apple.com/fr/app/denkma/id6760837156');
   const card = read('frontend/components/DenkmaSettingsCard.tsx');
   assert.match(card, /denkmaAppUrl\(Platform\.OS\)/);
-  assert.match(card, /Télécharger l'application Denkma/);
+  assert.match(card, /t\('denkma_settings\.telecharger_l_application_denkma'\)/);
+  assert.equal(frText('denkma_settings.telecharger_l_application_denkma'), "Télécharger l'application Denkma");
   const panel = read('web-app/src/components/DenkmaSettingsPanel.tsx');
   for (const url of [s.DENKMA_ANDROID_URL, s.DENKMA_IOS_URL, s.DENKMA_PRO_WEB_URL]) assert.ok(panel.includes(url), url);
 });

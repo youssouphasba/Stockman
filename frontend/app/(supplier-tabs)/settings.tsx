@@ -245,7 +245,7 @@ export default function SupplierSettingsScreen() {
               <TextInput style={[styles.input, styles.multiline]} value={description} onChangeText={setDescription} placeholder={t('supplier_settings.description_ph')} placeholderTextColor={colors.textMuted} multiline numberOfLines={3} />
 
               <Text style={styles.label}>{t('supplier_settings.phone_label')}</Text>
-              <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+221 xx xxx xx xx" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" />
+              <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder={t('supplier_settings_screen.221_xx_xxx_xx_xx')} placeholderTextColor={colors.textMuted} keyboardType="phone-pad" />
 
               <Text style={styles.label}>{t('supplier_settings.address_label')}</Text>
               <TextInput style={styles.input} value={address} onChangeText={setAddress} placeholder={t('supplier_settings.address_ph')} placeholderTextColor={colors.textMuted} />
@@ -334,8 +334,8 @@ export default function SupplierSettingsScreen() {
           >
             <View style={styles.utilityRow}>
               <View>
-                <Text style={infoStyles.label}>Guide de l'espace fournisseur</Text>
-                <Text style={infoStyles.value}>Comprendre les paramètres et les documents</Text>
+                <Text style={infoStyles.label}>{t('supplier_settings_screen.guide_de_l_espace_fournisseur')}</Text>
+                <Text style={infoStyles.value}>{t('supplier_settings_screen.comprendre_les_parametres_et_les_documents')}</Text>
               </View>
               <Ionicons name="play-circle-outline" size={20} color={colors.secondary} />
             </View>
@@ -345,7 +345,7 @@ export default function SupplierSettingsScreen() {
         {/* Sales documents */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Documents de vente</Text>
+            <Text style={styles.sectionTitle}>{t('supplier_settings_screen.documents_de_vente')}</Text>
             {!isEditing && profile && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
                 <Ionicons name="create-outline" size={20} color={colors.secondary} />
@@ -355,21 +355,21 @@ export default function SupplierSettingsScreen() {
 
           {isEditing ? (
             <>
-              <Text style={styles.label}>Nom affiché sur vos documents</Text>
+              <Text style={styles.label}>{t('supplier_settings_screen.nom_affiche_sur_vos_documents')}</Text>
               <TextInput
                 style={styles.input}
                 value={invoiceBusinessName}
                 onChangeText={setInvoiceBusinessName}
-                placeholder="Nom commercial"
+                placeholder={t('supplier_settings_screen.nom_commercial')}
                 placeholderTextColor={colors.textMuted}
               />
 
-              <Text style={styles.label}>En-tête du document</Text>
+              <Text style={styles.label}>{t('supplier_settings_screen.en_tete_du_document')}</Text>
               <TextInput
                 style={[styles.input, styles.multiline]}
                 value={invoiceBusinessAddress}
                 onChangeText={setInvoiceBusinessAddress}
-                placeholder="Adresse, ville, téléphone, e-mail..."
+                placeholder={t('supplier_settings_screen.adresse_ville_telephone_e_mail')}
                 placeholderTextColor={colors.textMuted}
                 multiline
                 numberOfLines={3}
@@ -377,42 +377,42 @@ export default function SupplierSettingsScreen() {
 
               <View style={styles.formRow}>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Type de document</Text>
+                  <Text style={styles.label}>{t('supplier_settings_screen.type_de_document')}</Text>
                   <TextInput
                     style={styles.input}
                     value={invoiceLabel}
                     onChangeText={setInvoiceLabel}
-                    placeholder="Facture"
+                    placeholder={t('supplier_settings_screen.facture')}
                     placeholderTextColor={colors.textMuted}
                   />
                 </View>
                 <View style={styles.formHalf}>
-                  <Text style={styles.label}>Préfixe des numéros</Text>
+                  <Text style={styles.label}>{t('supplier_settings_screen.prefixe_des_numeros')}</Text>
                   <TextInput
                     style={styles.input}
                     value={invoicePrefix}
                     onChangeText={setInvoicePrefix}
-                    placeholder="FAC"
+                    placeholder={t('supplier_settings_screen.fac')}
                     placeholderTextColor={colors.textMuted}
                   />
                 </View>
               </View>
 
-              <Text style={styles.label}>Conditions générales de vente</Text>
+              <Text style={styles.label}>{t('supplier_settings_screen.conditions_generales_de_vente')}</Text>
               <TextInput
                 style={styles.input}
                 value={invoicePaymentTerms}
                 onChangeText={setInvoicePaymentTerms}
-                placeholder="Exemple : paiement comptant à la livraison"
+                placeholder={t('supplier_settings_screen.exemple_paiement_comptant_a_la_livraison')}
                 placeholderTextColor={colors.textMuted}
               />
 
-              <Text style={styles.label}>Pied de page</Text>
+              <Text style={styles.label}>{t('supplier_settings_screen.pied_de_page')}</Text>
               <TextInput
                 style={[styles.input, styles.multiline]}
                 value={invoiceFooter}
                 onChangeText={setInvoiceFooter}
-                placeholder="Informations complémentaires, remerciement, mentions..."
+                placeholder={t('supplier_settings_screen.informations_complementaires_remerciement_mentio')}
                 placeholderTextColor={colors.textMuted}
                 multiline
                 numberOfLines={3}
@@ -420,18 +420,18 @@ export default function SupplierSettingsScreen() {
             </>
           ) : (
             <>
-              <InfoRow label="Nom sur le document" value={profile?.invoice_business_name || profile?.company_name || 'Non renseigné'} />
-              <InfoRow label="Type de document" value={profile?.invoice_label || 'Facture'} />
-              <InfoRow label="Préfixe de numérotation" value={profile?.invoice_prefix || 'FAC'} />
-              <InfoRow label="Conditions de vente" value={profile?.invoice_payment_terms || 'Aucune condition spécifique'} />
-              <InfoRow label="Pied de page" value={profile?.invoice_footer || 'Aucun pied de page personnalisé'} />
+              <InfoRow label={t('supplier_settings_screen.nom_sur_le_document')} value={profile?.invoice_business_name || profile?.company_name || t('supplier_settings_screen.non_renseigne')} />
+              <InfoRow label={t('supplier_settings_screen.type_de_document')} value={profile?.invoice_label || 'Facture'} />
+              <InfoRow label={t('supplier_settings_screen.prefixe_de_numerotation')} value={profile?.invoice_prefix || 'FAC'} />
+              <InfoRow label={t('supplier_settings_screen.conditions_de_vente')} value={profile?.invoice_payment_terms || t('supplier_settings_screen.aucune_condition_specifique')} />
+              <InfoRow label={t('supplier_settings_screen.pied_de_page')} value={profile?.invoice_footer || t('supplier_settings_screen.aucun_pied_de_page_personnalise')} />
             </>
           )}
         </View>
 
         {/* Legal */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Informations légales</Text>
+          <Text style={styles.sectionTitle}>{t('supplier_settings_screen.informations_legales')}</Text>
 
           <TouchableOpacity
             style={infoStyles.row}
@@ -439,8 +439,8 @@ export default function SupplierSettingsScreen() {
           >
             <View style={styles.utilityRow}>
               <View>
-                <Text style={infoStyles.label}>CGU Stockman</Text>
-                <Text style={infoStyles.value}>Relire les conditions d'utilisation de l'application</Text>
+                <Text style={infoStyles.label}>{t('supplier_settings_screen.cgu_stockman')}</Text>
+                <Text style={infoStyles.value}>{t('supplier_settings_screen.relire_les_conditions_d_utilisation_de')}</Text>
               </View>
               <Ionicons name="document-text-outline" size={20} color={colors.secondary} />
             </View>
@@ -452,8 +452,8 @@ export default function SupplierSettingsScreen() {
           >
             <View style={styles.utilityRow}>
               <View>
-                <Text style={infoStyles.label}>Politique de confidentialité</Text>
-                <Text style={infoStyles.value}>Comprendre le traitement de vos données</Text>
+                <Text style={infoStyles.label}>{t('supplier_settings_screen.politique_de_confidentialite')}</Text>
+                <Text style={infoStyles.value}>{t('supplier_settings_screen.comprendre_le_traitement_de_vos_donnees')}</Text>
               </View>
               <Ionicons name="shield-checkmark-outline" size={20} color={colors.secondary} />
             </View>
@@ -462,13 +462,13 @@ export default function SupplierSettingsScreen() {
 
         {/* Support and security */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Assistance et sécurité</Text>
+          <Text style={styles.sectionTitle}>{t('supplier_settings_screen.assistance_et_securite')}</Text>
 
           <TouchableOpacity style={infoStyles.row} onPress={() => setShowHelpCenter(true)}>
             <View style={styles.utilityRow}>
               <View>
-                <Text style={infoStyles.label}>Centre d'aide</Text>
-                <Text style={infoStyles.value}>Retrouver les guides et bonnes pratiques fournisseur</Text>
+                <Text style={infoStyles.label}>{t('supplier_settings_screen.centre_d_aide')}</Text>
+                <Text style={infoStyles.value}>{t('supplier_settings_screen.retrouver_les_guides_et_bonnes_pratiques')}</Text>
               </View>
               <Ionicons name="help-circle-outline" size={20} color={colors.secondary} />
             </View>
@@ -477,8 +477,8 @@ export default function SupplierSettingsScreen() {
           <TouchableOpacity style={infoStyles.row} onPress={() => setShowSupportModal(true)}>
             <View style={styles.utilityRow}>
               <View>
-                <Text style={infoStyles.label}>Contacter le support</Text>
-                <Text style={infoStyles.value}>Ouvrir un ticket ou discuter avec l'équipe Stockman</Text>
+                <Text style={infoStyles.label}>{t('supplier_settings_screen.contacter_le_support')}</Text>
+                <Text style={infoStyles.value}>{t('supplier_settings_screen.ouvrir_un_ticket_ou_discuter_avec')}</Text>
               </View>
               <Ionicons name="chatbubbles-outline" size={20} color={colors.secondary} />
             </View>
@@ -487,9 +487,9 @@ export default function SupplierSettingsScreen() {
           <TouchableOpacity style={[infoStyles.row, { borderBottomWidth: 0 }]} onPress={() => setShowPasswordModal(true)}>
             <View style={styles.utilityRow}>
               <View>
-                <Text style={infoStyles.label}>{user?.password_set ? 'Mot de passe' : 'Créer un mot de passe'}</Text>
+                <Text style={infoStyles.label}>{user?.password_set ? t('account_switcher.mot_de_passe') : t('supplier_settings_screen.creer_un_mot_de_passe')}</Text>
                 <Text style={infoStyles.value}>
-                  {user?.password_set ? 'Modifier votre mot de passe de connexion' : 'Définir un mot de passe en plus de votre connexion actuelle'}
+                  {user?.password_set ? t('supplier_settings_screen.modifier_votre_mot_de_passe_de') : t('supplier_settings_screen.definir_un_mot_de_passe_en')}
                 </Text>
               </View>
               <Ionicons name="lock-closed-outline" size={20} color={colors.secondary} />
@@ -516,8 +516,8 @@ export default function SupplierSettingsScreen() {
         <TouchableOpacity style={styles.card} onPress={() => setShowAccountSwitcher(true)}>
           <View style={styles.utilityRow}>
             <View>
-              <Text style={infoStyles.label}>Comptes sur cet appareil</Text>
-              <Text style={infoStyles.value}>Ajouter un compte commerçant, staff ou fournisseur, puis basculer sans vous reconnecter.</Text>
+              <Text style={infoStyles.label}>{t('supplier_settings_screen.comptes_sur_cet_appareil')}</Text>
+              <Text style={infoStyles.value}>{t('supplier_settings_screen.ajouter_un_compte_commercant_staff_ou')}</Text>
             </View>
             <Ionicons name="swap-horizontal-outline" size={20} color={colors.secondary} />
           </View>

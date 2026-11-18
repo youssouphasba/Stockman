@@ -137,7 +137,7 @@ function POSWorkspace() {
 
     // Multi-sessions (Tabs)
     const [sessions, setSessions] = useState<POSSession[]>([
-        { id: '1', cart: [], selectedCustomer: null, name: 'Client 1' }
+        { id: '1', cart: [], selectedCustomer: null, name: t('pos_screen.client_1') }
     ]);
     const [activeSessionId, setActiveSessionId] = useState('1');
 
@@ -719,9 +719,9 @@ function POSWorkspace() {
             const { status } = await requestRecordingPermissionsAsync();
             if (status !== 'granted') {
                 Alert.alert(
-                    'Microphone requis',
-                    'Stockman a besoin d\'accéder à votre microphone pour la caisse vocale. Activez-le dans les réglages.',
-                    [{ text: 'OK' }]
+                    t('pos_screen.microphone_requis'),
+                    t('pos_screen.stockman_a_besoin_d_acceder_a'),
+                    [{ text: t('pos_screen.ok') }]
                 );
                 return;
             }
@@ -1338,7 +1338,7 @@ function POSWorkspace() {
                 <Text style={styles.productName} numberOfLines={2} ellipsizeMode="tail">{product.name}</Text>
                 {getProductQuantityInCart(product.product_id) > 0 && (
                     <View style={styles.productInCartBadge}>
-                        <Text style={styles.productInCartBadgeText} numberOfLines={1} ellipsizeMode="tail">x{formatNumber(getProductQuantityInCart(product.product_id))} dans le panier</Text>
+                        <Text style={styles.productInCartBadgeText} numberOfLines={1} ellipsizeMode="tail">{t('pos_screen.in_cart', { qty: formatNumber(getProductQuantityInCart(product.product_id)) })}</Text>
                     </View>
                 )}
                 {restaurantMode && (
@@ -1666,7 +1666,7 @@ function POSWorkspace() {
                                     onPress={openPosScanner}
                                 >
                                     <Ionicons name="barcode-outline" size={24} color="#fff" />
-                                    {isMobile && <Text style={styles.scanButtonText}>Scanner</Text>}
+                                    {isMobile && <Text style={styles.scanButtonText}>{t('pos_screen.scanner')}</Text>}
                                 </TouchableOpacity>
                                 {isMobile && (
                                     <TouchableOpacity style={styles.closePanelBtn} onPress={() => setShowProductList(false)}>
@@ -1806,7 +1806,7 @@ function POSWorkspace() {
                                                     {formatUserCurrency(item.product.selling_price, user)} × {formatSaleQuantity(item)}
                                                 </Text>
                                                 {item.item_notes && (
-                                                    <Text style={{ fontSize: 10, color: colors.warning, marginTop: 2 }}>Note: {item.item_notes}</Text>
+                                                    <Text style={{ fontSize: 10, color: colors.warning, marginTop: 2 }}>{t('pos_screen.note')} {item.item_notes}</Text>
                                                 )}
                                             </TouchableOpacity>
                                             <View style={styles.qtyContainer}>
@@ -1930,7 +1930,7 @@ function POSWorkspace() {
                 maxHeightRatio={0.82}
             >
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Quantité à vendre</Text>
+                            <Text style={styles.modalTitle}>{t('pos_screen.quantite_a_vendre')}</Text>
                             <TouchableOpacity onPress={closeWeightedModal}>
                                 <Ionicons name="close" size={24} color={colors.text} />
                             </TouchableOpacity>
@@ -1939,11 +1939,11 @@ function POSWorkspace() {
                             <>
                                 <Text style={[styles.formLabel, { marginBottom: 4 }]}>{weightedDraftProduct.name}</Text>
                                 <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 12 }}>
-                                    Prix: {formatUserCurrency(weightedDraftProduct.selling_price, user)} / {formatMeasurementQuantity(1, weightedDraftProduct.pricing_unit || weightedDraftProduct.unit).split(' ')[1]} - Stock: {formatMeasurementQuantity(weightedDraftProduct.quantity, weightedDraftProduct.display_unit || weightedDraftProduct.unit)}
+                                    {t('pos_screen.prix')} {formatUserCurrency(weightedDraftProduct.selling_price, user)} / {formatMeasurementQuantity(1, weightedDraftProduct.pricing_unit || weightedDraftProduct.unit).split(' ')[1]} {t('pos_screen.stock')} {formatMeasurementQuantity(weightedDraftProduct.quantity, weightedDraftProduct.display_unit || weightedDraftProduct.unit)}
                                 </Text>
 
                                 <View style={styles.formGroup}>
-                                    <Text style={styles.formLabel}>Quantité</Text>
+                                    <Text style={styles.formLabel}>{t('pos_screen.quantite')}</Text>
                                     <TextInput
                                         style={styles.formInput}
                                         value={weightedQuantityInput}
@@ -1954,7 +1954,7 @@ function POSWorkspace() {
                                 </View>
 
                                 <View style={styles.formGroup}>
-                                    <Text style={styles.formLabel}>Unité</Text>
+                                    <Text style={styles.formLabel}>{t('pos_screen.unite')}</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                         {getAllowedSaleUnits(weightedDraftProduct).map(unit => (
                                             <TouchableOpacity
@@ -2001,7 +2001,7 @@ function POSWorkspace() {
                                 </View>
 
                                 <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 16 }}>
-                                    Pas conseillé : {formatMeasurementQuantity(getInputStep(weightedDraftProduct, weightedUnit), weightedUnit)}
+                                    {t('pos_screen.pas_conseille')} {formatMeasurementQuantity(getInputStep(weightedDraftProduct, weightedUnit), weightedUnit)}
                                 </Text>
 
                                 <TouchableOpacity 
@@ -2046,7 +2046,7 @@ function POSWorkspace() {
                             <View style={styles.modalHeader}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     <Ionicons name="mic" size={20} color={colors.primary} />
-                                    <Text style={styles.modalTitle}>Caisse vocale</Text>
+                                    <Text style={styles.modalTitle}>{t('pos_screen.caisse_vocale')}</Text>
                                 </View>
                                 <TouchableOpacity onPress={() => { if (!isVoiceProcessing) { setShowVoiceModal(false); setVoiceItems([]); setVoiceSuggestions([]); setVoiceChoices({}); } }}>
                                     <Ionicons name="close" size={24} color={colors.text} />
@@ -2059,14 +2059,14 @@ function POSWorkspace() {
                                     <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#ef444420', borderWidth: 2, borderColor: '#ef4444', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                                         <Ionicons name="mic" size={36} color="#ef4444" />
                                     </View>
-                                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 6 }}>Parlez maintenant…</Text>
-                                    <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginBottom: 20 }}>Exemple : "2 coca, 1 pain, trois bouteilles d'eau"</Text>
+                                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 6 }}>{t('pos_screen.parlez_maintenant')}</Text>
+                                    <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginBottom: 20 }}>{t('pos_screen.exemple_2_coca_1_pain_trois')}</Text>
                                     <TouchableOpacity
                                         onPress={stopVoiceRecording}
                                         style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#ef444420', borderRadius: 14, borderWidth: 1.5, borderColor: '#ef4444' }}
                                     >
                                         <Ionicons name="stop" size={18} color="#ef4444" />
-                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#ef4444' }}>Arrêter l'enregistrement</Text>
+                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#ef4444' }}>{t('pos_screen.arreter_l_enregistrement')}</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}
@@ -2075,7 +2075,7 @@ function POSWorkspace() {
                             {isVoiceProcessing && (
                                 <View style={{ alignItems: 'center', paddingVertical: 32 }}>
                                     <ActivityIndicator size="large" color={colors.primary} style={{ marginBottom: 16 }} />
-                                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary }}>Reconnaissance en cours…</Text>
+                                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary }}>{t('pos_screen.reconnaissance_en_cours')}</Text>
                                 </View>
                             )}
 
@@ -2083,7 +2083,7 @@ function POSWorkspace() {
                             {!isVoiceRecording && !isVoiceProcessing && voiceTranscription !== '' && (
                                 <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 4 }} keyboardShouldPersistTaps="handled">
                                     <View style={{ backgroundColor: colors.glass, borderRadius: 12, padding: 12, marginBottom: 16 }}>
-                                        <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 4 }}>Vous avez dit</Text>
+                                        <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 4 }}>{t('pos_screen.vous_avez_dit')}</Text>
                                         <Text style={{ fontSize: 13, color: colors.text, fontStyle: 'italic' }}>"{voiceTranscription}"</Text>
                                     </View>
 
@@ -2092,7 +2092,7 @@ function POSWorkspace() {
                                             {voiceItems.length > 0 && (
                                             <>
                                             <Text style={{ fontSize: 11, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 10 }}>
-                                                {voiceItems.length} produit(s) reconnu(s)
+                                                {t('pos_screen.recognized_count', { count: voiceItems.length })}
                                             </Text>
                                             {voiceItems.map((item, i) => (
                                                 <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.divider }}>
@@ -2144,17 +2144,17 @@ function POSWorkspace() {
                                                 disabled={voiceItems.length === 0 && Object.keys(voiceChoices).length === 0}
                                                 style={{ marginTop: 20, backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', opacity: voiceItems.length === 0 && Object.keys(voiceChoices).length === 0 ? 0.4 : 1 }}
                                             >
-                                                <Text style={{ fontSize: 15, fontWeight: '900', color: '#fff' }}>Ajouter au panier</Text>
+                                                <Text style={{ fontSize: 15, fontWeight: '900', color: '#fff' }}>{t('pos_screen.ajouter_au_panier')}</Text>
                                             </TouchableOpacity>
                                         </>
                                     ) : (
                                         <View style={{ alignItems: 'center', paddingVertical: 20 }}>
                                             <Ionicons name="search-outline" size={36} color={colors.textMuted} style={{ marginBottom: 10 }} />
-                                            <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: 'center' }}>Aucun produit reconnu dans votre catalogue.</Text>
-                                            <Text style={{ fontSize: 11, color: colors.textMuted, textAlign: 'center', marginTop: 6 }}>Dites le nom du produit tel qu’il figure dans votre catalogue, ou précisez-le s’il ressemble à un autre.</Text>
+                                            <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: 'center' }}>{t('pos_screen.aucun_produit_reconnu_dans_votre_catalogue')}</Text>
+                                            <Text style={{ fontSize: 11, color: colors.textMuted, textAlign: 'center', marginTop: 6 }}>{t('pos_screen.dites_le_nom_du_produit_tel')}</Text>
                                             <TouchableOpacity onPress={startVoiceRecording} style={{ marginTop: 16, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
                                                 <Ionicons name="mic-outline" size={16} color={colors.primary} />
-                                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>Réessayer</Text>
+                                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>{t('pos_screen.reessayer')}</Text>
                                             </TouchableOpacity>
                                         </View>
                                     )}
@@ -2167,16 +2167,16 @@ function POSWorkspace() {
                                     <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primary + '20', borderWidth: 2, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                                         <Ionicons name="mic-outline" size={36} color={colors.primary} />
                                     </View>
-                                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 6 }}>Caisse vocale</Text>
+                                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 6 }}>{t('pos_screen.caisse_vocale')}</Text>
                                     <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginBottom: 20, paddingHorizontal: 20 }}>
-                                        Dictez vos produits et quantités. Ex : "2 coca-cola, 1 pain de mie, trois yaourts"
+                                        {t('pos_screen.dictez_vos_produits_et_quantites_ex')}
                                     </Text>
                                     <TouchableOpacity
                                         onPress={startVoiceRecording}
                                         style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: colors.primary, borderRadius: 14 }}
                                     >
                                         <Ionicons name="mic" size={18} color="#fff" />
-                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff' }}>Commencer l'enregistrement</Text>
+                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff' }}>{t('pos_screen.commencer_l_enregistrement')}</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}
@@ -2323,7 +2323,7 @@ function POSWorkspace() {
                                     onPress={() => { handleTableSelect(item.table_id ? item : null); }}
                                 >
                                     <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }} numberOfLines={1}>{item.name}</Text>
-                                    {item.capacity > 0 && <Text style={{ color: colors.textMuted, fontSize: 12 }}>{item.capacity} pers.</Text>}
+                                    {item.capacity > 0 && <Text style={{ color: colors.textMuted, fontSize: 12 }}>{item.capacity} {t('pos_screen.pers')}</Text>}
                                 </TouchableOpacity>
                             )}
                         />

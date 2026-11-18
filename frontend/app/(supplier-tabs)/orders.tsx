@@ -146,7 +146,7 @@ export default function SupplierOrdersScreen() {
         t('common.error'),
         invoiceMode === 'order'
           ? t('supplier.invoice_already_exists')
-          : "Impossible de créer cette facture pour le moment."
+          : t('supplier_orders_screen.impossible_de_creer_cette_facture_pour')
       );
     } finally {
       setCreatingSaving(false);
@@ -674,7 +674,7 @@ export default function SupplierOrdersScreen() {
                 >
                   <Ionicons name="create-outline" size={16} color={invoiceMode === 'manual' ? '#fff' : colors.textMuted} />
                   <Text style={[styles.invoiceModeText, invoiceMode === 'manual' && styles.invoiceModeTextActive]}>
-                    Facture manuelle
+                    {t('supplier_orders_screen.facture_manuelle')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -683,7 +683,7 @@ export default function SupplierOrdersScreen() {
                 >
                   <Ionicons name="receipt-outline" size={16} color={invoiceMode === 'order' ? '#fff' : colors.textMuted} />
                   <Text style={[styles.invoiceModeText, invoiceMode === 'order' && styles.invoiceModeTextActive]}>
-                    Depuis une commande
+                    {t('supplier_orders_screen.depuis_une_commande')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -693,9 +693,9 @@ export default function SupplierOrdersScreen() {
                   <Text style={styles.detailSectionTitle}>{t('supplier.select_order')}</Text>
                   {invoiceableOrders.length === 0 ? (
                     <View style={styles.invoiceHintCard}>
-                      <Text style={styles.invoiceHintTitle}>Aucune commande prête</Text>
+                      <Text style={styles.invoiceHintTitle}>{t('supplier_orders_screen.aucune_commande_prete')}</Text>
                       <Text style={styles.invoiceHintText}>
-                        Confirmez, expédiez ou livrez une commande pour pouvoir générer une facture à partir de celle-ci.
+                        {t('supplier_orders_screen.confirmez_expediez_ou_livrez_une_commande')}
                       </Text>
                     </View>
                   ) : (
@@ -728,20 +728,20 @@ export default function SupplierOrdersScreen() {
                 </>
               ) : (
                 <>
-                  <Text style={styles.detailSectionTitle}>Client</Text>
+                  <Text style={styles.detailSectionTitle}>{t('supplier_orders_screen.client')}</Text>
                   <TextInput
                     style={styles.invoiceInput}
                     value={invoiceClientName}
                     onChangeText={setInvoiceClientName}
-                    placeholder="Nom du client"
+                    placeholder={t('supplier_orders_screen.nom_du_client')}
                     placeholderTextColor={colors.textMuted}
                   />
 
-                  <Text style={[styles.detailSectionTitle, { marginTop: Spacing.md }]}>Lignes de facture</Text>
+                  <Text style={[styles.detailSectionTitle, { marginTop: Spacing.md }]}>{t('supplier_orders_screen.lignes_de_facture')}</Text>
                   {invoiceItems.map((item, index) => (
                     <View key={item.id} style={styles.invoiceLineCard}>
                       <View style={styles.invoiceLineHeader}>
-                        <Text style={styles.invoiceLineTitle}>Article {index + 1}</Text>
+                        <Text style={styles.invoiceLineTitle}>{t('supplier_orders_screen.article')} {index + 1}</Text>
                         <TouchableOpacity
                           onPress={() => removeInvoiceLine(item.id)}
                           disabled={invoiceItems.length === 1}
@@ -757,7 +757,7 @@ export default function SupplierOrdersScreen() {
                         style={styles.invoiceInput}
                         value={item.description}
                         onChangeText={(value) => updateInvoiceLine(item.id, { description: value })}
-                        placeholder="Nom ou description"
+                        placeholder={t('supplier_orders_screen.nom_ou_description')}
                         placeholderTextColor={colors.textMuted}
                       />
                       <View style={styles.invoiceLineRow}>
@@ -765,7 +765,7 @@ export default function SupplierOrdersScreen() {
                           style={[styles.invoiceInput, styles.invoiceLineHalf]}
                           value={item.quantity}
                           onChangeText={(value) => updateInvoiceLine(item.id, { quantity: value })}
-                          placeholder="Qté"
+                          placeholder={t('supplier_orders_screen.qte')}
                           placeholderTextColor={colors.textMuted}
                           keyboardType="numeric"
                         />
@@ -773,7 +773,7 @@ export default function SupplierOrdersScreen() {
                           style={[styles.invoiceInput, styles.invoiceLineHalf]}
                           value={item.unitPrice}
                           onChangeText={(value) => updateInvoiceLine(item.id, { unitPrice: value })}
-                          placeholder="Prix unitaire"
+                          placeholder={t('supplier_orders_screen.prix_unitaire')}
                           placeholderTextColor={colors.textMuted}
                           keyboardType="numeric"
                         />
@@ -782,10 +782,10 @@ export default function SupplierOrdersScreen() {
                   ))}
                   <TouchableOpacity style={styles.addLineBtn} onPress={addInvoiceLine}>
                     <Ionicons name="add-circle-outline" size={18} color={colors.secondary} />
-                    <Text style={styles.addLineText}>Ajouter une ligne</Text>
+                    <Text style={styles.addLineText}>{t('supplier_orders_screen.ajouter_une_ligne')}</Text>
                   </TouchableOpacity>
                   <View style={styles.manualTotalCard}>
-                    <Text style={styles.manualTotalLabel}>Total estimé</Text>
+                    <Text style={styles.manualTotalLabel}>{t('supplier_orders_screen.total_estime')}</Text>
                     <Text style={styles.manualTotalValue}>
                       {formatNumber(manualInvoiceTotal)} {t('common.currency_default')}
                     </Text>
@@ -822,7 +822,7 @@ export default function SupplierOrdersScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.modalActionText}>
-                  {invoiceMode === 'order' ? t('supplier.create_invoice') : 'Créer la facture'}
+                  {invoiceMode === 'order' ? t('supplier.create_invoice') : t('supplier_orders_screen.creer_la_facture')}
                 </Text>
               )}
             </TouchableOpacity>
@@ -858,9 +858,9 @@ export default function SupplierOrdersScreen() {
                         ) : null}
                       </View>
                       <View style={styles.invoiceDocumentMeta}>
-                        <Text style={styles.invoiceDocumentMetaLabel}>Numéro</Text>
+                        <Text style={styles.invoiceDocumentMetaLabel}>{t('supplier_orders_screen.numero')}</Text>
                         <Text style={styles.invoiceDocumentMetaValue}>{selectedInvoice.invoice_number}</Text>
-                        <Text style={[styles.invoiceDocumentMetaLabel, { marginTop: 10 }]}>Date</Text>
+                        <Text style={[styles.invoiceDocumentMetaLabel, { marginTop: 10 }]}>{t('supplier_orders_screen.date')}</Text>
                         <Text style={styles.invoiceDocumentMetaValue}>
                           {selectedInvoice.created_at ? new Date(selectedInvoice.created_at).toLocaleDateString(i18n.language) : ''}
                         </Text>
@@ -868,7 +868,7 @@ export default function SupplierOrdersScreen() {
                     </View>
 
                     <View style={styles.invoiceRecipientCard}>
-                      <Text style={styles.invoiceRecipientLabel}>Client</Text>
+                      <Text style={styles.invoiceRecipientLabel}>{t('supplier_orders_screen.client')}</Text>
                       <Text style={styles.invoiceRecipientValue}>
                         {selectedInvoice.shopkeeper_name || selectedInvoice.client_name || 'Client'}
                       </Text>
@@ -876,7 +876,7 @@ export default function SupplierOrdersScreen() {
 
                     {selectedInvoice.invoice_payment_terms ? (
                       <Text style={styles.invoiceDocumentFootnote}>
-                        Conditions de vente : {selectedInvoice.invoice_payment_terms}
+                        {t('supplier_orders_screen.conditions_de_vente')} {selectedInvoice.invoice_payment_terms}
                       </Text>
                     ) : null}
                     {selectedInvoice.invoice_footer ? (

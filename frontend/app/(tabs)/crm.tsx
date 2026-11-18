@@ -361,12 +361,12 @@ function CRMWorkspace() {
     const getCustomerSourceMeta = (customer: Customer | null | undefined) => {
         const source = (customer?.customer_source || 'physical') as SourceFilter;
         if (source === 'ecommerce') {
-            return { label: 'E-com', color: colors.info };
+            return { label: t('crm_screen.e_com'), color: colors.info };
         }
         if (source === 'mixed') {
-            return { label: 'Mixte', color: colors.warning };
+            return { label: t('crm_screen.mixte'), color: colors.warning };
         }
-        return { label: 'Physique', color: colors.success };
+        return { label: t('crm_screen.physique'), color: colors.success };
     };
 
     const updateLoyaltySettings = async (updates: Partial<LoyaltySettings>) => {
@@ -548,7 +548,7 @@ function CRMWorkspace() {
             setShowCustomerModal(false);
             await loadData();
             if ((response as any)?.offline_pending) {
-                Alert.alert(t('common.offline_mode'), 'Le client sera synchronisé dès le retour de la connexion.');
+                Alert.alert(t('common.offline_mode'), t('crm_screen.le_client_sera_synchronise_des_le'));
             }
         } catch {
             Alert.alert(t('common.error'), t('crm.error_save_customer'));
@@ -1013,11 +1013,11 @@ function CRMWorkspace() {
                         <View style={styles.headerActionRow}>
                             <TouchableOpacity style={styles.headerActionChip} onPress={handleExportPdf}>
                                 <Ionicons name="document-text-outline" size={22} color={colors.primary} />
-                                <Text style={styles.headerActionText}>Exporter en PDF</Text>
+                                <Text style={styles.headerActionText}>{t('crm_screen.exporter_en_pdf')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.headerActionChip} onPress={handleExportCSV}>
                                 <Ionicons name="download-outline" size={24} color={colors.primary} />
-                                <Text style={styles.headerActionText}>Exporter en CSV</Text>
+                                <Text style={styles.headerActionText}>{t('crm_screen.exporter_en_csv')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -1045,12 +1045,12 @@ function CRMWorkspace() {
                         <TouchableOpacity style={styles.quickActionCard} onPress={openNewPromo}>
                             <Ionicons name="pricetags-outline" size={20} color={colors.primary} />
                             <Text style={styles.quickActionTitle}>{t('crm.create_promotion')}</Text>
-                            <Text style={styles.quickActionDesc}>Créez une offre ciblée pour stimuler les ventes et la fidélité.</Text>
+                            <Text style={styles.quickActionDesc}>{t('crm_screen.creez_une_offre_ciblee_pour_stimuler')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.quickActionCard} onPress={openCampaignModal}>
                             <Ionicons name="megaphone-outline" size={20} color={colors.success} />
                             <Text style={styles.quickActionTitle}>{t('crm.whatsapp_campaign')}</Text>
-                            <Text style={styles.quickActionDesc}>Lancez rapidement une campagne vers vos clients les plus pertinents.</Text>
+                            <Text style={styles.quickActionDesc}>{t('crm_screen.lancez_rapidement_une_campagne_vers_vos')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -1061,9 +1061,9 @@ function CRMWorkspace() {
                             activeOpacity={0.85}
                         >
                             <Ionicons name="time-outline" size={20} color={colors.warning} />
-                            <Text style={styles.quickActionTitle}>Clients à relancer</Text>
+                            <Text style={styles.quickActionTitle}>{t('crm_screen.clients_a_relancer')}</Text>
                             <Text style={styles.quickInsightValue}>{dormantClients}</Text>
-                            <Text style={styles.quickActionDesc}>Aucun achat enregistré depuis au moins 45 jours.</Text>
+                            <Text style={styles.quickActionDesc}>{t('crm_screen.aucun_achat_enregistre_depuis_au_moins')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.quickInsightCard, insightFilter === 'debt' && styles.quickInsightCardActive]}
@@ -1071,9 +1071,9 @@ function CRMWorkspace() {
                             activeOpacity={0.85}
                         >
                             <Ionicons name="wallet-outline" size={20} color={colors.danger} />
-                            <Text style={styles.quickActionTitle}>Clients à suivre</Text>
+                            <Text style={styles.quickActionTitle}>{t('crm_screen.clients_a_suivre')}</Text>
                             <Text style={styles.quickInsightValue}>{customersWithDebt}</Text>
-                            <Text style={styles.quickActionDesc}>Clients avec des dettes à surveiller.</Text>
+                            <Text style={styles.quickActionDesc}>{t('crm_screen.clients_avec_des_dettes_a_surveiller')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -1195,10 +1195,10 @@ function CRMWorkspace() {
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: Spacing.md }}>
                         <View style={styles.sortRow}>
                             {[
-                                { key: 'all' as const, label: 'Tous' },
-                                { key: 'physical' as const, label: 'Physiques' },
-                                { key: 'ecommerce' as const, label: 'E-com' },
-                                { key: 'mixed' as const, label: 'Mixtes' },
+                                { key: 'all' as const, label: t('crm_screen.tous') },
+                                { key: 'physical' as const, label: t('crm_screen.physiques') },
+                                { key: 'ecommerce' as const, label: t('crm_screen.e_com') },
+                                { key: 'mixed' as const, label: t('crm_screen.mixtes') },
                             ].map((option) => {
                                 const active = sourceFilter === option.key;
                                 return (
@@ -1221,8 +1221,8 @@ function CRMWorkspace() {
                             <View style={[styles.offlineBanner, { borderColor: colors.warning + '35', backgroundColor: colors.warning + '14' }]}>
                                 <Text style={[styles.offlineBannerText, { color: colors.warning }]}>
                                     {pendingCrmSummary.pendingTotal === 1
-                                        ? '1 client ou mouvement de compte est en attente de synchronisation.'
-                                        : `${pendingCrmSummary.pendingTotal} clients ou mouvements de compte sont en attente de synchronisation.`}
+                                        ? t('crm_screen.1_client_ou_mouvement_de_compte')
+                                        : t('crm_screen.pending_sync_many', { count: pendingCrmSummary.pendingTotal })}
                                 </Text>
                             </View>
                         )}
@@ -1348,7 +1348,7 @@ function CRMWorkspace() {
                                     keyboardType="email-address"
                                 />
 
-                                <Text style={styles.formLabel}>{t('crm.birthday_label')} (MM-JJ)</Text>
+                                <Text style={styles.formLabel}>{t('crm.birthday_label')} {t('crm_screen.mm_jj')}</Text>
                                 <TextInput
                                     style={styles.formInput}
                                     value={customerForm.birthday}
@@ -1806,7 +1806,7 @@ function CRMWorkspace() {
                                                             <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
                                                         </View>
                                                         <View style={styles.contactTextWrap}>
-                                                            <Text style={styles.contactBtnTitle}>WhatsApp</Text>
+                                                            <Text style={styles.contactBtnTitle}>{t('crm_screen.whatsapp')}</Text>
                                                             <Text style={styles.contactBtnSub} numberOfLines={1}>{t('crm.send_message')}</Text>
                                                         </View>
                                                         <View style={styles.contactChevronWrap}>
@@ -1819,7 +1819,7 @@ function CRMWorkspace() {
                                                             <Ionicons name="chatbubble" size={24} color={colors.info} />
                                                         </View>
                                                         <View style={styles.contactTextWrap}>
-                                                            <Text style={styles.contactBtnTitle}>SMS</Text>
+                                                            <Text style={styles.contactBtnTitle}>{t('crm_screen.sms')}</Text>
                                                             <Text style={styles.contactBtnSub} numberOfLines={1}>{t('crm.send_sms')}</Text>
                                                         </View>
                                                         <View style={styles.contactChevronWrap}>
@@ -1833,7 +1833,7 @@ function CRMWorkspace() {
                                                                 <Ionicons name="mail" size={24} color={colors.primary} />
                                                             </View>
                                                             <View style={styles.contactTextWrap}>
-                                                                <Text style={styles.contactBtnTitle}>Email</Text>
+                                                                <Text style={styles.contactBtnTitle}>{t('crm_screen.email')}</Text>
                                                                 <Text style={styles.contactBtnSub} numberOfLines={2}>{detailCustomer.email}</Text>
                                                             </View>
                                                             <View style={styles.contactChevronWrap}>
@@ -1847,7 +1847,7 @@ function CRMWorkspace() {
                                                                 <Ionicons name="document-text-outline" size={22} color={colors.warning} />
                                                             </View>
                                                             <View style={styles.contactTextWrap}>
-                                                                <Text style={styles.contactBtnTitle}>Dernier message</Text>
+                                                                <Text style={styles.contactBtnTitle}>{t('crm_screen.dernier_message')}</Text>
                                                                 <Text style={styles.contactBtnSub}>{detailCustomer.notes}</Text>
                                                             </View>
                                                         </View>

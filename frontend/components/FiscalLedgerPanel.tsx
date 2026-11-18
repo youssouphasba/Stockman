@@ -154,7 +154,7 @@ export default function FiscalLedgerPanel({ formatCurrency }: { formatCurrency: 
       ) : closures.slice(0, 60).map((closure) => {
         const key = `${closure.period_type}-${closure.period_key}`;
         const methods = Object.entries(closure.totals?.by_payment_method || {})
-          .map(([method, amount]) => `${PAYMENT_LABELS[method] || method} ${formatCurrency(Number(amount) || 0)}`)
+          .map(([method, amount]) => `${t(`fiscal_ledger.payment_${method}`, PAYMENT_LABELS[method] || method)} ${formatCurrency(Number(amount) || 0)}`)
           .join(' · ');
         return (
           <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.divider }}>

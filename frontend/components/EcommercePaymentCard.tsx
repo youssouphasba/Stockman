@@ -3,6 +3,7 @@ import { Switch, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 export type PaymentDraft = {
   wave_phone?: string | null;
@@ -27,6 +28,7 @@ type Props = {
 // directement, sur son compte Wave ou Orange Money : la boutique affiche le numéro et le montant,
 // puis le commerçant confirme « Paiement reçu ». Stockman ne reçoit jamais cet argent.
 export default function EcommercePaymentCard({ draft, canEdit, styles, onChange, mobileMoneyAvailable }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const wave = Boolean((draft.wave_phone || '').trim());
   const orange = Boolean((draft.orange_money_phone || '').trim());
@@ -39,7 +41,7 @@ export default function EcommercePaymentCard({ draft, canEdit, styles, onChange,
         <Text style={[styles.settingLabel, { fontWeight: '700' }]}>{title}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={16} color={active ? colors.success : colors.textMuted} />
-          <Text style={{ color: active ? colors.success : colors.textMuted, fontSize: FontSize.xs, fontWeight: '600' }}>{active ? 'Proposé à vos clients' : 'Non proposé'}</Text>
+          <Text style={{ color: active ? colors.success : colors.textMuted, fontSize: FontSize.xs, fontWeight: '600' }}>{active ? t('ecommerce_payment.propose_a_vos_clients') : t('ecommerce_payment.non_propose')}</Text>
         </View>
       </View>
       {children}
@@ -50,10 +52,10 @@ export default function EcommercePaymentCard({ draft, canEdit, styles, onChange,
 
   return (
     <View style={{ gap: Spacing.sm, marginTop: Spacing.md }}>
-      <Text style={[styles.settingLabel, { fontWeight: '700' }]}>Paiement des commandes</Text>
+      <Text style={[styles.settingLabel, { fontWeight: '700' }]}>{t('ecommerce_payment.paiement_des_commandes')}</Text>
       {hint(mobileMoney
-        ? 'Vos clients vous paient directement, en une seule fois, articles et livraison compris. La boutique leur affiche votre numéro et le montant exact ; vous confirmez « Paiement reçu » dans la commande.'
-        : 'Vos clients vous paient directement. Écrivez ci-dessous comment vous payer : ils le lisent avant de commander, et vous confirmez « Paiement reçu » dans la commande. Wave et Orange Money sont proposés aux boutiques du Sénégal.')}
+        ? t('ecommerce_payment.vos_clients_vous_paient_directement_en')
+        : t('ecommerce_payment.vos_clients_vous_paient_directement_ecrivez'))}
 
       {mobileMoney && <>
       {wallet('Wave', wave, <>
@@ -61,34 +63,34 @@ export default function EcommercePaymentCard({ draft, canEdit, styles, onChange,
           style={styles.input}
           value={draft.wave_phone || ''}
           onChangeText={(value) => onChange({ wave_phone: value })}
-          placeholder="Votre numéro Wave : 77 123 45 67"
+          placeholder={t('ecommerce_payment.votre_numero_wave_77_123_45')}
           placeholderTextColor={colors.textMuted}
           keyboardType="phone-pad"
           editable={canEdit}
-          accessibilityLabel="Votre numéro Wave"
+          accessibilityLabel={t('ecommerce_payment.votre_numero_wave')}
         />
         <TextInput
           style={styles.input}
           value={draft.wave_name || ''}
           onChangeText={(value) => onChange({ wave_name: value })}
-          placeholder="Nom affiché dans Wave"
+          placeholder={t('ecommerce_payment.nom_affiche_dans_wave')}
           placeholderTextColor={colors.textMuted}
           editable={canEdit}
-          accessibilityLabel="Nom affiché dans Wave"
+          accessibilityLabel={t('ecommerce_payment.nom_affiche_dans_wave')}
         />
         <TextInput
           style={styles.input}
           value={draft.wave_link || ''}
           onChangeText={(value) => onChange({ wave_link: value })}
-          placeholder="Lien de paiement Wave (facultatif)"
+          placeholder={t('ecommerce_payment.lien_de_paiement_wave_facultatif')}
           placeholderTextColor={colors.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
           editable={canEdit}
-          accessibilityLabel="Lien de paiement Wave, facultatif"
+          accessibilityLabel={t('ecommerce_payment.lien_de_paiement_wave_facultatif_2')}
         />
-        {hint('Le client vérifie le nom avant de payer. Si Wave Business vous a donné un lien de paiement, collez-le : le client l’ouvrira d’un geste.')}
+        {hint(t('ecommerce_payment.le_client_verifie_le_nom_avant'))}
       </>)}
 
       {wallet('Orange Money', orange, <>
@@ -96,35 +98,35 @@ export default function EcommercePaymentCard({ draft, canEdit, styles, onChange,
           style={styles.input}
           value={draft.orange_money_phone || ''}
           onChangeText={(value) => onChange({ orange_money_phone: value })}
-          placeholder="Votre numéro Orange Money : 77 123 45 67"
+          placeholder={t('ecommerce_payment.votre_numero_orange_money_77_123')}
           placeholderTextColor={colors.textMuted}
           keyboardType="phone-pad"
           editable={canEdit}
-          accessibilityLabel="Votre numéro Orange Money"
+          accessibilityLabel={t('ecommerce_payment.votre_numero_orange_money')}
         />
         <TextInput
           style={styles.input}
           value={draft.orange_money_name || ''}
           onChangeText={(value) => onChange({ orange_money_name: value })}
-          placeholder="Nom affiché dans Orange Money"
+          placeholder={t('ecommerce_payment.nom_affiche_dans_orange_money')}
           placeholderTextColor={colors.textMuted}
           editable={canEdit}
-          accessibilityLabel="Nom affiché dans Orange Money"
+          accessibilityLabel={t('ecommerce_payment.nom_affiche_dans_orange_money')}
         />
       </>)}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, minHeight: 48 }}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.settingLabel}>Accepter le paiement à la livraison</Text>
+          <Text style={styles.settingLabel}>{t('ecommerce_payment.accepter_le_paiement_a_la_livraison')}</Text>
           {hint(mobile
-            ? 'Le client peut choisir de vous payer à la réception. Désactivez pour exiger le paiement avant la préparation.'
-            : 'Ajoutez un numéro Wave ou Orange Money pour proposer un choix à vos clients.')}
+            ? t('ecommerce_payment.le_client_peut_choisir_de_vous')
+            : t('ecommerce_payment.ajoutez_un_numero_wave_ou_orange'))}
         </View>
         <Switch
           value={draft.pay_on_delivery !== false}
           onValueChange={(value) => onChange({ pay_on_delivery: value })}
           disabled={!canEdit || !mobile}
-          accessibilityLabel="Accepter le paiement à la livraison"
+          accessibilityLabel={t('ecommerce_payment.accepter_le_paiement_a_la_livraison')}
         />
       </View>
       </>}
@@ -133,11 +135,11 @@ export default function EcommercePaymentCard({ draft, canEdit, styles, onChange,
         style={[styles.input, styles.textArea]}
         value={draft.payment_instructions || ''}
         onChangeText={(value) => onChange({ payment_instructions: value })}
-        placeholder={mobileMoney ? 'Autres consignes de paiement (facultatif) : virement, espèces au retrait en boutique...' : 'Consignes de paiement : virement, espèces au retrait en boutique...'}
+        placeholder={mobileMoney ? t('ecommerce_payment.autres_consignes_de_paiement_facultatif_virement') : t('ecommerce_payment.consignes_de_paiement_virement_especes_au')}
         placeholderTextColor={colors.textMuted}
         multiline
         editable={canEdit}
-        accessibilityLabel="Autres consignes de paiement, facultatif"
+        accessibilityLabel={t('ecommerce_payment.autres_consignes_de_paiement_facultatif')}
       />
     </View>
   );

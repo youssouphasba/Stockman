@@ -73,7 +73,7 @@ const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({ visible, onCl
                 <View style={[styles.content, { backgroundColor: colors.bgMid }]}>
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: colors.text }]}>
-                            {t('common.language_choice') || 'Choisir la langue'}
+                            {t('common.language_choice') || t('language_picker.choisir_la_langue')}
                         </Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                             <Ionicons name="close" size={24} color={colors.text} />

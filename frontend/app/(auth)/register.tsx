@@ -17,6 +17,7 @@ import { Link, useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../services/i18n';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -30,27 +31,27 @@ type SignupStep = 'role' | 'details' | 'business';
 type SignupRole = 'shopkeeper' | 'supplier';
 
 const SECTORS = [
-  { key: 'epicerie', label: 'Épicerie', icon: 'cart-outline' },
-  { key: 'supermarche', label: 'Supermarché', icon: 'storefront-outline' },
-  { key: 'pharmacie', label: 'Pharmacie', icon: 'medical-outline' },
-  { key: 'vetements', label: 'Vêtements', icon: 'shirt-outline' },
-  { key: 'cosmetiques', label: 'Cosmétiques', icon: 'sparkles-outline' },
-  { key: 'electronique', label: 'Électronique', icon: 'phone-portrait-outline' },
-  { key: 'quincaillerie', label: 'Quincaillerie', icon: 'hammer-outline' },
-  { key: 'automobile', label: 'Auto / garage', icon: 'car-outline' },
-  { key: 'grossiste', label: 'Grossiste', icon: 'cube-outline' },
-  { key: 'papeterie', label: 'Papeterie', icon: 'document-text-outline' },
-  { key: 'restaurant', label: 'Restaurant', icon: 'restaurant-outline' },
-  { key: 'boulangerie', label: 'Boulangerie', icon: 'cafe-outline' },
-  { key: 'traiteur', label: 'Traiteur', icon: 'fast-food-outline' },
-  { key: 'boissons', label: 'Boissons', icon: 'wine-outline' },
-  { key: 'couture', label: 'Couture', icon: 'cut-outline' },
-  { key: 'savonnerie', label: 'Savonnerie', icon: 'flask-outline' },
-  { key: 'menuiserie', label: 'Menuiserie', icon: 'construct-outline' },
-  { key: 'imprimerie', label: 'Imprimerie', icon: 'print-outline' },
-  { key: 'forge', label: 'Forge', icon: 'build-outline' },
-  { key: 'artisanat', label: 'Artisanat', icon: 'color-palette-outline' },
-  { key: 'autre', label: 'Autre', icon: 'apps-outline' },
+  { key: 'epicerie', get label() { return i18n.t('auth.sectors.epicerie', { defaultValue: "Épicerie" }); }, icon: 'cart-outline' },
+  { key: 'supermarche', get label() { return i18n.t('auth.sectors.supermarche', { defaultValue: "Supermarché" }); }, icon: 'storefront-outline' },
+  { key: 'pharmacie', get label() { return i18n.t('auth.sectors.pharmacie', { defaultValue: "Pharmacie" }); }, icon: 'medical-outline' },
+  { key: 'vetements', get label() { return i18n.t('auth.sectors.vetements', { defaultValue: "Vêtements" }); }, icon: 'shirt-outline' },
+  { key: 'cosmetiques', get label() { return i18n.t('auth.sectors.cosmetiques', { defaultValue: "Cosmétiques" }); }, icon: 'sparkles-outline' },
+  { key: 'electronique', get label() { return i18n.t('auth.sectors.electronique', { defaultValue: "Électronique" }); }, icon: 'phone-portrait-outline' },
+  { key: 'quincaillerie', get label() { return i18n.t('auth.sectors.quincaillerie', { defaultValue: "Quincaillerie" }); }, icon: 'hammer-outline' },
+  { key: 'automobile', get label() { return i18n.t('auth.sectors.automobile', { defaultValue: "Auto / garage" }); }, icon: 'car-outline' },
+  { key: 'grossiste', get label() { return i18n.t('auth.sectors.grossiste', { defaultValue: "Grossiste" }); }, icon: 'cube-outline' },
+  { key: 'papeterie', get label() { return i18n.t('auth.sectors.papeterie', { defaultValue: "Papeterie" }); }, icon: 'document-text-outline' },
+  { key: 'restaurant', get label() { return i18n.t('auth.sectors.restaurant', { defaultValue: "Restaurant" }); }, icon: 'restaurant-outline' },
+  { key: 'boulangerie', get label() { return i18n.t('auth.sectors.boulangerie', { defaultValue: "Boulangerie" }); }, icon: 'cafe-outline' },
+  { key: 'traiteur', get label() { return i18n.t('auth.sectors.traiteur', { defaultValue: "Traiteur" }); }, icon: 'fast-food-outline' },
+  { key: 'boissons', get label() { return i18n.t('auth.sectors.boissons', { defaultValue: "Boissons" }); }, icon: 'wine-outline' },
+  { key: 'couture', get label() { return i18n.t('auth.sectors.couture', { defaultValue: "Couture" }); }, icon: 'cut-outline' },
+  { key: 'savonnerie', get label() { return i18n.t('auth.sectors.savonnerie', { defaultValue: "Savonnerie" }); }, icon: 'flask-outline' },
+  { key: 'menuiserie', get label() { return i18n.t('auth.sectors.menuiserie', { defaultValue: "Menuiserie" }); }, icon: 'construct-outline' },
+  { key: 'imprimerie', get label() { return i18n.t('auth.sectors.imprimerie', { defaultValue: "Imprimerie" }); }, icon: 'print-outline' },
+  { key: 'forge', get label() { return i18n.t('auth.sectors.forge', { defaultValue: "Forge" }); }, icon: 'build-outline' },
+  { key: 'artisanat', get label() { return i18n.t('auth.sectors.artisanat', { defaultValue: "Artisanat" }); }, icon: 'color-palette-outline' },
+  { key: 'autre', get label() { return i18n.t('auth.sectors.autre', { defaultValue: "Autre" }); }, icon: 'apps-outline' },
 ] as const;
 
 function getCountryFlag(country: Country): string {

@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import i18n from '../services/i18n';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getDefaultRouteForUser } from '../utils/accountRouting';
@@ -26,13 +27,13 @@ type AccountSwitcherModalProps = {
 function getRoleLabel(role: string): string {
   switch (role) {
     case 'supplier':
-      return 'Fournisseur';
+      return i18n.t('account_switcher.role_supplier', { defaultValue: 'Fournisseur' });
     case 'staff':
-      return 'Staff';
+      return i18n.t('account_switcher.role_staff', { defaultValue: 'Employé' });
     case 'superadmin':
-      return 'Administration';
+      return i18n.t('account_switcher.role_admin', { defaultValue: 'Administration' });
     default:
-      return 'Commerçant';
+      return i18n.t('account_switcher.role_merchant', { defaultValue: 'Commerçant' });
   }
 }
 
@@ -58,8 +59,8 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
   const handleAddAccount = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert(
-        'Informations manquantes',
-        "Saisissez l'adresse e-mail et le mot de passe du compte à ajouter.",
+        t('account_switcher.informations_manquantes'),
+        t('account_switcher.saisissez_l_adresse_e_mail_et'),
       );
       return;
     }
@@ -69,9 +70,9 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
       await addAccount(email.trim().toLowerCase(), password);
       setEmail('');
       setPassword('');
-      Alert.alert('Compte ajouté', 'Ce compte est maintenant disponible sur cet appareil.');
+      Alert.alert(t('account_switcher.compte_ajoute'), t('account_switcher.ce_compte_est_maintenant_disponible_sur'));
     } catch (error: any) {
-      Alert.alert('Ajout impossible', error?.message || "Impossible d'ajouter ce compte pour le moment.");
+      Alert.alert(t('account_switcher.ajout_impossible'), error?.message || t('account_switcher.impossible_d_ajouter_ce_compte_pour'));
     } finally {
       setSaving(false);
     }
@@ -89,7 +90,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
       onClose();
       router.replace(getDefaultRouteForUser(nextUser || null) as any);
     } catch (error: any) {
-      Alert.alert('Bascule impossible', error?.message || 'Impossible de changer de compte pour le moment.');
+      Alert.alert(t('account_switcher.bascule_impossible'), error?.message || t('account_switcher.impossible_de_changer_de_compte_pour'));
     } finally {
       setSwitchingId(null);
     }
@@ -97,7 +98,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
 
   const confirmRemoveAccount = (targetUserId: string, accountLabel: string) => {
     const title = 'Retirer ce compte';
-    const message = "Ce compte sera retiré de cet appareil. Vous pourrez le reconnecter plus tard avec son adresse e-mail et son mot de passe.";
+    const message = t('account_switcher.ce_compte_sera_retire_de_cet');
     const proceed = async () => {
       try {
         await removeStoredAccount(targetUserId);
@@ -105,7 +106,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
           onClose();
         }
       } catch (error: any) {
-        Alert.alert('Retrait impossible', error?.message || `Impossible de retirer ${accountLabel} de cet appareil.`);
+        Alert.alert(t('account_switcher.retrait_impossible'), error?.message || t('account_switcher.remove_failed', { name: accountLabel }));
       }
     };
 
@@ -118,7 +119,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
 
     Alert.alert(title, message, [
       { text: t('common.cancel', 'Annuler'), style: 'cancel' },
-      { text: 'Retirer', style: 'destructive', onPress: () => void proceed() },
+      { text: t('account_switcher.retirer'), style: 'destructive', onPress: () => void proceed() },
     ]);
   };
 
@@ -128,9 +129,9 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View style={styles.headerCopy}>
-              <Text style={styles.title}>Comptes sur cet appareil</Text>
+              <Text style={styles.title}>{t('account_switcher.comptes_sur_cet_appareil')}</Text>
               <Text style={styles.subtitle}>
-                Ajoutez plusieurs comptes, puis basculez rapidement de l&apos;un à l&apos;autre sans vous reconnecter à chaque fois.
+                {t('account_switcher.ajoutez_plusieurs_comptes_puis_basculez_rapideme')}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -140,13 +141,13 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
 
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Comptes mémorisés</Text>
+              <Text style={styles.sectionTitle}>{t('account_switcher.comptes_memorises')}</Text>
               <Text style={styles.helperText}>
-                Le changement de compte utilise les sessions déjà enregistrées sur ce téléphone.
+                {t('account_switcher.le_changement_de_compte_utilise_les')}
               </Text>
 
               {storedAccounts.length === 0 ? (
-                <Text style={styles.emptyText}>Aucun autre compte n&apos;est encore enregistré sur cet appareil.</Text>
+                <Text style={styles.emptyText}>{t('account_switcher.aucun_autre_compte_n_est_encore')}</Text>
               ) : (
                 storedAccounts.map((entry) => {
                   const isActive = entry.user.user_id === activeAccountId;
@@ -167,8 +168,8 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
                         <Text style={styles.accountEmail}>{entry.user.email}</Text>
                         <Text style={styles.accountMeta}>
                           {isActive
-                            ? 'Compte actif'
-                            : `Dernière utilisation : ${new Date(entry.last_used_at).toLocaleString()}`}
+                            ? t('account_switcher.active_account')
+                            : t('account_switcher.last_used', { date: new Date(entry.last_used_at).toLocaleString(i18n.language) })}
                         </Text>
                       </View>
 
@@ -202,29 +203,29 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Ajouter un autre compte</Text>
+              <Text style={styles.sectionTitle}>{t('account_switcher.ajouter_un_autre_compte')}</Text>
               <Text style={styles.helperText}>
-                Saisissez l&apos;adresse e-mail et le mot de passe du compte fournisseur, commerçant ou staff à mémoriser sur ce téléphone.
+                {t('account_switcher.saisissez_l_adresse_e_mail_et_2')}
               </Text>
 
-              <Text style={styles.label}>Adresse e-mail</Text>
+              <Text style={styles.label}>{t('account_switcher.adresse_e_mail')}</Text>
               <TextInput
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                placeholder="nom@entreprise.com"
+                placeholder={t('account_switcher.nom_entreprise_com')}
                 placeholderTextColor={colors.textMuted}
               />
 
-              <Text style={styles.label}>Mot de passe</Text>
+              <Text style={styles.label}>{t('account_switcher.mot_de_passe')}</Text>
               <TextInput
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                placeholder="Votre mot de passe"
+                placeholder={t('account_switcher.votre_mot_de_passe')}
                 placeholderTextColor={colors.textMuted}
               />
 
@@ -233,7 +234,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
                 disabled={saving}
                 onPress={() => void handleAddAccount()}
               >
-                {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>Ajouter ce compte</Text>}
+                {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>{t('account_switcher.ajouter_ce_compte')}</Text>}
               </TouchableOpacity>
             </View>
           </ScrollView>

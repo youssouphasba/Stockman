@@ -80,10 +80,10 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
                             <View style={styles.offlineReceiptState}>
                                 <Ionicons name="cloud-offline-outline" size={42} color={colors.warning || '#F59E0B'} />
                                 <Text style={[styles.offlineReceiptTitle, { color: colors.text }]}>
-                                    Vente enregistrée hors ligne
+                                    {t('digital_receipt.vente_enregistree_hors_ligne')}
                                 </Text>
                                 <Text style={[styles.offlineReceiptText, { color: colors.textSecondary }]}>
-                                    Le reçu partageable sera disponible après la synchronisation.
+                                    {t('digital_receipt.le_recu_partageable_sera_disponible_apres')}
                                 </Text>
                             </View>
                         ) : (

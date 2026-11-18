@@ -44,7 +44,7 @@ export default function EnterpriseGate({ featureName, description, benefits, ico
 
                 <View style={styles.badge}>
                     <Ionicons name="star" size={12} color="white" />
-                    <Text style={styles.badgeText}>Enterprise</Text>
+                    <Text style={styles.badgeText}>{t('enterprise_gate.enterprise')}</Text>
                 </View>
 
                 <Text style={[styles.title, { color: colors.text }]}>{featureName}</Text>
@@ -52,7 +52,7 @@ export default function EnterpriseGate({ featureName, description, benefits, ico
 
                 <View style={[styles.benefitsCard, glassStyle]}>
                     <Text style={[styles.benefitsTitle, { color: colors.text }]}>
-                        {t('enterprise.with_enterprise_you_can') || 'Avec Enterprise, vous pouvez :'}
+                        {t('enterprise.with_enterprise_you_can') || t('enterprise_gate.avec_enterprise_vous_pouvez')}
                     </Text>
                     {Array.isArray(benefits) && benefits.map((b, i) => (
                         <View key={i} style={styles.benefitRow}>
@@ -74,7 +74,7 @@ export default function EnterpriseGate({ featureName, description, benefits, ico
                     >
                         <Ionicons name="business" size={20} color="white" />
                         <Text style={styles.upgradeText}>
-                            {t('enterprise.upgrade_now') || 'Passer à Enterprise'}
+                            {t('enterprise.upgrade_now') || t('enterprise_gate.passer_a_enterprise')}
                         </Text>
                     </LinearGradient>
                 </TouchableOpacity>

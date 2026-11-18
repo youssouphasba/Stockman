@@ -707,10 +707,10 @@ export default function SuppliersScreen() {
       setInvoiceDueDate('');
       setInvoiceNotes('');
       setInvoiceOrderId('');
-      Alert.alert(t('admin.actions.success'), t('suppliers.invoice_added') || 'Facture ajoutée.');
+      Alert.alert(t('admin.actions.success'), t('suppliers.invoice_added') || t('suppliers_screen.facture_ajoutee'));
     } catch (err) {
       console.error('Create supplier invoice error', err);
-      Alert.alert(t('common.error'), t('suppliers.invoice_error') || 'Impossible d’ajouter la facture.');
+      Alert.alert(t('common.error'), t('suppliers.invoice_error') || t('suppliers_screen.impossible_d_ajouter_la_facture'));
     } finally {
       setInvoiceSaving(false);
     }
@@ -1205,7 +1205,7 @@ export default function SuppliersScreen() {
                         onPress={() => setShowAllSuggestions((current) => !current)}
                       >
                         <Text style={styles.suggestionsMoreText}>
-                          {showAllSuggestions ? 'Voir moins' : `Voir les ${suggestions.length} suggestions`}
+                          {showAllSuggestions ? t('suppliers_screen.voir_moins') : t('suppliers_screen.see_suggestions', { count: suggestions.length })}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -1277,15 +1277,15 @@ export default function SuppliersScreen() {
 
                       <View style={styles.supplierMetricsRow}>
                         <View style={styles.supplierMetric}>
-                          <Text style={styles.supplierMetricLabel}>Commandes</Text>
+                          <Text style={styles.supplierMetricLabel}>{t('suppliers_screen.commandes')}</Text>
                           <Text style={styles.supplierMetricValue}>{supplierStats?.orders_count ?? 0}</Text>
                         </View>
                         <View style={styles.supplierMetric}>
-                          <Text style={styles.supplierMetricLabel}>Volume</Text>
+                          <Text style={styles.supplierMetricLabel}>{t('suppliers_screen.volume')}</Text>
                           <Text style={styles.supplierMetricValue}>{formatUserCurrency(supplierStats?.total_spent ?? 0, user)}</Text>
                         </View>
                         <View style={styles.supplierMetric}>
-                          <Text style={styles.supplierMetricLabel}>Délai moyen</Text>
+                          <Text style={styles.supplierMetricLabel}>{t('suppliers_screen.delai_moyen')}</Text>
                           <Text style={styles.supplierMetricValue}>
                             {supplierStats?.avg_delivery_days ? `${Math.round(supplierStats.avg_delivery_days)} j` : '—'}
                           </Text>
@@ -1328,7 +1328,7 @@ export default function SuppliersScreen() {
                               {supplierAiRatings[supplier.supplier_id].overall_score}/100
                             </Text>
                           </View>
-                          <Text style={{ fontSize: 10, color: colors.textMuted }}>Score IA</Text>
+                          <Text style={{ fontSize: 10, color: colors.textMuted }}>{t('suppliers_screen.score_ia')}</Text>
                         </View>
                       )}
 
@@ -1640,7 +1640,7 @@ export default function SuppliersScreen() {
                             onPress={() => handleWhatsApp(detailSupplier.phone)}
                           >
                             <Ionicons name="logo-whatsapp" size={20} color="#fff" />
-                            <Text style={styles.waBtnText}>WhatsApp</Text>
+                            <Text style={styles.waBtnText}>{t('suppliers_screen.whatsapp')}</Text>
                           </TouchableOpacity>
                         </View>
 
@@ -1849,21 +1849,21 @@ export default function SuppliersScreen() {
                             ) : (
                               <Ionicons name="cloud-upload-outline" size={18} color={colors.primary} />
                             )}
-                            <Text style={styles.linkBtnText}>Ajouter</Text>
+                            <Text style={styles.linkBtnText}>{t('suppliers_screen.ajouter')}</Text>
                           </TouchableOpacity>
                         </View>
 
                         <View style={styles.logForm}>
                           <FormField
-                            label="Numéro de facture"
+                            label={t('suppliers_screen.numero_de_facture')}
                             value={invoiceNumber}
                             onChangeText={setInvoiceNumber}
-                            placeholder="FAC-2026-001"
+                            placeholder={t('suppliers_screen.fac_2026_001')}
                             colors={colors}
                             styles={styles}
                           />
                           <FormField
-                            label="Montant"
+                            label={t('suppliers_screen.montant')}
                             value={invoiceAmount}
                             onChangeText={setInvoiceAmount}
                             placeholder="0"
@@ -1872,7 +1872,7 @@ export default function SuppliersScreen() {
                             styles={styles}
                           />
                           <FormField
-                            label="Échéance (AAAA-MM-JJ)"
+                            label={t('suppliers_screen.echeance_aaaa_mm_jj')}
                             value={invoiceDueDate}
                             onChangeText={setInvoiceDueDate}
                             placeholder="2026-03-31"
@@ -1880,12 +1880,12 @@ export default function SuppliersScreen() {
                             styles={styles}
                           />
                           <View style={styles.formGroup}>
-                            <Text style={styles.formLabel}>Statut</Text>
+                            <Text style={styles.formLabel}>{t('suppliers_screen.statut')}</Text>
                             <View style={styles.logTypeRow}>
                               {([
-                                { id: 'unpaid', label: 'Impayée' },
-                                { id: 'partial', label: 'Partielle' },
-                                { id: 'paid', label: 'Payée' },
+                                { id: 'unpaid', label: t('suppliers_screen.impayee') },
+                                { id: 'partial', label: t('suppliers_screen.partielle') },
+                                { id: 'paid', label: t('suppliers_screen.payee') },
                               ] as const).map((statusOption) => (
                                 <TouchableOpacity
                                   key={statusOption.id}
@@ -1900,13 +1900,13 @@ export default function SuppliersScreen() {
                             </View>
                           </View>
                           <View style={styles.formGroup}>
-                            <Text style={styles.formLabel}>Commande liée</Text>
+                            <Text style={styles.formLabel}>{t('suppliers_screen.commande_liee')}</Text>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                               <TouchableOpacity
                                 style={[styles.typeChip, !invoiceOrderId && styles.typeChipActive]}
                                 onPress={() => setInvoiceOrderId('')}
                               >
-                                <Text style={[styles.typeText, !invoiceOrderId && styles.typeTextActive]}>Aucune</Text>
+                                <Text style={[styles.typeText, !invoiceOrderId && styles.typeTextActive]}>{t('suppliers_screen.aucune')}</Text>
                               </TouchableOpacity>
                               {detailOrders.map((order) => (
                                 <TouchableOpacity
@@ -1922,11 +1922,11 @@ export default function SuppliersScreen() {
                             </ScrollView>
                           </View>
                           <View style={styles.formGroup}>
-                            <Text style={styles.formLabel}>Notes</Text>
+                            <Text style={styles.formLabel}>{t('suppliers_screen.notes')}</Text>
                             <TextInput
                               style={[styles.formInput, { minHeight: 88, textAlignVertical: 'top' }]}
                               multiline
-                              placeholder="Conditions, référence interne ou commentaire"
+                              placeholder={t('suppliers_screen.conditions_reference_interne_ou_commentaire')}
                               placeholderTextColor={colors.textMuted}
                               value={invoiceNotes}
                               onChangeText={setInvoiceNotes}
@@ -1934,7 +1934,7 @@ export default function SuppliersScreen() {
                           </View>
                         </View>
 
-                        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Historique des factures</Text>
+                        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('suppliers_screen.historique_des_factures')}</Text>
                         {detailInvoices.length === 0 ? (
                           <View style={styles.emptyStateContainer}>
                             <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
@@ -1959,10 +1959,10 @@ export default function SuppliersScreen() {
                                   ]}
                                 >
                                   {inv.status === 'paid'
-                                    ? 'Payée'
+                                    ? t('suppliers_screen.payee')
                                     : inv.status === 'partial'
                                       ? 'Partielle'
-                                      : 'Impayée'}
+                                      : t('suppliers_screen.impayee')}
                                 </Text>
                               </View>
                               <View style={styles.historyDetails}>
@@ -1975,12 +1975,12 @@ export default function SuppliersScreen() {
                                 <View style={{ marginTop: 8, gap: 4 }}>
                                   {inv.due_date && (
                                     <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                      Échéance : {new Date(inv.due_date).toLocaleDateString()}
+                                      {t('suppliers_screen.echeance')} {new Date(inv.due_date).toLocaleDateString()}
                                     </Text>
                                   )}
                                   {inv.order_id && (
                                     <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                      Commande : #{String(inv.order_id).slice(-6).toUpperCase()}
+                                      {t('suppliers_screen.commande')}{String(inv.order_id).slice(-6).toUpperCase()}
                                     </Text>
                                   )}
                                   {inv.notes && (
@@ -2101,25 +2101,25 @@ export default function SuppliersScreen() {
                         {/* Vague 3: AI Score */}
                         {selectedAiRating && (
                           <View style={{ marginTop: 20 }}>
-                            <Text style={styles.sectionTitle}>Score IA fournisseur</Text>
+                            <Text style={styles.sectionTitle}>{t('suppliers_screen.score_ia_fournisseur')}</Text>
                             <View style={[styles.statsGrid, { marginTop: 8 }]}>
                               <View style={[styles.statBox, { borderColor: (selectedAiRating.overall_score >= 70 ? '#10b981' : selectedAiRating.overall_score >= 40 ? '#f59e0b' : '#ef4444') + '30', borderWidth: 1 }]}>
                                 <Text style={[styles.statVal, { color: selectedAiRating.overall_score >= 70 ? '#10b981' : selectedAiRating.overall_score >= 40 ? '#f59e0b' : '#ef4444', fontSize: 28 }]}>{selectedAiRating.overall_score}</Text>
-                                <Text style={styles.statLab}>Score /100</Text>
+                                <Text style={styles.statLab}>{t('suppliers_screen.score_100')}</Text>
                               </View>
                               <View style={styles.statBox}>
                                 <Text style={styles.statVal}>{selectedAiRating.delivery_score}</Text>
-                                <Text style={styles.statLab}>Ponctualité</Text>
+                                <Text style={styles.statLab}>{t('suppliers_screen.ponctualite')}</Text>
                               </View>
                             </View>
                             <View style={[styles.statsGrid, { marginTop: 8 }]}>
                               <View style={styles.statBox}>
                                 <Text style={styles.statVal}>{selectedAiRating.quantity_score}</Text>
-                                <Text style={styles.statLab}>Quantités</Text>
+                                <Text style={styles.statLab}>{t('suppliers_screen.quantites')}</Text>
                               </View>
                               <View style={styles.statBox}>
                                 <Text style={styles.statVal}>{selectedAiRating.price_score}</Text>
-                                <Text style={styles.statLab}>Stabilité prix</Text>
+                                <Text style={styles.statLab}>{t('suppliers_screen.stabilite_prix')}</Text>
                               </View>
                             </View>
                           </View>
@@ -2131,22 +2131,22 @@ export default function SuppliersScreen() {
                             <Ionicons name="calendar-outline" size={20} color={colors.primary} />
                             <View style={{ flex: 1 }}>
                               <Text style={[styles.insightText, { fontWeight: '700', color: colors.text }]}>
-                                Meilleur jour pour commander : <Text style={{ color: colors.primary, textTransform: 'capitalize' }}>{selectedOptimalDay.optimal_order_day}</Text>
+                                {t('suppliers_screen.meilleur_jour_pour_commander')} <Text style={{ color: colors.primary, textTransform: 'capitalize' }}>{selectedOptimalDay.optimal_order_day}</Text>
                               </Text>
                               {selectedOptimalDay.avg_delivery_days > 0 && (
                                 <Text style={[styles.insightText, { fontSize: 11, marginTop: 2 }]}>
-                                  Délai moyen : {selectedOptimalDay.avg_delivery_days} j
+                                  {t('suppliers_screen.delai_moyen_2')} {selectedOptimalDay.avg_delivery_days} j
                                 </Text>
                               )}
                             </View>
                           </View>
                         )}
 
-                        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Historique des prix</Text>
+                        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('suppliers_screen.historique_des_prix')}</Text>
                         {detailPriceHistory.length === 0 ? (
                           <View style={styles.emptyStateContainer}>
                             <Ionicons name="trending-up-outline" size={48} color={colors.textMuted} />
-                            <Text style={styles.emptyLinked}>Aucun historique de prix disponible.</Text>
+                            <Text style={styles.emptyLinked}>{t('suppliers_screen.aucun_historique_de_prix_disponible')}</Text>
                           </View>
                         ) : (
                           detailPriceHistory.map((entry: any) => (
@@ -2155,7 +2155,7 @@ export default function SuppliersScreen() {
                                 <View style={{ flex: 1, marginRight: 12 }}>
                                   <Text style={styles.historyRef}>{entry.product_name}</Text>
                                   <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>
-                                    {entry.unit || 'unité'}
+                                    {entry.unit || t('suppliers_screen.unite')}
                                   </Text>
                                 </View>
                                 <Text
@@ -2170,20 +2170,20 @@ export default function SuppliersScreen() {
                               </View>
                               <View style={{ gap: 6 }}>
                                 <View style={styles.historyDetails}>
-                                  <Text style={styles.historyDate}>Prix fournisseur</Text>
+                                  <Text style={styles.historyDate}>{t('suppliers_screen.prix_fournisseur')}</Text>
                                   <Text style={styles.historyAmount}>
                                     {formatUserCurrency(entry.current_supplier_price || 0, user)}
                                   </Text>
                                 </View>
                                 <View style={styles.historyDetails}>
-                                  <Text style={styles.historyDate}>Dernière commande</Text>
+                                  <Text style={styles.historyDate}>{t('suppliers_screen.derniere_commande')}</Text>
                                   <Text style={{ color: colors.text, fontWeight: '600' }}>
                                     {formatUserCurrency(entry.last_order_price || 0, user)}
                                   </Text>
                                 </View>
                                 {entry.average_price_30d != null && (
                                   <View style={styles.historyDetails}>
-                                    <Text style={styles.historyDate}>Moyenne 30 jours</Text>
+                                    <Text style={styles.historyDate}>{t('suppliers_screen.moyenne_30_jours')}</Text>
                                     <Text style={{ color: colors.text, fontWeight: '600' }}>
                                       {formatUserCurrency(entry.average_price_30d || 0, user)}
                                     </Text>
@@ -2191,13 +2191,13 @@ export default function SuppliersScreen() {
                                 )}
                                 {entry.last_ordered_at && (
                                   <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                                    Dernière commande : {new Date(entry.last_ordered_at).toLocaleDateString()}
+                                    {t('suppliers_screen.derniere_commande_2')} {new Date(entry.last_ordered_at).toLocaleDateString()}
                                   </Text>
                                 )}
                                 {Array.isArray(entry.competitor_prices) && entry.competitor_prices.length > 0 && (
                                   <View style={{ marginTop: 4 }}>
                                     <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 6 }}>
-                                      Autres fournisseurs liés
+                                      {t('suppliers_screen.autres_fournisseurs_lies')}
                                     </Text>
                                     <View style={{ gap: 6 }}>
                                       {entry.competitor_prices.slice(0, 3).map((competitor: any, index: number) => (
@@ -2272,7 +2272,7 @@ export default function SuppliersScreen() {
                       </Text>
                     </View>
                     {score > 0 ? (
-                      <Text style={{ color: colors.success, fontWeight: '700', fontSize: 12 }}>Match</Text>
+                      <Text style={{ color: colors.success, fontWeight: '700', fontSize: 12 }}>{t('suppliers_screen.match')}</Text>
                     ) : null}
                   </TouchableOpacity>
                 ))}
@@ -2604,7 +2604,7 @@ export default function SuppliersScreen() {
                       label={t('suppliers.supplier_email')}
                       value={inviteEmail}
                       onChangeText={setInviteEmail}
-                      placeholder="email@fournisseur.com"
+                      placeholder={t('suppliers_screen.email_fournisseur_com')}
                       colors={colors}
                       styles={styles}
                     />
@@ -2702,7 +2702,7 @@ export default function SuppliersScreen() {
                         onPress={() => handleWhatsApp(mpDetail.profile.phone)}
                       >
                         <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-                        <Text style={{ color: '#25D366', fontSize: FontSize.xs, fontWeight: '600' }}>WhatsApp</Text>
+                        <Text style={{ color: '#25D366', fontSize: FontSize.xs, fontWeight: '600' }}>{t('suppliers_screen.whatsapp')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.mpContactBtn, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}

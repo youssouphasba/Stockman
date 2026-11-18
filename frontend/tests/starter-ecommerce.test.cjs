@@ -5,6 +5,7 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 const ts = require('typescript');
 const React = require('react');
+const { frT } = require('./helpers/frT.cjs');
 
 const root = path.resolve(__dirname, '..');
 function read(file) {
@@ -283,7 +284,7 @@ function renderOverview(values, props = {}) {
     React, View: 'View', Text: 'Text', TouchableOpacity: 'Button', ActivityIndicator: 'Loading', Ionicons: 'Icon',
     useState: (initial) => { const name = names[index++]; return [name in values ? values[name] : initial, () => {}]; },
     useFocusEffect: () => {}, useCallback: (fn) => fn,
-    useAuth: () => ({ user: {} }), useTheme: () => ({ colors: {} }),
+    useAuth: () => ({ user: {} }), useTheme: () => ({ colors: {} }), useTranslation: () => ({ t: frT }),
     useRouter: () => ({ push: (route) => calls.push(route) }), formatCurrency: (value) => String(value),
   });
   const nodes = [];
@@ -329,11 +330,11 @@ test('The default Commands view does not mount statistics or depend on their res
 });
 
 test('The E-com drawer contains only operational actions, not site configuration', () => {
-  const focus = find(orders, (node) => ts.isCallExpression(node) && node.expression.getText(orders) === 'useFocusEffect' && node.arguments[0]?.getText(orders).includes("setDrawerContent('Commandes en ligne'"));
+  const focus = find(orders, (node) => ts.isCallExpression(node) && node.expression.getText(orders) === 'useFocusEffect' && node.arguments[0]?.getText(orders).includes("setDrawerContent(t('orders_screen.commandes_en_ligne')"));
   let items;
   const callback = evaluate('(' + focus.arguments[0].arguments[0].getText(orders) + ')', {
     ecommerceOnly: true, setDrawerContent: (_title, value) => { items = value; },
-    onRefresh: () => {}, t: (_key, label) => label,
+    onRefresh: () => {}, t: frT,
   });
   callback();
   assert.equal(items.length, 1);

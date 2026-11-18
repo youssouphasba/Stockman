@@ -16,6 +16,7 @@ import {
   redirectHint,
   shouldAutoCheck,
 } from '../utils/ecommerceDomain';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   site: EcommerceSite;
@@ -34,6 +35,7 @@ function errorMessage(error: unknown, fallback: string) {
 
 // Domaine du site : adresse Stockman, connexion d'un domaine en trois étapes et suivi de son état.
 export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChange, onFeedback }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const [domain, setDomain] = useState('');
   const [busy, setBusy] = useState<null | 'connect' | 'check' | 'disconnect'>(null);
@@ -80,21 +82,21 @@ export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChang
       onFeedback(problem, 'error');
       return;
     }
-    const next = await run('connect', () => ecommerce.connectDomain(domain.trim()), (value) => (domainState(value) === 'active' ? 'Domaine connecté : votre site est en ligne.' : 'Domaine enregistré. Ajoutez maintenant les enregistrements indiqués.'), "Impossible de connecter ce domaine pour le moment.");
+    const next = await run('connect', () => ecommerce.connectDomain(domain.trim()), (value) => (domainState(value) === 'active' ? t('ecommerce_domain.domaine_connecte_votre_site_est_en') : t('ecommerce_domain.domaine_enregistre_ajoutez_maintenant_les_enregi')), t('ecommerce_domain.impossible_de_connecter_ce_domaine_pour'));
     if (next) setDomain('');
   }
 
   function check() {
-    void run('check', () => ecommerce.checkDomain(), (value) => describeDomainState(value).title, 'Impossible de vérifier le domaine pour le moment.');
+    void run('check', () => ecommerce.checkDomain(), (value) => describeDomainState(value).title, t('ecommerce_domain.impossible_de_verifier_le_domaine_pour'));
   }
 
   function disconnect() {
     Alert.alert(
-      'Retirer ce domaine ?',
-      `Votre site ne s'ouvrira plus sur ${site.custom_domain}. Il reste en ligne à son adresse Stockman.`,
+      t('ecommerce_domain.retirer_ce_domaine'),
+      t('ecommerce_domain.remove_domain_message', { domain: site.custom_domain }),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Retirer', style: 'destructive', onPress: () => void run('disconnect', () => ecommerce.disconnectDomain(), () => 'Domaine retiré. Votre site reste en ligne à son adresse Stockman.', 'Impossible de retirer le domaine pour le moment.') },
+        { text: t('ecommerce_domain.annuler'), style: 'cancel' },
+        { text: t('ecommerce_domain.retirer'), style: 'destructive', onPress: () => void run('disconnect', () => ecommerce.disconnectDomain(), () => t('ecommerce_domain.domaine_retire_votre_site_reste_en'), t('ecommerce_domain.impossible_de_retirer_le_domaine_pour')) },
       ],
     );
   }
@@ -102,9 +104,9 @@ export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChang
   async function copy(value: string, label: string) {
     try {
       await Clipboard.setStringAsync(value);
-      onFeedback(`${label} copié.`, 'success');
+      onFeedback(t('ecommerce_domain.copied', { label }), 'success');
     } catch {
-      onFeedback('Copie impossible sur cet appareil.', 'error');
+      onFeedback(t('ecommerce_domain.copy_failed'), 'error');
     }
   }
 
@@ -112,7 +114,7 @@ export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChang
     try {
       await Linking.openURL(url);
     } catch {
-      onFeedback("Impossible d'ouvrir le site pour le moment.", 'error');
+      onFeedback(t('ecommerce_domain.impossible_d_ouvrir_le_site_pour'), 'error');
     }
   }
 
@@ -127,12 +129,12 @@ export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChang
         <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Copier ${label.toLowerCase()}`} style={smallButton} onPress={() => void copy(url, 'Lien')}>
             <Ionicons name="copy-outline" size={16} color={colors.text} />
-            <Text style={styles.chipText}>Copier</Text>
+            <Text style={styles.chipText}>{t('ecommerce_domain.copier')}</Text>
           </TouchableOpacity>
           {canOpen && (
             <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Ouvrir ${label.toLowerCase()}`} style={smallButton} onPress={() => void open(url)}>
               <Ionicons name="open-outline" size={16} color={colors.text} />
-              <Text style={styles.chipText}>Ouvrir</Text>
+              <Text style={styles.chipText}>{t('ecommerce_domain.ouvrir')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -147,25 +149,25 @@ export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChang
           <Text style={[styles.settingDesc, { fontWeight: '700', color: colors.text }]}>{recordPurpose(record, site)}</Text>
           <View style={{ flexDirection: 'row', gap: Spacing.md }}>
             <View style={{ width: 64 }}>
-              <Text style={styles.metricLabel}>Type</Text>
+              <Text style={styles.metricLabel}>{t('ecommerce_domain.type')}</Text>
               <Text selectable style={[styles.metricValue, { fontSize: FontSize.sm }]}>{record.type}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.metricLabel}>Nom</Text>
+              <Text style={styles.metricLabel}>{t('ecommerce_domain.nom')}</Text>
               <Text selectable style={[styles.metricValue, { fontSize: FontSize.sm }]}>{record.name}</Text>
             </View>
           </View>
-          <Text style={styles.metricLabel}>Valeur</Text>
+          <Text style={styles.metricLabel}>{t('ecommerce_domain.valeur')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
             <Text selectable style={[styles.metricValue, { flex: 1, fontSize: FontSize.sm }]}>{record.value}</Text>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Copier la valeur ${record.type} ${record.name}`} style={smallButton} onPress={() => void copy(record.value, 'Valeur')}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('ecommerce_domain.copy_record_value', { type: record.type, name: record.name })} style={smallButton} onPress={() => void copy(record.value, t('ecommerce_domain.value'))}>
               <Ionicons name="copy-outline" size={16} color={colors.text} />
-              <Text style={styles.chipText}>Copier</Text>
+              <Text style={styles.chipText}>{t('ecommerce_domain.copier')}</Text>
             </TouchableOpacity>
           </View>
         </View>
       ))}
-      <Text style={styles.settingDesc}>Supprimez les anciens enregistrements A, AAAA ou CNAME sur ces mêmes noms. Certains fournisseurs demandent le nom complet (par exemple {siteHost}) au lieu du nom court.</Text>
+      <Text style={styles.settingDesc}>{t('ecommerce_domain.remove_old_records', { host: siteHost })}</Text>
     </View>
   );
 
@@ -177,13 +179,13 @@ export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChang
         {!!redirect && <Text style={[styles.settingDesc, site.domain_redirect_ready ? null : { color: colors.warning }]}>{redirect}</Text>}
       </View>
 
-      {state === 'active' && !!site.custom_domain && addressRow('Votre domaine', `https://${site.custom_domain}`, true)}
+      {state === 'active' && !!site.custom_domain && addressRow(t('ecommerce_domain.votre_domaine'), `https://${site.custom_domain}`, true)}
       {!!stockmanUrl && addressRow('Adresse Stockman', stockmanUrl, true)}
 
       {state === 'not_connected' && canEdit && (
         <View style={{ gap: Spacing.sm }}>
-          <Text style={[styles.settingLabel, { fontWeight: '700' }]}>Connecter votre nom de domaine</Text>
-          {['Saisissez le domaine que vous possédez.', 'Ajoutez chez votre fournisseur les enregistrements que Stockman vous indique.', 'Lancez la vérification : le site passe sur votre domaine dès que tout est prêt.'].map((step, index) => (
+          <Text style={[styles.settingLabel, { fontWeight: '700' }]}>{t('ecommerce_domain.connecter_votre_nom_de_domaine')}</Text>
+          {[t('ecommerce_domain.saisissez_le_domaine_que_vous_possedez'), t('ecommerce_domain.ajoutez_chez_votre_fournisseur_les_enregistremen'), t('ecommerce_domain.lancez_la_verification_le_site_passe')].map((step, index) => (
             <View key={step} style={{ flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' }}>
               <View style={[styles.badge, { backgroundColor: colors.primary + '20' }]}>
                 <Text style={{ color: colors.primary, fontWeight: '700', fontSize: FontSize.xs }}>{index + 1}</Text>
@@ -195,32 +197,32 @@ export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChang
             style={[styles.input, { marginBottom: 0 }]}
             value={domain}
             onChangeText={setDomain}
-            placeholder="votredomaine.com"
+            placeholder={t('ecommerce_domain.votredomaine_com')}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
             editable={!busy}
-            accessibilityLabel="Votre nom de domaine"
+            accessibilityLabel={t('ecommerce_domain.votre_nom_de_domaine')}
             onSubmitEditing={() => void connect()}
           />
           <Text style={[styles.settingDesc, inputProblem ? { color: colors.warning } : null]}>
-            {inputProblem || "Sans https://. Avec un domaine comme votredomaine.com, le site s'ouvre sur www.votredomaine.com et votredomaine.com y redirige. Un sous-domaine (boutique.votredomaine.com) est aussi accepté."}
+            {inputProblem || t('ecommerce_domain.sans_https_avec_un_domaine_comme')}
           </Text>
           <TouchableOpacity accessibilityRole="button" style={actionButton(colors.primary)} disabled={!!busy || !domain.trim()} onPress={() => void connect()}>
             <Ionicons name="link-outline" size={18} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '700' }}>{busy === 'connect' ? 'Connexion...' : 'Connecter ce domaine'}</Text>
+            <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: '700' }}>{busy === 'connect' ? t('ecommerce_domain.connecting') : t('ecommerce_domain.connect_domain')}</Text>
           </TouchableOpacity>
-          <Text style={styles.settingDesc}>Pas encore de domaine ? Achetez-le chez un fournisseur (OVHcloud, GoDaddy, Namecheap...), puis revenez ici.</Text>
+          <Text style={styles.settingDesc}>{t('ecommerce_domain.pas_encore_de_domaine_achetez_le')}</Text>
         </View>
       )}
 
       {state !== 'not_connected' && state !== 'active' && (
         <View style={{ gap: Spacing.sm }}>
-          <Text style={[styles.settingLabel, { fontWeight: '700' }]}>Enregistrements à créer chez votre fournisseur</Text>
+          <Text style={[styles.settingLabel, { fontWeight: '700' }]}>{t('ecommerce_domain.enregistrements_a_creer_chez_votre_fournisseur')}</Text>
           {recordsBlock}
-          <Text style={[styles.settingDesc, { fontWeight: '700', color: colors.text }]}>Où faire ces réglages ?</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel="Fournisseur du domaine">
+          <Text style={[styles.settingDesc, { fontWeight: '700', color: colors.text }]}>{t('ecommerce_domain.ou_faire_ces_reglages')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }} accessibilityRole="radiogroup" accessibilityLabel={t('ecommerce_domain.fournisseur_du_domaine')}>
             {DNS_PROVIDERS.map((item) => {
               const active = provider === item.key;
               return (
@@ -244,7 +246,7 @@ export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChang
         <View style={{ gap: Spacing.sm }}>
           <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showRecords }} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, minHeight: 40 }} onPress={() => setShowRecords((value) => !value)}>
             <Ionicons name={showRecords ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
-            <Text style={styles.settingDesc}>{showRecords ? 'Masquer les enregistrements DNS' : 'Voir les enregistrements DNS'}</Text>
+            <Text style={styles.settingDesc}>{showRecords ? t('ecommerce_domain.masquer_les_enregistrements_dns') : t('ecommerce_domain.voir_les_enregistrements_dns')}</Text>
           </TouchableOpacity>
           {showRecords && recordsBlock}
         </View>
@@ -254,7 +256,7 @@ export default function EcommerceDomainCard({ site, canEdit, styles, onSiteChang
         <View style={{ gap: Spacing.sm }}>
           <TouchableOpacity accessibilityRole="button" style={actionButton(colors.info)} disabled={!!busy} onPress={check}>
             <Ionicons name="refresh-outline" size={18} color={colors.info} />
-            <Text style={{ color: colors.info, fontSize: FontSize.sm, fontWeight: '700' }}>{busy === 'check' ? 'Vérification...' : state === 'active' ? 'Vérifier à nouveau' : 'Vérifier maintenant'}</Text>
+            <Text style={{ color: colors.info, fontSize: FontSize.sm, fontWeight: '700' }}>{busy === 'check' ? t('ecommerce_domain.verification') : state === 'active' ? t('ecommerce_domain.verifier_a_nouveau') : t('ecommerce_domain.verifier_maintenant')}</Text>
           </TouchableOpacity>
           {!!checkedAt && <Text style={[styles.settingDesc, { textAlign: 'center' }]}>{checkedAt}</Text>}
           <TouchableOpacity accessibilityRole="button" style={{ alignSelf: 'center', minHeight: 40, justifyContent: 'center' }} disabled={!!busy} onPress={disconnect}>

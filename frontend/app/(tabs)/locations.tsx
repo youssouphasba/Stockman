@@ -23,6 +23,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { Location, locations as locationsApi } from '../../services/api';
+import i18n from '../../services/i18n';
 
 type LevelDraft = {
   id: string;
@@ -42,35 +43,38 @@ type StructureTemplate = {
   levels: Array<Partial<LevelDraft>>;
 };
 
-const COMMON_LEVEL_TYPES = ['Allée', 'Zone', 'Rayon', 'Niveau', 'Étagère', 'Casier', 'Bloc'];
+// Types de niveau proposés : traduits dans la langue de l'application, le commerçant peut les renommer.
+const LEVEL_TYPE_DEFAULTS: Record<string, string> = { allee: 'Allée', zone: 'Zone', rayon: 'Rayon', niveau: 'Niveau', etagere: 'Étagère', casier: 'Casier', bloc: 'Bloc' };
+const levelType = (key: string) => i18n.t(`locations_screen.level_${key}`, { defaultValue: LEVEL_TYPE_DEFAULTS[key] });
+const COMMON_LEVEL_TYPE_KEYS = ['allee', 'zone', 'rayon', 'niveau', 'etagere', 'casier', 'bloc'];
 
 const STRUCTURE_TEMPLATES: StructureTemplate[] = [
   {
     id: 'warehouse',
-    label: 'Allées / niveaux / étagères',
-    description: 'Structure classique pour entrepôt, réserve ou magasin structuré.',
+    get label() { return i18n.t('locations_screen.allees_niveaux_etageres', { defaultValue: "Allées / niveaux / étagères" }); },
+    get description() { return i18n.t('locations_screen.structure_classique_pour_entrepot_reserve_ou', { defaultValue: "Structure classique pour entrepôt, réserve ou magasin structuré." }); },
     levels: [
-      { type: 'Allée', mode: 'range', start: '1', count: '4' },
-      { type: 'Niveau', mode: 'range', start: '1', count: '3' },
-      { type: 'Étagère', mode: 'range', start: '1', count: '6' },
+      { get type() { return levelType('allee'); }, mode: 'range', start: '1', count: '4' },
+      { get type() { return levelType('niveau'); }, mode: 'range', start: '1', count: '3' },
+      { get type() { return levelType('etagere'); }, mode: 'range', start: '1', count: '6' },
     ],
   },
   {
     id: 'zones',
-    label: 'Zones / rayons',
-    description: 'Pratique pour organiser de grands espaces en secteurs.',
+    get label() { return i18n.t('locations_screen.zones_rayons', { defaultValue: "Zones / rayons" }); },
+    get description() { return i18n.t('locations_screen.pratique_pour_organiser_de_grands_espaces', { defaultValue: "Pratique pour organiser de grands espaces en secteurs." }); },
     levels: [
-      { type: 'Zone', mode: 'range', start: '1', count: '3' },
-      { type: 'Rayon', mode: 'range', start: '1', count: '8' },
+      { get type() { return levelType('zone'); }, mode: 'range', start: '1', count: '3' },
+      { get type() { return levelType('rayon'); }, mode: 'range', start: '1', count: '8' },
     ],
   },
   {
     id: 'blocks',
-    label: 'Blocs / casiers',
-    description: 'Simple et rapide pour une réserve ou un petit dépôt.',
+    get label() { return i18n.t('locations_screen.blocs_casiers', { defaultValue: "Blocs / casiers" }); },
+    get description() { return i18n.t('locations_screen.simple_et_rapide_pour_une_reserve', { defaultValue: "Simple et rapide pour une réserve ou un petit dépôt." }); },
     levels: [
-      { type: 'Bloc', mode: 'range', start: '1', count: '5' },
-      { type: 'Casier', mode: 'range', start: '1', count: '10' },
+      { get type() { return levelType('bloc'); }, mode: 'range', start: '1', count: '5' },
+      { get type() { return levelType('casier'); }, mode: 'range', start: '1', count: '10' },
     ],
   },
 ];
@@ -117,9 +121,9 @@ export default function LocationsScreen() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [levels, setLevels] = useState<LevelDraft[]>([
-    createLevel({ type: 'Allée', mode: 'range', start: '1', count: '3' }),
-    createLevel({ type: 'Niveau', mode: 'range', start: '1', count: '2' }),
-    createLevel({ type: 'Étagère', mode: 'range', start: '1', count: '4' }),
+    createLevel({ type: levelType('allee'), mode: 'range', start: '1', count: '3' }),
+    createLevel({ type: levelType('niveau'), mode: 'range', start: '1', count: '2' }),
+    createLevel({ type: levelType('etagere'), mode: 'range', start: '1', count: '4' }),
   ]);
   const [rootParentId, setRootParentId] = useState('');
   const [reactivateExisting, setReactivateExisting] = useState(true);
@@ -398,12 +402,12 @@ export default function LocationsScreen() {
     return (
       <EnterpriseGate
         locked
-        featureName="Organisation détaillée des emplacements"
-        description="Cette fonctionnalité permet de structurer votre stock avec des repères précis et une arborescence complète."
+        featureName={t('locations_screen.feature_name')}
+        description={t('locations_screen.cette_fonctionnalite_permet_de_structurer_votre')}
         benefits={[
-          'Créer des structures à plusieurs niveaux adaptées à votre espace',
-          'Générer des séries complètes sans tout saisir une par une',
-          'Affecter les produits à des repères de stockage précis',
+          t('locations_screen.creer_des_structures_a_plusieurs_niveaux'),
+          t('locations_screen.generer_des_series_completes_sans_tout'),
+          t('locations_screen.affecter_les_produits_a_des_reperes'),
         ]}
         icon="location-outline"
       >
@@ -413,7 +417,7 @@ export default function LocationsScreen() {
   }
 
   if (!canRead) {
-    return <AccessDenied message="Vous n'avez pas accès à la gestion des emplacements." />;
+    return <AccessDenied message={t('locations_screen.vous_n_avez_pas_acces_a')} />;
   }
 
   return (
@@ -439,30 +443,28 @@ export default function LocationsScreen() {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowArchived((current) => !current)} style={styles.chipButton}>
                 <Ionicons name={showArchived ? 'eye-off-outline' : 'archive-outline'} size={16} color={colors.text} />
-                <Text style={styles.chipButtonText}>{showArchived ? 'Masquer archivés' : 'Voir archivés'}</Text>
+                <Text style={styles.chipButtonText}>{showArchived ? t('locations_screen.masquer_archives') : t('locations_screen.voir_archives')}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.title}>Emplacements</Text>
+            <Text style={styles.title}>{t('locations_screen.emplacements')}</Text>
             <Text style={styles.subtitle}>
-              Organisez votre stock comme dans la réalité : allées, zones, rayons, niveaux, étagères ou toute autre
-              structure adaptée à votre espace.
+              {t('locations_screen.organisez_votre_stock_comme_dans_la')}
             </Text>
             <View style={styles.introBox}>
-              <Text style={styles.introTitle}>Exemple concret</Text>
+              <Text style={styles.introTitle}>{t('locations_screen.exemple_concret')}</Text>
               <Text style={styles.introText}>
-                Allée 1 / Niveau 2 / Étagère 7, ou toute autre configuration de votre choix.
+                {t('locations_screen.allee_1_niveau_2_etagere_7')}
               </Text>
             </View>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Créer votre structure</Text>
+            <Text style={styles.cardTitle}>{t('locations_screen.creer_votre_structure')}</Text>
             <Text style={styles.sectionHelp}>
-              Commencez par une base simple, puis ajustez chaque niveau. Vous pouvez numéroter, nommer librement,
-              ou mélanger les deux selon votre organisation.
+              {t('locations_screen.commencez_par_une_base_simple_puis')}
             </Text>
 
-            <Text style={styles.stepLabel}>1. Choisissez une structure de départ</Text>
+            <Text style={styles.stepLabel}>{t('locations_screen.1_choisissez_une_structure_de_depart')}</Text>
             <View style={styles.templateList}>
               {STRUCTURE_TEMPLATES.map((template) => (
                 <TouchableOpacity
@@ -478,13 +480,13 @@ export default function LocationsScreen() {
 
             {parentChoices.length > 0 ? (
               <>
-                <Text style={styles.stepLabel}>2. Choisissez où créer la structure</Text>
+                <Text style={styles.stepLabel}>{t('locations_screen.2_choisissez_ou_creer_la_structure')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalChoices}>
                   <TouchableOpacity
                     style={[styles.choiceChip, !rootParentId && styles.choiceChipActive]}
                     onPress={() => setRootParentId('')}
                   >
-                    <Text style={[styles.choiceChipText, !rootParentId && styles.choiceChipTextActive]}>À la racine</Text>
+                    <Text style={[styles.choiceChipText, !rootParentId && styles.choiceChipTextActive]}>{t('locations_screen.a_la_racine')}</Text>
                   </TouchableOpacity>
                   {parentChoices.map((choice) => (
                     <TouchableOpacity
@@ -504,16 +506,16 @@ export default function LocationsScreen() {
               </>
             ) : null}
 
-            <Text style={styles.stepLabel}>3. Vérifiez ce qui va être créé</Text>
+            <Text style={styles.stepLabel}>{t('locations_screen.3_verifiez_ce_qui_va_etre')}</Text>
             <View style={styles.summaryCard}>
               <View style={styles.summaryPill}>
                 <Text style={styles.summaryValue}>{totalGeneratedCount || 0}</Text>
-                <Text style={styles.summaryLabel}>Emplacements prévus</Text>
+                <Text style={styles.summaryLabel}>{t('locations_screen.emplacements_prevus')}</Text>
               </View>
               <View style={styles.summaryMetric}>
-                <Text style={styles.summaryLabel}>Exemple de chemin</Text>
+                <Text style={styles.summaryLabel}>{t('locations_screen.exemple_de_chemin')}</Text>
                 <Text style={styles.summaryPath} numberOfLines={2}>
-                  {examplePath || 'Ajoutez des niveaux pour voir un aperçu.'}
+                  {examplePath || t('locations_screen.ajoutez_des_niveaux_pour_voir_un')}
                 </Text>
               </View>
             </View>
@@ -525,9 +527,9 @@ export default function LocationsScreen() {
               </View>
             ) : null}
 
-            <Text style={styles.stepLabel}>4. Ajustez chaque niveau</Text>
+            <Text style={styles.stepLabel}>{t('locations_screen.4_ajustez_chaque_niveau')}</Text>
             <Text style={styles.sectionHelp}>
-              Chaque niveau représente une couche de votre organisation. Exemple : Allée, puis Niveau, puis Étagère.
+              {t('locations_screen.chaque_niveau_represente_une_couche_de')}
             </Text>
             {levels.map((level, index) => {
               const preview = getLevelPreview(level);
@@ -535,8 +537,8 @@ export default function LocationsScreen() {
                 <View key={level.id} style={styles.innerCard}>
                   <View style={styles.innerHeader}>
                     <View>
-                      <Text style={styles.innerTitle}>Niveau {index + 1}</Text>
-                      <Text style={styles.innerHelp}>Choisissez librement le nom du niveau et la manière de le générer.</Text>
+                      <Text style={styles.innerTitle}>{t('locations_screen.niveau')} {index + 1}</Text>
+                      <Text style={styles.innerHelp}>{t('locations_screen.choisissez_librement_le_nom_du_niveau')}</Text>
                     </View>
                     {levels.length > 1 ? (
                       <TouchableOpacity onPress={() => removeLevel(level.id)} style={styles.iconButton}>
@@ -548,13 +550,13 @@ export default function LocationsScreen() {
                   <TextInput
                     value={level.type}
                     onChangeText={(value) => updateLevel(level.id, { type: value })}
-                    placeholder="Nom du niveau (ex. Allée, Zone, Niveau)"
+                    placeholder={t('locations_screen.nom_du_niveau_ex_allee_zone')}
                     placeholderTextColor={colors.textMuted}
                     style={styles.input}
                   />
 
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.inlineChips}>
-                    {COMMON_LEVEL_TYPES.map((suggestion) => (
+                    {COMMON_LEVEL_TYPE_KEYS.map(levelType).map((suggestion) => (
                       <TouchableOpacity
                         key={`${level.id}_${suggestion}`}
                         style={[styles.choiceChip, level.type === suggestion && styles.choiceChipActive]}
@@ -572,13 +574,13 @@ export default function LocationsScreen() {
                       style={[styles.modeButton, level.mode === 'range' && styles.modeButtonActive]}
                       onPress={() => updateLevel(level.id, { mode: 'range' })}
                     >
-                      <Text style={[styles.modeText, level.mode === 'range' && styles.modeTextActive]}>Numérotation</Text>
+                      <Text style={[styles.modeText, level.mode === 'range' && styles.modeTextActive]}>{t('locations_screen.numerotation')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.modeButton, level.mode === 'names' && styles.modeButtonActive]}
                       onPress={() => updateLevel(level.id, { mode: 'names' })}
                     >
-                      <Text style={[styles.modeText, level.mode === 'names' && styles.modeTextActive]}>Noms libres</Text>
+                      <Text style={[styles.modeText, level.mode === 'names' && styles.modeTextActive]}>{t('locations_screen.noms_libres')}</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -588,7 +590,7 @@ export default function LocationsScreen() {
                         <TextInput
                           value={level.start}
                           onChangeText={(value) => updateLevel(level.id, { start: value.replace(/[^0-9]/g, '') })}
-                          placeholder="Commencer à"
+                          placeholder={t('locations_screen.commencer_a')}
                           placeholderTextColor={colors.textMuted}
                           keyboardType="number-pad"
                           style={[styles.input, styles.flexInput]}
@@ -596,7 +598,7 @@ export default function LocationsScreen() {
                         <TextInput
                           value={level.count}
                           onChangeText={(value) => updateLevel(level.id, { count: value.replace(/[^0-9]/g, '') })}
-                          placeholder="Nombre d'éléments"
+                          placeholder={t('locations_screen.nombre_d_elements')}
                           placeholderTextColor={colors.textMuted}
                           keyboardType="number-pad"
                           style={[styles.input, styles.flexInput]}
@@ -606,20 +608,20 @@ export default function LocationsScreen() {
                         <TextInput
                           value={level.prefix}
                           onChangeText={(value) => updateLevel(level.id, { prefix: value })}
-                          placeholder="Nom affiché avant le numéro (facultatif)"
+                          placeholder={t('locations_screen.nom_affiche_avant_le_numero_facultatif')}
                           placeholderTextColor={colors.textMuted}
                           style={[styles.input, styles.flexInput]}
                         />
                         <TextInput
                           value={level.suffix}
                           onChangeText={(value) => updateLevel(level.id, { suffix: value })}
-                          placeholder="Texte après le numéro (facultatif)"
+                          placeholder={t('locations_screen.texte_apres_le_numero_facultatif')}
                           placeholderTextColor={colors.textMuted}
                           style={[styles.input, styles.flexInput]}
                         />
                       </View>
                       <Text style={styles.inlineHelp}>
-                        Si vous laissez le texte avant vide, l'application utilisera automatiquement le nom du niveau.
+                        {t('locations_screen.si_vous_laissez_le_texte_avant')}
                       </Text>
                     </>
                   ) : (
@@ -627,21 +629,21 @@ export default function LocationsScreen() {
                       <TextInput
                         value={level.names}
                         onChangeText={(value) => updateLevel(level.id, { names: value })}
-                        placeholder="Un nom par ligne ou séparé par des virgules"
+                        placeholder={t('locations_screen.un_nom_par_ligne_ou_separe')}
                         placeholderTextColor={colors.textMuted}
                         multiline
                         style={[styles.input, styles.multilineInput]}
                       />
                       <Text style={styles.inlineHelp}>
-                        Exemple : Nord, Sud, Réserve A, ou un nom par ligne.
+                        {t('locations_screen.exemple_nord_sud_reserve_a_ou')}
                       </Text>
                     </>
                   )}
 
                   <View style={styles.previewBox}>
-                    <Text style={styles.previewTitle}>Aperçu</Text>
+                    <Text style={styles.previewTitle}>{t('locations_screen.apercu')}</Text>
                     <Text style={styles.previewText}>
-                      {preview.length ? preview.join(' • ') : 'Complétez ce niveau pour voir un aperçu.'}
+                      {preview.length ? preview.join(' • ') : t('locations_screen.completez_ce_niveau_pour_voir_un')}
                     </Text>
                   </View>
                 </View>
@@ -651,19 +653,19 @@ export default function LocationsScreen() {
             <View style={styles.generatorActions}>
               <TouchableOpacity style={styles.linkButton} onPress={addLevel}>
                 <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-                <Text style={styles.linkButtonText}>Ajouter un niveau</Text>
+                <Text style={styles.linkButtonText}>{t('locations_screen.ajouter_un_niveau')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.linkButton} onPress={resetGenerator}>
                 <Ionicons name="refresh-outline" size={18} color={colors.textSecondary} />
-                <Text style={[styles.linkButtonText, { color: colors.textSecondary }]}>Réinitialiser</Text>
+                <Text style={[styles.linkButtonText, { color: colors.textSecondary }]}>{t('locations_screen.reinitialiser')}</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.switchRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.switchLabel}>Réutiliser les emplacements déjà existants</Text>
+                <Text style={styles.switchLabel}>{t('locations_screen.reutiliser_les_emplacements_deja_existants')}</Text>
                 <Text style={styles.switchHelp}>
-                  Utile si vous complétez une structure déjà commencée sans recréer les mêmes emplacements.
+                  {t('locations_screen.utile_si_vous_completez_une_structure')}
                 </Text>
               </View>
               <Switch
@@ -678,27 +680,27 @@ export default function LocationsScreen() {
               {saving ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.primaryButtonText}>Générer la structure</Text>
+                <Text style={styles.primaryButtonText}>{t('locations_screen.generer_la_structure')}</Text>
               )}
             </TouchableOpacity>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Ajouter un seul emplacement</Text>
+            <Text style={styles.cardTitle}>{t('locations_screen.ajouter_un_seul_emplacement')}</Text>
             <Text style={styles.sectionHelp}>
-              Pour une correction rapide ou un besoin isolé, vous pouvez créer un emplacement à l'unité.
+              {t('locations_screen.pour_une_correction_rapide_ou_un')}
             </Text>
             <TextInput
               value={manualName}
               onChangeText={setManualName}
-              placeholder="Nom complet de l'emplacement"
+              placeholder={t('locations_screen.nom_complet_de_l_emplacement')}
               placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
             <TextInput
               value={manualType}
               onChangeText={setManualType}
-              placeholder="Type facultatif"
+              placeholder={t('locations_screen.type_facultatif')}
               placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
@@ -708,7 +710,7 @@ export default function LocationsScreen() {
                   style={[styles.choiceChip, !manualParentId && styles.choiceChipActive]}
                   onPress={() => setManualParentId('')}
                 >
-                  <Text style={[styles.choiceChipText, !manualParentId && styles.choiceChipTextActive]}>Sans parent</Text>
+                  <Text style={[styles.choiceChipText, !manualParentId && styles.choiceChipTextActive]}>{t('locations_screen.sans_parent')}</Text>
                 </TouchableOpacity>
                 {parentChoices.map((choice) => (
                   <TouchableOpacity
@@ -727,16 +729,16 @@ export default function LocationsScreen() {
               </ScrollView>
             ) : null}
             <TouchableOpacity style={styles.primaryButton} onPress={createManualLocation} disabled={saving || !canWrite}>
-              {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Créer l'emplacement</Text>}
+              {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t('locations_screen.creer_l_emplacement')}</Text>}
             </TouchableOpacity>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Emplacements existants</Text>
+            <Text style={styles.cardTitle}>{t('locations_screen.emplacements_existants')}</Text>
             {loading ? (
               <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
             ) : visibleLocations.length === 0 ? (
-              <Text style={styles.emptyText}>Aucun emplacement pour le moment.</Text>
+              <Text style={styles.emptyText}>{t('locations_screen.aucun_emplacement_pour_le_moment')}</Text>
             ) : (
               visibleLocations.map((location) => (
                 <View key={location.location_id} style={styles.listItem}>
@@ -744,20 +746,20 @@ export default function LocationsScreen() {
                   <Text style={styles.listSubtitle}>{getPath(location.location_id)}</Text>
                   <Text style={styles.listMeta}>
                     {location.type || 'Type libre'}
-                    {location.is_active === false ? ' • archivé' : ''}
+                    {location.is_active === false ? t('locations_screen.archive') : ''}
                   </Text>
                   {canWrite ? (
                     <View style={styles.actionsRow}>
                       <TouchableOpacity onPress={() => openEdit(location)}>
-                        <Text style={[styles.actionText, { color: colors.primary }]}>Modifier</Text>
+                        <Text style={[styles.actionText, { color: colors.primary }]}>{t('locations_screen.modifier')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => toggleArchive(location)}>
                         <Text style={[styles.actionText, { color: location.is_active === false ? colors.success : colors.warning }]}>
-                          {location.is_active === false ? 'Réactiver' : 'Archiver'}
+                          {location.is_active === false ? t('locations_screen.reactiver') : 'Archiver'}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => deleteLocation(location)}>
-                        <Text style={[styles.actionText, { color: colors.danger }]}>Supprimer</Text>
+                        <Text style={[styles.actionText, { color: colors.danger }]}>{t('locations_screen.supprimer')}</Text>
                       </TouchableOpacity>
                     </View>
                   ) : null}
@@ -771,18 +773,18 @@ export default function LocationsScreen() {
       {!!editing && <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.cardTitle}>Modifier l'emplacement</Text>
+            <Text style={styles.cardTitle}>{t('locations_screen.modifier_l_emplacement')}</Text>
             <TextInput
               value={editName}
               onChangeText={setEditName}
-              placeholder="Nom complet"
+              placeholder={t('locations_screen.nom_complet')}
               placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
             <TextInput
               value={editType}
               onChangeText={setEditType}
-              placeholder="Type"
+              placeholder={t('locations_screen.type')}
               placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
@@ -792,7 +794,7 @@ export default function LocationsScreen() {
                   style={[styles.choiceChip, !editParentId && styles.choiceChipActive]}
                   onPress={() => setEditParentId('')}
                 >
-                  <Text style={[styles.choiceChipText, !editParentId && styles.choiceChipTextActive]}>Sans parent</Text>
+                  <Text style={[styles.choiceChipText, !editParentId && styles.choiceChipTextActive]}>{t('locations_screen.sans_parent')}</Text>
                 </TouchableOpacity>
                 {parentChoices
                   .filter((choice) => choice.id !== editing?.location_id)
@@ -814,10 +816,10 @@ export default function LocationsScreen() {
             ) : null}
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.secondaryButton} onPress={() => setEditing(null)}>
-                <Text style={styles.secondaryButtonText}>Annuler</Text>
+                <Text style={styles.secondaryButtonText}>{t('locations_screen.annuler')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.primaryButtonInline} onPress={saveEdit} disabled={saving}>
-                {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Enregistrer</Text>}
+                {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t('locations_screen.enregistrer')}</Text>}
               </TouchableOpacity>
             </View>
           </View>

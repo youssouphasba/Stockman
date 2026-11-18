@@ -535,7 +535,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                                     <View style={{ flex: 1 }}>
                                         <Text style={[s.productName, { color: colors.text }]}>{p.name}</Text>
                                         <Text style={[s.productMeta, { color: colors.textMuted }]}>
-                                            {p.purchase_price} {currency}/{p.unit || 'unité'} · Stock: {p.quantity}
+                                            {p.purchase_price} {currency}/{p.unit || t('production.unit_default')} · {t('production.stock_label')} {p.quantity}
                                         </Text>
                                     </View>
                                     <View style={[s.stockBadge, {
