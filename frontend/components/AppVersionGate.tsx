@@ -73,11 +73,15 @@ export default function AppVersionGate({ children }: { children: ReactNode }) {
         const settingsPromise = appVersion.get().catch(() => null);
         let storeUpdate: { updateAvailable?: boolean; storeVersion?: string | number | null } | null = null;
 
-        try {
-          const nativeUpdates = await import('expo-in-app-updates');
-          storeUpdate = await nativeUpdates.checkForUpdate();
-        } catch {
-          storeUpdate = null;
+        // Sur iOS, le module natif 0.10 embarqué dans la build 1.0.26 fait planter l'app au retour de la
+        // vérification App Store : la version App Store y est fournie par le serveur (recherche iTunes).
+        if (Platform.OS === 'android') {
+          try {
+            const nativeUpdates = await import('expo-in-app-updates');
+            storeUpdate = await nativeUpdates.checkForUpdate();
+          } catch {
+            storeUpdate = null;
+          }
         }
 
         const settings = await settingsPromise;

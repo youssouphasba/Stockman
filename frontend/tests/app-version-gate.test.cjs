@@ -12,6 +12,8 @@ test('Mobile update prompt combines the store check with the version sent by the
 
   assert.match(gate, /import\('expo-in-app-updates'\)/);
   assert.match(gate, /nativeUpdates\.checkForUpdate\(\)/);
+  // Le module natif ne doit jamais être appelé sur iOS : il fait planter la build 1.0.26 au lancement.
+  assert.match(gate, /if \(Platform\.OS === 'android'\) \{\s*try \{\s*const nativeUpdates = await import\('expo-in-app-updates'\)/);
   assert.match(gate, /storeUpdate\?\.updateAvailable === true/);
   assert.match(gate, /compareVersions\(installedVersion, announcedVersion\) < 0/);
   assert.match(gate, /if \(!announcedNewer && !storeNewer\)/);
