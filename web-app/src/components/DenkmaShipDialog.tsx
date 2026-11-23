@@ -16,7 +16,9 @@ export default function DenkmaShipDialog({ order, formatAmount, onClose, onShipp
     onClose: () => void;
     onShipped: (order: any) => void;
 }) {
-    const [paid, setPaid] = useState(false);
+    // Already confirmed in the order (« Paiement reçu »): nothing to tick again.
+    const alreadyPaid = order?.payment?.status === 'paid';
+    const [paid, setPaid] = useState(alreadyPaid);
     const [photo, setPhoto] = useState<File | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -66,10 +68,10 @@ export default function DenkmaShipDialog({ order, formatAmount, onClose, onShipp
                     </div>
                 )}
                 <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                    <input type="checkbox" checked={paid} onChange={(event) => setPaid(event.target.checked)} className="mt-1 h-5 w-5 accent-blue-500" />
+                    <input type="checkbox" checked={paid} disabled={alreadyPaid} onChange={(event) => setPaid(event.target.checked)} className="mt-1 h-5 w-5 accent-blue-500" />
                     <span>
                         <span className="block font-bold text-white">1. Le client a payé {formatAmount(amountDue(order))}</span>
-                        <span className="text-xs text-slate-400">Articles et livraison. Denkma ne collecte pas le paiement des marchandises.</span>
+                        <span className="text-xs text-slate-400">{alreadyPaid ? 'Paiement déjà confirmé dans la commande.' : 'Articles et livraison. Denkma ne collecte pas le paiement des marchandises.'}</span>
                     </span>
                 </label>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">

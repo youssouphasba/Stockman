@@ -24,7 +24,9 @@ type Photo = { uri: string; type: string };
 export default function DenkmaShipModal({ order, formatAmount, onClose, onShipped }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const [paid, setPaid] = useState(false);
+  // Already confirmed in the order (« Paiement reçu »): nothing to tick again.
+  const alreadyPaid = order?.payment?.status === 'paid';
+  const [paid, setPaid] = useState(alreadyPaid);
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,9 +101,11 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
             <View style={[card, { flexDirection: 'row', alignItems: 'center', gap: Spacing.md }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[text, { fontWeight: '700' }]}>{t('denkma_ship.1_le_client_a_paye')} {formatAmount(amountDue(order))}</Text>
-                <Text style={muted}>{t('denkma_ship.articles_et_livraison_denkma_ne_collecte')}</Text>
+                <Text style={muted}>{alreadyPaid ? t('denkma_ship.paiement_deja_confirme', 'Paiement déjà confirmé dans la commande.') : t('denkma_ship.articles_et_livraison_denkma_ne_collecte')}</Text>
               </View>
-              <Switch value={paid} onValueChange={setPaid} accessibilityLabel={t('denkma_ship.le_client_a_paye_sa_commande')} trackColor={{ true: colors.primary, false: colors.divider }} />
+              {alreadyPaid
+                ? <Ionicons name="checkmark-circle" size={26} color={colors.success} accessibilityLabel={t('denkma_ship.paiement_deja_confirme', 'Paiement déjà confirmé dans la commande.')} />
+                : <Switch value={paid} onValueChange={setPaid} accessibilityLabel={t('denkma_ship.le_client_a_paye_sa_commande')} trackColor={{ true: colors.primary, false: colors.divider }} />}
             </View>
 
             <View style={card}>
