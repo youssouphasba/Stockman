@@ -1335,6 +1335,8 @@
     "verified_only": "Solo verificados"
   },
   "modals": {
+    "selected_period": "Período seleccionado",
+    "view_detail": "Ver detalle",
     "cancel": "Cancelar",
     "changePassword": {
       "title": "Cambiar contraseña",

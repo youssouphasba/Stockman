@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LucideIcon, TrendingDown, TrendingUp } from 'lucide-react';
 
 type KpiCardProps = {
@@ -13,6 +14,7 @@ type KpiCardProps = {
 };
 
 export default function KpiCard({ icon: Icon, label, value, hint, delta, onClick }: KpiCardProps) {
+    const { t } = useTranslation();
     const showDelta = typeof delta === 'number' && Number.isFinite(delta);
     const isPositive = (delta || 0) >= 0;
     const clickable = typeof onClick === 'function';
@@ -36,10 +38,10 @@ export default function KpiCard({ icon: Icon, label, value, hint, delta, onClick
 
             <div className="mt-4 flex items-center justify-between gap-3">
                 <div>
-                    <p className="text-xs text-slate-400">{hint || 'Periode selectionnee'}</p>
+                    <p className="text-xs text-slate-400">{hint || t('modals.selected_period')}</p>
                     {clickable ? (
                         <p className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-primary">
-                            Voir le detail
+                            {t('modals.view_detail')}
                         </p>
                     ) : null}
                 </div>

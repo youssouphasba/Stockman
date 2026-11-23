@@ -2,6 +2,7 @@
 
 import React, { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -27,6 +28,7 @@ export default function Modal({
     children,
     maxWidth = 'md'
 }: ModalProps) {
+    const { t } = useTranslation();
     const titleId = useId();
     // Close on ESC key
     useEffect(() => {
@@ -73,13 +75,13 @@ export default function Modal({
                 )}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5">
-                    <h2 id={titleId} className="text-xl font-bold text-white">{title}</h2>
+                <div className="flex items-center justify-between p-6 border-b theme-border bg-white/5">
+                    <h2 id={titleId} className="text-xl font-bold theme-text">{title}</h2>
                     <button
                         type="button"
-                        aria-label="Fermer"
+                        aria-label={t('modals.close')}
                         onClick={onClose}
-                        className="p-2 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors"
+                        className="p-2 hover:bg-white/10 rounded-full theme-text-muted hover:text-[var(--foreground)] transition-colors"
                     >
                         <X size={24} />
                     </button>

@@ -1280,6 +1280,8 @@
     "verified_only": "Ɓe njaɓaa rekk"
   },
   "modals": {
+    "selected_period": "Selected period",
+    "view_detail": "View details",
     "cancel": "Woppu",
     "changePassword": {
       "title": "Waylu finnde",

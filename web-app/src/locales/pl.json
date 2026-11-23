@@ -1280,6 +1280,8 @@
     "verified_only": "Tylko zweryfikowani"
   },
   "modals": {
+    "selected_period": "Wybrany okres",
+    "view_detail": "Zobacz szczegóły",
     "cancel": "Anuluj",
     "changePassword": {
       "title": "Change Password",

@@ -30,8 +30,9 @@ function StatCard({ label, value, icon: Icon, color, sub }: { label: string; val
         <div className="glass-card p-6 flex flex-col gap-3">
             <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
-                <div className={`p-2 rounded-xl ${color} bg-opacity-10`}>
-                    <Icon size={18} className={color.replace('bg-', 'text-')} />
+                <div className="relative p-2 rounded-xl overflow-hidden">
+                    <span aria-hidden="true" className={`absolute inset-0 ${color} opacity-10`} />
+                    <Icon size={18} className={`relative ${color.replace('bg-', 'text-')}`} />
                 </div>
             </div>
             <span className="text-3xl font-black text-white">{value}</span>

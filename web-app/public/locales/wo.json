@@ -1280,6 +1280,8 @@
     "verified_only": "Ñi wóor rekk"
   },
   "modals": {
+    "selected_period": "Selected period",
+    "view_detail": "View details",
     "cancel": "Cancel",
     "changePassword": {
       "title": "Change Password",

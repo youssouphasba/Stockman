@@ -4,6 +4,9 @@ import { Providers } from "./providers";
 import OfflineBanner from "../components/OfflineBanner";
 import ServiceWorkerRegistration from "../components/ServiceWorkerRegistration";
 import { Analytics } from "@vercel/analytics/react";
+import { Inter } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -53,7 +56,7 @@ const structuredData = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang="fr" className={inter.variable} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

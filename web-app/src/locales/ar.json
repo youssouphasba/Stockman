@@ -1280,6 +1280,8 @@
     "verified_only": "الموثقون فقط"
   },
   "modals": {
+    "selected_period": "الفترة المحددة",
+    "view_detail": "عرض التفاصيل",
     "cancel": "إلغاء",
     "changePassword": {
       "title": "تغيير كلمة المرور",

@@ -67,7 +67,7 @@ select option {
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
   margin: 0;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -851,15 +851,6 @@ html:not([data-theme="light"]) .planner-shell .hover\:bg-slate-100:hover,
 [data-theme="light"] .group-hover\:text-primary:hover,
 [data-theme="light"] .group:hover .group-hover\:text-primary {
   color: #059669 !important;
-}
-
-/* --- Bg-opacity used in StatCard icons --- */
-[data-theme="light"] .bg-opacity-10 {
-  --tw-bg-opacity: 0.08 !important;
-}
-
-[data-theme="light"] .bg-opacity-20 {
-  --tw-bg-opacity: 0.12 !important;
 }
 
 /* --- Colored alpha backgrounds: /5 variants (very subtle in dark, need slight boost) --- */

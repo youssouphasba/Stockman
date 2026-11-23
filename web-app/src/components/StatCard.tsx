@@ -18,8 +18,9 @@ export default function StatCard({ label, value, icon: Icon, color, trend }: Sta
     return (
         <div className="glass-card p-6 flex flex-col gap-4 group hover:border-primary/30 transition-all duration-500 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 duration-1000 min-w-0 overflow-hidden">
             <div className="flex justify-between items-start">
-                <div className={`p-3 rounded-xl ${color} bg-opacity-10 group-hover:bg-opacity-20 transition-all shrink-0`}>
-                    <Icon size={24} className={color.replace('bg-', 'text-')} />
+                <div className="relative p-3 rounded-xl overflow-hidden shrink-0">
+                    <span aria-hidden="true" className={`absolute inset-0 ${color} opacity-10 group-hover:opacity-20 transition-opacity`} />
+                    <Icon size={24} className={`relative ${color.replace('bg-', 'text-')}`} />
                 </div>
                 {trend && (
                     <div className={`flex items-center gap-1 text-xs font-black uppercase tracking-widest shrink-0 ${trend.isUp ? 'text-primary' : 'text-red-400'}`}>

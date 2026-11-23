@@ -1280,6 +1280,8 @@
     "verified_only": "Sadece Doğrulanmış"
   },
   "modals": {
+    "selected_period": "Seçilen dönem",
+    "view_detail": "Ayrıntıları gör",
     "cancel": "İptal",
     "changePassword": {
       "title": "Şifreyi değiştir",
