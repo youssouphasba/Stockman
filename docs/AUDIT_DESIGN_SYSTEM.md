@@ -9,6 +9,13 @@ Méthode : lecture du code et comptage automatique des classes et des styles ré
 ## Avancement
 
 - **Lot 1 fait (23 novembre 2026)** : icônes des cartes de statistiques, chargement d'Inter, textes de `KpiCard` et `Modal` traduits, en-tête de `Modal` aux couleurs du thème.
+- **Lot 5 fait** : `ui/Feedback` (`useFeedback().confirm()` et `notify()`) remplace 43 `window.confirm` et 68 `window.alert` ; `Modal` gère le focus, Tab, Échap (fenêtre du dessus seulement), un pied de page et une description ; 7 fenêtres maison migrées. Restent natives : la caisse, les messages suivis d'un rechargement de page. Restent maison, car différentes : tiroirs latéraux, feuilles du bas, scanners, fenêtre « Pourquoi le stock change ? » (ouverte par-dessus un formulaire), écrans de démo avant connexion.
+- **Lot 6 fait** : `Planner` passé aux jetons (21 règles `.planner-shell` supprimées), jeton `surface-soft`, 26 sélecteurs du mode clair devenus inutiles supprimés (`globals.css` : 1 064 → 917 lignes). Les surcharges génériques du mode clair (`.text-slate-400`, `.bg-emerald-500/10`…) restent : les retirer demande de passer chaque composant aux jetons.
+- **Lot 7 fait** : mobile `ui/Button`, `ui/Card`, `ui/KpiCard` ; 21 boutons migrés ; `AdminUI` délègue aux composants partagés ; `EmptyState` unique avec mode compact.
+- **Lot 8 fait en partie** : 153 couleurs d'état en dur remplacées par celles du thème. Non fait : convergence des tailles de texte et des rayons hors échelle (elle change l'affichage sur petits téléphones et demande une vérification sur appareil), et les écrans qui avaient du travail en cours non commité (produits, commandes, CRM, comptabilité, caisse, inscription…).
+- **Projets** : vue `ProjectView` supprimée (web et mobile), elle n'était plus utilisée.
+- **Lot 3 fait** : composants `ui/Button` et `ui/Field` ; 78 boutons verts migrés, `Field` et `inputClass` dédoublonnés, états focus et désactivé ajoutés à `.btn-primary`.
+- **Lot 4 fait** : `KpiCard` unique (tableau de bord, superadmin, analytique), `StatCard` supprimé, `ui/EmptyState` créé.
 - **Lot 2 fait (23 novembre 2026)** : jetons `--surface-sunken`, `--surface`, `--surface-raised`, `--surface-outline`, `--success`, `--warning`, `--info` ajoutés et exposés à Tailwind (`bg-surface`, `bg-surface-raised`, `bg-surface-sunken`, `text-success`, `border-line`, etc.). 170 fonds écrits en dur remplacés dans 50 composants. Les règles du mode clair correspondantes ne visent plus que les jetons. Restent volontairement en dur : `#0f0c29` (inscription Enterprise), `#060B14` (scène de l'aperçu de l'éditeur de site) et `#020617` (un encart superadmin).
 
 ## Résumé
@@ -138,7 +145,7 @@ Classement par gravité, puis par nombre d'écrans touchés.
 | Carte de statistique (web) | `StatCard.tsx`, `analytics/KpiCard.tsx`, `StatCard` local dans `AdminDashboard.tsx:28`, cartes à la main | **Fusionner** en un seul `KpiCard` avec options `tone` (couleur de pastille), `delta`, `hint` et `onClick` |
 | Carte de statistique (mobile) | `AdminUI.StatCard`, `KpiCard` local dans `(tabs)/index.tsx:94` | **Fusionner** dans `components/ui/` |
 | État vide (mobile) | `components/EmptyState.tsx`, `AdminUI.EmptyState` | **Garder** `EmptyState.tsx` (plus complet : titre, message, action), supprimer la version admin |
-| Champ avec étiquette (web) | `Field` dans `ProductionView.tsx:29`, `ProjectView.tsx:43`, `SettingsWorkspace.tsx:160` ; `Input` dans `EcommercePaymentSettings.tsx:36` | **Fusionner** en un seul `Field` |
+| Champ avec étiquette (web) | `Field` dans `ProductionView.tsx:29`, `ProjectView.tsx:43` (vue supprimée depuis, elle n'était plus utilisée), `SettingsWorkspace.tsx:160` ; `Input` dans `EcommercePaymentSettings.tsx:36` | **Fusionner** en un seul `Field` |
 | Constante `inputClass` (web) | `SettingsWorkspace.tsx`, `ThemeFieldInput.tsx`, `EcommercePaymentSettings.tsx` (identiques), `EnterpriseSignupModal.tsx` (différente) | **Remplacer** par une classe `.ui-input` partagée |
 | Carte de section | `SectionCard` dans `SettingsWorkspace.tsx:130` et `admin/AdminStoreOverviewPanel.tsx:128` | **Fusionner** |
 | Modale (web) | `Modal.tsx` + 24 implémentations à la main | **Étendre** `Modal` (pied de page, largeur, plein écran mobile), puis migrer au fil de l'eau |
