@@ -113,7 +113,7 @@ export default function ThemeFieldInput({ field, value, disabled, media, categor
             return <p className="text-sm leading-6 text-slate-400">Aucune catégorie dans votre catalogue pour le moment : classez vos produits pour utiliser cette section.</p>;
         }
         return (
-            <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} aria-label={field.label} className={`${inputClass} bg-[#0F172A]`}>
+            <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} aria-label={field.label} className={`${inputClass} bg-background`}>
                 <option value="">Choisir une catégorie</option>
                 {missing && <option value={value}>{value} (introuvable dans le catalogue)</option>}
                 {list.map((category) => <option key={category} value={category}>{category}</option>)}

@@ -92,14 +92,14 @@ export default function Activity() {
 
     if (loading && logs.length === 0) {
         return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 p-8 flex items-center justify-center bg-background">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-background custom-scrollbar">
             <ScreenGuide steps={activitySteps} guideKey="activity_tour" />
             <header className="flex justify-between items-start mb-10">
                 <div>
@@ -116,7 +116,7 @@ export default function Activity() {
                         <ChevronDown size={14} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
                     </button>
                     {showExportMenu && (
-                        <div className="absolute right-0 top-full mt-1 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
+                        <div className="absolute right-0 top-full mt-1 bg-surface-raised border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
                             <button
                                 onClick={() => { exportActivity(logs, 'excel'); setShowExportMenu(false); }}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
@@ -144,7 +144,7 @@ export default function Activity() {
                         (Array.isArray(logs) ? logs : []).filter(Boolean).map((log, index) => (
                             <div key={log.log_id || `${log.created_at || 'log'}-${index}`} className="relative group">
                                 {/* Timeline Dot */}
-                                <div className="absolute -left-[41px] top-1 w-4 h-4 rounded-full bg-[#0F172A] border-2 border-primary group-hover:scale-125 transition-all"></div>
+                                <div className="absolute -left-[41px] top-1 w-4 h-4 rounded-full bg-background border-2 border-primary group-hover:scale-125 transition-all"></div>
 
                                 <div className="glass-card p-5 hover:border-primary/30 transition-all">
                                     <div className="flex justify-between items-start mb-2">

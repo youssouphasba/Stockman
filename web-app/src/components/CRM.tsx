@@ -491,7 +491,7 @@ export default function CRM({ user }: CRMProps) {
 
     if (loading && customers.length === 0) {
         return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 p-8 flex items-center justify-center bg-background">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
             </div>
         );
@@ -1080,7 +1080,7 @@ export default function CRM({ user }: CRMProps) {
                         <span className="hidden md:inline">{t('common.filter') || 'Filtrer'}</span>
                     </button>
                     {isFilterOpen && (
-                        <div className="absolute top-full left-0 mt-2 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="absolute top-full left-0 mt-2 w-48 bg-surface-raised border border-white/10 rounded-2xl shadow-2xl z-50 p-2 animate-in fade-in slide-in-from-top-2">
                             <button
                                 onClick={() => { setFilterCategory('all'); setIsFilterOpen(false); }}
                                 className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterCategory === 'all' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
@@ -1249,7 +1249,7 @@ export default function CRM({ user }: CRMProps) {
                                 className="bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50 transition-all font-medium appearance-none"
                             >
                                 {CATEGORIES.map(cat => (
-                                    <option key={cat.id} value={cat.id} className="bg-[#0F172A]">{cat.label}</option>
+                                    <option key={cat.id} value={cat.id} className="bg-background">{cat.label}</option>
                                 ))}
                             </select>
                         </div>

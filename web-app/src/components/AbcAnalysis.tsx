@@ -105,14 +105,14 @@ export default function AbcAnalysis() {
 
     if (loading && !abcData) {
         return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 p-8 flex items-center justify-center bg-background">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-background custom-scrollbar">
             <ScreenGuide steps={abcSteps} guideKey="abc_tour" />
             <header className="mb-10">
                 <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">

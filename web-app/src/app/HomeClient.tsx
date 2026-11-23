@@ -607,7 +607,7 @@ export default function Home() {
 
   if (!mounted || !ready || initialLoading) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6">
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="glass-card p-8 text-center max-w-md w-full">
           <div className="w-10 h-10 mx-auto mb-4 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           <h1 className="text-xl font-black text-white mb-2">Stockman</h1>
@@ -619,7 +619,7 @@ export default function Home() {
 
   if (demoBootLoading) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6">
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
         <div className="glass-card p-8 text-center max-w-md w-full">
           <div className="w-10 h-10 mx-auto mb-4 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           <h1 className="text-xl font-black text-white mb-2">Préparation de la démo Enterprise</h1>
@@ -660,7 +660,7 @@ export default function Home() {
   if (isSubscriptionRecoveryMode && !(isBillingAdmin && activeTab === 'subscription')) {
     const planLabel = subscriptionPlan === 'enterprise' ? 'Enterprise' : subscriptionPlan === 'pro' ? 'Pro' : 'Starter';
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6 py-12">
+      <div className="min-h-screen bg-background flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-3xl glass-card p-8 md:p-10 border border-amber-500/20">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
@@ -745,7 +745,7 @@ export default function Home() {
     };
 
     return (
-      <main className="min-h-screen bg-[#0F172A] overflow-y-auto">
+      <main className="min-h-screen bg-background overflow-y-auto">
         {/* ── HERO ── */}
         <div className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-primary/10 to-transparent">
           <div className="max-w-6xl mx-auto px-6 py-14 text-center">
@@ -898,7 +898,7 @@ export default function Home() {
 
   if (isLogged && user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'supplier' && !isBillingAdmin && !hasOperationalAccess) {
     return (
-      <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-background text-white flex items-center justify-center p-6">
         <div className="max-w-md glass-card p-8 text-center">
           <h1 className="text-2xl font-bold mb-3">{t('home.limited_access.title')}</h1>
           <p className="text-slate-400 text-sm leading-6">{t('home.limited_access.desc')}</p>
@@ -911,7 +911,7 @@ export default function Home() {
 
   if (isLogged && user?.role !== ‘admin’ && user?.role !== ‘superadmin’ && user?.role !== ‘supplier’ && !isBillingAdmin && !hasOperationalAccess) {
     return (
-      <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-background text-white flex items-center justify-center p-6">
         <div className="max-w-md glass-card p-8 text-center">
           <h1 className="text-2xl font-bold mb-3">{t(‘home.limited_access.title’)}</h1>
           <p className="text-slate-400 text-sm leading-6">{t(‘home.limited_access.desc’)}</p>
@@ -928,7 +928,7 @@ export default function Home() {
         <>
           {showDemoLeadPrompt && (
             <div className="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="w-full max-w-lg rounded-[28px] border border-white/10 bg-[#111827] shadow-2xl shadow-black/40 overflow-hidden">
+              <div className="w-full max-w-lg rounded-[28px] border border-white/10 bg-surface shadow-2xl shadow-black/40 overflow-hidden">
                 <div className="px-6 py-5 border-b border-white/10 bg-white/5">
                   <p className="text-[11px] uppercase tracking-[0.28em] text-primary font-black mb-2">{t('demo_lead.badge')}</p>
                   <h2 className="text-2xl font-black text-white tracking-tight">{t('demo_lead.title')}</h2>
@@ -978,7 +978,7 @@ export default function Home() {
               </div>
             </div>
           )}
-          <main className="flex h-dvh overflow-hidden bg-[#0F172A]">
+          <main className="flex h-dvh overflow-hidden bg-background">
             <Sidebar
               activeTab={activeTab}
               setActiveTab={setActiveTab}
@@ -996,7 +996,7 @@ export default function Home() {
             />
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <div className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-[#0F172A] px-3 py-2 md:hidden">
+              <div className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-background px-3 py-2 md:hidden">
                 <button type="button" aria-label={t('home.mobile_menu')} aria-expanded={isSidebarOpen}
                   onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                   className="grid size-11 shrink-0 place-items-center rounded-lg bg-white/5 text-slate-200">
@@ -1151,7 +1151,7 @@ export default function Home() {
     <>
       {showDemoCurrencyPicker && pendingDemoType && (
         <div className="fixed inset-0 z-[80] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#111827] shadow-2xl shadow-black/40 flex flex-col max-h-[85vh]">
+          <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-surface shadow-2xl shadow-black/40 flex flex-col max-h-[85vh]">
             <div className="px-6 py-5 border-b border-white/10 bg-white/5 shrink-0">
               <p className="text-[11px] uppercase tracking-[0.28em] text-primary font-black mb-1">Démo {pendingDemoType}</p>
               <h2 className="text-xl font-black text-white tracking-tight">Choisissez votre pays</h2>
@@ -1196,7 +1196,7 @@ export default function Home() {
           </div>
         </div>
       )}
-      <main className="min-h-dvh bg-[#0F172A] px-4 py-4 sm:px-6 sm:py-6">
+      <main className="min-h-dvh bg-background px-4 py-4 sm:px-6 sm:py-6">
         <div className="mx-auto grid w-full max-w-md grid-cols-1 items-start gap-4 lg:max-w-5xl lg:grid-cols-2 lg:gap-x-12 lg:gap-y-6">
           <div className="flex items-center gap-3 lg:col-span-2">
             <img src="/icon.png" alt="" className="h-9 w-9 rounded-lg" />

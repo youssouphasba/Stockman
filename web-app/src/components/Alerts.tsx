@@ -225,7 +225,7 @@ export default function Alerts() {
 
     if (loading && alerts.length === 0) {
         return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 p-8 flex items-center justify-center bg-background">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
             </div>
         );

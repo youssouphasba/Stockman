@@ -6,6 +6,11 @@ Méthode : lecture du code et comptage automatique des classes et des styles ré
 
 ---
 
+## Avancement
+
+- **Lot 1 fait (23 novembre 2026)** : icônes des cartes de statistiques, chargement d'Inter, textes de `KpiCard` et `Modal` traduits, en-tête de `Modal` aux couleurs du thème.
+- **Lot 2 fait (23 novembre 2026)** : jetons `--surface-sunken`, `--surface`, `--surface-raised`, `--surface-outline`, `--success`, `--warning`, `--info` ajoutés et exposés à Tailwind (`bg-surface`, `bg-surface-raised`, `bg-surface-sunken`, `text-success`, `border-line`, etc.). 170 fonds écrits en dur remplacés dans 50 composants. Les règles du mode clair correspondantes ne visent plus que les jetons. Restent volontairement en dur : `#0f0c29` (inscription Enterprise), `#060B14` (scène de l'aperçu de l'éditeur de site) et `#020617` (un encart superadmin).
+
 ## Résumé
 
 L'identité de marque est claire et doit être conservée : vert émeraude `#10B981`, fond ardoise sombre, cartes « verre », coins très arrondis, titres en graisse forte, petites étiquettes en capitales espacées. Le problème n'est pas le style, c'est la façon dont il est appliqué : presque tout est écrit à la main, page par page.

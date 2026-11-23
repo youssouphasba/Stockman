@@ -796,7 +796,7 @@ export default function ReportsLibrary({ user, features }: ReportsLibraryProps) 
     ];
 
     return (
-        <div className="flex-1 overflow-y-auto bg-[#0F172A] custom-scrollbar p-8">
+        <div className="flex-1 overflow-y-auto bg-background custom-scrollbar p-8">
             <ScreenGuide steps={reportsSteps} guideKey="reports_tour" />
             <div className="max-w-7xl mx-auto space-y-8">
                 <div className="glass-card p-6">

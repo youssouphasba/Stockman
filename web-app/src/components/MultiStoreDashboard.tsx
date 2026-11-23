@@ -395,7 +395,7 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
 
             {showNewStore && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-                    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#111827] p-6 shadow-2xl">
+                    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-surface p-6 shadow-2xl">
                         <h3 className="text-xl font-black text-white">Ajouter une boutique</h3>
                         <p className="mt-2 text-sm text-slate-400">Creer un nouveau point de vente pour votre organisation.</p>
                         <div className="mt-5 space-y-3">

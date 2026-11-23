@@ -255,7 +255,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
 
     if (loading && !data && !error) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 flex items-center justify-center bg-background">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
         );
@@ -263,7 +263,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
 
     if (error && !data) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-[#0F172A] px-6">
+            <div className="flex-1 flex items-center justify-center bg-background px-6">
                 <div className="glass-card max-w-md w-full p-8 text-center border border-rose-500/20">
                     <AlertCircle size={28} className="mx-auto mb-4 text-rose-400" />
                     <h2 className="text-xl font-black text-white mb-2">
@@ -394,7 +394,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
     ];
 
     return (
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-[#0F172A] animate-in fade-in duration-700">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-background animate-in fade-in duration-700">
             <ScreenGuide guideKey="dashboard_tour" steps={dashboardSteps} />
             {error && data && (
                 <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -435,7 +435,7 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
                             <Settings size={20} />
                         </button>
                         {isSettingsOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-56 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2">
+                            <div className="absolute top-full right-0 mt-2 w-56 bg-surface-raised border border-white/10 rounded-2xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2">
                                 <div className="flex justify-between items-center mb-3">
                                     <span className="text-xs font-black uppercase tracking-widest text-slate-400">{t('dashboard.visible_sections')}</span>
                                     <button onClick={() => setIsSettingsOpen(false)} className="text-slate-500 hover:text-white">

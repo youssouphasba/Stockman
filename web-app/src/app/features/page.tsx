@@ -114,7 +114,7 @@ const structuredData = {
 
 export default function FeaturesPage() {
   return (
-    <main className="min-h-screen bg-[#0F172A] overflow-y-auto">
+    <main className="min-h-screen bg-background overflow-y-auto">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
 
       <section className="border-b border-white/5 bg-gradient-to-b from-primary/10 to-transparent">

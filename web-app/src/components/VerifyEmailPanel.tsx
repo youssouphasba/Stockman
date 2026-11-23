@@ -67,7 +67,7 @@ export default function VerifyEmailPanel({ user, onVerified, onLogout }: Props) 
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background text-white flex items-center justify-center p-6">
       <div className="w-full max-w-lg glass-card p-8 space-y-6">
         <div className="space-y-3 text-center">
           <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center mx-auto">

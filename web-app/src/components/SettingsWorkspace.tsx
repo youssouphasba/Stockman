@@ -117,7 +117,7 @@ const TABS: { id: TabId }[] = [
 
 const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-primary/50';
 const textareaClass = `${inputClass} resize-none`;
-const selectClass = 'w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-white outline-none focus:border-primary/50';
+const selectClass = 'w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50';
 
 function ScopeBadge({ label }: { label: string }) {
     return (
@@ -464,14 +464,14 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
 
     if (loading && !settings) {
         return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 p-8 flex items-center justify-center bg-background">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="custom-scrollbar flex-1 overflow-y-auto bg-[#0F172A] p-8">
+        <div className="custom-scrollbar flex-1 overflow-y-auto bg-background p-8">
             {canOfferEcommerceSetupOnWeb(user) && <EcommerceSetupInvitation
                 key={`${user?.user_id}:${user?.active_store_id || ''}`}
                 onConfigure={() => { window.dispatchEvent(new Event('settings:open-ecommerce')); }}
@@ -746,7 +746,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                             <p className="mt-2 text-xs leading-5 text-slate-500">{t('settings_workspace.documents.terminals.description')}</p>
                             <div className="mt-4 space-y-3">
                                 {terminals.map((terminal, index) => (
-                                    <div key={`${terminal}-${index}`} className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#0F172A]/60 px-4 py-3">
+                                    <div key={`${terminal}-${index}`} className="flex items-center justify-between rounded-2xl border border-white/10 bg-background/60 px-4 py-3">
                                         <span className="text-sm text-white">{terminal}</span>
                                         <button type="button" onClick={() => setTerminals((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="text-slate-500 transition-colors hover:text-rose-400">
                                             <Trash2 size={16} />
@@ -948,7 +948,7 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                             </div>
 
                             {ecommerceDirty ? (
-                                <div role="status" className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-primary/40 bg-[#0F172A] p-4 shadow-2xl md:flex-row md:items-center md:justify-between">
+                                <div role="status" className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-primary/40 bg-background p-4 shadow-2xl md:flex-row md:items-center md:justify-between">
                                     <p className="text-sm font-semibold text-white">Vous avez des modifications non enregistrées.</p>
                                     <div className="flex flex-wrap gap-3">
                                         <button

@@ -34,7 +34,7 @@ export default function LineDiscountModal({ isOpen, onClose, productName, curren
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-            <div className="w-full max-w-sm bg-[#1E293B] rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+            <div className="w-full max-w-sm bg-surface-raised rounded-2xl p-6" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-2">
                     <h2 className="text-lg font-black text-white">{t('pos.apply_discount', 'Remise produit')}</h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={22} /></button>
@@ -53,7 +53,7 @@ export default function LineDiscountModal({ isOpen, onClose, productName, curren
 
                 {/* Value input */}
                 <input
-                    className="w-full bg-[#0F172A] border border-white/20 rounded-xl px-4 py-3 text-white text-2xl text-center font-bold focus:outline-none focus:border-secondary/50 mb-3"
+                    className="w-full bg-background border border-white/20 rounded-xl px-4 py-3 text-white text-2xl text-center font-bold focus:outline-none focus:border-secondary/50 mb-3"
                     type="number" value={value} onChange={e => setValue(e.target.value)}
                     placeholder="0" autoFocus
                 />

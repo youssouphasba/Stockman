@@ -756,7 +756,7 @@ export default function POS() {
 
     if (loading && allProducts.length === 0) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 flex items-center justify-center bg-background">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
             </div>
         );
@@ -848,7 +848,7 @@ export default function POS() {
             </div>
 
             {/* Cart Column */}
-            <div className="pos-cart-panel hidden lg:flex w-[450px] bg-[#111827]/95 border-l border-white/10 flex-col p-6 backdrop-blur-3xl shadow-[-24px_0_80px_-60px_rgba(0,0,0,0.95)]" id="pos-cart">
+            <div className="pos-cart-panel hidden lg:flex w-[450px] bg-surface/95 border-l border-white/10 flex-col p-6 backdrop-blur-3xl shadow-[-24px_0_80px_-60px_rgba(0,0,0,0.95)]" id="pos-cart">
                 <div className="flex-1 flex flex-col min-h-0">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-black text-white flex items-center gap-3">
@@ -1019,7 +1019,7 @@ export default function POS() {
                                 <select
                                     value={selectedTable?.table_id || ''}
                                     onChange={e => handleTableSelect(e.target.value)}
-                                    className="bg-[#0F172A] border border-white/10 rounded-xl p-2.5 text-white text-sm outline-none"
+                                    className="bg-background border border-white/10 rounded-xl p-2.5 text-white text-sm outline-none"
                                 >
                                     <option value="">{t('pos.no_table')}</option>
                                     {tableList.map(t => (
@@ -1043,7 +1043,7 @@ export default function POS() {
                             {/* Service charge */}
                             <div className="flex items-center gap-3">
                                 <label className="text-xs text-slate-400 flex-1">{t('restaurant.service_charge')} (%)</label>
-                                <select value={serviceChargePercent} onChange={e => setServiceChargePercent(Number(e.target.value))} className="bg-[#0F172A] border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none w-20">
+                                <select value={serviceChargePercent} onChange={e => setServiceChargePercent(Number(e.target.value))} className="bg-background border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none w-20">
                                     <option value={0}>0%</option>
                                     <option value={5}>5%</option>
                                     <option value={10}>10%</option>
@@ -1356,7 +1356,7 @@ export default function POS() {
 
             {showWeightedModal && weightedDraftProduct && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#101826] p-6 shadow-2xl">
+                    <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-surface p-6 shadow-2xl">
                         <div className="flex items-start justify-between gap-4 mb-4">
                             <div>
                                 <p className="text-white font-black text-lg">Quantite a vendre</p>

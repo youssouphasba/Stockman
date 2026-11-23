@@ -112,7 +112,7 @@ export default function NotificationCenter({ isOpen, onClose, onUnreadChange }: 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
             <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-            <div className="relative w-full max-w-md bg-[#0F172A] border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="relative w-full max-w-md bg-background border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
                     <div className="flex items-center gap-3">

@@ -568,7 +568,7 @@ export default function Sidebar({
 
             {ecommerceStatsOpen && (
                 <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-                    <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0F172A] p-6 shadow-2xl">
+                    <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-background p-6 shadow-2xl">
                         <div className="mb-5 flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Statistiques E-com</p>
@@ -702,7 +702,7 @@ export default function Sidebar({
                             <ChevronDown size={14} />
                         </button>
                         {ecommerceMenuOpen && (
-                            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-2xl border border-white/10 bg-[#111827] p-2 shadow-2xl">
+                            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-2xl border border-white/10 bg-surface p-2 shadow-2xl">
                                 <button type="button" onClick={openEcommerceSite} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-200 hover:bg-white/5">
                                     <Globe size={16} className="text-primary" />
                                     Voir le site
@@ -734,7 +734,7 @@ export default function Sidebar({
                                 value={switchingStoreId || user?.active_store_id || ''}
                                 onChange={(event) => void handleStoreSwitch(event.target.value)}
                                 disabled={storesLoading || !!switchingStoreId}
-                                className="mt-3 w-full rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-primary disabled:opacity-60"
+                                className="mt-3 w-full rounded-xl border border-white/10 bg-surface px-3 py-2 text-sm text-white outline-none transition-colors focus:border-primary disabled:opacity-60"
                             >
                                 {storeList.map((store) => (
                                     <option key={store.store_id} value={store.store_id}>

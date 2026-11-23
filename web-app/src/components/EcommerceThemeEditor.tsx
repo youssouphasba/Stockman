@@ -416,7 +416,7 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
     const pageLink = page?.kind === 'custom' && page.path && typeof window !== 'undefined' ? `${window.location.origin}/shop/${server.site_slug}#/${page.path}` : null;
 
     return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[#0B1220] text-white" role="dialog" aria-modal="true" aria-label="Éditeur visuel du site">
+        <div className="fixed inset-0 z-50 flex flex-col bg-surface-sunken text-white" role="dialog" aria-modal="true" aria-label="Éditeur visuel du site">
             <header className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
                 <button type="button" className={iconButton} onClick={close} aria-label="Fermer l'éditeur" title="Fermer l'éditeur"><X size={16} /></button>
                 <div className="hidden min-w-0 max-w-[13rem] md:block">
@@ -428,7 +428,7 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                     id="editor-page"
                     value={page?.id || ''}
                     onChange={(event) => { setPageId(event.target.value); setSelected(null); }}
-                    className="h-10 min-w-0 max-w-[14rem] rounded-xl border border-white/10 bg-[#0F172A] px-3 text-sm font-bold text-white"
+                    className="h-10 min-w-0 max-w-[14rem] rounded-xl border border-white/10 bg-background px-3 text-sm font-bold text-white"
                 >
                     {document.pages.map((item) => <option key={item.id} value={item.id}>{pageLabel(item)}</option>)}
                 </select>
@@ -469,7 +469,7 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                         maxLength={PAGE_TITLE_MAX_LENGTH}
                         onChange={(event) => setNewPageTitle(event.target.value)}
                         placeholder="Titre affiché dans la navigation"
-                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#0F172A] px-3 py-2 text-sm text-white outline-none focus:border-primary/50 sm:max-w-sm"
+                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-white outline-none focus:border-primary/50 sm:max-w-sm"
                     />
                     <span className="text-xs text-slate-400">Adresse : #/{newPageTitle.trim() ? proposedPath(document, newPageTitle) : '...'}</span>
                     <button type="submit" className={button} disabled={!newPageTitle.trim()}>Créer la page</button>
@@ -490,12 +490,12 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                                     value={page.title || ''}
                                     maxLength={PAGE_TITLE_MAX_LENGTH}
                                     onChange={(event) => editPage({ title: event.target.value }, 'title')}
-                                    className="rounded-xl border border-white/10 bg-[#0F172A] px-3 py-2 text-sm font-normal text-white outline-none focus:border-primary/50"
+                                    className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm font-normal text-white outline-none focus:border-primary/50"
                                 />
                             </label>
                             <label className="flex flex-col gap-1 text-xs font-bold text-slate-400">
                                 Adresse
-                                <span className="flex items-center rounded-xl border border-white/10 bg-[#0F172A] focus-within:border-primary/50">
+                                <span className="flex items-center rounded-xl border border-white/10 bg-background focus-within:border-primary/50">
                                     <span className="pl-3 text-sm font-normal text-slate-500" aria-hidden="true">#/</span>
                                     <input
                                         value={page.path || ''}
@@ -520,7 +520,7 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
                                 <select
                                     value={pageMenu(page)}
                                     onChange={(event) => editPage({ menu: event.target.value as PageMenu }, 'menu')}
-                                    className="rounded-xl border border-white/10 bg-[#0F172A] px-3 py-2 text-sm font-normal text-white"
+                                    className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm font-normal text-white"
                                 >
                                     {PAGE_MENUS.map((option) => (
                                         <option key={option.value} value={option.value} disabled={option.value === 'header' && !headerAvailable && pageMenu(page) !== 'header'}>{option.label}</option>
@@ -724,7 +724,7 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
             </div>
             {addAt !== null && page && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={() => setAddAt(null)}>
-                    <div role="dialog" aria-modal="true" aria-labelledby="editor-add-title" className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-2xl border border-white/10 bg-[#0F172A] text-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+                    <div role="dialog" aria-modal="true" aria-labelledby="editor-add-title" className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-2xl border border-white/10 bg-background text-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-start gap-3 border-b border-white/10 p-4">
                             <div className="min-w-0 flex-1">
                                 <p id="editor-add-title" className="text-base font-black">Ajouter une section</p>

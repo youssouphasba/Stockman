@@ -53,7 +53,7 @@ export default function AnalyticsKpiDetailsModal({
 
     return (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4 py-6">
-            <div className="w-full max-w-6xl rounded-3xl border border-white/10 bg-[#0F172A] shadow-2xl">
+            <div className="w-full max-w-6xl rounded-3xl border border-white/10 bg-background shadow-2xl">
                 <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
                     <div>
                         <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Analyse detaillee</p>

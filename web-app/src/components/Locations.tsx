@@ -388,7 +388,7 @@ export default function Locations() {
     ];
 
     return (
-        <div className="custom-scrollbar flex-1 overflow-y-auto bg-[#0F172A] p-8">
+        <div className="custom-scrollbar flex-1 overflow-y-auto bg-background p-8">
             <ScreenGuide steps={locationSteps} guideKey="locations_tour" />
             <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -445,7 +445,7 @@ export default function Locations() {
                         <select
                             value={rootParentId}
                             onChange={(event) => setRootParentId(event.target.value)}
-                            className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+                            className="w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
                         >
                             <option value="">À la racine</option>
                             {sortedActiveLocations.map((loc) => (
@@ -541,7 +541,7 @@ export default function Locations() {
                                             value={level.start}
                                             onChange={(event) => updateLevel(level.id, { start: event.target.value.replace(/[^0-9]/g, '') })}
                                             placeholder="Premier numéro"
-                                            className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+                                            className="w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
                                         />
                                         <input
                                             type="number"
@@ -549,21 +549,21 @@ export default function Locations() {
                                             value={level.count}
                                             onChange={(event) => updateLevel(level.id, { count: event.target.value.replace(/[^0-9]/g, '') })}
                                             placeholder="Quantité"
-                                            className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+                                            className="w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
                                         />
                                         <input
                                             type="text"
                                             value={level.prefix}
                                             onChange={(event) => updateLevel(level.id, { prefix: event.target.value })}
                                             placeholder="Texte avant le numéro"
-                                            className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+                                            className="w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
                                         />
                                         <input
                                             type="text"
                                             value={level.suffix}
                                             onChange={(event) => updateLevel(level.id, { suffix: event.target.value })}
                                             placeholder="Texte après le numéro"
-                                            className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+                                            className="w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
                                         />
                                     </div>
                                 ) : (
@@ -573,7 +573,7 @@ export default function Locations() {
                                             onChange={(event) => updateLevel(level.id, { names: event.target.value })}
                                             placeholder="Un nom par ligne ou séparés par des virgules"
                                             rows={4}
-                                            className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+                                            className="w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
                                         />
                                     </div>
                                 )}
@@ -613,7 +613,7 @@ export default function Locations() {
                             type="checkbox"
                             checked={reactivateExisting}
                             onChange={(event) => setReactivateExisting(event.target.checked)}
-                            className="h-4 w-4 rounded border-white/20 bg-[#0F172A] text-primary focus:ring-primary"
+                            className="h-4 w-4 rounded border-white/20 bg-background text-primary focus:ring-primary"
                         />
                         Réactiver les emplacements déjà existants
                     </label>
@@ -653,7 +653,7 @@ export default function Locations() {
                             value={newType}
                             onChange={(event) => setNewType(event.target.value)}
                             placeholder="Type (allée, rayon, étagère...)"
-                            className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+                            className="w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
                         />
                         <datalist id="location-type-options-manual">
                             {TYPE_SUGGESTIONS.map((type) => (
@@ -664,7 +664,7 @@ export default function Locations() {
                     <select
                         value={newParent}
                         onChange={(event) => setNewParent(event.target.value)}
-                        className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
+                        className="w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50"
                     >
                         <option value="">Aucun parent</option>
                         {sortedActiveLocations.map((loc) => (
@@ -795,7 +795,7 @@ export default function Locations() {
                                                 list="location-type-options-edit"
                                                 value={editingType}
                                                 onChange={(event) => setEditingType(event.target.value)}
-                                                className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-2 text-sm text-white outline-none focus:border-primary/50"
+                                                className="w-full rounded-2xl border border-white/10 bg-background px-4 py-2 text-sm text-white outline-none focus:border-primary/50"
                                             />
                                             <datalist id="location-type-options-edit">
                                                 {TYPE_SUGGESTIONS.map((type) => (
@@ -805,7 +805,7 @@ export default function Locations() {
                                             <select
                                                 value={editingParent}
                                                 onChange={(event) => setEditingParent(event.target.value)}
-                                                className="w-full rounded-2xl border border-white/10 bg-[#0F172A] px-4 py-2 text-sm text-white outline-none focus:border-primary/50"
+                                                className="w-full rounded-2xl border border-white/10 bg-background px-4 py-2 text-sm text-white outline-none focus:border-primary/50"
                                             >
                                                 <option value="">Aucun parent</option>
                                                 {parentOptions.map((item) => (

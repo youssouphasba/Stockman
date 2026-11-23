@@ -156,7 +156,7 @@ function TicketCard({ ticket, readyItems, onItemReady, onServed }: TicketCardPro
     return (
         <div
             className={`
-                relative bg-[#1E293B] rounded-2xl border-2 overflow-hidden
+                relative bg-surface-raised rounded-2xl border-2 overflow-hidden
                 transition-all duration-300
                 ${urgent
                     ? 'border-rose-500/70 shadow-[0_0_20px_rgba(239,68,68,0.15)]'
@@ -399,7 +399,7 @@ export default function KitchenDisplay() {
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#0F172A]">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background">
             {/* Inject urgentPulse keyframe */}
             <style>{`
                 @keyframes urgentPulse {

@@ -1478,7 +1478,7 @@ export default function AdminDashboard() {
 
     if (loading) {
         return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 p-8 flex items-center justify-center bg-background">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
             </div>
         );
@@ -1522,12 +1522,12 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-background">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             {notificationsOpen && (
                 <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
-                    <div className="w-full max-w-xl bg-[#0F172A] border-l border-white/10 shadow-2xl flex flex-col">
+                    <div className="w-full max-w-xl bg-background border-l border-white/10 shadow-2xl flex flex-col">
                         <div className="p-5 border-b border-white/10 flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-primary">Centre de notifications</p>
@@ -1606,8 +1606,8 @@ export default function AdminDashboard() {
             {detailUser && (
                 <div className="fixed inset-0 z-50 flex">
                     <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={() => setDetailUser(null)} />
-                    <div className="w-full max-w-lg bg-[#0F172A] border-l border-white/10 overflow-y-auto flex flex-col shadow-2xl">
-                        <div className="flex items-start justify-between p-5 border-b border-white/10 sticky top-0 bg-[#0F172A] z-10">
+                    <div className="w-full max-w-lg bg-background border-l border-white/10 overflow-y-auto flex flex-col shadow-2xl">
+                        <div className="flex items-start justify-between p-5 border-b border-white/10 sticky top-0 bg-background z-10">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-black shrink-0">
                                     {(detailUser.name || '?').charAt(0).toUpperCase()}
@@ -1620,7 +1620,7 @@ export default function AdminDashboard() {
                             <button onClick={() => setDetailUser(null)} className="text-slate-500 hover:text-white p-1"><X size={18} /></button>
                         </div>
                         {/* Drawer tabs */}
-                        <div className="flex border-b border-white/10 px-4 gap-1 bg-[#0F172A] sticky top-[73px] z-10">
+                        <div className="flex border-b border-white/10 px-4 gap-1 bg-background sticky top-[73px] z-10">
                             {([['info', 'Infos'], ['history', 'Historique'], ['flags', 'Feature flags'], ['limits', 'Limites']] as const).map(([id, label]) => (
                                 <button key={id} onClick={() => setDrawerTab(id)} className={`px-4 py-3 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${drawerTab === id ? 'border-primary text-white' : 'border-transparent text-slate-500 hover:text-white'}`}>
                                     {label}
@@ -1882,7 +1882,7 @@ export default function AdminDashboard() {
 
             {noteModalUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#1E293B] border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+                    <div className="bg-surface-raised border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-black text-white">Note interne — {noteModalUser.name}</h3>
                             <button onClick={() => setNoteModalUser(null)} className="text-slate-500 hover:text-white"><X size={18} /></button>
@@ -1906,7 +1906,7 @@ export default function AdminDashboard() {
 
             {confirmDeleteUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#1E293B] border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+                    <div className="bg-surface-raised border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="p-2 rounded-xl bg-red-500/10">
                                 <Trash2 size={20} className="text-red-400" />

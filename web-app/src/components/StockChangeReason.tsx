@@ -67,7 +67,7 @@ export function StockChangeReasonDialog({ open, direction, subtitle, initialKind
     const confirmTone = direction === 'in' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-amber-500 hover:bg-amber-400';
     return (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#1E293B] p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-surface-raised p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
                 <h3 className="text-lg font-black text-white">Pourquoi le stock change ?</h3>
                 <p className="mt-1 mb-4 text-sm text-slate-400">{subtitle}</p>
                 <StockChangeReasonChips direction={direction} value={kind} onChange={setKind} />

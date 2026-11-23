@@ -17,7 +17,7 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
             <div
-                className="w-full max-w-lg bg-[#1E293B] rounded-t-2xl p-4 md:p-6 max-h-[85vh] overflow-y-auto custom-scrollbar"
+                className="w-full max-w-lg bg-surface-raised rounded-t-2xl p-4 md:p-6 max-h-[85vh] overflow-y-auto custom-scrollbar"
                 onClick={e => e.stopPropagation()}
             >
                 {children}
@@ -35,7 +35,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     );
 }
 
-const input = "w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-secondary/50";
+const input = "w-full bg-background border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-secondary/50";
 const btn = (color: string) => `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${color}`;
 
 export default function ProductionView({ onNavigate }: { onNavigate?: (page: string) => void }) {
@@ -212,7 +212,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
     }
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-[#0F172A] p-6 overflow-y-auto">
+        <div className="flex-1 flex flex-col h-full bg-background p-6 overflow-y-auto">
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-black text-white flex items-center gap-3">

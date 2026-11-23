@@ -189,14 +189,14 @@ export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseO
 
     if (loading) {
         return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 p-8 flex items-center justify-center bg-background">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
             </div>
         );
     }
     if (!subDetails) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[#0F172A] p-8 text-center text-slate-300">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-background p-8 text-center text-slate-300">
                 <p role="status">{t('home.web_read_only.subscription_load_error')}</p>
                 <button type="button" onClick={() => void loadSubDetails()} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary/15 px-3 font-semibold text-primary">
                     <RefreshCw size={16} aria-hidden="true" />
@@ -272,7 +272,7 @@ export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseO
     ];
 
     return (
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-[#0F172A]">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scrollbar bg-background">
             <ScreenGuide guideKey="subscription_tour" steps={subscriptionSteps} />
             {error && (
                 <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between gap-4">
@@ -342,7 +342,7 @@ export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseO
                                 </div>
                             </div>
                         </div>
-                        <div className="rounded-2xl border border-white/10 bg-[#0F172A]/60 p-5 lg:max-w-sm">
+                        <div className="rounded-2xl border border-white/10 bg-background/60 p-5 lg:max-w-sm">
                             <p className="text-sm font-black text-white">{t('subscription_upgrade.unchanged')}</p>
                             <ul className="mt-3 space-y-2 text-sm text-slate-300">
                                 <li>{t('subscription_upgrade.account')}</li>

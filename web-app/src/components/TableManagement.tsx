@@ -137,7 +137,7 @@ function ContextMenu({ table, position, onClose, onAction, onDelete }: ContextMe
         <div
             ref={menuRef}
             style={menuStyle}
-            className="w-48 overflow-hidden rounded-xl border border-white/10 bg-[#1E293B] shadow-2xl"
+            className="w-48 overflow-hidden rounded-xl border border-white/10 bg-surface-raised shadow-2xl"
         >
             <div className="border-b border-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 {table.name}
@@ -234,7 +234,7 @@ function TableCard({ table, onClick, onContextMenu }: TableCardProps) {
             onTouchEnd={handleTouchEnd}
             onTouchMove={handleTouchEnd}
             className={`
-                group relative cursor-pointer select-none rounded-2xl border-2 bg-[#1E293B] p-5
+                group relative cursor-pointer select-none rounded-2xl border-2 bg-surface-raised p-5
                 transition-all duration-200
                 ${colors.border} ${colors.bg}
                 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]
@@ -379,14 +379,14 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
 
     if (loading) {
         return (
-            <div className="flex flex-1 items-center justify-center bg-[#0F172A]">
+            <div className="flex flex-1 items-center justify-center bg-background">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
             </div>
         );
     }
 
     return (
-        <div className="flex flex-1 flex-col overflow-hidden bg-[#0F172A]">
+        <div className="flex flex-1 flex-col overflow-hidden bg-background">
             {contextMenu && (
                 <ContextMenu
                     table={contextMenu.table}

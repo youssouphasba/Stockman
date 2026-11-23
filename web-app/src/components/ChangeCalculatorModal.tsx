@@ -34,7 +34,7 @@ export default function ChangeCalculatorModal({ isOpen, onClose, totalAmount, on
 
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
-            <div className="w-full max-w-sm bg-[#1E293B] rounded-t-2xl p-6 pb-8" onClick={e => e.stopPropagation()}>
+            <div className="w-full max-w-sm bg-surface-raised rounded-t-2xl p-6 pb-8" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex justify-between items-center mb-5">
                     <h2 className="text-lg font-black text-white">{t('pos.change_calculator', 'Calculateur de monnaie')}</h2>

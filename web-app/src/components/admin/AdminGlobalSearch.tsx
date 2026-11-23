@@ -83,7 +83,7 @@ export default function AdminGlobalSearch({ onOpenUser, onOpenSection }: Props) 
             </div>
 
             {open && query.trim().length >= 2 ? (
-                <div className="absolute right-0 z-40 mt-2 w-full md:w-[28rem] max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0F172A] shadow-2xl p-2">
+                <div className="absolute right-0 z-40 mt-2 w-full md:w-[28rem] max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-background shadow-2xl p-2">
                     {loading && !result ? <p className="p-3 text-sm text-slate-500">Recherche…</p> : null}
                     {empty ? <p className="p-3 text-sm text-slate-500">Aucun résultat pour « {result?.query} ».</p> : null}
 

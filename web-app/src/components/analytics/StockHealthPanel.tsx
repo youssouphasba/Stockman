@@ -34,7 +34,7 @@ function RiskColumn({ title, accent, items, renderMeta, emptyLabel }: RiskColumn
                     </div>
                 ) : (
                     items.map((item) => (
-                        <div key={item.product_id} className="rounded-2xl border border-white/10 bg-[#111827] px-4 py-3">
+                        <div key={item.product_id} className="rounded-2xl border border-white/10 bg-surface px-4 py-3">
                             <div className="flex items-center justify-between gap-3">
                                 <p className="font-bold text-white truncate">{item.name}</p>
                                 <p className="text-xs font-black text-slate-400">{item.quantity}</p>

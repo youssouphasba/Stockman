@@ -115,7 +115,7 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
     ];
 
     return (
-        <div className="flex-1 overflow-y-auto bg-[#0F172A] p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto bg-background p-8 custom-scrollbar">
             <ScreenGuide steps={ordersSteps} guideKey="orders_tour" />
             <header className="mb-10 flex items-center justify-between gap-4">
                 <div>

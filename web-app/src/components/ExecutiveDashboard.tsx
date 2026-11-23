@@ -109,7 +109,7 @@ export default function ExecutiveDashboard({ onNavigate, canUseAdvancedAnalytics
 
     if (loading && !overview) {
         return (
-            <div className="flex flex-1 items-center justify-center bg-[#0F172A]">
+            <div className="flex flex-1 items-center justify-center bg-background">
                 <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
             </div>
         );
@@ -202,7 +202,7 @@ export default function ExecutiveDashboard({ onNavigate, canUseAdvancedAnalytics
 
     return (
         <>
-        <div className="flex-1 overflow-y-auto bg-[#0F172A] px-6 pb-8 pt-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto bg-background px-6 pb-8 pt-6 custom-scrollbar">
             <ScreenGuide guideKey="executive_dashboard_tour" steps={executiveSteps} />
             <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div>
@@ -435,7 +435,7 @@ export default function ExecutiveDashboard({ onNavigate, canUseAdvancedAnalytics
                         {Array.isArray(nlResult.data) && nlResult.data.length > 0 && (
                             <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
                                 {nlResult.data.slice(0, 12).map((item: any, index: number) => (
-                                    <div key={`${item.label || 'item'}-${index}`} className="rounded-xl border border-white/5 bg-[#111827]/80 p-3">
+                                    <div key={`${item.label || 'item'}-${index}`} className="rounded-xl border border-white/5 bg-surface/80 p-3">
                                         <p className="truncate text-[10px] font-black uppercase tracking-widest text-slate-500">{item.label}</p>
                                         <p className="mt-1 text-sm font-black text-white">{typeof item.value === 'number' ? item.value.toLocaleString('fr-FR') : item.value}</p>
                                         {item.revenue != null && <p className="mt-1 text-[10px] text-slate-500">{item.revenue.toLocaleString('fr-FR')} CA</p>}
@@ -463,7 +463,7 @@ export default function ExecutiveDashboard({ onNavigate, canUseAdvancedAnalytics
                         {contextualTips.map((tip: any) => (
                             <div
                                 key={tip.id}
-                                className="rounded-2xl border border-white/10 bg-[#111827]/80 p-4"
+                                className="rounded-2xl border border-white/10 bg-surface/80 p-4"
                                 style={{ borderLeftColor: `${tip.color}55`, borderLeftWidth: 3 }}
                             >
                                 <p className="text-sm font-black text-white">{tip.title}</p>
@@ -484,7 +484,7 @@ export default function ExecutiveDashboard({ onNavigate, canUseAdvancedAnalytics
                         {overview.recommendations.map((recommendation, index) => (
                             <div
                                 key={`${index}-${recommendation}`}
-                                className="rounded-2xl border border-white/10 bg-[#111827]/80 px-4 py-4 text-sm leading-6 text-slate-200"
+                                className="rounded-2xl border border-white/10 bg-surface/80 px-4 py-4 text-sm leading-6 text-slate-200"
                             >
                                 {recommendation}
                             </div>

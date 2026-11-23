@@ -29,7 +29,7 @@ const CORPS_OPTIONS = [
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
-            <div className="w-full max-w-lg bg-[#1E293B] rounded-t-2xl p-4 md:p-6 max-h-[85vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+            <div className="w-full max-w-lg bg-surface-raised rounded-t-2xl p-4 md:p-6 max-h-[85vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-5">
                     <h2 className="text-lg font-black text-white">{title}</h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-white"><XCircle size={22} /></button>
@@ -49,7 +49,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     );
 }
 
-const input = "w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary/50";
+const input = "w-full bg-background border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary/50";
 
 const statusColor = (s: string) => {
     switch (s) {
@@ -241,7 +241,7 @@ export default function ProjectView() {
         .sort((a, b) => new Date(b.sit.date).getTime() - new Date(a.sit.date).getTime());
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-[#0F172A] p-6 overflow-y-auto">
+        <div className="flex-1 flex flex-col h-full bg-background p-6 overflow-y-auto">
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-black text-white flex items-center gap-3">
@@ -613,7 +613,7 @@ export default function ProjectView() {
                                         setSelectedProject(updated);
                                         setProjectList(prev => prev.map(p => p.project_id === updated.project_id ? updated : p));
                                     }}
-                                    className="bg-[#0F172A] border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none"
+                                    className="bg-background border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none"
                                 >
                                     <option value="pending">En attente</option>
                                     <option value="in_progress">En cours</option>

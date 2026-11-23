@@ -61,7 +61,7 @@ export default function Reservations() {
     };
 
     return (
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A]">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-background">
             <header className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-1">Reservations</h1>
@@ -101,7 +101,7 @@ export default function Reservations() {
                         </div>
                         <div className="flex flex-col gap-1">
                             <label className="text-xs text-slate-400">Table</label>
-                            <select value={form.table_id} onChange={e => setForm(f => ({ ...f, table_id: e.target.value }))} className="bg-[#0F172A] border border-white/10 rounded-xl p-3 text-white outline-none text-sm">
+                            <select value={form.table_id} onChange={e => setForm(f => ({ ...f, table_id: e.target.value }))} className="bg-background border border-white/10 rounded-xl p-3 text-white outline-none text-sm">
                                 <option value="">— Sans preference —</option>
                                 {tableList.map(t => <option key={t.table_id} value={t.table_id}>{t.name} ({t.capacity} pers.)</option>)}
                             </select>
@@ -147,7 +147,7 @@ export default function Reservations() {
                                 <select
                                     value={r.status}
                                     onChange={e => updateStatus(r, e.target.value)}
-                                    className="bg-[#0F172A] border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none"
+                                    className="bg-background border border-white/10 rounded-lg p-1.5 text-white text-xs outline-none"
                                 >
                                     {Object.keys(STATUS_STYLES).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
                                 </select>

@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 
 export function Providers({ children }: { children: ReactNode }) {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-[#0F172A]" />}>
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
             <ThemeProvider>
                 {children}
             </ThemeProvider>

@@ -912,7 +912,7 @@ export default function Accounting() {
 
     if (loading && !stats) {
         return (
-            <div className="flex-1 p-8 flex items-center justify-center bg-[#0F172A]">
+            <div className="flex-1 p-8 flex items-center justify-center bg-background">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
             </div>
         );
@@ -1156,7 +1156,7 @@ export default function Accounting() {
     };
 
     return (
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-background custom-scrollbar">
             <ScreenGuide steps={accountingSteps} guideKey="accounting_tour" />
             {/* Header */}
             <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-10">
@@ -1255,7 +1255,7 @@ export default function Accounting() {
             {/* Monthly Report Modal */}
             {showMonthlyReport && (
                 <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowMonthlyReport(false)}>
-                    <div className="bg-[#1E293B] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-surface-raised rounded-2xl border border-white/10 w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 border-b border-white/10">
                             <h2 className="text-white font-bold text-lg flex items-center gap-2"><BarChart2 size={20} className="text-purple-400" /> Rapport Mensuel IA</h2>
                             <div className="flex gap-2">
@@ -1613,7 +1613,7 @@ export default function Accounting() {
                                     { label: 'Poids des charges', value: formatPercent(stats.expense_ratio ?? 0) },
                                     { label: 'Poids des pertes', value: formatPercent(stats.loss_ratio ?? 0) },
                                 ].map((item) => (
-                                <div key={item.label} className="rounded-2xl border border-white/10 bg-[#111827]/85 px-4 py-4">
+                                <div key={item.label} className="rounded-2xl border border-white/10 bg-surface/85 px-4 py-4">
                                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
                                     <p className="mt-3 text-2xl font-black text-white">{item.value}</p>
                                 </div>
@@ -1625,7 +1625,7 @@ export default function Accounting() {
                             {stats.recommendations.map((recommendation, index) => (
                                 <div
                                     key={`${index}-${recommendation}`}
-                                    className="rounded-2xl border border-white/10 bg-[#111827]/80 px-4 py-4 text-sm leading-6 text-slate-200"
+                                    className="rounded-2xl border border-white/10 bg-surface/80 px-4 py-4 text-sm leading-6 text-slate-200"
                                 >
                                     {recommendation}
                                 </div>
@@ -1776,7 +1776,7 @@ export default function Accounting() {
                                     <Filter size={18} />
                                 </button>
                                 {isExpenseFilterOpen && (
-                                    <div className="absolute top-full right-0 mt-2 w-48 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
+                                    <div className="absolute top-full right-0 mt-2 w-48 bg-surface-raised border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
                                         <button onClick={() => { setFilterExpenseCategory('all'); setIsExpenseFilterOpen(false); }}
                                             className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${filterExpenseCategory === 'all' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                                             Toutes catégories
@@ -2423,7 +2423,7 @@ export default function Accounting() {
             {/* Free Invoice Creation Modal */}
             {showFreeInvoiceModal && (
                 <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={requestCloseFreeInvoiceModal}>
-                    <div className="bg-[#1E293B] rounded-2xl border border-white/10 w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-surface-raised rounded-2xl border border-white/10 w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 border-b border-white/10">
                             <h2 className="text-white font-bold text-lg flex items-center gap-2">
                                 <FileText size={20} className="text-emerald-400" /> Nouvelle facture libre

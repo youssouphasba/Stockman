@@ -143,7 +143,7 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
             <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-            <div className="relative w-full max-w-md bg-[#0F172A] border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="relative w-full max-w-md bg-background border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
                     {tab === 'detail' ? (
                         <button onClick={() => { setTab('list'); setSelectedItem(null); }} className="flex items-center gap-2 text-slate-400 hover:text-white">

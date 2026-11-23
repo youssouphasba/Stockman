@@ -145,7 +145,7 @@ export default function PricingPageClient() {
     };
 
     return (
-        <main className="min-h-screen bg-[#0F172A] overflow-y-auto">
+        <main className="min-h-screen bg-background overflow-y-auto">
             <section className="border-b border-white/5 bg-gradient-to-b from-primary/10 to-transparent">
                 <div className="max-w-5xl mx-auto px-6 py-16 text-center">
                     <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">Tarifs transparents</p>
@@ -195,7 +195,7 @@ export default function PricingPageClient() {
                         <select
                             value={selectedCountry.code}
                             onChange={(e) => setSelectedCountryCode(e.target.value)}
-                            className="w-full bg-[#0F172A] border border-white/10 rounded-xl p-3 text-white"
+                            className="w-full bg-background border border-white/10 rounded-xl p-3 text-white"
                         >
                             {COUNTRIES.map((country) => (
                                 <option key={country.code} value={country.code}>

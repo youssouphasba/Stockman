@@ -1577,7 +1577,7 @@ export default function Suppliers() {
     ];
 
     return (
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-[#0F172A] custom-scrollbar flex flex-col">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto bg-background custom-scrollbar flex flex-col">
             <ScreenGuide steps={suppliersSteps} guideKey="suppliers_tour" />
             <header className="flex justify-between items-center mb-8">
                 <div>
@@ -1798,7 +1798,7 @@ export default function Suppliers() {
                                                     <MoreVertical size={20} />
                                                 </button>
                                                 {contextMenuSupplierId === s.supplier_id && (
-                                                    <div className="absolute top-full right-0 mt-1 w-40 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                                                    <div className="absolute top-full right-0 mt-1 w-40 bg-surface-raised border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
                                                         <button
                                                             onClick={() => { openSupplierDetails(s, 'manual'); setContextMenuSupplierId(null); }}
                                                             className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-all"
@@ -2695,7 +2695,7 @@ export default function Suppliers() {
                                     <span>{regionFilter || 'Région'}</span>
                                 </button>
                                 {isRegionDropdownOpen && (
-                                    <div className="absolute top-full right-0 mt-2 w-40 bg-[#1E293B] border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
+                                    <div className="absolute top-full right-0 mt-2 w-40 bg-surface-raised border border-white/10 rounded-2xl shadow-2xl z-50 p-2">
                                         {marketplaceCitySuggestions.map(region => (
                                             <button
                                                 key={region}
@@ -2825,7 +2825,7 @@ export default function Suppliers() {
                                     <div key={s.supplier_user_id} className="glass-card overflow-hidden hover:border-primary/50 transition-all group">
                                         <div className="h-20 bg-gradient-to-r from-primary/20 to-primary/5 relative">
                                             <div className="absolute -bottom-4 left-4">
-                                                <div className="w-12 h-12 rounded-xl bg-[#0F172A] border-2 border-[#0F172A] shadow-lg flex items-center justify-center text-white overflow-hidden">
+                                                <div className="w-12 h-12 rounded-xl bg-background border-2 border-[#0F172A] shadow-lg flex items-center justify-center text-white overflow-hidden">
                                                     {s.logo_url ? (
                                                         <img src={s.logo_url} alt={s.name} className="w-full h-full object-cover" />
                                                     ) : (
@@ -2924,7 +2924,7 @@ export default function Suppliers() {
             {/* Modal: New Supplier */}
             {showSupplierModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-[#1E293B] border border-white/10 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-surface-raised border border-white/10 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white">Ajouter un Fournisseur</h2>
                             <button onClick={requestCloseSupplierModal} className="p-2 text-slate-400 hover:text-white">
@@ -2996,7 +2996,7 @@ export default function Suppliers() {
             {/* Modal: Link Supplier To Suggestion */}
             {showSuggestionLinkModal && pendingSuggestion && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-                    <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-[#1E293B] shadow-2xl">
+                    <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-surface-raised shadow-2xl">
                         <div className="flex items-center justify-between border-b border-white/10 p-6">
                             <div>
                                 <h2 className="text-lg font-black text-white">Associer un fournisseur</h2>
@@ -3061,7 +3061,7 @@ export default function Suppliers() {
             {/* Modal: New Order */}
             {showOrderModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-[#1E293B] border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-surface-raised border border-white/10 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white">{t('suppliers.order_modal.title', 'Créer un Bon de Commande')}</h2>
                             <button onClick={requestCloseOrderModal} className="p-2 text-slate-400 hover:text-white">
@@ -3115,7 +3115,7 @@ export default function Suppliers() {
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{t('suppliers.order_modal.add_product', 'Ajouter un produit')}</label>
                                     <select
-                                        className="w-full bg-[#1E293B] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-primary/50"
+                                        className="w-full bg-surface-raised border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-primary/50"
                                         onChange={(e) => {
                                             const prodId = e.target.value;
                                             if (!prodId) return;
@@ -3184,7 +3184,7 @@ export default function Suppliers() {
                                                                 ...orderForm,
                                                                 items: orderForm.items.map((it, i) => i === idx ? { ...it, quantity: parseInt(e.target.value) || 0 } : it)
                                                             })}
-                                                            className="w-full bg-[#1E293B] border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:border-primary/50 outline-none"
+                                                            className="w-full bg-surface-raised border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:border-primary/50 outline-none"
                                                         />
                                                     </div>
                                                     <div className="col-span-3 text-right text-sm text-slate-300 font-medium">
@@ -3237,7 +3237,7 @@ export default function Suppliers() {
 
             {showReturnModal && (
                 <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-[#1E293B] border border-white/10 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-surface-raised border border-white/10 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <div>
                                 <h2 className="text-xl font-bold text-white">Créer un retour fournisseur</h2>
@@ -3291,7 +3291,7 @@ export default function Suppliers() {
                                 ) : (
                                     <div className="space-y-3">
                                         {returnForm.items.map((item, idx) => (
-                                            <div key={`${item.product_id}-${idx}`} className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center rounded-xl border border-white/5 bg-[#0F172A] px-4 py-3">
+                                            <div key={`${item.product_id}-${idx}`} className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center rounded-xl border border-white/5 bg-background px-4 py-3">
                                                 <div className="lg:col-span-5">
                                                     <p className="text-sm font-bold text-white">{item.product_name}</p>
                                                     <p className="text-xs text-slate-500">{formatCurrency(item.unit_price || 0)}</p>
@@ -3363,7 +3363,7 @@ export default function Suppliers() {
             {/* Modal: Order Details */}
             {showOrderDetails && (
                 <div className="fixed inset-0 z-50 flex items-center justify-end p-0 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-[#0F172A] border-l border-white/10 h-full w-full max-w-2xl shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+                    <div className="bg-background border-l border-white/10 h-full w-full max-w-2xl shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
                         <div className="p-8 border-b border-white/10 flex justify-between items-center">
                             <div>
                                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
@@ -3504,7 +3504,7 @@ export default function Suppliers() {
                                                                 max={remaining}
                                                                 value={currentPartialItem?.received_quantity || ''}
                                                                 placeholder="0"
-                                                                className="w-20 bg-[#0F172A] border border-white/10 rounded-lg px-3 py-1 text-white text-sm text-center outline-none focus:border-indigo-500"
+                                                                className="w-20 bg-background border border-white/10 rounded-lg px-3 py-1 text-white text-sm text-center outline-none focus:border-indigo-500"
                                                                 onChange={(e) => {
                                                                     const val = parseInt(e.target.value) || 0;
                                                                     setPartialItems(prev => {
@@ -3540,7 +3540,7 @@ export default function Suppliers() {
                                                             step="0.0001"
                                                             value={currentPartialItem?.actual_unit_price ?? ''}
                                                             placeholder={String(item.unit_price || 0)}
-                                                            className="w-full bg-[#0F172A] border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-indigo-500"
+                                                            className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-indigo-500"
                                                             onChange={(e) => {
                                                                 const raw = e.target.value.trim().replace(',', '.');
                                                                 const parsed = raw === '' ? undefined : Number.parseFloat(raw);

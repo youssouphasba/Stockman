@@ -1946,7 +1946,7 @@ export default function Inventory() {
                             <ChevronDown size={14} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
                         </button>
                         {showExportMenu && (
-                            <div className="absolute right-0 top-full mt-1 bg-[#1E293B] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
+                            <div className="absolute right-0 top-full mt-1 bg-surface-raised border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[180px]">
                                 <button
                                     onClick={() => { exportInventory(filteredProducts, 'F', 'excel'); setShowExportMenu(false); }}
                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm theme-text hover:bg-white/10 transition-colors"
@@ -1974,7 +1974,7 @@ export default function Inventory() {
                             <ChevronDown size={14} className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} />
                         </button>
                         {showCreateMenu && (
-                            <div className="absolute right-0 top-full z-50 mt-1 min-w-[260px] overflow-hidden rounded-2xl border border-white/10 bg-[#1E293B] shadow-2xl">
+                            <div className="absolute right-0 top-full z-50 mt-1 min-w-[260px] overflow-hidden rounded-2xl border border-white/10 bg-surface-raised shadow-2xl">
                                 <button
                                     onClick={handleOpenAddModal}
                                     className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-white transition-colors hover:bg-white/10"
@@ -3513,7 +3513,7 @@ export default function Inventory() {
             {/* Location Transfer Modal */}
             {isLocationTransferOpen && locationTransferProduct && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                    <div className="bg-surface-raised border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
                         <div className="flex items-center gap-3 mb-5">
                             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
                                 <MapPin size={20} />
@@ -3581,7 +3581,7 @@ export default function Inventory() {
             {/* Stock Transfer Modal */}
             {isTransferOpen && transferProduct && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                    <div className="bg-surface-raised border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
                         <div className="flex items-center gap-3 mb-5">
                             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
                                 <ArrowLeftRight size={20} />
@@ -3603,7 +3603,7 @@ export default function Inventory() {
                                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary/50"
                                 >
                                     {storeList.filter(s => s.store_id !== currentUser.active_store_id).map(s => (
-                                        <option key={s.store_id} value={s.store_id} className="bg-[#1a1f2e]">
+                                        <option key={s.store_id} value={s.store_id} className="bg-surface-raised">
                                             {s.name}
                                         </option>
                                     ))}
@@ -3653,7 +3653,7 @@ export default function Inventory() {
             {/* Transfer History Modal */}
             {showTransferHistory && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[80vh] flex flex-col">
+                    <div className="bg-surface-raised border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[80vh] flex flex-col">
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">

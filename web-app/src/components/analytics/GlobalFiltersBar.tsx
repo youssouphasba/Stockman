@@ -5,7 +5,7 @@ import { Calendar, ChevronDown, Filter, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAnalyticsFilters } from '../../contexts/AnalyticsFiltersContext';
 
-const FIELD_STYLE = 'min-h-11 w-full min-w-0 rounded-lg border border-white/10 bg-[#111827] px-3 text-sm text-white focus:border-primary focus:outline-none';
+const FIELD_STYLE = 'min-h-11 w-full min-w-0 rounded-lg border border-white/10 bg-surface px-3 text-sm text-white focus:border-primary focus:outline-none';
 
 export default function GlobalFiltersBar() {
     const { t, i18n } = useTranslation();

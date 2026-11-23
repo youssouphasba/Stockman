@@ -229,7 +229,7 @@ export default function GrandLivreModal({ isOpen, onClose, period, startDate, en
                     ) : (
                         <div className="overflow-x-auto max-h-[40vh] md:max-h-[360px] overflow-y-auto custom-scrollbar">
                             <table className="w-full text-xs">
-                                <thead className="sticky top-0 bg-[#0F172A] border-b border-white/10 z-10">
+                                <thead className="sticky top-0 bg-background border-b border-white/10 z-10">
                                     <tr>
                                         <th className="text-left px-4 py-3 text-slate-400 font-bold uppercase tracking-widest whitespace-nowrap">Date</th>
                                         <th className="text-left px-4 py-3 text-slate-400 font-bold uppercase tracking-widest">Type</th>

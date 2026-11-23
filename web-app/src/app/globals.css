@@ -14,6 +14,14 @@
   --text-muted: #94A3B8;
   --text-secondary: #CBD5E1;
   --card-bg: #111827;
+  /* Surfaces : fond de page (--background), creux, carte, élément au premier plan */
+  --surface-sunken: #0B1220;
+  --surface: #111827;
+  --surface-raised: #1E293B;
+  /* Couleurs d'état */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --info: #0EA5E9;
   --input-bg: rgba(255, 255, 255, 0.05);
   --sidebar-bg: #0F172A;
   --sidebar-text: #94A3B8;
@@ -22,6 +30,8 @@
   --sidebar-active-text: #10B981;
   --danger: #EF4444;
   --overlay: rgba(0, 0, 0, 0.6);
+  /* Bordure des surfaces en mode clair (aucune en mode sombre) */
+  --surface-outline: transparent;
 }
 
 [data-theme="light"] {
@@ -31,6 +41,13 @@
   --surface-muted: #E2E8F0;
   --surface-soft: #F8FAFC;
   --surface-elevated: #FFFFFF;
+  --surface-sunken: #F1F5F9;
+  --surface: #FFFFFF;
+  --surface-raised: #FFFFFF;
+  --surface-outline: #E2E8F0;
+  --success: #059669;
+  --warning: #D97706;
+  --info: #0284C7;
   --glass: #FFFFFF;
   --glass-border: rgba(15, 23, 42, 0.12);
   --glass-hover: rgba(15, 23, 42, 0.06);
@@ -52,6 +69,14 @@
   --color-secondary: var(--secondary);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-line: var(--glass-border);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
 }
 
 * {
@@ -341,27 +366,13 @@ html:not([data-theme="light"]) .planner-shell .hover\:bg-slate-100:hover,
    ============================================================ */
 
 /* --- Backgrounds: hardcoded dark hex --- */
-[data-theme="light"] .bg-\[\#0F172A\],
-[data-theme="light"] .bg-\[\#0f172a\] {
-  background-color: var(--background) !important;
-}
-
-[data-theme="light"] .bg-\[\#1E293B\],
-[data-theme="light"] .bg-\[\#1e293b\] {
-  background-color: #FFFFFF !important;
-  border: 1px solid #E2E8F0 !important;
-}
-
-[data-theme="light"] .bg-\[\#111827\],
-[data-theme="light"] .bg-\[\#111827\]\/85,
-[data-theme="light"] .bg-\[\#111827\]\/80 {
-  background-color: #FFFFFF !important;
-  border: 1px solid #E2E8F0 !important;
-}
-
-[data-theme="light"] .bg-\[\#1a1f2e\] {
-  background-color: #FFFFFF !important;
-  border: 1px solid #E2E8F0 !important;
+/* Surfaces : les couleurs viennent des jetons ; en mode clair, cartes et éléments
+   au premier plan reçoivent une bordure pour se détacher du fond. */
+[data-theme="light"] .bg-surface,
+[data-theme="light"] .bg-surface\/80,
+[data-theme="light"] .bg-surface\/85,
+[data-theme="light"] .bg-surface-raised {
+  border: 1px solid var(--surface-outline) !important;
 }
 
 [data-theme="light"] .bg-\[\#0f0c29\] {
@@ -369,10 +380,6 @@ html:not([data-theme="light"]) .planner-shell .hover\:bg-slate-100:hover,
 }
 
 /* Éditeur visuel du site et portail fournisseur : fond de l'écran et scène de l'aperçu. */
-[data-theme="light"] .bg-\[\#0B1220\] {
-  background-color: var(--background) !important;
-}
-
 [data-theme="light"] .bg-\[\#060B14\] {
   background-color: var(--surface-muted) !important;
 }
@@ -792,7 +799,6 @@ html:not([data-theme="light"]) .planner-shell .hover\:bg-slate-100:hover,
 }
 
 /* --- Modal / panel content in light mode --- */
-[data-theme="light"] .bg-\[\#1a1f2e\],
 [data-theme="light"] .bg-\[\#0f0c29\] {
   background-color: #FFFFFF !important;
 }
@@ -819,12 +825,6 @@ html:not([data-theme="light"]) .planner-shell .hover\:bg-slate-100:hover,
 [data-theme="light"] .bg-primary\/10 { background-color: rgba(5, 150, 105, 0.08) !important; }
 [data-theme="light"] .bg-primary\/15 { background-color: rgba(5, 150, 105, 0.10) !important; }
 [data-theme="light"] .bg-primary\/20 { background-color: rgba(5, 150, 105, 0.12) !important; }
-
-/* --- Hardcoded dark backgrounds missed --- */
-[data-theme="light"] .bg-\[\#101826\] {
-  background-color: #FFFFFF !important;
-  border: 1px solid #E2E8F0 !important;
-}
 
 /* --- Colored text -300 (orange, sky for restaurant/POS) --- */
 [data-theme="light"] .text-orange-300 { color: #EA580C !important; }
@@ -1006,12 +1006,12 @@ html:not([data-theme="light"]) .planner-shell .hover\:bg-slate-100:hover,
 [data-theme="light"] .bg-slate-950\/30,
 [data-theme="light"] .bg-slate-800\/60,
 [data-theme="light"] .bg-slate-700\/30,
-[data-theme="light"] .bg-\[\#0F172A\]\/60,
+[data-theme="light"] .bg-background\/60,
 [data-theme="light"] .bg-black\/30 {
   background-color: #F8FAFC !important;
 }
 
-[data-theme="light"] .bg-\[\#111827\]\/95,
+[data-theme="light"] .bg-surface\/95,
 [data-theme="light"] .bg-\[\#020617\] {
   background-color: #FFFFFF !important;
 }

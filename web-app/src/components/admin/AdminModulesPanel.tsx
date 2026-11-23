@@ -20,7 +20,7 @@ function ChoiceSelect({ value, onChange, inheritLabel }: { value: RuleValue; onC
         <select
             value={choice}
             onChange={(event) => onChange(choiceToRule(event.target.value))}
-            className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold outline-none transition-colors bg-[#111827] ${choice === 'on' ? 'border-emerald-500/40 text-emerald-300' : choice === 'off' ? 'border-rose-500/40 text-rose-300' : 'border-white/10 text-slate-300'}`}
+            className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold outline-none transition-colors bg-surface ${choice === 'on' ? 'border-emerald-500/40 text-emerald-300' : choice === 'off' ? 'border-rose-500/40 text-rose-300' : 'border-white/10 text-slate-300'}`}
         >
             <option value="inherit">{inheritLabel}</option>
             <option value="on">Activé</option>
