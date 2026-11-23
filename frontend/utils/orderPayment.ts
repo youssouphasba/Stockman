@@ -13,7 +13,7 @@ export type OrderPayment = {
 type OrderLike = {
   status?: string;
   payment?: OrderPayment | null;
-  delivery?: { provider?: string; denkma_status?: string | null; parcel_status?: string | null; collection_code?: string | null; authorized_unpaid_at?: string | null } | null;
+  delivery?: { provider?: string; denkma_status?: string | null; parcel_status?: string | null; collection_code?: string | null; shipped_at?: string | null; authorized_unpaid_at?: string | null } | null;
 };
 
 export type Tone = 'neutral' | 'progress' | 'warning' | 'success';
@@ -59,6 +59,13 @@ function isPaid(order: OrderLike | null | undefined): boolean {
 
 function usesDenkma(order: OrderLike | null | undefined): boolean {
   return order?.delivery?.provider === 'denkma';
+}
+
+// « Livrer avec Denkma » already prepared and dispatched the parcel: the
+// order may still read « confirmed », but there is nothing left to mark ready.
+function denkmaLaunched(order: OrderLike | null | undefined): boolean {
+  const delivery = order?.delivery;
+  return usesDenkma(order) && (delivery?.denkma_status === 'dispatching' || delivery?.denkma_status === 'dispatched' || !!delivery?.shipped_at || !!delivery?.collection_code);
 }
 
 export function paymentState(order: OrderLike | null | undefined): { label: string; tone: Tone; hint: string } {
@@ -110,7 +117,7 @@ export function nextStep(order: OrderLike | null | undefined): NextStep | null {
     }
     return { action: 'confirm', label: tr('step_confirm', 'Confirmer la commande'), hint: order.payment?.method === 'on_delivery' ? tr('step_confirm_on_delivery_hint', 'Le client paiera à la livraison. Confirmez si vous acceptez la commande.') : tr('step_confirm_hint', 'Confirmez la commande pour commencer à la préparer.') };
   }
-  if (status === 'confirmed' || status === 'preparing') {
+  if ((status === 'confirmed' || status === 'preparing') && !denkmaLaunched(order)) {
     return { action: 'ready', label: tr('step_ready', 'Prête'), hint: usesDenkma(order) ? tr('step_ready_denkma_hint', 'Quand le colis est emballé, touchez « Prête » : un livreur Denkma viendra le chercher.') : tr('step_ready_hint', 'Quand la commande est emballée, touchez « Prête ».') };
   }
   if (usesDenkma(order)) {

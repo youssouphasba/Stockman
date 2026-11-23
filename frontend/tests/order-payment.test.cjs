@@ -55,6 +55,10 @@ test('One next step is put forward at each stage of an order', () => {
   assert.equal(p.nextStep({ status: 'ready' }).action, 'deliver');
   // Denkma livre : la commande passera à « Livrée » toute seule, aucun geste n'est demandé.
   assert.equal(p.nextStep({ status: 'ready', delivery: denkma }).action, null);
+  // « Livrer avec Denkma » already launched the parcel: no « Prête » even if the order still reads « confirmed ».
+  const launched = { provider: 'denkma', denkma_status: 'dispatched', collection_code: '266602' };
+  assert.equal(p.nextStep({ status: 'confirmed', payment: { status: 'paid' }, delivery: launched }).action, null);
+  assert.match(p.nextStep({ status: 'confirmed', delivery: launched }).hint, /Donnez-lui le code/);
   for (const status of ['delivered', 'cancelled', 'rejected']) assert.equal(p.nextStep({ status }), null);
 });
 
