@@ -275,32 +275,32 @@ export default function Planner({ user }: Props) {
 
   if (!hasEnterprisePlan) {
     return (
-      <div className="planner-shell rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+      <div className="planner-shell rounded-3xl border border-line bg-surface p-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
           <AlarmClock className="h-7 w-7" />
         </div>
-        <h2 className="text-2xl font-extrabold text-slate-900">{t('planner.enterprise_only_title')}</h2>
-        <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">{t('planner.enterprise_only_desc')}</p>
+        <h2 className="text-2xl font-extrabold text-foreground">{t('planner.enterprise_only_title')}</h2>
+        <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 theme-text-secondary">{t('planner.enterprise_only_desc')}</p>
       </div>
     );
   }
 
   return (
     <div className="planner-shell space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-line bg-surface p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-700">
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-400">
               <AlarmClock className="h-4 w-4" />
               {t('planner.badge')}
             </div>
-            <h1 className="mt-3 text-3xl font-extrabold text-slate-900">{t('planner.title')}</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t('planner.subtitle_short')}</p>
+            <h1 className="mt-3 text-3xl font-extrabold text-foreground">{t('planner.title')}</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 theme-text-secondary">{t('planner.subtitle_short')}</p>
           </div>
           <button
             type="button"
             onClick={openCreateNote}
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-line bg-surface px-5 py-3 text-sm font-bold text-foreground shadow-sm transition hover:bg-surface-soft"
           >
             <Plus className="h-4 w-4" />
             {t('planner.new_note')}
@@ -309,17 +309,17 @@ export default function Planner({ user }: Props) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t('planner.active_items')}</p>
-          <p className="mt-3 text-3xl font-extrabold text-slate-900">{summary.total}</p>
+        <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">{t('planner.active_items')}</p>
+          <p className="mt-3 text-3xl font-extrabold text-foreground">{summary.total}</p>
         </div>
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t('planner.due_today')}</p>
-          <p className="mt-3 text-3xl font-extrabold text-slate-900">{summary.dueToday}</p>
+        <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">{t('planner.due_today')}</p>
+          <p className="mt-3 text-3xl font-extrabold text-foreground">{summary.dueToday}</p>
         </div>
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t('planner.notes_section')}</p>
-          <p className="mt-3 text-3xl font-extrabold text-slate-900">{summary.notes}</p>
+        <div className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] theme-text-muted">{t('planner.notes_section')}</p>
+          <p className="mt-3 text-3xl font-extrabold text-foreground">{summary.notes}</p>
         </div>
       </div>
 
@@ -333,8 +333,8 @@ export default function Planner({ user }: Props) {
               onClick={() => setFilter(value)}
               className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 active
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                  : 'border-line bg-surface theme-text-secondary hover:border-primary/30'
               }`}
             >
               {value === 'active' ? t('planner.filter_active') : value === 'all' ? t('planner.filter_all') : t('planner.filter_completed')}
@@ -344,26 +344,26 @@ export default function Planner({ user }: Props) {
         <button
           type="button"
           onClick={loadItems}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft"
         >
           <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-line bg-surface p-6 shadow-sm">
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h2 className="text-xl font-extrabold text-slate-900">{t('planner.calendar_title')}</h2>
-            <p className="mt-2 text-sm text-slate-600">{t('planner.calendar_hint')}</p>
+            <h2 className="text-xl font-extrabold text-foreground">{t('planner.calendar_title')}</h2>
+            <p className="mt-2 text-sm theme-text-secondary">{t('planner.calendar_hint')}</p>
           </div>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
+            <button type="button" onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft">
               <RefreshCcw className="h-4 w-4 -scale-x-100" />
             </button>
-            <h3 className="min-w-48 text-center text-lg font-bold capitalize text-slate-900">
+            <h3 className="min-w-48 text-center text-lg font-bold capitalize text-foreground">
               {new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(selectedMonth)}
             </h3>
-            <button type="button" onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
+            <button type="button" onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft">
               <RefreshCcw className="h-4 w-4" />
             </button>
           </div>
@@ -371,7 +371,7 @@ export default function Planner({ user }: Props) {
 
         <div className="grid grid-cols-7 gap-3">
           {WEEKDAYS.map((label, index) => (
-            <div key={`${label}-${index}`} className="text-center text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+            <div key={`${label}-${index}`} className="text-center text-xs font-black uppercase tracking-[0.2em] theme-text-muted">
               {label}
             </div>
           ))}
@@ -393,26 +393,26 @@ export default function Planner({ user }: Props) {
                 onClick={() => openCreateReminder(key)}
                 className={`min-h-28 rounded-3xl border p-3 text-left transition ${
                   isToday
-                    ? 'border-emerald-400 bg-emerald-50'
-                    : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
+                    ? 'border-emerald-400 bg-emerald-500/10'
+                    : 'border-line bg-surface-soft hover:border-primary/30 hover:bg-surface-soft'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className={`text-sm font-black ${isToday ? 'text-emerald-700' : 'text-slate-900'}`}>{cell.date.getDate()}</span>
+                  <span className={`text-sm font-black ${isToday ? 'text-emerald-400' : 'text-foreground'}`}>{cell.date.getDate()}</span>
                   {dayItems.length > 0 ? (
-                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-black text-emerald-700">
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-[11px] font-black text-emerald-400">
                       {dayItems.length}
                     </span>
                   ) : null}
                 </div>
                 <div className="mt-3 space-y-1">
                   {firstPreview ? (
-                    <p className="line-clamp-2 text-xs font-semibold leading-5 text-slate-700">{firstPreview}</p>
+                    <p className="line-clamp-2 text-xs font-semibold leading-5 theme-text-secondary">{firstPreview}</p>
                   ) : (
-                    <p className="text-xs font-medium leading-5 text-slate-400">{t('planner.tap_to_add')}</p>
+                    <p className="text-xs font-medium leading-5 theme-text-muted">{t('planner.tap_to_add')}</p>
                   )}
                   {dayItems.length > 1 ? (
-                    <p className="text-[11px] font-semibold text-slate-500">
+                    <p className="text-[11px] font-semibold theme-text-muted">
                       {t('planner.more_items_count', { count: dayItems.length - 1 })}
                     </p>
                   ) : null}
@@ -424,61 +424,61 @@ export default function Planner({ user }: Props) {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-400">
           {error}
         </div>
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-line bg-surface p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-extrabold text-slate-900">{t('planner.reminders_section')}</h2>
-              <p className="mt-2 text-sm text-slate-600">{t('planner.reminders_section_hint')}</p>
+              <h2 className="text-xl font-extrabold text-foreground">{t('planner.reminders_section')}</h2>
+              <p className="mt-2 text-sm theme-text-secondary">{t('planner.reminders_section_hint')}</p>
             </div>
           </div>
 
           {loading ? (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">{t('common.loading')}</div>
+            <div className="rounded-3xl border border-line bg-surface-soft p-8 text-center theme-text-muted">{t('common.loading')}</div>
           ) : monthReminders.length === 0 ? (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">{t('planner.no_reminders_this_month')}</div>
+            <div className="rounded-3xl border border-line bg-surface-soft p-8 text-center theme-text-muted">{t('planner.no_reminders_this_month')}</div>
           ) : (
             <div className="space-y-4">
               {monthReminders.map((item) => (
-                <div key={item.item_id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <div key={item.item_id} className="rounded-3xl border border-line bg-surface-soft p-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-lg font-extrabold text-slate-900">{item.title || t('planner.untitled_item')}</h3>
-                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${item.is_completed ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        <h3 className="text-lg font-extrabold text-foreground">{item.title || t('planner.untitled_item')}</h3>
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${item.is_completed ? 'bg-slate-500/20 theme-text-secondary' : 'bg-emerald-500/15 text-emerald-400'}`}>
                           {item.is_completed ? t('planner.status_completed') : t('planner.status_active')}
                         </span>
                         {item.linked_customer_name ? (
-                          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+                          <span className="rounded-full bg-sky-500/10 px-3 py-1 text-xs font-bold text-sky-400">
                             Client : {item.linked_customer_name}
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2 text-sm font-semibold text-slate-500">
+                      <p className="mt-2 text-sm font-semibold theme-text-muted">
                         {formatReminderDate(item.reminder_at, locale, true)}
                       </p>
-                      {item.content ? <p className="mt-3 text-sm leading-6 text-slate-700">{item.content}</p> : null}
+                      {item.content ? <p className="mt-3 text-sm leading-6 theme-text-secondary">{item.content}</p> : null}
                       <div className="mt-4 flex flex-wrap gap-2">
                         {item.channels.map((channel) => (
-                          <span key={`${item.item_id}-${channel}`} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                          <span key={`${item.item_id}-${channel}`} className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400">
                             {t(`planner.channel_${channel}`)}
                           </span>
                         ))}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button type="button" onClick={() => toggleCompletion(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100">
+                      <button type="button" onClick={() => toggleCompletion(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft">
                         {item.is_completed ? <RefreshCcw className="h-4 w-4 text-amber-600" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
                       </button>
-                      <button type="button" onClick={() => openEdit(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100">
-                        <Pencil className="h-4 w-4 text-sky-700" />
+                      <button type="button" onClick={() => openEdit(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft">
+                        <Pencil className="h-4 w-4 text-sky-400" />
                       </button>
-                      <button type="button" onClick={() => removeItem(item.item_id)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100">
+                      <button type="button" onClick={() => removeItem(item.item_id)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-400 transition hover:bg-rose-500/20">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -489,16 +489,16 @@ export default function Planner({ user }: Props) {
           )}
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-line bg-surface p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-extrabold text-slate-900">{t('planner.notes_section')}</h2>
-              <p className="mt-2 text-sm text-slate-600">{t('planner.notes_section_hint')}</p>
+              <h2 className="text-xl font-extrabold text-foreground">{t('planner.notes_section')}</h2>
+              <p className="mt-2 text-sm theme-text-secondary">{t('planner.notes_section_hint')}</p>
             </div>
             <button
               type="button"
               onClick={openCreateNote}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-foreground transition hover:bg-surface-soft"
             >
               <Plus className="h-4 w-4" />
               {t('planner.new_note')}
@@ -506,33 +506,33 @@ export default function Planner({ user }: Props) {
           </div>
 
           {loading ? (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">{t('common.loading')}</div>
+            <div className="rounded-3xl border border-line bg-surface-soft p-8 text-center theme-text-muted">{t('common.loading')}</div>
           ) : notes.length === 0 ? (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">{t('planner.no_notes_yet')}</div>
+            <div className="rounded-3xl border border-line bg-surface-soft p-8 text-center theme-text-muted">{t('planner.no_notes_yet')}</div>
           ) : (
             <div className="space-y-4">
               {notes.map((item) => (
-                <div key={item.item_id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <div key={item.item_id} className="rounded-3xl border border-line bg-surface-soft p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-lg font-extrabold text-slate-900">{item.title || t('planner.untitled_note')}</h3>
+                        <h3 className="text-lg font-extrabold text-foreground">{item.title || t('planner.untitled_note')}</h3>
                         {item.linked_customer_name ? (
-                          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+                          <span className="rounded-full bg-sky-500/10 px-3 py-1 text-xs font-bold text-sky-400">
                             Client : {item.linked_customer_name}
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2 text-sm font-semibold text-slate-500">
+                      <p className="mt-2 text-sm font-semibold theme-text-muted">
                         {t('planner.updated_label', { value: formatReminderDate(item.updated_at, locale, true) })}
                       </p>
-                      {item.content ? <p className="mt-3 text-sm leading-6 text-slate-700">{item.content}</p> : null}
+                      {item.content ? <p className="mt-3 text-sm leading-6 theme-text-secondary">{item.content}</p> : null}
                     </div>
                     <div className="flex items-center gap-3">
-                      <button type="button" onClick={() => openEdit(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100">
-                        <Pencil className="h-4 w-4 text-sky-700" />
+                      <button type="button" onClick={() => openEdit(item)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft">
+                        <Pencil className="h-4 w-4 text-sky-400" />
                       </button>
-                      <button type="button" onClick={() => removeItem(item.item_id)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100">
+                      <button type="button" onClick={() => removeItem(item.item_id)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-400 transition hover:bg-rose-500/20">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -546,37 +546,37 @@ export default function Planner({ user }: Props) {
 
       {showForm ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-4 lg:items-center">
-          <div className="w-full max-w-3xl rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-3xl rounded-[28px] border border-line bg-surface p-6 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-extrabold text-slate-900">
+                <h2 className="text-2xl font-extrabold text-foreground">
                   {editingItem ? t('planner.edit_item') : hasReminder ? t('planner.new_reminder') : t('planner.new_note')}
                 </h2>
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="mt-2 text-sm theme-text-secondary">
                   {hasReminder ? t('planner.composer_hint_reminder') : t('planner.composer_hint_note')}
                 </p>
               </div>
-              <button type="button" onClick={() => setShowForm(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
+              <button type="button" onClick={() => setShowForm(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-bold text-slate-900">{t('planner.title_optional')}</label>
-                <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t('planner.title_placeholder')} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400" />
+                <label className="mb-2 block text-sm font-bold text-foreground">{t('planner.title_optional')}</label>
+                <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t('planner.title_placeholder')} className="w-full rounded-2xl border border-line bg-surface-soft px-4 py-3 text-sm text-foreground outline-none placeholder:text-slate-400" />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-bold text-slate-900">{t('planner.note_or_action')}</label>
-                <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder={t('planner.content_placeholder')} className="min-h-32 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400" />
+                <label className="mb-2 block text-sm font-bold text-foreground">{t('planner.note_or_action')}</label>
+                <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder={t('planner.content_placeholder')} className="min-h-32 w-full rounded-2xl border border-line bg-surface-soft px-4 py-3 text-sm text-foreground outline-none placeholder:text-slate-400" />
               </div>
 
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div className="rounded-3xl border border-line bg-surface-soft p-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <p className="text-sm font-bold text-slate-900">{t('planner.reminder_toggle_title')}</p>
-                    <p className="mt-2 text-sm text-slate-600">
+                    <p className="text-sm font-bold text-foreground">{t('planner.reminder_toggle_title')}</p>
+                    <p className="mt-2 text-sm theme-text-secondary">
                       {hasReminder ? t('planner.reminder_enabled_hint') : t('planner.reminder_disabled_hint')}
                     </p>
                   </div>
@@ -594,7 +594,7 @@ export default function Planner({ user }: Props) {
                     className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
                       hasReminder
                         ? 'border-emerald-500 bg-emerald-500 text-white'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                        : 'border-line bg-surface theme-text-secondary hover:bg-surface-soft'
                     }`}
                   >
                     {hasReminder ? t('planner.reminder_enabled') : t('planner.add_reminder')}
@@ -609,32 +609,32 @@ export default function Planner({ user }: Props) {
                         setDatePickerMonth(selectedDate ? new Date(`${selectedDate}T12:00:00`) : new Date());
                         setShowDatePicker(true);
                       }}
-                      className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left"
+                      className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-left"
                     >
                       <CalendarDays className="h-5 w-5 text-emerald-600" />
                       <div className="flex-1">
-                        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{t('planner.selected_date')}</p>
-                        <p className="mt-1 text-sm font-bold text-slate-900">
+                        <p className="text-xs font-black uppercase tracking-[0.2em] theme-text-muted">{t('planner.selected_date')}</p>
+                        <p className="mt-1 text-sm font-bold text-foreground">
                           {selectedDate ? formatDateLabel(selectedDate, locale) : t('planner.choose_date')}
                         </p>
                       </div>
                     </button>
 
                     <div>
-                      <p className="mb-2 text-sm font-bold text-slate-900">{t('planner.time_title')}</p>
-                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <p className="mb-2 text-sm font-bold text-foreground">{t('planner.time_title')}</p>
+                      <div className="rounded-2xl border border-line bg-surface px-4 py-3">
                         <input
                           type="time"
                           value={selectedTime}
                           onChange={(event) => setSelectedTime(event.target.value || '09:00')}
                           step={300}
-                          className="w-full bg-transparent text-base font-bold text-slate-900 outline-none"
+                          className="w-full bg-transparent text-base font-bold text-foreground outline-none"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <p className="mb-2 text-sm font-bold text-slate-900">{t('planner.channels_title')}</p>
+                      <p className="mb-2 text-sm font-bold text-foreground">{t('planner.channels_title')}</p>
                       <div className="flex flex-wrap gap-2">
                         {CHANNELS.map((channel) => {
                           const active = channels.includes(channel);
@@ -645,8 +645,8 @@ export default function Planner({ user }: Props) {
                               onClick={() => toggleChannel(channel)}
                               className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
                                 active
-                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                                  : 'border-line bg-surface theme-text-secondary hover:bg-surface-soft'
                               }`}
                             >
                               {t(`planner.channel_${channel}`)}
@@ -659,11 +659,11 @@ export default function Planner({ user }: Props) {
                 ) : null}
               </div>
 
-              {error ? <p className="text-sm font-semibold text-rose-700">{error}</p> : null}
+              {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
             </div>
 
             <div className="mt-6 flex flex-wrap justify-end gap-3">
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-full border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+              <button type="button" onClick={() => setShowForm(false)} className="rounded-full border border-line px-5 py-3 text-sm font-bold theme-text-secondary hover:bg-surface-soft">
                 {t('common.cancel')}
               </button>
               <button type="button" onClick={saveItem} disabled={saving} className="rounded-full bg-emerald-500 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-70">
@@ -676,32 +676,32 @@ export default function Planner({ user }: Props) {
 
       {showDatePicker ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/55 p-4">
-          <div className="w-full max-w-xl rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-xl rounded-[28px] border border-line bg-surface p-6 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-extrabold text-slate-900">{t('planner.choose_date')}</h2>
-                <p className="mt-2 text-sm text-slate-600">{t('planner.date_picker_hint')}</p>
+                <h2 className="text-2xl font-extrabold text-foreground">{t('planner.choose_date')}</h2>
+                <p className="mt-2 text-sm theme-text-secondary">{t('planner.date_picker_hint')}</p>
               </div>
-              <button type="button" onClick={() => setShowDatePicker(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
+              <button type="button" onClick={() => setShowDatePicker(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="mb-4 flex items-center gap-3">
-              <button type="button" onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1, 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
+              <button type="button" onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1, 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft">
                 <RefreshCcw className="h-4 w-4 -scale-x-100" />
               </button>
-              <h3 className="flex-1 text-center text-lg font-bold capitalize text-slate-900">
+              <h3 className="flex-1 text-center text-lg font-bold capitalize text-foreground">
                 {new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(datePickerMonth)}
               </h3>
-              <button type="button" onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() + 1, 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
+              <button type="button" onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() + 1, 1))} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface theme-text-secondary transition hover:bg-surface-soft">
                 <RefreshCcw className="h-4 w-4" />
               </button>
             </div>
 
             <div className="grid grid-cols-7 gap-3">
               {WEEKDAYS.map((label, index) => (
-                <div key={`picker-${label}-${index}`} className="text-center text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                <div key={`picker-${label}-${index}`} className="text-center text-xs font-black uppercase tracking-[0.2em] theme-text-muted">
                   {label}
                 </div>
               ))}
@@ -722,8 +722,8 @@ export default function Planner({ user }: Props) {
                     }}
                     className={`min-h-14 rounded-2xl border text-sm font-black transition ${
                       active
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                        : 'border-slate-200 bg-slate-50 text-slate-900 hover:bg-white'
+                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                        : 'border-line bg-surface-soft text-foreground hover:bg-surface-soft'
                     }`}
                   >
                     {cell.date.getDate()}
