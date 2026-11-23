@@ -103,7 +103,7 @@ export default function SmartRemindersCard({ onNavigate }: Props) {
       {/* Severity summary */}
       {(criticalCount > 0 || warningCount > 0) && (
         <View style={[styles.severityBar, { backgroundColor: criticalCount > 0 ? '#EF444410' : '#F59E0B10', borderColor: criticalCount > 0 ? '#EF444430' : '#F59E0B30' }]}>
-          <Ionicons name="warning-outline" size={14} color={criticalCount > 0 ? '#EF4444' : '#F59E0B'} />
+          <Ionicons name="warning-outline" size={14} color={criticalCount > 0 ? colors.danger : colors.warning} />
           <Text style={{ color: colors.text, fontSize: FontSize.xs, fontWeight: '600', flex: 1 }}>
             {criticalCount > 0 && t('common.count_critical', { count: criticalCount })}
             {criticalCount > 0 && warningCount > 0 && ' · '}

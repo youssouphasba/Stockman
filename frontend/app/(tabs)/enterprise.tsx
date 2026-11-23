@@ -161,7 +161,7 @@ export default function EnterpriseScreen() {
         title: t('enterprise.quick_action_subscription_title', 'Abonnement'),
         description: t('enterprise.quick_action_subscription_desc', "Voir le plan, l'échéance et la facturation du compte."),
         icon: 'card-outline',
-        color: '#F59E0B',
+        color: colors.warning,
         onPress: () => router.push('/(tabs)/subscription' as any),
       },
     ];

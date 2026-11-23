@@ -238,7 +238,7 @@ export default function DataExplorer() {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                             <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>📄 Document JSON</Text>
                             <TouchableOpacity onPress={() => setSelectedDocument(null)} style={{ backgroundColor: '#EF444422', padding: 6, borderRadius: 8 }}>
-                                <Ionicons name="close" size={18} color="#EF4444" />
+                                <Ionicons name="close" size={18} color={colors.danger} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView style={{ backgroundColor: modalInner, borderRadius: 10, padding: 14 }}>

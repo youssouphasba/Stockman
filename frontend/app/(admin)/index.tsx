@@ -571,9 +571,9 @@ export default function AdminDashboard() {
         setSeg('comms');
     };
 
-    const roleColors: Record<string, string> = { superadmin: '#EF4444', shopkeeper: '#3B82F6', staff: '#10B981', supplier: '#F59E0B' };
-    const statusColors: Record<string, string> = { open: '#F59E0B', in_progress: '#3B82F6', investigating: '#3B82F6', resolved: '#10B981', rejected: '#EF4444', closed: '#6B7280', pending: '#8B5CF6' };
-    const moduleColors: Record<string, string> = { stock: '#3B82F6', auth: '#EF4444', crm: '#10B981', pos: '#F59E0B', broadcast: '#8B5CF6', communication: '#06B6D4' };
+    const roleColors: Record<string, string> = { superadmin: colors.danger, shopkeeper: '#3B82F6', staff: colors.primary, supplier: colors.warning };
+    const statusColors: Record<string, string> = { open: colors.warning, in_progress: '#3B82F6', investigating: '#3B82F6', resolved: colors.primary, rejected: colors.danger, closed: '#6B7280', pending: '#8B5CF6' };
+    const moduleColors: Record<string, string> = { stock: '#3B82F6', auth: colors.danger, crm: colors.primary, pos: colors.warning, broadcast: '#8B5CF6', communication: colors.info };
     const renderInfoLine = (label: string, value?: string | number | null) => (
         <View style={st.infoLine}>
             <Text style={[st.infoLabel, { color: colors.textMuted }]}>{label}</Text>
@@ -595,12 +595,12 @@ export default function AdminDashboard() {
             <Card colors={colors}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: health?.database === 'connected' ? '#10B981' : '#EF4444' }} />
+                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: health?.database === 'connected' ? colors.primary : colors.danger }} />
                         <Text style={{ color: colors.text, fontWeight: '600' }}>{t('admin.health.database')}</Text>
                     </View>
                     <Badge
                         label={health?.database === 'connected' ? t('admin.health.online') : t('admin.health.error')}
-                        color={health?.database === 'connected' ? '#10B981' : '#EF4444'}
+                        color={health?.database === 'connected' ? colors.primary : colors.danger}
                     />
                 </View>
                 <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 6 }}>
@@ -612,17 +612,17 @@ export default function AdminDashboard() {
             <View style={st.actionGrid}>
                 <ActionButton label={t('admin_screen.utilisateurs')} icon="people-outline" color="#3B82F6" onPress={() => setSeg('users')} />
                 <ActionButton label={t('admin_screen.abonnements')} icon="card-outline" color="#8B5CF6" onPress={() => setSeg('subscriptions')} />
-                <ActionButton label={t('admin_screen.tickets')} icon="help-buoy-outline" color="#F59E0B" onPress={() => setSeg('support')} />
-                <ActionButton label={t('admin_screen.stock_bas')} icon="alert-circle-outline" color="#EF4444" onPress={() => setSeg('stock')} />
-                <ActionButton label={t('admin_screen.message_global')} icon="megaphone-outline" color="#06B6D4" onPress={() => setSeg('comms')} />
-                <ActionButton label={t('admin_screen.data_explorer')} icon="server-outline" color="#10B981" onPress={() => router.push('/(admin)/data-explorer')} />
+                <ActionButton label={t('admin_screen.tickets')} icon="help-buoy-outline" color={colors.warning} onPress={() => setSeg('support')} />
+                <ActionButton label={t('admin_screen.stock_bas')} icon="alert-circle-outline" color={colors.danger} onPress={() => setSeg('stock')} />
+                <ActionButton label={t('admin_screen.message_global')} icon="megaphone-outline" color={colors.info} onPress={() => setSeg('comms')} />
+                <ActionButton label={t('admin_screen.data_explorer')} icon="server-outline" color={colors.primary} onPress={() => router.push('/(admin)/data-explorer')} />
             </View>
 
             {/* Retention */}
             <SectionHeader title={t('admin.retention.title')} colors={colors} />
             <View style={st.globalKpiGrid}>
                 <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={[st.globalKpiItem, globalKpiItemStyle]}>
-                    <StatCard label={t('admin.retention.deletedTotal')} value={stats?.deleted_users || 0} icon="trash" color="#EF4444" colors={colors} style={st.globalKpiCard} />
+                    <StatCard label={t('admin.retention.deletedTotal')} value={stats?.deleted_users || 0} icon="trash" color={colors.danger} colors={colors} style={st.globalKpiCard} />
                 </TouchableOpacity>
                 <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={[st.globalKpiItem, globalKpiItemStyle]}>
                     <StatCard label={t('admin.retention.inactive30')} value={stats?.inactive_users || 0} icon="moon" color="#6B7280" colors={colors} style={st.globalKpiCard} />
@@ -634,7 +634,7 @@ export default function AdminDashboard() {
                 <>
                     <SectionHeader title={t('admin.revenue.title')} colors={colors} />
                     <Card colors={colors} style={st.revenueSummaryCard}>
-                        <Text style={[st.revenueSummaryValue, { color: '#10B981' }]}>{fmtMoney(stats?.total_revenue, user?.currency)}</Text>
+                        <Text style={[st.revenueSummaryValue, { color: colors.primary }]}>{fmtMoney(stats?.total_revenue, user?.currency)}</Text>
                         <Text style={[st.revenueSummaryLabel, { color: colors.textSecondary }]}>{t('admin.revenue.title')}</Text>
                     </Card>
                     <View style={st.globalKpiGrid}>
@@ -649,17 +649,17 @@ export default function AdminDashboard() {
                     <SectionHeader title={t('admin.alerts.title')} colors={colors} />
                     <View style={st.globalKpiGrid}>
                         <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('support')} style={[st.globalKpiItem, globalKpiItemStyle]}>
-                            <StatCard label={t('admin.alerts.openTickets')} value={detailed.open_tickets} icon="chatbubbles" color="#F59E0B" colors={colors} style={st.globalKpiCard} />
+                            <StatCard label={t('admin.alerts.openTickets')} value={detailed.open_tickets} icon="chatbubbles" color={colors.warning} colors={colors} style={st.globalKpiCard} />
                         </TouchableOpacity>
                         <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('stock')} style={[st.globalKpiItem, globalKpiItemStyle]}>
-                            <StatCard label={t('admin.alerts.lowStock')} value={detailed.low_stock_count} icon="alert-circle" color="#EF4444" colors={colors} style={st.globalKpiCard} />
+                            <StatCard label={t('admin.alerts.lowStock')} value={detailed.low_stock_count} icon="alert-circle" color={colors.danger} colors={colors} style={st.globalKpiCard} />
                         </TouchableOpacity>
                         <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={[st.globalKpiItem, globalKpiItemStyle]}>
-                            <StatCard label={t('admin.alerts.recentSignups')} value={detailed.recent_signups} icon="person-add" color="#06B6D4" colors={colors} style={st.globalKpiCard} />
+                            <StatCard label={t('admin.alerts.recentSignups')} value={detailed.recent_signups} icon="person-add" color={colors.info} colors={colors} style={st.globalKpiCard} />
                         </TouchableOpacity>
                         {detailed.signups_today !== undefined && (
                             <TouchableOpacity activeOpacity={0.8} onPress={() => setSeg('users')} style={[st.globalKpiItem, globalKpiItemStyle]}>
-                                <StatCard label={t('admin.distribution.signups_today')} value={detailed.signups_today} icon="today" color="#10B981" colors={colors} style={st.globalKpiCard} />
+                                <StatCard label={t('admin.distribution.signups_today')} value={detailed.signups_today} icon="today" color={colors.primary} colors={colors} style={st.globalKpiCard} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -676,7 +676,7 @@ export default function AdminDashboard() {
                                             </View>
                                             <Text style={{ color: colors.text, fontWeight: '600' }}>{s.name}</Text>
                                         </View>
-                                        <Text style={{ color: '#10B981', fontWeight: '700' }}>{fmtMoney(s.revenue)}</Text>
+                                        <Text style={{ color: colors.primary, fontWeight: '700' }}>{fmtMoney(s.revenue)}</Text>
                                     </View>
                                     <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>
                                         {t('admin.stores.sales', { count: s.sales_count })}
@@ -698,14 +698,14 @@ export default function AdminDashboard() {
                                     <StatCard label={t('admin.distribution.plan_pro')} value={detailed.users_by_plan?.pro || 0} icon="flash" color="#3B82F6" colors={colors} style={st.globalKpiCard} />
                                 </View>
                                 <View style={[st.globalKpiItem, globalKpiItemStyle]}>
-                                    <StatCard label={t('admin.distribution.plan_starter')} value={detailed.users_by_plan?.starter || 0} icon="leaf" color="#10B981" colors={colors} style={st.globalKpiCard} />
+                                    <StatCard label={t('admin.distribution.plan_starter')} value={detailed.users_by_plan?.starter || 0} icon="leaf" color={colors.primary} colors={colors} style={st.globalKpiCard} />
                                 </View>
                                 <View style={[st.globalKpiItem, globalKpiItemStyle]}>
                                     <StatCard
                                         label={t('admin.distribution.trials_expiring')}
                                         value={detailed.trials_expiring_soon || 0}
                                         icon="timer"
-                                        color={(detailed.trials_expiring_soon || 0) > 0 ? '#EF4444' : '#6B7280'}
+                                        color={(detailed.trials_expiring_soon || 0) > 0 ? colors.danger : '#6B7280'}
                                         colors={colors}
                                         style={st.globalKpiCard}
                                     />
@@ -835,7 +835,7 @@ export default function AdminDashboard() {
                             <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                 <Badge label={u.country_code || '--'} color={colors.secondary} />
                                 <TouchableOpacity onPress={() => handleToggleUser(u)}>
-                                    <Badge label={u.is_active === false ? t('admin.users.banned') : t('admin.users.active')} color={u.is_active === false ? '#EF4444' : '#10B981'} />
+                                    <Badge label={u.is_active === false ? t('admin.users.banned') : t('admin.users.active')} color={u.is_active === false ? colors.danger : colors.primary} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -849,17 +849,17 @@ export default function AdminDashboard() {
                         {renderInfoLine(t('admin_screen.cree_le'), formatDateTime(u.created_at))}
                     </View>
                     <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-                        <Badge label={u.is_email_verified ? t('admin_screen.e_mail_verifie') : t('admin_screen.e_mail_non_verifie')} color={u.is_email_verified ? '#10B981' : '#F59E0B'} />
-                        <Badge label={u.is_phone_verified ? t('admin_screen.telephone_verifie') : t('admin_screen.telephone_non_verifie')} color={u.is_phone_verified ? '#10B981' : '#F59E0B'} />
-                        {u.requires_payment_attention ? <Badge label={t('admin_screen.paiement_a_verifier')} color="#EF4444" /> : null}
+                        <Badge label={u.is_email_verified ? t('admin_screen.e_mail_verifie') : t('admin_screen.e_mail_non_verifie')} color={u.is_email_verified ? colors.primary : colors.warning} />
+                        <Badge label={u.is_phone_verified ? t('admin_screen.telephone_verifie') : t('admin_screen.telephone_non_verifie')} color={u.is_phone_verified ? colors.primary : colors.warning} />
+                        {u.requires_payment_attention ? <Badge label={t('admin_screen.paiement_a_verifier')} color={colors.danger} /> : null}
                         {u.is_demo ? <Badge label={t('admin_screen.demo')} color="#8B5CF6" /> : null}
                     </View>
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                         {u.phone ? <ActionButton label={t('admin_screen.appeler')} icon="call-outline" color={colors.primary} onPress={() => handleCall(u.phone)} /> : null}
                         {u.email ? <ActionButton label={t('admin_screen.e_mail')} icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(u.email)} /> : null}
-                        {u.phone ? <ActionButton label={t('admin_screen.whatsapp')} icon="logo-whatsapp" color="#10B981" onPress={() => openExternal(`https://wa.me/${String(u.phone).replace(/[^0-9]/g, '')}`)} /> : null}
-                        <ActionButton label={t('admin_screen.notifier')} icon="notifications-outline" color="#06B6D4" onPress={() => openUserCommunication(u)} />
-                        <ActionButton label={u.is_active === false ? t('admin_screen.reactiver') : 'Suspendre'} icon={u.is_active === false ? 'checkmark-circle-outline' : 'pause-circle-outline'} color={u.is_active === false ? '#10B981' : '#F59E0B'} onPress={() => handleToggleUser(u)} />
+                        {u.phone ? <ActionButton label={t('admin_screen.whatsapp')} icon="logo-whatsapp" color={colors.primary} onPress={() => openExternal(`https://wa.me/${String(u.phone).replace(/[^0-9]/g, '')}`)} /> : null}
+                        <ActionButton label={t('admin_screen.notifier')} icon="notifications-outline" color={colors.info} onPress={() => openUserCommunication(u)} />
+                        <ActionButton label={u.is_active === false ? t('admin_screen.reactiver') : 'Suspendre'} icon={u.is_active === false ? 'checkmark-circle-outline' : 'pause-circle-outline'} color={u.is_active === false ? colors.primary : colors.warning} onPress={() => handleToggleUser(u)} />
                         <ActionButton label={t('admin_screen.supprimer')} icon="trash-outline" color="#DC2626" onPress={() => handleDeleteUser(u)} />
                     </View>
                 </Card>
@@ -892,12 +892,12 @@ export default function AdminDashboard() {
                                     <Text style={{ color: colors.textMuted, fontSize: 13 }}>{t('admin.stores.owner')}: {s.owner_name}</Text>
                                     <Text style={{ color: colors.textMuted, fontSize: 11 }}>{s.owner_email}</Text>
                                 </View>
-                                <Text style={{ color: '#10B981', fontWeight: '800' }}>{fmtMoney(s.total_revenue)}</Text>
+                                <Text style={{ color: colors.primary, fontWeight: '800' }}>{fmtMoney(s.total_revenue)}</Text>
                             </View>
                             <View style={st.metricRow}>
                                 {renderMetricPill('Produits', formatNumber(s.product_count || 0), '#3B82F6')}
-                                {renderMetricPill('Ventes', formatNumber(s.sales_count || 0), '#F59E0B')}
-                                {renderMetricPill('CA', fmtMoney(s.total_revenue), '#10B981')}
+                                {renderMetricPill('Ventes', formatNumber(s.sales_count || 0), colors.warning)}
+                                {renderMetricPill('CA', fmtMoney(s.total_revenue), colors.primary)}
                             </View>
                             <View style={st.detailGrid}>
                                 {renderInfoLine(t('admin_screen.id_boutique'), s.store_id)}
@@ -907,7 +907,7 @@ export default function AdminDashboard() {
                             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                                 <ActionButton label={t('admin_screen.contacter')} icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(s.owner_email)} />
                                 <ActionButton label={t('admin_screen.voir_utilisateurs')} icon="people-outline" color="#3B82F6" onPress={() => { setSeg('users'); setSearch(s.owner_email || s.owner_name || ''); }} />
-                                <ActionButton label={t('admin_screen.voir_stock')} icon="cube-outline" color="#10B981" onPress={() => { setSeg('stock'); setSearch(s.store_id); }} />
+                                <ActionButton label={t('admin_screen.voir_stock')} icon="cube-outline" color={colors.primary} onPress={() => { setSeg('stock'); setSearch(s.store_id); }} />
                             </View>
                         </Card>
                     ))}
@@ -950,8 +950,8 @@ export default function AdminDashboard() {
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                     <StatCard label={t('admin_screen.payants_actifs')} value={subscriptionOverview.active_paid_accounts || 0} icon="card" color="#3B82F6" colors={colors} />
                     <StatCard label={t('admin_screen.trials_actifs')} value={subscriptionOverview.active_trials || 0} icon="flash" color="#8B5CF6" colors={colors} />
-                    <StatCard label={t('admin_screen.trials_7_j')} value={subscriptionOverview.trials_expiring_7d || 0} icon="time" color="#F59E0B" colors={colors} />
-                    <StatCard label={t('admin_screen.expirations_proches')} value={subscriptionOverview.subscriptions_expiring_soon || 0} icon="alert-circle" color="#EF4444" colors={colors} />
+                    <StatCard label={t('admin_screen.trials_7_j')} value={subscriptionOverview.trials_expiring_7d || 0} icon="time" color={colors.warning} colors={colors} />
+                    <StatCard label={t('admin_screen.expirations_proches')} value={subscriptionOverview.subscriptions_expiring_soon || 0} icon="alert-circle" color={colors.danger} colors={colors} />
                 </View>
             )}
 
@@ -962,7 +962,7 @@ export default function AdminDashboard() {
                         <Card key={`${alert.code}-${index}`} colors={colors}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                                 <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>{alert.title}</Text>
-                                <Badge label={`${alert.count || 0}`} color={alert.severity === 'critical' ? '#EF4444' : '#F59E0B'} />
+                                <Badge label={`${alert.count || 0}`} color={alert.severity === 'critical' ? colors.danger : colors.warning} />
                             </View>
                             <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{alert.message}</Text>
                         </Card>
@@ -982,7 +982,7 @@ export default function AdminDashboard() {
                                     <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{account.display_name || account.owner_name || account.account_id}</Text>
                                     <Text style={{ color: colors.textMuted, fontSize: 12 }}>{account.owner_email || account.billing_contact_email || '—'}</Text>
                                 </View>
-                                <Badge label={formatPlanLabel(account.plan)} color={account.plan === 'enterprise' ? '#8B5CF6' : account.plan === 'pro' ? '#3B82F6' : '#10B981'} />
+                                <Badge label={formatPlanLabel(account.plan)} color={account.plan === 'enterprise' ? '#8B5CF6' : account.plan === 'pro' ? '#3B82F6' : colors.primary} />
                             </View>
 
                             <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
@@ -1012,7 +1012,7 @@ export default function AdminDashboard() {
                                     disabled={subscriptionActionId === actionReadOnlyId}
                                     style={{ backgroundColor: account.manual_read_only_enabled ? '#10B98122' : '#F59E0B22', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, opacity: subscriptionActionId === actionReadOnlyId ? 0.6 : 1 }}
                                 >
-                                    <Text style={{ color: account.manual_read_only_enabled ? '#10B981' : '#F59E0B', fontSize: 12, fontWeight: '700' }}>
+                                    <Text style={{ color: account.manual_read_only_enabled ? colors.primary : colors.warning, fontSize: 12, fontWeight: '700' }}>
                                         {subscriptionActionId === actionReadOnlyId
                                             ? 'Traitement…'
                                             : account.manual_read_only_enabled
@@ -1080,8 +1080,8 @@ export default function AdminDashboard() {
             {demoOverview && (
                 <>
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                        <StatCard label={t('admin_screen.actives')} value={demoOverview.active_sessions || 0} icon="flash" color="#10B981" colors={colors} />
-                        <StatCard label={t('admin_screen.expirees')} value={demoOverview.expired_sessions || 0} icon="time" color="#F59E0B" colors={colors} />
+                        <StatCard label={t('admin_screen.actives')} value={demoOverview.active_sessions || 0} icon="flash" color={colors.primary} colors={colors} />
+                        <StatCard label={t('admin_screen.expirees')} value={demoOverview.expired_sessions || 0} icon="time" color={colors.warning} colors={colors} />
                         <StatCard label={t('admin_screen.nettoyees')} value={demoOverview.cleaned_sessions || 0} icon="trash" color="#8B5CF6" colors={colors} />
                         <StatCard label={t('admin_screen.contacts_captes')} value={demoOverview.contacts_captured || 0} icon="mail" color="#3B82F6" colors={colors} />
                     </View>
@@ -1092,7 +1092,7 @@ export default function AdminDashboard() {
                             {Object.entries(demoOverview.by_currency as Record<string, number>).map(([currency, count]) => {
                                 const total = demoOverview.total_sessions || 1;
                                 const pct = Math.round((count / total) * 100);
-                                const colorMap: Record<string, string> = { XOF: '#10B981', XAF: '#14B8A6', EUR: '#3B82F6', USD: '#8B5CF6', GNF: '#F59E0B', CDF: '#F97316' };
+                                const colorMap: Record<string, string> = { XOF: colors.primary, XAF: '#14B8A6', EUR: '#3B82F6', USD: '#8B5CF6', GNF: colors.warning, CDF: '#F97316' };
                                 const barColor = colorMap[currency] || '#6B7280';
                                 return (
                                     <View key={currency} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -1140,7 +1140,7 @@ export default function AdminDashboard() {
                             </View>
                             <Badge
                                 label={formatDemoStatusLabel(session.status)}
-                                color={session.status === 'active' ? '#10B981' : session.status === 'expired' ? '#F59E0B' : '#8B5CF6'}
+                                color={session.status === 'active' ? colors.primary : session.status === 'expired' ? colors.warning : '#8B5CF6'}
                             />
                         </View>
                         <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
@@ -1176,11 +1176,11 @@ export default function AdminDashboard() {
                             </Text>
                             <Text style={{ color: colors.textMuted, fontSize: 10 }}>{t('admin_screen.id')} {p.product_id}</Text>
                         </View>
-                        <Badge label={p.is_active ? 'Actif' : t('admin_screen.masque')} color={p.is_active ? '#10B981' : '#6B7280'} />
+                        <Badge label={p.is_active ? 'Actif' : t('admin_screen.masque')} color={p.is_active ? colors.primary : '#6B7280'} />
                     </View>
                     <View style={st.metricRow}>
-                        {renderMetricPill('Stock', formatNumber((p as any).quantity || (p as any).current_stock || 0), ((p as any).quantity || 0) <= (p.min_stock || 0) ? '#EF4444' : '#10B981')}
-                        {renderMetricPill('Achat', fmtMoney(p.purchase_price || 0), '#F59E0B')}
+                        {renderMetricPill('Stock', formatNumber((p as any).quantity || (p as any).current_stock || 0), ((p as any).quantity || 0) <= (p.min_stock || 0) ? colors.danger : colors.primary)}
+                        {renderMetricPill('Achat', fmtMoney(p.purchase_price || 0), colors.warning)}
                         {renderMetricPill('Vente', fmtMoney(p.selling_price || 0), '#3B82F6')}
                     </View>
                     <View style={st.detailGrid}>
@@ -1201,7 +1201,7 @@ export default function AdminDashboard() {
                         <ActionButton
                             label={t('admin.stock.deleteBtn')}
                             icon="trash"
-                            color="#EF4444"
+                            color={colors.danger}
                             onPress={() => handleDeleteProduct(p)}
                         />
                     </View>
@@ -1227,7 +1227,7 @@ export default function AdminDashboard() {
             )}
             {detailed && (
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                    <StatCard label={t('admin.revenue.today')} value={fmtMoney(detailed.revenue_today)} icon="today" color="#10B981" colors={colors} />
+                    <StatCard label={t('admin.revenue.today')} value={fmtMoney(detailed.revenue_today)} icon="today" color={colors.primary} colors={colors} />
                     <StatCard label={t('admin.revenue.week')} value={fmtMoney(detailed.revenue_week)} icon="calendar" color="#3B82F6" colors={colors} />
                     <StatCard label={t('admin.revenue.month')} value={fmtMoney(detailed.revenue_month)} icon="stats-chart" color="#8B5CF6" colors={colors} />
                 </View>
@@ -1243,7 +1243,7 @@ export default function AdminDashboard() {
                 <Card key={c.customer_id || c.name} colors={colors}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#06B6D4', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.info, alignItems: 'center', justifyContent: 'center' }}>
                                 <Text style={{ color: '#fff', fontWeight: '700' }}>{(c.name || '?')[0].toUpperCase()}</Text>
                             </View>
                             <View style={{ flex: 1 }}>
@@ -1255,12 +1255,12 @@ export default function AdminDashboard() {
                                 </View>
                             </View>
                         </View>
-                        {c.total_purchases > 0 && <Text style={{ color: '#10B981', fontWeight: '700', marginLeft: 8 }}>{fmtMoney(c.total_purchases, user?.currency)}</Text>}
+                        {c.total_purchases > 0 && <Text style={{ color: colors.primary, fontWeight: '700', marginLeft: 8 }}>{fmtMoney(c.total_purchases, user?.currency)}</Text>}
                     </View>
                     <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                         {c.phone ? <ActionButton label={t('admin_screen.appeler')} icon="call-outline" color={colors.primary} onPress={() => handleCall(c.phone)} /> : null}
                         {c.email ? <ActionButton label={t('admin_screen.e_mail')} icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(c.email)} /> : null}
-                        {c.phone ? <ActionButton label={t('admin_screen.whatsapp')} icon="logo-whatsapp" color="#10B981" onPress={() => openExternal(`https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}`)} /> : null}
+                        {c.phone ? <ActionButton label={t('admin_screen.whatsapp')} icon="logo-whatsapp" color={colors.primary} onPress={() => openExternal(`https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}`)} /> : null}
                     </View>
                 </Card>
             ))}
@@ -1316,12 +1316,12 @@ export default function AdminDashboard() {
                                     <ActionButton
                                         label={assistingTicketId === t_info.ticket_id ? 'Ouverture...' : t('admin_screen.acceder_au_compte')}
                                         icon="log-in-outline"
-                                        color="#10B981"
+                                        color={colors.primary}
                                         onPress={() => handleAssistTicket(t_info)}
                                     />
                                 ) : null}
                                 <ActionButton label={t('admin.actions.reply')} icon="chatbubble-outline" color={colors.primary} onPress={() => setReplyingTo(replyingTo === t_info.ticket_id ? null : t_info.ticket_id)} />
-                                <ActionButton label={t('admin.actions.close')} icon="checkmark-circle-outline" color="#10B981" onPress={() => handleCloseTicket(t_info.ticket_id)} />
+                                <ActionButton label={t('admin.actions.close')} icon="checkmark-circle-outline" color={colors.primary} onPress={() => handleCloseTicket(t_info.ticket_id)} />
                             </>
                         )}
                         {t_info.user_email ? <ActionButton label={t('admin_screen.e_mail')} icon="mail-outline" color="#8B5CF6" onPress={() => handleEmail(t_info.user_email)} /> : null}
@@ -1366,9 +1366,9 @@ export default function AdminDashboard() {
             />
             {disputeStats && (
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <StatCard label={t('admin.disputes.statsOpen') || 'Ouverts'} value={disputeStats.open} icon="alert-circle" color="#F59E0B" colors={colors} />
+                    <StatCard label={t('admin.disputes.statsOpen') || 'Ouverts'} value={disputeStats.open} icon="alert-circle" color={colors.warning} colors={colors} />
                     <StatCard label={t('admin.disputes.statsInvestigating') || 'En cours'} value={disputeStats.investigating} icon="search" color="#3B82F6" colors={colors} />
-                    <StatCard label={t('admin.disputes.statsResolved') || t('admin_screen.resolus')} value={disputeStats.resolved} icon="checkmark-circle" color="#10B981" colors={colors} />
+                    <StatCard label={t('admin.disputes.statsResolved') || t('admin_screen.resolus')} value={disputeStats.resolved} icon="checkmark-circle" color={colors.primary} colors={colors} />
                 </View>
             )}
             <SectionHeader title={t('admin.segments.disputes')} count={disputes.length} colors={colors} />
@@ -1385,7 +1385,7 @@ export default function AdminDashboard() {
 
                     {d.resolution && (
                         <View style={{ marginTop: 8, padding: 8, backgroundColor: colors.bgLight, borderRadius: 8, borderWidth: 1, borderColor: '#10B98133' }}>
-                            <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '700' }}>{t('admin.disputes.resolutionLabel') || t('admin_screen.resolution')}</Text>
+                            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>{t('admin.disputes.resolutionLabel') || t('admin_screen.resolution')}</Text>
                             <Text style={{ color: colors.text, fontSize: 12 }}>{d.resolution}</Text>
                         </View>
                     )}
@@ -1406,12 +1406,12 @@ export default function AdminDashboard() {
                                     <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '600' }}>{t('admin.disputes.investigateBtn')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => handleUpdateDisputeStatus(d.dispute_id, 'resolved')} style={{ backgroundColor: '#10B98122', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-                                    <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600' }}>{t('admin.disputes.resolveBtn')}</Text>
+                                    <Ionicons name="checkmark-circle" size={14} color={colors.primary} />
+                                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>{t('admin.disputes.resolveBtn')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => handleUpdateDisputeStatus(d.dispute_id, 'rejected')} style={{ backgroundColor: '#EF444422', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="close-circle" size={14} color="#EF4444" />
-                                    <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '600' }}>{t('admin.disputes.rejectBtn')}</Text>
+                                    <Ionicons name="close-circle" size={14} color={colors.danger} />
+                                    <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '600' }}>{t('admin.disputes.rejectBtn')}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -1670,16 +1670,16 @@ export default function AdminDashboard() {
             />
             {secStats && (
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <StatCard label={t('admin.security.statsFailures')} value={secStats.failed_logins_24h || 0} icon="lock-closed" color="#EF4444" colors={colors} />
-                    <StatCard label={t('admin.security.statsSuspicious')} value={secStats.successful_logins_24h || 0} icon="eye" color="#F59E0B" colors={colors} />
-                    <StatCard label={t('admin.security.statsAlerts')} value={secStats.blocked_users || 0} icon="notifications" color="#EF4444" colors={colors} />
+                    <StatCard label={t('admin.security.statsFailures')} value={secStats.failed_logins_24h || 0} icon="lock-closed" color={colors.danger} colors={colors} />
+                    <StatCard label={t('admin.security.statsSuspicious')} value={secStats.successful_logins_24h || 0} icon="eye" color={colors.warning} colors={colors} />
+                    <StatCard label={t('admin.security.statsAlerts')} value={secStats.blocked_users || 0} icon="notifications" color={colors.danger} colors={colors} />
                     <StatCard label={t('admin_screen.verifications')} value={verificationEvents.length} icon="mail" color="#3B82F6" colors={colors} />
                     <StatCard label={t('admin_screen.sessions_actives')} value={activeSessions.length} icon="pulse" color="#8B5CF6" colors={colors} />
                 </View>
             )}
             <SectionHeader title={t('admin.segments.security')} count={secEvents.length} colors={colors} />
             {secEvents.map((e: any, i: number) => {
-                const eColor = e.type === 'login_failed' ? '#EF4444' : e.type?.includes('success') ? '#10B981' : '#F59E0B';
+                const eColor = e.type === 'login_failed' ? colors.danger : e.type?.includes('success') ? colors.primary : colors.warning;
                 return (
                     <Card key={e.event_id || i} colors={colors}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -1712,7 +1712,7 @@ export default function AdminDashboard() {
                         <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>
                             {(event.channel || 'canal').toUpperCase()} · {(event.type || 'verification').replace(/_/g, ' ')}
                         </Text>
-                        <Badge label={formatProviderLabel(event.provider)} color={event.provider === 'firebase' ? '#3B82F6' : '#10B981'} />
+                        <Badge label={formatProviderLabel(event.provider)} color={event.provider === 'firebase' ? '#3B82F6' : colors.primary} />
                     </View>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
                         {event.email || event.phone || event.user_id || t('admin_screen.utilisateur_non_precise')}
@@ -1791,8 +1791,8 @@ export default function AdminDashboard() {
             <SectionHeader title={t('admin.settings.actions')} colors={colors} />
             <View style={{ gap: 8 }}>
                 <TouchableOpacity onPress={() => setShowPwdModal(true)} style={{ backgroundColor: '#F59E0B22', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#F59E0B44' }}>
-                    <Ionicons name="key" size={20} color="#F59E0B" />
-                    <Text style={{ color: '#F59E0B', fontWeight: '700', fontSize: 15 }}>{t('admin.settings.change_password')}</Text>
+                    <Ionicons name="key" size={20} color={colors.warning} />
+                    <Text style={{ color: colors.warning, fontWeight: '700', fontSize: 15 }}>{t('admin.settings.change_password')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => router.push('/(admin)/data-explorer')} style={{ backgroundColor: '#8B5CF622', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#8B5CF644' }}>
@@ -1801,8 +1801,8 @@ export default function AdminDashboard() {
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => { logout(); router.replace('/(auth)/login' as any); }} style={{ backgroundColor: '#EF444422', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#EF444444' }}>
-                    <Ionicons name="log-out" size={20} color="#EF4444" />
-                    <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>{t('admin.settings.logout')}</Text>
+                    <Ionicons name="log-out" size={20} color={colors.danger} />
+                    <Text style={{ color: colors.danger, fontWeight: '700', fontSize: 15 }}>{t('admin.settings.logout')}</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -1965,7 +1965,7 @@ export default function AdminDashboard() {
                                 <Ionicons name="refresh" size={18} color={colors.text} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => { logout(); router.replace('/(auth)/login' as any); }} style={[st.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.08)' }]}>
-                                <Ionicons name="log-out" size={18} color="#EF4444" />
+                                <Ionicons name="log-out" size={18} color={colors.danger} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -1974,8 +1974,8 @@ export default function AdminDashboard() {
                             {[
                                 { l: t('admin.segments.users'), v: formatNumber(stats.users), c: '#3B82F6' },
                                 { l: t('admin.segments.stores'), v: formatNumber(stats.stores), c: '#8B5CF6' },
-                                { l: t('admin.segments.stock'), v: formatNumber(stats.products), c: '#10B981' },
-                                { l: t('admin.segments.sales') || 'Sales', v: formatNumber(stats.sales), c: '#F59E0B' },
+                                { l: t('admin.segments.stock'), v: formatNumber(stats.products), c: colors.primary },
+                                { l: t('admin.segments.sales') || 'Sales', v: formatNumber(stats.sales), c: colors.warning },
                             ].map((s, i) => (
                                 <View key={i} style={st.quickItem}>
                                     <Text style={[st.quickVal, { color: s.c }]}>{s.v}</Text>

@@ -65,7 +65,7 @@ export default function PrivacyScreen() {
                     <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />
                 ) : error ? (
                     <View style={styles.center}>
-                        <Text style={{ color: '#EF4444' }}>{error}</Text>
+                        <Text style={{ color: colors.danger }}>{error}</Text>
                         <TouchableOpacity onPress={fetchPrivacy} style={[styles.retryButton, { backgroundColor: colors.primary }]}>
                             <Text style={{ color: '#fff' }}>{t('legal.retry_btn')}</Text>
                         </TouchableOpacity>

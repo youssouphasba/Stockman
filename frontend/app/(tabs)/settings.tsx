@@ -983,7 +983,7 @@ export default function SettingsScreen() {
       >
         {!showDisputeForm ? (
           <TouchableOpacity onPress={() => setShowDisputeForm(true)} style={styles.supportRow}>
-            <View style={[styles.supportIconWrapper, { backgroundColor: '#EF4444' }]}>
+            <View style={[styles.supportIconWrapper, { backgroundColor: colors.danger }]}>
               <Ionicons name="flag-outline" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
@@ -1014,7 +1014,7 @@ export default function SettingsScreen() {
               <TouchableOpacity onPress={() => setShowDisputeForm(false)} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center' }}>
                 <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t('common.cancel')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleSubmitDispute} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: '#EF4444', alignItems: 'center' }}>
+              <TouchableOpacity onPress={handleSubmitDispute} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: colors.danger, alignItems: 'center' }}>
                 <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.send')}</Text>
               </TouchableOpacity>
             </View>

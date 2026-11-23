@@ -135,7 +135,7 @@ export default function ContactSupportModal({ visible, onClose, initialSubject =
     };
 
     const statusColor = (status: string) => {
-        if (status === 'open') return '#f59e0b';
+        if (status === 'open') return colors.warning;
         if (status === 'pending') return colors.primary;
         return colors.success;
     };

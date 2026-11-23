@@ -37,10 +37,10 @@ type SubTab = 'recipes' | 'orders' | 'shop' | 'materials';
 function DashboardKPIs({ data, colors, t }: { data: ProductionDashboard | null; colors: any; t: any }) {
     if (!data) return null;
     const kpis = [
-        { label: t('production.today', "Aujourd'hui"), value: data.today_productions, icon: 'flame-outline', color: '#F59E0B' },
+        { label: t('production.today', "Aujourd'hui"), value: data.today_productions, icon: 'flame-outline', color: colors.warning },
         { label: t('production.month', 'Ce mois'), value: data.month_productions, icon: 'calendar-outline', color: '#3B82F6' },
-        { label: t('production.cost', 'Coût'), value: `${Math.round(data.month_cost).toLocaleString()}`, icon: 'cash-outline', color: '#10B981' },
-        { label: t('production.waste', 'Pertes'), value: `${data.waste_percent}%`, icon: 'trash-outline', color: '#EF4444' },
+        { label: t('production.cost', 'Coût'), value: `${Math.round(data.month_cost).toLocaleString()}`, icon: 'cash-outline', color: colors.primary },
+        { label: t('production.waste', 'Pertes'), value: `${data.waste_percent}%`, icon: 'trash-outline', color: colors.danger },
     ];
 
     return (
@@ -64,7 +64,7 @@ function RecipeCard({
 }: {
     recipe: Recipe; colors: any; t: any; onProduce: () => void; onEdit: () => void; onDelete: () => void; currency: string;
 }) {
-    const marginColor = recipe.margin_percent > 50 ? '#10B981' : recipe.margin_percent > 20 ? '#F59E0B' : '#EF4444';
+    const marginColor = recipe.margin_percent > 50 ? colors.primary : recipe.margin_percent > 20 ? colors.warning : colors.danger;
 
     return (
         <View style={[s.recipeCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
@@ -105,14 +105,14 @@ function RecipeCard({
 
             <View style={s.recipeActions}>
                 <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#10B98120' }]} onPress={onProduce}>
-                    <Ionicons name="play" size={16} color="#10B981" />
-                    <Text style={[s.actionText, { color: '#10B981' }]}>{t('production.produce', 'Produire')}</Text>
+                    <Ionicons name="play" size={16} color={colors.primary} />
+                    <Text style={[s.actionText, { color: colors.primary }]}>{t('production.produce', 'Produire')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.actionBtn, { backgroundColor: colors.primary + '20' }]} onPress={onEdit}>
                     <Ionicons name="create-outline" size={16} color={colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#EF444420' }]} onPress={onDelete}>
-                    <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -128,9 +128,9 @@ function OrderCard({
 }) {
     const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
         planned: { color: '#3B82F6', label: t('production.status_planned', 'Planifié'), icon: 'time-outline' },
-        in_progress: { color: '#F59E0B', label: t('production.status_in_progress', 'En cours'), icon: 'hourglass-outline' },
-        completed: { color: '#10B981', label: t('production.status_completed', 'Terminé'), icon: 'checkmark-circle-outline' },
-        cancelled: { color: '#EF4444', label: t('production.status_cancelled', 'Annulé'), icon: 'close-circle-outline' },
+        in_progress: { color: colors.warning, label: t('production.status_in_progress', 'En cours'), icon: 'hourglass-outline' },
+        completed: { color: colors.primary, label: t('production.status_completed', 'Terminé'), icon: 'checkmark-circle-outline' },
+        cancelled: { color: colors.danger, label: t('production.status_cancelled', 'Annulé'), icon: 'close-circle-outline' },
     };
     const sc = statusConfig[order.status] || statusConfig.planned;
 
@@ -156,22 +156,22 @@ function OrderCard({
             {order.status === 'planned' && (
                 <View style={s.orderActions}>
                     <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#10B98120', flex: 1 }]} onPress={onStart}>
-                        <Ionicons name="play" size={16} color="#10B981" />
-                        <Text style={[s.actionText, { color: '#10B981' }]}>{t('production.start', 'Démarrer')}</Text>
+                        <Ionicons name="play" size={16} color={colors.primary} />
+                        <Text style={[s.actionText, { color: colors.primary }]}>{t('production.start', 'Démarrer')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#EF444420' }]} onPress={onCancel}>
-                        <Ionicons name="close" size={16} color="#EF4444" />
+                        <Ionicons name="close" size={16} color={colors.danger} />
                     </TouchableOpacity>
                 </View>
             )}
             {order.status === 'in_progress' && (
                 <View style={s.orderActions}>
                     <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#10B98120', flex: 1 }]} onPress={onComplete}>
-                        <Ionicons name="checkmark" size={16} color="#10B981" />
-                        <Text style={[s.actionText, { color: '#10B981' }]}>{t('production.complete', 'Terminer')}</Text>
+                        <Ionicons name="checkmark" size={16} color={colors.primary} />
+                        <Text style={[s.actionText, { color: colors.primary }]}>{t('production.complete', 'Terminer')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[s.actionBtn, { backgroundColor: '#EF444420' }]} onPress={onCancel}>
-                        <Ionicons name="close" size={16} color="#EF4444" />
+                        <Ionicons name="close" size={16} color={colors.danger} />
                     </TouchableOpacity>
                 </View>
             )}
@@ -500,7 +500,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                                         backgroundColor: p.quantity <= 0 ? '#EF444420' : p.quantity <= (p.min_stock || 5) ? '#F59E0B20' : '#10B98120'
                                     }]}>
                                         <Text style={{
-                                            color: p.quantity <= 0 ? '#EF4444' : p.quantity <= (p.min_stock || 5) ? '#F59E0B' : '#10B981',
+                                            color: p.quantity <= 0 ? colors.danger : p.quantity <= (p.min_stock || 5) ? colors.warning : colors.primary,
                                             fontWeight: '700', fontSize: 13,
                                         }}>{p.quantity}</Text>
                                     </View>
@@ -530,7 +530,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                             rawMaterials.map(p => (
                                 <View key={p.product_id} style={[s.productRow, { borderBottomColor: colors.glassBorder }]}>
                                     <View style={[s.materialIcon, { backgroundColor: '#10B98120' }]}>
-                                        <Ionicons name="leaf" size={16} color="#10B981" />
+                                        <Ionicons name="leaf" size={16} color={colors.primary} />
                                     </View>
                                     <View style={{ flex: 1 }}>
                                         <Text style={[s.productName, { color: colors.text }]}>{p.name}</Text>
@@ -542,7 +542,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                                         backgroundColor: p.quantity <= 0 ? '#EF444420' : p.quantity <= (p.min_stock || 5) ? '#F59E0B20' : '#10B98120'
                                     }]}>
                                         <Text style={{
-                                            color: p.quantity <= 0 ? '#EF4444' : p.quantity <= (p.min_stock || 5) ? '#F59E0B' : '#10B981',
+                                            color: p.quantity <= 0 ? colors.danger : p.quantity <= (p.min_stock || 5) ? colors.warning : colors.primary,
                                             fontWeight: '700', fontSize: 13,
                                         }}>{p.quantity}</Text>
                                     </View>
@@ -672,7 +672,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                             placeholderTextColor={colors.textMuted}
                         />
 
-                        <TouchableOpacity style={[s.submitBtn, { backgroundColor: '#10B981' }]} onPress={handleProduce}>
+                        <TouchableOpacity style={[s.submitBtn, { backgroundColor: colors.primary }]} onPress={handleProduce}>
                             <Ionicons name="play" size={18} color="#fff" />
                             <Text style={s.submitBtnText}>{t('production.create_order', 'Lancer la production')}</Text>
                         </TouchableOpacity>
@@ -711,7 +711,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                             placeholderTextColor={colors.textMuted}
                         />
 
-                        <TouchableOpacity style={[s.submitBtn, { backgroundColor: '#10B981' }]} onPress={handleCompleteOrder}>
+                        <TouchableOpacity style={[s.submitBtn, { backgroundColor: colors.primary }]} onPress={handleCompleteOrder}>
                             <Ionicons name="checkmark-circle" size={18} color="#fff" />
                             <Text style={s.submitBtnText}>{t('production.mark_complete', 'Marquer comme terminé')}</Text>
                         </TouchableOpacity>

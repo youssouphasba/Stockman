@@ -49,15 +49,15 @@ export default function ForecastCard({ onNavigate }: Props) {
   const topProducts = expanded ? products.slice(0, 10) : products.slice(0, 3);
 
   const trendIcons: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-    up: { icon: 'trending-up', color: '#4CAF50' },
+    up: { icon: 'trending-up', color: colors.success },
     down: { icon: 'trending-down', color: '#f44336' },
     stable: { icon: 'remove-outline', color: colors.textMuted },
   };
 
   const riskColors: Record<string, string> = {
     critical: '#f44336',
-    warning: '#FF9800',
-    ok: '#4CAF50',
+    warning: colors.warning,
+    ok: colors.success,
   };
 
   return (

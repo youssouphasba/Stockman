@@ -1343,9 +1343,9 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }} numberOfLines={1}>{s.product_name}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
-                    <Text style={{ color: '#f59e0b' }}>{s.from_store_name}</Text>
+                    <Text style={{ color: colors.warning }}>{s.from_store_name}</Text>
                     {' → '}
-                    <Text style={{ color: '#10b981' }}>{s.to_store_name}</Text>
+                    <Text style={{ color: colors.primary }}>{s.to_store_name}</Text>
                   </Text>
                 </View>
                 <Text style={{ color: colors.text, fontWeight: '800', fontSize: 14 }}>×{s.transfer_quantity}</Text>
@@ -1363,7 +1363,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>{s.store_name}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 1 }}>
-                    {t('dashboard_screen.marge')} <Text style={{ color: s.gross_margin_pct >= 30 ? '#10b981' : s.gross_margin_pct >= 15 ? '#f59e0b' : '#ef4444', fontWeight: '700' }}>{s.gross_margin_pct}%</Text>
+                    {t('dashboard_screen.marge')} <Text style={{ color: s.gross_margin_pct >= 30 ? colors.primary : s.gross_margin_pct >= 15 ? colors.warning : colors.danger, fontWeight: '700' }}>{s.gross_margin_pct}%</Text>
                     {'  •  '}{t('dashboard_screen.rotation')} {s.stock_rotation}
                   </Text>
                 </View>

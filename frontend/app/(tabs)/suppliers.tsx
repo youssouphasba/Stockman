@@ -1317,13 +1317,13 @@ export default function SuppliersScreen() {
                             ),
                           }}>
                             <Ionicons name="star" size={11} color={
-                              supplierAiRatings[supplier.supplier_id].overall_score >= 70 ? '#10b981' :
-                              supplierAiRatings[supplier.supplier_id].overall_score >= 40 ? '#f59e0b' : '#ef4444'
+                              supplierAiRatings[supplier.supplier_id].overall_score >= 70 ? colors.primary :
+                              supplierAiRatings[supplier.supplier_id].overall_score >= 40 ? colors.warning : colors.danger
                             } />
                             <Text style={{
                               fontSize: 11, fontWeight: '800', color: (
-                                supplierAiRatings[supplier.supplier_id].overall_score >= 70 ? '#10b981' :
-                                supplierAiRatings[supplier.supplier_id].overall_score >= 40 ? '#f59e0b' : '#ef4444'
+                                supplierAiRatings[supplier.supplier_id].overall_score >= 70 ? colors.primary :
+                                supplierAiRatings[supplier.supplier_id].overall_score >= 40 ? colors.warning : colors.danger
                               )
                             }}>
                               {supplierAiRatings[supplier.supplier_id].overall_score}/100
@@ -2099,8 +2099,8 @@ export default function SuppliersScreen() {
                           <View style={{ marginTop: 20 }}>
                             <Text style={styles.sectionTitle}>{t('suppliers_screen.score_ia_fournisseur')}</Text>
                             <View style={[styles.statsGrid, { marginTop: 8 }]}>
-                              <View style={[styles.statBox, { borderColor: (selectedAiRating.overall_score >= 70 ? '#10b981' : selectedAiRating.overall_score >= 40 ? '#f59e0b' : '#ef4444') + '30', borderWidth: 1 }]}>
-                                <Text style={[styles.statVal, { color: selectedAiRating.overall_score >= 70 ? '#10b981' : selectedAiRating.overall_score >= 40 ? '#f59e0b' : '#ef4444', fontSize: 28 }]}>{selectedAiRating.overall_score}</Text>
+                              <View style={[styles.statBox, { borderColor: (selectedAiRating.overall_score >= 70 ? colors.primary : selectedAiRating.overall_score >= 40 ? colors.warning : colors.danger) + '30', borderWidth: 1 }]}>
+                                <Text style={[styles.statVal, { color: selectedAiRating.overall_score >= 70 ? colors.primary : selectedAiRating.overall_score >= 40 ? colors.warning : colors.danger, fontSize: 28 }]}>{selectedAiRating.overall_score}</Text>
                                 <Text style={styles.statLab}>{t('suppliers_screen.score_100')}</Text>
                               </View>
                               <View style={styles.statBox}>

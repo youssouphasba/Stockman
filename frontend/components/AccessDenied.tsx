@@ -26,7 +26,7 @@ export default function AccessDenied({ message, onRetry }: Props) {
         <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
             <View style={[styles.card, glassStyle]}>
                 <View style={[styles.iconCircle, { backgroundColor: '#EF444415', borderColor: '#EF444430' }]}>
-                    <Ionicons name="lock-closed" size={40} color="#EF4444" />
+                    <Ionicons name="lock-closed" size={40} color={colors.danger} />
                 </View>
                 <Text style={[styles.title, { color: colors.text }]}>
                     {t('errors.access_denied_title') || t('access_denied.acces_restreint')}

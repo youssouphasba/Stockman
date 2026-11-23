@@ -2056,17 +2056,17 @@ function POSWorkspace() {
                             {/* Recording state */}
                             {isVoiceRecording && (
                                 <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                                    <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#ef444420', borderWidth: 2, borderColor: '#ef4444', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                                        <Ionicons name="mic" size={36} color="#ef4444" />
+                                    <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#ef444420', borderWidth: 2, borderColor: colors.danger, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                                        <Ionicons name="mic" size={36} color={colors.danger} />
                                     </View>
                                     <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 6 }}>{t('pos_screen.parlez_maintenant')}</Text>
                                     <Text style={{ fontSize: 12, color: colors.textMuted, textAlign: 'center', marginBottom: 20 }}>{t('pos_screen.exemple_2_coca_1_pain_trois')}</Text>
                                     <TouchableOpacity
                                         onPress={stopVoiceRecording}
-                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#ef444420', borderRadius: 14, borderWidth: 1.5, borderColor: '#ef4444' }}
+                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#ef444420', borderRadius: 14, borderWidth: 1.5, borderColor: colors.danger }}
                                     >
-                                        <Ionicons name="stop" size={18} color="#ef4444" />
-                                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#ef4444' }}>{t('pos_screen.arreter_l_enregistrement')}</Text>
+                                        <Ionicons name="stop" size={18} color={colors.danger} />
+                                        <Text style={{ fontSize: 14, fontWeight: '800', color: colors.danger }}>{t('pos_screen.arreter_l_enregistrement')}</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}

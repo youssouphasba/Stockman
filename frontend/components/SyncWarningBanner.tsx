@@ -13,7 +13,7 @@ export default function SyncWarningBanner() {
 
     if (!isOnline && pendingCount > 0 && failedCount === 0) {
         return (
-            <View style={[styles.banner, { backgroundColor: '#F59E0B' }]}>
+            <View style={[styles.banner, { backgroundColor: colors.warning }]}>
                 <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
                 <Text style={styles.text}>
                     {t('sync.pending_count', { count: pendingCount, defaultValue: '{{count}} action(s) pending sync' })}
@@ -27,7 +27,7 @@ export default function SyncWarningBanner() {
     return (
         <>
             <TouchableOpacity
-                style={[styles.banner, { backgroundColor: '#EF4444' }]}
+                style={[styles.banner, { backgroundColor: colors.danger }]}
                 onPress={() => setShowDetail(true)}
                 activeOpacity={0.85}
             >
@@ -42,7 +42,7 @@ export default function SyncWarningBanner() {
                 <Pressable style={styles.overlay} onPress={() => setShowDetail(false)}>
                     <Pressable style={[styles.sheet, { backgroundColor: colors.bgDark }]} onPress={() => { }}>
                         <View style={styles.sheetHeader}>
-                            <Ionicons name="warning-outline" size={22} color="#EF4444" />
+                            <Ionicons name="warning-outline" size={22} color={colors.danger} />
                             <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('sync.failed_title', 'Unsynced actions')}</Text>
                         </View>
                         <Text style={[styles.sheetSub, { color: colors.textMuted }]}>
