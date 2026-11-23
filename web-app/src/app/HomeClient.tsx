@@ -1052,7 +1052,9 @@ export default function Home() {
                     <GlobalFiltersBar />
                   </div>
                 )}
-                <div className="flex min-w-0 grow shrink-0 flex-col">
+                {/* La caisse occupe exactement la hauteur restante : produits et panier défilent chacun de leur côté,
+                    et les boutons de vente restent visibles en bas du panier. */}
+                <div className={activeTab === 'pos' ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'flex min-w-0 grow shrink-0 flex-col'}>
                 {activeTab === 'dashboard' && (
                   isRestaurantBusiness
                     ? <Dashboard onNavigate={setActiveTab} features={features} />

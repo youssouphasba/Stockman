@@ -637,8 +637,9 @@ body {
 /* --- Gradients --- */
 
 /* --- Decorative blurs (keep subtle in light mode) --- */
-[data-theme="light"] [class*="blur-3xl"],
-[data-theme="light"] [class*="blur-2xl"] {
+/* Taches floues décoratives seulement : un panneau en verre dépoli (backdrop-blur) doit rester lisible. */
+[data-theme="light"] [class*="blur-3xl"]:not([class*="backdrop-blur"]),
+[data-theme="light"] [class*="blur-2xl"]:not([class*="backdrop-blur"]) {
   opacity: 0.3;
 }
 

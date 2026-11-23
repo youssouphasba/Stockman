@@ -763,10 +763,10 @@ export default function POS() {
     }
 
     return (
-        <div className="flex h-full overflow-hidden bg-slate-950">
+        <div className="flex h-full min-h-0 flex-1 overflow-hidden bg-slate-950">
             <ScreenGuide guideKey="pos_tour" steps={posSteps} />
             {/* Products Column */}
-            <div className="flex-1 flex flex-col p-6 min-w-0">
+            <div className="flex-1 flex flex-col p-6 min-w-0 min-h-0">
                 <header className="mb-6 flex gap-4 items-center">
                     <div className="flex-1 relative" id="pos-search">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
@@ -848,7 +848,7 @@ export default function POS() {
             </div>
 
             {/* Cart Column */}
-            <div className="pos-cart-panel hidden lg:flex w-[450px] bg-surface/95 border-l border-white/10 flex-col p-6 backdrop-blur-3xl shadow-[-24px_0_80px_-60px_rgba(0,0,0,0.95)]" id="pos-cart">
+            <div className="pos-cart-panel hidden lg:flex w-[450px] bg-surface/95 border-l border-white/10 flex-col p-6 backdrop-blur-3xl overflow-y-auto custom-scrollbar shadow-[-24px_0_80px_-60px_rgba(0,0,0,0.95)]" id="pos-cart">
                 <div className="flex-1 flex flex-col min-h-0">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-black text-white flex items-center gap-3">
@@ -900,7 +900,7 @@ export default function POS() {
                     </div>
 
                     {/* Cart Items */}
-                    <div className="flex-1 overflow-y-auto mb-6 pr-2 custom-scrollbar space-y-3">
+                    <div className="flex-1 min-h-32 overflow-y-auto mb-6 pr-2 custom-scrollbar space-y-3">
                         {cart.length === 0 ? (
                             <div className="pos-cart-empty h-full flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/[0.03] px-6 text-center text-slate-400">
                                 <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
