@@ -19,6 +19,7 @@
   DeviceEventEmitter,
   InteractionManager,
 } from 'react-native';
+import SharedKpiCard from '../../components/ui/KpiCard';
 import Skeleton from '../../components/Skeleton';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -91,29 +92,20 @@ type KpiCardProps = {
   info?: string;
 };
 
-function KpiCard({ icon, label, value, color, isCurrency = false, info, user, colors, styles }: KpiCardProps & { user: any, colors: any, styles: any }) {
-  const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, "")) : value;
-  const isNumber = !isNaN(numericValue);
-
+function KpiCard({ icon, label, value, color, isCurrency = false, info, user, styles }: KpiCardProps & { user: any, colors: any, styles: any }) {
+  const { width } = useWindowDimensions();
   return (
-    <View style={[styles.kpiCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
-      {info ? <KpiInfoButton info={info} /> : null}
-      <View style={[styles.kpiIcon, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={22} color={color} />
-      </View>
-      {isNumber ? (
-        <AnimatedCounter
-          value={numericValue}
-          style={[styles.kpiValue, { color: colors.text }]}
-          suffix={isCurrency ? ` ${getCurrencySymbol(user?.currency)}` : ''}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-        />
-      ) : (
-        <Text style={[styles.kpiValue, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      )}
-      <Text style={[styles.kpiLabel, { color: colors.textSecondary }]} numberOfLines={2} ellipsizeMode="tail">{label}</Text>
-    </View>
+    <SharedKpiCard
+      icon={icon}
+      label={label}
+      value={value}
+      color={color}
+      info={info}
+      animate
+      suffix={isCurrency ? ` ${getCurrencySymbol(user?.currency)}` : ''}
+      compact={width <= 400}
+      style={styles.kpiCard}
+    />
   );
 }
 
@@ -2319,16 +2311,9 @@ const getStyles = (colors: any, glassStyle: any, screenWidth: number = 375) => {
   subGreeting: { fontSize: isCompact ? FontSize.xs : FontSize.sm, color: colors.textSecondary, marginTop: 4 },
   kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: kpiGap, marginBottom: isCompact ? Spacing.md : Spacing.lg },
   kpiCard: {
-    ...glassStyle,
     width: kpiCardWidth,
-    minHeight: isCompact ? 126 : 142,
-    padding: isCompact ? Spacing.sm : Spacing.md,
-    alignItems: 'center',
     marginBottom: Spacing.xs,
   },
-  kpiIcon: { width: isCompact ? 42 : 48, height: isCompact ? 42 : 48, borderRadius: BorderRadius.full, justifyContent: 'center', alignItems: 'center', marginBottom: isCompact ? Spacing.xs : Spacing.sm },
-  kpiValue: { fontSize: isVeryCompact ? 20 : FontSize.xl, fontWeight: 'bold', color: colors.text, marginBottom: Spacing.xs, maxWidth: '100%', textAlign: 'center' },
-  kpiLabel: { fontSize: isCompact ? 11 : FontSize.xs, color: colors.textSecondary, textAlign: 'center', maxWidth: '100%' },
   sectionTitle: { fontSize: isCompact ? FontSize.md : FontSize.lg, fontWeight: '700', color: colors.text, marginBottom: Spacing.md },
   reportMetricCard: { padding: 12, borderRadius: 12, borderWidth: 1, backgroundColor: colors.glass },
   reportMetricValue: { fontSize: 22, fontWeight: '800' },

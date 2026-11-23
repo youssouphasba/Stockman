@@ -1,4 +1,5 @@
 ﻿import React, { useState } from 'react';
+import Button from './ui/Button';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -151,17 +152,14 @@ export default function ChangePasswordModal({ visible, onClose, mode = 'change' 
                             <Text style={{ marginLeft: 8, color: colors.primary }}>{t('modals.changePassword.showPasswords')}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.submitButton, { backgroundColor: colors.primary }]}
-                            onPress={handleSubmit}
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.submitText}>{isSetMode ? t('modals.setPassword.confirm', 'Definir') : t('modals.changePassword.update')}</Text>
-                            )}
-                        </TouchableOpacity>
+                        <Button
+                          label={isSetMode ? t('modals.setPassword.confirm', 'Definir') : t('modals.changePassword.update')}
+                          onPress={handleSubmit}
+                          size="md"
+                          disabled={loading}
+                          loading={loading}
+                          style={{ marginTop: 10 }}
+                        />
                     </View>
                 </KeyboardAvoidingView>
             </View>

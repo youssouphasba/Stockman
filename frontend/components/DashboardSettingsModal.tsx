@@ -1,3 +1,4 @@
+import Button from './ui/Button';
 import React from 'react';
 import {
     Modal,
@@ -103,12 +104,12 @@ export default function DashboardSettingsModal({ visible, onClose, settings, onU
                         <View style={{ height: 40 }} />
                     </ScrollView>
 
-                    <TouchableOpacity
-                        style={[styles.saveButton, { backgroundColor: colors.primary }]}
-                        onPress={onClose}
-                    >
-                        <Text style={styles.saveButtonText}>{t('dashboard.settings_done')}</Text>
-                    </TouchableOpacity>
+                    <Button
+                      label={t('dashboard.settings_done')}
+                      onPress={onClose}
+                      size="md"
+                      style={{ marginTop: 10, marginBottom: Platform.OS === 'ios' ? 20 : 0 }}
+                    />
                 </View>
             </View>
         </Modal>

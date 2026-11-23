@@ -1,3 +1,4 @@
+import Button from './ui/Button';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -132,9 +133,13 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
       <View style={styles.centerContent}>
         <Ionicons name="cloud-upload-outline" size={60} color={colors.primary} />
         <Text style={styles.stepTitle}>{t('supplier_catalog_import.upload')}</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={handlePickFile} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>{t('supplier_catalog_import.choose')}</Text>}
-        </TouchableOpacity>
+        <Button
+          label={t('supplier_catalog_import.choose')}
+          onPress={handlePickFile}
+          size="lg"
+          disabled={loading}
+          loading={loading}
+        />
       </View>
     );
   }
@@ -164,9 +169,11 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
             </ScrollView>
           </View>
         ))}
-        <TouchableOpacity style={styles.primaryButton} onPress={handleConfirmMapping}>
-          <Text style={styles.primaryButtonText}>{t('supplier_catalog_import.next')}</Text>
-        </TouchableOpacity>
+        <Button
+          label={t('supplier_catalog_import.next')}
+          onPress={handleConfirmMapping}
+          size="lg"
+        />
       </ScrollView>
     );
   }
@@ -204,9 +211,14 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
           <TouchableOpacity style={styles.secondaryButton} onPress={() => setStep(1)}>
             <Text style={styles.secondaryButtonText}>{t('supplier_catalog_import.back')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={handleImport} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>{t('supplier_catalog_import.import')}</Text>}
-          </TouchableOpacity>
+          <Button
+            label={t('supplier_catalog_import.import')}
+            onPress={handleImport}
+            size="lg"
+            disabled={loading}
+            loading={loading}
+            style={{ flex: 1 }}
+          />
         </View>
       </ScrollView>
     );
@@ -230,9 +242,11 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
             ))}
           </View>
         )}
-        <TouchableOpacity style={styles.primaryButton} onPress={() => { onSuccess(); handleClose(); }}>
-          <Text style={styles.primaryButtonText}>{t('supplier_catalog_import.back_to_catalogue')}</Text>
-        </TouchableOpacity>
+        <Button
+          label={t('supplier_catalog_import.back_to_catalogue')}
+          onPress={() => { onSuccess(); handleClose(); }}
+          size="lg"
+        />
       </View>
     );
   }

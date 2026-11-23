@@ -1,3 +1,4 @@
+import Button from '../../components/ui/Button';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -348,8 +349,8 @@ export default function PlannerScreen() {
           </View>
           <Text style={[styles.guardTitle, { color: colors.text }]}>{t('planner.enterprise_only_title')}</Text>
           <Text style={[styles.guardDescription, { color: colors.textMuted }]}>{t('planner.enterprise_only_desc')}</Text>
-          <TouchableOpacity
-            accessibilityRole="link"
+          <Button
+            label={t('planner.discover_enterprise')}
             onPress={async () => {
               if (Platform.OS === 'web') {
                 router.push('/(tabs)/subscription' as any);
@@ -361,10 +362,8 @@ export default function PlannerScreen() {
                 Alert.alert(t('common.error'), t('subscription.web_open_error'));
               }
             }}
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-          >
-            <Text style={styles.primaryButtonText}>{t('planner.discover_enterprise')}</Text>
-          </TouchableOpacity>
+            size="md"
+          />
         </View>
       </View>
     );

@@ -1,3 +1,4 @@
+import Button from './ui/Button';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -146,13 +147,12 @@ export default function StoreSelector({ compact = false }: StoreSelectorProps) {
                                             <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCreateForm(false)}>
                                                 <Text style={styles.cancelText}>{t('common.cancel')}</Text>
                                             </TouchableOpacity>
-                                            <TouchableOpacity
-                                                style={[styles.confirmBtn, !newStoreName.trim() && { opacity: 0.5 }]}
-                                                onPress={handleCreateStore}
-                                                disabled={!newStoreName.trim()}
-                                            >
-                                                <Text style={styles.confirmText}>{t('store_selector.create')}</Text>
-                                            </TouchableOpacity>
+                                            <Button
+                                              label={t('store_selector.create')}
+                                              onPress={handleCreateStore}
+                                              size="md"
+                                              disabled={!newStoreName.trim()}
+                                            />
                                         </View>
                                     </View>
                                 )}

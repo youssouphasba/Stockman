@@ -1,4 +1,5 @@
 ﻿import React, { useCallback, useMemo, useRef, useState } from 'react';
+import Button from '../../components/ui/Button';
 import {
   ActivityIndicator,
   Alert,
@@ -434,13 +435,14 @@ export default function EnterpriseScreen() {
               <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowCreateModal(false)} disabled={creating}>
                 <Text style={styles.secondaryButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.primaryButton} onPress={handleCreateStore} disabled={creating}>
-                {creating ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>{t('enterprise.create_btn')}</Text>
-                )}
-              </TouchableOpacity>
+              <Button
+                label={t('enterprise.create_btn')}
+                onPress={handleCreateStore}
+                size="md"
+                disabled={creating}
+                loading={creating}
+                style={{ flex: 1 }}
+              />
             </View>
           </View>
         </View>

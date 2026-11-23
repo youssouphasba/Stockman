@@ -1,4 +1,5 @@
 ﻿import React, { useCallback, useMemo, useState } from 'react';
+import Button from '../../components/ui/Button';
 import {
   ActivityIndicator,
   Alert,
@@ -676,13 +677,14 @@ export default function LocationsScreen() {
               />
             </View>
 
-            <TouchableOpacity style={styles.primaryButton} onPress={generateStructure} disabled={saving || !canWrite}>
-              {saving ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>{t('locations_screen.generer_la_structure')}</Text>
-              )}
-            </TouchableOpacity>
+            <Button
+              label={t('locations_screen.generer_la_structure')}
+              onPress={generateStructure}
+              size="md"
+              disabled={saving || !canWrite}
+              loading={saving}
+              style={{ marginTop: Spacing.sm }}
+            />
           </View>
 
           <View style={styles.card}>
@@ -728,9 +730,14 @@ export default function LocationsScreen() {
                 ))}
               </ScrollView>
             ) : null}
-            <TouchableOpacity style={styles.primaryButton} onPress={createManualLocation} disabled={saving || !canWrite}>
-              {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>{t('locations_screen.creer_l_emplacement')}</Text>}
-            </TouchableOpacity>
+            <Button
+              label={t('locations_screen.creer_l_emplacement')}
+              onPress={createManualLocation}
+              size="md"
+              disabled={saving || !canWrite}
+              loading={saving}
+              style={{ marginTop: Spacing.sm }}
+            />
           </View>
 
           <View style={styles.card}>

@@ -1,3 +1,4 @@
+import Button from '../../components/ui/Button';
 import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
@@ -696,15 +697,12 @@ export default function AlertsScreen() {
                                 <Text style={styles.resetButtonText}>{t('alerts_screen.annuler')}</Text>
                               </TouchableOpacity>
                             )}
-                            <TouchableOpacity
-                              style={[styles.saveButton, savingRuleKey === currentKey && { opacity: 0.6 }]}
+                            <Button
+                              label={savingRuleKey === currentKey ? '...' : rule.rule_id.startsWith('draft:') ? t('alert_rule_text.create') : t('common.save')}
                               onPress={() => persistRule(rule)}
+                              size="md"
                               disabled={savingRuleKey === currentKey}
-                            >
-                              <Text style={styles.saveButtonText}>
-                                {savingRuleKey === currentKey ? '...' : rule.rule_id.startsWith('draft:') ? t('alert_rule_text.create') : t('common.save')}
-                              </Text>
-                            </TouchableOpacity>
+                            />
                           </View>
                         </View>
                       </View>

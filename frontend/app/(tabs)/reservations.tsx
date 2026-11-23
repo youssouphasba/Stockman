@@ -1,4 +1,5 @@
 ﻿import React, { useCallback, useState } from 'react';
+import Button from '../../components/ui/Button';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Modal, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
@@ -175,9 +176,12 @@ export default function ReservationsScreen() {
                 <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowCreate(false)}>
                   <Text style={styles.secondaryText}>{t('common.cancel', 'Annuler')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.primaryButton} onPress={createReservation} disabled={saving}>
-                  <Text style={styles.primaryText}>{saving ? t('common.loading', 'Chargement...') : t('common.save', 'Enregistrer')}</Text>
-                </TouchableOpacity>
+                <Button
+                  label={saving ? t('common.loading', 'Chargement...') : t('common.save', 'Enregistrer')}
+                  onPress={createReservation}
+                  size="md"
+                  disabled={saving}
+                />
               </View>
             </View>
           </ScrollView>

@@ -1,3 +1,4 @@
+import Button from '../../components/ui/Button';
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -134,9 +135,12 @@ export default function TablesScreen() {
               <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowCreate(false)}>
                 <Text style={styles.secondaryText}>{t('common.cancel', 'Annuler')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.primaryButton} onPress={createTable} disabled={saving}>
-                <Text style={styles.primaryText}>{saving ? t('common.loading', 'Chargement...') : t('common.save', 'Enregistrer')}</Text>
-              </TouchableOpacity>
+              <Button
+                label={saving ? t('common.loading', 'Chargement...') : t('common.save', 'Enregistrer')}
+                onPress={createTable}
+                size="md"
+                disabled={saving}
+              />
             </View>
           </View>
         </View>

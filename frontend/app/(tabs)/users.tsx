@@ -1,4 +1,5 @@
 ﻿import React, { useCallback, useState } from 'react';
+import Button from '../../components/ui/Button';
 import {
     View,
     Text,
@@ -568,9 +569,12 @@ export default function UsersScreen() {
                                     </>
                                 )}
 
-                                <TouchableOpacity style={styles.saveBtn} onPress={handleCreateOrUpdate}>
-                                    <Text style={styles.saveBtnText}>{editingUser ? t('users.save_btn') : t('users.create_account_btn')}</Text>
-                                </TouchableOpacity>
+                                <Button
+                                  label={editingUser ? t('users.save_btn') : t('users.create_account_btn')}
+                                  onPress={handleCreateOrUpdate}
+                                  size="md"
+                                  style={{ marginTop: Spacing.xl }}
+                                />
                                 <View style={{ height: 40 }} />
                             </ScrollView>
                         </LinearGradient>

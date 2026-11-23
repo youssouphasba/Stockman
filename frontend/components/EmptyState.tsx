@@ -7,13 +7,25 @@ import { Spacing, FontSize, BorderRadius } from '../constants/theme';
 interface Props {
     icon?: keyof typeof Ionicons.glyphMap;
     title: string;
-    message: string;
+    message?: string;
     actionLabel?: string;
     onAction?: () => void;
+    // Version légère, sans carte, pour une liste vide au milieu d'un écran.
+    compact?: boolean;
 }
 
-export default function EmptyState({ icon = 'search-outline', title, message, actionLabel, onAction }: Props) {
+export default function EmptyState({ icon = 'search-outline', title, message, actionLabel, onAction, compact = false }: Props) {
     const { colors, glassStyle } = useTheme();
+
+    if (compact) {
+        return (
+            <View style={styles.compact}>
+                <Ionicons name={icon} size={48} color={colors.textMuted} />
+                <Text style={[styles.compactTitle, { color: colors.textMuted }]}>{title}</Text>
+                {message ? <Text style={[styles.compactMessage, { color: colors.textMuted }]}>{message}</Text> : null}
+            </View>
+        );
+    }
 
     return (
         <View style={[styles.container, glassStyle]}>
@@ -21,7 +33,7 @@ export default function EmptyState({ icon = 'search-outline', title, message, ac
                 <Ionicons name={icon} size={48} color={colors.primary} />
             </View>
             <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-            <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
+            {message ? <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text> : null}
 
             {actionLabel && onAction && (
                 <TouchableOpacity
@@ -36,6 +48,9 @@ export default function EmptyState({ icon = 'search-outline', title, message, ac
 }
 
 const styles = StyleSheet.create({
+    compact: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 },
+    compactTitle: { fontSize: FontSize.sm, textAlign: 'center' },
+    compactMessage: { fontSize: FontSize.xs, textAlign: 'center' },
     container: {
         padding: Spacing.xl,
         alignItems: 'center',

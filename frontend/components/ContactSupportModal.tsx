@@ -1,3 +1,4 @@
+import Button from './ui/Button';
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView, FlatList, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -324,17 +325,14 @@ export default function ContactSupportModal({ visible, onClose, initialSubject =
                                     value={message}
                                     onChangeText={setMessage}
                                 />
-                                <TouchableOpacity
-                                    style={[styles.submitButton, { backgroundColor: colors.primary }]}
-                                    onPress={handleSubmit}
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <ActivityIndicator color="#fff" />
-                                    ) : (
-                                        <Text style={styles.submitText}>{t('modals.contactSupport.send')}</Text>
-                                    )}
-                                </TouchableOpacity>
+                                <Button
+                                  label={t('modals.contactSupport.send')}
+                                  onPress={handleSubmit}
+                                  size="md"
+                                  disabled={loading}
+                                  loading={loading}
+                                  style={{ marginTop: 10 }}
+                                />
                             </View>
                         </ScrollView>
                     ) : (

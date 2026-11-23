@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import KpiInfoButton from './KpiInfoButton';
+import KpiCard from './ui/KpiCard';
+import SharedCard from './ui/Card';
+import SharedEmptyState from './EmptyState';
 
 // ============ FILTER BAR ============
 export function FilterBar({ filters, active, onSelect, colors }: {
@@ -33,19 +35,11 @@ export function SearchBar({ value, onChangeText, placeholder, colors }: {
 }
 
 // ============ STAT CARD ============
-export function StatCard({ label, value, icon, color, colors, info, style }: {
-    label: string; value: string | number; icon: string; color: string; colors: any; info?: string; style?: any;
+// Carte d'indicateur : délègue à la carte partagée de l'application.
+export function StatCard({ label, value, icon, color, info, style }: {
+    label: string; value: string | number; icon: string; color: string; colors?: any; info?: string; style?: any;
 }) {
-    return (
-        <View style={[s.statCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }, style]}>
-            {info ? <KpiInfoButton info={info} /> : null}
-            <View style={[s.statIcon, { backgroundColor: color + '22' }]}>
-                <Ionicons name={icon as any} size={20} color={color} />
-            </View>
-            <Text style={[s.statValue, { color: colors.text }]}>{value}</Text>
-            <Text style={[s.statLabel, { color: colors.textSecondary }]}>{label}</Text>
-        </View>
-    );
+    return <KpiCard label={label} value={value} icon={icon as any} color={color} info={info} compact style={[{ flex: 1, minWidth: 140 }, style]} />;
 }
 
 // ============ STATUS BADGE ============
@@ -68,12 +62,8 @@ export function SectionHeader({ title, count, colors }: { title: string; count?:
 }
 
 // ============ CARD ============
-export function Card({ children, colors, style }: { children: React.ReactNode; colors: any; style?: any }) {
-    return (
-        <View style={[s.card, { backgroundColor: colors.glass, borderColor: colors.glassBorder }, style]}>
-            {children}
-        </View>
-    );
+export function Card({ children, style }: { children: React.ReactNode; colors?: any; style?: any }) {
+    return <SharedCard style={[{ marginBottom: 10 }, style]}>{children}</SharedCard>;
 }
 
 // ============ ACTION BUTTON ============
@@ -89,13 +79,8 @@ export function ActionButton({ label, icon, color, onPress }: {
 }
 
 // ============ EMPTY STATE ============
-export function EmptyState({ icon, message, colors }: { icon: string; message: string; colors: any }) {
-    return (
-        <View style={s.empty}>
-            <Ionicons name={icon as any} size={48} color={colors.textMuted} />
-            <Text style={[s.emptyText, { color: colors.textMuted }]}>{message}</Text>
-        </View>
-    );
+export function EmptyState({ icon, message }: { icon: string; message: string; colors?: any }) {
+    return <SharedEmptyState icon={icon as any} title={message} compact />;
 }
 
 const s = StyleSheet.create({
@@ -104,17 +89,10 @@ const s = StyleSheet.create({
     filterText: { fontSize: 12, fontWeight: '600' },
     searchBar: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12, gap: 8 },
     searchInput: { flex: 1, fontSize: 14 },
-    statCard: { flex: 1, minWidth: 140, minHeight: 132, padding: 14, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 6 },
-    statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    statValue: { fontSize: 22, fontWeight: '800' },
-    statLabel: { fontSize: 11, textAlign: 'center' },
     badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
     badgeText: { fontSize: 11, fontWeight: '700' },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: 16 },
     sectionTitle: { fontSize: 16, fontWeight: '700' },
-    card: { padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
     actionLabel: { fontSize: 12, fontWeight: '600' },
-    empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 },
-    emptyText: { fontSize: 14 },
 });

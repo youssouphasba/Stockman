@@ -1,4 +1,5 @@
 ﻿import React, { useCallback, useMemo, useRef, useState } from 'react';
+import Button from '../../components/ui/Button';
 import { useTabReselect } from '../../hooks/useTabReselect';
 import { useTranslation } from 'react-i18next';
 import {
@@ -1558,19 +1559,14 @@ export default function SuppliersScreen() {
                 <FormField label={t('suppliers.form_delay')} value={formDeliveryDelay} onChangeText={setFormDeliveryDelay} placeholder={t('suppliers.form_delay_placeholder')} colors={colors} styles={styles} />
                 <FormField label={t('suppliers.form_payment')} value={formPaymentConditions} onChangeText={setFormPaymentConditions} placeholder={t('suppliers.form_payment_placeholder')} colors={colors} styles={styles} />
                 <FormField label={t('suppliers.form_notes')} value={formNotes} onChangeText={setFormNotes} placeholder={t('suppliers.form_notes_placeholder')} colors={colors} styles={styles} />
-                <TouchableOpacity
-                  style={[styles.submitBtn, formLoading && styles.submitBtnDisabled]}
+                <Button
+                  label={editingSupplier ? t('common.save') : t('common.add')}
                   onPress={handleSaveSupplier}
+                  size="lg"
                   disabled={formLoading}
-                >
-                  {formLoading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.submitBtnText}>
-                      {editingSupplier ? t('common.save') : t('common.add')}
-                    </Text>
-                  )}
-                </TouchableOpacity>
+                  loading={formLoading}
+                  style={{ marginTop: Spacing.sm }}
+                />
               </ScrollView>
         </KeyboardAwareModal>}
 
@@ -2281,17 +2277,14 @@ export default function SuppliersScreen() {
                 ) : null}
               </ScrollView>
 
-              <TouchableOpacity
-                style={[styles.submitBtn, (!selectedSuggestionSupplierId || formLoading) && styles.submitBtnDisabled]}
+              <Button
+                label={t('suppliers.link')}
                 onPress={handleSuggestionLinkSupplier}
+                size="lg"
                 disabled={!selectedSuggestionSupplierId || formLoading}
-              >
-                {formLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitBtnText}>{t('suppliers.link')}</Text>
-                )}
-              </TouchableOpacity>
+                loading={formLoading}
+                style={{ marginTop: Spacing.sm }}
+              />
             </View>
           </View>
         </Modal>}
@@ -2346,17 +2339,14 @@ export default function SuppliersScreen() {
                 )}
               </ScrollView>
 
-              <TouchableOpacity
-                style={[styles.submitBtn, (!selectedProductId || formLoading) && styles.submitBtnDisabled]}
+              <Button
+                label={t('suppliers.link')}
                 onPress={handleLinkProduct}
+                size="lg"
                 disabled={!selectedProductId || formLoading}
-              >
-                {formLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitBtnText}>{t('suppliers.link')}</Text>
-                )}
-              </TouchableOpacity>
+                loading={formLoading}
+                style={{ marginTop: Spacing.sm }}
+              />
             </View>
           </View>
         </Modal>}
@@ -2548,15 +2538,15 @@ export default function SuppliersScreen() {
                   >
                     <Text style={[styles.submitBtnText, { color: colors.text }]}>{t('common.reset')}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.submitBtn, { flex: 2 }]}
+                  <Button
+                    label={t('common.apply')}
                     onPress={() => {
                       loadMarketplace();
                       setShowMpFilters(false);
                     }}
-                  >
-                    <Text style={styles.submitBtnText}>{t('common.apply')}</Text>
-                  </TouchableOpacity>
+                    size="lg"
+                    style={{ marginTop: Spacing.sm, flex: 2 }}
+                  />
                 </View>
               </ScrollView>
             </View>
@@ -2608,17 +2598,14 @@ export default function SuppliersScreen() {
                       colors={colors}
                       styles={styles}
                     />
-                    <TouchableOpacity
-                      style={[styles.submitBtn, (!inviteEmail.trim() || inviteSaving) && styles.submitBtnDisabled]}
+                    <Button
+                      label={t('suppliers.send_invite')}
                       onPress={submitInvite}
+                      size="lg"
                       disabled={!inviteEmail.trim() || inviteSaving}
-                    >
-                      {inviteSaving ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.submitBtnText}>{t('suppliers.send_invite')}</Text>
-                      )}
-                    </TouchableOpacity>
+                      loading={inviteSaving}
+                      style={{ marginTop: Spacing.sm }}
+                    />
                   </View>
                 ) : null}
               </ScrollView>
