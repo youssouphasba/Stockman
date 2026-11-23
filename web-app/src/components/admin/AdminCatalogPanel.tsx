@@ -1,5 +1,7 @@
 ﻿'use client';
 
+import Modal from '../Modal';
+import { useFeedback } from '../ui/Feedback';
 import Button from '../ui/Button';
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Bot, CheckCircle2, ChevronLeft, ChevronRight, Copy, Download, Edit3, GitMerge, Layers3, PackagePlus, RefreshCw, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react';
@@ -304,6 +306,7 @@ export default function AdminCatalogPanel(props: Props) {
 
 // Sous-onglet Fiches : création, correction et publication des fiches du catalogue global.
 function AdminCatalogEntries({ refreshToken, showToast }: Props) {
+    const { confirm: confirmDialog } = useFeedback();
     const [items, setItems] = useState<CatalogEntry[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [assistant, setAssistant] = useState<any>(null);
@@ -745,7 +748,7 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
 
     const bulkDelete = async () => {
         const count = selectedIds.size;
-        if (!window.confirm(`Supprimer ${count} produit(s) du catalogue global ? Cette action est irréversible.`)) return;
+        if (!(await confirmDialog(`Supprimer ${count} produit(s) du catalogue global ? Cette action est irréversible.`))) return;
         try {
             await adminApi.bulkDeleteCatalogProducts(Array.from(selectedIds));
             setSelectedIds(new Set());
@@ -800,7 +803,7 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
     };
 
     const remove = async (entry: CatalogEntry) => {
-        if (!window.confirm(`Supprimer "${entry.display_name}" du catalogue global ?`)) return;
+        if (!(await confirmDialog(`Supprimer "${entry.display_name}" du catalogue global ?`))) return;
         try {
             await adminApi.deleteCatalogProduct(entry.catalog_id);
             await load();
@@ -1173,233 +1176,220 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
                 )}
             </div>
 
-            {editorOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
-                    <div className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <h3 className="text-2xl font-black text-white">{editingEntry ? 'Modifier le produit catalogue' : 'Nouveau produit catalogue'}</h3>
-                                <p className="mt-1 text-sm text-slate-200">L'IA propose des pistes, mais c'est vous qui validez les catégories, unités et rapprochements.</p>
-                            </div>
-                            <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
+            <Modal
+                isOpen={editorOpen}
+                onClose={() => setEditorOpen(false)}
+                maxWidth="6xl"
+                title={editingEntry ? 'Modifier le produit catalogue' : 'Nouveau produit catalogue'}
+                description="L'IA propose des pistes, mais c'est vous qui validez les catégories, unités et rapprochements."
+                footer={(
+                    <>
+                        <Button variant="secondary" size="sm" type="button" onClick={() => setEditorOpen(false)}>Annuler</Button>
+                        <Button variant="primary" size="sm" type="button" onClick={() => void save()}>Enregistrer</Button>
+                    </>
+                )}
+            >
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <input value={form.display_name} onChange={(event) => setForm((current) => ({ ...current, display_name: event.target.value }))} placeholder="Nom du produit" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                            <input value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} placeholder="Catégorie" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                            <select value={form.sector} onChange={(event) => setForm((current) => ({ ...current, sector: event.target.value }))} className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary">{BUSINESS_SECTORS.map((sector) => <option key={sector.key} value={sector.key}>{sector.label}</option>)}</select>
+                            <input value={form.unit} onChange={(event) => setForm((current) => ({ ...current, unit: event.target.value }))} placeholder="Unité" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                            <select value={form.publication_status} onChange={(event) => setForm((current) => ({ ...current, publication_status: event.target.value as PublicationStatus }))} className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary">{PUBLICATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+                            <input value={form.country_codes} onChange={(event) => setForm((current) => ({ ...current, country_codes: event.target.value }))} placeholder="Pays (SN, CI, FR...)" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                            <input value={form.reference_price} onChange={(event) => setForm((current) => ({ ...current, reference_price: event.target.value }))} placeholder="Prix de référence" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                            <input value={form.sale_price} onChange={(event) => setForm((current) => ({ ...current, sale_price: event.target.value }))} placeholder="Prix de vente" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
                         </div>
 
-                        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    <input value={form.display_name} onChange={(event) => setForm((current) => ({ ...current, display_name: event.target.value }))} placeholder="Nom du produit" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                                    <input value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} placeholder="Catégorie" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                                    <select value={form.sector} onChange={(event) => setForm((current) => ({ ...current, sector: event.target.value }))} className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary">{BUSINESS_SECTORS.map((sector) => <option key={sector.key} value={sector.key}>{sector.label}</option>)}</select>
-                                    <input value={form.unit} onChange={(event) => setForm((current) => ({ ...current, unit: event.target.value }))} placeholder="Unité" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                                    <select value={form.publication_status} onChange={(event) => setForm((current) => ({ ...current, publication_status: event.target.value as PublicationStatus }))} className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary">{PUBLICATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
-                                    <input value={form.country_codes} onChange={(event) => setForm((current) => ({ ...current, country_codes: event.target.value }))} placeholder="Pays (SN, CI, FR...)" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                                    <input value={form.reference_price} onChange={(event) => setForm((current) => ({ ...current, reference_price: event.target.value }))} placeholder="Prix de référence" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                                    <input value={form.sale_price} onChange={(event) => setForm((current) => ({ ...current, sale_price: event.target.value }))} placeholder="Prix de vente" className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                        <input value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} placeholder="Tags" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                        <input value={form.image_url} onChange={(event) => setForm((current) => ({ ...current, image_url: event.target.value }))} placeholder="URL image" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                        <input value={form.barcodes} onChange={(event) => setForm((current) => ({ ...current, barcodes: event.target.value }))} placeholder="Codes-barres" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                        <input value={form.supplier_hint} onChange={(event) => setForm((current) => ({ ...current, supplier_hint: event.target.value }))} placeholder="Suggestion fournisseur" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                        <label className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"><input type="checkbox" checked={form.verified} onChange={(event) => setForm((current) => ({ ...current, verified: event.target.checked }))} className="h-4 w-4 rounded border-white/20 bg-slate-950 text-primary focus:ring-primary" />Marquer ce produit comme vérifié</label>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                            <div className="flex items-center gap-2 font-bold text-white"><Sparkles size={16} className="text-primary" />Suggestions IA</div>
+                            <div className="mt-4 space-y-4 text-sm text-slate-200">
+                                <div>
+                                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Catégories suggérées</div>
+                                    <div className="flex flex-wrap gap-2">{(assistantSuggestions.category_suggestions || []).slice(0, 6).map((item: any) => <button key={item.value} type="button" onClick={() => setForm((current) => ({ ...current, category: item.value }))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200">{item.value}</button>)}</div>
                                 </div>
-
-                                <input value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} placeholder="Tags" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                                <input value={form.image_url} onChange={(event) => setForm((current) => ({ ...current, image_url: event.target.value }))} placeholder="URL image" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                                <input value={form.barcodes} onChange={(event) => setForm((current) => ({ ...current, barcodes: event.target.value }))} placeholder="Codes-barres" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                                <input value={form.supplier_hint} onChange={(event) => setForm((current) => ({ ...current, supplier_hint: event.target.value }))} placeholder="Suggestion fournisseur" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                                <label className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"><input type="checkbox" checked={form.verified} onChange={(event) => setForm((current) => ({ ...current, verified: event.target.checked }))} className="h-4 w-4 rounded border-white/20 bg-slate-950 text-primary focus:ring-primary" />Marquer ce produit comme vérifié</label>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-                                    <div className="flex items-center gap-2 font-bold text-white"><Sparkles size={16} className="text-primary" />Suggestions IA</div>
-                                    <div className="mt-4 space-y-4 text-sm text-slate-200">
-                                        <div>
-                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Catégories suggérées</div>
-                                            <div className="flex flex-wrap gap-2">{(assistantSuggestions.category_suggestions || []).slice(0, 6).map((item: any) => <button key={item.value} type="button" onClick={() => setForm((current) => ({ ...current, category: item.value }))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200">{item.value}</button>)}</div>
-                                        </div>
-                                        <div>
-                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Unités suggérées</div>
-                                            <div className="flex flex-wrap gap-2">{(assistantSuggestions.unit_suggestions || []).slice(0, 6).map((item: any) => <button key={item.value} type="button" onClick={() => setForm((current) => ({ ...current, unit: item.value }))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200">{item.value}</button>)}</div>
-                                        </div>
-                                        <div>
-                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Rapprochements marketplace</div>
-                                            <div className="space-y-2">{(assistantSuggestions.marketplace_matches || []).slice(0, 4).map((item: any) => <div key={item.catalog_id || item.display_name} className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="font-semibold text-white">{item.display_name}</div><div className="text-xs text-slate-400">{item.category || 'Sans catégorie'} • Score {Math.round((item.match_score || 0) * 100)}%</div></div>)}</div>
-                                        </div>
-                                        <div>
-                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Doublons probables</div>
-                                            <div className="space-y-2">{(assistantSuggestions.duplicate_candidates || []).slice(0, 4).map((item: any) => <div key={item.catalog_id || item.display_name} className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="font-semibold text-white">{item.display_name}</div><div className="text-xs text-slate-400">Score {Math.round((item.match_score || 0) * 100)}%</div></div>)}</div>
-                                        </div>
-                                        <div>
-                                            <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Suggestions fournisseur</div>
-                                            <div className="space-y-2">{(assistantSuggestions.supplier_suggestions || []).slice(0, 4).map((item: any) => <button key={item.id || item.name} type="button" onClick={() => setForm((current) => ({ ...current, supplier_hint: item.name || item.display_name || '' }))} className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-left"><div className="font-semibold text-white">{item.name || item.display_name}</div><div className="text-xs text-slate-400">{item.city || 'Ville non renseignée'} • Score {Math.round((item.match_score || 0) * 100)}%</div></button>)}</div>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Unités suggérées</div>
+                                    <div className="flex flex-wrap gap-2">{(assistantSuggestions.unit_suggestions || []).slice(0, 6).map((item: any) => <button key={item.value} type="button" onClick={() => setForm((current) => ({ ...current, unit: item.value }))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-200">{item.value}</button>)}</div>
                                 </div>
-
-                                <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-                                    <div className="text-sm font-black text-white">Complétude actuelle</div>
-                                    <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-slate-300">
-                                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">Catégorie : {form.category.trim() ? 'OK' : 'À renseigner'}</div>
-                                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">Unité : {form.unit.trim() ? 'OK' : 'À renseigner'}</div>
-                                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">Prix : {form.reference_price || form.sale_price ? 'OK' : 'À renseigner'}</div>
-                                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">Image : {form.image_url.trim() ? 'OK' : 'À renseigner'}</div>
-                                    </div>
+                                <div>
+                                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Rapprochements marketplace</div>
+                                    <div className="space-y-2">{(assistantSuggestions.marketplace_matches || []).slice(0, 4).map((item: any) => <div key={item.catalog_id || item.display_name} className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="font-semibold text-white">{item.display_name}</div><div className="text-xs text-slate-400">{item.category || 'Sans catégorie'} • Score {Math.round((item.match_score || 0) * 100)}%</div></div>)}</div>
+                                </div>
+                                <div>
+                                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Doublons probables</div>
+                                    <div className="space-y-2">{(assistantSuggestions.duplicate_candidates || []).slice(0, 4).map((item: any) => <div key={item.catalog_id || item.display_name} className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="font-semibold text-white">{item.display_name}</div><div className="text-xs text-slate-400">Score {Math.round((item.match_score || 0) * 100)}%</div></div>)}</div>
+                                </div>
+                                <div>
+                                    <div className="mb-2 text-xs uppercase tracking-widest text-slate-500">Suggestions fournisseur</div>
+                                    <div className="space-y-2">{(assistantSuggestions.supplier_suggestions || []).slice(0, 4).map((item: any) => <button key={item.id || item.name} type="button" onClick={() => setForm((current) => ({ ...current, supplier_hint: item.name || item.display_name || '' }))} className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-left"><div className="font-semibold text-white">{item.name || item.display_name}</div><div className="text-xs text-slate-400">{item.city || 'Ville non renseignée'} • Score {Math.round((item.match_score || 0) * 100)}%</div></button>)}</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-6 flex flex-wrap justify-end gap-3">
-                            <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
-                            <Button variant="primary" size="sm" type="button" onClick={() => void save()}>Enregistrer</Button>
+                        <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+                            <div className="text-sm font-black text-white">Complétude actuelle</div>
+                            <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-slate-300">
+                                <div className="rounded-xl border border-white/10 bg-white/5 p-3">Catégorie : {form.category.trim() ? 'OK' : 'À renseigner'}</div>
+                                <div className="rounded-xl border border-white/10 bg-white/5 p-3">Unité : {form.unit.trim() ? 'OK' : 'À renseigner'}</div>
+                                <div className="rounded-xl border border-white/10 bg-white/5 p-3">Prix : {form.reference_price || form.sale_price ? 'OK' : 'À renseigner'}</div>
+                                <div className="rounded-xl border border-white/10 bg-white/5 p-3">Image : {form.image_url.trim() ? 'OK' : 'À renseigner'}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            )}
 
-            {mergeModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
-                    <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
-                        <div className="flex items-start justify-between gap-4">
-                            <h3 className="text-xl font-black text-white">Fusionner {selectedEntries.length} produits</h3>
-                            <button type="button" onClick={() => setMergeModalOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
-                        </div>
-                        <p className="mt-2 text-sm text-slate-200">Choisissez la fiche à conserver. Les autres seront supprimées et leurs données fusionnées dans celle-ci.</p>
-                        <div className="mt-4 space-y-2">
-                            {selectedEntries.map((entry) => (
-                                <label
-                                    key={entry.catalog_id}
-                                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${mergeKeepId === entry.catalog_id ? 'border-primary/40 bg-primary/10' : 'border-white/10 bg-white/5'}`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="merge_keep"
-                                        value={entry.catalog_id}
-                                        checked={mergeKeepId === entry.catalog_id}
-                                        onChange={() => setMergeKeepId(entry.catalog_id)}
-                                        className="mt-1 text-primary"
-                                    />
-                                    <div>
-                                        <div className="font-bold text-white">{entry.display_name}</div>
-                                        <div className="text-xs text-slate-400">
-                                            {entry.category || 'Sans catégorie'} · {getBusinessSectorLabel(entry.sector)} · {entry.added_by_count ?? 0} ajouts · complétude {entry.completeness?.score ?? 0}/100
-                                        </div>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button type="button" onClick={() => setMergeModalOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
-                            <Button variant="primary" size="sm" type="button" onClick={() => void merge()}><GitMerge size={16} />Fusionner</Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            </Modal>
 
-            {batchOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
-                    <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <h3 className="text-2xl font-black text-white">Création en lot</h3>
-                                <p className="mt-1 text-sm text-slate-200">Collez des lignes rapides ou importez un fichier CSV avec en-tête. L'import garde sa progression : vous pouvez le reprendre après avoir fermé la fenêtre.</p>
-                            </div>
-                            <button type="button" onClick={() => setBatchOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
-                        </div>
-
-                        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <div className="text-sm font-bold text-white">Import CSV admin</div>
-                            <p className="mt-1 text-xs text-slate-200">Colonnes attendues : <code className="rounded bg-slate-800 px-1 text-emerald-300">display_name</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">category</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">sector</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">country_codes</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">unit</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">tags</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">publication_status</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">reference_price</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">sale_price</code> — autres colonnes optionnelles.</p>
+            <Modal
+                isOpen={mergeModalOpen}
+                onClose={() => setMergeModalOpen(false)}
+                maxWidth="lg"
+                title={`Fusionner ${selectedEntries.length} produits`}
+                footer={(
+                    <>
+                        <Button variant="secondary" size="sm" type="button" onClick={() => setMergeModalOpen(false)}>Annuler</Button>
+                        <Button variant="primary" size="sm" type="button" onClick={() => void merge()}><GitMerge size={16} />Fusionner</Button>
+                    </>
+                )}
+            >
+                <p className="mt-2 text-sm text-slate-200">Choisissez la fiche à conserver. Les autres seront supprimées et leurs données fusionnées dans celle-ci.</p>
+                <div className="mt-4 space-y-2">
+                    {selectedEntries.map((entry) => (
+                        <label
+                            key={entry.catalog_id}
+                            className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${mergeKeepId === entry.catalog_id ? 'border-primary/40 bg-primary/10' : 'border-white/10 bg-white/5'}`}
+                        >
                             <input
-                                type="file"
-                                accept=".csv,text/csv"
-                                onChange={(event) => {
-                                    const file = event.target.files?.[0];
-                                    if (file) void importBatchFile(file);
-                                    event.currentTarget.value = '';
-                                }}
-                                className="mt-4 block w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:font-semibold file:text-white"
+                                type="radio"
+                                name="merge_keep"
+                                value={entry.catalog_id}
+                                checked={mergeKeepId === entry.catalog_id}
+                                onChange={() => setMergeKeepId(entry.catalog_id)}
+                                className="mt-1 text-primary"
                             />
-                            {batchRows.length > 0 && (
-                                <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
-                                    <div className="font-semibold text-white">{batchFileName}</div>
-                                    <div className="mt-1">{batchRows.length} ligne(s) prêtes à importer.</div>
-                                    <div className="mt-2 text-xs text-emerald-100">
-                                        Aperçu : {batchRows.slice(0, 3).map((row) => row.display_name).join(' • ')}
+                            <div>
+                                <div className="font-bold text-white">{entry.display_name}</div>
+                                <div className="text-xs text-slate-400">
+                                    {entry.category || 'Sans catégorie'} · {getBusinessSectorLabel(entry.sector)} · {entry.added_by_count ?? 0} ajouts · complétude {entry.completeness?.score ?? 0}/100
+                                </div>
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={batchOpen}
+                onClose={() => setBatchOpen(false)}
+                maxWidth="3xl"
+                title="Création en lot"
+                description="Collez des lignes rapides ou importez un fichier CSV avec en-tête. L'import garde sa progression : vous pouvez le reprendre après avoir fermé la fenêtre."
+                footer={(
+                    <>
+                        {batchResumeAvailable && !batchSubmitting && (
+                            <button type="button" onClick={() => resetBatchImportState(true)} className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 font-semibold text-rose-200">
+                                Effacer la reprise
+                            </button>
+                        )}
+                        <button type="button" onClick={() => setBatchOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
+                            Fermer
+                        </button>
+                        <Button variant="primary" size="sm"
+                            type="button"
+                            onClick={() => {
+                                if (batchResumeAvailable && batchRows.length > 0 && batchProgress.done < batchProgress.total) {
+                                    void runBatchImport(batchRows, {
+                                        startIndex: batchProgress.done,
+                                        fileName: batchFileName,
+                                        batchText,
+                                        created: batchSummary.created,
+                                        updated: batchSummary.updated,
+                                        errors: batchSummary.errors,
+                                    });
+                                    return;
+                                }
+                                void createBatch();
+                            }}
+                            disabled={batchSubmitting}
+                        >
+                            {batchSubmitting ? 'Import en cours…' : (batchResumeAvailable && batchProgress.done < batchProgress.total ? 'Reprendre l’import' : 'Créer les produits')}
+                        </Button>
+                    </>
+                )}
+            >
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-sm font-bold text-white">Import CSV admin</div>
+                    <p className="mt-1 text-xs text-slate-200">Colonnes attendues : <code className="rounded bg-slate-800 px-1 text-emerald-300">display_name</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">category</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">sector</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">country_codes</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">unit</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">tags</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">publication_status</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">reference_price</code>, <code className="rounded bg-slate-800 px-1 text-emerald-300">sale_price</code> — autres colonnes optionnelles.</p>
+                    <input
+                        type="file"
+                        accept=".csv,text/csv"
+                        onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) void importBatchFile(file);
+                            event.currentTarget.value = '';
+                        }}
+                        className="mt-4 block w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:font-semibold file:text-white"
+                    />
+                    {batchRows.length > 0 && (
+                        <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+                            <div className="font-semibold text-white">{batchFileName}</div>
+                            <div className="mt-1">{batchRows.length} ligne(s) prêtes à importer.</div>
+                            <div className="mt-2 text-xs text-emerald-100">
+                                Aperçu : {batchRows.slice(0, 3).map((row) => row.display_name).join(' • ')}
+                            </div>
+                            {(batchSubmitting || batchResumeAvailable || batchProgress.total > 0) && (
+                                <div className="mt-3 space-y-2 text-xs text-emerald-100">
+                                    <div>Progression : {batchProgress.done} / {batchProgress.total}</div>
+                                    <div>Créés : {batchSummary.created} • Mis à jour : {batchSummary.updated} • Erreurs : {batchSummary.errors}</div>
+                                    <div className="h-2 overflow-hidden rounded-full bg-slate-950/60">
+                                        <div
+                                            className="h-full rounded-full bg-emerald-400 transition-all"
+                                            style={{ width: `${batchProgress.total ? Math.min(100, (batchProgress.done / batchProgress.total) * 100) : 0}%` }}
+                                        />
                                     </div>
-                                    {(batchSubmitting || batchResumeAvailable || batchProgress.total > 0) && (
-                                        <div className="mt-3 space-y-2 text-xs text-emerald-100">
-                                            <div>Progression : {batchProgress.done} / {batchProgress.total}</div>
-                                            <div>Créés : {batchSummary.created} • Mis à jour : {batchSummary.updated} • Erreurs : {batchSummary.errors}</div>
-                                            <div className="h-2 overflow-hidden rounded-full bg-slate-950/60">
-                                                <div
-                                                    className="h-full rounded-full bg-emerald-400 transition-all"
-                                                    style={{ width: `${batchProgress.total ? Math.min(100, (batchProgress.done / batchProgress.total) * 100) : 0}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             )}
                         </div>
-
-                        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <div className="text-sm font-bold text-white">Saisie rapide</div>
-                            <p className="mt-1 text-xs text-slate-200">Format : <code className="rounded bg-slate-800 px-1 text-emerald-300">nom;catégorie;secteur;unité;prix_ref;prix_vente;tags</code></p>
-                            <textarea value={batchText} onChange={(event) => { setBatchRows([]); setBatchFileName(''); setBatchText(event.target.value); setBatchProgress({ total: 0, done: 0 }); setBatchSummary({ created: 0, updated: 0, errors: 0 }); setBatchResumeAvailable(false); saveBatchImportCheckpoint(null); }} rows={10} className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" placeholder="Riz parfumé;Riz;epicerie;kg;650;850;riz, premium" />
-                        </div>
-
-                        <div className="mt-6 flex justify-end gap-3">
-                            {batchResumeAvailable && !batchSubmitting && (
-                                <button type="button" onClick={() => resetBatchImportState(true)} className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 font-semibold text-rose-200">
-                                    Effacer la reprise
-                                </button>
-                            )}
-                            <button type="button" onClick={() => setBatchOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
-                                Fermer
-                            </button>
-                            <Button variant="primary" size="sm"
-                                type="button"
-                                onClick={() => {
-                                    if (batchResumeAvailable && batchRows.length > 0 && batchProgress.done < batchProgress.total) {
-                                        void runBatchImport(batchRows, {
-                                            startIndex: batchProgress.done,
-                                            fileName: batchFileName,
-                                            batchText,
-                                            created: batchSummary.created,
-                                            updated: batchSummary.updated,
-                                            errors: batchSummary.errors,
-                                        });
-                                        return;
-                                    }
-                                    void createBatch();
-                                }}
-                                disabled={batchSubmitting}
-                            >
-                                {batchSubmitting ? 'Import en cours…' : (batchResumeAvailable && batchProgress.done < batchProgress.total ? 'Reprendre l’import' : 'Créer les produits')}
-                            </Button>
-                        </div>
-                    </div>
+                    )}
                 </div>
-            )}
 
-            {variantOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
-                    <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <h3 className="text-2xl font-black text-white">Créer une série de variantes</h3>
-                                <p className="mt-1 text-sm text-slate-200">Exemple : nom de base "Jus", variantes "mangue, ananas, bissap".</p>
-                            </div>
-                            <button type="button" onClick={() => setVariantOpen(false)} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300"><X size={18} /></button>
-                        </div>
-
-                        <div className="mt-6 space-y-4">
-                            <input value={variantBaseName} onChange={(event) => setVariantBaseName(event.target.value)} placeholder="Nom de base" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                            <textarea value={variantValues} onChange={(event) => setVariantValues(event.target.value)} rows={5} placeholder="mangue, ananas, orange, 1 L, 50 cl..." className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
-                        </div>
-
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button type="button" onClick={() => setVariantOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
-                            <Button variant="primary" size="sm" type="button" onClick={() => void createVariants()}>Créer la série</Button>
-                        </div>
-                    </div>
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-sm font-bold text-white">Saisie rapide</div>
+                    <p className="mt-1 text-xs text-slate-200">Format : <code className="rounded bg-slate-800 px-1 text-emerald-300">nom;catégorie;secteur;unité;prix_ref;prix_vente;tags</code></p>
+                    <textarea value={batchText} onChange={(event) => { setBatchRows([]); setBatchFileName(''); setBatchText(event.target.value); setBatchProgress({ total: 0, done: 0 }); setBatchSummary({ created: 0, updated: 0, errors: 0 }); setBatchResumeAvailable(false); saveBatchImportCheckpoint(null); }} rows={10} className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" placeholder="Riz parfumé;Riz;epicerie;kg;650;850;riz, premium" />
                 </div>
-            )}
+
+            </Modal>
+
+            <Modal
+                isOpen={variantOpen}
+                onClose={() => setVariantOpen(false)}
+                maxWidth="2xl"
+                title="Créer une série de variantes"
+                description={'Exemple : nom de base "Jus", variantes "mangue, ananas, bissap".'}
+                footer={(
+                    <>
+                        <Button variant="secondary" size="sm" type="button" onClick={() => setVariantOpen(false)}>Annuler</Button>
+                        <Button variant="primary" size="sm" type="button" onClick={() => void createVariants()}>Créer la série</Button>
+                    </>
+                )}
+            >
+                <div className="space-y-4">
+                    <input value={variantBaseName} onChange={(event) => setVariantBaseName(event.target.value)} placeholder="Nom de base" className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                    <textarea value={variantValues} onChange={(event) => setVariantValues(event.target.value)} rows={5} placeholder="mangue, ananas, orange, 1 L, 50 cl..." className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none focus:border-primary" />
+                </div>
+
+            </Modal>
         </div>
     );
 }

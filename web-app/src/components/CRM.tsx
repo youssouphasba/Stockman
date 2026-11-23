@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import EmptyState from './ui/EmptyState';
 import Button from './ui/Button';
 import React, { useState, useEffect } from 'react';
@@ -91,6 +92,7 @@ function sortCustomerRows(list: any[], sortBy: string): any[] {
 }
 
 export default function CRM({ user }: CRMProps) {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t, i18n } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
     const access = getAccessContext(user);
@@ -383,7 +385,7 @@ export default function CRM({ user }: CRMProps) {
     };
 
     const handleDeletePromotion = async (promotionId: string) => {
-        if (!window.confirm('Supprimer cette promotion ?')) return;
+        if (!(await confirmDialog('Supprimer cette promotion ?'))) return;
         try {
             await promotionsApi.delete(promotionId);
             await loadPromotions();
@@ -443,7 +445,7 @@ export default function CRM({ user }: CRMProps) {
 
     const handleCancelPayment = async (paymentId: string, amount: number) => {
         if (!selectedCustomer) return;
-        if (!window.confirm(t('crm.confirm_cancel_payment', { amount: formatCurrency(Math.abs(amount)) }))) return;
+        if (!(await confirmDialog(t('crm.confirm_cancel_payment', { amount: formatCurrency(Math.abs(amount)) })))) return;
         try {
             await customersApi.cancelPayment(selectedCustomer.customer_id, paymentId);
             const [debtsRes] = await Promise.all([customersApi.getDebts(selectedCustomer.customer_id)]);
@@ -453,7 +455,7 @@ export default function CRM({ user }: CRMProps) {
             const updated = customers.find((c: any) => c.customer_id === selectedCustomer.customer_id);
             if (updated) setSelectedCustomer(updated);
         } catch {
-            alert(t('crm.cancel_payment_error'));
+            notify(t('crm.cancel_payment_error'), 'error');
         }
     };
 

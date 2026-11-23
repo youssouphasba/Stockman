@@ -2,6 +2,7 @@
 
 // Livraison Denkma de la boutique : connexion d'un compte Denkma Pro existant. La création d'un compte
 // se fait dans l'application mobile, qui localise le point de collecte et confirme le numéro par SMS.
+import { useFeedback } from './ui/Feedback';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Bike } from 'lucide-react';
 import { ecommerce as ecommerceApi, type DenkmaConnection } from '../services/api';
@@ -24,6 +25,7 @@ export default function DenkmaSettingsPanel({ canEdit, readOnlyMessage, onNotice
     readOnlyMessage?: string;
     onNotice: (tone: 'success' | 'error', message: string) => void;
 }) {
+    const { confirm: confirmDialog } = useFeedback();
     const [state, setState] = useState<DenkmaConnection | null>(null);
     const [weight, setWeight] = useState('1');
     const [category, setCategory] = useState<'small' | 'large'>('small');
@@ -79,7 +81,7 @@ export default function DenkmaSettingsPanel({ canEdit, readOnlyMessage, onNotice
     }
 
     async function disconnect() {
-        if (!window.confirm("Déconnecter Denkma ? Vos clients écriront de nouveau leur adresse. Les livraisons déjà demandées continuent. Révoquez aussi l'accès dans Mes boutiques de Denkma Pro si vous ne l'utilisez plus.")) return;
+        if (!(await confirmDialog("Déconnecter Denkma ? Vos clients écriront de nouveau leur adresse. Les livraisons déjà demandées continuent. Révoquez aussi l'accès dans Mes boutiques de Denkma Pro si vous ne l'utilisez plus."))) return;
         try {
             await ecommerceApi.disconnectDenkma();
             await load();

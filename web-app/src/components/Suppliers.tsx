@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import Button from './ui/Button';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -105,6 +106,7 @@ const normalizeProcurementOverview = (overview: any, days: number) => {
 };
 
 export default function Suppliers() {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
     const [activeTab, setActiveTab] = useState<TabType>('manual');
@@ -281,7 +283,7 @@ export default function Suppliers() {
             await aiApi.resolveDuplicate('suppliers', itemAId, itemBId, status);
             removeSupplierDuplicateFromState(pairKey);
         } catch (err: any) {
-            alert(err.message || "Impossible d'enregistrer cette décision.");
+            notify(err.message || "Impossible d'enregistrer cette décision.", 'error');
         } finally {
             setSupplierDuplicateActionKey(null);
         }
@@ -290,16 +292,16 @@ export default function Suppliers() {
     const handleOpenDuplicateSupplier = (supplierId: string) => {
         const supplier = manualSuppliers.find((entry) => entry.supplier_id === supplierId);
         if (!supplier) {
-            alert('Fournisseur introuvable.');
+            notify('Fournisseur introuvable.');
             return;
         }
         void openSupplierDetails(supplier, 'manual');
     };
 
-    const confirmDiscardChanges = (onConfirm: () => void) => {
+    const confirmDiscardChanges = async (onConfirm: () => void) => {
         const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
         const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
-        if (window.confirm(`${title}\n\n${message}`)) {
+        if (await confirmDialog({ title, message })) {
             onConfirm();
         }
     };
@@ -474,7 +476,7 @@ export default function Suppliers() {
     };
 
     const handleDeleteSupplier = async (supplierId: string) => {
-        if (!confirm('Supprimer ce fournisseur ')) return;
+        if (!(await confirmDialog('Supprimer ce fournisseur '))) return;
         try {
             await suppliersApi.delete(supplierId);
             setSuccess("Fournisseur supprim?.");
@@ -1141,7 +1143,7 @@ export default function Suppliers() {
     };
 
     const handleCompleteReturn = async (returnId: string) => {
-        if (!window.confirm("Finaliser ce retour et générer l'avoir correspondant ?")) return;
+        if (!(await confirmDialog("Finaliser ce retour et générer l'avoir correspondant ?"))) return;
         try {
             await returnsApi.complete(returnId);
             setSuccess('Retour finalisé et avoir généré.');
@@ -3740,8 +3742,8 @@ export default function Suppliers() {
                                                 try {
                                                     const res = await suppliersApi.getInvitationLink(selectedSupplier.supplier_id);
                                                     await navigator.clipboard.writeText(res.link);
-                                                    alert(t('suppliers.link_copied'));
-                                                } catch { alert(t('suppliers.copy_error')); }
+                                                    notify(t('suppliers.link_copied'));
+                                                } catch { notify(t('suppliers.copy_error'), 'error'); }
                                             }}
                                             className="border border-primary/20 text-xs"
                                         >
@@ -3752,8 +3754,8 @@ export default function Suppliers() {
                                                 onClick={async () => {
                                                     try {
                                                         await suppliersApi.resendInvitation(selectedSupplier.supplier_id);
-                                                        alert(t('suppliers.invitation_sent_email'));
-                                                    } catch { alert(t('suppliers.send_error')); }
+                                                        notify(t('suppliers.invitation_sent_email'));
+                                                    } catch { notify(t('suppliers.send_error'), 'error'); }
                                                 }}
                                                 className="px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-2"
                                             >

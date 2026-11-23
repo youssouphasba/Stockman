@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -102,6 +103,7 @@ export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseO
     enterpriseOfferRequest?: number;
     onEnterpriseOfferShown?: () => void;
 }) {
+    const { notify } = useFeedback();
     const { t } = useTranslation();
     const enterpriseOfferRef = useRef<HTMLDivElement>(null);
     const [subDetails, setSubDetails] = useState<SubscriptionData | null>(null);
@@ -149,7 +151,7 @@ export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseO
             window.location.href = payment_url;
         } catch (err) {
             console.error('Flutterwave init error', err);
-            alert("Erreur lors de l'initialisation du paiement Mobile Money.");
+            notify("Erreur lors de l'initialisation du paiement Mobile Money.", 'error');
         } finally {
             setPurchasing(null);
         }
@@ -165,7 +167,7 @@ export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseO
             window.location.href = checkout_url;
         } catch (err) {
             console.error('Stripe init error', err);
-            alert("Erreur lors de l'initialisation du paiement par carte.");
+            notify("Erreur lors de l'initialisation du paiement par carte.", 'error');
         } finally {
             setPurchasing(null);
         }
@@ -181,7 +183,7 @@ export default function Subscription({ enterpriseOfferRequest = 0, onEnterpriseO
             await loadSubDetails();
         } catch (err) {
             console.error('Billing contact update error', err);
-            alert('Erreur lors de la mise a jour du contact de facturation.');
+            notify('Erreur lors de la mise a jour du contact de facturation.', 'error');
         } finally {
             setSavingBillingContact(false);
         }

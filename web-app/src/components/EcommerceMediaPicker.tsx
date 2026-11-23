@@ -1,5 +1,6 @@
 'use client';
 
+import { useFeedback } from './ui/Feedback';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
 import Modal from './Modal';
@@ -30,6 +31,7 @@ function readAsDataUrl(file: File): Promise<string> {
 }
 
 export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId, canEdit, onSelect, onClose }: Props) {
+    const { confirm: confirmDialog } = useFeedback();
     const [items, setItems] = useState<ThemeMediaItem[] | null>(null);
     const [usage, setUsage] = useState<{ total: number; limit: number } | null>(null);
     const [busy, setBusy] = useState<string | null>('load');
@@ -106,7 +108,7 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
     }
 
     async function remove(item: ThemeMediaItem) {
-        if (!window.confirm('Supprimer cette image de votre bibliothèque ? Cette action est définitive.')) return;
+        if (!(await confirmDialog('Supprimer cette image de votre bibliothèque ? Cette action est définitive.'))) return;
         setBusy(`delete:${item.media_id}`);
         setError(null);
         try {

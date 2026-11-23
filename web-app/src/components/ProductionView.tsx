@@ -1,6 +1,7 @@
 ﻿
 'use client';
 
+import { useFeedback } from './ui/Feedback';
 import Field, { inputClass as input } from './ui/Field';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -30,6 +31,7 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
 const btn = (color: string) => `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${color}`;
 
 export default function ProductionView({ onNavigate }: { onNavigate?: (page: string) => void }) {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t } = useTranslation();
     const { formatCurrency } = useDateFormatter();
     const [activeTab, setActiveTab] = useState<SubTab>('recipes');
@@ -115,12 +117,12 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
     };
 
     const handleDeleteRecipe = async (recipe: Recipe) => {
-        if (!confirm(`Supprimer la recette "${recipe.name}" ?`)) return;
+        if (!(await confirmDialog(`Supprimer la recette "${recipe.name}" ?`))) return;
         try {
             await production.recipes.delete(recipe.recipe_id);
             loadData();
         } catch (e: any) {
-            alert(e?.message || t('common.error'));
+            notify(e?.message || t('common.error'), 'error');
         }
     };
 
@@ -146,7 +148,7 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
             await production.orders.start(order.order_id);
             loadData();
         } catch (e: any) {
-            alert(e?.message || t('common.error'));
+            notify(e?.message || t('common.error'), 'error');
         }
     };
 
@@ -169,12 +171,12 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
     };
 
     const handleCancelOrder = async (order: ProductionOrder) => {
-        if (!confirm('Annuler cet ordre ? Les matières premières seront remises en stock.')) return;
+        if (!(await confirmDialog('Annuler cet ordre ? Les matières premières seront remises en stock.'))) return;
         try {
             await production.orders.cancel(order.order_id);
             loadData();
         } catch (e: any) {
-            alert(e?.message || t('common.error'));
+            notify(e?.message || t('common.error'), 'error');
         }
     };
 

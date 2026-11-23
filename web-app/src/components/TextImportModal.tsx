@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import Button from './ui/Button';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +15,7 @@ type TextImportModalProps = {
 };
 
 export default function TextImportModal({ isOpen, onClose, onSuccess }: TextImportModalProps) {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t } = useTranslation();
     const [text, setText] = useState('');
     const [loading, setLoading] = useState(false);
@@ -25,7 +27,7 @@ export default function TextImportModal({ isOpen, onClose, onSuccess }: TextImpo
         setError(null);
     };
 
-    const handleClose = () => {
+    const handleClose = async () => {
         if (!text.trim()) {
             reset();
             onClose();
@@ -33,7 +35,7 @@ export default function TextImportModal({ isOpen, onClose, onSuccess }: TextImpo
         }
         const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
         const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
-        if (window.confirm(`${title}\n\n${message}`)) {
+        if (await confirmDialog({ title, message })) {
             reset();
             onClose();
         }
@@ -46,7 +48,7 @@ export default function TextImportModal({ isOpen, onClose, onSuccess }: TextImpo
         try {
             const result = await productsApi.importText(text, true);
             const count = (typeof result.created === 'number' ? result.created : undefined) ?? result.count ?? result.products?.length ?? 0;
-            window.alert(t('products.import_text_success', { count }));
+            notify(t('products.import_text_success', { count }));
             reset();
             onSuccess();
             onClose();

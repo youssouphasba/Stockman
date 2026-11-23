@@ -1,5 +1,6 @@
 'use client';
 
+import { useFeedback } from './ui/Feedback';
 import Button from './ui/Button';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -104,6 +105,7 @@ const orderActions = (order: SupplierOrderData) => {
 };
 
 export default function SupplierPortal() {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t } = useTranslation();
     const statusLabel = (status?: string) => t(status && Object.hasOwn(statusToneClasses, status) ? `supplier_portal_text.status_${status}` : 'supplier_portal_text.status_unknown');
     const [activeSection, setActiveSection] = useState<Section>('overview');
@@ -209,7 +211,7 @@ export default function SupplierPortal() {
     }, [activeSection, loading, statusFilter, clientFilter, startDate, endDate]);
 
     const saveProfile = async () => {
-        if (!profileForm.company_name.trim()) return window.alert('Le nom de societe est obligatoire.');
+        if (!profileForm.company_name.trim()) return notify('Le nom de societe est obligatoire.');
         setBusyId('profile');
         try {
             const payload = {
@@ -227,7 +229,7 @@ export default function SupplierPortal() {
             setProfile(saved);
             syncProfileForm(saved);
             await loadOverview();
-            window.alert('Profil fournisseur enregistre.');
+            notify('Profil fournisseur enregistre.');
         } catch (err) {
             console.error(err);
             setError("Impossible d'enregistrer le profil.");
@@ -253,7 +255,7 @@ export default function SupplierPortal() {
     };
 
     const saveProduct = async () => {
-        if (!productForm.name.trim()) return window.alert('Le nom du produit est obligatoire.');
+        if (!productForm.name.trim()) return notify('Le nom du produit est obligatoire.');
         setBusyId('catalog');
         try {
             const payload: CatalogProductCreate = {
@@ -282,7 +284,7 @@ export default function SupplierPortal() {
     };
 
     const deleteProduct = async (product: CatalogProductData) => {
-        if (!window.confirm(`Supprimer "${product.name}" du catalogue ?`)) return;
+        if (!(await confirmDialog(`Supprimer "${product.name}" du catalogue ?`))) return;
         setBusyId(product.catalog_id);
         try {
             await supplierCatalog.delete(product.catalog_id);
@@ -309,7 +311,7 @@ export default function SupplierPortal() {
     };
 
     const updateOrderStatus = async (order: SupplierOrderData, nextStatus: string) => {
-        if (!window.confirm(t('supplier_actions.confirm_change', { id: order.order_id, status: statusLabel(nextStatus) }))) return;
+        if (!(await confirmDialog(t('supplier_actions.confirm_change', { id: order.order_id, status: statusLabel(nextStatus) })))) return;
         setBusyId(order.order_id);
         try {
             await supplierOrders.updateStatus(order.order_id, nextStatus);

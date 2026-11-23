@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import Button from './ui/Button';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,7 @@ const PAYMENT_TONES: Record<string, string> = {
 
 // Commandes des clients passées en ligne. Les commandes et retours fournisseurs sont dans l'écran Fournisseurs.
 export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: React.ReactNode } = {}) {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
     // Commande en cours d'expédition avec Denkma (fenêtre « Livrer avec Denkma »).
@@ -55,7 +57,7 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
             await ecommerceApi.updateOrderStatus(orderId, status, paid);
             await loadWebOrders();
         } catch (err: any) {
-            alert(err?.message || 'Impossible de mettre à jour la commande E-com.');
+            notify(err?.message || 'Impossible de mettre à jour la commande E-com.', 'error');
         }
     };
 
@@ -65,14 +67,14 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
             const { order: updated } = await ecommerceApi.updateOrderPayment(orderId, paid);
             setWebOrders((current) => current.map((item) => (item.order_id === updated.order_id ? updated : item)));
         } catch (err: any) {
-            alert(err?.message || 'Impossible de mettre à jour le paiement de la commande.');
+            notify(err?.message || 'Impossible de mettre à jour le paiement de la commande.', 'error');
         }
     };
 
     // « Prête » fait venir le livreur : le commerçant est prévenu si le client devait payer avant et ne l'a pas fait.
     const markWebOrderReady = async (order: any) => {
         const warning = unpaidReadyWarning(order);
-        if (warning && !window.confirm(warning)) return;
+        if (warning && !(await confirmDialog(warning))) return;
         await updateWebOrderStatus(order.order_id, 'ready');
     };
 
@@ -194,7 +196,7 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                             const updated = await ecommerceApi.refreshDenkma(order.order_id);
                                             setWebOrders((current) => current.map((item) => (item.order_id === updated.order_id ? updated : item)));
                                         } catch (err: any) {
-                                            window.alert(err?.message || 'Le suivi Denkma est indisponible pour le moment.');
+                                            notify(err?.message || 'Le suivi Denkma est indisponible pour le moment.', 'error');
                                         }
                                     }}
                                 >
@@ -221,13 +223,13 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                     <p className="text-xs leading-5 text-slate-500">Paiement : {payment.hint}</p>
                                     <div className="flex flex-wrap gap-2">
                                         {canConfirmPayment(order) && step?.action !== 'payment' && <button onClick={() => void updateWebOrderPayment(order.order_id, true)} className={secondary}>Paiement reçu</button>}
-                                        {canUndoPayment(order) && <button onClick={() => { if (window.confirm('Annuler la confirmation du paiement de cette commande ?')) void updateWebOrderPayment(order.order_id, false); }} className={secondary}>Paiement confirmé par erreur</button>}
+                                        {canUndoPayment(order) && <button onClick={async () => { if ((await confirmDialog('Annuler la confirmation du paiement de cette commande ?'))) void updateWebOrderPayment(order.order_id, false); }} className={secondary}>Paiement confirmé par erreur</button>}
                                         {order.status === 'pending' && step?.action !== 'confirm' && <button onClick={() => updateWebOrderStatus(order.order_id, 'confirmed')} className={secondary}>Confirmer sans attendre le paiement</button>}
                                         {['pending', 'confirmed'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'preparing')} className={secondary}>En préparation</button>}
                                         {['confirmed', 'preparing'].includes(order.status) && step?.action !== 'ready' && <button onClick={() => void markWebOrderReady(order)} className={secondary}>Prête</button>}
                                         {canShipWithDenkma(order) && <button onClick={() => setDenkmaShipOrder(order)} className={secondary}>Livrer avec Denkma en joignant une photo</button>}
                                         {['confirmed', 'preparing', 'ready'].includes(order.status) && step?.action !== 'deliver' && <button onClick={() => deliverWebOrderNow(order)} className={secondary}>Livrer et créer la vente</button>}
-                                        {['pending', 'confirmed'].includes(order.status) && <button onClick={() => { if (window.confirm('Annuler cette commande ?')) void updateWebOrderStatus(order.order_id, 'cancelled'); }} className="rounded-xl border border-rose-400/50 bg-rose-500/10 px-4 py-2.5 text-sm font-bold text-rose-200 transition hover:bg-rose-500/20">Annuler la commande</button>}
+                                        {['pending', 'confirmed'].includes(order.status) && <button onClick={async () => { if ((await confirmDialog('Annuler cette commande ?'))) void updateWebOrderStatus(order.order_id, 'cancelled'); }} className="rounded-xl border border-rose-400/50 bg-rose-500/10 px-4 py-2.5 text-sm font-bold text-rose-200 transition hover:bg-rose-500/20">Annuler la commande</button>}
                                     </div>
                                 </div>
                             );

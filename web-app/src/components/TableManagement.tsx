@@ -1,4 +1,5 @@
 'use client';
+import { useFeedback } from './ui/Feedback';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Plus,
@@ -282,6 +283,7 @@ function TableCard({ table, onClick, onContextMenu }: TableCardProps) {
 }
 
 export default function TableManagement({ onTableSelect }: TableManagementProps) {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const [tableList, setTableList] = useState<Table[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<FilterTab>('all');
@@ -325,7 +327,7 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
             );
         } catch (err: any) {
             console.error('Failed to run table action:', err);
-            window.alert(err?.message || 'Impossible de mettre a jour la table.');
+            notify(err?.message || 'Impossible de mettre a jour la table.', 'error');
         }
     };
 
@@ -346,7 +348,7 @@ export default function TableManagement({ onTableSelect }: TableManagementProps)
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Supprimer cette table ? Cette action est irreversible.')) return;
+        if (!(await confirmDialog('Supprimer cette table ? Cette action est irreversible.'))) return;
         try {
             await tablesApi.delete(id);
             setTableList(prev => prev.filter(t => t.table_id !== id));

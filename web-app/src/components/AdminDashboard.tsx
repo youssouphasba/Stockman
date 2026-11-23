@@ -1,5 +1,8 @@
 'use client';
 
+import Modal from './Modal';
+import { textareaClass } from './ui/Field';
+import { useFeedback } from './ui/Feedback';
 import EmptyState from './ui/EmptyState';
 import KpiCard from './analytics/KpiCard';
 import Button from './ui/Button';
@@ -317,6 +320,7 @@ function formatRemainingDuration(seconds: number | null) {
 type AdminSection = 'overview' | 'modules' | 'notifications' | 'app_updates' | 'finance' | 'subscriptions' | 'demos' | 'users' | 'stores' | 'products' | 'catalog' | 'disputes' | 'security' | 'broadcast' | 'support' | 'crm' | 'leads' | 'legal' | 'ai_usage' | 'logs' | 'anomalies' | 'mrr' | 'retention' | 'catalog_adoption' | 'monitoring' | 'audit' | 'team';
 
 export default function AdminDashboard() {
+    const { confirm: confirmDialog } = useFeedback();
     const { t } = useTranslation();
     const [activeSection, setActiveSection] = useState<AdminSection>('overview');
     const [health, setHealth] = useState<any>(null);
@@ -1069,7 +1073,7 @@ export default function AdminDashboard() {
 
     const handleRelaunchGuide = async () => {
         if (!detailUser) return;
-        if (!window.confirm("Relancer le guide de démarrage ? Le commerçant le refera depuis le début à sa prochaine ouverture de l'application mobile.")) return;
+        if (!(await confirmDialog("Relancer le guide de démarrage ? Le commerçant le refera depuis le début à sa prochaine ouverture de l'application mobile."))) return;
         setGuideRelaunching(true);
         try {
             const guide = await adminApi.relaunchOnboardingGuide(detailUser.user_id);
@@ -1867,69 +1871,54 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {noteModalUser && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-surface-raised border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-black text-white">Note interne — {noteModalUser.name}</h3>
-                            <button onClick={() => setNoteModalUser(null)} className="text-slate-500 hover:text-white"><X size={18} /></button>
-                        </div>
-                        <p className="text-xs text-slate-500 mb-3">Visible uniquement par les admins. Non communiquée à l'utilisateur.</p>
-                        <textarea
-                            value={noteText}
-                            onChange={e => setNoteText(e.target.value)}
-                            rows={4}
-                            placeholder="Ex: Client VIP, en attente de paiement, appel prévu le 15/04..."
-                            className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white resize-none focus:outline-none focus:border-primary/50"
-                            autoFocus
-                        />
-                        <div className="flex gap-3 mt-4">
-                            <button onClick={() => setNoteModalUser(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold text-sm hover:bg-white/10 transition-all">Annuler</button>
-                            <Button variant="primary" size="md" onClick={handleSaveNote} className="flex-1">Enregistrer</Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Modal
+                isOpen={!!noteModalUser}
+                onClose={() => setNoteModalUser(null)}
+                title={`Note interne — ${noteModalUser?.name || ''}`}
+                description="Visible uniquement par les admins. Non communiquée à l'utilisateur."
+                footer={(
+                    <>
+                        <Button variant="secondary" onClick={() => setNoteModalUser(null)}>Annuler</Button>
+                        <Button variant="primary" onClick={handleSaveNote}>Enregistrer</Button>
+                    </>
+                )}
+            >
+                <textarea
+                    value={noteText}
+                    onChange={e => setNoteText(e.target.value)}
+                    rows={4}
+                    placeholder="Ex. : client VIP, en attente de paiement, appel prévu le 15/04…"
+                    className={textareaClass}
+                    autoFocus
+                />
+            </Modal>
 
-            {confirmDeleteUser && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-surface-raised border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 rounded-xl bg-red-500/10">
-                                <Trash2 size={20} className="text-red-400" />
-                            </div>
-                            <h3 className="text-lg font-black text-white">Supprimer ce compte </h3>
-                        </div>
-                        <p className="text-slate-400 text-sm mb-2">
-                            Cette action est <span className="text-red-400 font-bold">irréversible</span>. Toutes les données seront supprimées :
-                        </p>
-                        <ul className="text-xs text-slate-500 mb-4 list-disc list-inside">
-                            <li>Produits, ventes, clients, dépenses</li>
-                            <li>Boutiques, alertes, fournisseurs</li>
-                            <li>Sous-utilisateurs (staff)</li>
-                        </ul>
-                        <div className="bg-white/5 rounded-xl p-3 mb-5">
-                            <p className="text-white font-bold text-sm">{confirmDeleteUser.name}</p>
-                            <p className="text-slate-500 text-xs">{confirmDeleteUser.email}</p>
-                        </div>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setConfirmDeleteUser(null)}
-                                className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
-                            >
-                                Annuler
-                            </button>
-                            <button
-                                onClick={handleDeleteUser}
-                                disabled={!!deletingUser}
-                                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/30 transition-all disabled:opacity-40"
-                            >
-                                {deletingUser ? 'Suppression...' : 'Supprimer définitivement'}
-                            </button>
-                        </div>
-                    </div>
+            <Modal
+                isOpen={!!confirmDeleteUser}
+                onClose={() => setConfirmDeleteUser(null)}
+                title="Supprimer ce compte"
+                footer={(
+                    <>
+                        <Button variant="secondary" onClick={() => setConfirmDeleteUser(null)}>Annuler</Button>
+                        <Button variant="danger" onClick={handleDeleteUser} loading={!!deletingUser}>
+                            {deletingUser ? 'Suppression…' : 'Supprimer définitivement'}
+                        </Button>
+                    </>
+                )}
+            >
+                <p className="text-slate-400 text-sm mb-2">
+                    Cette action est <span className="text-red-400 font-bold">irréversible</span>. Toutes les données seront supprimées :
+                </p>
+                <ul className="text-xs text-slate-500 mb-4 list-disc list-inside">
+                    <li>Produits, ventes, clients, dépenses</li>
+                    <li>Boutiques, alertes, fournisseurs</li>
+                    <li>Sous-utilisateurs (staff)</li>
+                </ul>
+                <div className="bg-white/5 rounded-xl p-3">
+                    <p className="text-white font-bold text-sm">{confirmDeleteUser?.name}</p>
+                    <p className="text-slate-500 text-xs">{confirmDeleteUser?.email}</p>
                 </div>
-            )}
+            </Modal>
 
             <header className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-center mb-10">
                 <div>

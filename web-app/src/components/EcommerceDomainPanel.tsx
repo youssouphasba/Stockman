@@ -2,6 +2,7 @@
 
 // Domaine du site : adresse Stockman, connexion d'un domaine en trois étapes et suivi de son état.
 // Mêmes règles que la carte mobile (lib/ecommerceDomain.ts) ; le serveur vérifie chaque opération.
+import { useFeedback } from './ui/Feedback';
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Clock, Copy, ExternalLink, Globe, Info, Link2, RefreshCw, Trash2 } from 'lucide-react';
 import { ecommerce as ecommerceApi, type EcommerceSite } from '../services/api';
@@ -34,6 +35,7 @@ export default function EcommerceDomainPanel({ site, canEdit, readOnlyMessage, o
     onSiteChange: (site: EcommerceSite) => void;
     onNotice: (tone: 'success' | 'error', message: string) => void;
 }) {
+    const { confirm: confirmDialog } = useFeedback();
     const [domain, setDomain] = useState('');
     const [busy, setBusy] = useState<null | 'connect' | 'check' | 'disconnect'>(null);
     const [provider, setProvider] = useState<string | null>(null);
@@ -82,8 +84,8 @@ export default function EcommerceDomainPanel({ site, canEdit, readOnlyMessage, o
         if (next) setDomain('');
     }
 
-    function disconnect() {
-        if (!window.confirm(`Retirer ${site.custom_domain} ? Votre site ne s'ouvrira plus sur ce domaine ; il reste en ligne à son adresse Stockman.`)) return;
+    async function disconnect() {
+        if (!(await confirmDialog(`Retirer ${site.custom_domain} ? Votre site ne s'ouvrira plus sur ce domaine ; il reste en ligne à son adresse Stockman.`))) return;
         void run('disconnect', () => ecommerceApi.disconnectDomain(), () => 'Domaine retiré. Votre site reste en ligne à son adresse Stockman.', 'Impossible de retirer le domaine pour le moment.');
     }
 

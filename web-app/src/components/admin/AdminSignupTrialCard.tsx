@@ -1,5 +1,6 @@
 'use client';
 
+import { useFeedback } from '../ui/Feedback';
 import Button from '../ui/Button';
 import React, { useEffect, useState } from 'react';
 import { Gift } from 'lucide-react';
@@ -11,6 +12,7 @@ const monthsLabel = (months: number) => (months === 1 ? '1 mois' : `${months} mo
 
 // Durée de l'essai gratuit offert à chaque nouvel inscrit (superadmin).
 export default function AdminSignupTrialCard({ showToast }: Props) {
+    const { confirm: confirmDialog } = useFeedback();
     const [current, setCurrent] = useState<number | null>(null);
     const [months, setMonths] = useState(1);
     const [saving, setSaving] = useState(false);
@@ -24,7 +26,7 @@ export default function AdminSignupTrialCard({ showToast }: Props) {
     }, []);
 
     const save = async () => {
-        if (!window.confirm(`Les nouveaux inscrits auront ${monthsLabel(months)} d’essai gratuit (${months * 30} jours). Les comptes existants ne changent pas. Continuer ?`)) return;
+        if (!(await confirmDialog(`Les nouveaux inscrits auront ${monthsLabel(months)} d’essai gratuit (${months * 30} jours). Les comptes existants ne changent pas. Continuer ?`))) return;
         setSaving(true);
         try {
             const data = await adminApi.setSignupTrial(months);

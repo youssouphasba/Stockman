@@ -1,5 +1,6 @@
 'use client';
 
+import { useFeedback } from '../ui/Feedback';
 import Button from '../ui/Button';
 import React, { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
@@ -14,6 +15,7 @@ type Props = {
 
 // Fiche client, réservé au superadmin : donner ou retirer l'accès à l'admin, par périmètre.
 export default function AdminAccessCard({ user, catalog, onChanged, showToast }: Props) {
+    const { confirm: confirmDialog } = useFeedback();
     const isTeam = user.role === 'admin';
     const [scopes, setScopes] = useState<string[]>(user.admin_scopes || []);
     const [saving, setSaving] = useState(false);
@@ -36,7 +38,7 @@ export default function AdminAccessCard({ user, catalog, onChanged, showToast }:
             showToast('Choisissez au moins un périmètre.', 'error');
             return;
         }
-        if (enabled && !isTeam && !window.confirm('Ce compte deviendra un compte de l’équipe Stockman : il ne pourra plus gérer de boutique tant que l’accès est actif. Continuer ?')) return;
+        if (enabled && !isTeam && !(await confirmDialog('Ce compte deviendra un compte de l’équipe Stockman : il ne pourra plus gérer de boutique tant que l’accès est actif. Continuer ?'))) return;
         setSaving(true);
         try {
             const result = await adminApi.setAdminAccess(user.user_id, enabled, enabled ? scopes : []);

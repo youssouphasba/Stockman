@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
@@ -22,6 +23,7 @@ interface OrderReturnModalProps {
 }
 
 export default function OrderReturnModal({ isOpen, onClose, order, onSuccess }: OrderReturnModalProps) {
+    const { notify } = useFeedback();
     const { t } = useTranslation();
     const { formatCurrency } = useDateFormatter();
 
@@ -85,7 +87,7 @@ export default function OrderReturnModal({ isOpen, onClose, order, onSuccess }: 
     const handleSubmit = async () => {
         const validItems = returnItems.filter(i => i.quantity > 0);
         if (validItems.length === 0) {
-            alert("Veuillez ajouter au moins un article avec une quantité.");
+            notify("Veuillez ajouter au moins un article avec une quantité.");
             return;
         }
 
@@ -101,7 +103,7 @@ export default function OrderReturnModal({ isOpen, onClose, order, onSuccess }: 
             onSuccess();
             onClose();
         } catch (err) {
-            alert("Erreur lors de la création du retour.");
+            notify("Erreur lors de la création du retour.", 'error');
         } finally {
             setLoading(false);
         }

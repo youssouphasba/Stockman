@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TrendingUp, History, Package, DollarSign, X, Undo2, Sparkles } from 'lucide-react';
@@ -24,6 +25,7 @@ interface ProductHistoryModalProps {
 }
 
 export default function ProductHistoryModal({ isOpen, onClose, product }: ProductHistoryModalProps) {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t } = useTranslation();
     const [movements, setMovements] = useState<any[]>([]);
     const [priceHistory, setPriceHistory] = useState<any[]>([]);
@@ -60,12 +62,12 @@ export default function ProductHistoryModal({ isOpen, onClose, product }: Produc
 
     const handleReverseMovement = async (movementId: string, qty: number, type: string) => {
         const label = type === 'in' ? t('products.mov_in') : t('products.mov_out');
-        if (!window.confirm(t('products.confirm_reverse_movement', { qty, type: label }))) return;
+        if (!(await confirmDialog(t('products.confirm_reverse_movement', { qty, type: label })))) return;
         try {
             await stockApi.reverseMovement(movementId);
             await loadHistory();
         } catch (err: any) {
-            alert(err?.message || t('products.reverse_movement_error'));
+            notify(err?.message || t('products.reverse_movement_error'), 'error');
         }
     };
 

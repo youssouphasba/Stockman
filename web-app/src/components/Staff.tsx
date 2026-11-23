@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -90,6 +91,7 @@ const ROLE_TEMPLATE_KEYS: Record<string, { labelKey: string; permissions: StaffP
 };
 
 export default function Staff() {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t } = useTranslation();
     const [users, setUsers] = useState<any[]>([]);
     const [stores, setStores] = useState<any[]>([]);
@@ -107,10 +109,10 @@ export default function Staff() {
     const [expandedStoreId, setExpandedStoreId] = useState<string | null>(null);
     const formBaselineRef = useRef('');
 
-    const confirmDiscardChanges = (onConfirm: () => void) => {
+    const confirmDiscardChanges = async (onConfirm: () => void) => {
         const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
         const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
-        if (window.confirm(`${title}\n\n${message}`)) {
+        if (await confirmDialog({ title, message })) {
             onConfirm();
         }
     };
@@ -212,14 +214,14 @@ export default function Staff() {
             loadUsers();
         } catch (err) {
             console.error("Staff save error", err);
-            alert(t('common.error'));
+            notify(t('common.error'), 'error');
         } finally {
             setSaving(false);
         }
     };
 
     const handleDelete = async (userId: string) => {
-        if (!confirm(t('users.delete_user_confirm'))) return;
+        if (!(await confirmDialog(t('users.delete_user_confirm')))) return;
         try {
             await subUsersApi.delete(userId);
             loadUsers();
@@ -258,10 +260,10 @@ export default function Staff() {
         currentUser?.role === 'superadmin' || (currentUser?.account_roles || []).includes('org_admin')
     );
 
-    const toggleAccountRole = (role: AccountRole) => {
+    const toggleAccountRole = async (role: AccountRole) => {
         if (!canAssignAccountRoles) return;
         if (role === 'org_admin' && !form.accountRoles.includes('org_admin')) {
-            const confirmed = window.confirm('Admin operations donne un acces complet aux operations, aux magasins et a la gestion d equipe. Continuer ?');
+            const confirmed = (await confirmDialog('Admin operations donne un acces complet aux operations, aux magasins et a la gestion d equipe. Continuer ?'));
             if (!confirmed) return;
         }
         setForm((prev) => ({

@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useFeedback } from './ui/Feedback';
 import Button from './ui/Button';
 import { useTranslation } from 'react-i18next';
 import {
@@ -74,6 +75,7 @@ import {
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 export default function Inventory() {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t, i18n } = useTranslation();
     const isPerfEnabled = typeof window !== 'undefined' && localStorage.getItem('stockman_perf') === '1';
     const [products, setProducts] = useState<any[]>([]);
@@ -282,7 +284,7 @@ export default function Inventory() {
         const qty = parseFloat(stockMovQty);
         if (isNaN(qty) || qty <= 0) return;
         if (!stockMovKind) {
-            window.alert('Choisissez la raison du changement de stock.');
+            notify('Choisissez la raison du changement de stock.');
             return;
         }
         setStockMovLoading(true);
@@ -316,14 +318,14 @@ export default function Inventory() {
             setStockMovPurchasePrice('');
             if (stockMovType === 'in' && typeof movement?.new_purchase_price === 'number') {
                 const formatCurrency = (value: number) => `${new Intl.NumberFormat(i18n.language || 'fr-FR').format(Number(value || 0))} F`;
-                window.alert(t('inventory.wac_updated_toast', {
+                notify(t('inventory.wac_updated_toast', {
                     defaultValue: 'CMP mis à jour : {{old}} → {{new}}',
                     old: formatCurrency(previousPurchasePrice),
                     new: formatCurrency(movement.new_purchase_price),
                 }));
             }
         } catch (err: any) {
-            alert(err.message || 'Erreur lors du mouvement de stock');
+            notify(err.message || 'Erreur lors du mouvement de stock', 'error');
         } finally {
             setStockMovLoading(false);
         }
@@ -349,7 +351,7 @@ export default function Inventory() {
             await aiApi.resolveDuplicate('products', itemAId, itemBId, status);
             removeDuplicateFromState(pairKey);
         } catch (err: any) {
-            alert(err.message || "Impossible d'enregistrer cette décision.");
+            notify(err.message || "Impossible d'enregistrer cette décision.", 'error');
         } finally {
             setDuplicateActionKey(null);
         }
@@ -358,7 +360,7 @@ export default function Inventory() {
     const handleOpenDuplicateProduct = (productId: string) => {
         const product = safeProducts.find((entry) => entry.product_id === productId);
         if (!product) {
-            alert("Produit introuvable dans la boutique active.");
+            notify("Produit introuvable dans la boutique active.");
             return;
         }
         handleOpenEditModal(product);
@@ -526,7 +528,7 @@ export default function Inventory() {
             setTrashTotal(response.total || 0);
         } catch (err) {
             console.error('Error loading product trash', err);
-            window.alert(t('inventory.trash_load_error', { defaultValue: 'Impossible de charger la corbeille pour le moment.' }));
+            notify(t('inventory.trash_load_error', { defaultValue: 'Impossible de charger la corbeille pour le moment.' }), 'error');
         } finally {
             setTrashLoading(false);
         }
@@ -543,14 +545,14 @@ export default function Inventory() {
             await productsApi.restore(productId);
             await Promise.all([loadTrash(), fetchProducts(), loadStockHealth()]);
         } catch (err: any) {
-            window.alert(err?.message || t('inventory.trash_restore_error', { defaultValue: 'Impossible de restaurer ce produit.' }));
+            notify(err?.message || t('inventory.trash_restore_error', { defaultValue: 'Impossible de restaurer ce produit.' }), 'error');
         } finally {
             setTrashActionId(null);
         }
     };
 
     const handleDeleteTrashItemPermanently = async (item: ProductTrashItem) => {
-        if (!window.confirm(t('inventory.trash_delete_confirm', { defaultValue: `Supprimer définitivement "${item.name}" ?`, name: item.name }))) {
+        if (!(await confirmDialog(t('inventory.trash_delete_confirm', { defaultValue: `Supprimer définitivement "${item.name}" ?`, name: item.name })))) {
             return;
         }
         setTrashActionId(item.product_id);
@@ -558,7 +560,7 @@ export default function Inventory() {
             await productsApi.deletePermanent(item.product_id);
             await Promise.all([loadTrash(), fetchProducts(), loadStockHealth()]);
         } catch (err: any) {
-            window.alert(err?.message || t('inventory.trash_delete_error', { defaultValue: 'Impossible de supprimer définitivement ce produit.' }));
+            notify(err?.message || t('inventory.trash_delete_error', { defaultValue: 'Impossible de supprimer définitivement ce produit.' }), 'error');
         } finally {
             setTrashActionId(null);
         }
@@ -623,7 +625,7 @@ export default function Inventory() {
                 loadStockHealth(),
                 isTrashOpen ? loadTrash() : Promise.resolve(),
             ]);
-            window.alert(t('inventory.bulk_delete_job_completed', {
+            notify(t('inventory.bulk_delete_job_completed', {
                 defaultValue: 'Suppression terminée : {{deleted}} produit(s) envoyé(s) dans la corbeille.',
                 deleted: trackedDeleteJob.deleted_count,
             }));
@@ -635,7 +637,7 @@ export default function Inventory() {
             deleteJobNotificationRef.current = `${trackedDeleteJob.job_id}:failed`;
             setBulkActionLoading(false);
             void fetchProducts();
-            window.alert(trackedDeleteJob.last_error || t('inventory.bulk_delete_error'));
+            notify(trackedDeleteJob.last_error || t('inventory.bulk_delete_error'));
         }
     }, [fetchProducts, isTrashOpen, loadStockHealth, loadTrash, t, trackedDeleteJob]);
 
@@ -769,7 +771,7 @@ export default function Inventory() {
     const handleImportCatalog = async () => {
         const sector = currentFeatures?.sector;
         if (!sector) {
-            alert("Aucun type d'activité n'est défini pour ce compte.");
+            notify("Aucun type d'activité n'est défini pour ce compte.");
             return;
         }
         setShowCreateMenu(false);
@@ -779,7 +781,7 @@ export default function Inventory() {
 
     const handleCatalogImported = async (count: number) => {
         setIsCatalogPickerOpen(false);
-        alert(`${t('catalog_picker.imported', { count, defaultValue: '{{count}} produit(s) ajouté(s) depuis le catalogue.' })} ${t('catalog_picker.after_import', { defaultValue: 'Pensez à renseigner leurs prix et leur stock.' })}`);
+        notify(`${t('catalog_picker.imported', { count, defaultValue: '{{count}} produit(s) ajouté(s) depuis le catalogue.' })} ${t('catalog_picker.after_import', { defaultValue: 'Pensez à renseigner leurs prix et leur stock.' })}`);
         setCatalogImportLoading(true);
         try {
             await fetchProducts();
@@ -916,7 +918,7 @@ export default function Inventory() {
             }
 
             if (syncErrors.length > 0) {
-                alert(syncErrors[0]);
+                notify(syncErrors[0]);
             }
 
             setIsSupplierPickerOpen(false);
@@ -968,7 +970,7 @@ export default function Inventory() {
             fetchProducts();
             loadStockHealth();
         } catch (err: any) {
-            alert(err.message || 'Erreur lors du transfert');
+            notify(err.message || 'Erreur lors du transfert', 'error');
         } finally {
             setTransferring(false);
         }
@@ -985,7 +987,7 @@ export default function Inventory() {
             setIsLocationTransferOpen(false);
             await fetchProducts();
         } catch (err: any) {
-            alert(err.message || "Erreur lors du transfert d'emplacement");
+            notify(err.message || "Erreur lors du transfert d'emplacement", 'error');
         } finally {
             setLocationTransferring(false);
         }
@@ -1001,12 +1003,12 @@ export default function Inventory() {
     };
 
     const handleReverseTransfer = async (tr: any) => {
-        if (!window.confirm(t('inventory.confirm_reverse_transfer', {
+        if (!(await confirmDialog(t('inventory.confirm_reverse_transfer', {
             qty: tr.quantity,
             product: tr.product_name,
             from: tr.from_store_name,
             to: tr.to_store_name,
-        }))) return;
+        })))) return;
         try {
             await storesApi.reverseTransfer({
                 product_id: tr.product_id,
@@ -1017,16 +1019,14 @@ export default function Inventory() {
             loadTransferHistory();
             fetchProducts();
         } catch (err: any) {
-            alert(err.message || t('inventory.reverse_transfer_error'));
+            notify(err.message || t('inventory.reverse_transfer_error'), 'error');
         }
     };
 
     const handleDeleteProduct = async (product: any) => {
         if (!product.product_id || deletingProductId) return;
 
-        const confirmed = window.confirm(
-            `Supprimer définitivement le produit "${product.name}" `,
-        );
+        const confirmed = (await confirmDialog(`Supprimer définitivement le produit "${product.name}" `));
 
         if (!confirmed) {
             return;
@@ -1040,7 +1040,7 @@ export default function Inventory() {
             await fetchProducts();
             await loadStockHealth();
         } catch (err: any) {
-            alert(err.message || 'Erreur lors de la suppression du produit');
+            notify(err.message || 'Erreur lors de la suppression du produit', 'error');
         } finally {
             setDeletingProductId(null);
         }
@@ -1109,7 +1109,7 @@ export default function Inventory() {
                     const names = conflict.products.map(({ name, unit }: { name: string; unit?: string }) =>
                         unit ? `${name} (${unit})` : name
                     ).join('\n');
-                    if (!window.confirm(`${conflict.message}\n\n${names}`)) return;
+                    if (!(await confirmDialog(`${conflict.message}\n\n${names}`))) return;
                     created = await productsApi.create({ ...payload, confirm_distinct_product: true });
                 }
                 savedProductId = created.product_id;
@@ -1163,9 +1163,7 @@ export default function Inventory() {
                 }
 
                 if (supplierSyncErrors.length > 0) {
-                    alert(
-                        `Le produit a bien été enregistré, mais certaines liaisons fournisseurs ont échoué.\n\n${supplierSyncErrors[0]}`,
-                    );
+                    notify(`Le produit a bien été enregistré, mais certaines liaisons fournisseurs ont échoué.\n\n${supplierSyncErrors[0]}`);
                 }
             }
             setIsProductModalOpen(false);
@@ -1175,11 +1173,9 @@ export default function Inventory() {
             console.error('Error saving product', err);
             if (editingProduct && err instanceof ApiError && err.message === 'purchase_price_locked_use_stock_in') {
                 const product = editingProduct;
-                const shouldRedirect = window.confirm(
-                    t('inventory.wac_locked_hint', {
+                const shouldRedirect = (await confirmDialog(t('inventory.wac_locked_hint', {
                         defaultValue: "Le coût d'achat ne peut pas être modifié directement. Effectuez une entrée de stock avec le nouveau prix.",
-                    }),
-                );
+                    })));
                 if (shouldRedirect) {
                     setIsProductModalOpen(false);
                     setEditingProduct(null);
@@ -1187,7 +1183,7 @@ export default function Inventory() {
                 }
                 return;
             }
-            alert(err.message || "Impossible d'enregistrer ce produit pour le moment.");
+            notify(err.message || "Impossible d'enregistrer ce produit pour le moment.", 'error');
         } finally {
             setFormLoading(false);
         }
@@ -1458,7 +1454,7 @@ export default function Inventory() {
         } catch (err: any) {
             console.error('Error loading products for quick price editor', err);
             setIsBulkPriceEditorOpen(false);
-            window.alert(err.message || t('inventory.quick_price_editor_load_error', { defaultValue: "Impossible de charger tous les produits pour l'édition rapide." }));
+            notify(err.message || t('inventory.quick_price_editor_load_error', { defaultValue: "Impossible de charger tous les produits pour l'édition rapide." }), 'error');
         } finally {
             setBulkPriceLoading(false);
         }
@@ -1491,7 +1487,7 @@ export default function Inventory() {
         } catch (err: any) {
             console.error('Error loading products for quick stock editor', err);
             setIsBulkStockEditorOpen(false);
-            window.alert(err.message || t('inventory.quick_stock_editor_load_error', { defaultValue: "Impossible de charger tous les produits pour l'édition rapide du stock." }));
+            notify(err.message || t('inventory.quick_stock_editor_load_error', { defaultValue: "Impossible de charger tous les produits pour l'édition rapide du stock." }), 'error');
         } finally {
             setBulkStockLoading(false);
         }
@@ -1542,7 +1538,7 @@ export default function Inventory() {
             if (purchaseValue !== '') {
                 const parsedPurchase = Number(purchaseValue);
                 if (!Number.isFinite(parsedPurchase) || parsedPurchase < 0) {
-                    window.alert(t('inventory.quick_price_editor_invalid', { name: product.name }));
+                    notify(t('inventory.quick_price_editor_invalid', { name: product.name }));
                     return;
                 }
                 if (parsedPurchase !== Number(product.purchase_price ?? 0)) {
@@ -1554,7 +1550,7 @@ export default function Inventory() {
             if (sellingValue !== '') {
                 const parsedSelling = Number(sellingValue);
                 if (!Number.isFinite(parsedSelling) || parsedSelling < 0) {
-                    window.alert(t('inventory.quick_price_editor_invalid', { name: product.name }));
+                    notify(t('inventory.quick_price_editor_invalid', { name: product.name }));
                     return;
                 }
                 if (parsedSelling !== Number(product.selling_price ?? 0)) {
@@ -1568,7 +1564,7 @@ export default function Inventory() {
         }
 
         if (updates.length === 0) {
-            window.alert(t('inventory.quick_price_editor_no_changes'));
+            notify(t('inventory.quick_price_editor_no_changes'));
             return;
         }
 
@@ -1577,15 +1573,15 @@ export default function Inventory() {
             const result = await productsApi.bulkUpdatePrices(updates);
             if (result.failed > 0) {
                 const firstError = result.errors[0]?.message || t('inventory.quick_price_editor_error');
-                window.alert(t('inventory.quick_price_editor_partial', { updated: result.updated, failed: result.failed, error: firstError }));
+                notify(t('inventory.quick_price_editor_partial', { updated: result.updated, failed: result.failed, error: firstError }));
             } else {
-                window.alert(t('inventory.quick_price_editor_success', { count: result.updated }));
+                notify(t('inventory.quick_price_editor_success', { count: result.updated }));
             }
             closeBulkPriceEditor();
             await fetchProducts();
             await loadStockHealth();
         } catch (err: any) {
-            window.alert(err.message || t('inventory.quick_price_editor_error'));
+            notify(err.message || t('inventory.quick_price_editor_error'), 'error');
         } finally {
             setBulkPriceSaving(false);
         }
@@ -1601,7 +1597,7 @@ export default function Inventory() {
             if (!normalizedValue) continue;
             const nextQuantity = Number(normalizedValue);
             if (!Number.isFinite(nextQuantity) || nextQuantity < 0) {
-                window.alert(t('inventory.quick_stock_editor_invalid', { defaultValue: 'Stock invalide pour {{name}}.', name: product.name }));
+                notify(t('inventory.quick_stock_editor_invalid', { defaultValue: 'Stock invalide pour {{name}}.', name: product.name }));
                 return;
             }
             const currentQuantity = Number(product.quantity ?? 0);
@@ -1616,7 +1612,7 @@ export default function Inventory() {
         }
 
         if (movements.length === 0) {
-            window.alert(t('inventory.quick_stock_editor_no_changes', { defaultValue: 'Aucun stock modifié.' }));
+            notify(t('inventory.quick_stock_editor_no_changes', { defaultValue: 'Aucun stock modifié.' }));
             return;
         }
 
@@ -1641,7 +1637,7 @@ export default function Inventory() {
 
             if (failed.length > 0) {
                 const firstError = failed[0];
-                window.alert(t('inventory.quick_stock_editor_partial', {
+                notify(t('inventory.quick_stock_editor_partial', {
                     defaultValue: '{{updated}} stock(s) mis à jour, {{failed}} échec(s). Premier échec : {{name}} - {{error}}',
                     updated: movements.length - failed.length,
                     failed: failed.length,
@@ -1649,14 +1645,14 @@ export default function Inventory() {
                     error: firstError.message,
                 }));
             } else {
-                window.alert(t('inventory.quick_stock_editor_success', { defaultValue: '{{count}} stock(s) mis à jour.', count: movements.length }));
+                notify(t('inventory.quick_stock_editor_success', { defaultValue: '{{count}} stock(s) mis à jour.', count: movements.length }));
             }
 
             closeBulkStockEditor();
             await fetchProducts();
             await loadStockHealth();
         } catch (err: any) {
-            window.alert(err.message || t('inventory.quick_stock_editor_error', { defaultValue: "Impossible d'enregistrer les stocks pour le moment." }));
+            notify(err.message || t('inventory.quick_stock_editor_error', { defaultValue: "Impossible d'enregistrer les stocks pour le moment." }), 'error');
         } finally {
             setBulkStockSaving(false);
         }
@@ -1665,7 +1661,7 @@ export default function Inventory() {
     const handleShareSelectedProducts = async () => {
         const targetProducts = selectedProducts;
         if (targetProducts.length === 0) {
-            window.alert(t('inventory.selection_required'));
+            notify(t('inventory.selection_required'));
             return;
         }
 
@@ -1687,10 +1683,10 @@ export default function Inventory() {
             } else {
                 throw new Error(t('inventory.share_selection_error'));
             }
-            window.alert(t('inventory.share_selection_success', { count: targetProducts.length }));
+            notify(t('inventory.share_selection_success', { count: targetProducts.length }));
         } catch (err: any) {
             if (err?.name === 'AbortError') return;
-            window.alert(err?.message || t('inventory.share_selection_error'));
+            notify(err?.message || t('inventory.share_selection_error'), 'error');
         }
     };
 
@@ -1708,9 +1704,7 @@ export default function Inventory() {
         const productsToDelete = selectedProducts;
         const productIds = productsToDelete.map((product) => product.product_id);
 
-        const confirmed = window.confirm(
-            t('inventory.bulk_delete_confirm', { count: productsToDelete.length }),
-        );
+        const confirmed = (await confirmDialog(t('inventory.bulk_delete_confirm', { count: productsToDelete.length })));
         if (!confirmed) {
             return;
         }
@@ -1726,12 +1720,12 @@ export default function Inventory() {
             setTrackedDeleteJob(job);
             setBulkDeleteProcessedCount(job.processed_products);
             setBulkDeleteTotalCount(job.total_products);
-            window.alert(t('inventory.bulk_delete_job_started', {
+            notify(t('inventory.bulk_delete_job_started', {
                 defaultValue: '{{count}} produit(s) vont être déplacés vers la corbeille en arrière-plan.',
                 count: job.total_products,
             }));
         } catch (err: any) {
-            window.alert(err.message || t('inventory.bulk_delete_error'));
+            notify(err.message || t('inventory.bulk_delete_error'), 'error');
             await fetchProducts();
             setBulkActionLoading(false);
             setBulkDeleteProcessedCount(0);

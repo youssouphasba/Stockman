@@ -3,6 +3,7 @@
 // Éditeur visuel Enterprise : structure des pages, pages personnalisées, réglages complets des
 // sections et des blocs, aperçu privé intégré. Le serveur revalide chaque enregistrement et les
 // droits Enterprise web.
+import { useFeedback } from './ui/Feedback';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronRight, Eye, EyeOff, GripVertical, Monitor, Paintbrush, Plus, Redo2, RefreshCw, Save, Send, Smartphone, Tablet, Trash2, Undo2, X } from 'lucide-react';
 import { ecommerce as ecommerceApi } from '../services/api';
@@ -77,6 +78,7 @@ type BlockItem = { id: string; type: string; settings: Record<string, unknown> }
 type DragItem = { kind: 'section'; id: string } | { kind: 'block'; id: string; sectionId: string };
 
 export default function EcommerceThemeEditor({ initialState, onClose }: { initialState: ThemeState; onClose: (changed: boolean) => void }) {
+    const { confirm: confirmDialog } = useFeedback();
     const [server, setServer] = useState<ThemeState>(initialState);
     const [document, setDocument] = useState<ThemeDocument>(() => initialState.draft?.document || initialState.published.document);
     const [saved, setSaved] = useState(() => JSON.stringify(initialState.draft?.document || initialState.published.document));
@@ -187,7 +189,7 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
         const message = server.site_enabled
             ? 'Publier ces changements ? Vos visiteurs verront aussitôt la nouvelle apparence du site. Les versions précédentes restent dans l\'historique.'
             : 'Publier ces changements ? Le site est désactivé : la publication ne l\'active pas.';
-        if (!window.confirm(message)) return;
+        if (!(await confirmDialog(message))) return;
         const state = dirty ? await save() : server;
         if (!state) return;
         if (!state.draft) {
@@ -261,8 +263,8 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
         return () => window.removeEventListener('message', receive);
     }, [previewOrigin, sendLive]);
 
-    function close() {
-        if (dirty && !window.confirm("Fermer l'éditeur ? Les modifications non enregistrées seront perdues.")) return;
+    async function close() {
+        if (dirty && !(await confirmDialog("Fermer l'éditeur ? Les modifications non enregistrées seront perdues."))) return;
         onClose(changed);
     }
 
@@ -390,9 +392,9 @@ export default function EcommerceThemeEditor({ initialState, onClose }: { initia
         if (page?.kind === 'custom') apply(updateCustomPage(document, page.id, patch), `page:${page.id}:${field}`);
     }
 
-    function deletePage() {
+    async function deletePage() {
         if (page?.kind !== 'custom') return;
-        if (!window.confirm(`Supprimer la page « ${pageLabel(page)} » et ses sections ? Elle peut être rétablie avec « Annuler la dernière action » (Ctrl+Z) tant que l'éditeur reste ouvert.`)) return;
+        if (!(await confirmDialog(`Supprimer la page « ${pageLabel(page)} » et ses sections ? Elle peut être rétablie avec « Annuler la dernière action » (Ctrl+Z) tant que l'éditeur reste ouvert.`))) return;
         apply(removeCustomPage(document, page.id));
         setPageId(document.pages.find((item) => item.kind === 'home')?.id || document.pages[0]?.id);
         setSelected(null);

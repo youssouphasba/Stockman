@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import Button from './ui/Button';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -90,6 +91,7 @@ const formatGeneratedName = (level: LevelDraft, index: number) => {
 };
 
 export default function Locations() {
+    const { confirm: confirmDialog } = useFeedback();
     const { t } = useTranslation();
     const [locations, setLocations] = useState<LocationRecord[]>([]);
     const [loading, setLoading] = useState(true);
@@ -307,7 +309,7 @@ export default function Locations() {
     };
 
     const deleteLocation = async (loc: LocationRecord) => {
-        if (!window.confirm(`Supprimer définitivement l'emplacement "${loc.name}" ?`)) {
+        if (!(await confirmDialog(`Supprimer définitivement l'emplacement "${loc.name}" ?`))) {
             return;
         }
         setActionId(loc.location_id);

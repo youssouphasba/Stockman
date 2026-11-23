@@ -1,5 +1,6 @@
 'use client';
 
+import { useFeedback } from './ui/Feedback';
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Eye, History, LayoutTemplate, Palette, RefreshCw, RotateCcw, Save, Send, Shuffle, Trash2 } from 'lucide-react';
 import { ecommerce as ecommerceApi } from '../services/api';
@@ -45,6 +46,7 @@ export default function EcommerceAppearancePanel({
     readOnlyMessage?: string;
     onPublished?: () => void;
 }) {
+    const { confirm: confirmDialog } = useFeedback();
     const [view, setView] = useState<AppearanceView>(INITIAL_VIEW);
     const controller = useRef<ReturnType<typeof createAppearanceController> | null>(null);
     const [pendingChanges, setPendingChanges] = useState<ThemeChange[] | null>(null);
@@ -100,14 +102,14 @@ export default function EcommerceAppearancePanel({
 
     async function chooseModel(model: ThemeModelSummary) {
         const replaceNote = hasDraft || dirty ? '\n\nLe brouillon en cours et vos modifications non enregistrées seront remplacés.' : '';
-        if (!window.confirm(`Choisir le modèle ${model.name} ? Un brouillon est créé avec vos textes, votre logo et votre couleur. Le site public ne change qu'à la publication.${replaceNote}`)) return;
+        if (!(await confirmDialog(`Choisir le modèle ${model.name} ? Un brouillon est créé avec vos textes, votre logo et votre couleur. Le site public ne change qu'à la publication.${replaceNote}`))) return;
         setPendingChanges(null);
         await controller.current?.changeModel(model.id);
         setHistory(null);
     }
 
     async function discard() {
-        if (!window.confirm(hasDraft ? 'Abandonner le brouillon ? Le site public ne changera pas.' : 'Annuler les modifications non enregistrées ?')) return;
+        if (!(await confirmDialog(hasDraft ? 'Abandonner le brouillon ? Le site public ne changera pas.' : 'Annuler les modifications non enregistrées ?'))) return;
         setPendingChanges(null);
         await controller.current?.discard();
         setHistory(null);
@@ -128,8 +130,8 @@ export default function EcommerceAppearancePanel({
 
     async function restore(item: ThemeRevisionItem) {
         if (!state) return;
-        if (dirty && !window.confirm('Vos modifications non enregistrées seront remplacées par cette version. Continuer ?')) return;
-        if (!window.confirm('Restaurer cette version comme nouveau brouillon ? Le site public ne changera qu\'à la publication.')) return;
+        if (dirty && !(await confirmDialog('Vos modifications non enregistrées seront remplacées par cette version. Continuer ?'))) return;
+        if (!(await confirmDialog('Restaurer cette version comme nouveau brouillon ? Le site public ne changera qu\'à la publication.'))) return;
         setHistoryBusy(item.revision_id);
         setHistoryError(null);
         try {

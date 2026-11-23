@@ -1,5 +1,6 @@
 'use client';
 
+import { useFeedback } from '../ui/Feedback';
 import Button from '../ui/Button';
 import React, { useState } from 'react';
 import { Gift } from 'lucide-react';
@@ -17,6 +18,7 @@ const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleD
 // Fiche client : offrir des mois gratuits. Le commerçant est prévenu par notification interne, push et e-mail.
 export default function AdminTrialExtensionCard({ userId, account, onExtended, showToast }: Props) {
     const [months, setMonths] = useState(1);
+    const { confirm: confirmDialog } = useFeedback();
     const [note, setNote] = useState('');
     const [saving, setSaving] = useState(false);
     const [undoing, setUndoing] = useState(false);
@@ -30,7 +32,7 @@ export default function AdminTrialExtensionCard({ userId, account, onExtended, s
 
     const submit = async () => {
         const label = months === 1 ? '1 mois gratuit' : `${months} mois gratuits`;
-        if (!window.confirm(`Offrir ${label} ? Le commerçant sera prévenu par notification et par e-mail.`)) return;
+        if (!(await confirmDialog(`Offrir ${label} ? Le commerçant sera prévenu par notification et par e-mail.`))) return;
         setSaving(true);
         try {
             const result = await adminApi.extendTrial(userId, months, note.trim());
@@ -45,8 +47,13 @@ export default function AdminTrialExtensionCard({ userId, account, onExtended, s
     };
 
     const undoLast = async () => {
-        if (!window.confirm('Annuler la dernière offre de mois gratuits ? La fin d’essai d’avant cette offre sera remise.')) return;
-        const notify = window.confirm('Prévenir le commerçant de la correction par notification et e-mail ?\n\nOK : le prévenir. Annuler : ne rien lui envoyer.');
+        if (!(await confirmDialog('Annuler la dernière offre de mois gratuits ? La fin d’essai d’avant cette offre sera remise.'))) return;
+        const notify = await confirmDialog({
+            message: 'Prévenir le commerçant de la correction par notification et e-mail ?',
+            confirmLabel: 'Le prévenir',
+            cancelLabel: 'Ne rien envoyer',
+            danger: false,
+        });
         setUndoing(true);
         try {
             const result = await adminApi.undoTrialExtension(userId, notify);

@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
@@ -240,6 +241,7 @@ function getMonthGroupsForYear<T>(groups: MonthlyGroup<T>[], year: number) {
 }
 
 export default function Accounting() {
+    const { confirm: confirmDialog, notify } = useFeedback();
     const { t } = useTranslation();
     const { formatDate, formatCurrency } = useDateFormatter();
     const [stats, setStats] = useState<AccountingStats | null>(null);
@@ -337,10 +339,10 @@ export default function Accounting() {
 
     const { i18n } = useTranslation();
 
-    const confirmDiscardChanges = (onConfirm: () => void) => {
+    const confirmDiscardChanges = async (onConfirm: () => void) => {
         const title = t('common.unsaved_changes_title', { defaultValue: 'Modifications non enregistrées' });
         const message = t('common.unsaved_changes_message', { defaultValue: 'Vous avez des modifications non enregistrées. Voulez-vous quitter sans enregistrer ?' });
-        if (window.confirm(`${title}\n\n${message}`)) {
+        if (await confirmDialog({ title, message })) {
             onConfirm();
         }
     };
@@ -585,7 +587,7 @@ export default function Accounting() {
     };
 
     const handleDeleteExpense = async (id: string) => {
-        if (!confirm(t('accounting.confirm_delete_expense'))) return;
+        if (!(await confirmDialog(t('accounting.confirm_delete_expense')))) return;
         try {
             await expensesApi.delete(id);
             loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
@@ -698,7 +700,7 @@ export default function Accounting() {
     };
 
     const handleCancelSale = async (saleId: string) => {
-        if (!confirm(t('accounting.cancel_sale_confirm', { defaultValue: 'Annuler cette vente et remettre le stock en place ' }))) {
+        if (!(await confirmDialog(t('accounting.cancel_sale_confirm', { defaultValue: 'Annuler cette vente et remettre le stock en place ' })))) {
             return;
         }
         setCancellingSaleId(saleId);
@@ -706,7 +708,7 @@ export default function Accounting() {
             await salesApi.cancel(saleId);
             await loadData(useCustomRange ? startDate : undefined, useCustomRange ? endDate : undefined);
         } catch (err: any) {
-            alert(err.message || t('accounting.cancel_sale_error', { defaultValue: "Impossible d'annuler cette vente pour le moment." }));
+            notify(err.message || t('accounting.cancel_sale_error', { defaultValue: "Impossible d'annuler cette vente pour le moment." }), 'error');
         } finally {
             setCancellingSaleId(null);
         }

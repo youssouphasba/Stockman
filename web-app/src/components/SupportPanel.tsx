@@ -1,5 +1,6 @@
 'use client';
 
+import { useFeedback } from './ui/Feedback';
 import Button from './ui/Button';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +16,7 @@ interface SupportPanelProps {
 }
 
 export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProps) {
+    const { notify } = useFeedback();
     const { t } = useTranslation();
     const [tab, setTab] = useState<'list' | 'new' | 'detail'>('list');
     const [tickets, setTickets] = useState<any[]>([]);
@@ -69,7 +71,7 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
             setTab('list');
             loadItems();
         } catch {
-            alert(t('support.createError', { defaultValue: "Erreur lors de l'envoi" }));
+            notify(t('support.createError', { defaultValue: "Erreur lors de l'envoi" }), 'error');
         } finally {
             setSending(false);
         }
@@ -96,9 +98,9 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
             );
             await loadItems();
             setTab('list');
-            alert(t('support.remoteSuccess'));
+            notify(t('support.remoteSuccess'));
         } catch {
-            alert(t('support.createError', { defaultValue: "Erreur lors de l'envoi" }));
+            notify(t('support.createError', { defaultValue: "Erreur lors de l'envoi" }), 'error');
         } finally {
             setRemoteSending(false);
         }
@@ -113,7 +115,7 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
             setReplyText('');
             loadItems();
         } catch {
-            alert(t('support.replyError', { defaultValue: "Erreur lors de la réponse" }));
+            notify(t('support.replyError', { defaultValue: "Erreur lors de la réponse" }), 'error');
         } finally {
             setReplying(false);
         }

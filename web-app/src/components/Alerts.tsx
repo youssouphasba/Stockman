@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useFeedback } from './ui/Feedback';
 import Button from './ui/Button';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -66,6 +67,7 @@ function draftRule(template: RuleTemplate, scope: RuleScope, storeId?: string | 
 }
 
 export default function Alerts() {
+    const { notify } = useFeedback();
     const { t, i18n } = useTranslation();
     const [alerts, setAlerts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -193,7 +195,7 @@ export default function Alerts() {
             resetDraft(rule);
         } catch (err) {
             console.error('Rule save error', err);
-            window.alert(err instanceof Error ? err.message : 'Impossible de sauvegarder cette regle.');
+            notify(err instanceof Error ? err.message : 'Impossible de sauvegarder cette regle.', 'error');
         } finally {
             setSavingRuleKey(null);
         }
