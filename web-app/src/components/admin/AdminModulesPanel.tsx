@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '../ui/Button';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Save } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
@@ -98,13 +99,13 @@ export default function AdminModulesPanel({ showToast }: { showToast: (message: 
                         <button onClick={() => void load()} className="p-2 text-slate-400 hover:text-white transition-all" aria-label="Recharger">
                             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                         </button>
-                        <button
+                        <Button variant="primary" size="sm"
                             onClick={() => void save()}
                             disabled={!dirty || saving}
-                            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white hover:bg-primary/80 disabled:opacity-40 transition-all"
+                            className="text-xs uppercase tracking-widest"
                         >
                             <Save size={14} /> {saving ? 'Enregistrement...' : 'Enregistrer'}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

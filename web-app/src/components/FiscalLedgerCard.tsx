@@ -1,5 +1,6 @@
 'use client';
 
+import Button from './ui/Button';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldCheck, ShieldAlert, Download, RefreshCw } from 'lucide-react';
@@ -95,13 +96,13 @@ export default function FiscalLedgerCard({ formatCurrency }: { formatCurrency: (
                     <button onClick={() => void load()} className="p-2 text-slate-400 hover:text-white" aria-label={t('common.refresh', 'Actualiser')}>
                         <RefreshCw size={16} />
                     </button>
-                    <button
+                    <Button variant="primary" size="sm"
                         onClick={() => void runVerification()}
                         disabled={verifying}
-                        className="rounded-xl bg-primary px-4 py-2 text-xs font-black text-white hover:bg-primary/80 disabled:opacity-50"
+                        className="text-xs"
                     >
                         {verifying ? t('fiscal.verifying', 'Vérification…') : t('fiscal.verify', "Vérifier l'intégrité")}
-                    </button>
+                    </Button>
                 </div>
             </div>
 

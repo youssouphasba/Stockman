@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from '../ui/Button';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCw, ShieldCheck, ShieldOff, Store } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
@@ -360,12 +361,11 @@ export default function AdminProductsPanel({ refreshToken, showToast, isSuperadm
                             inputMode="numeric"
                             className="w-full px-4 py-3 rounded-xl bg-slate-950/70 border border-white/10 text-white placeholder:text-slate-500 outline-none focus:border-primary"
                         />
-                        <button
+                        <Button variant="primary" size="md"
                             type="submit"
-                            className="px-4 py-3 rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-opacity"
                         >
                             Appliquer
-                        </button>
+                        </Button>
                     </div>
                 </form>
 

@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from '../ui/Button';
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Bot, CheckCircle2, ChevronLeft, ChevronRight, Copy, Download, Edit3, GitMerge, Layers3, PackagePlus, RefreshCw, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
@@ -857,10 +858,10 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
                         <p className="text-sm text-slate-300">Créez, dupliquez, corrigez et publiez les fiches proposées aux commerçants, seules ou en lot.</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                        <button type="button" onClick={() => void openCreate()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 font-bold text-white">
+                        <Button variant="primary" size="sm" type="button" onClick={() => void openCreate()}>
                             <PackagePlus size={16} />
                             Nouveau produit
-                        </button>
+                        </Button>
                         <button type="button" onClick={() => setBatchOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
                             <Layers3 size={16} />
                             {batchResumeAvailable ? 'Reprendre l’import' : 'Création en lot'}
@@ -956,9 +957,9 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
                             {batchFileName || 'Import catalogue'} : {batchProgress.done} / {batchProgress.total} lignes traitees, {batchSummary.created} creees, {batchSummary.updated} mises a jour, {batchSummary.errors} erreur(s).
                         </div>
                         <div className="mt-3 flex flex-wrap gap-3">
-                            <button type="button" onClick={() => setBatchOpen(true)} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">
+                            <Button variant="primary" size="sm" type="button" onClick={() => setBatchOpen(true)}>
                                 Ouvrir la reprise
-                            </button>
+                            </Button>
                             <button type="button" onClick={() => resetBatchImportState(true)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
                                 Effacer l'etat sauvegarde
                             </button>
@@ -990,7 +991,7 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
                         <input value={bulkEdit.supplier_hint} onChange={(event) => setBulkEdit((current) => ({ ...current, supplier_hint: event.target.value }))} placeholder="Suggestion fournisseur" className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-white outline-none focus:border-primary" />
                     </div>
                     <div className="flex flex-wrap gap-3">
-                        <button type="button" onClick={() => void applyBulkEdit()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Appliquer en lot</button>
+                        <Button variant="primary" size="sm" type="button" onClick={() => void applyBulkEdit()}>Appliquer en lot</Button>
                         <button type="button" onClick={() => void bulkVerify()} className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 font-semibold text-emerald-300">
                             <ShieldCheck size={16} />Vérifier ({selectedIds.size})
                         </button>
@@ -1244,7 +1245,7 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
 
                         <div className="mt-6 flex flex-wrap justify-end gap-3">
                             <button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
-                            <button type="button" onClick={() => void save()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Enregistrer</button>
+                            <Button variant="primary" size="sm" type="button" onClick={() => void save()}>Enregistrer</Button>
                         </div>
                     </div>
                 </div>
@@ -1283,7 +1284,7 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
                         </div>
                         <div className="mt-6 flex justify-end gap-3">
                             <button type="button" onClick={() => setMergeModalOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
-                            <button type="button" onClick={() => void merge()} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 font-bold text-white"><GitMerge size={16} />Fusionner</button>
+                            <Button variant="primary" size="sm" type="button" onClick={() => void merge()}><GitMerge size={16} />Fusionner</Button>
                         </div>
                     </div>
                 </div>
@@ -1351,7 +1352,7 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
                             <button type="button" onClick={() => setBatchOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">
                                 Fermer
                             </button>
-                            <button
+                            <Button variant="primary" size="sm"
                                 type="button"
                                 onClick={() => {
                                     if (batchResumeAvailable && batchRows.length > 0 && batchProgress.done < batchProgress.total) {
@@ -1368,10 +1369,9 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
                                     void createBatch();
                                 }}
                                 disabled={batchSubmitting}
-                                className="rounded-xl bg-primary px-4 py-2 font-bold text-white disabled:opacity-60"
                             >
                                 {batchSubmitting ? 'Import en cours…' : (batchResumeAvailable && batchProgress.done < batchProgress.total ? 'Reprendre l’import' : 'Créer les produits')}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -1395,7 +1395,7 @@ function AdminCatalogEntries({ refreshToken, showToast }: Props) {
 
                         <div className="mt-6 flex justify-end gap-3">
                             <button type="button" onClick={() => setVariantOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-semibold text-white">Annuler</button>
-                            <button type="button" onClick={() => void createVariants()} className="rounded-xl bg-primary px-4 py-2 font-bold text-white">Créer la série</button>
+                            <Button variant="primary" size="sm" type="button" onClick={() => void createVariants()}>Créer la série</Button>
                         </div>
                     </div>
                 </div>

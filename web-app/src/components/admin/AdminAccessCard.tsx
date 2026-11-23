@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '../ui/Button';
 import React, { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { admin as adminApi, type AdminScopeInfo } from '../../services/api';
@@ -77,9 +78,9 @@ export default function AdminAccessCard({ user, catalog, onChanged, showToast }:
                         ))}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        <button onClick={() => void save(true)} disabled={saving} className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50">
+                        <Button variant="primary" size="sm" onClick={() => void save(true)} disabled={saving} className="text-xs uppercase tracking-widest">
                             {isTeam ? 'Enregistrer les périmètres' : 'Donner l’accès'}
-                        </button>
+                        </Button>
                         {isTeam ? (
                             <button onClick={() => void save(false)} disabled={saving} className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-rose-200 disabled:opacity-50">
                                 Retirer l’accès

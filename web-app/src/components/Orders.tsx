@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
@@ -214,7 +215,7 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                                 <p className="text-xs font-bold uppercase tracking-wide text-primary">Prochaine étape</p>
                                                 <p className="mt-1 text-sm leading-6 text-slate-200">{step.hint}</p>
                                             </div>
-                                            {step.action && <button onClick={() => void runWebOrderStep(order, step.action)} className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-black text-white">{step.label}</button>}
+                                            {step.action && <Button variant="primary" size="md" onClick={() => void runWebOrderStep(order, step.action)} className="shrink-0 text-sm">{step.label}</Button>}
                                         </div>
                                     )}
                                     <p className="text-xs leading-5 text-slate-500">Paiement : {payment.hint}</p>
@@ -244,7 +245,7 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                         <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                             <button onClick={() => setDeliverWebOrder(null)} className="rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-slate-300 hover:bg-white/10">Retour</button>
                             <button onClick={() => confirmWebDelivery(false)} className="rounded-xl border border-amber-400/30 px-4 py-3 text-sm font-bold text-amber-200 hover:bg-amber-500/10">Pas encore payé : vente à crédit</button>
-                            <button onClick={() => confirmWebDelivery(true)} className="rounded-xl bg-primary px-4 py-3 text-sm font-black text-white">Le client a payé</button>
+                            <Button variant="primary" size="md" onClick={() => confirmWebDelivery(true)} className="text-sm">Le client a payé</Button>
                         </div>
                     </div>
                 </Modal>

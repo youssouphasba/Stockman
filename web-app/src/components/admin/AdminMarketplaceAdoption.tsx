@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '../ui/Button';
 import React, { useEffect, useState } from 'react';
 import { Package } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
@@ -22,9 +23,9 @@ export default function AdminMarketplaceAdoption({ refreshToken = 0 }: { refresh
             <div className="space-y-6">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                     <h3 className="text-lg font-black text-white uppercase tracking-widest">Adoption des catalogues fournisseurs</h3>
-                    <button onClick={loadCatalogAdoption} disabled={catalogAdoptionLoading} className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                    <Button variant="primary" size="md" onClick={loadCatalogAdoption} disabled={catalogAdoptionLoading} className="uppercase tracking-widest">
                         {catalogAdoptionLoading ? 'Chargement...' : 'Actualiser'}
-                    </button>
+                    </Button>
                 </div>
 
                 {catalogAdoptionLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
@@ -33,7 +34,7 @@ export default function AdminMarketplaceAdoption({ refreshToken = 0 }: { refresh
                     <div className="glass-card p-16 text-center">
                         <Package size={48} className="mx-auto mb-4 text-slate-600" />
                         <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Aucune donnée</p>
-                        <button onClick={loadCatalogAdoption} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">Charger</button>
+                        <Button variant="primary" size="lg" onClick={loadCatalogAdoption} className="uppercase tracking-widest">Charger</Button>
                     </div>
                 )}
 

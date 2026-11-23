@@ -1,10 +1,10 @@
 'use client';
 
+import { inputClass } from './ui/Field';
 import React, { useState } from 'react';
 import { ImageIcon, Images, Minus, Plus } from 'lucide-react';
 import { THEME_COLOR_SWATCHES, normalizeHexColor, type ThemeField, type ThemeMediaItem } from '../lib/ecommerceAppearance';
 
-const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-primary/50 disabled:opacity-60';
 const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white transition-colors hover:bg-white/10 disabled:opacity-50';
 
 // Couleur libre : sélecteur du navigateur et code hexadécimal, appliqués dès qu'ils sont valides.

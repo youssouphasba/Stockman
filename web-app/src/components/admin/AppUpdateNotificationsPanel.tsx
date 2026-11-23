@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '../ui/Button';
 import { useEffect, useState } from 'react';
 import { Apple, CheckCircle2, Smartphone, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -190,13 +191,12 @@ export default function AppUpdateNotificationsPanel() {
                     </span>
                 </label>
 
-                <button
+                <Button variant="primary" size="lg"
                     type="submit"
                     disabled={announcing || !announceVersion.trim()}
-                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     {announcing ? t('admin_app_updates.announce_sending') : t('admin_app_updates.announce_send')}
-                </button>
+                </Button>
 
                 {announceStatus ? (
                     <p role={announceStatus.ok ? 'status' : 'alert'} className={`text-sm ${announceStatus.ok ? 'text-emerald-300' : 'text-rose-300'}`}>{announceStatus.text}</p>
@@ -248,14 +248,13 @@ export default function AppUpdateNotificationsPanel() {
                     />
                 </label>
 
-                <button
+                <Button variant="primary" size="lg"
                     type="submit"
                     disabled={sending || !title.trim() || !message.trim()}
-                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     <Send size={16} />
                     {sending ? t('admin_app_updates.sending') : t('admin_app_updates.send')}
-                </button>
+                </Button>
 
                 {result ? (
                     <p role="status" className="flex items-start gap-2 text-sm text-emerald-300">

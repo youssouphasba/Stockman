@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Archive, Check, MapPin, Pencil, Plus, RotateCcw, Trash2, Wand2, X } from 'lucide-react';
@@ -620,15 +621,15 @@ export default function Locations() {
                 </div>
 
                 <div className="mt-5">
-                    <button
+                    <Button variant="primary" size="md"
                         type="button"
                         onClick={generateStructure}
                         disabled={saving || generationIssues.length > 0}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                        className="text-sm"
                     >
                         <Wand2 size={18} />
                         Générer la structure
-                    </button>
+                    </Button>
                 </div>
             </section>
 
@@ -671,15 +672,14 @@ export default function Locations() {
                             <option key={loc.location_id} value={loc.location_id}>{getLocationPath(loc.location_id)}</option>
                         ))}
                     </select>
-                    <button
+                    <Button variant="primary" size="md"
                         type="button"
                         onClick={handleCreate}
                         disabled={saving || !newName.trim()}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
                     >
                         <Plus size={18} />
                         Ajouter
-                    </button>
+                    </Button>
                 </div>
             </section>
 
@@ -717,15 +717,15 @@ export default function Locations() {
                                         <div className="flex flex-wrap gap-2">
                                             {isEditing ? (
                                                 <>
-                                                    <button
+                                                    <Button variant="primary" size="sm"
                                                         type="button"
                                                         onClick={saveEditing}
                                                         disabled={saving}
-                                                        className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                                                        className="gap-1 text-xs"
                                                     >
                                                         <Check size={14} />
                                                         Enregistrer
-                                                    </button>
+                                                    </Button>
                                                     <button
                                                         type="button"
                                                         onClick={cancelEditing}

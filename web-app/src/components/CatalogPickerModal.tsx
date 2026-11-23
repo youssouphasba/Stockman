@@ -1,5 +1,6 @@
 'use client';
 
+import Button from './ui/Button';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCheck, Loader2, Search } from 'lucide-react';
@@ -179,15 +180,15 @@ export default function CatalogPickerModal({ isOpen, sector, sectorLabel, countr
                     <button type="button" onClick={onClose} className="rounded-xl border border-white/10 px-4 py-2 text-sm theme-text hover:bg-white/5">
                         {t('common.cancel', { defaultValue: 'Annuler' })}
                     </button>
-                    <button
+                    <Button variant="primary" size="sm"
                         type="button"
                         onClick={() => void submit()}
                         disabled={!selected.size || importing}
-                        className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+                        className="text-sm"
                     >
                         {importing ? <Loader2 size={14} className="animate-spin" /> : null}
                         {t('catalog_picker.submit', { count: selected.size, defaultValue: 'Ajouter {{count}} produits' })}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </Modal>

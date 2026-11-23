@@ -1,5 +1,6 @@
 'use client';
 
+import Button from './ui/Button';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Send, Plus, MessageCircle, ChevronLeft, CheckCircle, ExternalLink, Mail, AlertTriangle, ShieldAlert, BadgeInfo, MonitorCog } from 'lucide-react';
@@ -259,9 +260,9 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
                                 <div className="text-center py-20">
                                     <MessageCircle size={48} className="mx-auto text-slate-700 mb-4" />
                                     <p className="text-slate-500 font-bold">{t('support.noTickets', { defaultValue: 'Aucun ticket' })}</p>
-                                    <button onClick={() => { setTab('new'); setCreationMode('ticket'); }} className="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90">
+                                    <Button variant="primary" size="sm" onClick={() => { setTab('new'); setCreationMode('ticket'); }} className="mt-4 text-sm">
                                         {t('support.createFirst', { defaultValue: 'Créer un ticket' })}
-                                    </button>
+                                    </Button>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -442,10 +443,10 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all resize-none mb-3"
                                         rows={3}
                                     />
-                                    <button
+                                    <Button variant="primary" size="md"
                                         onClick={handleReply}
                                         disabled={replying || !replyText.trim()}
-                                        className="w-full bg-primary text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
+                                        className="w-full uppercase text-xs tracking-widest"
                                     >
                                         {replying ? '...' : (
                                             <>
@@ -453,7 +454,7 @@ export default function SupportPanel({ isOpen, onClose, user }: SupportPanelProp
                                                 {t('support.send')}
                                             </>
                                         )}
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
                         </div>

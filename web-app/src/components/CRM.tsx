@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
@@ -655,13 +656,13 @@ export default function CRM({ user }: CRMProps) {
                         </p>
                     </div>
                     {canManagePromotions && (
-                        <button
+                        <Button variant="primary" size="md"
                             type="button"
                             onClick={() => openPromotionModal()}
-                            className="rounded-xl bg-primary px-4 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:brightness-110"
+                            className="text-sm"
                         >
                             Nouvelle promotion
-                        </button>
+                        </Button>
                     )}
                 </div>
                 {promotionsLoading ? (
@@ -712,14 +713,14 @@ export default function CRM({ user }: CRMProps) {
                                     >
                                         {promotion.is_active ? 'Désactiver' : 'Activer'}
                                     </button>
-                                    <button
+                                    <Button variant="soft" size="sm"
                                         type="button"
                                         onClick={() => openPromotionModal(promotion)}
                                         disabled={!canManagePromotions}
-                                        className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-primary transition-all hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="border border-primary/20 text-xs uppercase tracking-[0.18em]"
                                     >
                                         Modifier
-                                    </button>
+                                    </Button>
                                     <button
                                         type="button"
                                         onClick={() => handleDeletePromotion(promotion.promotion_id)}
@@ -845,14 +846,14 @@ export default function CRM({ user }: CRMProps) {
                                         onChange={(e) => setEndDate(e.target.value)}
                                         className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-all focus:border-primary/40"
                                     />
-                                    <button
+                                    <Button variant="primary" size="sm"
                                         type="button"
                                         onClick={handleApplyCustomRange}
                                         disabled={!startDate || !endDate}
-                                        className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                                        className="text-xs uppercase tracking-[0.18em]"
                                     >
                                         Appliquer
-                                    </button>
+                                    </Button>
                                 </div>
                             ) : null}
                         </div>
@@ -1701,14 +1702,13 @@ export default function CRM({ user }: CRMProps) {
                                         >
                                             Annuler
                                         </button>
-                                        <button
+                                        <Button variant="primary" size="sm"
                                             type="button"
                                             onClick={handleSaveCustomerNotes}
                                             disabled={customerNotesSaving}
-                                            className="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white transition-all hover:brightness-110 disabled:opacity-50"
-                                        >
+                                            className="text-sm">
                                             {customerNotesSaving ? 'Enregistrement...' : 'Enregistrer la note'}
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             ) : (
@@ -1856,13 +1856,13 @@ export default function CRM({ user }: CRMProps) {
                         >
                             Annuler
                         </button>
-                        <button
+                        <Button variant="primary" size="md"
                             type="submit"
                             disabled={promotionSaving || !promotionForm.title.trim()}
-                            className="flex-1 rounded-xl bg-primary px-4 py-3 text-white font-bold shadow-lg shadow-primary/20 disabled:opacity-50"
+                            className="flex-1"
                         >
                             {promotionSaving ? 'Enregistrement…' : editingPromotion ? 'Mettre à jour' : 'Créer la promotion'}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </Modal>

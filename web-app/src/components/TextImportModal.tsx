@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertCircle, Sparkles } from 'lucide-react';
@@ -89,15 +90,14 @@ export default function TextImportModal({ isOpen, onClose, onSuccess }: TextImpo
                     >
                         {t('common.cancel')}
                     </button>
-                    <button
+                    <Button variant="primary" size="md"
                         type="button"
                         onClick={handleImport}
                         disabled={loading || !text.trim()}
-                        className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <Sparkles size={16} className={loading ? 'animate-pulse' : ''} />
                         {loading ? t('common.loading', 'Chargement...') : t('products.import_text_btn', { defaultValue: 'Importer avec l’IA' })}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </Modal>

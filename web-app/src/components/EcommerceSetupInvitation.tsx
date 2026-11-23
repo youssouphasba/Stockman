@@ -1,5 +1,6 @@
 'use client';
 
+import Button from './ui/Button';
 import { useEffect, useRef, useState } from 'react';
 import { Globe } from 'lucide-react';
 import { ecommerce } from '../services/api';
@@ -48,14 +49,14 @@ export default function EcommerceSetupInvitation({ onConfigure }: { onConfigure:
                 {state.error && <p role="alert" className="mt-2 text-sm font-bold text-rose-300">{state.error}</p>}
             </div>
             <div className="flex flex-wrap items-center gap-3">
-                <button
+                <Button variant="primary" size="md"
                     type="button"
                     disabled={state.busy}
                     onClick={() => { void controller.current?.respond('configure'); }}
-                    className="min-h-11 rounded-xl bg-primary px-5 text-sm font-black text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    className="text-sm"
                 >
                     {message.configure}
-                </button>
+                </Button>
                 <button
                     type="button"
                     disabled={state.busy}

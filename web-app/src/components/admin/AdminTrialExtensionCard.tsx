@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '../ui/Button';
 import React, { useState } from 'react';
 import { Gift } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
@@ -99,9 +100,9 @@ export default function AdminTrialExtensionCard({ userId, account, onExtended, s
                         className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-slate-500"
                     />
                     <div className="flex flex-wrap items-center gap-3">
-                        <button onClick={() => void submit()} disabled={saving || undoing} className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50">
+                        <Button variant="primary" size="sm" onClick={() => void submit()} disabled={saving || undoing} className="text-xs uppercase tracking-widest">
                             {saving ? 'Envoi…' : 'Offrir et prévenir le commerçant'}
-                        </button>
+                        </Button>
                         <button onClick={() => void undoLast()} disabled={saving || undoing} className="text-xs font-bold text-rose-300 hover:underline disabled:opacity-50" title="En cas d’erreur : remet la fin d’essai d’avant la dernière offre">
                             {undoing ? 'Annulation…' : 'Annuler la dernière offre'}
                         </button>

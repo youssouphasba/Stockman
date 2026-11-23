@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '../ui/Button';
 import React, { useEffect, useState } from 'react';
 import { Gift } from 'lucide-react';
 import { admin as adminApi } from '../../services/api';
@@ -57,13 +58,13 @@ export default function AdminSignupTrialCard({ showToast }: Props) {
                         <option key={value} value={value}>{monthsLabel(value)}</option>
                     ))}
                 </select>
-                <button
+                <Button variant="primary" size="sm"
                     onClick={() => void save()}
                     disabled={saving || current === null || months === current}
-                    className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-40"
+                    className="text-xs uppercase tracking-widest"
                 >
                     Enregistrer
-                </button>
+                </Button>
             </div>
         </div>
     );

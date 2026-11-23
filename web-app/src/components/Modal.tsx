@@ -3,15 +3,7 @@
 import React, { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-/**
- * Custom cn utility for tailwind classes if not already globally available
- */
-function cn(...inputs: any[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from '../lib/cn';
 
 interface ModalProps {
     isOpen: boolean;

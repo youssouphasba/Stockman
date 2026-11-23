@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, ChevronRight, ChevronLeft, BookOpen, MousePointerClick, SlidersHorizontal, LayoutGrid, Info, Lightbulb } from 'lucide-react';
@@ -213,9 +214,9 @@ export default function ScreenGuide({ guideKey, steps, autoStart = true }: Scree
                                             {t('guide.previous', { defaultValue: 'Précédent' })}
                                         </span>
                                     </button>
-                                    <button
+                                    <Button variant="primary" size="sm"
                                         onClick={handleNext}
-                                        className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-primary/90"
+                                        className="text-xs"
                                     >
                                         <span className="flex items-center gap-1">
                                             {currentNavigationIndex >= navigationSteps.length - 1
@@ -223,7 +224,7 @@ export default function ScreenGuide({ guideKey, steps, autoStart = true }: Scree
                                                 : t('guide.next', { defaultValue: 'Suivant' })}
                                             <ChevronRight size={14} />
                                         </span>
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">

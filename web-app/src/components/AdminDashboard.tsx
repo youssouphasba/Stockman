@@ -1,5 +1,6 @@
 'use client';
 
+import Button from './ui/Button';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -1547,13 +1548,13 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         <div className="p-4 border-b border-white/10 flex flex-wrap gap-2">
-                            <button
+                            <Button variant="primary" size="sm"
                                 onClick={() => markAdminNotificationsRead('all')}
                                 disabled={adminNotifications.unread === 0}
-                                className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-40"
+                                className="text-xs uppercase tracking-widest"
                             >
                                 Tout marquer comme lu
-                            </button>
+                            </Button>
                             {Object.entries(adminNotifications.badges || {}).filter(([, count]) => Number(count) > 0).map(([section, count]) => (
                                 <button
                                     key={section}
@@ -1659,9 +1660,9 @@ export default function AdminDashboard() {
                                                     </button>
                                                 </div>
                                             ))}
-                                            <button onClick={handleSaveFlags} disabled={flagsSaving} className="w-full mt-2 px-4 py-2.5 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                                            <Button variant="primary" size="md" onClick={handleSaveFlags} disabled={flagsSaving} className="w-full mt-2 uppercase tracking-widest">
                                                 {flagsSaving ? 'Enregistrement...' : 'Enregistrer les flags'}
-                                            </button>
+                                            </Button>
                                         </div>
                                     );
                                 })()}
@@ -1690,9 +1691,9 @@ export default function AdminDashboard() {
                                                     />
                                                 </div>
                                             ))}
-                                            <button onClick={handleSaveLimits} disabled={limitsSaving} className="w-full mt-2 px-4 py-2.5 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                                            <Button variant="primary" size="md" onClick={handleSaveLimits} disabled={limitsSaving} className="w-full mt-2 uppercase tracking-widest">
                                                 {limitsSaving ? 'Enregistrement...' : 'Enregistrer les limites'}
-                                            </button>
+                                            </Button>
                                         </div>
                                     );
                                 })()}
@@ -1898,7 +1899,7 @@ export default function AdminDashboard() {
                         />
                         <div className="flex gap-3 mt-4">
                             <button onClick={() => setNoteModalUser(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold text-sm hover:bg-white/10 transition-all">Annuler</button>
-                            <button onClick={handleSaveNote} className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:opacity-90 transition-all">Enregistrer</button>
+                            <Button variant="primary" size="md" onClick={handleSaveNote} className="flex-1">Enregistrer</Button>
                         </div>
                     </div>
                 </div>
@@ -2045,13 +2046,13 @@ export default function AdminDashboard() {
                                 >
                                     Actualiser
                                 </button>
-                                <button
+                                <Button variant="primary" size="sm"
                                     onClick={() => markAdminNotificationsRead('all')}
                                     disabled={adminNotifications.unread === 0}
-                                    className="rounded-xl bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-40"
+                                    className="text-xs uppercase tracking-widest"
                                 >
                                     Tout marquer comme lu
-                                </button>
+                                </Button>
                             </div>
                         </div>
                         <div className="p-5 grid gap-3 md:grid-cols-3 lg:grid-cols-6 border-b border-white/5">
@@ -2983,9 +2984,9 @@ export default function AdminDashboard() {
                                 <option value="enterprise">Enterprise</option>
                             </select>
                             {bulkPlan && (
-                                <button onClick={handleBulkPlan} disabled={bulkActionLoading} className="px-3 py-1.5 rounded-xl bg-primary text-white text-sm font-bold disabled:opacity-50">
+                                <Button variant="primary" size="sm" onClick={handleBulkPlan} disabled={bulkActionLoading} className="text-sm">
                                     Appliquer le plan
-                                </button>
+                                </Button>
                             )}
                             <button onClick={() => handleBulkBan(true)} disabled={bulkActionLoading} className="px-3 py-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-sm font-semibold disabled:opacity-50">
                                 Bannir
@@ -3922,13 +3923,13 @@ export default function AdminDashboard() {
                                                     className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-primary/50 transition-all"
                                                     autoFocus
                                                 />
-                                                <button
+                                                <Button variant="primary" size="sm"
                                                     onClick={handleReplyTicket}
                                                     disabled={replying || !replyContent.trim()}
-                                                    className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-primary/80 transition-all"
+                                                    className="text-sm"
                                                 >
                                                     {replying ? '...' : 'Envoyer'}
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                     )}
@@ -4374,7 +4375,7 @@ export default function AdminDashboard() {
                                     })}
                                 </div>
                             </div>
-                            <button
+                            <Button variant="primary" size="lg"
                                 onClick={async () => {
                                     if (!broadcastForm.message.trim()) return;
                                     const actionLink = broadcastForm.target !== 'anonymous_installations' && broadcastActionLink
@@ -4430,10 +4431,10 @@ export default function AdminDashboard() {
                                     }
                                 }}
                                 disabled={saving || !broadcastForm.message.trim()}
-                                className="w-full py-4 rounded-xl bg-primary text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
+                                className="w-full uppercase tracking-widest"
                             >
                                 {saving ? 'Envoi en cours...' : 'Envoyer la communication'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
@@ -4557,7 +4558,7 @@ export default function AdminDashboard() {
                                             Dernière mise à jour : {formatAdminDate(cguUpdatedAt)}
                                         </p>
                                     </div>
-                                    <button
+                                    <Button variant="primary" size="md"
                                         onClick={async () => {
                                             setLegalSaving('cgu');
                                             try {
@@ -4571,10 +4572,10 @@ export default function AdminDashboard() {
                                             }
                                         }}
                                         disabled={legalSaving === 'cgu' || !cguContent.trim()}
-                                        className="rounded-xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50"
+                                        className="text-sm uppercase tracking-widest"
                                     >
                                         {legalSaving === 'cgu' ? 'Enregistrement...' : 'Enregistrer les CGU'}
-                                    </button>
+                                    </Button>
                                 </div>
                                 <textarea
                                     value={cguContent}
@@ -4596,7 +4597,7 @@ export default function AdminDashboard() {
                                             Dernière mise à jour : {formatAdminDate(privacyUpdatedAt)}
                                         </p>
                                     </div>
-                                    <button
+                                    <Button variant="primary" size="md"
                                         onClick={async () => {
                                             setLegalSaving('privacy');
                                             try {
@@ -4610,10 +4611,10 @@ export default function AdminDashboard() {
                                             }
                                         }}
                                         disabled={legalSaving === 'privacy' || !privacyContent.trim()}
-                                        className="rounded-xl bg-primary px-5 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50"
+                                        className="text-sm uppercase tracking-widest"
                                     >
                                         {legalSaving === 'privacy' ? 'Enregistrement...' : 'Enregistrer la politique'}
-                                    </button>
+                                    </Button>
                                 </div>
                                 <textarea
                                     value={privacyContent}
@@ -4635,9 +4636,9 @@ export default function AdminDashboard() {
                         <div className="text-center py-20">
                             <Brain size={48} className="mx-auto mb-4 text-slate-600" />
                             <p className="text-slate-400 mb-4">Cliquez pour charger les statistiques IA</p>
-                            <button onClick={loadAiUsage} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">
+                            <Button variant="primary" size="lg" onClick={loadAiUsage} className="uppercase tracking-widest">
                                 Charger
-                            </button>
+                            </Button>
                         </div>
                     )}
                     {aiUsageLoading && (
@@ -4836,9 +4837,9 @@ export default function AdminDashboard() {
                 <div className="space-y-6">
                     <div className="flex items-center justify-between flex-wrap gap-3">
                         <h3 className="text-lg font-black text-white uppercase tracking-widest">MRR — Revenus mensuels</h3>
-                        <button onClick={loadMrr} disabled={mrrLoading} className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                        <Button variant="primary" size="md" onClick={loadMrr} disabled={mrrLoading} className="uppercase tracking-widest">
                             {mrrLoading ? 'Chargement...' : 'Actualiser'}
-                        </button>
+                        </Button>
                     </div>
 
                     {mrrLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
@@ -4847,7 +4848,7 @@ export default function AdminDashboard() {
                         <div className="glass-card p-16 text-center">
                             <TrendingUp size={48} className="mx-auto mb-4 text-slate-600" />
                             <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Données non chargées</p>
-                            <button onClick={loadMrr} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">Charger le MRR</button>
+                            <Button variant="primary" size="lg" onClick={loadMrr} className="uppercase tracking-widest">Charger le MRR</Button>
                         </div>
                     )}
 
@@ -4976,9 +4977,9 @@ export default function AdminDashboard() {
                 <div className="space-y-6">
                     <div className="flex items-center justify-between flex-wrap gap-3">
                         <h3 className="text-lg font-black text-white uppercase tracking-widest">Rétention & Croissance</h3>
-                        <button onClick={loadRetention} disabled={retentionLoading} className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                        <Button variant="primary" size="md" onClick={loadRetention} disabled={retentionLoading} className="uppercase tracking-widest">
                             {retentionLoading ? 'Chargement...' : 'Actualiser'}
-                        </button>
+                        </Button>
                     </div>
 
                     {retentionLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
@@ -4987,7 +4988,7 @@ export default function AdminDashboard() {
                         <div className="glass-card p-16 text-center">
                             <Users size={48} className="mx-auto mb-4 text-slate-600" />
                             <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Données non chargées</p>
-                            <button onClick={loadRetention} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">Charger</button>
+                            <Button variant="primary" size="lg" onClick={loadRetention} className="uppercase tracking-widest">Charger</Button>
                         </div>
                     )}
 
@@ -5086,9 +5087,9 @@ export default function AdminDashboard() {
                             >
                                 {[1, 7, 14, 30].map(d => <option key={d} value={d}>{d}j</option>)}
                             </select>
-                            <button onClick={() => loadApiHealth()} disabled={apiHealthLoading} className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-primary/80 disabled:opacity-50 transition-all">
+                            <Button variant="primary" size="md" onClick={() => loadApiHealth()} disabled={apiHealthLoading} className="text-sm uppercase tracking-widest">
                                 {apiHealthLoading ? '...' : 'Actualiser'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
@@ -5098,7 +5099,7 @@ export default function AdminDashboard() {
                         <div className="glass-card p-16 text-center">
                             <BarChart2 size={48} className="mx-auto mb-4 text-slate-600" />
                             <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Données non chargées</p>
-                            <button onClick={() => loadApiHealth()} className="px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">Charger</button>
+                            <Button variant="primary" size="lg" onClick={() => loadApiHealth()} className="text-sm uppercase tracking-widest">Charger</Button>
                         </div>
                     )}
 
@@ -5289,13 +5290,13 @@ export default function AdminDashboard() {
                                     <option key={m} value={m}>{m}</option>
                                 ))}
                             </select>
-                            <button
+                            <Button variant="primary" size="md"
                                 onClick={loadLogs}
                                 disabled={logsLoading}
-                                className="px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-black uppercase tracking-widest hover:bg-primary/80 transition-all disabled:opacity-50"
+                                className="uppercase tracking-widest"
                             >
                                 {logsLoading ? 'Chargement...' : 'Appliquer'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
@@ -5307,9 +5308,9 @@ export default function AdminDashboard() {
                         <div className="glass-card p-20 text-center">
                             <Activity size={48} className="mx-auto mb-4 text-slate-600" />
                             <p className="text-slate-500 text-sm uppercase tracking-widest font-black">Aucune activité trouvée</p>
-                            <button onClick={loadLogs} className="mt-6 px-6 py-3 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest">
+                            <Button variant="primary" size="lg" onClick={loadLogs} className="mt-6 uppercase tracking-widest">
                                 Charger les logs
-                            </button>
+                            </Button>
                         </div>
                     )}
 

@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '../components/ui/Button';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Package, LogIn, LayoutDashboard, LineChart, ShoppingCart, ShieldCheck, AlertCircle as AlertIcon, Menu, Monitor, Users, Truck, Store, Settings2, BarChart3, Bell, ClipboardList, ScanBarcode, ArrowLeftRight, Star, CheckCircle2, XCircle, Zap, LogOut, Sparkles, HelpCircle, Chrome } from "lucide-react";
@@ -699,12 +700,12 @@ export default function Home() {
             </ul>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            {isBillingAdmin && <button
+            {isBillingAdmin && <Button variant="primary" size="md"
               onClick={() => setActiveTab('subscription')}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-primary text-white font-black tracking-tight hover:scale-[1.01] transition-transform"
+              className="tracking-tight"
             >
               <Zap size={18} /> {t('home.recovery.cta_regularize')}
-            </button>}
+            </Button>}
             <button
               onClick={handleLogout}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-slate-200 font-black tracking-tight hover:bg-white/10"
@@ -965,14 +966,14 @@ export default function Home() {
                     >
                       {t('demo_lead.later')}
                     </button>
-                    <button
+                    <Button variant="primary" size="md"
                       type="button"
                       onClick={handleSaveDemoLead}
                       disabled={demoLeadSaving}
-                      className="flex-1 rounded-2xl bg-primary px-4 py-3 text-white font-black disabled:opacity-60"
+                      className="flex-1"
                     >
                       {demoLeadSaving ? t('demo_lead.saving') : t('demo_lead.save')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1030,10 +1031,10 @@ export default function Home() {
                           {t('home.web_read_only.badge', { plan: effectivePlan === 'pro' ? 'Pro' : 'Starter' })}
                         </span>
                         {isBillingAdmin && (
-                          <button type="button" onClick={openEnterpriseOffer} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-bold text-slate-950 hover:bg-primary/90">
+                          <Button variant="primary" size="md" type="button" onClick={openEnterpriseOffer}>
                             <Zap size={15} aria-hidden="true" />
                             {t('home.web_read_only.cta_upgrade')}
-                          </button>
+                          </Button>
                         )}
                       </div>
                       <details className="text-sm text-slate-200">

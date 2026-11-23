@@ -1,6 +1,7 @@
 ﻿
 'use client';
 
+import Field, { inputClass as input } from './ui/Field';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Factory, Plus, ChefHat, ClipboardList, ShoppingBag, Leaf,
@@ -26,16 +27,6 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
     );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <div className="mb-4">
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">{label}</label>
-            {children}
-        </div>
-    );
-}
-
-const input = "w-full bg-background border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-secondary/50";
 const btn = (color: string) => `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${color}`;
 
 export default function ProductionView({ onNavigate }: { onNavigate?: (page: string) => void }) {
@@ -437,24 +428,24 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                         <button onClick={() => setShowNewRecipe(false)} className="text-slate-400 hover:text-white"><XCircle size={22} /></button>
                     </div>
                     {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
-                    <Field label={t('production.recipe_name', 'Nom de la recette')}>
+                    <Field className="mb-4" label={t('production.recipe_name', 'Nom de la recette')}>
                         <input className={input} value={recipeName} onChange={e => setRecipeName(e.target.value)} placeholder="Ex: Baguette tradition" />
                     </Field>
-                    <Field label={t('production.category', 'Catégorie')}>
+                    <Field className="mb-4" label={t('production.category', 'Catégorie')}>
                         <input className={input} value={recipeCategory} onChange={e => setRecipeCategory(e.target.value)} placeholder="Ex: Pains, Viennoiseries" />
                     </Field>
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label={t('production.output_qty', 'Qté produite')}>
+                        <Field className="mb-4" label={t('production.output_qty', 'Qté produite')}>
                             <input className={input} type="number" value={outputQty} onChange={e => setOutputQty(e.target.value)} />
                         </Field>
-                        <Field label={t('production.output_unit', 'Unité')}>
+                        <Field className="mb-4" label={t('production.output_unit', 'Unité')}>
                             <input className={input} value={outputUnit} onChange={e => setOutputUnit(e.target.value)} placeholder="pièce" />
                         </Field>
                     </div>
-                    <Field label={t('production.prep_time', 'Temps préparation (min)')}>
+                    <Field className="mb-4" label={t('production.prep_time', 'Temps préparation (min)')}>
                         <input className={input} type="number" value={prepTime} onChange={e => setPrepTime(e.target.value)} />
                     </Field>
-                    <Field label={t('production.instructions', 'Instructions (optionnel)')}>
+                    <Field className="mb-4" label={t('production.instructions', 'Instructions (optionnel)')}>
                         <textarea className={`${input} h-20 resize-none`} value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Étapes de préparation..." />
                     </Field>
                     <p className="text-xs text-slate-500 italic mb-4">{t('production.ingredients_later', '💡 Vous pourrez ajouter les ingrédients après la création.')}</p>
@@ -473,13 +464,13 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                         <button onClick={() => setShowProduceModal(false)} className="text-slate-400 hover:text-white"><XCircle size={22} /></button>
                     </div>
                     {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
-                    <Field label={t('production.multiplier', 'Multiplicateur de lot')}>
+                    <Field className="mb-4" label={t('production.multiplier', 'Multiplicateur de lot')}>
                         <input className={input} type="number" min="1" value={batchMultiplier} onChange={e => setBatchMultiplier(e.target.value)} />
                     </Field>
                     <p className="text-xs text-slate-400 italic mb-3">
                         → {(selectedRecipe.output_quantity * (parseFloat(batchMultiplier) || 1)).toFixed(0)} {selectedRecipe.output_unit} produites
                     </p>
-                    <Field label={t('production.notes', 'Notes (optionnel)')}>
+                    <Field className="mb-4" label={t('production.notes', 'Notes (optionnel)')}>
                         <input className={input} value={produceNotes} onChange={e => setProduceNotes(e.target.value)} placeholder="Notes..." />
                     </Field>
                     <button onClick={handleProduce} disabled={submitting}
@@ -497,10 +488,10 @@ export default function ProductionView({ onNavigate }: { onNavigate?: (page: str
                         <button onClick={() => setShowCompleteModal(false)} className="text-slate-400 hover:text-white"><XCircle size={22} /></button>
                     </div>
                     {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
-                    <Field label={t('production.actual_output', 'Quantité réelle produite')}>
+                    <Field className="mb-4" label={t('production.actual_output', 'Quantité réelle produite')}>
                         <input className={input} type="number" value={actualOutput} onChange={e => setActualOutput(e.target.value)} />
                     </Field>
-                    <Field label={t('production.waste', 'Pertes (quantité)')}>
+                    <Field className="mb-4" label={t('production.waste', 'Pertes (quantité)')}>
                         <input className={input} type="number" value={wasteQty} onChange={e => setWasteQty(e.target.value)} placeholder="0" />
                     </Field>
                     <button onClick={handleCompleteOrder} disabled={submitting}

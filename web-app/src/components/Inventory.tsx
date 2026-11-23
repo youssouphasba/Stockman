@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import Button from './ui/Button';
 import { useTranslation } from 'react-i18next';
 import {
     Search,
@@ -3024,14 +3025,13 @@ export default function Inventory() {
                         >
                             Annuler
                         </button>
-                        <button
+                        <Button variant="primary" size="sm"
                             type="button"
                             onClick={() => void handleSaveProductSuppliers()}
                             disabled={supplierPickerSaving}
-                            className="rounded-lg bg-primary px-5 py-2 font-medium text-white disabled:opacity-60"
                         >
                             {supplierPickerSaving ? 'Enregistrement...' : 'Enregistrer les liaisons'}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>

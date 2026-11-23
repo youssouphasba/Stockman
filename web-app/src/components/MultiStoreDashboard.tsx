@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     AlertTriangle,
@@ -224,12 +225,12 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                         {t('multi_store_text.summary', { count: stats?.totals.store_count ?? 0, period: periodLabel })}
                     </p>
                 </div>
-                <button
+                <Button variant="primary" size="sm"
                     onClick={() => setShowNewStore(true)}
-                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20"
+                    className="text-sm"
                 >
                     <Plus size={16} /> Nouvelle boutique
-                </button>
+                </Button>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -419,13 +420,13 @@ export default function MultiStoreDashboard({ user }: MultiStoreDashboardProps) 
                             >
                                 Annuler
                             </button>
-                            <button
+                            <Button variant="primary" size="sm"
                                 onClick={handleCreateStore}
                                 disabled={creating || !newStoreName.trim()}
-                                className="rounded-2xl bg-primary px-4 py-2 text-sm font-black text-white transition hover:bg-primary/90 disabled:opacity-50"
+                                className="text-sm"
                             >
                                 {creating ? 'Creation...' : 'Creer la boutique'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

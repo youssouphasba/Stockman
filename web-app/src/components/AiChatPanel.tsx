@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, X, Send, Loader2, Trash2, Bot, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -194,13 +195,12 @@ export default function AiChatPanel({ isOpen, onClose, currentUser, features }: 
                             disabled={loading}
                             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 disabled:opacity-50 resize-none"
                         />
-                        <button
+                        <Button variant="primary" size="icon"
                             onClick={send}
                             disabled={!input.trim() || loading}
-                            className="p-3 bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-all"
                         >
                             <Send size={16} />
-                        </button>
+                        </Button>
                     </div>
                     <p className="text-slate-700 text-[11px] mt-2 text-center">Entrée pour envoyer · Shift+Entrée pour saut de ligne</p>
                 </div>

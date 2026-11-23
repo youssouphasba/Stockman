@@ -1,6 +1,8 @@
 ﻿
 'use client';
 
+import Field, { inputClass as input } from './ui/Field';
+import Button from './ui/Button';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Hammer, Plus, HardHat, Truck, FileText, LayoutDashboard,
@@ -40,16 +42,6 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
     );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <div className="mb-3">
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">{label}</label>
-            {children}
-        </div>
-    );
-}
-
-const input = "w-full bg-background border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-primary/50";
 
 const statusColor = (s: string) => {
     switch (s) {
@@ -248,10 +240,10 @@ export default function ProjectView() {
                     <div className="p-2 rounded-xl bg-primary/20 text-primary"><Hammer size={24} /></div>
                     🏗️ {t('tabs.projects', 'Chantiers')}
                 </h1>
-                <button onClick={() => setShowNewProject(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary/80 text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 text-sm">
+                <Button variant="primary" size="md" onClick={() => setShowNewProject(true)}
+                    className="text-sm">
                     <Plus size={18} /> {t('projects.new_project', 'Nouveau chantier')}
-                </button>
+                </Button>
             </div>
 
             {/* Sub-tabs */}
@@ -632,37 +624,37 @@ export default function ProjectView() {
             {showNewProject && (
                 <Modal title={t('projects.new_project', 'Nouveau chantier')} onClose={() => setShowNewProject(false)}>
                     {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
-                    <Field label={t('projects.project_name', 'Nom du chantier')}>
+                    <Field className="mb-3" label={t('projects.project_name', 'Nom du chantier')}>
                         <input className={input} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Villa Résidence..." />
                     </Field>
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label={t('projects.client_name', 'Client')}>
+                        <Field className="mb-3" label={t('projects.client_name', 'Client')}>
                             <input className={input} value={newClient} onChange={e => setNewClient(e.target.value)} />
                         </Field>
-                        <Field label={t('projects.client_phone', 'Téléphone')}>
+                        <Field className="mb-3" label={t('projects.client_phone', 'Téléphone')}>
                             <input className={input} value={newPhone} onChange={e => setNewPhone(e.target.value)} />
                         </Field>
                     </div>
-                    <Field label={t('projects.address', 'Adresse / Lieu')}>
+                    <Field className="mb-3" label={t('projects.address', 'Adresse / Lieu')}>
                         <input className={input} value={newAddress} onChange={e => setNewAddress(e.target.value)} />
                     </Field>
-                    <Field label={t('projects.budget_estimate', 'Budget estimé')}>
+                    <Field className="mb-3" label={t('projects.budget_estimate', 'Budget estimé')}>
                         <input className={input} type="number" value={newBudget} onChange={e => setNewBudget(e.target.value)} />
                     </Field>
-                    <Field label={t('projects.description', 'Description / Notes')}>
+                    <Field className="mb-3" label={t('projects.description', 'Description / Notes')}>
                         <textarea className={`${input} h-16 resize-none`} value={newDesc} onChange={e => setNewDesc(e.target.value)} />
                     </Field>
-                    <Field label="Retenue de garantie (%)">
+                    <Field className="mb-3" label="Retenue de garantie (%)">
                         <input className={input} type="number" min={0} max={20} step={0.5} value={newRetentionPercent} onChange={e => setNewRetentionPercent(e.target.value)} placeholder="Ex: 5" />
                     </Field>
                     <div className="flex gap-3 mt-2">
                         <button onClick={() => setShowNewProject(false)} className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-xl transition-all">
                             {t('common.cancel', 'Annuler')}
                         </button>
-                        <button onClick={handleCreateProject} disabled={submitting || !newName.trim()}
-                            className="flex-1 py-2.5 bg-primary hover:bg-primary/80 disabled:opacity-50 text-white font-bold rounded-xl transition-all">
+                        <Button variant="primary" size="md" onClick={handleCreateProject} disabled={submitting || !newName.trim()}
+                            className="flex-1">
                             {submitting ? '...' : t('projects.create', 'Créer')}
-                        </button>
+                        </Button>
                     </div>
                 </Modal>
             )}
@@ -672,7 +664,7 @@ export default function ProjectView() {
                 <Modal title={t('projects.allocate_title', 'Affecter un matériau')} onClose={() => setShowAllocate(false)}>
                     <p className="text-xs text-slate-400 mb-4">{selectedProject.name}</p>
                     {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
-                    <Field label={t('projects.select_product', 'Produit')}>
+                    <Field className="mb-3" label={t('projects.select_product', 'Produit')}>
                         <div className="max-h-36 overflow-y-auto space-y-1 mb-1">
                             {productsList.map((p: any) => (
                                 <button key={p.product_id} onClick={() => setAllocProductId(p.product_id)}
@@ -682,10 +674,10 @@ export default function ProjectView() {
                             ))}
                         </div>
                     </Field>
-                    <Field label={t('projects.quantity', 'Quantité')}>
+                    <Field className="mb-3" label={t('projects.quantity', 'Quantité')}>
                         <input className={input} type="number" value={allocQty} onChange={e => setAllocQty(e.target.value)} />
                     </Field>
-                    <Field label={t('projects.corps_metier', 'Corps de métier')}>
+                    <Field className="mb-3" label={t('projects.corps_metier', 'Corps de métier')}>
                         <div className="flex flex-wrap gap-2">
                             {CORPS_OPTIONS.map(c => (
                                 <button key={c.key} onClick={() => setAllocCorps(c.key)}
@@ -710,21 +702,21 @@ export default function ProjectView() {
                 <Modal title={t('projects.add_labor', "Ajouter main d'Å“uvre")} onClose={() => setShowLabor(false)}>
                     <p className="text-xs text-slate-400 mb-4">{selectedProject.name}</p>
                     {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
-                    <Field label={t('projects.worker_name', 'Nom')}>
+                    <Field className="mb-3" label={t('projects.worker_name', 'Nom')}>
                         <input className={input} value={laborName} onChange={e => setLaborName(e.target.value)} />
                     </Field>
-                    <Field label={t('projects.worker_role', 'Rôle (ex: Maçon)')}>
+                    <Field className="mb-3" label={t('projects.worker_role', 'Rôle (ex: Maçon)')}>
                         <input className={input} value={laborRole} onChange={e => setLaborRole(e.target.value)} />
                     </Field>
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label={t('projects.days', 'Jours')}>
+                        <Field className="mb-3" label={t('projects.days', 'Jours')}>
                             <input className={input} type="number" value={laborDays} onChange={e => setLaborDays(e.target.value)} />
                         </Field>
-                        <Field label={t('projects.daily_rate', 'Tarif / jour')}>
+                        <Field className="mb-3" label={t('projects.daily_rate', 'Tarif / jour')}>
                             <input className={input} type="number" value={laborRate} onChange={e => setLaborRate(e.target.value)} />
                         </Field>
                     </div>
-                    <Field label={t('projects.corps_metier', 'Corps de métier')}>
+                    <Field className="mb-3" label={t('projects.corps_metier', 'Corps de métier')}>
                         <div className="flex flex-wrap gap-2">
                             {CORPS_OPTIONS.map(c => (
                                 <button key={c.key} onClick={() => setLaborCorps(c.key)}
@@ -749,18 +741,18 @@ export default function ProjectView() {
                 <Modal title={t('projects.add_situation', 'Nouvelle situation de travaux')} onClose={() => setShowSituation(false)}>
                     <p className="text-xs text-slate-400 mb-4">{selectedProject.name}</p>
                     {error && <p className="mb-3 text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
-                    <Field label={t('projects.sit_label', 'Libellé')}>
+                    <Field className="mb-3" label={t('projects.sit_label', 'Libellé')}>
                         <input className={input} value={sitLabel} onChange={e => setSitLabel(e.target.value)} placeholder="Gros œuvre terminé..." />
                     </Field>
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label={t('projects.sit_percent', '% avancement')}>
+                        <Field className="mb-3" label={t('projects.sit_percent', '% avancement')}>
                             <input className={input} type="number" value={sitPercent} onChange={e => setSitPercent(e.target.value)} />
                         </Field>
-                        <Field label={t('projects.sit_amount', 'Montant')}>
+                        <Field className="mb-3" label={t('projects.sit_amount', 'Montant')}>
                             <input className={input} type="number" value={sitAmount} onChange={e => setSitAmount(e.target.value)} />
                         </Field>
                     </div>
-                    <Field label={t('projects.sit_notes', 'Notes')}>
+                    <Field className="mb-3" label={t('projects.sit_notes', 'Notes')}>
                         <textarea className={`${input} h-16 resize-none`} value={sitNotes} onChange={e => setSitNotes(e.target.value)} />
                     </Field>
                     <div className="flex gap-3 mt-3">
@@ -776,12 +768,12 @@ export default function ProjectView() {
             {/* Devis Modal */}
             {showDevisModal && selectedProject && (
                 <Modal title="Ajouter une ligne de devis" onClose={() => setShowDevisModal(false)}>
-                    <Field label="Désignation *"><input value={devisForm.designation} onChange={e => setDevisForm(f => ({...f, designation: e.target.value}))} className={input} placeholder="Fouilles, béton armé..." /></Field>
-                    <Field label="Lot"><input value={devisForm.lot} onChange={e => setDevisForm(f => ({...f, lot: e.target.value}))} className={input} placeholder="Gros Å“uvre, Plomberie..." /></Field>
+                    <Field className="mb-3" label="Désignation *"><input value={devisForm.designation} onChange={e => setDevisForm(f => ({...f, designation: e.target.value}))} className={input} placeholder="Fouilles, béton armé..." /></Field>
+                    <Field className="mb-3" label="Lot"><input value={devisForm.lot} onChange={e => setDevisForm(f => ({...f, lot: e.target.value}))} className={input} placeholder="Gros Å“uvre, Plomberie..." /></Field>
                     <div className="grid grid-cols-3 gap-3">
-                        <Field label="Quantité"><input type="number" min={0} value={devisForm.quantity} onChange={e => setDevisForm(f => ({...f, quantity: Number(e.target.value)}))} className={input} /></Field>
-                        <Field label="Unité"><input value={devisForm.unite} onChange={e => setDevisForm(f => ({...f, unite: e.target.value}))} className={input} placeholder="m², ml, u..." /></Field>
-                        <Field label="Prix unitaire"><input type="number" min={0} value={devisForm.unit_price} onChange={e => setDevisForm(f => ({...f, unit_price: Number(e.target.value)}))} className={input} /></Field>
+                        <Field className="mb-3" label="Quantité"><input type="number" min={0} value={devisForm.quantity} onChange={e => setDevisForm(f => ({...f, quantity: Number(e.target.value)}))} className={input} /></Field>
+                        <Field className="mb-3" label="Unité"><input value={devisForm.unite} onChange={e => setDevisForm(f => ({...f, unite: e.target.value}))} className={input} placeholder="m², ml, u..." /></Field>
+                        <Field className="mb-3" label="Prix unitaire"><input type="number" min={0} value={devisForm.unit_price} onChange={e => setDevisForm(f => ({...f, unit_price: Number(e.target.value)}))} className={input} /></Field>
                     </div>
                     <div className="p-3 bg-white/5 rounded-xl text-sm text-white mt-2">Total : <span className="font-bold text-primary">{(devisForm.quantity * devisForm.unit_price).toLocaleString()}</span></div>
                     <button onClick={async () => {
@@ -799,8 +791,8 @@ export default function ProjectView() {
             {showJournalModal && selectedProject && (
                 <Modal title="Entrée journal de chantier" onClose={() => setShowJournalModal(false)}>
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label="Date"><input type="date" value={journalForm.date} onChange={e => setJournalForm(f => ({...f, date: e.target.value}))} className={input} /></Field>
-                        <Field label="Météo">
+                        <Field className="mb-3" label="Date"><input type="date" value={journalForm.date} onChange={e => setJournalForm(f => ({...f, date: e.target.value}))} className={input} /></Field>
+                        <Field className="mb-3" label="Météo">
                             <select value={journalForm.weather} onChange={e => setJournalForm(f => ({...f, weather: e.target.value}))} className={input}>
                                 <option value="soleil">☀️ Soleil</option>
                                 <option value="nuageux">⛅ Nuageux</option>
@@ -809,11 +801,11 @@ export default function ProjectView() {
                             </select>
                         </Field>
                     </div>
-                    <Field label="Nb ouvriers"><input type="number" min={0} value={journalForm.workers_count} onChange={e => setJournalForm(f => ({...f, workers_count: Number(e.target.value)}))} className={input} /></Field>
-                    <Field label="Travaux effectués"><textarea value={journalForm.work_done} onChange={e => setJournalForm(f => ({...f, work_done: e.target.value}))} className={input + ' h-20 resize-none'} placeholder="Coulage dalle, pose parpaings..." /></Field>
-                    <Field label="Matériaux reçus"><input value={journalForm.materials_received} onChange={e => setJournalForm(f => ({...f, materials_received: e.target.value}))} className={input} placeholder="Sacs ciment, fers..." /></Field>
-                    <Field label="Incidents"><input value={journalForm.incidents} onChange={e => setJournalForm(f => ({...f, incidents: e.target.value}))} className={input} placeholder="Accident, panne matériel..." /></Field>
-                    <Field label="Notes"><input value={journalForm.notes} onChange={e => setJournalForm(f => ({...f, notes: e.target.value}))} className={input} /></Field>
+                    <Field className="mb-3" label="Nb ouvriers"><input type="number" min={0} value={journalForm.workers_count} onChange={e => setJournalForm(f => ({...f, workers_count: Number(e.target.value)}))} className={input} /></Field>
+                    <Field className="mb-3" label="Travaux effectués"><textarea value={journalForm.work_done} onChange={e => setJournalForm(f => ({...f, work_done: e.target.value}))} className={input + ' h-20 resize-none'} placeholder="Coulage dalle, pose parpaings..." /></Field>
+                    <Field className="mb-3" label="Matériaux reçus"><input value={journalForm.materials_received} onChange={e => setJournalForm(f => ({...f, materials_received: e.target.value}))} className={input} placeholder="Sacs ciment, fers..." /></Field>
+                    <Field className="mb-3" label="Incidents"><input value={journalForm.incidents} onChange={e => setJournalForm(f => ({...f, incidents: e.target.value}))} className={input} placeholder="Accident, panne matériel..." /></Field>
+                    <Field className="mb-3" label="Notes"><input value={journalForm.notes} onChange={e => setJournalForm(f => ({...f, notes: e.target.value}))} className={input} /></Field>
                     <button onClick={async () => {
                         const updated = await projects.addJournalEntry(selectedProject.project_id, journalForm);
                         setSelectedProject(updated);
@@ -827,15 +819,15 @@ export default function ProjectView() {
             {/* Sous-traitant Modal */}
             {showSubModal && selectedProject && (
                 <Modal title="Ajouter un sous-traitant" onClose={() => setShowSubModal(false)}>
-                    <Field label="Nom / Entreprise *"><input value={subForm.name} onChange={e => setSubForm(f => ({...f, name: e.target.value}))} className={input} placeholder="Entreprise DIALLO..." /></Field>
-                    <Field label="Corps de métier">
+                    <Field className="mb-3" label="Nom / Entreprise *"><input value={subForm.name} onChange={e => setSubForm(f => ({...f, name: e.target.value}))} className={input} placeholder="Entreprise DIALLO..." /></Field>
+                    <Field className="mb-3" label="Corps de métier">
                         <select value={subForm.corps_metier} onChange={e => setSubForm(f => ({...f, corps_metier: e.target.value}))} className={input}>
                             {CORPS_OPTIONS.map(c => <option key={c.key} value={c.key}>{c.icon} {t(c.labelKey)}</option>)}
                         </select>
                     </Field>
-                    <Field label="Contact"><input value={subForm.contact} onChange={e => setSubForm(f => ({...f, contact: e.target.value}))} className={input} placeholder="+221 77..." /></Field>
-                    <Field label="Montant du marché"><input type="number" min={0} value={subForm.contract_amount} onChange={e => setSubForm(f => ({...f, contract_amount: Number(e.target.value)}))} className={input} /></Field>
-                    <Field label="Notes"><input value={subForm.notes} onChange={e => setSubForm(f => ({...f, notes: e.target.value}))} className={input} /></Field>
+                    <Field className="mb-3" label="Contact"><input value={subForm.contact} onChange={e => setSubForm(f => ({...f, contact: e.target.value}))} className={input} placeholder="+221 77..." /></Field>
+                    <Field className="mb-3" label="Montant du marché"><input type="number" min={0} value={subForm.contract_amount} onChange={e => setSubForm(f => ({...f, contract_amount: Number(e.target.value)}))} className={input} /></Field>
+                    <Field className="mb-3" label="Notes"><input value={subForm.notes} onChange={e => setSubForm(f => ({...f, notes: e.target.value}))} className={input} /></Field>
                     <button onClick={async () => {
                         if (!subForm.name) return;
                         const updated = await projects.addSubcontractor(selectedProject.project_id, subForm);
@@ -854,7 +846,7 @@ export default function ProjectView() {
                 return (
                     <Modal title={`Payer ${sub.name}`} onClose={() => setShowPaySubModal(null)}>
                         <div className="text-sm text-slate-400 mb-4">Reste à payer : <span className="text-white font-bold">{(sub.contract_amount - sub.paid_amount).toLocaleString()}</span></div>
-                        <Field label="Montant"><input type="number" min={0} value={paySubAmount} onChange={e => setPaySubAmount(Number(e.target.value))} className={input} /></Field>
+                        <Field className="mb-3" label="Montant"><input type="number" min={0} value={paySubAmount} onChange={e => setPaySubAmount(Number(e.target.value))} className={input} /></Field>
                         <button onClick={async () => {
                             const updated = await projects.paySubcontractor(selectedProject.project_id, showPaySubModal, { amount: paySubAmount });
                             setSelectedProject(updated);
@@ -869,15 +861,15 @@ export default function ProjectView() {
             {/* Phase Modal */}
             {showPhaseModal && selectedProject && (
                 <Modal title="Ajouter une phase" onClose={() => setShowPhaseModal(false)}>
-                    <Field label="Nom de la phase *"><input value={phaseForm.name} onChange={e => setPhaseForm(f => ({...f, name: e.target.value}))} className={input} placeholder="Fondations, Gros Å“uvre..." /></Field>
-                    <Field label="Corps de métier">
+                    <Field className="mb-3" label="Nom de la phase *"><input value={phaseForm.name} onChange={e => setPhaseForm(f => ({...f, name: e.target.value}))} className={input} placeholder="Fondations, Gros Å“uvre..." /></Field>
+                    <Field className="mb-3" label="Corps de métier">
                         <select value={phaseForm.corps_metier} onChange={e => setPhaseForm(f => ({...f, corps_metier: e.target.value}))} className={input}>
                             {CORPS_OPTIONS.map(c => <option key={c.key} value={c.key}>{c.icon} {t(c.labelKey)}</option>)}
                         </select>
                     </Field>
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label="Début"><input type="date" value={phaseForm.start_date} onChange={e => setPhaseForm(f => ({...f, start_date: e.target.value}))} className={input} /></Field>
-                        <Field label="Fin prévue"><input type="date" value={phaseForm.end_date} onChange={e => setPhaseForm(f => ({...f, end_date: e.target.value}))} className={input} /></Field>
+                        <Field className="mb-3" label="Début"><input type="date" value={phaseForm.start_date} onChange={e => setPhaseForm(f => ({...f, start_date: e.target.value}))} className={input} /></Field>
+                        <Field className="mb-3" label="Fin prévue"><input type="date" value={phaseForm.end_date} onChange={e => setPhaseForm(f => ({...f, end_date: e.target.value}))} className={input} /></Field>
                     </div>
                     <button onClick={async () => {
                         if (!phaseForm.name) return;

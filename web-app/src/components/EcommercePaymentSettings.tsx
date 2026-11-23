@@ -3,6 +3,7 @@
 // Réglage « Paiement des commandes » de la boutique en ligne. Le client paie le commerçant
 // directement, sur son compte Wave ou Orange Money : Stockman affiche le numéro et le montant,
 // puis le commerçant confirme « Paiement reçu ». Stockman ne reçoit jamais cet argent.
+import { inputClass } from './ui/Field';
 import React from 'react';
 import { CheckCircle2, Circle } from 'lucide-react';
 
@@ -16,7 +17,6 @@ export type PaymentDraft = {
     payment_instructions?: string | null;
 };
 
-const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-primary/50 disabled:opacity-60';
 
 function Wallet({ title, active, children }: { title: string; active: boolean; children: React.ReactNode }) {
     return (

@@ -140,9 +140,21 @@ body {
   transition: transform 0.2s, background 0.2s;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--primary-dark);
   transform: translateY(-2px);
+}
+
+/* Les classes de taille ajoutées à côté de .btn-primary (py-2, rounded-2xl...) sont sans effet :
+   cette règle est hors des couches Tailwind, ce qui garde la même taille à tous les boutons. */
+.btn-primary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* ===== Theme-aware utility classes ===== */

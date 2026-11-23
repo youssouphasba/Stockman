@@ -1,5 +1,7 @@
 'use client';
 
+import Field, { inputClass, selectClass, textareaClass } from './ui/Field';
+import Button from './ui/Button';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -115,9 +117,6 @@ const TABS: { id: TabId }[] = [
     { id: 'security' },
 ];
 
-const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-primary/50';
-const textareaClass = `${inputClass} resize-none`;
-const selectClass = 'w-full rounded-2xl border border-white/10 bg-background px-4 py-3 text-sm text-white outline-none focus:border-primary/50';
 
 function ScopeBadge({ label }: { label: string }) {
     return (
@@ -154,16 +153,6 @@ function SectionCard({
             </div>
             <div className="space-y-6">{children}</div>
         </section>
-    );
-}
-
-function Field({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
-    return (
-        <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-white">{label}</label>
-            <p className="text-xs leading-5 text-slate-500">{hint}</p>
-            {children}
-        </div>
     );
 }
 
@@ -551,15 +540,14 @@ export default function SettingsWorkspace({ user, onOpenSupport }: SettingsWorks
                         description={t('settings.help_support')}
                         actionHint={t('settings.contact_admin_desc')}
                     >
-                        <button
+                        <Button variant="primary" size="md"
                             type="button"
                             onClick={onOpenSupport}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                             disabled={!onOpenSupport}
                         >
                             <HelpCircle size={18} />
                             {t('support.newTicket')}
-                        </button>
+                        </Button>
                     </SectionCard>
                 ) : null}
 

@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Link2, PackagePlus, RefreshCcw, Search } from 'lucide-react';
@@ -328,14 +329,13 @@ export default function DeliveryConfirmationModal({ isOpen, orderId, onClose, on
                         >
                             Annuler
                         </button>
-                        <button
+                        <Button variant="primary" size="md"
                             type="button"
                             onClick={handleConfirm}
                             disabled={loading || submitting || suggestions.length === 0}
-                            className="rounded-xl bg-primary px-5 py-3 font-bold text-white transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {submitting ? 'Confirmation...' : 'Confirmer la reception'}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}

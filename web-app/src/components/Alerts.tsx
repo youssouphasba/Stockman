@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowUpRight, Check, CheckCircle, Info, RefreshCw, Settings, ShieldAlert, Sparkles, Trash2 } from 'lucide-react';
@@ -499,13 +500,13 @@ export default function Alerts() {
                                                 Annuler
                                             </button>
                                         )}
-                                        <button
+                                        <Button variant="primary" size="sm"
                                             onClick={() => persistRule(rule)}
                                             disabled={savingRuleKey === key}
-                                            className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-slate-950 transition-all hover:brightness-110 disabled:opacity-60"
+                                            className="text-xs"
                                         >
                                             {savingRuleKey === key ? 'Enregistrement...' : (rule.rule_id.startsWith('draft:') ? 'Creer la regle' : 'Enregistrer')}
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             </div>

@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import Button from './ui/Button';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDateFormatter } from '../hooks/useDateFormatter';
@@ -2157,7 +2158,7 @@ export default function Suppliers() {
                                             <div className="text-xs font-bold text-emerald-400">
                                                 Suggestion: +{s.suggested_quantity} unités
                                             </div>
-                                            <button
+                                            <Button variant="soft" size="sm"
                                                 onClick={() => {
                                                     const supplier = manualSuppliers.find((ms: any) => ms.supplier_id === s.supplier_id);
                                                     if (!supplier) {
@@ -2171,10 +2172,10 @@ export default function Suppliers() {
                                                         unit_price: 0
                                                     }]);
                                                 }}
-                                                className="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-xs font-bold"
+                                                className="text-xs"
                                             >
                                                 {s.supplier_id ? 'Commander' : 'Associer fournisseur'}
-                                            </button>
+                                            </Button>
                                         </div>
                                     </div>
                                 ))}
@@ -2888,7 +2889,7 @@ export default function Suppliers() {
                                             )}
 
                                             <div className="pt-3 border-t border-white/5 flex items-center gap-2">
-                                                <button
+                                                <Button variant="soft" size="sm"
                                                     onClick={() => openMarketplaceOrderDraft(
                                                         s,
                                                         leadMatch
@@ -2900,10 +2901,10 @@ export default function Suppliers() {
                                                             }
                                                             : undefined,
                                                     )}
-                                                    className="flex-1 rounded-lg bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition-all hover:bg-primary hover:text-white"
+                                                    className="flex-1 text-xs"
                                                 >
                                                     Commander
-                                                </button>
+                                                </Button>
                                                 <button
                                                     onClick={() => openSupplierDetails(s, 'marketplace')}
                                                     className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all"
@@ -3466,7 +3467,7 @@ export default function Suppliers() {
                                                         <td className="px-4 py-3 font-bold text-white">{item.product_name}</td>
                                                         <td className="px-4 py-3 text-center text-slate-400">{item.quantity}</td>
                                                         <td className="px-4 py-3 text-center text-emerald-400 font-bold">{receivedQuantity}</td>
-                                                        <td className="px-4 py-3 text-right text-white ">{Number(item.unit_price || 0).toLocaleString()} F</td>
+                                                        <td className="px-4 py-3 text-right text-white">{Number(item.unit_price || 0).toLocaleString()} F</td>
                                                     </tr>
                                                 );
                                             })}
@@ -3734,7 +3735,7 @@ export default function Suppliers() {
                                     <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('suppliers.invite_to_stockman')}</p>
                                     <p className="text-sm text-slate-400">{t('suppliers.invite_stockman_desc')}</p>
                                     <div className="flex flex-wrap gap-3">
-                                        <button
+                                        <Button variant="soft" size="md"
                                             onClick={async () => {
                                                 try {
                                                     const res = await suppliersApi.getInvitationLink(selectedSupplier.supplier_id);
@@ -3742,10 +3743,10 @@ export default function Suppliers() {
                                                     alert(t('suppliers.link_copied'));
                                                 } catch { alert(t('suppliers.copy_error')); }
                                             }}
-                                            className="px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all flex items-center gap-2"
+                                            className="border border-primary/20 text-xs"
                                         >
                                             <Copy size={14} /> {t('suppliers.copy_invite_link')}
-                                        </button>
+                                        </Button>
                                         {selectedSupplier.email && (
                                             <button
                                                 onClick={async () => {
@@ -3905,12 +3906,12 @@ export default function Suppliers() {
                                             <p className="text-xs font-black uppercase tracking-widest text-slate-500">Produits lies</p>
                                             <p className="text-sm text-slate-400 mt-1">Reliez votre catalogue a ce fournisseur pour commander plus vite et benchmarker les prix.</p>
                                         </div>
-                                        <button
+                                        <Button variant="soft" size="sm"
                                             onClick={openLinkProduct}
-                                            className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                                            className="text-xs"
                                         >
                                             <Plus size={14} className="inline mr-1" /> Lier un produit
-                                        </button>
+                                        </Button>
                                     </div>
                                     {linkedProducts.length === 0 ? (
                                         <div className="py-12 text-center bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
@@ -4021,7 +4022,7 @@ export default function Suppliers() {
                                             <span>Stock: {product.stock_available || 0}</span>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button onClick={() => openMarketplaceOrderDraft(selectedSupplier, { product_id: product.catalog_id, name: product.name, quantity: product.min_order_quantity || 1, unit_price: product.price || 0 })} className="flex-1 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all">Commander</button>
+                                            <Button variant="soft" size="sm" onClick={() => openMarketplaceOrderDraft(selectedSupplier, { product_id: product.catalog_id, name: product.name, quantity: product.min_order_quantity || 1, unit_price: product.price || 0 })} className="flex-1 text-xs">Commander</Button>
                                             <button onClick={() => openBenchmarkForProduct(product)} className="flex-1 py-2 rounded-xl bg-white/5 text-slate-300 text-xs font-bold hover:bg-white/10 transition-all">Benchmark</button>
                                         </div>
                                     </div>
@@ -4104,13 +4105,13 @@ export default function Suppliers() {
                                             >
                                                 {invoiceImporting ? 'Import?' : 'Importer une facture'}
                                             </button>
-                                            <button
+                                            <Button variant="primary" size="sm"
                                                 type="submit"
                                                 disabled={invoiceSaving || !invoiceForm.invoice_number.trim() || !invoiceForm.amount}
-                                                className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
+                                                className="text-xs"
                                             >
                                                 {invoiceSaving ? 'Enregistrement?' : 'Ajouter la facture'}
-                                            </button>
+                                            </Button>
                                         </div>
                                     </div>
                                     {importedInvoicePreview && (
@@ -4125,13 +4126,13 @@ export default function Suppliers() {
                                                         {importedInvoicePreview.supplier_name ? ` - ${importedInvoicePreview.supplier_name}` : ''}
                                                     </p>
                                                 </div>
-                                                <button
+                                                <Button variant="primary" size="sm"
                                                     type="button"
                                                     onClick={() => void handlePrepareOrderFromImportedInvoice()}
-                                                    className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all"
+                                                    className="text-xs"
                                                 >
                                                     Préparer une commande
-                                                </button>
+                                                </Button>
                                             </div>
                                             <div className="space-y-2">
                                                 {importedInvoicePreview.items.slice(0, 4).map((item: any, idx: number) => (
@@ -4363,12 +4364,12 @@ export default function Suppliers() {
                                 </button>
                             )}
                             {selectedSupplier.kind === 'marketplace' && (
-                                <button
+                                <Button variant="primary" size="lg"
                                     onClick={() => openMarketplaceOrderDraft(selectedSupplier)}
-                                    className="flex-1 py-4 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 active:scale-95 transition-all text-sm uppercase tracking-wider"
+                                    className="flex-1 text-sm uppercase tracking-wider"
                                 >
                                     <ClipboardList size={18} /> Commander
-                                </button>
+                                </Button>
                             )}
                             <button
                                 onClick={() => handleWhatsApp(selectedSupplier.phone || marketplaceSupplierProfile.phone)}
@@ -4538,7 +4539,7 @@ export default function Suppliers() {
                                         </div>
                                     </div>
                                     <div className="mt-4 flex gap-2">
-                                        <button
+                                        <Button variant="soft" size="sm"
                                             onClick={() => {
                                                 setShowBenchmarkModal(false);
                                                 openMarketplaceOrderDraft({
@@ -4553,10 +4554,10 @@ export default function Suppliers() {
                                                     unit_price: result.price || 0,
                                                 });
                                             }}
-                                            className="flex-1 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                                            className="flex-1 text-xs"
                                         >
                                             Commander
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
@@ -4609,16 +4610,16 @@ export default function Suppliers() {
                                             </div>
                                         ))}
                                     </div>
-                                    <button
+                                    <Button variant="soft" size="sm"
                                         onClick={() => {
                                             setShowDraftOrders(false);
                                             const supplier = manualSuppliers.find(s => s.supplier_id === order.supplier_id);
                                             if (supplier) openManualOrderDraft(supplier);
                                         }}
-                                        className="w-full py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                                        className="w-full text-xs"
                                     >
                                         {t('suppliers.create_order', 'Créer ce bon de commande')}
-                                    </button>
+                                    </Button>
                                 </div>
                             ))}
                         </div>
