@@ -1280,7 +1280,6 @@
     "verified_only": "Только проверенные"
   },
   "modals": {
-    "selected_period": "Выбранный период",
     "view_detail": "Подробнее",
     "cancel": "Отмена",
     "changePassword": {

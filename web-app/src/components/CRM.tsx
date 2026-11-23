@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import EmptyState from './ui/EmptyState';
 import Button from './ui/Button';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -670,11 +671,12 @@ export default function CRM({ user }: CRMProps) {
                         <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
                     </div>
                 ) : promotions.length === 0 ? (
-                    <div className="mt-6 rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-6 py-10 text-center">
-                        <Megaphone size={28} className="mx-auto text-slate-600" />
-                        <p className="mt-3 text-sm font-bold uppercase tracking-[0.2em] text-slate-500">Aucune promotion active</p>
-                        <p className="mt-2 text-sm text-slate-400">Crée une offre pour préparer tes campagnes et tes récompenses de fidélité.</p>
-                    </div>
+                    <EmptyState
+                        className="mt-6"
+                        icon={Megaphone}
+                        title="Aucune promotion active"
+                        message="Crée une offre pour préparer tes campagnes et tes récompenses de fidélité."
+                    />
                 ) : (
                     <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {promotions.map((promotion) => (
@@ -1523,10 +1525,7 @@ export default function CRM({ user }: CRMProps) {
                                         <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                                     </div>
                                 ) : debtHistory.length === 0 ? (
-                                    <div className="py-20 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
-                                        <History size={40} className="mx-auto text-slate-700 mb-3" />
-                                        <p className="text-sm text-slate-500 font-bold uppercase">Aucun historique trouvé</p>
-                                    </div>
+                                    <EmptyState icon={History} title="Aucun historique trouvé" />
                                 ) : (
                                     <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                                         {debtHistoryWithBalance.map((rawDebt, idx) => {
@@ -1585,10 +1584,7 @@ export default function CRM({ user }: CRMProps) {
                                         <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
                                     </div>
                                 ) : customerSales.length === 0 ? (
-                                    <div className="py-16 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
-                                        <ShoppingBag size={40} className="mx-auto text-slate-700 mb-3" />
-                                        <p className="text-sm text-slate-500 font-bold">Aucun achat enregistré</p>
-                                    </div>
+                                    <EmptyState icon={ShoppingBag} title="Aucun achat enregistré" />
                                 ) : (
                                     <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                                         {customerSales.map((sale: any, idx: number) => (

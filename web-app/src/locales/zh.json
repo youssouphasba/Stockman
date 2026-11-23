@@ -1280,7 +1280,6 @@
     "verified_only": "仅显示已验证"
   },
   "modals": {
-    "selected_period": "所选期间",
     "view_detail": "查看详情",
     "cancel": "取消",
     "changePassword": {

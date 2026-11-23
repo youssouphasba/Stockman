@@ -1,5 +1,7 @@
 'use client';
 
+import EmptyState from './ui/EmptyState';
+import KpiCard from './analytics/KpiCard';
 import Button from './ui/Button';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,22 +27,6 @@ import AdminAccessCard from './admin/AdminAccessCard';
 import AdminTeamPanel from './admin/AdminTeamPanel';
 import AdminTrialExtensionCard from './admin/AdminTrialExtensionCard';
 import AdminSignupTrialCard from './admin/AdminSignupTrialCard';
-
-function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: any; icon: any; color: string; sub: string }) {
-    return (
-        <div className="glass-card p-6 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
-                <div className="relative p-2 rounded-xl overflow-hidden">
-                    <span aria-hidden="true" className={`absolute inset-0 ${color} opacity-10`} />
-                    <Icon size={18} className={`relative ${color.replace('bg-', 'text-')}`} />
-                </div>
-            </div>
-            <span className="text-3xl font-black text-white">{value}</span>
-            {sub && <span className="text-xs text-slate-500">{sub}</span>}
-        </div>
-    );
-}
 
 function ActionCard({ title, value, detail, tone, onClick }: { title: string; value: any; detail: string; tone: string; onClick: () => void }) {
     return (
@@ -2026,10 +2012,10 @@ export default function AdminDashboard() {
             {activeSection === 'notifications' && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard label="Non lues" value={adminNotifications.unread} icon={Bell} color="bg-rose-500" sub="À examiner" />
-                        <StatCard label="Événements" value={adminNotifications.total} icon={Activity} color="bg-primary" sub="30 derniers jours" />
-                        <StatCard label="Support" value={adminNotifications.badges.support || 0} icon={MessageSquare} color="bg-amber-500" sub="Tickets non lus" />
-                        <StatCard label="Utilisateurs" value={adminNotifications.badges.users || 0} icon={Users} color="bg-emerald-500" sub="Inscriptions non lues" />
+                        <KpiCard label="Non lues" value={adminNotifications.unread} icon={Bell} tone="bg-rose-500" hint="À examiner" />
+                        <KpiCard label="Événements" value={adminNotifications.total} icon={Activity} tone="bg-primary" hint="30 derniers jours" />
+                        <KpiCard label="Support" value={adminNotifications.badges.support || 0} icon={MessageSquare} tone="bg-amber-500" hint="Tickets non lus" />
+                        <KpiCard label="Utilisateurs" value={adminNotifications.badges.users || 0} icon={Users} tone="bg-emerald-500" hint="Inscriptions non lues" />
                     </div>
                     <div className="glass-card overflow-hidden">
                         <div className="p-5 border-b border-white/5 bg-white/5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -2107,23 +2093,23 @@ export default function AdminDashboard() {
 
                     {/* KPI Row 1 */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                        <StatCard label="Shopkeepers" value={statsSummary.users_by_role.shopkeeper || 0} icon={Users} color="bg-primary" sub={`+${statsSummary.signups_today || 0} aujourd'hui`} />
-                        <StatCard label="CA Global (30j)" value={`${(statsSummary.revenue_month || 0).toLocaleString()} F`} icon={TrendingUp} color="bg-emerald-500" sub={`Aujourd'hui : ${(statsSummary.revenue_today || 0).toLocaleString()} F`} />
-                        <StatCard label="Tickets Ouverts" value={statsSummary.open_tickets || 0} icon={MessageSquare} color="bg-amber-500" sub="Support en cours" />
-                        <StatCard label="Pays Couverts" value={Object.keys(statsSummary.users_by_country || {}).length} icon={Globe} color="bg-blue-400" sub={`${statsSummary.recent_signups || 0} inscrits (7j)`} />
+                        <KpiCard label="Shopkeepers" value={statsSummary.users_by_role.shopkeeper || 0} icon={Users} tone="bg-primary" hint={`+${statsSummary.signups_today || 0} aujourd'hui`} />
+                        <KpiCard label="CA Global (30j)" value={`${(statsSummary.revenue_month || 0).toLocaleString()} F`} icon={TrendingUp} tone="bg-emerald-500" hint={`Aujourd'hui : ${(statsSummary.revenue_today || 0).toLocaleString()} F`} />
+                        <KpiCard label="Tickets Ouverts" value={statsSummary.open_tickets || 0} icon={MessageSquare} tone="bg-amber-500" hint="Support en cours" />
+                        <KpiCard label="Pays Couverts" value={Object.keys(statsSummary.users_by_country || {}).length} icon={Globe} tone="bg-blue-400" hint={`${statsSummary.recent_signups || 0} inscrits (7j)`} />
                     </div>
 
                     {/* KPI Row 2 — Plans & Trials */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                        <StatCard label="Enterprise" value={statsSummary.users_by_plan.enterprise || 0} icon={Crown} color="bg-purple-500" sub="Comptes actifs" />
-                        <StatCard label="Pro" value={statsSummary.users_by_plan.pro || 0} icon={Zap} color="bg-blue-500" sub="Comptes actifs" />
-                        <StatCard label="Starter" value={statsSummary.users_by_plan.starter || 0} icon={Package} color="bg-emerald-500" sub="Comptes actifs" />
-                        <StatCard
+                        <KpiCard label="Enterprise" value={statsSummary.users_by_plan.enterprise || 0} icon={Crown} tone="bg-purple-500" hint="Comptes actifs" />
+                        <KpiCard label="Pro" value={statsSummary.users_by_plan.pro || 0} icon={Zap} tone="bg-blue-500" hint="Comptes actifs" />
+                        <KpiCard label="Starter" value={statsSummary.users_by_plan.starter || 0} icon={Package} tone="bg-emerald-500" hint="Comptes actifs" />
+                        <KpiCard
                             label="Trials expirant (7j)"
                             value={statsSummary.trials_expiring_soon || 0}
                             icon={Clock}
-                            color={statsSummary.trials_expiring_soon > 0 ? 'bg-rose-500' : 'bg-slate-500'}
-                            sub="Relance recommandée"
+                            tone={statsSummary.trials_expiring_soon > 0 ? 'bg-rose-500' : 'bg-slate-500'}
+                            hint="Relance recommandée"
                         />
                     </div>
 
@@ -2201,10 +2187,10 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                        <StatCard label="OTP envoyés" value={otpSummary.sent_today || 0} icon={Bell} color="bg-indigo-500" sub="Aujourd'hui" />
-                        <StatCard label="OTP vérifiés" value={otpSummary.verified_today || 0} icon={CheckCircle2} color="bg-emerald-500" sub="Aujourd'hui" />
-                        <StatCard label="Taux de vérification" value={`${onboardingSummary.verification_rate || 0}%`} icon={TrendingUp} color="bg-sky-500" sub={`${onboardingSummary.verified_total || 0} vérifiés`} />
-                        <StatCard label="Temps moyen OTP" value={`${onboardingSummary.avg_minutes_to_verify || 0} min`} icon={Clock} color="bg-violet-500" sub={`${onboardingSummary.window_days || 30} jours`} />
+                        <KpiCard label="OTP envoyés" value={otpSummary.sent_today || 0} icon={Bell} tone="bg-indigo-500" hint="Aujourd'hui" />
+                        <KpiCard label="OTP vérifiés" value={otpSummary.verified_today || 0} icon={CheckCircle2} tone="bg-emerald-500" hint="Aujourd'hui" />
+                        <KpiCard label="Taux de vérification" value={`${onboardingSummary.verification_rate || 0}%`} icon={TrendingUp} tone="bg-sky-500" hint={`${onboardingSummary.verified_total || 0} vérifiés`} />
+                        <KpiCard label="Temps moyen OTP" value={`${onboardingSummary.avg_minutes_to_verify || 0} min`} icon={Clock} tone="bg-violet-500" hint={`${onboardingSummary.window_days || 30} jours`} />
                     </div>
 
                     {onboardingSummary.guide && (() => {
@@ -2232,12 +2218,12 @@ export default function AdminDashboard() {
                                     <p className="mt-1 text-xs text-slate-400">Tous les comptes commerçants concernés depuis la mise en ligne du guide. Les étapes indiquent où les commerçants s'arrêtent.</p>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-5">
-                                    <StatCard label="À faire" value={status.pending || 0} icon={Clock} color="bg-slate-500" sub="Pas encore commencé" />
-                                    <StatCard label="En cours" value={status.active || 0} icon={Activity} color="bg-blue-500" sub="Commencé, pas fini" />
-                                    <StatCard label="Terminés" value={status.completed || 0} icon={CheckCircle2} color="bg-emerald-500" sub={`${guide.completion_rate || 0} % des guides commencés`} />
-                                    <StatCard label="Passés" value={status.skipped || 0} icon={X} color="bg-amber-500" sub="Lien « Passer »" />
-                                    <StatCard label="Durée médiane" value={guide.median_minutes != null ? `${guide.median_minutes} min` : '—'} icon={Rocket} color="bg-violet-500" sub="Guides terminés" />
-                                    <StatCard label="Non proposés" value={status.not_needed || 0} icon={Package} color="bg-slate-600" sub="Produits déjà présents" />
+                                    <KpiCard label="À faire" value={status.pending || 0} icon={Clock} tone="bg-slate-500" hint="Pas encore commencé" />
+                                    <KpiCard label="En cours" value={status.active || 0} icon={Activity} tone="bg-blue-500" hint="Commencé, pas fini" />
+                                    <KpiCard label="Terminés" value={status.completed || 0} icon={CheckCircle2} tone="bg-emerald-500" hint={`${guide.completion_rate || 0} % des guides commencés`} />
+                                    <KpiCard label="Passés" value={status.skipped || 0} icon={X} tone="bg-amber-500" hint="Lien « Passer »" />
+                                    <KpiCard label="Durée médiane" value={guide.median_minutes != null ? `${guide.median_minutes} min` : '—'} icon={Rocket} tone="bg-violet-500" hint="Guides terminés" />
+                                    <KpiCard label="Non proposés" value={status.not_needed || 0} icon={Package} tone="bg-slate-600" hint="Produits déjà présents" />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {stepList('Guides en cours : étape atteinte', guide.in_progress_by_step, 'Aucun guide en cours.')}
@@ -2379,12 +2365,12 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
-                        <StatCard label="MRR principal" value={financeSummary.primaryMrr ? formatAdminMoney(financeSummary.primaryMrr.amount, financeSummary.primaryMrr.currency) : "-"} icon={TrendingUp} color="bg-emerald-500" sub={financeSummary.primaryMrr?.currency || "Aucune devise"} />
-                        <StatCard label="ARR estime" value={financeSummary.primaryArr ? formatAdminMoney(financeSummary.primaryArr, financeSummary.primaryMrr?.currency) : "-"} icon={BarChart2} color="bg-sky-500" sub="Projection annuelle" />
-                        <StatCard label="Comptes payants" value={subscriptionOverview.active_paid_accounts || 0} icon={Wallet} color="bg-primary" sub="Actifs" />
-                        <StatCard label="Trials actifs" value={subscriptionOverview.active_trials || 0} icon={Clock} color="bg-amber-500" sub={`${subscriptionOverview.trials_expiring_3d || 0} expirent sous 3 jours`} />
-                        <StatCard label="Panier paiement" value={financeSummary.averagePaymentValue !== null ? formatAdminMoney(financeSummary.averagePaymentValue, financeSummary.paymentVolumePrimary?.currency) : "-"} icon={CreditCard} color="bg-violet-500" sub="Moyenne 30 jours" />
-                        <StatCard label="Alertes recouvrement" value={subscriptionAlertsSummary.summary.total || 0} icon={Bell} color={(subscriptionAlertsSummary.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlertsSummary.summary.critical || 0} critiques`} />
+                        <KpiCard label="MRR principal" value={financeSummary.primaryMrr ? formatAdminMoney(financeSummary.primaryMrr.amount, financeSummary.primaryMrr.currency) : "-"} icon={TrendingUp} tone="bg-emerald-500" hint={financeSummary.primaryMrr?.currency || "Aucune devise"} />
+                        <KpiCard label="ARR estime" value={financeSummary.primaryArr ? formatAdminMoney(financeSummary.primaryArr, financeSummary.primaryMrr?.currency) : "-"} icon={BarChart2} tone="bg-sky-500" hint="Projection annuelle" />
+                        <KpiCard label="Comptes payants" value={subscriptionOverview.active_paid_accounts || 0} icon={Wallet} tone="bg-primary" hint="Actifs" />
+                        <KpiCard label="Trials actifs" value={subscriptionOverview.active_trials || 0} icon={Clock} tone="bg-amber-500" hint={`${subscriptionOverview.trials_expiring_3d || 0} expirent sous 3 jours`} />
+                        <KpiCard label="Panier paiement" value={financeSummary.averagePaymentValue !== null ? formatAdminMoney(financeSummary.averagePaymentValue, financeSummary.paymentVolumePrimary?.currency) : "-"} icon={CreditCard} tone="bg-violet-500" hint="Moyenne 30 jours" />
+                        <KpiCard label="Alertes recouvrement" value={subscriptionAlertsSummary.summary.total || 0} icon={Bell} tone={(subscriptionAlertsSummary.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} hint={`${subscriptionAlertsSummary.summary.critical || 0} critiques`} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -2563,23 +2549,23 @@ export default function AdminDashboard() {
                 <div className="space-y-8">
                     {myAccess?.is_superadmin ? <AdminSignupTrialCard showToast={showToast} /> : null}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard label="Comptes payants" value={subscriptionOverview.active_paid_accounts || 0} icon={Wallet} color="bg-emerald-500" sub="Actifs" />
-                        <StatCard label="Trials actifs" value={subscriptionOverview.active_trials || 0} icon={Clock} color="bg-amber-500" sub={`${subscriptionOverview.trials_expiring_3d || 0} expirent sous 3 jours`} />
-                        <StatCard label="Abonnements à risque" value={subscriptionOverview.subscriptions_expiring_soon || 0} icon={AlertTriangle} color="bg-rose-500" sub="Expirent sous 7 jours" />
-                        <StatCard label="Paiements 30j" value={subscriptionOverview.payments_count_30d || 0} icon={CreditCard} color="bg-blue-500" sub="Tous providers" />
+                        <KpiCard label="Comptes payants" value={subscriptionOverview.active_paid_accounts || 0} icon={Wallet} tone="bg-emerald-500" hint="Actifs" />
+                        <KpiCard label="Trials actifs" value={subscriptionOverview.active_trials || 0} icon={Clock} tone="bg-amber-500" hint={`${subscriptionOverview.trials_expiring_3d || 0} expirent sous 3 jours`} />
+                        <KpiCard label="Abonnements à risque" value={subscriptionOverview.subscriptions_expiring_soon || 0} icon={AlertTriangle} tone="bg-rose-500" hint="Expirent sous 7 jours" />
+                        <KpiCard label="Paiements 30j" value={subscriptionOverview.payments_count_30d || 0} icon={CreditCard} tone="bg-blue-500" hint="Tous providers" />
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard
+                        <KpiCard
                             label="MRR estime"
                             value={subscriptionMrrEstimate.length ? formatAdminMoney(subscriptionMrrEstimate[0].amount, subscriptionMrrEstimate[0].currency) : "-"}
                             icon={TrendingUp}
-                            color="bg-primary"
-                            sub={subscriptionMrrEstimate.length > 1 ? `+${subscriptionMrrEstimate.length - 1} devises` : 'Devise principale'}
+                            tone="bg-primary"
+                            hint={subscriptionMrrEstimate.length > 1 ? `+${subscriptionMrrEstimate.length - 1} devises` : 'Devise principale'}
                         />
-                        <StatCard label="Annulés" value={subscriptionOverview.cancelled_accounts || 0} icon={X} color="bg-slate-500" sub="Période active" />
-                        <StatCard label="Expirés" value={subscriptionOverview.expired_accounts || 0} icon={Clock} color="bg-rose-500" sub="Période active" />
-                        <StatCard label="Alertes" value={subscriptionAlertsSummary.summary.total || 0} icon={Bell} color={(subscriptionAlertsSummary.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} sub={`${subscriptionAlertsSummary.summary.critical || 0} critiques`} />
+                        <KpiCard label="Annulés" value={subscriptionOverview.cancelled_accounts || 0} icon={X} tone="bg-slate-500" hint="Période active" />
+                        <KpiCard label="Expirés" value={subscriptionOverview.expired_accounts || 0} icon={Clock} tone="bg-rose-500" hint="Période active" />
+                        <KpiCard label="Alertes" value={subscriptionAlertsSummary.summary.total || 0} icon={Bell} tone={(subscriptionAlertsSummary.summary.critical || 0) > 0 ? 'bg-rose-500' : 'bg-indigo-500'} hint={`${subscriptionAlertsSummary.summary.critical || 0} critiques`} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -3292,11 +3278,11 @@ export default function AdminDashboard() {
             {activeSection === 'demos' && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <StatCard label="Sessions actives" value={demoOverview.active_sessions || 0} icon={Clock} color="bg-sky-500" sub={`${demoOverview.expiring_24h || 0} expirent <24h`} />
-                        <StatCard label="Expirées" value={demoOverview.expired_sessions || 0} icon={AlertTriangle} color="bg-amber-500" sub={`${demoOverview.stale_expired_uncleaned || 0} à nettoyer`} />
-                        <StatCard label="Nettoyées" value={demoOverview.cleaned_sessions || 0} icon={Trash2} color="bg-emerald-500" sub={`${demoOverview.created_in_window || 0} créées / ${demoOverview.window_days || 30}j`} />
-                        <StatCard label="Contacts captes" value={demoOverview.contacts_captured || 0} icon={CheckCircle2} color="bg-emerald-500" sub="Emails enregistres" />
-                        <StatCard label="Contacts en attente" value={demoOverview.contacts_pending || 0} icon={Zap} color="bg-primary" sub={`${demoSessionsTotal || 0} sessions total`} />
+                        <KpiCard label="Sessions actives" value={demoOverview.active_sessions || 0} icon={Clock} tone="bg-sky-500" hint={`${demoOverview.expiring_24h || 0} expirent <24h`} />
+                        <KpiCard label="Expirées" value={demoOverview.expired_sessions || 0} icon={AlertTriangle} tone="bg-amber-500" hint={`${demoOverview.stale_expired_uncleaned || 0} à nettoyer`} />
+                        <KpiCard label="Nettoyées" value={demoOverview.cleaned_sessions || 0} icon={Trash2} tone="bg-emerald-500" hint={`${demoOverview.created_in_window || 0} créées / ${demoOverview.window_days || 30}j`} />
+                        <KpiCard label="Contacts captes" value={demoOverview.contacts_captured || 0} icon={CheckCircle2} tone="bg-emerald-500" hint="Emails enregistres" />
+                        <KpiCard label="Contacts en attente" value={demoOverview.contacts_pending || 0} icon={Zap} tone="bg-primary" hint={`${demoSessionsTotal || 0} sessions total`} />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -3505,12 +3491,12 @@ export default function AdminDashboard() {
             {activeSection === 'security' && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                        <StatCard label="Échecs connexion (24h)" value={securityStatsSummary.failed_logins_24h || 0} icon={Shield} color="bg-rose-500" sub="Dernières 24h" />
-                        <StatCard label="Connexions reussies" value={securityStatsSummary.successful_logins_24h || 0} icon={CheckCircle2} color="bg-emerald-500" sub="Dernieres 24h" />
-                        <StatCard label="Changements MDP (7j)" value={securityStatsSummary.password_changes_7d || 0} icon={Lock} color="bg-amber-500" sub="Derniers 7 jours" />
-                        <StatCard label="Utilisateurs bloques" value={securityStatsSummary.blocked_users || 0} icon={Trash2} color="bg-primary" sub="Etat actuel" />
-                        <StatCard label="Vérifications" value={verificationEventsTotal} icon={Bell} color="bg-sky-500" sub="Volume chargé" />
-                        <StatCard label="Sessions actives" value={activeSessions.length} icon={Activity} color="bg-violet-500" sub="Etat actuel" />
+                        <KpiCard label="Échecs connexion (24h)" value={securityStatsSummary.failed_logins_24h || 0} icon={Shield} tone="bg-rose-500" hint="Dernières 24h" />
+                        <KpiCard label="Connexions reussies" value={securityStatsSummary.successful_logins_24h || 0} icon={CheckCircle2} tone="bg-emerald-500" hint="Dernieres 24h" />
+                        <KpiCard label="Changements MDP (7j)" value={securityStatsSummary.password_changes_7d || 0} icon={Lock} tone="bg-amber-500" hint="Derniers 7 jours" />
+                        <KpiCard label="Utilisateurs bloques" value={securityStatsSummary.blocked_users || 0} icon={Trash2} tone="bg-primary" hint="Etat actuel" />
+                        <KpiCard label="Vérifications" value={verificationEventsTotal} icon={Bell} tone="bg-sky-500" hint="Volume chargé" />
+                        <KpiCard label="Sessions actives" value={activeSessions.length} icon={Activity} tone="bg-violet-500" hint="Etat actuel" />
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-[1.15fr,0.85fr] gap-6">
@@ -3795,10 +3781,10 @@ export default function AdminDashboard() {
             {activeSection === 'support' && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard label="Tickets" value={tickets.length} icon={MessageSquare} color="bg-primary" sub="Total chargé" />
-                        <StatCard label="Ouverts" value={openTickets.length} icon={AlertCircle} color="bg-amber-500" sub="À répondre" />
-                        <StatCard label="SLA à risque" value={supportInsights.oldOpen.length} icon={Clock} color="bg-rose-500" sub="Ouverts depuis 2 jours ou plus" />
-                        <StatCard label="Urgents" value={supportInsights.urgent.length} icon={Bell} color="bg-violet-500" sub="Priorité haute ou ancienneté élevée" />
+                        <KpiCard label="Tickets" value={tickets.length} icon={MessageSquare} tone="bg-primary" hint="Total chargé" />
+                        <KpiCard label="Ouverts" value={openTickets.length} icon={AlertCircle} tone="bg-amber-500" hint="À répondre" />
+                        <KpiCard label="SLA à risque" value={supportInsights.oldOpen.length} icon={Clock} tone="bg-rose-500" hint="Ouverts depuis 2 jours ou plus" />
+                        <KpiCard label="Urgents" value={supportInsights.urgent.length} icon={Bell} tone="bg-violet-500" hint="Priorité haute ou ancienneté élevée" />
                     </div>
 
                     <div className="glass-card overflow-hidden">
@@ -3945,11 +3931,11 @@ export default function AdminDashboard() {
             {activeSection === 'crm' && (
                 <div className="space-y-8">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <StatCard label="Clients CRM" value={adminCustomersTotal || adminCustomers.length} icon={Users} color="bg-primary" sub="Clients créés par les commerçants" />
-                        <StatCard label="Avec dette" value={crmInsights.debtors.length} icon={Wallet} color="bg-rose-500" sub={formatAdminMoney(crmInsights.totalDebt, 'XOF')} />
-                        <StatCard label="Inactifs" value={crmInsights.inactive.length} icon={Clock} color="bg-amber-500" sub="Sans achat récent ou sans achat" />
-                        <StatCard label="VIP" value={crmInsights.vip.length} icon={Crown} color="bg-violet-500" sub="Clients fidélité élevés" />
-                        <StatCard label="Panier historique" value={formatAdminMoney(crmInsights.averageSpent, 'XOF')} icon={TrendingUp} color="bg-emerald-500" sub="Dépense moyenne par client" />
+                        <KpiCard label="Clients CRM" value={adminCustomersTotal || adminCustomers.length} icon={Users} tone="bg-primary" hint="Clients créés par les commerçants" />
+                        <KpiCard label="Avec dette" value={crmInsights.debtors.length} icon={Wallet} tone="bg-rose-500" hint={formatAdminMoney(crmInsights.totalDebt, 'XOF')} />
+                        <KpiCard label="Inactifs" value={crmInsights.inactive.length} icon={Clock} tone="bg-amber-500" hint="Sans achat récent ou sans achat" />
+                        <KpiCard label="VIP" value={crmInsights.vip.length} icon={Crown} tone="bg-violet-500" hint="Clients fidélité élevés" />
+                        <KpiCard label="Panier historique" value={formatAdminMoney(crmInsights.averageSpent, 'XOF')} icon={TrendingUp} tone="bg-emerald-500" hint="Dépense moyenne par client" />
                     </div>
 
                     <div className="glass-card overflow-hidden">
@@ -4040,8 +4026,8 @@ export default function AdminDashboard() {
             {activeSection === 'leads' && (
                 <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <StatCard label="Messages entrants" value={leadContacts.length} icon={Mail} color="bg-blue-500" sub="Leads marketing" />
-                        <StatCard label="Abonnés newsletter" value={leadSubscribers.length} icon={Newspaper} color="bg-emerald-500" sub="Leads marketing" />
+                        <KpiCard label="Messages entrants" value={leadContacts.length} icon={Mail} tone="bg-blue-500" hint="Leads marketing" />
+                        <KpiCard label="Abonnés newsletter" value={leadSubscribers.length} icon={Newspaper} tone="bg-emerald-500" hint="Leads marketing" />
                     </div>
 
                     {leadsLoading && (
@@ -4650,10 +4636,10 @@ export default function AdminDashboard() {
                             <>
                                 {/* KPIs */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <StatCard label="Appels totaux" value={s.total_calls.toLocaleString('fr-FR')} icon={Activity} color="bg-blue-500" sub="Période sélectionnée" />
-                                    <StatCard label="Coût estimé ($)" value={`$${s.total_cost_usd.toFixed(2)}`} icon={Wallet} color="bg-amber-500" sub="Période sélectionnée" />
-                                    <StatCard label="Taux d'échec" value={`${s.failure_rate}%`} icon={AlertTriangle} color={s.failure_rate > 10 ? 'bg-red-500' : 'bg-emerald-500'} sub="Période sélectionnée" />
-                                    <StatCard label="Latence moyenne" value={`${Math.round(s.avg_latency_ms)}ms`} icon={Clock} color="bg-purple-500" sub="Période sélectionnée" />
+                                    <KpiCard label="Appels totaux" value={s.total_calls.toLocaleString('fr-FR')} icon={Activity} tone="bg-blue-500" hint="Période sélectionnée" />
+                                    <KpiCard label="Coût estimé ($)" value={`$${s.total_cost_usd.toFixed(2)}`} icon={Wallet} tone="bg-amber-500" hint="Période sélectionnée" />
+                                    <KpiCard label="Taux d'échec" value={`${s.failure_rate}%`} icon={AlertTriangle} tone={s.failure_rate > 10 ? 'bg-red-500' : 'bg-emerald-500'} hint="Période sélectionnée" />
+                                    <KpiCard label="Latence moyenne" value={`${Math.round(s.avg_latency_ms)}ms`} icon={Clock} tone="bg-purple-500" hint="Période sélectionnée" />
                                 </div>
 
                                 {/* Daily chart (simple bar representation) */}
@@ -4845,11 +4831,11 @@ export default function AdminDashboard() {
                     {mrrLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
 
                     {!mrrLoading && !mrrStats && (
-                        <div className="glass-card p-16 text-center">
-                            <TrendingUp size={48} className="mx-auto mb-4 text-slate-600" />
-                            <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Données non chargées</p>
-                            <Button variant="primary" size="lg" onClick={loadMrr} className="uppercase tracking-widest">Charger le MRR</Button>
-                        </div>
+                        <EmptyState
+                            icon={TrendingUp}
+                            title="Données non chargées"
+                            action={<Button variant="primary" size="lg" onClick={loadMrr} className="uppercase tracking-widest">Charger le MRR</Button>}
+                        />
                     )}
 
                     {mrrStats && !mrrLoading && (() => {
@@ -4985,11 +4971,11 @@ export default function AdminDashboard() {
                     {retentionLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
 
                     {!retentionLoading && !retentionStats && (
-                        <div className="glass-card p-16 text-center">
-                            <Users size={48} className="mx-auto mb-4 text-slate-600" />
-                            <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Données non chargées</p>
-                            <Button variant="primary" size="lg" onClick={loadRetention} className="uppercase tracking-widest">Charger</Button>
-                        </div>
+                        <EmptyState
+                            icon={Users}
+                            title="Données non chargées"
+                            action={<Button variant="primary" size="lg" onClick={loadRetention} className="uppercase tracking-widest">Charger</Button>}
+                        />
                     )}
 
                     {retentionStats && !retentionLoading && (() => {
@@ -5003,10 +4989,10 @@ export default function AdminDashboard() {
                             <>
                                 {/* KPIs */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <StatCard label="Actifs aujourd'hui" value={retentionStats.total_active_today || 0} icon={Users} color="bg-primary" sub="Shopkeepers actifs" />
-                                    <StatCard label="Nouveaux (12 mois)" value={totalSignups} icon={TrendingUp} color="bg-emerald-500" sub="Inscriptions" />
-                                    <StatCard label="Churns (12 mois)" value={totalChurns} icon={AlertTriangle} color="bg-rose-500" sub="Expirations / annulations" />
-                                    <StatCard label="Croissance nette" value={netGrowth >= 0 ? `+${netGrowth}` : String(netGrowth)} icon={Activity} color={netGrowth >= 0 ? 'bg-emerald-500' : 'bg-rose-500'} sub="Signups - Churns" />
+                                    <KpiCard label="Actifs aujourd'hui" value={retentionStats.total_active_today || 0} icon={Users} tone="bg-primary" hint="Shopkeepers actifs" />
+                                    <KpiCard label="Nouveaux (12 mois)" value={totalSignups} icon={TrendingUp} tone="bg-emerald-500" hint="Inscriptions" />
+                                    <KpiCard label="Churns (12 mois)" value={totalChurns} icon={AlertTriangle} tone="bg-rose-500" hint="Expirations / annulations" />
+                                    <KpiCard label="Croissance nette" value={netGrowth >= 0 ? `+${netGrowth}` : String(netGrowth)} icon={Activity} tone={netGrowth >= 0 ? 'bg-emerald-500' : 'bg-rose-500'} hint="Signups - Churns" />
                                 </div>
 
                                 {/* Bar chart signups vs churns */}
@@ -5096,11 +5082,11 @@ export default function AdminDashboard() {
                     {apiHealthLoading && <div className="text-center py-20 text-slate-500 text-sm">Chargement...</div>}
 
                     {!apiHealthLoading && !apiHealth && (
-                        <div className="glass-card p-16 text-center">
-                            <BarChart2 size={48} className="mx-auto mb-4 text-slate-600" />
-                            <p className="text-slate-500 text-sm uppercase tracking-widest font-black mb-6">Données non chargées</p>
-                            <Button variant="primary" size="lg" onClick={() => loadApiHealth()} className="text-sm uppercase tracking-widest">Charger</Button>
-                        </div>
+                        <EmptyState
+                            icon={BarChart2}
+                            title="Données non chargées"
+                            action={<Button variant="primary" size="lg" onClick={() => loadApiHealth()} className="uppercase tracking-widest">Charger</Button>}
+                        />
                     )}
 
                     {apiHealth && !apiHealthLoading && (() => {
@@ -5109,9 +5095,9 @@ export default function AdminDashboard() {
                         return (
                             <>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    <StatCard label={`Événements (${apiHealthDays}j)`} value={(apiHealth.total_events || 0).toLocaleString('fr-FR')} icon={Activity} color="bg-primary" sub="Activité totale" />
-                                    <StatCard label="Modules actifs" value={apiHealth.by_module?.length || 0} icon={BarChart2} color="bg-blue-500" sub="Sources d'activité" />
-                                    <StatCard label="Endpoints IA tracés" value={apiHealth.ai_latency?.length || 0} icon={Zap} color="bg-violet-500" sub="Avec latence mesurée" />
+                                    <KpiCard label={`Événements (${apiHealthDays}j)`} value={(apiHealth.total_events || 0).toLocaleString('fr-FR')} icon={Activity} tone="bg-primary" hint="Activité totale" />
+                                    <KpiCard label="Modules actifs" value={apiHealth.by_module?.length || 0} icon={BarChart2} tone="bg-blue-500" hint="Sources d'activité" />
+                                    <KpiCard label="Endpoints IA tracés" value={apiHealth.ai_latency?.length || 0} icon={Zap} tone="bg-violet-500" hint="Avec latence mesurée" />
                                 </div>
 
                                 {/* Daily activity bar chart */}

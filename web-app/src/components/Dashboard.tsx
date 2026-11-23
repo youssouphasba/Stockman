@@ -39,7 +39,7 @@ import {
     Cell
 } from 'recharts';
 import SafeResponsiveContainer from './charts/SafeResponsiveContainer';
-import StatCard from './StatCard';
+import KpiCard from './analytics/KpiCard';
 import { dashboard as dashboardApi, ai as aiApi, statistics as statsApi, sales as salesApi, restaurant as restaurantApi, UserFeatures } from '../services/api';
 import { useDateFormatter } from '../hooks/useDateFormatter';
 import AiSummaryModal from './AiSummaryModal';
@@ -497,54 +497,54 @@ export default function Dashboard({ onNavigate, features }: DashboardProps) {
             {visibleSections.kpi && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                     {isRestaurant ? (<>
-                        <StatCard
+                        <KpiCard
                             label="CA du jour"
                             value={formatCurrency(restaurantStats?.today_revenue || 0)}
                             icon={TrendingUp}
-                            color="bg-emerald-500"
+                            tone="bg-emerald-500"
                         />
-                        <StatCard
+                        <KpiCard
                             label="Couverts servis"
                             value={restaurantStats?.today_covers || 0}
                             icon={ShoppingCart}
-                            color="bg-blue-500"
+                            tone="bg-blue-500"
                         />
-                        <StatCard
+                        <KpiCard
                             label="Ticket moyen"
                             value={formatCurrency(restaurantStats?.avg_ticket || 0)}
                             icon={TrendingUp}
-                            color="bg-amber-500"
+                            tone="bg-amber-500"
                         />
-                        <StatCard
+                        <KpiCard
                             label={`Tables occupées (${restaurantStats?.tables_occupied || 0}/${restaurantStats?.tables_total || 0})`}
                             value={restaurantStats?.kitchen_pending ? `🍳 ${restaurantStats.kitchen_pending} en cuisine` : 'Cuisine vide'}
                             icon={Package}
-                            color="bg-purple-500"
+                            tone="bg-purple-500"
                         />
                     </>) : (<>
-                        <StatCard
+                        <KpiCard
                             label={t('dashboard.today_revenue')}
                             value={formatCurrency(data?.today_revenue || 0)}
                             icon={TrendingUp}
-                            color="bg-emerald-500"
+                            tone="bg-emerald-500"
                         />
-                        <StatCard
+                        <KpiCard
                             label={t('dashboard.today_sales')}
                             value={data?.today_sales_count || 0}
                             icon={ShoppingCart}
-                            color="bg-blue-500"
+                            tone="bg-blue-500"
                         />
-                        <StatCard
+                        <KpiCard
                             label={t('dashboard.stock_value')}
                             value={formatCurrency(data?.total_stock_value || 0)}
                             icon={Package}
-                            color="bg-amber-500"
+                            tone="bg-amber-500"
                         />
-                        <StatCard
+                        <KpiCard
                             label={t('dashboard.month_revenue')}
                             value={formatCurrency(data?.month_revenue || 0)}
                             icon={TrendingUp}
-                            color="bg-purple-500"
+                            tone="bg-purple-500"
                         />
                     </>)}
                 </div>
