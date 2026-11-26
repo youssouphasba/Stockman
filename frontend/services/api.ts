@@ -194,6 +194,8 @@ type RequestOptions = {
   method?: string;
   body?: unknown;
   headers?: Record<string, string>;
+  // Délai maximal de la requête (30 s par défaut).
+  timeoutMs?: number;
 };
 
 const ONLINE_ONLY_MUTATION_PREFIXES = [
@@ -462,7 +464,7 @@ export async function rawRequest<T>(endpoint: string, options: RequestOptions = 
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 30000); // 30s timeout par défaut
 
   const resolveApiErrorMessage = async (response: Response): Promise<string> => {
     const fallback =
@@ -2189,6 +2191,75 @@ export const onboardingGuide = {
     ),
 };
 
+// Reprise des données d'un ancien logiciel ou d'un cahier (produits et historique des ventes).
+export type MigrationKind = 'products' | 'sales' | 'ignore';
+
+export type MigrationTable = {
+  index: number;
+  name: string;
+  kind: MigrationKind;
+  method?: 'rules' | 'ai' | 'ai_document' | null;
+  confidence: number;
+  columns: string[];
+  mapping: Record<string, string>;
+  row_count: number;
+  preview: Record<string, string>[];
+  missing_fields: string[];
+  errors?: { row?: number | null; error: string }[];
+  error_count?: number;
+  products_ready?: number;
+  products_skipped?: number;
+  skipped?: { row: number; name: string; reason: string }[];
+  sales_ready?: number;
+  already_imported?: number;
+  revenue?: number;
+  first_date?: string | null;
+  last_date?: string | null;
+  matched_lines?: number;
+  unmatched_lines?: number;
+  unmatched_names?: string[];
+};
+
+export type MigrationDraft = { draft_id: string; file_name: string; tables: MigrationTable[] };
+
+export type MigrationReport = {
+  batch_id: string;
+  products_created: number;
+  products_skipped: number;
+  sales_created: number;
+  sales_already_imported: number;
+  revenue: number;
+  first_date?: string | null;
+  last_date?: string | null;
+  errors: { table: string; row?: number | null; error: string }[];
+  error_count: number;
+  unmatched_names: string[];
+};
+
+export type MigrationBatch = {
+  batch_id: string;
+  file_name: string;
+  status: 'done' | 'undone';
+  created_at: string;
+  can_undo: boolean;
+  report?: MigrationReport;
+  undo_result?: { sales_removed: number; products_removed: number; products_kept: number };
+};
+
+export const dataMigration = {
+  analyze: (formData: FormData) =>
+    rawRequest<MigrationDraft>('/data-migration/analyze', { method: 'POST', body: formData, timeoutMs: 180000 }),
+  setKind: (draftId: string, index: number, kind: MigrationKind) =>
+    rawRequest<MigrationTable>(`/data-migration/drafts/${draftId}/tables/${index}/kind`, { method: 'PUT', body: { kind }, timeoutMs: 90000 }),
+  setMapping: (draftId: string, index: number, mapping: Record<string, string>) =>
+    rawRequest<MigrationTable>(`/data-migration/drafts/${draftId}/tables/${index}/mapping`, { method: 'PUT', body: { mapping }, timeoutMs: 90000 }),
+  confirm: (draftId: string, unnamedLabel?: string) =>
+    rawRequest<MigrationReport>(`/data-migration/drafts/${draftId}/confirm`, { method: 'POST', body: { unnamed_label: unnamedLabel }, timeoutMs: 180000 }),
+  batches: () => rawRequest<{ batches: MigrationBatch[] }>('/data-migration/batches'),
+  undo: (batchId: string) =>
+    rawRequest<{ sales_removed: number; products_removed: number; products_kept: number }>(`/data-migration/batches/${batchId}/undo`, { method: 'POST', timeoutMs: 90000 }),
+};
+
 export type PlannerChannel = 'in_app' | 'push' | 'email';
 
 export type PlannerItem = {
@@ -3054,7 +3125,7 @@ export type Sale = {
   customer_address?: string;
   created_at: string;
   status?: string;
-  source?: 'physical' | 'ecommerce';
+  source?: 'physical' | 'ecommerce' | 'import';
   notes?: string;
   cancelled_at?: string;
   cancellation_reason?: string;
@@ -3075,7 +3146,7 @@ export type AccountingSaleHistoryItem = {
   items: SaleItem[];
   invoice_id?: string;
   invoice_number?: string;
-  source?: 'physical' | 'ecommerce';
+  source?: 'physical' | 'ecommerce' | 'import';
   ecommerce_order_id?: string | null;
   invoice_label?: string;
   invoice_issued_at?: string;

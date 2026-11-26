@@ -7,6 +7,7 @@ import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { ecommerce } from '../services/api';
 import { amountDue, denkmaDelivery, denkmaDestination } from '../utils/denkmaShipping';
 import { useTranslation } from 'react-i18next';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type Props = {
   order: any;
@@ -78,7 +79,7 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' }}>
+      <KeyboardOverlay style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' }}>
         <View style={{ maxHeight: '92%', backgroundColor: colors.bgDark || colors.card, borderTopLeftRadius: BorderRadius.lg, borderTopRightRadius: BorderRadius.lg, padding: Spacing.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md }}>
             <View style={{ flex: 1 }}>
@@ -131,7 +132,7 @@ export default function DenkmaShipModal({ order, formatAmount, onClose, onShippe
             <Text style={[muted, { textAlign: 'center' }]}>{t('denkma_ship.stockman_reserve_le_transport_declare_le')}</Text>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

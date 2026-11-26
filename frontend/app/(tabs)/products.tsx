@@ -13,7 +13,6 @@ import {
   Modal,
   Alert,
   Image,
-  KeyboardAvoidingView,
   Platform,
   Linking,
   LayoutAnimation,
@@ -86,6 +85,8 @@ import { useFirstVisit } from '../../hooks/useFirstVisit';
 import { generateAndSharePdf, generateProductLabelPdf } from '../../utils/pdfReports';
 import BulkImportModal from '../../components/BulkImportModal';
 import TextImportModal from '../../components/TextImportModal';
+import DataMigrationModal from '../../components/DataMigrationModal';
+import { subscribeDataMigration } from '../../utils/dataMigrationLauncher';
 import ProductionView from '../../components/ProductionView';
 import { formatCurrency, formatUserCurrency, formatNumber } from '../../utils/format';
 import {
@@ -99,6 +100,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GuideTarget from '../../onboarding/GuideTarget';
 import GuideHost from '../../onboarding/GuideHost';
 import { guideSignal } from '../../onboarding/guideStore';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 type ProductStockFilter = 'all' | 'in_stock' | 'out_of_stock' | 'low_stock' | 'overstock' | 'deadstock';
 type ProductSortMode = 'stock_priority' | 'quantity_desc' | 'name_asc' | 'recently_added';
@@ -385,6 +387,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
         { label: t('products.batch_scan', 'Scanner en lot'), icon: 'barcode-outline', onPress: () => router.push('/inventory/batch-scan' as any) },
         { label: t('products.import_csv', 'Import CSV'), icon: 'cloud-upload-outline', onPress: () => setShowBulkImportModal(true) },
         { label: t('products.import_text', 'Import texte IA'), icon: 'document-text-outline', onPress: () => setShowTextImportModal(true) },
+        ...(!user?.parent_user_id ? [{ label: t('data_migration.menu_label'), icon: 'swap-horizontal-outline', onPress: () => setShowDataMigration(true) }] : []),
         { label: t('products.manage_categories', 'Gérer les catégories'), icon: 'pricetags-outline', onPress: () => setShowCategoryModal(true) },
         { label: '', icon: '', onPress: () => {}, separator: true },
         { label: t('products.movement_history', 'Historique mouvements'), icon: 'time-outline', onPress: () => router.push({ pathname: '/(tabs)', params: { openModal: 'history' } } as any) },
@@ -394,7 +397,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
         { label: t('common.export_csv', 'Exporter CSV'), icon: 'download-outline', onPress: () => handleExportCSV() },
         { label: t('products.trash', 'Corbeille'), icon: 'trash-outline', onPress: () => setShowTrashModal(true), destructive: true },
       ]);
-    }, [t])
+    }, [t, user?.parent_user_id])
   );
 
   // Apply filter from notification deep-link
@@ -814,6 +817,9 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [showCatalogPicker, setShowCatalogPicker] = useState(false);
   const [showTextImportModal, setShowTextImportModal] = useState(false);
+  // Reprise des données d'un ancien logiciel : réservée au propriétaire du compte.
+  const [showDataMigration, setShowDataMigration] = useState(false);
+  useEffect(() => subscribeDataMigration(() => setShowDataMigration(true)), []);
   // Défilement du formulaire produit : le guide de démarrage y amène chaque champ à l'écran.
   const productFormScrollRef = useRef<ScrollView>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -3810,6 +3816,18 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
         </View>
         {showAddMenu && canWrite && (
           <View style={{ backgroundColor: colors.glass, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: colors.glassBorder, padding: Spacing.sm, marginTop: Spacing.xs, gap: 6 }}>
+            {!user?.parent_user_id && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
+                onPress={() => { setShowAddMenu(false); setShowDataMigration(true); }}
+              >
+                <Ionicons name="swap-horizontal-outline" size={20} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontSize: FontSize.md }}>{t('data_migration.menu_label')}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: FontSize.xs }}>{t('data_migration.menu_hint')}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
             <GuideTarget id="products.menu.add">
             <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: 8, paddingHorizontal: Spacing.sm }}
@@ -4670,7 +4688,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
       )}
 
       <Modal visible={showBulkEditModal} animationType="slide" transparent onRequestClose={closeBulkEditModal}>
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, paddingRight: Spacing.md }}>
@@ -4683,11 +4701,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(8, insets.top / 2) : 0}
-            >
+            <View style={{ flex: 1 }}>
               <FlatList
                 data={bulkEditVisibleProducts}
                 keyExtractor={(item) => item.product_id}
@@ -4720,15 +4734,15 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
                   )}
                 </TouchableOpacity>
               </View>
-            </KeyboardAvoidingView>
+            </View>
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>
 
 
       {/* Add Product Modal */}
       < Modal visible={showAddModal} animationType="slide" transparent onRequestClose={requestCloseAddModal} onDismiss={handleProductModalDismiss} >
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
@@ -4740,11 +4754,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(8, insets.top / 2) : 0}
-            >
+            <View style={{ flex: 1 }}>
               <ScrollView
                 ref={productFormScrollRef}
                 style={styles.modalScroll}
@@ -5511,15 +5521,15 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
                   </TouchableOpacity>
                 </GuideTarget>
               </ScrollView>
-            </KeyboardAvoidingView>
+            </View>
           </View>
-        </View>
+        </KeyboardOverlay>
         {showAddModal && !editingProduct && <GuideHost id="productForm" />}
       </Modal >
 
       {/* Product History Modal */}
       < Modal visible={showHistoryModal} animationType="slide" transparent >
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View>
@@ -5717,12 +5727,12 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
               </ScrollView>
             )}
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal >
 
       {/* Category Management Modal */}
       < Modal visible={showCategoryModal} animationType="slide" transparent onRequestClose={requestCloseCategoryModal} >
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('products.manage_categories')}</Text>
@@ -5801,12 +5811,12 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
               )}
             </ScrollView>
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal >
 
       {/* Trash Modal */}
       < Modal visible={showTrashModal} animationType="slide" transparent onRequestClose={() => setShowTrashModal(false)} >
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('products.trash_title', 'Corbeille des produits')}</Text>
@@ -5849,7 +5859,7 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
               )}
             </ScrollView>
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal >
 
       {/* Stock Movement Modal */}
@@ -6008,6 +6018,12 @@ function ProductsWorkspace({ catalogScope }: { catalogScope: string }) {
         visible={showTextImportModal}
         onClose={() => setShowTextImportModal(false)}
         onSuccess={() => loadData()}
+      />
+
+      <DataMigrationModal
+        visible={showDataMigration}
+        onClose={() => setShowDataMigration(false)}
+        onImported={() => loadData()}
       />
 
       <ScreenGuide

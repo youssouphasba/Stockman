@@ -1,12 +1,13 @@
 import Button from './ui/Button';
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView, FlatList, Linking } from 'react-native';
+import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert, ScrollView, FlatList, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { support, SupportTicket } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { WHATSAPP_SUPPORT_NUMBER, WHATSAPP_SUPPORT_MESSAGE_KEY } from '../constants/support';
+import KeyboardOverlay from './KeyboardOverlay';
 
 interface ContactSupportModalProps {
     visible: boolean;
@@ -149,11 +150,8 @@ export default function ContactSupportModal({ visible, onClose, initialSubject =
     if (selectedTicket) {
         return (
             <Modal visible={visible} animationType="slide" transparent>
-                <View style={styles.overlay}>
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        style={[styles.container, { backgroundColor: colors.bgMid, maxHeight: '90%' }]}
-                    >
+                <KeyboardOverlay style={styles.overlay}>
+                    <View style={[styles.container, { backgroundColor: colors.bgMid, maxHeight: '90%' }]}>
                         <View style={styles.header}>
                             <TouchableOpacity onPress={() => setSelectedTicket(null)} style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <Ionicons name="arrow-back" size={20} color={colors.text} />
@@ -217,8 +215,8 @@ export default function ContactSupportModal({ visible, onClose, initialSubject =
                                 </TouchableOpacity>
                             </View>
                         )}
-                    </KeyboardAvoidingView>
-                </View>
+                    </View>
+                </KeyboardOverlay>
             </Modal>
         );
     }
@@ -227,11 +225,8 @@ export default function ContactSupportModal({ visible, onClose, initialSubject =
 
     return (
         <Modal visible={visible} animationType="slide" transparent>
-            <View style={styles.overlay}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={[styles.container, { backgroundColor: colors.bgMid }]}
-                >
+            <KeyboardOverlay style={styles.overlay}>
+                <View style={[styles.container, { backgroundColor: colors.bgMid }]}>
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: colors.text }]}>{t('modals.contactSupport.title')}</Text>
                         <TouchableOpacity onPress={onClose}>
@@ -393,8 +388,8 @@ export default function ContactSupportModal({ visible, onClose, initialSubject =
                         </View>
                     )}
                     </View>
-                </KeyboardAvoidingView>
-            </View>
+                </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

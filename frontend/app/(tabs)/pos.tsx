@@ -68,6 +68,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import GuideTarget from '../../onboarding/GuideTarget';
 import { useGuide } from '../../onboarding/GuideProvider';
 import { getGuideRunState, guideSignal } from '../../onboarding/guideStore';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 export type CartItem = {
     cartKey: string;
@@ -2041,7 +2042,7 @@ function POSWorkspace() {
             {/* Voice to Cart Modal */}
             {showVoiceModal && (
                 <Modal visible={showVoiceModal} animationType="slide" transparent onRequestClose={() => { if (!isVoiceProcessing) setShowVoiceModal(false); }}>
-                    <View style={styles.modalOverlay}>
+                    <KeyboardOverlay style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + 16 }]}>
                             <View style={styles.modalHeader}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -2181,7 +2182,7 @@ function POSWorkspace() {
                                 </View>
                             )}
                         </View>
-                    </View>
+                    </KeyboardOverlay>
                 </Modal>
             )}
 
@@ -2311,7 +2312,7 @@ function POSWorkspace() {
             </KeyboardAwareModal>}
 
             {showTableModal && <Modal visible={showTableModal} animationType="slide" transparent>
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                <KeyboardOverlay style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
                     <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '60%' }}>
                         <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 16 }}>{t('pos.select_table')}</Text>
                         <FlatList
@@ -2331,7 +2332,7 @@ function POSWorkspace() {
                             <Text style={{ color: colors.text, fontWeight: '600' }}>{t('pos.cancel_action')}</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </KeyboardOverlay>
             </Modal>}
         </>
     );

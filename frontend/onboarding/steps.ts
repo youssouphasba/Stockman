@@ -39,7 +39,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   {
     id: 'welcome', chapter: 'start', kind: 'card', host: 'root',
     title: 'Bienvenue dans Stockman !',
-    body: "En quelques minutes, nous allons créer ensemble un produit d'exercice, faire une vraie vente en caisse, puis lire le résultat dans la Compta et la fiche du client. Tout ce que vous créez pendant ce guide sera supprimé à la fin.",
+    body: "En quelques minutes, nous allons créer ensemble un produit d'exercice, faire une vraie vente en caisse, puis lire le résultat dans la Compta et la fiche du client. Tout ce que vous créez pendant ce guide sera supprimé à la fin. Vous utilisiez déjà un logiciel, un fichier Excel ou un cahier ? À la fin, vous pourrez reprendre vos produits et vos ventes.",
     nextLabel: 'Commencer',
   },
   {

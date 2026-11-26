@@ -7,6 +7,7 @@ import { stores as storesApi, Store } from '../services/api';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type StoreSelectorProps = {
     compact?: boolean;
@@ -89,7 +90,7 @@ export default function StoreSelector({ compact = false }: StoreSelectorProps) {
             </TouchableOpacity>
 
             {showModal && <Modal visible={showModal} transparent animationType="fade">
-                <View style={styles.modalOverlay}>
+                <KeyboardOverlay style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{t('store_selector.my_stores')}</Text>
@@ -159,7 +160,7 @@ export default function StoreSelector({ compact = false }: StoreSelectorProps) {
                             </View>
                         )}
                     </View>
-                </View>
+                </KeyboardOverlay>
             </Modal>}
         </>
     );

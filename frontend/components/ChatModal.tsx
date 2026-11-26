@@ -8,7 +8,6 @@ import {
   FlatList,
   ActivityIndicator,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +16,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { chat, ChatMessage, Conversation } from '../services/api';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type Props = {
   visible: boolean;
@@ -201,7 +201,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+      <KeyboardOverlay style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
         <View style={[styles.container, { backgroundColor: colors.bgMid }]}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.divider }]}>
@@ -285,11 +285,7 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
             )
           ) : (
             /* Chat view */
-            <KeyboardAvoidingView
-              style={{ flex: 1 }}
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-            >
+            <View style={{ flex: 1 }}>
               <FlatList
                 ref={flatListRef}
                 data={messages}
@@ -330,10 +326,10 @@ export default function ChatModal({ visible, onClose, partnerId, partnerName }: 
                   )}
                 </TouchableOpacity>
               </View>
-            </KeyboardAvoidingView>
+            </View>
           )}
         </View>
-      </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

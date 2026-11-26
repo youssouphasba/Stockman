@@ -17,6 +17,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import StepProgressBar from './StepProgressBar';
 import * as DocumentPicker from 'expo-document-picker';
+import KeyboardOverlay from './KeyboardOverlay';
 
 interface BulkImportModalProps {
     visible: boolean;
@@ -469,7 +470,7 @@ export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpda
 
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-            <View style={styles.modalOverlay}>
+            <KeyboardOverlay style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>{t('bulk_import.title')}</Text>
@@ -488,7 +489,7 @@ export default function BulkImportModal({ visible, onClose, onSuccess, onJobUpda
 
                     {renderStep()}
                 </View>
-            </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

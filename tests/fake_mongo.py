@@ -16,7 +16,19 @@ _MISSING = object()
 
 def _get(doc, path):
     current = doc
-    for part in path.split("."):
+    parts = path.split(".")
+    for position, part in enumerate(parts):
+        if isinstance(current, list):
+            if part.isdigit():
+                index = int(part)
+                if index >= len(current):
+                    return _MISSING
+                current = current[index]
+                continue
+            # Comme MongoDB : « items.product_id » lit le champ dans chaque élément du tableau.
+            rest = ".".join(parts[position:])
+            values = [_get(item, rest) for item in current]
+            return [value for value in values if value is not _MISSING] or _MISSING
         if not isinstance(current, dict) or part not in current:
             return _MISSING
         current = current[part]
@@ -90,10 +102,16 @@ def _set_path(doc, path, value):
     # Comme MongoDB : « a.b » écrit le champ b du sous-document a, créé au besoin.
     *parents, last = path.split(".")
     for part in parents:
-        if not isinstance(doc.get(part), dict):
+        if isinstance(doc, list) and part.isdigit():
+            doc = doc[int(part)]
+            continue
+        if not isinstance(doc.get(part), (dict, list)):
             doc[part] = {}
         doc = doc[part]
-    doc[last] = value
+    if isinstance(doc, list) and last.isdigit():
+        doc[int(last)] = value
+    else:
+        doc[last] = value
 
 
 def _unset_path(doc, path):

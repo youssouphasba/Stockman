@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
+import KeyboardOverlay from './KeyboardOverlay';
 
 export type StockChangeDirection = 'in' | 'out';
 
@@ -85,7 +86,7 @@ export function StockChangeReasonModal({ visible, direction, subtitle, initialKi
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: Spacing.lg }}>
+      <KeyboardOverlay style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: Spacing.lg }}>
         <Pressable style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} onPress={onClose} />
         <View style={{ backgroundColor: colors.bgMid, borderRadius: BorderRadius.xl, padding: Spacing.lg, maxHeight: '85%' }}>
           <Text style={{ color: colors.text, fontSize: FontSize.lg, fontWeight: '800' }}>{t('products.stock_change_title')}</Text>
@@ -106,7 +107,7 @@ export function StockChangeReasonModal({ visible, direction, subtitle, initialKi
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

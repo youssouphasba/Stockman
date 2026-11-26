@@ -70,6 +70,7 @@ import { useGuideTargetRef } from '../../onboarding/GuideTarget';
 import { GUIDE_COMMAND_EVENT, type GuideCommand } from '../../onboarding/guideStore';
 import { FinanceViewPanel, FinanceViewTabs, FINANCE_VIEW_CHANNEL, type FinanceView } from '../../components/FinanceChannels';
 import KeyboardAwareModal from '../../components/KeyboardAwareModal';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 
 // screenWidth is now read via useWindowDimensions() inside the component
@@ -2077,7 +2078,7 @@ function AccountingWorkspace() {
                                                             <Text style={[styles.saleMeta, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
                                                                 {sale.items.map(i => i.product_name).join(', ') || t('accounting.articles_count', { count: sale.items.length })}
                                                             </Text>
-                                                            <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} • {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}{sale.source === 'ecommerce' ? ' • E-com' : ''}</Text>
+                                                            <Text style={styles.saleMeta}>{t('accounting.articles_short', { count: sale.items.length })} • {t(PAYMENT_LABELS[sale.payment_method] || sale.payment_method)}{sale.source === 'ecommerce' ? ' • E-com' : ''}{sale.source === 'import' ? ` • ${t('data_migration.imported_badge')}` : ''}</Text>
                                                             {(sale as any).offline_pending_invoice && (
                                                                 <Text style={[styles.saleMeta, { color: colors.warning, fontWeight: '700' }]}>
                                                                     {t('common.pending', { defaultValue: 'En attente' })} • {t('accounting.offline_invoice', 'facture hors ligne')}
@@ -2095,9 +2096,11 @@ function AccountingWorkspace() {
                                                                 {getSaleStatusLabel(sale)}
                                                             </Text>
                                                             <View style={{ flexDirection: 'row', gap: 8 }}>
-                                                                <TouchableOpacity style={styles.receiptBtn} onPress={() => generateReceiptPdf(sale)}>
-                                                                    <Ionicons name="receipt-outline" size={16} color={colors.primary} />
-                                                                </TouchableOpacity>
+                                                                {sale.source !== 'import' && (
+                                                                    <TouchableOpacity style={styles.receiptBtn} onPress={() => generateReceiptPdf(sale)}>
+                                                                        <Ionicons name="receipt-outline" size={16} color={colors.primary} />
+                                                                    </TouchableOpacity>
+                                                                )}
                                                                 {sale.invoice_id ? (
                                                                     <TouchableOpacity
                                                                         style={styles.receiptBtn}
@@ -2105,7 +2108,7 @@ function AccountingWorkspace() {
                                                                     >
                                                                         <Ionicons name="document-text-outline" size={16} color={colors.primary} />
                                                                     </TouchableOpacity>
-                                                                ) : sale.status !== 'cancelled' ? (
+                                                                ) : sale.status !== 'cancelled' && sale.source !== 'import' ? (
                                                                     <TouchableOpacity
                                                                         style={[styles.receiptBtn, invoiceBusyId === sale.sale_id && { opacity: 0.5 }]}
                                                                         disabled={invoiceBusyId === sale.sale_id}
@@ -2118,7 +2121,7 @@ function AccountingWorkspace() {
                                                                         )}
                                                                     </TouchableOpacity>
                                                                 ) : null}
-                                                                {sale.status !== 'cancelled' && !sale.invoice_id ? (
+                                                                {sale.status !== 'cancelled' && !sale.invoice_id && sale.source !== 'import' ? (
                                                                     <TouchableOpacity
                                                                         style={[
                                                                             styles.receiptBtn,
@@ -2520,7 +2523,7 @@ function AccountingWorkspace() {
 
                 {activeKpiDetail && (
                     <Modal visible={!!activeKpiDetail} animationType="slide" transparent onRequestClose={() => setActiveKpiDetail(null)}>
-                        <View style={styles.modalOverlay}>
+                        <KeyboardOverlay style={styles.modalOverlay}>
                             <View style={styles.modalContent}>
                                 <View style={styles.modalHeader}>
                                     <Text style={styles.modalTitle}>{kpiModalTitle[activeKpiDetail]}</Text>
@@ -2676,7 +2679,7 @@ function AccountingWorkspace() {
                                     )}
                                 </ScrollView>
                             </View>
-                        </View>
+                        </KeyboardOverlay>
                     </Modal>
                 )}
 

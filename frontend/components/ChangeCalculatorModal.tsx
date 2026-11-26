@@ -15,6 +15,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { formatUserCurrency } from '../utils/format';
 import { useAuth } from '../contexts/AuthContext';
+import KeyboardOverlay from './KeyboardOverlay';
 
 interface ChangeCalculatorModalProps {
     visible: boolean;
@@ -71,7 +72,7 @@ export default function ChangeCalculatorModal({
 
     return (
         <Modal visible={visible} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
+            <KeyboardOverlay style={styles.modalOverlay}>
                 <View style={[styles.modalContent, { backgroundColor: colors.bgMid }]}>
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: colors.text }]}>{t('pos.change_calculator')}</Text>
@@ -148,7 +149,7 @@ export default function ChangeCalculatorModal({
                         <Text style={styles.confirmBtnText}>{t('common.confirm_sale')}</Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Platform, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useTheme } from '../contexts/ThemeContext';
@@ -9,6 +9,7 @@ import { clearPhoneVerificationState, confirmPhoneCode, sendPhoneVerification } 
 import { accuracyProblem, denkmaPhone, signupProblem } from '../utils/denkmaSignup';
 import { useTranslation } from 'react-i18next';
 import i18n from '../services/i18n';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type Props = {
   initialBusinessName?: string;
@@ -164,7 +165,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
 
   return (
     <Modal visible animationType="slide" onRequestClose={close}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bgDark || colors.card }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardOverlay style={{ flex: 1, backgroundColor: colors.bgDark || colors.card }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 56 : Spacing.lg, paddingBottom: Spacing.sm }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.text, fontSize: FontSize.lg, fontWeight: '700' }}>{t('denkma_signup.creer_mon_compte_denkma_pro')}</Text>
@@ -259,7 +260,7 @@ export default function DenkmaSignupModal({ initialBusinessName, initialOwnerNam
             </View>
           </ScrollView>
         )}
-      </KeyboardAvoidingView>
+      </KeyboardOverlay>
     </Modal>
   );
 }

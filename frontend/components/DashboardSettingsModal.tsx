@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { UserSettings } from '../services/api';
+import KeyboardOverlay from './KeyboardOverlay';
 
 interface Props {
     visible: boolean;
@@ -73,7 +74,7 @@ export default function DashboardSettingsModal({ visible, onClose, settings, onU
             transparent={true}
             onRequestClose={onClose}
         >
-            <View style={styles.centeredView}>
+            <KeyboardOverlay style={styles.centeredView}>
                 <View style={[styles.modalView, { backgroundColor: colors.background }]}>
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: colors.text }]}>{t('dashboard.settings_title')}</Text>
@@ -111,7 +112,7 @@ export default function DashboardSettingsModal({ visible, onClose, settings, onU
                       style={{ marginTop: 10, marginBottom: Platform.OS === 'ios' ? 20 : 0 }}
                     />
                 </View>
-            </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

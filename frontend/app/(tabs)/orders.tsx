@@ -63,6 +63,7 @@ import AccessDenied from '../../components/AccessDenied';
 import { useDrawer } from '../../contexts/DrawerContext';
 import EcommerceOverview from '../../components/EcommerceOverview';
 import { isEcommerceWorkspaceAccount } from '../../utils/accountRouting';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 // Sans option, l'écran montre les commandes clients en ligne ; `supplierOrders` affiche les commandes et retours fournisseurs.
 export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWorkspace = false, supplierOrders = false }: { ecommerceWorkspace?: boolean; supplierOrders?: boolean } = {}) {
@@ -1710,7 +1711,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
 
         {/* AI Invoice Scan Result Modal */}
         {showScanResult && <Modal visible={showScanResult} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('orders.invoice_scanned')}</Text>
@@ -1802,7 +1803,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 </ScrollView>
               )}
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
         {/* Delivery Confirmation Modal (marketplace orders) */}
@@ -1821,7 +1822,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
         />
 
         {showWebOrderDetailModal && selectedWebOrder && <Modal visible={showWebOrderDetailModal} animationType="slide" transparent onRequestClose={() => setShowWebOrderDetailModal(false)}>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <View>
@@ -1962,7 +1963,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 </View>
               </ScrollView>
             </View>
-          </View>
+          </KeyboardOverlay>
           {denkmaShipOrder && (
             <DenkmaShipModal
               order={denkmaShipOrder}
@@ -1980,7 +1981,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
 
         {/* Order Detail Modal */}
         {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('orders.order_detail')}</Text>
@@ -2152,7 +2153,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 </ScrollView>
               ) : null}
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
         {/* Rating Modal */}
@@ -2214,7 +2215,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
 
         {/* Supplier History Modal */}
         {showHistoryModal && <Modal visible={showHistoryModal} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '80%' }]}>
               <View style={styles.modalHeader}>
                 <View>
@@ -2261,7 +2262,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 </View>
               </ScrollView>
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
         {/* Partial Delivery Modal */}
@@ -2430,7 +2431,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
 
         {/* Return Detail Modal */}
         {showReturnDetailModal && <Modal visible={showReturnDetailModal} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('orders.return_detail')}</Text>
@@ -2522,7 +2523,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                 </ScrollView>
               ) : null}
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
         {/* Create Return Modal */}

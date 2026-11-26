@@ -98,6 +98,7 @@ import admin_store_analytics
 import admin_product_insights
 import ai_health
 import fiscal_ledger
+import data_migration
 from ecommerce_theme_service import LEGACY_SETTINGS_TO_THEME, EcommerceThemeService, theme_error_response
 from ecommerce_media import EcommerceMediaLibrary
 from ecommerce_addresses import DomainInputError, normalize_ecommerce_slug, parse_domain_input
@@ -139,6 +140,8 @@ from services.catalog_service import CatalogService
 from services.firebase_service import init_firebase, verify_firebase_phone_token, verify_firebase_id_token
 from constants.sectors import BUSINESS_SECTORS, normalize_sector, PRODUCTION_SECTORS, RESTAURANT_SECTORS, is_production_sector
 from services import production_service
+from services.operational_service import OperationalService
+from services.marketplace_automation import MarketplaceAutomationService
 from services import ai_governance
 try:
     from services.rag_service import RAGService
@@ -205,19 +208,19 @@ IS_PROD = os.environ.get('ENV', os.environ.get('APP_ENV', os.environ.get('ENVIRO
 
 if not SECRET_KEY:
     if IS_PROD:
-        logger.critical("Ã¢ÂÃ…â€™ JWT_SECRET IS REQUIRED IN PRODUCTION!")
+        logger.critical("❌ JWT_SECRET IS REQUIRED IN PRODUCTION!")
         raise RuntimeError("JWT_SECRET environment variable is not set. This is required in production.")
 
     _default_secret = os.urandom(32).hex()
     import warnings
-    warnings.warn("âš ï¸  JWT_SECRET non dÃ©fini ! Utilisation d'une clÃ© alÃ©atoire (tokens invalidÃ©s au redÃ©marrage). DÃ©finissez JWT_SECRET en production.", stacklevel=2)
+    warnings.warn("⚠️  JWT_SECRET non défini ! Utilisation d'une clé aléatoire (tokens invalidés au redémarrage). Définissez JWT_SECRET en production.", stacklevel=2)
     SECRET_KEY = _default_secret
 ALGORITHM = "HS256"
 
 import re as _re
 
 def safe_regex(user_input: str) -> str:
-    """Ã‰chappe les caractÃ¨res spÃ©ciaux regex pour Ã©viter ReDoS et injection."""
+    """Échappe les caractères spéciaux regex pour éviter ReDoS et injection."""
     return _re.escape(user_input.strip())
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 heures (refresh auto via SecureStore dans l'APK)
@@ -460,7 +463,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     detail = "Erreur serveur interne" if IS_PROD else f"{type(exc).__name__}: {str(exc)}"
     return JSONResponse(status_code=500, content={"detail": detail})
 
-# Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ Idempotency middleware Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+# ─── Idempotency middleware ───────────────────────────────────────────────────
 # Prevents duplicate mutations when the client retries on network issues.
 IDEMPOTENCY_TTL_SECONDS = 300  # 5 minutes
 
@@ -499,20 +502,31 @@ async def idempotency_middleware(request: Request, call_next):
 
     return response
 
+# Marqueurs de texte UTF-8 relu par erreur en Windows-1252 (un « é » devenu deux caractères, par exemple).
+# Écrits en séquences \u pour ne jamais être abîmés à leur tour par un mauvais encodage.
 MOJIBAKE_MARKERS = (
-    "Ãƒ",
-    "",
-    "Ã¢â‚¬â„¢",
-    "Ã¢â‚¬Å“",
-    "Ã¢â‚¬Â",
-    "Ã¢â‚¬â€œ",
-    "Ã¢â‚¬â€",
-    "Ã¢â‚¬",
+    "\u00c3",  # Ã
+    "\u00c2",  # Â
+    "\u00e2\u20ac\u2122",  # ’
+    "\u00e2\u20ac\u0153",  # “
+    "\u00e2\u20ac\u009d",  # ”
+    "\u00e2\u20ac\u201c",  # –
+    "\u00e2\u20ac\u201d",  # —
+    "\u00e2\u20ac",
 )
 
 
 def _mojibake_score(value: str) -> int:
     return sum(value.count(marker) for marker in MOJIBAKE_MARKERS)
+
+
+def _mojibake_bytes(value: str) -> bytes:
+    """Octets d'origine d'un texte UTF-8 relu en Windows-1252 (les octets non attribués restent tels quels)."""
+    out = bytearray()
+    for char in value:
+        code = ord(char)
+        out += bytes([code]) if code < 256 else char.encode("cp1252")
+    return bytes(out)
 
 
 def _repair_mojibake_text(value: str) -> str:
@@ -524,7 +538,7 @@ def _repair_mojibake_text(value: str) -> str:
         if _mojibake_score(repaired) == 0:
             break
         try:
-            candidate = repaired.encode("latin-1").decode("utf-8")
+            candidate = _mojibake_bytes(repaired).decode("utf-8")
         except Exception:
             break
         if _mojibake_score(candidate) <= _mojibake_score(repaired):
@@ -533,12 +547,13 @@ def _repair_mojibake_text(value: str) -> str:
             break
 
     replacements = {
-        "Ã¢â‚¬â„¢": "'",
-        "Ã¢â‚¬Å“": '"',
-        "Ã¢â‚¬Â": '"',
-        "Ã¢â‚¬â€œ": "-",
-        "Ã¢â‚¬â€": "-",
-        "Ã‚ ": " ",
+        "\u00e2\u20ac\u2122": "'",
+        "\u00e2\u20ac\u0153": '"',
+        "\u00e2\u20ac\u009d": '"',
+        "\u00e2\u20ac\u201c": "-",
+        "\u00e2\u20ac\u201d": "-",
+        "\u00c2\u00a0": " ",
+        "\u00c2 ": " ",
     }
     for bad, good in replacements.items():
         repaired = repaired.replace(bad, good)
@@ -895,7 +910,7 @@ async def update_cgu(cgu_data: CGU):
         }},
         upsert=True
     )
-    return {"message": "CGU mises Ã  jour avec succÃ¨s"}
+    return {"message": "CGU mises à jour avec succès"}
 
 async def translate_legal_document(text: str, target_lang: str) -> str:
     """Helper to translate legal documents using Gemini"""
@@ -910,13 +925,13 @@ async def translate_legal_document(text: str, target_lang: str) -> str:
 
         prompt = f"""Tu es un traducteur juridique expert. Traduis le document Markdown suivant en {lang_name} ({target_lang}).
 Conserve EXACTEMENT la structure Markdown, les liens, les titres et la mise en forme.
-Le ton doit Ãªtre professionnel et juridiquement formel.
+Le ton doit être professionnel et juridiquement formel.
 
-Document Ã  traduire :
+Document à traduire :
 ---
 {text}
 ---
-RÃ©ponds UNIQUEMENT avec la traduction, sans aucun autre texte.
+Réponds UNIQUEMENT avec la traduction, sans aucun autre texte.
 """
         response = model.generate_content(prompt)
         return response.text.strip()
@@ -932,7 +947,7 @@ async def get_privacy(lang: str = "fr"):
     # 1. Get base document (French)
     source_doc = await db.system_configs.find_one({"config_id": "privacy"}, {"_id": 0, "content": 1, "updated_at": 1})
     if not source_doc:
-        source_content = "# Politique de ConfidentialitÃ©\n\nContenu en attente..."
+        source_content = "# Politique de Confidentialité\n\nContenu en attente..."
         source_updated_at = datetime.now(timezone.utc)
     else:
         source_content = source_doc["content"]
@@ -974,7 +989,7 @@ async def update_privacy(privacy_data: PrivacyPolicy):
         }},
         upsert=True
     )
-    return {"message": "Politique de confidentialitÃ© mise Ã  jour avec succÃ¨s"}
+    return {"message": "Politique de confidentialité mise à jour avec succès"}
 
 async def run_startup_migrations():
     """Background migration: backfill operational and security fields."""
@@ -1050,7 +1065,8 @@ async def run_startup_migrations():
             await db.users.update_one({"user_id": otp_user["user_id"]}, {"$set": otp_set})
 
         sales_without_public_token = await db.sales.find(
-            {"$or": [{"public_receipt_token": {"$exists": False}}, {"public_receipt_token": None}]},
+            {"$or": [{"public_receipt_token": {"$exists": False}}, {"public_receipt_token": None}],
+             "source": {"$ne": data_migration.IMPORT_SOURCE}},
             {"_id": 0, "sale_id": 1},
         ).to_list(None)
         for sale_doc in sales_without_public_token:
@@ -1082,7 +1098,7 @@ async def run_startup_migrations():
         # Supervised tasks
         asyncio.create_task(supervised_loop("alerts", check_alerts_loop, 300))
         asyncio.create_task(supervised_loop("planner_reminders", check_planner_reminders_loop, 120))
-        # DÃ©tection d'anomalies IA : passÃ© de 30 min (1800s) Ã  12 heures (43200s) pour Ã©conomiser des tokens
+        # Détection d'anomalies IA : passé de 30 min (1800s) à 12 heures (43200s) pour économiser des tokens
         asyncio.create_task(supervised_loop("ai_anomalies", check_ai_anomalies_loop, 43200))
         asyncio.create_task(supervised_loop("log_cleanup", cleanup_logs_loop, 86400))
         asyncio.create_task(supervised_loop("late_deliveries", check_late_deliveries_loop, 21600))
@@ -1201,6 +1217,11 @@ async def create_indexes_and_init():
                     logger.warning(f"E-commerce theme indexes deferred: {exc}")
                 await db.sales.create_index([("store_id", 1), ("created_at", -1)])
                 await db.sales.create_index([("user_id", 1), ("source", 1), ("created_at", -1)])
+                await db.sales.create_index([("user_id", 1), ("import_batch_id", 1)], sparse=True)
+                await db.sales.create_index([("user_id", 1), ("store_id", 1), ("import_fingerprint", 1)], sparse=True)
+                await db.migration_drafts.create_index("draft_id", unique=True)
+                await db.migration_drafts.create_index("expires_at", expireAfterSeconds=0)
+                await db.migration_batches.create_index([("owner_id", 1), ("created_at", -1)])
                 try:
                     # Reprise de l'historique : les ventes nées d'une commande livrée passent en « E-com ».
                     reclassified = await ecommerce_sale.backfill_sale_sources(db)
@@ -1299,7 +1320,7 @@ async def create_indexes_and_init():
                 exists_privacy = await db.system_configs.find_one({"config_id": "privacy"})
                 if not exists_privacy:
                     privacy_path = PathLib("docs/PRIVACY_POLICY.md")
-                    content = "# Politique de ConfidentialitÃ©\n\nContenu en cours de chargement..."
+                    content = "# Politique de Confidentialité\n\nContenu en cours de chargement..."
                     if privacy_path.exists():
                         content = privacy_path.read_text(encoding="utf-8")
                     await db.system_configs.insert_one({
@@ -1317,14 +1338,14 @@ async def create_indexes_and_init():
 
         asyncio.create_task(init_rag_and_migrations())
 
-        # Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ Email helper (Resend) Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+        # ── Email helper (Resend) ──────────────────────────────────────────
         RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
         RESEND_FROM_EMAIL = os.environ.get("RESEND_BILLING_FROM_EMAIL", os.environ.get("RESEND_FROM_EMAIL", "Stockman <billing@stockman.pro>"))
 
         async def send_trial_reminder_email(user_doc: dict, days_left: int):
             """Send a trial expiry reminder via Resend (no extra package needed)."""
             if not RESEND_API_KEY:
-                logger.warning("RESEND_API_KEY not set â€” skipping trial reminder email")
+                logger.warning("RESEND_API_KEY not set — skipping trial reminder email")
                 return
             if not is_billable_owner_doc(user_doc):
                 return
@@ -1467,7 +1488,7 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
                 plan=plan,
                 status=account_doc.get("subscription_status", "active"),
                 currency=account_doc.get("currency"),
-                message=f"Rappel J-{days_left} envoyÃ© (email/push)",
+                message=f"Rappel J-{days_left} envoyé (email/push)",
                 metadata={
                     "days_left": days_left,
                     "stripe": bool(links["stripe_url"]),
@@ -1501,7 +1522,7 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
             if expired_paid_accounts:
                 logger.info(f"Expired {len(expired_paid_accounts)} paid subscriptions")
 
-            # 2. Expire free trials (provider = none, trial_ends_at dÃ©passÃ©)
+            # 2. Expire free trials (provider = none, trial_ends_at dépassé)
             # Les fournisseurs (role=supplier) ont un compte gratuit permanent
             expired_trials = await db.business_accounts.find(
                 {
@@ -1918,7 +1939,7 @@ class DuplicateResolutionRequest(BaseModel):
 
 @app.get("/api/public/receipts/{sale_id}", response_model=PublicReceipt)
 async def get_legacy_public_receipt(sale_id: str):
-    raise HTTPException(status_code=410, detail="Ce lien de reÃ§u a Ã©tÃ© rÃ©voquÃ©. Utilisez le nouveau lien sÃ©curisÃ©.")
+    raise HTTPException(status_code=410, detail="Ce lien de reçu a été révoqué. Utilisez le nouveau lien sécurisé.")
 
 
 @app.get("/api/public/receipts/t/{public_token}", response_model=PublicReceipt)
@@ -1926,7 +1947,7 @@ async def get_public_receipt(public_token: str):
     """Public endpoint to view receipt details without authentication."""
     sale = await db.sales.find_one({"public_receipt_token": public_token})
     if not sale:
-        raise HTTPException(status_code=404, detail="ReÃ§u non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Reçu non trouvé")
 
     # Get store info
     store = await db.stores.find_one({"store_id": sale["store_id"]})
@@ -2537,7 +2558,7 @@ async def create_public_ecommerce_order(
             "quantity": quantity,
             "unit_price": unit_price,
             "total": line_total,
-            "unit": product.get("unit") or "piÃ¨ce",
+            "unit": product.get("unit") or "pièce",
         })
 
     delivery = None
@@ -2864,7 +2885,7 @@ async def view_public_receipt_page(public_token: str, download: bool = Query(Fal
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ReÃ§u {escape(receipt.sale_id)}</title>
+    <title>Reçu {escape(receipt.sale_id)}</title>
     <style>
         body {{ font-family: Arial, sans-serif; color: #1f2937; margin: 0; padding: 24px; }}
         .card {{ max-width: 760px; margin: 0 auto; border: 1px solid #eadfcb; border-radius: 20px; padding: 24px; }}
@@ -2880,11 +2901,11 @@ async def view_public_receipt_page(public_token: str, download: bool = Query(Fal
 </head>
 <body>
     <div class="card">
-        <div class="eyebrow">ReÃ§u numÃ©rique</div>
+        <div class="eyebrow">Reçu numérique</div>
         <h1>{escape(receipt.store_name)}</h1>
         <div class="meta">
             {escape(receipt.store_address or "")}<br />
-            RÃ©fÃ©rence vente : {escape(receipt.sale_id)}<br />
+            Référence vente : {escape(receipt.sale_id)}<br />
             Date : {escape(created_label)}<br />
             Paiement : {escape(receipt.payment_method)}
         </div>
@@ -2893,7 +2914,7 @@ async def view_public_receipt_page(public_token: str, download: bool = Query(Fal
             <thead>
                 <tr>
                     <th>Produit</th>
-                    <th style="text-align:center;">QuantitÃ©</th>
+                    <th style="text-align:center;">Quantité</th>
                     <th style="text-align:right;">Prix</th>
                     <th style="text-align:right;">Total</th>
                 </tr>
@@ -2917,7 +2938,7 @@ async def view_public_receipt_page(public_token: str, download: bool = Query(Fal
         <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <title>ReÃ§u {escape(receipt.sale_id)}</title>
+            <title>Reçu {escape(receipt.sale_id)}</title>
             <style>
                 :root {{
                     color-scheme: light;
@@ -3040,11 +3061,11 @@ async def view_public_receipt_page(public_token: str, download: bool = Query(Fal
         <body>
             <div class="wrap">
                 <div class="card">
-                    <div class="eyebrow">ReÃ§u numÃ©rique</div>
+                    <div class="eyebrow">Reçu numérique</div>
                     <h1>{escape(receipt.store_name)}</h1>
                     <div class="meta">
                         {escape(receipt.store_address or "")}<br />
-                        RÃ©fÃ©rence vente : {escape(receipt.sale_id)}<br />
+                        Référence vente : {escape(receipt.sale_id)}<br />
                         Date : {escape(created_label)}<br />
                         Paiement : {escape(receipt.payment_method)}
                     </div>
@@ -3058,7 +3079,7 @@ async def view_public_receipt_page(public_token: str, download: bool = Query(Fal
                         <thead>
                             <tr>
                                 <th>Produit</th>
-                                <th style="text-align:center;">QuantitÃ©</th>
+                                <th style="text-align:center;">Quantité</th>
                                 <th style="text-align:right;">Prix</th>
                                 <th style="text-align:right;">Total</th>
                             </tr>
@@ -3070,7 +3091,7 @@ async def view_public_receipt_page(public_token: str, download: bool = Query(Fal
 
                     <div class="actions">
                         <a class="btn btn-primary" href="javascript:window.print()">Imprimer / PDF</a>
-                        <a class="btn" href="/public/receipts/t/{quote(public_token)}?download=1">TÃ©lÃ©charger le reÃ§u</a>
+                        <a class="btn" href="/public/receipts/t/{quote(public_token)}?download=1">Télécharger le reçu</a>
                     </div>
 
                     <div class="footer">{escape(receipt.receipt_footer or "Merci de votre visite.")}</div>
@@ -3100,7 +3121,7 @@ async def contact_form(request: Request, msg: ContactMessage):
     """Receive contact form submission"""
     await db.contact_messages.insert_one(msg.dict())
     logger.info(f"New contact message received")
-    return {"message": "Message reÃ§u"}
+    return {"message": "Message reçu"}
 
 @public_router.post("/newsletter")
 @limiter.limit("5/minute")
@@ -3111,11 +3132,11 @@ async def subscribe_newsletter(request: Request, sub: NewsletterSubscription):
     if not existing:
         await db.newsletter_subscribers.insert_one(sub.dict())
         logger.info(f"New newsletter subscriber registered")
-    return {"message": "Inscription rÃ©ussie"}
+    return {"message": "Inscription réussie"}
 
 @public_router.get("/supplier-invite/{token}")
 async def get_supplier_invite_info(token: str):
-    """Public endpoint â€” returns invitation context for the landing page"""
+    """Public endpoint — returns invitation context for the landing page"""
     supplier = await db.suppliers.find_one({"invitation_token": token}, {"_id": 0})
     if not supplier:
         raise HTTPException(status_code=404, detail="Invitation non trouvee ou expiree")
@@ -3124,7 +3145,7 @@ async def get_supplier_invite_info(token: str):
     store = await db.stores.find_one({"user_id": supplier["user_id"]}, {"_id": 0, "name": 1})
     return {
         "supplier_name": supplier.get("contact_name") or supplier.get("name"),
-        "merchant_name": (merchant or {}).get("name", "Un commerÃ§ant"),
+        "merchant_name": (merchant or {}).get("name", "Un commerçant"),
         "store_name": (store or {}).get("name"),
         "already_linked": bool(supplier.get("linked_user_id")),
     }
@@ -3167,7 +3188,7 @@ class UserCreate(BaseModel):
     how_did_you_hear: Optional[str] = None # Referral source
     country_code: Optional[str] = None
     signup_surface: Optional[str] = None  # "mobile" | "web"
-    plan: Optional[str] = None  # "starter", "pro", "enterprise" â€” choisi sur la landing page
+    plan: Optional[str] = None  # "starter", "pro", "enterprise" — choisi sur la landing page
     verification_channel: Optional[str] = None  # "email" | "phone"
 
     account_roles: List[str] = Field(default_factory=list)
@@ -3398,7 +3419,7 @@ class Location(BaseModel):
     user_id: str
     store_id: Optional[str] = None
     name: str
-    type: str = "shelf"  # ex: allÃ©e, rayon, niveau, Ã©tagÃ¨re, zone, entrepÃ´t...
+    type: str = "shelf"  # ex: allée, rayon, niveau, étagère, zone, entrepôt...
     parent_id: Optional[str] = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -3445,7 +3466,7 @@ class Product(BaseModel):
     category_id: Optional[str] = None
     subcategory: Optional[str] = None
     quantity: float = 0
-    unit: str = "piÃ¨ce"  # piÃ¨ce, carton, kg, litre, etc.
+    unit: str = "pièce"  # pièce, carton, kg, litre, etc.
     measurement_type: str = "unit"
     display_unit: Optional[str] = None
     pricing_unit: Optional[str] = None
@@ -3486,7 +3507,7 @@ class ProductCreate(BaseModel):
     category_id: Optional[str] = None
     subcategory: Optional[str] = None
     quantity: float = 0
-    unit: str = "piÃ¨ce"
+    unit: str = "pièce"
     measurement_type: Optional[str] = None
     display_unit: Optional[str] = None
     pricing_unit: Optional[str] = None
@@ -3641,7 +3662,7 @@ class RecipeCreate(BaseModel):
     menu_product_id: Optional[str] = None
     output_product_id: Optional[str] = None
     output_quantity: float = 1
-    output_unit: str = "piÃ¨ce"
+    output_unit: str = "pièce"
     ingredients: List[RecipeIngredient] = []
     prep_time_min: int = 0
     instructions: Optional[str] = None
@@ -3958,7 +3979,7 @@ class UserSettings(BaseModel):
     tax_enabled: bool = False
     tax_rate: float = 0.0  # ex: 18.0 pour 18%
     tax_mode: str = "ttc"  # "ttc" = prix saisis TTC, "ht" = prix saisis HT
-    # Personnalisation reÃ§u
+    # Personnalisation reçu
     receipt_business_name: Optional[str] = None
     receipt_footer: Optional[str] = None
     invoice_business_name: Optional[str] = None
@@ -3990,11 +4011,11 @@ class SaleItem(BaseModel):
     selling_price: float
     discount_amount: float = 0.0
     total: float
-    tax_rate: float = 0.0  # TVA appliquÃ©e en %
-    tax_amount: float = 0.0  # Montant TVA calculÃ©
+    tax_rate: float = 0.0  # TVA appliquée en %
+    tax_amount: float = 0.0  # Montant TVA calculé
     station: str = "plat"  # entree | plat | dessert | boisson | autre
     item_notes: Optional[str] = None  # ex: "sans oignons", "saignant"
-    ready: bool = False  # marquÃ© prÃªt par la cuisine
+    ready: bool = False  # marqué prêt par la cuisine
 
     sold_quantity_input: Optional[float] = None
     sold_unit: Optional[str] = None
@@ -4025,9 +4046,9 @@ class Sale(BaseModel):
     subtotal_ht: float = 0.0  # Sous-total hors taxe
     kitchen_sent: bool = False
     kitchen_sent_at: Optional[datetime] = None
-    status: str = "completed"  # "open" = commande en cours | "completed" = payÃ©e
+    status: str = "completed"  # "open" = commande en cours | "completed" = payée
     service_type: str = "dine_in"  # dine_in | takeaway | delivery
-    occupied_since: Optional[datetime] = None  # quand la table a Ã©tÃ© occupÃ©e
+    occupied_since: Optional[datetime] = None  # quand la table a été occupée
     current_amount: float = 0.0  # total provisoire avant paiement
     loyalty_points_earned: int = 0
     customer_total_spent_increment: float = 0.0
@@ -4035,8 +4056,10 @@ class Sale(BaseModel):
     cancelled_at: Optional[datetime] = None
     cancelled_by_user_id: Optional[str] = None
     cancellation_reason: Optional[str] = None
-    source: str = "physical"  # physical | ecommerce (vente créée à la livraison d'une commande en ligne)
+    source: str = "physical"  # physical | ecommerce (vente créée à la livraison d'une commande en ligne) | import (reprise d'un ancien logiciel)
     ecommerce_order_id: Optional[str] = None
+    import_batch_id: Optional[str] = None  # lot de reprise des données, pour l'annulation
+    import_reference: Optional[str] = None  # numéro de ticket ou de facture dans l'ancien logiciel
 
 
 class SaleCreate(BaseModel):
@@ -4044,7 +4067,7 @@ class SaleCreate(BaseModel):
     payment_method: str = "cash"
     customer_id: Optional[str] = None
     discount_amount: Optional[float] = 0.0
-    payments: Optional[List[dict]] = None  # [{method, amount}] â€” si fourni, Ã©crase payment_method
+    payments: Optional[List[dict]] = None  # [{method, amount}] — si fourni, écrase payment_method
     terminal_id: Optional[str] = None
     table_id: Optional[str] = None
     covers: Optional[int] = None
@@ -4117,7 +4140,7 @@ class AccountingStats(BaseModel):
     total_items_sold: int = 0
     stock_value: float = 0.0
     stock_selling_value: float = 0.0
-    tax_collected: float = 0.0  # TVA collectÃ©e sur la pÃ©riode
+    tax_collected: float = 0.0  # TVA collectée sur la période
     scope_label: str = ""
     summary: str = ""
     recommendations: List[str] = []
@@ -4224,7 +4247,7 @@ class Expense(BaseModel):
     expense_id: str = Field(default_factory=lambda: f"exp_{uuid.uuid4().hex[:12]}")
     user_id: str
     store_id: Optional[str] = None
-    category: str # Loyer, Salaire, Transport, ElectricitÃ©, etc.
+    category: str # Loyer, Salaire, Transport, Electricité, etc.
     amount: float
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -5903,7 +5926,7 @@ def is_required_verification_complete(user_doc: dict) -> bool:
     if not required:
         return True
     # Accounts created before the verification system have no verification_completed_at
-    # and no signup_surface â€” treat them as already verified
+    # and no signup_surface — treat them as already verified
     if not user_doc.get("signup_surface") and not user_doc.get("verification_completed_at"):
         created = user_doc.get("created_at")
         if isinstance(created, datetime) and created < datetime(2026, 3, 20, tzinfo=timezone.utc):
@@ -6258,7 +6281,7 @@ async def require_auth(request: Request, auth: Optional[HTTPAuthorizationCredent
 
     user = await get_current_user(request)
     if not user:
-        raise HTTPException(status_code=401, detail="Non authentifiÃ©")
+        raise HTTPException(status_code=401, detail="Non authentifié")
     return user
 
 
@@ -6295,12 +6318,12 @@ def require_permission(module: str, level: str = "read"):
         if level == "write" and perm != "write":
             raise HTTPException(
                 status_code=403,
-                detail=f"Action interdite : vous n'avez pas les droits d'Ã©criture sur le module '{module}'."
+                detail=f"Action interdite : vous n'avez pas les droits d'écriture sur le module '{module}'."
             )
         if level == "read" and perm == "none":
             raise HTTPException(
                 status_code=403,
-                detail=f"AccÃ¨s refusÃ© : vous n'avez pas les droits de lecture sur le module '{module}'."
+                detail=f"Accès refusé : vous n'avez pas les droits de lecture sur le module '{module}'."
             )
 
         return user
@@ -6321,7 +6344,7 @@ def require_any_read(*modules):
             perm = user_perms.get(module, "none")
             if perm != "none":
                 return user
-        raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ© : vous n'avez pas les droits nÃ©cessaires.")
+        raise HTTPException(status_code=403, detail="Accès refusé : vous n'avez pas les droits nécessaires.")
     return permission_checker
 
 def require_write(module: str):
@@ -6461,7 +6484,7 @@ async def require_advanced_access(user: User = Depends(require_auth)) -> User:
     return user
 
 
-def ensure_user_store_access(user: User, store_id: Optional[str], detail: str = "AccÃ¨s refusÃ© pour ce magasin") -> None:
+def ensure_user_store_access(user: User, store_id: Optional[str], detail: str = "Accès refusé pour ce magasin") -> None:
     if not user_can_access_store(
         {
             "role": user.role,
@@ -6654,7 +6677,7 @@ def apply_completed_sales_scope(query: Dict[str, Any]) -> Dict[str, Any]:
 def ensure_scoped_document_access(
     user: User,
     document: Optional[dict],
-    detail: str = "AccÃ¨s refusÃ© pour ce magasin",
+    detail: str = "Accès refusé pour ce magasin",
     store_field: str = "store_id",
 ) -> None:
     if not document:
@@ -6719,19 +6742,19 @@ async def backfill_inferred_legacy_store_scope(
 
 async def require_operational_access(user: User = Depends(require_auth)) -> User:
     if not has_operational_access_user(user):
-        raise HTTPException(status_code=403, detail="AccÃ¨s opÃ©rationnel requis")
+        raise HTTPException(status_code=403, detail="Accès opérationnel requis")
     return user
 
 
 async def require_org_admin(user: User = Depends(require_auth)) -> User:
     if not is_org_admin_user(user):
-        raise HTTPException(status_code=403, detail="AccÃ¨s administrateur opÃ©rations requis")
+        raise HTTPException(status_code=403, detail="Accès administrateur opérations requis")
     return user
 
 
 async def require_account_history_view(user: User = Depends(require_auth)) -> User:
     if not can_view_account_history_user(user):
-        raise HTTPException(status_code=403, detail="AccÃ¨s Ã  l'historique systÃ¨me rÃ©servÃ© aux administrateurs d'organisation")
+        raise HTTPException(status_code=403, detail="Accès à l'historique système réservé aux administrateurs d'organisation")
     return user
 
 
@@ -6749,7 +6772,7 @@ def require_procurement_access(level: str = "read"):
             if user_perms.get(module) in accepted_levels:
                 return user
 
-        raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ© au module approvisionnement")
+        raise HTTPException(status_code=403, detail="Accès refusé au module approvisionnement")
 
     return procurement_checker
 
@@ -6927,7 +6950,7 @@ def _account_display_name(account: dict, owner: Optional[dict]) -> str:
 
 @api_router.get("/public/leads")
 async def get_leads(admin: User = Depends(require_superadmin)):
-    """Get all leads (Admin only â€” secured)"""
+    """Get all leads (Admin only — secured)"""
     contacts = await db.contact_messages.find({}, {"_id": 0}).to_list(None)
     subscribers = await db.newsletter_subscribers.find({}, {"_id": 0}).to_list(None)
     return {
@@ -6940,7 +6963,7 @@ async def redirect_signed_billing_payment(t: str):
     try:
         payload = jwt.decode(t, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
-        raise HTTPException(status_code=401, detail="Lien de paiement invalide ou expirÃ©")
+        raise HTTPException(status_code=401, detail="Lien de paiement invalide ou expiré")
 
     if payload.get("type") != "billing_payment":
         raise HTTPException(status_code=400, detail="Lien de paiement invalide")
@@ -6960,9 +6983,9 @@ async def redirect_signed_billing_payment(t: str):
     if not owner_doc or not account_doc:
         raise HTTPException(status_code=404, detail="Compte de facturation introuvable")
     if not is_billable_owner_doc(owner_doc):
-        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturÃ©s.")
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
     if account_doc.get("is_demo"):
-        raise HTTPException(status_code=403, detail="Le paiement rÃ©el est dÃ©sactivÃ© dans les comptes dÃ©mo.")
+        raise HTTPException(status_code=403, detail="Le paiement réel est désactivé dans les comptes démo.")
 
     billing_payload = merge_billing_user_payload(owner_doc, account_doc)
     if provider == "flutterwave":
@@ -6973,7 +6996,7 @@ async def redirect_signed_billing_payment(t: str):
             session = await create_flutterwave_session(billing_payload, plan)
         except Exception as exc:
             logger.error("Signed Flutterwave session error for %s: %s", owner_id, exc)
-            raise HTTPException(status_code=502, detail="Erreur lors de la crÃ©ation du paiement")
+            raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement")
         await db.pending_transactions.insert_one({
             "transaction_id": session["transaction_id"],
             "user_id": owner_id,
@@ -6993,7 +7016,7 @@ async def redirect_signed_billing_payment(t: str):
             currency=billing_payload.get("currency"),
             country_code=billing_payload.get("country_code"),
             provider_reference=session["transaction_id"],
-            message="Checkout Flutterwave initiÃ© depuis un lien de facturation",
+            message="Checkout Flutterwave initié depuis un lien de facturation",
         )
         return RedirectResponse(url=session["payment_url"], status_code=302)
 
@@ -7001,7 +7024,7 @@ async def redirect_signed_billing_payment(t: str):
         session = await create_stripe_session(billing_payload, plan)
     except Exception as exc:
         logger.error("Signed Stripe session error for %s: %s", owner_id, exc)
-        raise HTTPException(status_code=502, detail="Erreur lors de la crÃ©ation du paiement Stripe")
+        raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement Stripe")
     await log_subscription_event(
         event_type="checkout_initiated",
         provider="stripe",
@@ -7013,28 +7036,28 @@ async def redirect_signed_billing_payment(t: str):
         currency=billing_payload.get("currency"),
         country_code=billing_payload.get("country_code"),
         provider_reference=session["session_id"],
-        message="Checkout Stripe initiÃ© depuis un lien de facturation",
+        message="Checkout Stripe initié depuis un lien de facturation",
     )
     return RedirectResponse(url=session["checkout_url"], status_code=302)
 
 
 @api_router.post("/billing/checkout")
 async def create_billing_checkout(plan: str, user: User = Depends(require_auth)):
-    """CrÃ©e une session de paiement Flutterwave (Mobile Money, Afrique)."""
+    """Crée une session de paiement Flutterwave (Mobile Money, Afrique)."""
     if plan not in ("starter", "pro", "enterprise"):
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
     if user.is_demo:
         raise HTTPException(status_code=403, detail="Le paiement reel est desactive dans les comptes demo.")
     if user.role == "supplier":
-        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturÃ©s.")
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
     if get_owner_id(user) != user.user_id and user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
-        raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gÃ©rer l'abonnement")
+        raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gérer l'abonnement")
     owner_id = get_owner_id(user)
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     if not is_billable_owner_doc(owner_doc):
-        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturÃ©s.")
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
     account_doc = await ensure_business_account_for_user_doc(owner_doc)
     user_doc = merge_billing_user_payload(owner_doc, account_doc)
     user_currency = user_doc.get("currency", DEFAULT_CURRENCY)
@@ -7056,7 +7079,7 @@ async def create_billing_checkout(plan: str, user: User = Depends(require_auth))
             country_code=user_doc.get("country_code"),
             message=str(e),
         )
-        raise HTTPException(status_code=502, detail="Erreur lors de la crÃ©ation du paiement")
+        raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement")
     await db.pending_transactions.insert_one({
         "transaction_id": session["transaction_id"],
         "user_id": owner_id,
@@ -7075,28 +7098,28 @@ async def create_billing_checkout(plan: str, user: User = Depends(require_auth))
         currency=user_doc.get("currency"),
         country_code=user_doc.get("country_code"),
         provider_reference=session["transaction_id"],
-        message="Checkout Flutterwave initiÃ©",
+        message="Checkout Flutterwave initié",
     )
     return {"payment_url": session["payment_url"], "transaction_id": session["transaction_id"]}
 
 
 @api_router.post("/billing/stripe-checkout")
 async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
-    """CrÃ©e une session Stripe Checkout (carte bancaire, EUR)."""
+    """Crée une session Stripe Checkout (carte bancaire, EUR)."""
     if plan not in ("starter", "pro", "enterprise"):
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
     if user.is_demo:
         raise HTTPException(status_code=403, detail="Le paiement reel est desactive dans les comptes demo.")
     if user.role == "supplier":
-        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturÃ©s.")
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
     if get_owner_id(user) != user.user_id and user.role != "superadmin" and "billing_admin" not in (user.account_roles or []):
-        raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gÃ©rer l'abonnement")
+        raise HTTPException(status_code=403, detail="Seuls les responsables facturation peuvent gérer l'abonnement")
     owner_id = get_owner_id(user)
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     if not is_billable_owner_doc(owner_doc):
-        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturÃ©s.")
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
     account_doc = await ensure_business_account_for_user_doc(owner_doc)
     user_doc = merge_billing_user_payload(owner_doc, account_doc)
     try:
@@ -7115,7 +7138,7 @@ async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
             country_code=user_doc.get("country_code"),
             message=str(e),
         )
-        raise HTTPException(status_code=502, detail="Erreur lors de la crÃ©ation du paiement Stripe")
+        raise HTTPException(status_code=502, detail="Erreur lors de la création du paiement Stripe")
     await log_subscription_event(
         event_type="checkout_initiated",
         provider="stripe",
@@ -7127,7 +7150,7 @@ async def create_stripe_checkout(plan: str, user: User = Depends(require_auth)):
         currency=user_doc.get("currency"),
         country_code=user_doc.get("country_code"),
         provider_reference=session["session_id"],
-        message="Checkout Stripe initiÃ©",
+        message="Checkout Stripe initié",
     )
     return {"checkout_url": session["checkout_url"], "session_id": session["session_id"]}
 
@@ -7138,15 +7161,15 @@ async def generate_payment_link(
     plan: str = "starter",
     admin: User = Depends(require_admin_access),
 ):
-    """GÃ©nÃ¨re un lien Stripe Checkout pour un user (superadmin only).
-    Le lien peut Ãªtre envoyÃ© par WhatsApp/SMS au client."""
+    """Génère un lien Stripe Checkout pour un user (superadmin only).
+    Le lien peut être envoyé par WhatsApp/SMS au client."""
     if plan not in ("starter", "pro", "enterprise"):
         raise HTTPException(status_code=400, detail="Plan invalide. Valeurs : starter, pro, enterprise")
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     if not is_billable_owner_doc(user_doc):
-        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturÃ©s.")
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
     account_doc = await db.business_accounts.find_one({"owner_user_id": user_id}, {"_id": 0})
     if not account_doc:
         account_doc = await ensure_business_account_for_user_doc(user_doc)
@@ -7163,7 +7186,7 @@ async def generate_payment_link(
         account_id=(account_doc or {}).get("account_id"),
         plan=plan,
         status="pending",
-        message=f"Lien de paiement gÃ©nÃ©rÃ© par {admin.user_id}",
+        message=f"Lien de paiement généré par {admin.user_id}",
     )
     return {
         "checkout_url": checkout_url,
@@ -7188,7 +7211,7 @@ async def regenerate_subscription_payment_links(
     if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     if not is_billable_owner_doc(owner_doc):
-        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturÃ©s.")
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
 
     plan = normalize_plan(account_doc.get("plan") or "starter")
     merged_doc = merge_billing_user_payload(owner_doc, account_doc)
@@ -7248,7 +7271,7 @@ async def admin_send_subscription_reminder(
     days_left: int = 1,
     admin: User = Depends(require_admin_access),
 ):
-    """Envoie un rappel dâ€™abonnement immÃ©diat (email + push)."""
+    """Envoie un rappel d’abonnement immédiat (email + push)."""
     days_left = max(1, min(days_left, 30))
     account_doc = await db.business_accounts.find_one({"account_id": account_id}, {"_id": 0})
     if not account_doc:
@@ -7260,7 +7283,7 @@ async def admin_send_subscription_reminder(
     if not owner_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     if not is_billable_owner_doc(owner_doc):
-        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturÃ©s.")
+        raise HTTPException(status_code=403, detail="Les comptes fournisseurs ne sont pas facturés.")
 
     plan = normalize_plan(account_doc.get("plan") or "starter")
     merged_doc = merge_billing_user_payload(owner_doc, account_doc)
@@ -7356,7 +7379,7 @@ Vous pouvez régulariser maintenant pour éviter toute limitation d’accès.<br
 
 @api_router.post("/webhooks/stripe")
 async def stripe_webhook(request: Request):
-    """Webhook Stripe â€” dÃ©clenchÃ© aprÃ¨s un paiement rÃ©ussi."""
+    """Webhook Stripe — déclenché après un paiement réussi."""
     payload = await request.body()
     sig_header = request.headers.get("Stripe-Signature", "")
     try:
@@ -7376,7 +7399,7 @@ async def stripe_webhook(request: Request):
     obj = event["data"]["object"]
 
     if event_type == "checkout.session.completed":
-        # Subscription created â€” store stripe IDs, plan activated on invoice.paid
+        # Subscription created — store stripe IDs, plan activated on invoice.paid
         metadata = obj.get("metadata", {})
         user_id = metadata.get("user_id")
 
@@ -7403,7 +7426,7 @@ async def stripe_webhook(request: Request):
                     account_id=metadata.get("account_id"),
                     status="ignored",
                     provider_reference=obj.get("id"),
-                    message="Checkout Stripe ignorÃ© pour un compte fournisseur ou non facturable",
+                    message="Checkout Stripe ignoré pour un compte fournisseur ou non facturable",
                 )
                 return {"received": True}
             # Detect plan from metadata, or from line items, or default to starter
@@ -7412,7 +7435,7 @@ async def stripe_webhook(request: Request):
                 # Try to detect plan from Stripe Price ID
                 line_items = obj.get("line_items", {}).get("data") or []
                 if not line_items:
-                    # line_items may not be expanded â€” check display_items or amount
+                    # line_items may not be expanded — check display_items or amount
                     amount_total = obj.get("amount_total", 0)
                     if amount_total:
                         # Rough detection by amount (cents)
@@ -7442,11 +7465,11 @@ async def stripe_webhook(request: Request):
                 status="pending_activation",
                 currency=metadata.get("currency"),
                 provider_reference=obj.get("subscription") or obj.get("id"),
-                message="Stripe checkout complÃ©tÃ©",
+                message="Stripe checkout complété",
             )
 
     elif event_type == "invoice.paid":
-        # Recurring payment succeeded â€” activate/renew subscription
+        # Recurring payment succeeded — activate/renew subscription
         sub_id = obj.get("subscription")
         customer_id = obj.get("customer")
         # Find user by stripe_subscription_id or stripe_customer_id
@@ -7463,7 +7486,7 @@ async def stripe_webhook(request: Request):
                     owner_user_id=user_doc["user_id"],
                     status="ignored",
                     provider_reference=sub_id or obj.get("id"),
-                    message="Paiement Stripe ignorÃ© pour un compte fournisseur ou non facturable",
+                    message="Paiement Stripe ignoré pour un compte fournisseur ou non facturable",
                 )
                 return {"received": True}
             # Get plan from subscription metadata
@@ -7495,7 +7518,7 @@ async def stripe_webhook(request: Request):
                 status="active",
                 currency=metadata.get("currency"),
                 provider_reference=sub_id or obj.get("id"),
-                message="Paiement Stripe confirmÃ©",
+                message="Paiement Stripe confirmé",
                 metadata={"subscription_end": _iso_or_none(sub_end)},
             )
 
@@ -7521,7 +7544,7 @@ async def stripe_webhook(request: Request):
                 plan=normalize_plan((await db.business_accounts.find_one({"owner_user_id": user_doc["user_id"]}, {"plan": 1}) or {}).get("plan") or "starter"),
                 status="expired",
                 provider_reference=sub_id or customer_id,
-                message="Abonnement Stripe supprimÃ© ou expirÃ©",
+                message="Abonnement Stripe supprimé ou expiré",
             )
 
     elif event_type == "customer.subscription.updated":
@@ -7546,7 +7569,7 @@ async def stripe_webhook(request: Request):
                 owner_user_id=user_doc["user_id"],
                 status="expired",
                 provider_reference=sub_id or customer_id,
-                message=f"Abonnement Stripe en Ã©tat {status}",
+                message=f"Abonnement Stripe en état {status}",
             )
 
     return {"received": True}
@@ -7554,8 +7577,8 @@ async def stripe_webhook(request: Request):
 
 @api_router.post("/webhooks/flutterwave")
 async def flutterwave_webhook(request: Request):
-    """Webhook appelÃ© par Flutterwave aprÃ¨s confirmation de paiement."""
-    # VÃ©rification de la signature via le header verif-hash
+    """Webhook appelé par Flutterwave après confirmation de paiement."""
+    # Vérification de la signature via le header verif-hash
     verif_hash = request.headers.get("verif-hash", "")
     if FLW_HASH and verif_hash != FLW_HASH:
         logger.warning(f"Flutterwave webhook: invalid verif-hash")
@@ -7571,7 +7594,7 @@ async def flutterwave_webhook(request: Request):
     try:
         data = await request.json()
     except Exception:
-        raise HTTPException(status_code=400, detail="Corps de requÃªte invalide")
+        raise HTTPException(status_code=400, detail="Corps de requête invalide")
 
     # Flutterwave envoie un objet avec event + data
     event = data.get("event", "")
@@ -7588,7 +7611,7 @@ async def flutterwave_webhook(request: Request):
             source="web",
             status="failed",
             provider_reference=str(tx_data.get("id") or tx_data.get("tx_ref") or ""),
-            message=f"Statut Flutterwave non rÃ©ussi: {tx_data.get('status')}",
+            message=f"Statut Flutterwave non réussi: {tx_data.get('status')}",
         )
         return {"status": "ignored"}
 
@@ -7596,7 +7619,7 @@ async def flutterwave_webhook(request: Request):
     if not transaction_id:
         raise HTTPException(status_code=400, detail="tx_ref manquant")
 
-    # Double vÃ©rification auprÃ¨s de l'API Flutterwave
+    # Double vérification auprès de l'API Flutterwave
     result = await verify_flutterwave_transaction(transaction_id)
     verified_data = (result.get("data") or [{}])
     if isinstance(verified_data, list):
@@ -7609,7 +7632,7 @@ async def flutterwave_webhook(request: Request):
             source="web",
             status="failed",
             provider_reference=transaction_id,
-            message="Double vÃ©rification Flutterwave non concluante",
+            message="Double vérification Flutterwave non concluante",
             metadata={"verification_status": verified_data.get("status")},
         )
         return {"status": "ignored"}
@@ -7623,7 +7646,7 @@ async def flutterwave_webhook(request: Request):
             source="web",
             status="warning",
             provider_reference=transaction_id,
-            message="Transaction confirmÃ©e sans pending_transaction",
+            message="Transaction confirmée sans pending_transaction",
         )
         return {"status": "not_found"}
 
@@ -7637,7 +7660,7 @@ async def flutterwave_webhook(request: Request):
             account_id=pending.get("account_id"),
             status="ignored",
             provider_reference=transaction_id,
-            message="Paiement Flutterwave ignorÃ© pour un compte fournisseur ou non facturable",
+            message="Paiement Flutterwave ignoré pour un compte fournisseur ou non facturable",
         )
         await db.pending_transactions.delete_one({"transaction_id": transaction_id})
         return {"status": "ignored"}
@@ -7664,7 +7687,7 @@ async def flutterwave_webhook(request: Request):
         status="active",
         currency=tx_data.get("currency"),
         provider_reference=str(tx_data.get("id") or transaction_id),
-        message="Paiement Flutterwave confirmÃ©",
+        message="Paiement Flutterwave confirmé",
         metadata={"subscription_end": _iso_or_none(subscription_end)},
     )
 
@@ -7673,7 +7696,7 @@ async def flutterwave_webhook(request: Request):
         from services.notification_service import notification_service
         await notification_service.notify_user(
             db, pending["user_id"],
-            "ðŸŽ‰ Plan mis Ã  jour !",
+            "🎉 Plan mis à jour !",
             f"Votre plan {plan.capitalize()} est maintenant actif. Votre application va se synchroniser.",
             caller_owner_id=pending["user_id"]
         )
@@ -7699,7 +7722,7 @@ async def flutterwave_webhook(request: Request):
 
 @api_router.post("/payment/mock-webhook")
 async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMoney", admin: User = Depends(require_superadmin)):
-    """Simulate the webhook call from the provider â€” SUPERADMIN ONLY, DEV ONLY"""
+    """Simulate the webhook call from the provider — SUPERADMIN ONLY, DEV ONLY"""
     if IS_PROD:
         raise HTTPException(status_code=403, detail="Mock webhook disabled in production")
     logger.info(f"PAYMENT VALIDATED (MOCK): {method} for {user_id} by admin {admin.user_id}")
@@ -7717,22 +7740,22 @@ async def mock_webhook(user_id: str, txn: str, method: Optional[str] = "MobileMo
 
 @api_router.post("/admin/set-plan", dependencies=[Depends(audit_admin_request)])
 async def admin_set_plan(user_id: str, plan: str, admin: User = Depends(require_superadmin)):
-    """Force le plan d'un user â€” SUPERADMIN ONLY. Pour tests et migrations."""
+    """Force le plan d'un user — SUPERADMIN ONLY. Pour tests et migrations."""
     valid_plans = ("starter", "pro", "enterprise")
     if plan not in valid_plans:
-        raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptÃ©es : {valid_plans}")
+        raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
     result = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     if not result:
-        raise HTTPException(status_code=404, detail="User non trouvÃ©")
+        raise HTTPException(status_code=404, detail="User non trouvé")
     await update_business_account_for_owner(user_id, {"plan": plan, "subscription_status": "active"})
     return {"status": "ok", "user_id": user_id, "plan": plan}
 
 @api_router.post("/admin/set-plan-all", dependencies=[Depends(audit_admin_request)])
 async def admin_set_plan_all(plan: str, role: str = "shopkeeper", admin: User = Depends(require_superadmin)):
-    """Force le plan sur tous les users d'un rÃ´le â€” SUPERADMIN ONLY. Pour tests."""
+    """Force le plan sur tous les users d'un rôle — SUPERADMIN ONLY. Pour tests."""
     valid_plans = ("starter", "pro", "enterprise")
     if plan not in valid_plans:
-        raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptÃ©es : {valid_plans}")
+        raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
     owners = await db.users.find({"role": role}, {"user_id": 1, "_id": 0}).to_list(None)
     for owner in owners:
         await update_business_account_for_owner(owner["user_id"], {"plan": plan, "subscription_status": "active"})
@@ -7783,7 +7806,7 @@ async def admin_delete_user(email: str, admin: User = Depends(require_superadmin
     return {"status": "ok", "deleted_email": email, "details": deleted_counts}
 
 
-# ===================== ADMIN â€” AI USAGE DASHBOARD =====================
+# ===================== ADMIN — AI USAGE DASHBOARD =====================
 
 @api_router.get("/admin/ai-usage-stats")
 async def admin_ai_usage_stats(
@@ -7828,7 +7851,7 @@ async def parse_import_file(
         raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 5 Mo)")
     # Security: validate file type
     if file.content_type and file.content_type not in ["text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"]:
-        raise HTTPException(status_code=400, detail="Type de fichier non autorisÃ©. CSV ou Excel uniquement.")
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé. CSV ou Excel uniquement.")
     try:
         res = await import_service.parse_csv(content)
         import_profile = import_service.detect_import_profile(res.get("columns", []))
@@ -7852,7 +7875,7 @@ async def parse_import_file(
                     ai_mapping = import_service.get_identity_mapping()
                     import_profile = {
                         "source": "ai_template",
-                        "label": "Template personnalisÃ©",
+                        "label": "Template personnalisé",
                         "confidence": round(template_confidence, 2),
                         "auto_mapping": True,
                         "detected_columns": list(template_mapping.values()),
@@ -7884,7 +7907,7 @@ async def confirm_import(
         mapping = data.get("mapping")
 
         if not import_data or not mapping:
-            raise HTTPException(status_code=400, detail="DonnÃ©es d'importation ou mappage manquants")
+            raise HTTPException(status_code=400, detail="Données d'importation ou mappage manquants")
         if mapping.get("location"):
             ensure_enterprise_locations_allowed(current_user)
 
@@ -7934,6 +7957,138 @@ async def resume_import_job(job_id: str, current_user: User = Depends(require_au
     schedule_product_import_job(job_id, user_id)
     resumed_job = await import_service.get_import_job(job_id, user_id)
     return serialize_import_job(resumed_job)
+
+# ===================== REPRISE DES DONNÉES =====================
+
+
+def _migration_owner_context(user: User) -> tuple:
+    """La reprise concerne tout le commerce : seul le propriétaire du compte la lance."""
+    if user.role != "superadmin" and user.parent_user_id:
+        raise HTTPException(status_code=403, detail="Seul le propriétaire du compte peut reprendre les données d'un ancien logiciel.")
+    ensure_subscription_write_allowed(user)
+    if not user.active_store_id:
+        raise HTTPException(status_code=400, detail="Choisissez d'abord une boutique.")
+    return get_owner_id(user), user.active_store_id
+
+
+def _migration_model():
+    if gemini_model is not None:
+        return gemini_model
+    api_key = resolve_gemini_api_key()
+    if not api_key:
+        return None
+    genai.configure(api_key=api_key)
+    return build_gemini_model()
+
+
+class MigrationTableKind(BaseModel):
+    kind: Literal["products", "sales", "ignore"]
+
+
+class MigrationTableMapping(BaseModel):
+    mapping: Dict[str, str] = {}
+
+
+class MigrationConfirm(BaseModel):
+    unnamed_label: Optional[str] = None
+
+
+@api_router.post("/data-migration/analyze")
+@limiter.limit("30/hour")
+async def analyze_migration_file(request: Request, file: UploadFile = File(...), user: User = Depends(require_auth)):
+    """Étape 1 : lit le fichier, reconnaît produits et ventes, renvoie l'aperçu sans rien enregistrer."""
+    owner_id, store_id = _migration_owner_context(user)
+    content = await file.read()
+    if len(content) > data_migration.MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="Fichier trop volumineux (10 Mo au maximum) : découpez-le et importez les parties l'une après l'autre.")
+    if not content:
+        raise HTTPException(status_code=400, detail="Le fichier est vide.")
+    filename = file.filename or "fichier"
+    model = _migration_model()
+    try:
+        if data_migration.is_document(filename, file.content_type):
+            if model is None:
+                raise HTTPException(status_code=503, detail="La lecture des PDF et des photos est momentanément indisponible. Utilisez un fichier Excel ou CSV.")
+            mime_type = data_migration.document_mime_type(filename, file.content_type)
+            tables = await data_migration.ai_read_document(content, mime_type, filename, model)
+            await track_ai_usage(user.user_id, "data_migration_document", plan=_resolve_ai_plan(user))
+        else:
+            tables = data_migration.read_tables(content, filename)
+        return await data_migration.create_draft(db, owner_id, store_id, user.user_id, filename, tables, model)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"Data migration analyze failed: {exc}")
+        raise HTTPException(status_code=400, detail="Ce fichier n'a pas pu être lu. Vérifiez qu'il s'agit d'un fichier Excel, CSV, PDF ou d'une photo nette.")
+
+
+async def _load_migration_draft(draft_id: str, user: User) -> dict:
+    owner_id, _store_id = _migration_owner_context(user)
+    try:
+        return await data_migration.get_draft(db, draft_id, owner_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@api_router.put("/data-migration/drafts/{draft_id}/tables/{index}/kind")
+async def change_migration_table_kind(draft_id: str, index: int, data: MigrationTableKind, user: User = Depends(require_auth)):
+    draft = await _load_migration_draft(draft_id, user)
+    try:
+        return await data_migration.change_table_kind(db, draft, index, data.kind, _migration_model())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@api_router.put("/data-migration/drafts/{draft_id}/tables/{index}/mapping")
+async def change_migration_table_mapping(draft_id: str, index: int, data: MigrationTableMapping, user: User = Depends(require_auth)):
+    draft = await _load_migration_draft(draft_id, user)
+    try:
+        return await data_migration.change_table_mapping(db, draft, index, data.mapping)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@api_router.post("/data-migration/drafts/{draft_id}/confirm")
+async def confirm_migration(draft_id: str, data: MigrationConfirm, user: User = Depends(require_auth)):
+    """Étape 2 : enregistre les produits puis les ventes, sous un numéro de lot annulable."""
+    draft = await _load_migration_draft(draft_id, user)
+    try:
+        report = await data_migration.run_import(
+            db, draft, user.user_id, import_service,
+            unnamed_label=(data.unnamed_label or "").strip()[:60] or "Ventes reprises",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    _invalidate_dashboard_ai_caches(get_owner_id(user), user.active_store_id)
+    await log_activity(
+        user, "create", "data_migration",
+        f"Reprise des données « {draft.get('file_name')} » : {report['products_created']} produits, {report['sales_created']} ventes",
+        {"batch_id": report["batch_id"]},
+    )
+    return report
+
+
+@api_router.get("/data-migration/batches")
+async def list_migration_batches(user: User = Depends(require_auth)):
+    owner_id, store_id = _migration_owner_context(user)
+    return {"batches": await data_migration.list_batches(db, owner_id, store_id)}
+
+
+@api_router.post("/data-migration/batches/{batch_id}/undo")
+async def undo_migration_batch(batch_id: str, user: User = Depends(require_auth)):
+    owner_id, _store_id = _migration_owner_context(user)
+    try:
+        result = await data_migration.undo_batch(db, batch_id, owner_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    _invalidate_dashboard_ai_caches(get_owner_id(user), user.active_store_id)
+    await log_activity(user, "delete", "data_migration", f"Import annulé : {result['sales_removed']} ventes et {result['products_removed']} produits retirés", {"batch_id": batch_id})
+    return result
+
 
 # Helper: Image compression (I16)
 def compress_image_base64(base64_str: str, max_size=(800, 800), quality=75) -> str:
@@ -8053,7 +8208,7 @@ async def list_sub_users(user: User = Depends(require_auth)):
         owner_id = user.parent_user_id or user.user_id
         sub_users = await db.users.find({"parent_user_id": owner_id}, {"_id": 0}).to_list(100)
     elif user.role == "staff" and perms.get("staff") in ("read", "write"):
-        # Manager dÃ©lÃ©guÃ© : voit les employÃ©s sans staff:write (ne peut pas gÃ©rer d'autres managers)
+        # Manager délégué : voit les employés sans staff:write (ne peut pas gérer d'autres managers)
         owner_id = user.parent_user_id
         all_subs = await db.users.find({"parent_user_id": owner_id}, {"_id": 0}).to_list(100)
         sub_users = [
@@ -8064,7 +8219,7 @@ async def list_sub_users(user: User = Depends(require_auth)):
             and bool(set(u.get("store_ids") or []) & set(user.store_ids or []))
         ]
     else:
-        raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ©")
+        raise HTTPException(status_code=403, detail="Accès refusé")
     return [await build_user_from_doc(u) for u in sub_users]
 
 @api_router.post("/sub-users", response_model=User)
@@ -8073,12 +8228,12 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
     perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
     if not is_org_admin_user(user) and not is_delegated_manager:
-        raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ©")
-    # Anti-escalade : un manager dÃ©lÃ©guÃ© ne peut pas crÃ©er d'autres managers
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    # Anti-escalade : un manager délégué ne peut pas créer d'autres managers
     if is_delegated_manager and (sub_user_data.permissions or {}).get("staff") == "write":
-        raise HTTPException(status_code=403, detail="Vous ne pouvez pas dÃ©lÃ©guer la gestion d'Ã©quipe")
+        raise HTTPException(status_code=403, detail="Vous ne pouvez pas déléguer la gestion d'équipe")
     if is_delegated_manager and sub_user_data.account_roles:
-        raise HTTPException(status_code=403, detail="Vous ne pouvez pas attribuer des rÃ´les de compte")
+        raise HTTPException(status_code=403, detail="Vous ne pouvez pas attribuer des rôles de compte")
 
     # Plan limits on staff count
     STAFF_LIMITS = {"starter": 0, "pro": 5, "enterprise": 9999}
@@ -8089,11 +8244,11 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
     staff_limit = STAFF_LIMITS.get(owner_plan, 1)
     current_staff = await db.users.count_documents({"parent_user_id": owner_id})
     if current_staff >= staff_limit:
-        raise HTTPException(status_code=403, detail=f"Votre plan {owner_plan} est limitÃ© Ã  {staff_limit} utilisateur(s). Passez Ã  un plan supÃ©rieur.")
+        raise HTTPException(status_code=403, detail=f"Votre plan {owner_plan} est limité à {staff_limit} utilisateur(s). Passez à un plan supérieur.")
 
     # Check if email exists
     if await db.users.find_one({"email": sub_user_data.email}):
-        raise HTTPException(status_code=400, detail="Cet email est dÃ©jÃ  utilisÃ©")
+        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
 
     new_user_id = f"user_{uuid.uuid4().hex[:12]}"
     hashed_password = pwd_context.hash(sub_user_data.password)
@@ -8139,7 +8294,7 @@ async def create_sub_user(sub_user_data: UserCreate, user: User = Depends(requir
         "password_hash": hashed_password
     })
 
-    await log_activity(user, "staff_created", "staff", f"EmployÃ© '{new_user.name}' crÃ©Ã© ({new_user.email})", {"sub_user_id": new_user_id})
+    await log_activity(user, "staff_created", "staff", f"Employé '{new_user.name}' créé ({new_user.email})", {"sub_user_id": new_user_id})
 
     return await build_user_from_doc(new_user_payload)
 
@@ -8149,22 +8304,22 @@ async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User 
     perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
     if not is_org_admin_user(user) and not is_delegated_manager:
-        raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ©")
+        raise HTTPException(status_code=403, detail="Accès refusé")
 
     owner_id = user.parent_user_id or user.user_id
     target = await db.users.find_one({"user_id": sub_user_id, "parent_user_id": owner_id})
     if not target:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvÃ© ou accÃ¨s refusÃ©")
-    # Anti-escalade : manager dÃ©lÃ©guÃ© ne peut pas modifier un autre manager ni lui donner staff:write
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé ou accès refusé")
+    # Anti-escalade : manager délégué ne peut pas modifier un autre manager ni lui donner staff:write
     if is_delegated_manager:
         if (target.get("permissions") or {}).get("staff") == "write":
             raise HTTPException(status_code=403, detail="Vous ne pouvez pas modifier un autre manager")
         if normalize_account_roles(target):
             raise HTTPException(status_code=403, detail="Vous ne pouvez pas modifier un administrateur de compte")
         if (update_data.permissions or {}).get("staff") == "write":
-            raise HTTPException(status_code=403, detail="Vous ne pouvez pas dÃ©lÃ©guer la gestion d'Ã©quipe")
+            raise HTTPException(status_code=403, detail="Vous ne pouvez pas déléguer la gestion d'équipe")
         if "account_roles" in update_data.model_fields_set:
-            raise HTTPException(status_code=403, detail="Vous ne pouvez pas attribuer des rÃ´les de compte")
+            raise HTTPException(status_code=403, detail="Vous ne pouvez pas attribuer des rôles de compte")
 
     owner_doc = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
     account_doc = await ensure_business_account_for_user_doc(owner_doc or {"user_id": owner_id, "role": "shopkeeper"})
@@ -8183,7 +8338,7 @@ async def update_sub_user(sub_user_id: str, update_data: UserUpdate, user: User 
         await db.users.update_one({"user_id": sub_user_id}, {"$set": update_dict})
 
     updated = await db.users.find_one({"user_id": sub_user_id}, {"_id": 0})
-    await log_activity(user, "staff_updated", "staff", f"EmployÃ© '{updated.get('name', sub_user_id)}' modifiÃ©", {"sub_user_id": sub_user_id})
+    await log_activity(user, "staff_updated", "staff", f"Employé '{updated.get('name', sub_user_id)}' modifié", {"sub_user_id": sub_user_id})
     return await build_user_from_doc(updated)
 
 @api_router.delete("/sub-users/{sub_user_id}")
@@ -8192,11 +8347,11 @@ async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
     perms = user.effective_permissions or user.permissions or {}
     is_delegated_manager = user.role == "staff" and perms.get("staff") == "write"
     if not is_org_admin_user(user) and not is_delegated_manager:
-        raise HTTPException(status_code=403, detail="AccÃ¨s refusÃ©")
+        raise HTTPException(status_code=403, detail="Accès refusé")
 
     owner_id = user.parent_user_id or user.user_id
     target_user = await db.users.find_one({"user_id": sub_user_id, "parent_user_id": owner_id}, {"name": 1, "permissions": 1, "account_roles": 1, "role": 1})
-    # Anti-escalade : manager dÃ©lÃ©guÃ© ne peut pas supprimer un autre manager
+    # Anti-escalade : manager délégué ne peut pas supprimer un autre manager
     if is_delegated_manager and target_user and (target_user.get("permissions") or {}).get("staff") == "write":
         raise HTTPException(status_code=403, detail="Vous ne pouvez pas supprimer un autre manager")
     if is_delegated_manager and target_user and normalize_account_roles(target_user):
@@ -8209,9 +8364,9 @@ async def delete_sub_user(sub_user_id: str, user: User = Depends(require_auth)):
     await db.credentials.delete_one({"user_id": sub_user_id})
 
     if target_user:
-        await log_activity(user, "staff_deleted", "staff", f"EmployÃ© '{target_user.get('name', sub_user_id)}' supprimÃ©", {"sub_user_id": sub_user_id})
+        await log_activity(user, "staff_deleted", "staff", f"Employé '{target_user.get('name', sub_user_id)}' supprimé", {"sub_user_id": sub_user_id})
 
-    return {"message": "Utilisateur supprimÃ©"}
+    return {"message": "Utilisateur supprimé"}
 
 @api_router.get("/activity-logs")
 async def list_activity_logs(user: User = Depends(require_account_history_view), skip: int = 0, limit: int = 50):
@@ -8565,7 +8720,7 @@ async def create_dispute(data: DisputeCreate, user: User = Depends(require_auth)
     except Exception as e:
         logger.warning(f"Failed to notify admins of new dispute: {e}")
 
-    return {"message": "Litige crÃ©Ã© avec succÃ¨s", "dispute_id": dispute.dispute_id}
+    return {"message": "Litige créé avec succès", "dispute_id": dispute.dispute_id}
 
 @api_router.get("/disputes/mine")
 async def my_disputes(user: User = Depends(require_auth)):
@@ -8788,8 +8943,8 @@ async def admin_health(user: User = Depends(require_admin_access)):
         await db.command("ping")
         db_status = "connected"
     except Exception as e:
-        logger.error(f"Database health check error: {str(e)}")  # Log complet cÃ´tÃ© serveur
-        db_status = "error"  # Message gÃ©nÃ©rique cÃ´tÃ© client
+        logger.error(f"Database health check error: {str(e)}")  # Log complet côté serveur
+        db_status = "error"  # Message générique côté client
 
     return {
         "status": "online",
@@ -9011,7 +9166,7 @@ async def admin_list_deleted_users(limit: int = 500, user: User = Depends(requir
 
 @admin_router.get("/users/{user_id}/detail")
 async def admin_user_detail(user_id: str, admin: User = Depends(require_admin_access)):
-    """Panel dÃ©taillÃ© d'un utilisateur : stores, ventes, IA, activitÃ© rÃ©cente."""
+    """Panel détaillé d'un utilisateur : stores, ventes, IA, activité récente."""
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0})
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
@@ -9493,7 +9648,7 @@ async def admin_bulk_set_plan(data: AdminBulkPlanRequest, admin: User = Depends(
     """Changer le plan de plusieurs utilisateurs en une fois."""
     valid_plans = ("starter", "pro", "enterprise")
     if data.plan not in valid_plans:
-        raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptÃ©es : {valid_plans}")
+        raise HTTPException(status_code=400, detail=f"Plan invalide. Valeurs acceptées : {valid_plans}")
     updated = 0
     for uid in data.user_ids:
         try:
@@ -9783,7 +9938,7 @@ async def admin_delete_product(product_id: str, user: User = Depends(require_adm
         action="delete_product",
         details={"product_id": product_id}
     )
-    return {"message": "Produit supprimÃ© par l'administrateur"}
+    return {"message": "Produit supprimé par l'administrateur"}
 
 @admin_router.put("/products/{product_id}/toggle")
 async def admin_toggle_product(
@@ -9975,7 +10130,7 @@ async def admin_notifications(limit: int = 80, user: User = Depends(require_admi
             f"user:{row.get('user_id')}",
             "users",
             "Nouvel utilisateur",
-            f"{row.get('name') or row.get('email') or 'Utilisateur'} a crÃ©Ã© un compte {role} ({plan}).",
+            f"{row.get('name') or row.get('email') or 'Utilisateur'} a créé un compte {role} ({plan}).",
             row.get("created_at"),
             "success",
             row.get("name"),
@@ -10012,7 +10167,7 @@ async def admin_notifications(limit: int = 80, user: User = Depends(require_admi
         items.append(admin_notification_item(
             f"dispute:{dispute.get('dispute_id')}:{timestamp.isoformat() if isinstance(timestamp, datetime) else ''}",
             "disputes",
-            "Litige Ã  suivre",
+            "Litige à suivre",
             f"{dispute.get('subject') or 'Litige'} - {dispute.get('reporter_name') or dispute.get('reporter_email') or 'Utilisateur'}",
             timestamp,
             "warning",
@@ -10030,7 +10185,7 @@ async def admin_notifications(limit: int = 80, user: User = Depends(require_admi
             f"store:{store.get('store_id')}",
             "stores",
             "Nouvelle boutique",
-            f"{store.get('name') or 'Boutique'} a Ã©tÃ© crÃ©Ã©e.",
+            f"{store.get('name') or 'Boutique'} a été créée.",
             store.get("created_at"),
             "info",
             None,
@@ -10046,8 +10201,8 @@ async def admin_notifications(limit: int = 80, user: User = Depends(require_admi
         items.append(admin_notification_item(
             f"demo:{demo.get('demo_session_id')}",
             "demos",
-            "Nouvelle dÃ©mo",
-            f"DÃ©mo {demo.get('demo_type') or 'commerce'} lancÃ©e sur {demo.get('demo_surface') or 'app'}.",
+            "Nouvelle démo",
+            f"Démo {demo.get('demo_type') or 'commerce'} lancée sur {demo.get('demo_surface') or 'app'}.",
             demo.get("created_at"),
             "info",
             None,
@@ -10063,7 +10218,7 @@ async def admin_notifications(limit: int = 80, user: User = Depends(require_admi
         items.append(admin_notification_item(
             f"message:{message.get('message_id')}",
             "broadcast",
-            "Communication envoyÃ©e",
+            "Communication envoyée",
             f"{message.get('title') or 'Message'} vers {message.get('target') or 'all'}.",
             message.get("sent_at"),
             "success",
@@ -11082,14 +11237,14 @@ async def admin_subscription_alerts():
             "code": "missing_subscription_end",
             "count": missing_subscription_end,
             "title": "Abonnements actifs sans date de fin",
-            "message": "Des comptes payants actifs n'ont pas de subscription_end renseignÃ©.",
+            "message": "Des comptes payants actifs n'ont pas de subscription_end renseigné.",
         })
     if missing_provider_reference:
         alerts.append({
             "severity": "warning",
             "code": "missing_provider_reference",
             "count": missing_provider_reference,
-            "title": "RÃ©fÃ©rence provider manquante",
+            "title": "Référence provider manquante",
             "message": "Des comptes payants actifs n'ont pas de subscription_provider_id.",
         })
     if expired_nonstarter:
@@ -11097,16 +11252,16 @@ async def admin_subscription_alerts():
             "severity": "warning",
             "code": "expired_nonstarter",
             "count": expired_nonstarter,
-            "title": "Plans expirÃ©s encore supÃ©rieurs Ã  Starter",
-            "message": "Des comptes expirÃ©s conservent encore un plan Pro ou Enterprise.",
+            "title": "Plans expirés encore supérieurs à Starter",
+            "message": "Des comptes expirés conservent encore un plan Pro ou Enterprise.",
         })
     for row in failure_rows:
         alerts.append({
             "severity": "warning",
             "code": f"provider_failures_{row['_id'] or 'unknown'}",
             "count": row["count"],
-            "title": f"Incidents rÃ©cents {str(row['_id'] or 'provider').capitalize()}",
-            "message": "Des Ã©checs ou anomalies de paiement ont Ã©tÃ© dÃ©tectÃ©s sur les 7 derniers jours.",
+            "title": f"Incidents récents {str(row['_id'] or 'provider').capitalize()}",
+            "message": "Des échecs ou anomalies de paiement ont été détectés sur les 7 derniers jours.",
             "provider": row["_id"] or "unknown",
         })
 
@@ -11343,7 +11498,7 @@ async def admin_grant_subscription_grace(account_id: str, days: int = 7, data: O
         "manual_access_grace_until": manual_access_grace_until,
         "subscription_access_phase": policy["subscription_access_phase"],
         "note": note or None,
-        "message": f"Grace prolongÃ©e de {days} jours",
+        "message": f"Grace prolongée de {days} jours",
     }
 
 
@@ -11378,7 +11533,7 @@ async def admin_set_subscription_read_only(account_id: str, enabled: bool = True
         "manual_read_only_enabled": enabled,
         "subscription_access_phase": policy["subscription_access_phase"],
         "note": note or None,
-        "message": "Lecture seule activÃ©e" if enabled else "Lecture seule retirÃ©e",
+        "message": "Lecture seule activée" if enabled else "Lecture seule retirée",
     }
 
 
@@ -11996,7 +12151,7 @@ async def admin_get_store_inventory(
     }
 
 @admin_router.put("/users/{user_id}/toggle")
-async def admin_toggle_user(user_id: str):
+async def admin_toggle_user(user_id: str, current_user: User = Depends(require_auth)):
     """Toggle user active/inactive status"""
     user_doc = await db.users.find_one({"user_id": user_id})
     if not user_doc:
@@ -12251,24 +12406,24 @@ async def batch_product_action(data: BatchActionRequest, user: User = Depends(re
 
     if data.action == "delete":
         result = await db.products.delete_many(query)
-        message = f"{result.deleted_count} produits supprimÃ©s"
+        message = f"{result.deleted_count} produits supprimés"
 
     elif data.action == "activate":
         result = await db.products.update_many(query, {"$set": {"is_active": True}})
-        message = f"{result.modified_count} produits activÃ©s"
+        message = f"{result.modified_count} produits activés"
 
     elif data.action == "deactivate":
         result = await db.products.update_many(query, {"$set": {"is_active": False}})
-        message = f"{result.modified_count} produits dÃ©sactivÃ©s"
+        message = f"{result.modified_count} produits désactivés"
 
     elif data.action == "set_category":
         if not data.value:
             raise HTTPException(status_code=400, detail="Category ID required")
         result = await db.products.update_many(query, {"$set": {"category_id": data.value}})
-        message = f"{result.modified_count} produits mis Ã  jour"
+        message = f"{result.modified_count} produits mis à jour"
 
     else:
-        raise HTTPException(status_code=400, detail="Action non supportÃ©e")
+        raise HTTPException(status_code=400, detail="Action non supportée")
 
     await db.activity_logs.insert_one({
         "log_id": f"log_{uuid.uuid4().hex[:12]}",
@@ -12326,7 +12481,7 @@ async def list_collections():
 async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Optional[str] = None, user: User = Depends(require_admin_access)):
     """View documents in a collection with pagination and search (superadmin only, disabled in production)."""
     if IS_PROD:
-        raise HTTPException(status_code=403, detail="Endpoint dÃ©sactivÃ© en production")
+        raise HTTPException(status_code=403, detail="Endpoint désactivé en production")
     # Security check: ensure strictly read-only and no arbitrary code execution
     if name not in await db.list_collection_names():
         raise HTTPException(status_code=404, detail="Collection not found")
@@ -12368,10 +12523,10 @@ async def view_collection(name: str, skip: int = 0, limit: int = 20, search: Opt
     return {"data": serialized_docs, "total": total_count, "skip": skip, "limit": limit}
 
 LANGUAGE_NAMES = {
-    "fr": "franÃ§ais", "en": "English", "es": "espaÃ±ol", "pt": "portuguÃªs",
-    "ar": "Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©", "de": "Deutsch", "it": "italiano", "zh": "ä¸­æ–‡",
-    "ru": "Ð ÑƒÑÑÐºÐ¸Ð¹", "hi": "à¤¹à¤¿à¤¨à¥à¤¦à¥€", "tr": "TÃ¼rkÃ§e", "wo": "Wolof",
-    "ff": "Pulaar", "pl": "polski", "ro": "romÃ¢nÄƒ",
+    "fr": "français", "en": "English", "es": "español", "pt": "português",
+    "ar": "العربية", "de": "Deutsch", "it": "italiano", "zh": "中文",
+    "ru": "Русский", "hi": "हिन्दी", "tr": "Türkçe", "wo": "Wolof",
+    "ff": "Pulaar", "pl": "polski", "ro": "română",
 }
 
 def get_language_instruction(lang: str = "fr") -> str:
@@ -12380,7 +12535,7 @@ def get_language_instruction(lang: str = "fr") -> str:
     name = LANGUAGE_NAMES.get(lang, lang)
     persona = i18n.t("ai.persona_name", lang)
     if lang == "fr":
-        return f"Tu es {persona}. RÃ©ponds en franÃ§ais."
+        return f"Tu es {persona}. Réponds en français."
     return f"IMPORTANT: You are {persona}. You MUST respond in {name} ({lang}). All text output must be in {name}."
 
 
@@ -12527,7 +12682,7 @@ class AiChatMessage(BaseModel):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 # ---------------------------------------------------------------------------
-# AI governance â€” delegated to services/ai_governance.py
+# AI governance — delegated to services/ai_governance.py
 # Thin wrappers kept here so existing call-sites need minimal changes.
 # ---------------------------------------------------------------------------
 def _resolve_ai_plan(user: User) -> str:
@@ -12914,7 +13069,6 @@ async def ai_suggest_category(request: Request, data: dict = Body(...), user: Us
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
     business_profile = get_ai_business_profile({"business_type": user.business_type})
     business_guidance = get_ai_business_guidance(business_profile, lang)
-    business_guidance = get_ai_business_guidance(business_profile, lang)
     if business_profile["is_restaurant"]:
         categories_list = ["Entrees", "Plats", "Desserts", "Boissons", "Snacks", "Menus", "Accompagnements", "Sauces", "Autre"]
         subcategories_map = {
@@ -12931,36 +13085,36 @@ async def ai_suggest_category(request: Request, data: dict = Body(...), user: Us
         domain_instruction = business_guidance["category"]
     else:
         categories_list = [
-            "Alimentation", "HygiÃ¨ne & BeautÃ©", "Maison & Entretien", "BÃ©bÃ©",
+            "Alimentation", "Hygiène & Beauté", "Maison & Entretien", "Bébé",
             "Boissons", "High-Tech", "Mode & Textile", "Bricolage & Quincaillerie",
             "Papeterie & Bureau", "Automobile & Moto", "Autre"
         ]
         subcategories_map = {
-            "Alimentation": ["Riz", "Huile", "Sucre", "Farine", "Lait", "Boissons", "Conserves", "Ã‰pices", "PÃ¢tes", "CÃ©rÃ©ales", "Fruits & LÃ©gumes", "Viande & Poisson", "Biscuits & Snacks", "Produits Frais", "Autre"],
-            "HygiÃ¨ne & BeautÃ©": ["Savon", "Dentifrice", "Shampoing", "CrÃ¨me", "Parfum", "Maquillage", "Serviettes hygiÃ©niques", "Autre"],
-            "Maison & Entretien": ["DÃ©tergent", "Javel", "Balai & Nettoyage", "Insecticide", "Cuisine", "DÃ©coration", "Autre"],
-            "BÃ©bÃ©": ["Couches", "Lait infantile", "CÃ©rÃ©ales bÃ©bÃ©", "HygiÃ¨ne bÃ©bÃ©", "Autre"],
-            "Boissons": ["Eau", "Jus", "Soda", "BiÃ¨re", "Vin & Alcool", "Ã‰nergisant", "Autre"],
-            "High-Tech": ["TÃ©lÃ©phonie", "Accessoires", "Informatique", "Piles & Batteries", "Autre"],
+            "Alimentation": ["Riz", "Huile", "Sucre", "Farine", "Lait", "Boissons", "Conserves", "Épices", "Pâtes", "Céréales", "Fruits & Légumes", "Viande & Poisson", "Biscuits & Snacks", "Produits Frais", "Autre"],
+            "Hygiène & Beauté": ["Savon", "Dentifrice", "Shampoing", "Crème", "Parfum", "Maquillage", "Serviettes hygiéniques", "Autre"],
+            "Maison & Entretien": ["Détergent", "Javel", "Balai & Nettoyage", "Insecticide", "Cuisine", "Décoration", "Autre"],
+            "Bébé": ["Couches", "Lait infantile", "Céréales bébé", "Hygiène bébé", "Autre"],
+            "Boissons": ["Eau", "Jus", "Soda", "Bière", "Vin & Alcool", "Énergisant", "Autre"],
+            "High-Tech": ["Téléphonie", "Accessoires", "Informatique", "Piles & Batteries", "Autre"],
             "Mode & Textile": ["Homme", "Femme", "Enfant", "Chaussures", "Accessoires", "Autre"],
-            "Bricolage & Quincaillerie": ["Outillage", "MatÃ©riaux", "Ã‰lectricitÃ©", "Plomberie", "Peinture", "Autre"],
+            "Bricolage & Quincaillerie": ["Outillage", "Matériaux", "Électricité", "Plomberie", "Peinture", "Autre"],
             "Papeterie & Bureau": ["Cahiers", "Stylos", "Fournitures", "Autre"],
-            "Automobile & Moto": ["Huile moteur", "PiÃ¨ces", "Accessoires", "Autre"],
+            "Automobile & Moto": ["Huile moteur", "Pièces", "Accessoires", "Autre"],
             "Autre": ["Autre"],
         }
         domain_instruction = business_guidance["category"]
 
     lang_instr = get_language_instruction(lang)
-    prompt = f"""Tu es un assistant de catÃ©gorisation de produits pour un commerce.
+    prompt = f"""Tu es un assistant de catégorisation de produits pour un commerce.
 Produit : "{product_name}"
 
-CatÃ©gories disponibles : {', '.join(categories_list)}
+Catégories disponibles : {', '.join(categories_list)}
 
-Pour chaque catÃ©gorie, voici les sous-catÃ©gories possibles :
+Pour chaque catégorie, voici les sous-catégories possibles :
 {json.dumps(subcategories_map, ensure_ascii=False)}
 
-RÃ©ponds UNIQUEMENT avec un JSON valide (sans markdown) :
-{{"category": "NomCatÃ©gorie", "subcategory": "NomSousCatÃ©gorie"}}
+Réponds UNIQUEMENT avec un JSON valide (sans markdown) :
+{{"category": "NomCatégorie", "subcategory": "NomSousCatégorie"}}
 {domain_instruction}
 {lang_instr}"""
 
@@ -13001,32 +13155,33 @@ async def ai_generate_description(request: Request, data: dict = Body(...), user
     if not api_key:
         raise HTTPException(status_code=500, detail=i18n.t("errors.gemini_api_missing", user.language))
     business_profile = get_ai_business_profile({"business_type": user.business_type})
+    business_guidance = get_ai_business_guidance(business_profile, lang)
     cat_context = ""
     if category:
-        cat_context = f"\nCatÃ©gorie : {category}"
+        cat_context = f"\nCatégorie : {category}"
         if subcategory:
             cat_context += f" > {subcategory}"
 
     lang_instr = get_language_instruction(lang)
     if business_profile["is_restaurant"]:
-        prompt = f"""Tu es un expert en rÃ©daction de cartes de restaurant.
-GÃ©nÃ¨re une description courte, appÃ©tissante et claire (1-2 phrases max, 160 caractÃ¨res max) pour un plat ou une boisson.
-La description doit aider un client Ã  choisir, sans jargon interne ni vocabulaire de stock.
+        prompt = f"""Tu es un expert en rédaction de cartes de restaurant.
+Génère une description courte, appétissante et claire (1-2 phrases max, 160 caractères max) pour un plat ou une boisson.
+La description doit aider un client à choisir, sans jargon interne ni vocabulaire de stock.
 {business_guidance["description"]}
 
 Produit : "{product_name}"{cat_context}
 
-RÃ©ponds UNIQUEMENT avec la description, sans guillemets, sans prÃ©fixe.
+Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe.
 {lang_instr}"""
     else:
-        prompt = f"""Tu es un expert en rÃ©daction de fiches produits pour un commerce.
-GÃ©nÃ¨re une description marketing courte et vendeuse (2-3 phrases max, 150 caractÃ¨res max) pour ce produit.
-La description doit Ãªtre professionnelle, informative et donner envie d'acheter.
+        prompt = f"""Tu es un expert en rédaction de fiches produits pour un commerce.
+Génère une description marketing courte et vendeuse (2-3 phrases max, 150 caractères max) pour ce produit.
+La description doit être professionnelle, informative et donner envie d'acheter.
 {business_guidance["description"]}
 
 Produit : "{product_name}"{cat_context}
 
-RÃ©ponds UNIQUEMENT avec la description, sans guillemets, sans prÃ©fixe.
+Réponds UNIQUEMENT avec la description, sans guillemets, sans préfixe.
 {lang_instr}"""
 
     try:
@@ -13074,51 +13229,51 @@ async def ai_daily_summary(request: Request, lang: str = "fr", user: User = Depe
 
         lang_instr = get_language_instruction(lang)
         if business_profile["is_restaurant"]:
-            prompt = f"""Tu es le co-pilote d'un restaurant. GÃ©nÃ¨re le briefing du jour : direct, chiffrÃ©, actionnable.
+            prompt = f"""Tu es le co-pilote d'un restaurant. Génère le briefing du jour : direct, chiffré, actionnable.
 {lang_instr}
 
-DONNÃ‰ES DU RESTAURANT :
+DONNÉES DU RESTAURANT :
 {data_summary}
 
 Structure du briefing (max 250 mots) :
 **Service du jour**
-(Etat du service, occupation de salle, rÃ©servations et tickets cuisine. Dis si la mise en place semble fluide ou tendue.)
+(Etat du service, occupation de salle, réservations et tickets cuisine. Dis si la mise en place semble fluide ou tendue.)
 
-**âš ï¸ PrioritÃ©s opÃ©rationnelles**
-(Maximum 3 alertes classÃ©es par urgence â€” manque d'ingrÃ©dients, plats sans recette, tables saturÃ©es, tickets cuisine en attente. Si rien de critique : Ã©cris "RAS".)
+**⚠️ Priorités opérationnelles**
+(Maximum 3 alertes classées par urgence — manque d'ingrédients, plats sans recette, tables saturées, tickets cuisine en attente. Si rien de critique : écris "RAS".)
 
-**Actions immÃ©diates**
-(3 actions numÃ©rotÃ©es, concrÃ¨tes, faisables aujourd'hui pour la salle, la cuisine ou la carte.)
+**Actions immédiates**
+(3 actions numérotées, concrètes, faisables aujourd'hui pour la salle, la cuisine ou la carte.)
 
-**OpportunitÃ© du jour**
-(1 opportunitÃ© identifiÃ©e : plat Ã  pousser, crÃ©neau Ã  renforcer, rÃ©servation Ã  convertir, prÃ©paration Ã  anticiper.)
+**Opportunité du jour**
+(1 opportunité identifiée : plat à pousser, créneau à renforcer, réservation à convertir, préparation à anticiper.)
 
 {business_guidance["daily"]}
 
 Sois direct comme un directeur d'exploitation. Aucune formule de politesse. Que des faits et des actions."""
         else:
-            prompt = f"""Tu es le co-pilote business d'un commerÃ§ant. GÃ©nÃ¨re son briefing du jour : direct, chiffrÃ©, actionnable.
+            prompt = f"""Tu es le co-pilote business d'un commerçant. Génère son briefing du jour : direct, chiffré, actionnable.
 {lang_instr}
 
-DONNÃ‰ES DU COMMERCE :
+DONNÉES DU COMMERCE :
 {data_summary}
 
 Structure du briefing (max 250 mots) :
 **Situation du jour**
-(CA du jour vs panier moyen habituel â€” est-ce une bonne ou mauvaise journÃ©e ? Sois prÃ©cis avec les chiffres.)
+(CA du jour vs panier moyen habituel — est-ce une bonne ou mauvaise journée ? Sois précis avec les chiffres.)
 
-**âš ï¸ Alertes prioritaires**
-(Maximum 3 alertes classÃ©es par urgence â€” ruptures imminentes, marges anormales, problÃ¨mes critiques. Si rien de critique : Ã©cris "RAS".)
+**⚠️ Alertes prioritaires**
+(Maximum 3 alertes classées par urgence — ruptures imminentes, marges anormales, problèmes critiques. Si rien de critique : écris "RAS".)
 
 **Actions pour aujourd'hui**
-(3 actions numÃ©rotÃ©es, concrÃ¨tes, faisables aujourd'hui. Ex: "1. Commander X unitÃ©s de [Produit Y] chez [Fournisseur Z] â€” rupture dans 2 jours")
+(3 actions numérotées, concrètes, faisables aujourd'hui. Ex: "1. Commander X unités de [Produit Y] chez [Fournisseur Z] — rupture dans 2 jours")
 
-**OpportunitÃ© du jour**
-(1 opportunitÃ© identifiÃ©e dans les donnÃ©es : un produit sous-exploitÃ©, un client Ã  relancer, une marge Ã  amÃ©liorer)
+**Opportunité du jour**
+(1 opportunité identifiée dans les données : un produit sous-exploité, un client à relancer, une marge à améliorer)
 
 {business_guidance["daily"]}
 
-Sois direct comme un associÃ© qui connaÃ®t le business. Aucune formule de politesse. Que des faits et des actions."""
+Sois direct comme un associé qui connaît le business. Aucune formule de politesse. Que des faits et des actions."""
 
         genai.configure(api_key=api_key)
         model = build_gemini_model()
@@ -13148,7 +13303,7 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
             query["store_id"] = store_id
 
         products = await db.products.find(query, {"_id": 0}).to_list(1000)
-        # Skip anomaly detection for empty accounts â€” avoids AI false positives
+        # Skip anomaly detection for empty accounts — avoids AI false positives
         if not products:
             return []
         seven_days_ago = now - timedelta(days=7)
@@ -13197,7 +13352,7 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
                 if margin < 5:
                     margin_issues.append(f"- {p['name']}: marge={margin:.1f}% (achat={purchase}, vente={selling})")
                 elif margin > 80:
-                    margin_issues.append(f"- {p['name']}: marge trÃ¨s Ã©levÃ©e={margin:.1f}%")
+                    margin_issues.append(f"- {p['name']}: marge très élevée={margin:.1f}%")
 
             pid = p.get("product_id", "")
             s7 = product_sales_7d.get(pid, 0)
@@ -13225,21 +13380,21 @@ async def detect_anomalies_internal(user_id: str, store_id: Optional[str] = None
                         sorted([(d, daily_rev[d], daily_count[d]) for d in daily_rev], key=lambda x: x[0])[-14:]]
 
         lang_instr = get_language_instruction(lang)
-        prompt = f"""Tu es un analyste business expert. Analyse ces donnÃ©es d'un commerce et dÃ©tecte les ANOMALIES.
+        prompt = f"""Tu es un analyste business expert. Analyse ces données d'un commerce et détecte les ANOMALIES.
 CA quotidien (14 derniers jours) : {chr(10).join(revenue_data) if revenue_data else "Aucune"}
 CA moyen journalier : {avg_daily_rev:.0f} {currency}
 Changements de volume inhabituels : {chr(10).join(volume_changes[:15]) if volume_changes else "Aucun"}
 Marges anormales : {chr(10).join(margin_issues[:15]) if margin_issues else "Normales"}
 Produits : {len(products)}
 Ruptures : {len([p for p in products if p.get('quantity', 0) == 0])}
-Contexte mÃ©tier : {business_profile.get('sector_label')}
-Consigne mÃ©tier : {business_guidance["anomalies"]}
+Contexte métier : {business_profile.get('sector_label')}
+Consigne métier : {business_guidance["anomalies"]}
 
-RÃ©ponds UNIQUEMENT en JSON (sans markdown) avec ce format :
+Réponds UNIQUEMENT en JSON (sans markdown) avec ce format :
 [ {{"type": "revenue"|"volume"|"margin"|"stock", "severity": "critical"|"warning", "title": "Titre court", "description": "Explication et recommandation en 1-2 phrases"}} ]
 Contraintes importantes:
 - N'inclure que des anomalies actionnables (pas d'information normale).
-- Eviter les alertes faibles ou ambiguÃ«s.
+- Eviter les alertes faibles ou ambiguës.
 - Maximum 3 anomalies.
 {lang_instr}"""
 
@@ -13285,8 +13440,8 @@ Contraintes importantes:
         filtered = list(best_by_type.values())
         filtered.sort(key=lambda anomaly: severity_rank.get(str(anomaly.get("severity", "")).lower(), 0), reverse=True)
 
-        # Politique produit: prioritÃ© forte au stock.
-        # - Garder l'alerte stock si prÃ©sente.
+        # Politique produit: priorité forte au stock.
+        # - Garder l'alerte stock si présente.
         # - Autoriser au plus une autre alerte non-stock, uniquement si critique.
         stock_alerts = [a for a in filtered if a.get("type") == "stock"]
         non_stock_critical = [
@@ -13395,7 +13550,7 @@ async def ai_replenishment_advice(request: Request, lang: str = "fr", user: User
     try:
         suggestions = await get_replenishment_suggestions(user)
         if not suggestions:
-            return {"advice": "Tous vos stocks sont Ã  un niveau satisfaisant. Aucun rÃ©approvisionnement nÃ©cessaire pour le moment.", "priority_count": 0}
+            return {"advice": "Tous vos stocks sont à un niveau satisfaisant. Aucun réapprovisionnement nécessaire pour le moment.", "priority_count": 0}
 
         business_profile = get_ai_business_profile({"business_type": user.business_type})
         business_guidance = get_ai_business_guidance(business_profile, lang)
@@ -13405,7 +13560,7 @@ async def ai_replenishment_advice(request: Request, lang: str = "fr", user: User
         items_text = "\n".join([
             f"- {s.product_name}: stock={s.current_quantity}/{s.max_stock}, vitesse={s.daily_velocity}/j, "
             f"rupture dans {s.days_until_stock_out}j, commander {s.suggested_quantity}, "
-            f"fournisseur={s.supplier_name}, prioritÃ©={s.priority}"
+            f"fournisseur={s.supplier_name}, priorité={s.priority}"
             for s in suggestions[:15]
         ])
 
@@ -13420,7 +13575,7 @@ async def ai_replenishment_advice(request: Request, lang: str = "fr", user: User
         supplier_summary = " | ".join([f"{sup}: {len(prods)} produits" for sup, prods in by_supplier.items()])
 
         lang_instr = get_language_instruction(lang)
-        prompt = f"""Tu es un expert en gestion des stocks. Analyse ces besoins de rÃ©approvisionnement et fournis un plan d'action prÃ©cis.
+        prompt = f"""Tu es un expert en gestion des stocks. Analyse ces besoins de réapprovisionnement et fournis un plan d'action précis.
 Aujourd'hui : {day_name} {now.strftime('%d/%m/%Y')}
 {lang_instr}
 
@@ -13429,16 +13584,16 @@ Contexte metier : {business_profile.get('sector_label')}
 Consigne metier : {business_guidance["replenishment"]}
 Regroupement fournisseurs : {supplier_summary}
 
-DÃ‰TAIL DES PRODUITS :
+DÉTAIL DES PRODUITS :
 {items_text}
 
-Fournis un plan structurÃ© :
-1. **URGENT â€” Ã€ commander AUJOURD'HUI** : Liste les produits critiques avec quantitÃ© exacte Ã  commander et fournisseur. Explique pourquoi c'est urgent (jours restants, vitesse de vente).
-2. **Cette semaine** : Produits en attention, moins urgents mais Ã  anticiper.
-3. **Optimisation** : Comment regrouper les commandes par fournisseur pour rÃ©duire les frais de livraison ? Quels fournisseurs contacter en prioritÃ© ?
-4. **Impact du {day_name}** : Y a-t-il des produits dont la demande augmente le weekend ou en fin de semaine ? Ajuste les quantitÃ©s en consÃ©quence.
+Fournis un plan structuré :
+1. **URGENT — À commander AUJOURD'HUI** : Liste les produits critiques avec quantité exacte à commander et fournisseur. Explique pourquoi c'est urgent (jours restants, vitesse de vente).
+2. **Cette semaine** : Produits en attention, moins urgents mais à anticiper.
+3. **Optimisation** : Comment regrouper les commandes par fournisseur pour réduire les frais de livraison ? Quels fournisseurs contacter en priorité ?
+4. **Impact du {day_name}** : Y a-t-il des produits dont la demande augmente le weekend ou en fin de semaine ? Ajuste les quantités en conséquence.
 
-Sois prÃ©cis avec les quantitÃ©s. Utilise les donnÃ©es fournies.
+Sois précis avec les quantités. Utilise les données fournies.
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
@@ -13503,7 +13658,7 @@ async def ai_suggest_price(request: Request, data: dict = Body(...), user: User 
         price_changes = "\n".join([
             f"- {h.get('changed_at', '')}: {h.get('old_price', '?')} â†’ {h.get('new_price', '?')} {currency}"
             for h in price_history[:5]
-        ]) if price_history else "Aucun changement rÃ©cent"
+        ]) if price_history else "Aucun changement récent"
 
         # Similar products in same category
         similar_prices = []
@@ -13522,16 +13677,16 @@ async def ai_suggest_price(request: Request, data: dict = Body(...), user: User 
         margin = ((current_price - purchase_price) / current_price * 100) if current_price > 0 else 0
 
         lang_instr = get_language_instruction(lang)
-        prompt = f"""Tu es un expert en pricing pour un commerce de dÃ©tail.
+        prompt = f"""Tu es un expert en pricing pour un commerce de détail.
 
 Produit : {product.get('name')}
 Prix d'achat : {purchase_price} {currency}
 Prix de vente actuel : {current_price} {currency}
 Marge actuelle : {margin:.1f}%
-Stock : {product.get('quantity', 0)} {product.get('unit', 'piÃ¨ce')}(s)
+Stock : {product.get('quantity', 0)} {product.get('unit', 'pièce')}(s)
 
-Ventes 30 derniers jours : {total_qty_sold} unitÃ©s vendues, CA = {total_revenue:.0f} {currency}
-VÃ©locitÃ© : {total_qty_sold / 30:.1f} unitÃ©s/jour
+Ventes 30 derniers jours : {total_qty_sold} unités vendues, CA = {total_revenue:.0f} {currency}
+Vélocité : {total_qty_sold / 30:.1f} unités/jour
 
 Contexte metier : {business_profile.get('sector_label')}
 Consigne metier : {business_guidance["focus"]}
@@ -13539,10 +13694,10 @@ Consigne metier : {business_guidance["focus"]}
 Historique des prix :
 {price_changes}
 
-Produits similaires (mÃªme catÃ©gorie) :
+Produits similaires (même catégorie) :
 {chr(10).join(similar_prices) if similar_prices else 'Aucun'}
 
-RÃ©ponds UNIQUEMENT en JSON valide (sans markdown) :
+Réponds UNIQUEMENT en JSON valide (sans markdown) :
 {{
   "suggested_price": <nombre>,
   "min_price": <nombre>,
@@ -13550,7 +13705,7 @@ RÃ©ponds UNIQUEMENT en JSON valide (sans markdown) :
   "reasoning": "<explication courte en 1-2 phrases>"
 }}
 
-Le prix suggÃ©rÃ© doit Ãªtre rÃ©aliste (> prix achat, cohÃ©rent avec le marchÃ©).
+Le prix suggéré doit être réaliste (> prix achat, cohérent avec le marché).
 {lang_instr}"""
 
         genai.configure(api_key=api_key)
@@ -13575,7 +13730,7 @@ Le prix suggÃ©rÃ© doit Ãªtre rÃ©aliste (> prix achat, cohÃ©rent avec l
             "purchase_price": purchase_price,
         }
     except json.JSONDecodeError:
-        return {"suggested_price": current_price, "reasoning": "Impossible d'analyser â€” conservez le prix actuel."}
+        return {"suggested_price": current_price, "reasoning": "Impossible d'analyser — conservez le prix actuel."}
     except HTTPException:
         raise
     except Exception as e:
@@ -13612,10 +13767,10 @@ async def ai_scan_invoice(request: Request, data: dict = Body(...), user: User =
         prompt = f"""Analyse cette photo de facture/bon de livraison fournisseur.
 Extrais TOUS les articles avec leurs informations.
 
-RÃ©ponds UNIQUEMENT en JSON valide (sans markdown) :
+Réponds UNIQUEMENT en JSON valide (sans markdown) :
 {{
   "supplier_name": "Nom du fournisseur (si visible)",
-  "invoice_number": "NumÃ©ro de facture (si visible)",
+  "invoice_number": "Numéro de facture (si visible)",
   "date": "Date (si visible, format AAAA-MM-JJ)",
   "items": [
     {{
@@ -13628,7 +13783,7 @@ RÃ©ponds UNIQUEMENT en JSON valide (sans markdown) :
   "total_amount": 0
 }}
 
-Si un champ n'est pas lisible, mets null. Les prix doivent Ãªtre des nombres.
+Si un champ n'est pas lisible, mets null. Les prix doivent être des nombres.
 {lang_instr}"""
 
         response = model.generate_content([prompt, image_part])
@@ -13651,7 +13806,7 @@ async def ai_pl_analysis(request: Request, lang: str = "fr", days: int = 30, use
     await check_ai_limit(user, "pl_analysis")
     api_key = resolve_gemini_api_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="ClÃ© API IA manquante")
+        raise HTTPException(status_code=500, detail="Clé API IA manquante")
     try:
         owner_id = get_owner_id(user)
         store_id = user.active_store_id
@@ -13680,8 +13835,8 @@ async def ai_pl_analysis(request: Request, lang: str = "fr", days: int = 30, use
             expense_by_cat[cat] = expense_by_cat.get(cat, 0) + e.get("amount", 0)
         top_expense = max(expense_by_cat, key=expense_by_cat.get) if expense_by_cat else "N/A"
 
-        lang_map = {"fr": "franÃ§ais", "en": "English", "ar": "Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©", "es": "espaÃ±ol"}
-        lang_instr = f"RÃ©ponds en {lang_map.get(lang, 'franÃ§ais')}."
+        lang_map = {"fr": "français", "en": "English", "ar": "العربية", "es": "español"}
+        lang_instr = f"Réponds en {lang_map.get(lang, 'français')}."
 
         avg_basket = revenue / len(sales) if sales else 0
         expense_ratio = round((total_expenses / revenue * 100) if revenue > 0 else 0, 1)
@@ -13691,18 +13846,18 @@ async def ai_pl_analysis(request: Request, lang: str = "fr", days: int = 30, use
         prompt = f"""Tu es un analyste financier expert pour une PME. Analyse ce P&L et fournis un diagnostic actionnable.
 {lang_instr}
 
-DONNÃ‰ES P&L â€” {days} DERNIERS JOURS :
+DONNÉES P&L — {days} DERNIERS JOURS :
 - Chiffre d'affaires : {revenue:.0f} ({len(sales)} ventes, panier moyen {avg_basket:.0f})
-- CoÃ»t marchandises (COGS) : {cogs:.0f} ({cogs_ratio}% du CA)
+- Coût marchandises (COGS) : {cogs:.0f} ({cogs_ratio}% du CA)
 - Marge brute : {gross_profit:.0f} ({margin_pct}%)
 - Charges d'exploitation : {total_expenses:.0f} ({expense_ratio}% du CA, poste principal : {top_expense})
-- RÃ©sultat net : {net_profit:.0f} (marge nette : {net_margin}%)
+- Résultat net : {net_profit:.0f} (marge nette : {net_margin}%)
 
-Fournis une analyse structurÃ©e en 4 points :
-1. **Diagnostic** : Quel est l'Ã©tat de santÃ© financiÃ¨re ? (1-2 phrases avec les chiffres clÃ©s)
+Fournis une analyse structurée en 4 points :
+1. **Diagnostic** : Quel est l'état de santé financière ? (1-2 phrases avec les chiffres clés)
 2. **Point fort** : Qu'est-ce qui fonctionne bien et pourquoi ? (appuie-toi sur les ratios)
-3. **Point d'attention** : Quel est le risque ou problÃ¨me principal ? (sois prÃ©cis et chiffrÃ©)
-4. **3 actions prioritaires** : Actions concrÃ¨tes numÃ©rotÃ©es avec impact estimÃ© chacune
+3. **Point d'attention** : Quel est le risque ou problème principal ? (sois précis et chiffré)
+4. **3 actions prioritaires** : Actions concrètes numérotées avec impact estimé chacune
 
 Sois direct, analytique, utilise les chiffres. Pas de formules creuses."""
 
@@ -13722,11 +13877,11 @@ Sois direct, analytique, utilise les chiffres. Pas de formules creuses."""
 @api_router.get("/ai/churn-prediction")
 @limiter.limit("10/minute")
 async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = Depends(require_permission("crm", "read"))):
-    """AI churn prediction â€” identifies at-risk customers"""
+    """AI churn prediction — identifies at-risk customers"""
     await check_ai_limit(user, "churn_prediction")
     api_key = resolve_gemini_api_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="ClÃ© API IA manquante")
+        raise HTTPException(status_code=500, detail="Clé API IA manquante")
     try:
         owner_id = get_owner_id(user)
         store_id = user.active_store_id
@@ -13734,7 +13889,7 @@ async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = D
 
         customers = await db.customers.find(query, {"_id": 0, "customer_id": 1, "name": 1, "last_purchase_date": 1, "total_spent": 1, "visits": 1, "loyalty_tier": 1}).to_list(500)
         if not customers:
-            return {"at_risk": [], "summary": "Aucun client trouvÃ©."}
+            return {"at_risk": [], "summary": "Aucun client trouvé."}
 
         now = datetime.now(timezone.utc)
         at_risk = []
@@ -13771,28 +13926,28 @@ async def ai_churn_prediction(request: Request, lang: str = "fr", user: User = D
         at_risk.sort(key=lambda x: (-x["total_spent"], x["days_inactive"]))
         top_at_risk = at_risk[:10]
 
-        lang_map = {"fr": "franÃ§ais", "en": "English", "ar": "Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©", "es": "espaÃ±ol"}
-        lang_instr = f"RÃ©ponds en {lang_map.get(lang, 'franÃ§ais')}."
+        lang_map = {"fr": "français", "en": "English", "ar": "العربية", "es": "español"}
+        lang_instr = f"Réponds en {lang_map.get(lang, 'français')}."
 
         total_spent_at_risk = sum(c['total_spent'] for c in at_risk)
         top_tier_at_risk = [c for c in at_risk if c['tier'] in ('gold', 'platinum', 'silver')]
 
         summary_prompt = f"""{lang_instr}
-Tu es un expert CRM et fidÃ©lisation client. Analyse ces donnÃ©es de churn et fournis une stratÃ©gie de rÃ©tention.
+Tu es un expert CRM et fidélisation client. Analyse ces données de churn et fournis une stratégie de rétention.
 
-SITUATION : {len(at_risk)} clients inactifs depuis 30j+, reprÃ©sentant {total_spent_at_risk:.0f} de CA historique.
-Clients premium Ã  risque (silver/gold/platinum) : {len(top_tier_at_risk)}
+SITUATION : {len(at_risk)} clients inactifs depuis 30j+, représentant {total_spent_at_risk:.0f} de CA historique.
+Clients premium à risque (silver/gold/platinum) : {len(top_tier_at_risk)}
 
-TOP 5 CLIENTS Ã€ RISQUE :
-{chr(10).join([f"- {c['name']}: {c['days_inactive']}j inactif, {c['total_spent']:.0f} dÃ©pensÃ©, {c['visits']} visites, tier {c['tier']}" for c in top_at_risk[:5]])}
+TOP 5 CLIENTS À RISQUE :
+{chr(10).join([f"- {c['name']}: {c['days_inactive']}j inactif, {c['total_spent']:.0f} dépensé, {c['visits']} visites, tier {c['tier']}" for c in top_at_risk[:5]])}
 
-Fournis une analyse structurÃ©e :
-1. **Diagnostic** : Quel est l'ampleur du problÃ¨me en termes de CA potentiellement perdu ?
-2. **Segmentation** : Distingue les clients premium (haute valeur) des clients ordinaires â€” les stratÃ©gies doivent Ãªtre diffÃ©rentes.
-3. **Actions immÃ©diates** (Ã  faire cette semaine) : 2-3 actions concrÃ¨tes pour les clients les plus prÃ©cieux, avec message type WhatsApp si pertinent.
-4. **Actions prÃ©ventives** : Comment Ã©viter que de nouveaux clients deviennent inactifs ?
+Fournis une analyse structurée :
+1. **Diagnostic** : Quel est l'ampleur du problème en termes de CA potentiellement perdu ?
+2. **Segmentation** : Distingue les clients premium (haute valeur) des clients ordinaires — les stratégies doivent être différentes.
+3. **Actions immédiates** (à faire cette semaine) : 2-3 actions concrètes pour les clients les plus précieux, avec message type WhatsApp si pertinent.
+4. **Actions préventives** : Comment éviter que de nouveaux clients deviennent inactifs ?
 
-Sois direct et opÃ©rationnel. Utilise les chiffres fournis."""
+Sois direct et opérationnel. Utilise les chiffres fournis."""
 
         genai.configure(api_key=api_key)
         model = build_gemini_model()
@@ -13802,7 +13957,7 @@ Sois direct et opÃ©rationnel. Utilise les chiffres fournis."""
         return {"at_risk": top_at_risk, "total_at_risk": len(at_risk), "summary": response.text.strip()}
     except Exception as e:
         logger.error(f"AI churn-prediction error: {e}")
-        raise HTTPException(status_code=500, detail="Erreur prÃ©diction churn")
+        raise HTTPException(status_code=500, detail="Erreur prédiction churn")
 
 
 @api_router.get("/ai/monthly-report")
@@ -13812,7 +13967,7 @@ async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Dep
     await check_ai_limit(user, "monthly_report")
     api_key = resolve_gemini_api_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="ClÃ© API IA manquante")
+        raise HTTPException(status_code=500, detail="Clé API IA manquante")
     try:
         owner_id = get_owner_id(user)
         store_id = user.active_store_id
@@ -13845,8 +14000,8 @@ async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Dep
         prod_names = {p.get("product_id", ""): p.get("name", "") for p in await db.products.find(prod_name_query, {"product_id": 1, "name": 1}).to_list(3)}
         top_products_str = ", ".join([prod_names.get(pid, pid) for pid in top_pids])
 
-        lang_map = {"fr": "franÃ§ais", "en": "English", "ar": "Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©", "es": "espaÃ±ol"}
-        lang_instr = f"RÃ©dige en {lang_map.get(lang, 'franÃ§ais')}."
+        lang_map = {"fr": "français", "en": "English", "ar": "العربية", "es": "español"}
+        lang_instr = f"Rédige en {lang_map.get(lang, 'français')}."
 
         gross_profit_m = revenue - cogs
         margin_pct_m = round((gross_profit_m / revenue * 100) if revenue > 0 else 0, 1)
@@ -13856,41 +14011,41 @@ async def ai_monthly_report(request: Request, lang: str = "fr", user: User = Dep
         exp_ratio_m = round((total_exp / revenue * 100) if revenue > 0 else 0, 1)
 
         prompt = f"""{lang_instr}
-Tu es un conseiller financier expert. GÃ©nÃ¨re un rapport mensuel professionnel et analytique pour ce gÃ©rant de boutique.
+Tu es un conseiller financier expert. Génère un rapport mensuel professionnel et analytique pour ce gérant de boutique.
 
-DONNÃ‰ES DU MOIS (30 derniers jours) :
+DONNÉES DU MOIS (30 derniers jours) :
 Financier :
 - CA : {revenue:.0f} | COGS : {cogs:.0f} ({cogs_ratio_m}%) | Marge brute : {gross_profit_m:.0f} ({margin_pct_m}%)
-- Charges : {total_exp:.0f} ({exp_ratio_m}% du CA) | RÃ©sultat net : {net:.0f} (marge nette : {net_margin_m}%)
+- Charges : {total_exp:.0f} ({exp_ratio_m}% du CA) | Résultat net : {net:.0f} (marge nette : {net_margin_m}%)
 - {len(sales)} transactions | Panier moyen : {avg_basket_m:.0f}
 Top produits par CA : {top_products_str}
 
 Stocks :
-- {len(low_stock)} produits en rupture ou stock bas (risque de ventes manquÃ©es)
+- {len(low_stock)} produits en rupture ou stock bas (risque de ventes manquées)
 
 Clients :
 - {inactive} clients inactifs depuis +30j (risque churn)
 
 Structure du rapport en markdown :
-## SynthÃ¨se Executive
-(2-3 phrases qui rÃ©sument l'essentiel : tendance gÃ©nÃ©rale, chiffre le plus significatif, signal le plus inquiÃ©tant)
+## Synthèse Executive
+(2-3 phrases qui résument l'essentiel : tendance générale, chiffre le plus significatif, signal le plus inquiétant)
 
 ## Performance Commerciale
 (Analyse du CA, marge et panier moyen. Qu'est-ce qui tire les ventes ? Quels produits dominent ?)
 
-## SantÃ© FinanciÃ¨re
+## Santé Financière
 (Analyse des ratios : marge brute {margin_pct_m}%, marge nette {net_margin_m}%, charges {exp_ratio_m}%. Benchmark vs seuils sains : marge brute >30%, charges <25% CA)
 
 ## Gestion des Stocks
 (Impact des {len(low_stock)} ruptures/stocks bas sur le CA. Estimation des ventes perdues si pertinent.)
 
 ## Relation Client
-(Analyse des {inactive} clients inactifs. Quel est le risque financier ? StratÃ©gie de rÃ©tention.)
+(Analyse des {inactive} clients inactifs. Quel est le risque financier ? Stratégie de rétention.)
 
 ## Plan d'Action Prioritaire
-Exactement 3 actions numÃ©rotÃ©es, chacune avec : quoi faire, pourquoi, impact chiffrÃ© attendu.
+Exactement 3 actions numérotées, chacune avec : quoi faire, pourquoi, impact chiffré attendu.
 
-Sois professionnel, analytique et chiffrÃ©. Utilise uniquement les donnÃ©es fournies."""
+Sois professionnel, analytique et chiffré. Utilise uniquement les données fournies."""
 
         genai.configure(api_key=api_key)
         model = build_gemini_model()
@@ -13899,7 +14054,7 @@ Sois professionnel, analytique et chiffrÃ©. Utilise uniquement les donnÃ©es 
         return {"report": response.text.strip(), "generated_at": now.isoformat()}
     except Exception as e:
         logger.error(f"AI monthly-report error: {e}")
-        raise HTTPException(status_code=500, detail="Erreur gÃ©nÃ©ration rapport")
+        raise HTTPException(status_code=500, detail="Erreur génération rapport")
 
 
 @api_router.post("/ai/voice-to-text")
@@ -13929,7 +14084,7 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
         }
 
         lang_code = (lang or "fr").lower().split("-")[0]
-        lang_name = LANGUAGE_NAMES.get(lang_code, "franÃ§ais")
+        lang_name = LANGUAGE_NAMES.get(lang_code, "français")
         prompt = i18n.t("ai.voice_to_text_prompt", lang_code, lang_name=lang_name)
 
         response = model.generate_content([prompt, audio_part])
@@ -13940,7 +14095,7 @@ async def ai_voice_to_text(request: Request, data: dict = Body(...), user: User 
         logger.error(f"AI voice-to-text error: {e}")
         raise HTTPException(status_code=500, detail=i18n.t("ai.voice_to_text_error", lang_code))
 
-# ===================== VAGUE 1 â€” ALGORITHMIC AI ENDPOINTS =====================
+# ===================== VAGUE 1 — ALGORITHMIC AI ENDPOINTS =====================
 
 @api_router.get("/ai/business-health-score")
 @limiter.limit("20/minute")
@@ -14448,7 +14603,7 @@ async def ai_deadstock_analysis(request: Request, user: User = Depends(require_o
 
 # ===================== END VAGUE 1 =====================
 
-# ===================== VAGUE 2 â€” INTELLIGENCE STOCK =====================
+# ===================== VAGUE 2 — INTELLIGENCE STOCK =====================
 
 
 @api_router.get("/ai/seasonality-alerts")
@@ -14539,7 +14694,7 @@ async def ai_seasonality_alerts(request: Request, user: User = Depends(require_o
 
         prod_info = prod_map.get(pid, {})
         peak_month_names = []
-        month_names_fr = ["", "Jan", "FÃ©v", "Mar", "Avr", "Mai", "Jun", "Jul", "AoÃ»", "Sep", "Oct", "Nov", "DÃ©c"]
+        month_names_fr = ["", "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"]
         for pm in peak_months:
             peak_month_names.append(month_names_fr[pm])
 
@@ -14877,7 +15032,7 @@ async def save_duplicate_resolution(
     if target not in {"products", "suppliers"}:
         raise HTTPException(status_code=400, detail="Cible de doublon invalide")
     if status not in {"ignored", "different"}:
-        raise HTTPException(status_code=400, detail="Statut de rÃ©solution invalide")
+        raise HTTPException(status_code=400, detail="Statut de résolution invalide")
 
     item_a_id = str(data.item_a_id).strip()
     item_b_id = str(data.item_b_id).strip()
@@ -14939,7 +15094,7 @@ async def save_duplicate_resolution(
 
 # ===================== END VAGUE 2 =====================
 
-# ===================== VAGUE 3 â€” INTELLIGENCE FOURNISSEURS =====================
+# ===================== VAGUE 3 — INTELLIGENCE FOURNISSEURS =====================
 
 
 @api_router.get("/ai/supplier-rating/{supplier_id}", dependencies=[Depends(require_suppliers_module)])
@@ -14994,7 +15149,7 @@ async def ai_supplier_rating(supplier_id: str, request: Request, user: User = De
     for it in items:
         items_by_order.setdefault(it["order_id"], []).append(it)
 
-    # 1) Delivery score (40%) â€” on-time delivery rate
+    # 1) Delivery score (40%) — on-time delivery rate
     delivery_scores = []
     for o in orders:
         if o.get("status") in ("delivered", "completed", "received"):
@@ -15023,7 +15178,7 @@ async def ai_supplier_rating(supplier_id: str, request: Request, user: User = De
 
     delivery_score = sum(delivery_scores) / len(delivery_scores) if delivery_scores else 50
 
-    # 2) Quantity accuracy score (30%) â€” received vs ordered
+    # 2) Quantity accuracy score (30%) — received vs ordered
     qty_scores = []
     for o in orders:
         oi = items_by_order.get(o["order_id"], [])
@@ -15041,7 +15196,7 @@ async def ai_supplier_rating(supplier_id: str, request: Request, user: User = De
 
     quantity_score = sum(qty_scores) / len(qty_scores) if qty_scores else 50
 
-    # 3) Price stability score (30%) â€” variance of unit prices per product
+    # 3) Price stability score (30%) — variance of unit prices per product
     price_by_product: dict = {}
     for o in orders:
         for it in items_by_order.get(o["order_id"], []):
@@ -15363,7 +15518,7 @@ def _track_ai_usage_lite(owner_id: str, feature: str, plan: str):
     """Fire-and-forget lightweight usage counter for Vagues 4-7."""
     pass  # Full tracking deferred to ai_governance.track_ai_usage when needed
 
-# ===================== VAGUE 6 â€” HYBRID RULES + OPTIONAL AI =====================
+# ===================== VAGUE 6 — HYBRID RULES + OPTIONAL AI =====================
 
 # Keyword dictionary for expense categorization
 _EXPENSE_KEYWORD_MAP = {
@@ -15474,7 +15629,7 @@ async def categorize_expense(
 
 async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Optional[str]) -> list:
     """
-    Pure rule engine â€” generates actionable tips based on business state.
+    Pure rule engine — generates actionable tips based on business state.
     No LLM. Templates are hardcoded strings (i18n keys would be added later).
     Returns list of {id, priority, icon, title, message, action_label, action_type, data}
     """
@@ -15514,7 +15669,7 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
                 "color": "#f59e0b",
                 "title": f"{len(low_stock_products)} produit(s) sous le seuil",
                 "message": f"Stock critique : {names}",
-                "action_label": "RÃ©approvisionner",
+                "action_label": "Réapprovisionner",
                 "action_type": "navigate",
                 "action_target": "replenishment",
             })
@@ -15535,13 +15690,13 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
             "icon": "archive",
             "color": "#8b5cf6",
             "title": f"{dormant_count} produit(s) sans vente depuis 60j",
-            "message": "Envisagez une promotion ou un retour fournisseur pour libÃ©rer de la trÃ©sorerie.",
+            "message": "Envisagez une promotion ou un retour fournisseur pour libérer de la trésorerie.",
             "action_label": "Voir les dormants",
             "action_type": "navigate",
             "action_target": "inventory",
         })
 
-    # --- Rule 3: Revenue trend â€” last 7 days vs previous 7 days ---
+    # --- Rule 3: Revenue trend — last 7 days vs previous 7 days ---
     seven_days_ago = now - timedelta(days=7)
     fourteen_days_ago = now - timedelta(days=14)
     recent_revenue_agg = await db.sales.aggregate([
@@ -15563,7 +15718,7 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
                 "icon": "trending-down",
                 "color": "#ef4444",
                 "title": f"CA en baisse de {abs(rev_change_pct):.0f}%",
-                "message": f"Vos ventes ont baissÃ© de {abs(rev_change_pct):.0f}% par rapport aux 7 derniers jours.",
+                "message": f"Vos ventes ont baissé de {abs(rev_change_pct):.0f}% par rapport aux 7 derniers jours.",
                 "action_label": "Analyser",
                 "action_type": "navigate",
                 "action_target": "dashboard",
@@ -15575,8 +15730,8 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
                 "icon": "trending-up",
                 "color": "#10b981",
                 "title": f"Excellente semaine +{rev_change_pct:.0f}%",
-                "message": f"Vos ventes progressent de {rev_change_pct:.0f}% ! VÃ©rifiez que votre stock suit la demande.",
-                "action_label": "VÃ©rifier le stock",
+                "message": f"Vos ventes progressent de {rev_change_pct:.0f}% ! Vérifiez que votre stock suit la demande.",
+                "action_label": "Vérifier le stock",
                 "action_type": "navigate",
                 "action_target": "inventory",
             })
@@ -15594,7 +15749,7 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
             "icon": "time",
             "color": "#f59e0b",
             "title": f"{overdue_orders} commande(s) en retard",
-            "message": "Des commandes fournisseurs dÃ©passent leur date de livraison prÃ©vue.",
+            "message": "Des commandes fournisseurs dépassent leur date de livraison prévue.",
             "action_label": "Voir les commandes",
             "action_type": "navigate",
             "action_target": "suppliers",
@@ -15615,7 +15770,7 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
             "icon": "card",
             "color": "#ef4444",
             "title": f"{debt_count} dette(s) client > 30j",
-            "message": f"Montant impayÃ© depuis plus de 30 jours : {debt_total:,.0f}",
+            "message": f"Montant impayé depuis plus de 30 jours : {debt_total:,.0f}",
             "action_label": "Relancer les clients",
             "action_type": "navigate",
             "action_target": "crm",
@@ -15640,7 +15795,7 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
                 "icon": "people",
                 "color": "#8b5cf6",
                 "title": f"{inactive_count} client(s) inactifs depuis 45j",
-                "message": "Relancez vos clients dormants avec une promotion ou un message personnalisÃ©.",
+                "message": "Relancez vos clients dormants avec une promotion ou un message personnalisé.",
                 "action_label": "Voir le CRM",
                 "action_type": "navigate",
                 "action_target": "crm",
@@ -15667,9 +15822,9 @@ async def _build_contextual_tips(owner_id: str, plan: str, active_store_id: Opti
                     "priority": 2,
                     "icon": "cash",
                     "color": "#ef4444",
-                    "title": f"Charges Ã©levÃ©es ce mois ({expense_ratio*100:.0f}% du CA)",
-                    "message": "Vos dÃ©penses reprÃ©sentent plus de 60% de votre chiffre d'affaires ce mois-ci.",
-                    "action_label": "Voir la comptabilitÃ©",
+                    "title": f"Charges élevées ce mois ({expense_ratio*100:.0f}% du CA)",
+                    "message": "Vos dépenses représentent plus de 60% de votre chiffre d'affaires ce mois-ci.",
+                    "action_label": "Voir la comptabilité",
                     "action_type": "navigate",
                     "action_target": "accounting",
                 })
@@ -15686,7 +15841,7 @@ async def get_contextual_tips(user: User = Depends(require_operational_access)):
         detail="Les conseils du moment du dashboard mobile sont reserves au plan Enterprise.",
     )
     """
-    Rule-based contextual tips â€” no LLM. All plans get basic tips, Pro+ get advanced.
+    Rule-based contextual tips — no LLM. All plans get basic tips, Pro+ get advanced.
     Cached 1h per user.
     """
     owner_id = get_owner_id(user)
@@ -15719,7 +15874,7 @@ async def get_contextual_tips(user: User = Depends(require_operational_access)):
 
 # ===================== END VAGUE 6 =====================
 
-# ===================== VAGUE 5 â€” PRODUCT CORRELATIONS =====================
+# ===================== VAGUE 5 — PRODUCT CORRELATIONS =====================
 
 @api_router.get("/ai/product-correlations")
 async def get_product_correlations(
@@ -15814,7 +15969,7 @@ async def get_product_correlations(
 
 # ===================== END VAGUE 5 =====================
 
-# ===================== VAGUE 4 â€” MULTI-STORE INTELLIGENCE =====================
+# ===================== VAGUE 4 — MULTI-STORE INTELLIGENCE =====================
 
 @api_router.get("/ai/rebalance-suggestions")
 async def get_rebalance_suggestions(user: User = Depends(require_operational_access)):
@@ -15857,7 +16012,7 @@ async def get_rebalance_suggestions(user: User = Depends(require_operational_acc
         })
 
     if len(stores) < 2:
-        return {"suggestions": [], "stores_count": len(stores), "message": "NÃ©cessite au moins 2 boutiques"}
+        return {"suggestions": [], "stores_count": len(stores), "message": "Nécessite au moins 2 boutiques"}
 
     store_ids = [s["store_id"] for s in stores]
     store_names = {s["store_id"]: s["name"] for s in stores}
@@ -16022,7 +16177,7 @@ async def get_store_benchmark(user: User = Depends(require_operational_access)):
 
     stores = await db.stores.find({"user_id": owner_id}, {"_id": 0}).to_list(20)
     if len(stores) < 2:
-        return {"stores": [], "message": "NÃ©cessite au moins 2 boutiques"}
+        return {"stores": [], "message": "Nécessite au moins 2 boutiques"}
 
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
@@ -16105,7 +16260,7 @@ async def get_store_benchmark(user: User = Depends(require_operational_access)):
 
 # ===================== END VAGUE 4 =====================
 
-# ===================== VAGUE 7 â€” LLM FEATURES =====================
+# ===================== VAGUE 7 — LLM FEATURES =====================
 
 @api_router.get("/ai/customer-summary/{customer_id}")
 async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = Depends(require_operational_access)):
@@ -16125,7 +16280,7 @@ async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = 
 
     api_key = resolve_gemini_api_key()
     if not api_key:
-        raise HTTPException(status_code=503, detail="ClÃ© API IA manquante")
+        raise HTTPException(status_code=503, detail="Clé API IA manquante")
 
     # Fetch customer
     customer_query = apply_accessible_store_scope({"customer_id": customer_id, "user_id": owner_id}, user, effective_store_id)
@@ -16180,18 +16335,18 @@ async def get_customer_summary(customer_id: str, lang: str = "fr", user: User = 
         lp = last_purchase if isinstance(last_purchase, datetime) else datetime.fromisoformat(str(last_purchase).replace("Z", "+00:00"))
         days_since_last = (datetime.now(timezone.utc) - lp).days
 
-    lang_map = {"fr": "franÃ§ais", "en": "English", "ar": "Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©", "es": "espaÃ±ol", "pt": "portuguÃªs"}
-    lang_instr = f"RÃ©ponds en {lang_map.get(lang, 'franÃ§ais')}."
+    lang_map = {"fr": "français", "en": "English", "ar": "العربية", "es": "español", "pt": "português"}
+    lang_instr = f"Réponds en {lang_map.get(lang, 'français')}."
 
     prompt = f"""{lang_instr}
-Tu es un assistant CRM expert. GÃ©nÃ¨re un rÃ©sumÃ© client concis et actionnable (4-6 phrases max).
-Inclus : profil comportemental, fidÃ©litÃ©, risques, 1-2 recommandations commerciales concrÃ¨tes.
-Ne rÃ©pÃ¨te pas les chiffres bruts â€” interprÃ¨te-les.
+Tu es un assistant CRM expert. Génère un résumé client concis et actionnable (4-6 phrases max).
+Inclus : profil comportemental, fidélité, risques, 1-2 recommandations commerciales concrètes.
+Ne répète pas les chiffres bruts — interprète-les.
 
-CLIENT : {customer.get('name', 'Inconnu')} | Tier : {tier} | Points fidÃ©litÃ© : {loyalty_points}
-ACHATS 90j : {recent_count} visites Â· {recent_revenue:.0f} de CA Â· Panier moyen {(recent_revenue/recent_count if recent_count else 0):.0f}
-HISTORIQUE : {visit_count} visites total Â· {total_spent_lifetime:.0f} lifetime
-DERNIÃˆRE VISITE : {f"il y a {days_since_last} jours" if days_since_last is not None else "inconnue"}
+CLIENT : {customer.get('name', 'Inconnu')} | Tier : {tier} | Points fidélité : {loyalty_points}
+ACHATS 90j : {recent_count} visites · {recent_revenue:.0f} de CA · Panier moyen {(recent_revenue/recent_count if recent_count else 0):.0f}
+HISTORIQUE : {visit_count} visites total · {total_spent_lifetime:.0f} lifetime
+DERNIÈRE VISITE : {f"il y a {days_since_last} jours" if days_since_last is not None else "inconnue"}
 DETTE ACTUELLE : {current_debt:.0f}
 TOP PRODUITS : {", ".join(f"{p[0]} (x{p[1]})" for p in top_products) or "N/A"}
 NOTES : {notes or "Aucune"}
@@ -16230,7 +16385,7 @@ NOTES : {notes or "Aucune"}
 
 # ===================== END VAGUE 7 (customer summary) =====================
 
-# ===================== VAGUE 7 â€” generate customer message =====================
+# ===================== VAGUE 7 — generate customer message =====================
 
 @api_router.post("/ai/generate-customer-message")
 async def generate_customer_message(body: dict = Body(...), user: User = Depends(require_operational_access)):
@@ -16324,7 +16479,7 @@ Task: {type_instructions}
 Rules:
 - Write in {lang_name}
 - Use the customer's first name if possible (use "{customer_name.split()[0] if customer_name else 'cher client'}")
-- Keep it SHORT (2-4 sentences), warm, and natural â€” like a real human message
+- Keep it SHORT (2-4 sentences), warm, and natural — like a real human message
 - Do NOT use generic templates. Make it feel personal.
 - Output ONLY the message text, no quotes, no labels.
 """
@@ -16356,7 +16511,7 @@ Rules:
 
 # ===================== END VAGUE 7 (generate customer message) =====================
 
-# ===================== VAGUE 7 â€” natural language query =====================
+# ===================== VAGUE 7 — natural language query =====================
 
 # Intent patterns: (regex, intent_key)
 _NL_PATTERNS = [
@@ -16486,7 +16641,7 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, user:
         total_debt = sum(c.get("current_debt", 0) for c in customers)
         return {
             "intent": "debt_customers",
-            "answer": f"{len(customers)} client(s) avec dette â€” total {round(total_debt, 2)}",
+            "answer": f"{len(customers)} client(s) avec dette — total {round(total_debt, 2)}",
             "data": [{"label": c.get("name", "?"), "value": round(c.get("current_debt", 0), 2)} for c in customers],
         }
 
@@ -16501,7 +16656,7 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, user:
         grand_total = sum(r["total"] for r in rows)
         return {
             "intent": "expenses",
-            "answer": f"DÃ©penses sur {period_days} jour(s) : {round(grand_total, 2)}",
+            "answer": f"Dépenses sur {period_days} jour(s) : {round(grand_total, 2)}",
             "data": [{"label": r["_id"] or "Autre", "value": round(r["total"], 2), "count": r["count"]} for r in rows],
         }
 
@@ -16510,7 +16665,7 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, user:
         orders = await db.orders.find(orders_query).sort("created_at", -1).limit(10).to_list(None)
         return {
             "intent": "orders",
-            "answer": f"{len(orders)} commande(s) rÃ©cente(s)",
+            "answer": f"{len(orders)} commande(s) récente(s)",
             "data": [{"label": o.get("supplier_name", "?"), "value": round(o.get("total_amount", 0), 2), "status": o.get("status", "?")} for o in orders],
         }
 
@@ -16532,7 +16687,7 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, user:
         return {
             "intent": "margin",
             "answer": f"Marge brute sur {period_days} jour(s) : {round(margin, 2)} ({margin_pct}%)",
-            "data": [{"label": "CA", "value": round(revenue, 2)}, {"label": "CoÃ»t", "value": round(cost, 2)}, {"label": "Marge", "value": round(margin, 2)}, {"label": "Marge %", "value": margin_pct}],
+            "data": [{"label": "CA", "value": round(revenue, 2)}, {"label": "Coût", "value": round(cost, 2)}, {"label": "Marge", "value": round(margin, 2)}, {"label": "Marge %", "value": margin_pct}],
         }
 
     elif intent == "alerts":
@@ -16550,11 +16705,11 @@ async def _execute_nl_intent(intent: str, period_days: int, owner_id: str, user:
         total_value = sum((p.get("quantity", p.get("stock_quantity", 0)) or 0) * (p.get("price", p.get("selling_price", 0)) or 0) for p in products)
         return {
             "intent": "inventory",
-            "answer": f"Valeur stock estimÃ©e : {round(total_value, 2)} ({len(products)} produits)",
+            "answer": f"Valeur stock estimée : {round(total_value, 2)} ({len(products)} produits)",
             "data": [{"label": p.get("name", "?"), "value": p.get("quantity", p.get("stock_quantity", 0))} for p in products[:15]],
         }
 
-    return {"intent": "unknown", "answer": "Aucun rÃ©sultat trouvÃ©.", "data": []}
+    return {"intent": "unknown", "answer": "Aucun résultat trouvé.", "data": []}
 
 
 @api_router.post("/ai/natural-query")
@@ -16608,7 +16763,7 @@ Reply with JSON only, exactly: {{"intent": "...", "period_days": N}}"""
             intent = "unknown"
 
     if not intent or intent == "unknown":
-        return {"query": query, "intent": "unknown", "answer": "Je n'ai pas compris cette question. Essayez : 'top produits ce mois', 'stock bas', 'dettes clients', 'dÃ©penses', etc.", "data": [], "resolved_by": "none"}
+        return {"query": query, "intent": "unknown", "answer": "Je n'ai pas compris cette question. Essayez : 'top produits ce mois', 'stock bas', 'dettes clients', 'dépenses', etc.", "data": [], "resolved_by": "none"}
 
     resolved_by = "regex" if _parse_nl_intent(query)[0] else "llm"
     result = await _execute_nl_intent(intent, period_days, owner_id, user, store_id)
@@ -16623,7 +16778,7 @@ Reply with JSON only, exactly: {{"intent": "...", "period_days": N}}"""
 
 # ===================== END VAGUE 7 (natural query) =====================
 
-# ===================== VAGUE 7 â€” voice to cart =====================
+# ===================== VAGUE 7 — voice to cart =====================
 
 def _match_products_from_text(text: str, products: list) -> list:
     """Match product names from transcribed text. Returns list of {product, qty}."""
@@ -16791,7 +16946,7 @@ async def admin_update_dispute_status(dispute_id: str, update: DisputeStatusUpda
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Litige non trouvé")
-    return {"message": f"Litige mis Ã  jour: {update.status}"}
+    return {"message": f"Litige mis à jour: {update.status}"}
 
 @admin_router.get("/disputes/stats")
 async def admin_dispute_stats():
@@ -16880,8 +17035,8 @@ ADMIN_NOTIFICATION_DESTINATIONS: Dict[str, str] = {
     "orders": "Commandes",
     "pos": "Caisse",
     "crm": "CRM",
-    "accounting": "ComptabilitÃ©",
-    "settings": "ParamÃ¨tres",
+    "accounting": "Comptabilité",
+    "settings": "Paramètres",
 }
 
 
@@ -16898,34 +17053,34 @@ async def admin_suggest_notification_message(data: AdminNotificationSuggestionRe
 
     api_key = resolve_gemini_api_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="La gÃ©nÃ©ration IA n'est pas configurÃ©e.")
+        raise HTTPException(status_code=500, detail="La génération IA n'est pas configurée.")
 
     allowed_destinations = "\n".join([f"- {key}: {label}" for key, label in ADMIN_NOTIFICATION_DESTINATIONS.items()])
-    prompt = f"""Tu es l'assistant de rÃ©daction des notifications admin Stockman.
-RÃ©dige une notification push professionnelle, courte et sans faute.
+    prompt = f"""Tu es l'assistant de rédaction des notifications admin Stockman.
+Rédige une notification push professionnelle, courte et sans faute.
 
 Contexte :
 - Objectif : {objective}
 - Cible : {clean_admin_notification_suggestion_text(data.target, 80)}
-- Langue demandÃ©e : {clean_admin_notification_suggestion_text(data.language, 30)}
-- Pays : {clean_admin_notification_suggestion_text(data.country_code or "", 30) or "non prÃ©cisÃ©"}
+- Langue demandée : {clean_admin_notification_suggestion_text(data.language, 30)}
+- Pays : {clean_admin_notification_suggestion_text(data.country_code or "", 30) or "non précisé"}
 - Ton : {clean_admin_notification_suggestion_text(data.tone, 50)}
-- Titre actuel Ã©ventuel : {clean_admin_notification_suggestion_text(data.current_title or "", 120)}
-- Message actuel Ã©ventuel : {clean_admin_notification_suggestion_text(data.current_content or "", 260)}
+- Titre actuel éventuel : {clean_admin_notification_suggestion_text(data.current_title or "", 120)}
+- Message actuel éventuel : {clean_admin_notification_suggestion_text(data.current_content or "", 260)}
 
-Destinations autorisÃ©es :
+Destinations autorisées :
 {allowed_destinations}
 
 Contraintes :
-- Le titre doit faire 48 caractÃ¨res maximum.
-- Le message doit faire 160 caractÃ¨res maximum.
-- Choisis une seule destination parmi les clÃ©s autorisÃ©es.
-- Si l'objectif demande d'ajouter, crÃ©er, importer ou configurer des produits, choisis products_create.
-- Pour une aide au dÃ©marrage sans demande explicite de crÃ©ation produit, choisis assistance.
-- Pour un compte sans produit, choisis products_create si le message invite Ã  crÃ©er des produits, sinon assistance si le message invite Ã  demander de l'aide.
-- Pour une relance d'inscription, choisis none ou home si la cible a dÃ©jÃ  un compte.
-- Ne promets pas de remise, d'appel ou de rÃ©sultat non confirmÃ©.
-- RÃ©ponds uniquement en JSON valide, sans markdown.
+- Le titre doit faire 48 caractères maximum.
+- Le message doit faire 160 caractères maximum.
+- Choisis une seule destination parmi les clés autorisées.
+- Si l'objectif demande d'ajouter, créer, importer ou configurer des produits, choisis products_create.
+- Pour une aide au démarrage sans demande explicite de création produit, choisis assistance.
+- Pour un compte sans produit, choisis products_create si le message invite à créer des produits, sinon assistance si le message invite à demander de l'aide.
+- Pour une relance d'inscription, choisis none ou home si la cible a déjà un compte.
+- Ne promets pas de remise, d'appel ou de résultat non confirmé.
+- Réponds uniquement en JSON valide, sans markdown.
 
 Format attendu :
 {{"title":"...","content":"...","destination":"assistance","rationale":"..."}}"""
@@ -16940,7 +17095,7 @@ Format attendu :
         result = json.loads(raw_text)
     except Exception as exc:
         logger.error(f"Admin notification suggestion error: {exc}")
-        raise HTTPException(status_code=500, detail="Impossible de gÃ©nÃ©rer la notification pour le moment.")
+        raise HTTPException(status_code=500, detail="Impossible de générer la notification pour le moment.")
 
     destination = str(result.get("destination") or "none").strip()
     if destination not in ADMIN_NOTIFICATION_DESTINATIONS:
@@ -17020,7 +17175,7 @@ async def admin_active_sessions():
 
 @api_router.get("/catalog/sectors")
 async def list_catalog_sectors():
-    """Liste des secteurs d'activitÃ© avec le nombre de produits dans chacun."""
+    """Liste des secteurs d'activité avec le nombre de produits dans chacun."""
     return await catalog_service.get_sectors_with_counts()
 
 
@@ -17066,9 +17221,9 @@ async def import_from_catalog(
     data: CatalogImportRequest,
     user: User = Depends(require_auth),
 ):
-    """Importer des produits sÃ©lectionnÃ©s du catalogue global dans le compte du commerÃ§ant."""
+    """Importer des produits sélectionnés du catalogue global dans le compte du commerçant."""
     if not user.active_store_id:
-        raise HTTPException(status_code=400, detail="Aucun magasin actif. CrÃ©ez d'abord un magasin.")
+        raise HTTPException(status_code=400, detail="Aucun magasin actif. Créez d'abord un magasin.")
     result = await catalog_service.import_to_user(
         data.catalog_ids, get_owner_id(user), user.active_store_id
     )
@@ -17101,15 +17256,15 @@ async def lookup_catalog_barcode(
     """Chercher un produit dans le catalogue global par code-barres."""
     product = await catalog_service.lookup_barcode(barcode)
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ© dans le catalogue global")
+        raise HTTPException(status_code=404, detail="Produit non trouvé dans le catalogue global")
     return product
 
 
 # ===================== IMPORT PAR TEXTE LIBRE (IA) =====================
 
 class TextImportRequest(BaseModel):
-    text: str  # Texte brut collÃ© par l'utilisateur (WhatsApp, notes, etc.)
-    auto_create: bool = False  # Si True, crÃ©e les produits directement
+    text: str  # Texte brut collé par l'utilisateur (WhatsApp, notes, etc.)
+    auto_create: bool = False  # Si True, crée les produits directement
 
 
 TEXT_IMPORT_UNIT_PATTERNS = [
@@ -17182,50 +17337,50 @@ async def import_products_from_text(
 ):
     """
     Importer des produits depuis un texte libre (WhatsApp, notes, etc.).
-    L'IA parse le texte et retourne une liste structurÃ©e de produits.
+    L'IA parse le texte et retourne une liste structurée de produits.
     """
     api_key = resolve_gemini_api_key()
     if not api_key:
-        raise HTTPException(status_code=503, detail="Service IA non configurÃ©")
+        raise HTTPException(status_code=503, detail="Service IA non configuré")
 
     if not data.text or len(data.text.strip()) < 5:
         raise HTTPException(status_code=400, detail="Texte trop court")
 
     if len(data.text) > 10000:
-        raise HTTPException(status_code=400, detail="Texte trop long (max 10000 caractÃ¨res)")
+        raise HTTPException(status_code=400, detail="Texte trop long (max 10000 caractères)")
 
-    prompt = f"""Tu es un assistant spÃ©cialisÃ© en gestion de stock.
-L'utilisateur a collÃ© une liste de produits sous forme de texte brut (peut venir de WhatsApp, SMS, notes, facture...).
+    prompt = f"""Tu es un assistant spécialisé en gestion de stock.
+L'utilisateur a collé une liste de produits sous forme de texte brut (peut venir de WhatsApp, SMS, notes, facture...).
 Extrais chaque produit et retourne UNIQUEMENT un JSON valide (sans markdown) avec ce format :
 [
   {{
     "name": "Nom du produit",
     "barcode": null,
-    "category": "CatÃ©gorie si devinable",
+    "category": "Catégorie si devinable",
     "purchase_price": 0,
     "selling_price": 0,
     "quantity": 0,
-    "unit": "piÃ¨ce",
+    "unit": "pièce",
     "measurement_type": "unit",
-    "display_unit": "piÃ¨ce",
-    "pricing_unit": "piÃ¨ce",
+    "display_unit": "pièce",
+    "pricing_unit": "pièce",
     "allows_fractional_sale": false,
-    "source_text": "ligne brute utilisÃ©e"
+    "source_text": "ligne brute utilisée"
   }},
 ]
 
-RÃ¨gles :
-- Si un prix est mentionnÃ©, mets-le dans selling_price.
-- Si "prix achat" ou "PA" est mentionnÃ©, mets dans purchase_price.
-- Si une quantitÃ© est mentionnÃ©e, mets-la dans quantity.
-- Si une unitÃ© de vente ou de stock est mentionnÃ©e (kg, g, L, ml, cL, piÃ¨ce, bouteille, sac, carton, etc.), renseigne unit.
+Règles :
+- Si un prix est mentionné, mets-le dans selling_price.
+- Si "prix achat" ou "PA" est mentionné, mets dans purchase_price.
+- Si une quantité est mentionnée, mets-la dans quantity.
+- Si une unité de vente ou de stock est mentionnée (kg, g, L, ml, cL, pièce, bouteille, sac, carton, etc.), renseigne unit.
 - Si le produit est vendu au poids ou au volume, renseigne aussi measurement_type, display_unit, pricing_unit et allows_fractional_sale.
-- N'utilise pas "piÃ¨ce" par dÃ©faut quand le texte indique clairement un poids ou un volume. Par exemple, "30 kilos de riz" doit donner quantity=30 et unit=kg.
-- Si aucun prix/quantitÃ©, mets 0.
-- Devine la catÃ©gorie si possible (Boissons, Alimentaire, HygiÃ¨ne, etc.)
+- N'utilise pas "pièce" par défaut quand le texte indique clairement un poids ou un volume. Par exemple, "30 kilos de riz" doit donner quantity=30 et unit=kg.
+- Si aucun prix/quantité, mets 0.
+- Devine la catégorie si possible (Boissons, Alimentaire, Hygiène, etc.)
 - Ignore les lignes qui ne sont pas des produits (salutations, dates, etc.)
 
-TEXTE Ã€ PARSER :
+TEXTE À PARSER :
 {data.text}"""
 
     try:
@@ -17237,15 +17392,15 @@ TEXTE Ã€ PARSER :
             text_result = text_result.split("\n", 1)[1].rsplit("```", 1)[0].strip()
         products = json.loads(text_result)
     except json.JSONDecodeError:
-        raise HTTPException(status_code=422, detail="L'IA n'a pas pu structurer ce texte. Reformulez ou ajoutez plus de dÃ©tails.")
+        raise HTTPException(status_code=422, detail="L'IA n'a pas pu structurer ce texte. Reformulez ou ajoutez plus de détails.")
     except Exception as e:
         logger.error(f"Text import AI error: {e}")
         raise HTTPException(status_code=500, detail="Erreur lors de l'analyse IA")
 
     if not isinstance(products, list):
-        raise HTTPException(status_code=422, detail="Format de rÃ©ponse IA inattendu")
+        raise HTTPException(status_code=422, detail="Format de réponse IA inattendu")
 
-    # Si auto_create=True, crÃ©er les produits directement
+    # Si auto_create=True, créer les produits directement
     if data.auto_create and user.active_store_id:
         created = 0
         owner_id = get_owner_id(user)
@@ -17311,7 +17466,7 @@ async def download_csv_template(
     lang: str = "fr",
     user: User = Depends(require_auth),
 ):
-    """TÃ©lÃ©charger un template CSV prÃ©-rempli avec les produits populaires du secteur."""
+    """Télécharger un template CSV pré-rempli avec les produits populaires du secteur."""
     csv_content = await catalog_service.generate_csv_template(sector, country, lang)
     filename = f"stockman_template_{sector or 'general'}.csv"
     return StreamingResponse(
@@ -17325,7 +17480,7 @@ async def download_csv_template(
 
 @api_router.get("/user/features")
 async def get_user_features(user: User = Depends(require_auth)):
-    """Retourne les features activÃ©es pour l'utilisateur (ex: has_production)."""
+    """Retourne les features activées pour l'utilisateur (ex: has_production)."""
     sector = normalize_sector(user.business_type or "")
     return {
         "has_production": sector in PRODUCTION_SECTORS,
@@ -17335,7 +17490,7 @@ async def get_user_features(user: User = Depends(require_auth)):
     }
 
 
-# Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ Recipes Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+# ─── Recipes ───
 
 @api_router.get("/recipes")
 async def list_recipes(user: User = Depends(require_auth)):
@@ -17348,7 +17503,7 @@ async def list_recipes(user: User = Depends(require_auth)):
 
 @api_router.post("/recipes")
 async def create_recipe(data: RecipeCreate, user: User = Depends(require_write("products"))):
-    """CrÃ©er une nouvelle recette."""
+    """Créer une nouvelle recette."""
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="No active store")
     recipe_data = data.model_dump()
@@ -17371,7 +17526,7 @@ async def create_recipe(data: RecipeCreate, user: User = Depends(require_write("
 
 @api_router.get("/recipes/{recipe_id}")
 async def get_recipe(recipe_id: str, user: User = Depends(require_auth)):
-    """RÃ©cupÃ©rer une recette par ID."""
+    """Récupérer une recette par ID."""
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="No active store")
     recipe = await production_service.get_recipe(db, recipe_id, user.active_store_id)
@@ -17382,7 +17537,7 @@ async def get_recipe(recipe_id: str, user: User = Depends(require_auth)):
 
 @api_router.put("/recipes/{recipe_id}")
 async def update_recipe(recipe_id: str, data: RecipeUpdate, user: User = Depends(require_write("products"))):
-    """Mettre Ã  jour une recette."""
+    """Mettre à jour une recette."""
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="No active store")
     update_data = data.model_dump(exclude_none=True)
@@ -17415,13 +17570,13 @@ async def delete_recipe(recipe_id: str, user: User = Depends(require_write("prod
 
 @api_router.get("/recipes/{recipe_id}/feasibility")
 async def check_recipe_feasibility(recipe_id: str, user: User = Depends(require_auth)):
-    """VÃ©rifier combien de batches sont possibles avec le stock actuel."""
+    """Vérifier combien de batches sont possibles avec le stock actuel."""
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="No active store")
     return await production_service.check_feasibility(db, recipe_id, user.active_store_id)
 
 
-# Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ Production Orders Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+# ─── Production Orders ───
 
 @api_router.get("/production/orders")
 async def list_production_orders(
@@ -17437,7 +17592,7 @@ async def list_production_orders(
 
 @api_router.post("/production/orders")
 async def create_production_order(data: ProductionOrderCreate, user: User = Depends(require_write("products"))):
-    """CrÃ©er un ordre de production (statut: planned)."""
+    """Créer un ordre de production (statut: planned)."""
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="No active store")
     order_data = data.model_dump()
@@ -17451,7 +17606,7 @@ async def create_production_order(data: ProductionOrderCreate, user: User = Depe
 
 @api_router.put("/production/orders/{order_id}/start")
 async def start_production_order(order_id: str, user: User = Depends(require_write("products"))):
-    """DÃ©marrer un ordre : dÃ©duire les matiÃ¨res premiÃ¨res du stock."""
+    """Démarrer un ordre : déduire les matières premières du stock."""
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="No active store")
     try:
@@ -17475,7 +17630,7 @@ async def complete_production_order(order_id: str, data: ProductionCompleteReque
 
 @api_router.put("/production/orders/{order_id}/cancel")
 async def cancel_production_order(order_id: str, user: User = Depends(require_write("products"))):
-    """Annuler un ordre : remettre les matiÃ¨res premiÃ¨res si dÃ©jÃ  dÃ©duites."""
+    """Annuler un ordre : remettre les matières premières si déjà déduites."""
     if not user.active_store_id:
         raise HTTPException(status_code=400, detail="No active store")
     try:
@@ -17513,7 +17668,7 @@ async def admin_catalog_list(
     limit: int = 50,
     user: User = Depends(require_admin_access),
 ):
-    """Liste paginÃ©e des produits du catalogue global (admin)."""
+    """Liste paginée des produits du catalogue global (admin)."""
     return await catalog_service.admin_list(
         sector,
         verified,
@@ -17529,10 +17684,10 @@ async def admin_catalog_list(
 
 @admin_router.put("/catalog/{catalog_id}/verify")
 async def admin_catalog_verify(catalog_id: str, user: User = Depends(require_admin_access)):
-    """Marquer un produit du catalogue comme vÃ©rifiÃ©."""
+    """Marquer un produit du catalogue comme vérifié."""
     success = await catalog_service.admin_verify(catalog_id)
     if not success:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
     await log_activity(
         user_id=user.user_id,
         module="admin",
@@ -17625,7 +17780,7 @@ async def admin_catalog_duplicate(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     if not doc:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
     await log_activity(
         user_id=user.user_id,
         module="admin",
@@ -17791,7 +17946,7 @@ async def admin_catalog_update(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     if not doc:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
     await log_activity(
         user_id=user.user_id,
         module="admin",
@@ -17843,7 +17998,7 @@ async def admin_catalog_delete(catalog_id: str, user: User = Depends(require_adm
     """Supprimer un produit du catalogue global."""
     success = await catalog_service.admin_delete(catalog_id)
     if not success:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
     await log_activity(
         user_id=user.user_id,
         module="admin",
@@ -17869,8 +18024,8 @@ async def check_ai_anomalies_loop():
         for anomaly in anomalies:
             alert_type = f"ai_{anomaly['type']}"
 
-            # Nettoyage prÃ©ventif des doublons actifs dÃ©jÃ  existants:
-            # on conserve la plus rÃ©cente, les autres sont marquÃ©es ignorÃ©es.
+            # Nettoyage préventif des doublons actifs déjà existants:
+            # on conserve la plus récente, les autres sont marquées ignorées.
             active_same_type = await db.alerts.find(
                 {
                     "user_id": user_id,
@@ -17888,10 +18043,10 @@ async def check_ai_anomalies_loop():
                         {"$set": {"is_dismissed": True}},
                     )
 
-            # DÃ©duplication stricte:
-            # 1) ne pas recrÃ©er si une alerte active du mÃªme type existe dÃ©jÃ  pour la boutique,
-            # 2) ne pas recrÃ©er si une alerte du mÃªme type a dÃ©jÃ  Ã©tÃ© Ã©mise rÃ©cemment (cooldown),
-            #    mÃªme si elle a Ã©tÃ© ignorÃ©e.
+            # Déduplication stricte:
+            # 1) ne pas recréer si une alerte active du même type existe déjà pour la boutique,
+            # 2) ne pas recréer si une alerte du même type a déjà été émise récemment (cooldown),
+            #    même si elle a été ignorée.
             existing_active = await db.alerts.find_one({
                 "user_id": user_id,
                 "store_id": store_id,
@@ -17931,7 +18086,7 @@ async def check_alerts_loop():
     now = datetime.now(timezone.utc)
     since_24h = now - timedelta(hours=24)
 
-    # 1. Low stock alerts â€” Pro + Enterprise only, dedup on active (non-dismissed) alerts
+    # 1. Low stock alerts — Pro + Enterprise only, dedup on active (non-dismissed) alerts
     async for product in db.products.find({
         "min_stock": {"$gt": 0},
         "quantity": {"$gt": 0},
@@ -17968,7 +18123,7 @@ async def check_alerts_loop():
             product_id=product_id,
             type="low_stock",
             title="Stock bas",
-            message=f"Le produit {product['name']} est presque Ã©puisÃ© ({product['quantity']} restant(s)).",
+            message=f"Le produit {product['name']} est presque épuisé ({product['quantity']} restant(s)).",
             severity="warning" if product["quantity"] > 0 else "critical",
         )
         await db.alerts.insert_one(alert.model_dump())
@@ -17980,7 +18135,7 @@ async def check_alerts_loop():
             data={"screen": "products", "filter": "low_stock"},
         )
 
-    # 2. Expiry alerts (within 7 days) â€” dedup on active alerts
+    # 2. Expiry alerts (within 7 days) — dedup on active alerts
     seven_days_later = now + timedelta(days=7)
     async for batch in db.batches.find({"expiry_date": {"$lte": seven_days_later.isoformat()}, "quantity": {"$gt": 0}}):
         owner_id = batch.get("user_id")
@@ -18113,13 +18268,13 @@ async def check_planner_reminders_loop():
 async def require_shopkeeper(request: Request) -> User:
     user = await require_auth(request)
     if user.role != "shopkeeper":
-        raise HTTPException(status_code=403, detail="AccÃ¨s rÃ©servÃ© aux commerÃ§ants")
+        raise HTTPException(status_code=403, detail="Accès réservé aux commerçants")
     return user
 
 async def require_supplier(request: Request) -> User:
     user = await require_auth(request)
     if user.role != "supplier":
-        raise HTTPException(status_code=403, detail="AccÃ¨s rÃ©servÃ© aux fournisseurs")
+        raise HTTPException(status_code=403, detail="Accès réservé aux fournisseurs")
     return user
 
 @api_router.get("/admin/background-tasks")
@@ -18164,7 +18319,7 @@ async def create_customer_payment(
     owner_id = get_owner_id(user)
     customer = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
     if not customer:
-        raise HTTPException(status_code=404, detail="Client non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Client non trouvé")
 
     customer = await backfill_legacy_store_field(
         db.customers,
@@ -18204,11 +18359,11 @@ async def cancel_customer_payment(
 
     payment = await db.customer_payments.find_one({"payment_id": payment_id, "customer_id": customer_id, "user_id": owner_id})
     if not payment:
-        raise HTTPException(status_code=404, detail="Paiement non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Paiement non trouvé")
 
     customer = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
     if not customer:
-        raise HTTPException(status_code=404, detail="Client non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Client non trouvé")
     ensure_scoped_document_access(user, customer, detail="Acces refuse pour ce client")
 
     # 1. Restore debt
@@ -18224,10 +18379,10 @@ async def cancel_customer_payment(
         user=user,
         action="customer_payment_cancelled",
         module="crm",
-        description=f"Paiement de {payment['amount']} annulÃ© pour {customer.get('name', customer_id)}",
+        description=f"Paiement de {payment['amount']} annulé pour {customer.get('name', customer_id)}",
         details={"payment_id": payment_id, "customer_id": customer_id, "amount": payment["amount"]},
     )
-    return {"message": "Paiement annulÃ©, dette restaurÃ©e"}
+    return {"message": "Paiement annulé, dette restaurée"}
 
 @api_router.get("/customers/{customer_id}/debt-history")
 async def get_customer_debt_history(
@@ -18341,7 +18496,7 @@ class Supplier(BaseModel):
     notes: Optional[str] = None
     products_supplied: str = ""  # produits habituels (texte libre)
     delivery_delay: str = ""  # ex: "2-3 jours"
-    payment_conditions: str = ""  # ex: "Ã€ la livraison"
+    payment_conditions: str = ""  # ex: "À la livraison"
     invitation_token: Optional[str] = Field(default_factory=lambda: uuid.uuid4().hex)
     invitation_sent: bool = False
     is_active: bool = True
@@ -18473,7 +18628,7 @@ class CatalogProduct(BaseModel):
     category: str = ""
     subcategory: str = ""
     price: float = 0.0
-    unit: str = "piÃ¨ce"
+    unit: str = "pièce"
     min_order_quantity: int = 1
     stock_available: int = 0
     available: bool = True
@@ -18494,7 +18649,7 @@ class CatalogProductCreate(BaseModel):
     category: str = ""
     subcategory: str = ""
     price: float = 0.0
-    unit: str = "piÃ¨ce"
+    unit: str = "pièce"
     min_order_quantity: int = 1
     stock_available: int = 0
     available: bool = True
@@ -18597,8 +18752,8 @@ def published_catalog_query(extra: Optional[Dict[str, Any]] = None) -> Dict[str,
 class CatalogProductMapping(BaseModel):
     mapping_id: str = Field(default_factory=lambda: f"map_{uuid.uuid4().hex[:12]}")
     catalog_id: str       # catalog_id du fournisseur
-    product_id: str       # product_id du commerÃ§ant
-    user_id: str          # user_id du commerÃ§ant
+    product_id: str       # product_id du commerçant
+    user_id: str          # user_id du commerçant
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class SupplierRating(BaseModel):
@@ -18705,30 +18860,30 @@ def get_currency_from_phone(phone: str) -> str:
     if not phone:
         return "XOF"
     phone = phone.strip().replace(" ", "").replace("-", "")
-    # West Africa UEMOA â€” Mobile Money (XOF)
+    # West Africa UEMOA — Mobile Money (XOF)
     if any(phone.startswith(p) for p in [
-        "+221",  # SÃ©nÃ©gal
-        "+225",  # CÃ´te d'Ivoire
+        "+221",  # Sénégal
+        "+225",  # Côte d'Ivoire
         "+226",  # Burkina Faso
         "+228",  # Togo
-        "+229",  # BÃ©nin
+        "+229",  # Bénin
         "+223",  # Mali
         "+227",  # Niger
-        "+245",  # GuinÃ©e-Bissau
+        "+245",  # Guinée-Bissau
     ]):
         return "XOF"
-    # Central Africa CEMAC â€” Mobile Money (XAF)
+    # Central Africa CEMAC — Mobile Money (XAF)
     if any(phone.startswith(p) for p in [
         "+237",  # Cameroun
         "+241",  # Gabon
         "+242",  # Congo-Brazzaville
-        "+243",  # Congo RDC (CDF, mais opÃ¨re en XAF ici)
-        "+236",  # RÃ©publique Centrafricaine
+        "+243",  # Congo RDC (CDF, mais opère en XAF ici)
+        "+236",  # République Centrafricaine
         "+235",  # Tchad
-        "+240",  # GuinÃ©e Ã‰quatoriale
+        "+240",  # Guinée Équatoriale
     ]):
         return "XAF"
-    # GuinÃ©e Conakry
+    # Guinée Conakry
     if phone.startswith("+224"):
         return "GNF"
     # Eurozone
@@ -18744,17 +18899,17 @@ def get_currency_from_phone(phone: str) -> str:
         "+43",   # Autriche
         "+358",  # Finlande
         "+353",  # Irlande
-        "+30",   # GrÃ¨ce
+        "+30",   # Grèce
         "+356",  # Malte
         "+421",  # Slovaquie
-        "+386",  # SlovÃ©nie
+        "+386",  # Slovénie
         "+372",  # Estonie
         "+371",  # Lettonie
         "+370",  # Lituanie
         "+357",  # Chypre
     ]):
         return "EUR"
-    # Autres pays â€” Stripe (EUR comme devise de facturation)
+    # Autres pays — Stripe (EUR comme devise de facturation)
     return "EUR"
 
 @api_router.get("/auth/supplier-registration")
@@ -18780,7 +18935,7 @@ async def register(request: Request, user_data: UserCreate, response: Response):
         user_data.email = user_data.email.lower().strip()
         existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
         if existing:
-            raise HTTPException(status_code=400, detail="Cet email est dÃ©jÃ  utilisÃ©")
+            raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
 
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         hashed_password = get_password_hash(user_data.password)
@@ -18968,10 +19123,10 @@ async def set_verification_channel(request: Request, data: VerificationChannelRe
 
     channel = (data.channel or "").strip().lower()
     if channel not in {"email", "phone"}:
-        raise HTTPException(status_code=400, detail="Canal de vÃ©rification invalide.")
+        raise HTTPException(status_code=400, detail="Canal de vérification invalide.")
 
     if channel == "phone" and not (user_doc.get("phone") or "").strip():
-        raise HTTPException(status_code=400, detail="Aucun numÃ©ro de tÃ©lÃ©phone associÃ© au compte.")
+        raise HTTPException(status_code=400, detail="Aucun numéro de téléphone associé au compte.")
 
     update_payload: Dict[str, Any] = {
         "required_verification": channel,
@@ -19002,7 +19157,7 @@ async def set_verification_channel(request: Request, data: VerificationChannelRe
             success=bool(sent),
             detail="set_verification_channel",
         )
-        message = "Un code de vÃ©rification a Ã©tÃ© envoyÃ© par email." if sent else "Le code a Ã©tÃ© gÃ©nÃ©rÃ© mais l'envoi email a Ã©chouÃ©."
+        message = "Un code de vérification a été envoyé par email." if sent else "Le code a été généré mais l'envoi email a échoué."
     else:
         update_payload.update({
             "phone_otp": None,
@@ -19018,7 +19173,7 @@ async def set_verification_channel(request: Request, data: VerificationChannelRe
             success=True,
             detail="set_verification_channel",
         )
-        message = "La vÃ©rification par SMS est activÃ©e."
+        message = "La vérification par SMS est activée."
 
     await db.users.update_one({"user_id": current_user.user_id}, {"$set": update_payload})
     updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
@@ -19040,7 +19195,7 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
         decoded = verify_firebase_id_token(data.firebase_id_token)
     except Exception as firebase_err:
         logger.warning(f"Social login verify failed: {firebase_err}")
-        raise HTTPException(status_code=400, detail="Connexion sociale invalide ou expirÃ©e.")
+        raise HTTPException(status_code=400, detail="Connexion sociale invalide ou expirée.")
 
     provider = decoded.get("provider")
     provider_map = {"google.com": "google", "apple.com": "apple"}
@@ -19065,7 +19220,7 @@ async def verify_social_login(request: Request, data: SocialLoginRequest, respon
         login_at = datetime.now(timezone.utc)
         existing_provider_uid = (user_doc.get("auth_providers") or {}).get(provider_key)
         if existing_provider_uid and existing_provider_uid != firebase_uid:
-            raise HTTPException(status_code=400, detail="Ce compte est dÃ©jÃ  liÃ© Ã  un autre identifiant.")
+            raise HTTPException(status_code=400, detail="Ce compte est déjà lié à un autre identifiant.")
 
         update_payload: Dict[str, Any] = {
             f"auth_providers.{provider_key}": firebase_uid,
@@ -19224,7 +19379,7 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
         )
         raise HTTPException(
             status_code=400,
-            detail="Cette version de l'application n'est plus compatible avec la vÃ©rification tÃ©lÃ©phone. Mettez l'application Ã  jour.",
+            detail="Cette version de l'application n'est plus compatible avec la vérification téléphone. Mettez l'application à jour.",
         )
 
     try:
@@ -19238,7 +19393,7 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
             success=False,
             detail=f"verify_phone:{firebase_err}",
         )
-        raise HTTPException(status_code=400, detail="Code de vÃ©rification invalide ou expirÃ©.")
+        raise HTTPException(status_code=400, detail="Code de vérification invalide ou expiré.")
 
     expected_phone = normalize_phone_e164(user_doc.get("phone"))
     firebase_phone = normalize_phone_e164(verified_phone.get("phone_number"))
@@ -19251,7 +19406,7 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
             success=False,
             detail="phone_number_mismatch",
         )
-        raise HTTPException(status_code=400, detail="Le numÃ©ro vÃ©rifiÃ© ne correspond pas au compte.")
+        raise HTTPException(status_code=400, detail="Le numéro vérifié ne correspond pas au compte.")
 
     update_payload = {
         "is_phone_verified": True,
@@ -19285,7 +19440,7 @@ async def verify_phone(request: Request, data: VerifyPhoneRequest, current_user:
         detail="verify_phone",
     )
     updated_user = await db.users.find_one({"user_id": current_user.user_id}, {"_id": 0})
-    return {"message": "TÃ©lÃ©phone vÃ©rifiÃ© avec succÃ¨s", "user": await build_user_from_doc(updated_user)}
+    return {"message": "Téléphone vérifié avec succès", "user": await build_user_from_doc(updated_user)}
 
 @api_router.post("/auth/resend-otp")
 @limiter.limit("2/minute")
@@ -19560,7 +19715,7 @@ async def login(request: Request, user_data: UserLogin, response: Response):
             store_ids = [store_id]
     except Exception as e:
         logger.error(f"Migration error for user {user_doc.get('user_id')}: {e}")
-        # On continue quand mÃªme le login si possible
+        # On continue quand même le login si possible
 
 
     try:
@@ -19585,7 +19740,7 @@ async def open_app_from_signed_link(t: str):
     try:
         payload = jwt.decode(t, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
-        raise HTTPException(status_code=401, detail="Lien invalide ou expirÃ©")
+        raise HTTPException(status_code=401, detail="Lien invalide ou expiré")
     if payload.get("type") != "app_deeplink":
         raise HTTPException(status_code=400, detail="Lien invalide")
     deeplink = str(payload.get("url") or "")
@@ -19728,7 +19883,7 @@ async def refresh_token(request: Request, response: Response, body: RefreshReque
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Token invalide")
     except JWTError:
-        raise HTTPException(status_code=401, detail="Refresh token expirÃ© ou invalide")
+        raise HTTPException(status_code=401, detail="Refresh token expiré ou invalide")
 
     user_id = payload.get("sub")
     session_id = payload.get("sid")
@@ -19808,7 +19963,7 @@ async def update_profile(data: ProfileUpdate, user: User = Depends(require_auth)
     shared_update = {k: v for k, v in update.items() if k in {"currency", "country_code", "business_type"}}
     if shared_update and (user.role == "superadmin" or "org_admin" in (user.account_roles or []) or "billing_admin" in (user.account_roles or [])):
         await update_business_account_for_owner(get_owner_id(user), shared_update)
-    return {"message": "Profil mis Ã  jour"}
+    return {"message": "Profil mis à jour"}
 
 
 @api_router.put("/auth/complete-social-profile")
@@ -20023,7 +20178,7 @@ async def get_stores(user: User = Depends(require_auth)):
 async def create_store(store_data: StoreCreate, user: User = Depends(require_auth)):
     ensure_subscription_advanced_allowed(user, detail="La gestion des boutiques est indisponible tant que le compte n'est pas regularise.")
     if user.role != "superadmin" and "org_admin" not in (user.account_roles or []):
-        raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rations peuvent crÃ©er des boutiques")
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs opérations peuvent créer des boutiques")
     STORE_LIMITS = {"starter": 1, "pro": 2, "enterprise": 9999}
     limit = STORE_LIMITS.get(user.effective_plan or user.plan, 1)
     owner_id = get_owner_id(user)
@@ -20031,7 +20186,7 @@ async def create_store(store_data: StoreCreate, user: User = Depends(require_aut
     account_doc = await ensure_business_account_for_user_doc(owner_doc)
     current_count = len((account_doc or {}).get("store_ids") or user.store_ids)
     if current_count >= limit:
-        raise HTTPException(status_code=403, detail=f"Votre plan {user.effective_plan or user.plan} est limitÃ© Ã  {limit} boutique(s). Passez Ã  un plan supÃ©rieur.")
+        raise HTTPException(status_code=403, detail=f"Votre plan {user.effective_plan or user.plan} est limité à {limit} boutique(s). Passez à un plan supérieur.")
     store = Store(**store_data.model_dump(), user_id=owner_id)
     await db.stores.insert_one(store.model_dump())
 
@@ -20066,10 +20221,10 @@ async def set_active_store(store_data: dict, user: User = Depends(require_auth))
         if store_index >= limit:
             raise HTTPException(
                 status_code=403,
-                detail=f"Votre plan '{user.plan}' est limitÃ© Ã  {limit} boutique(s). Passez Ã  un plan supÃ©rieur pour accÃ©der Ã  cette boutique."
+                detail=f"Votre plan '{user.plan}' est limité à {limit} boutique(s). Passez à un plan supérieur pour accéder à cette boutique."
             )
     except ValueError:
-        raise HTTPException(status_code=400, detail="Magasin non trouvÃ©")
+        raise HTTPException(status_code=400, detail="Magasin non trouvé")
 
     await db.users.update_one(
         {"user_id": user.user_id},
@@ -20083,15 +20238,15 @@ async def set_active_store(store_data: dict, user: User = Depends(require_auth))
 async def update_store(data: StoreUpdate, store_id: str = Path(..., pattern="^[a-zA-Z0-9_-]{5,50}$"), user: User = Depends(require_auth)):
     ensure_subscription_advanced_allowed(user, detail="La gestion des boutiques est indisponible tant que le compte n'est pas regularise.")
     if user.role != "superadmin" and "org_admin" not in (user.account_roles or []):
-        raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rations peuvent modifier les boutiques")
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs opérations peuvent modifier les boutiques")
     owner_id = get_owner_id(user)
     update = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update:
-        raise HTTPException(status_code=400, detail="Aucun champ Ã  mettre Ã  jour")
+        raise HTTPException(status_code=400, detail="Aucun champ à mettre à jour")
     await db.stores.update_one({"store_id": store_id, "user_id": owner_id}, {"$set": update})
     doc = await db.stores.find_one({"store_id": store_id, "user_id": owner_id}, {"_id": 0})
     if not doc:
-        raise HTTPException(status_code=404, detail="Boutique non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Boutique non trouvée")
     return Store(**doc)
 
 
@@ -20110,7 +20265,7 @@ async def get_ecommerce_site(user: User = Depends(require_auth)):
 @api_router.put("/ecommerce/site", response_model=EcommerceSiteInfo)
 async def update_ecommerce_site(data: EcommerceSiteUpdate, request: Request, user: User = Depends(require_auth)):
     if not is_org_admin_user(user):
-        raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rationnels peuvent modifier le site e-commerce")
+        raise HTTPException(status_code=403, detail="Seuls les administrateurs opérationnels peuvent modifier le site e-commerce")
     ensure_subscription_write_allowed(user, request=request)
     owner_id = get_owner_id(user)
     site = await ensure_ecommerce_site_for_owner(owner_id, user.active_store_id)
@@ -21188,7 +21343,7 @@ async def transfer_stock(data: StockTransfer, user: User = Depends(require_permi
     if not from_store or not to_store:
         raise HTTPException(status_code=400, detail="Boutique invalide")
 
-    # Atomic deduct from source â€” prevents race condition / negative stock
+    # Atomic deduct from source — prevents race condition / negative stock
     from_product = await db.products.find_one_and_update(
         {"product_id": data.product_id, "user_id": owner_id, "store_id": data.from_store_id, "quantity": {"$gte": data.quantity}},
         {"$inc": {"quantity": -data.quantity}},
@@ -21201,7 +21356,7 @@ async def transfer_stock(data: StockTransfer, user: User = Depends(require_permi
             {"_id": 0, "quantity": 1},
         )
         if not exists:
-            raise HTTPException(status_code=404, detail="Produit non trouvÃ© dans la boutique source")
+            raise HTTPException(status_code=404, detail="Produit non trouvé dans la boutique source")
         raise HTTPException(status_code=400, detail=f"Stock insuffisant ({exists.get('quantity', 0)} disponibles)")
 
     # Upsert destination stock in one write to avoid duplicate inserts during concurrent transfers.
@@ -21250,7 +21405,7 @@ async def transfer_stock(data: StockTransfer, user: User = Depends(require_permi
             {"product_id": data.product_id, "user_id": owner_id, "store_id": data.from_store_id},
             {"$inc": {"quantity": data.quantity}, "$set": {"updated_at": now}},
         )
-        raise HTTPException(status_code=500, detail="Le transfert n'a pas pu Ãªtre finalisÃ©. Le stock source a Ã©tÃ© restaurÃ©.")
+        raise HTTPException(status_code=500, detail="Le transfert n'a pas pu être finalisé. Le stock source a été restauré.")
 
     # Save transfer record
     transfer_record = {
@@ -21275,7 +21430,7 @@ async def transfer_stock(data: StockTransfer, user: User = Depends(require_permi
          "from_store": data.from_store_id, "to_store": data.to_store_id}
     )
 
-    return {"message": f"Transfert de {data.quantity} unitÃ©(s) effectuÃ©", "transfer_id": transfer_record["transfer_id"]}
+    return {"message": f"Transfert de {data.quantity} unité(s) effectué", "transfer_id": transfer_record["transfer_id"]}
 
 @api_router.get("/stock/transfers")
 async def get_stock_transfers(
@@ -21306,7 +21461,7 @@ async def reverse_stock_transfer(data: StockTransferReverse, user: User = Depend
         from_store_id=data.to_store_id,
         to_store_id=data.from_store_id,
         quantity=data.quantity,
-        note=f"Annulation de transfert" + (f" â€” {data.note}" if data.note else ""),
+        note=f"Annulation de transfert" + (f" — {data.note}" if data.note else ""),
     )
     result = await transfer_stock(reverse_data, user)
 
@@ -21314,12 +21469,12 @@ async def reverse_stock_transfer(data: StockTransferReverse, user: User = Depend
         user=user,
         action="stock_transfer_reversed",
         module="stock",
-        description=f"Transfert inversÃ© : {data.quantity}x retournÃ©s de {data.to_store_id} â†’ {data.from_store_id}",
+        description=f"Transfert inversé : {data.quantity}x retournés de {data.to_store_id} → {data.from_store_id}",
         details={"product_id": data.product_id, "quantity": data.quantity,
                  "from_store": data.to_store_id, "to_store": data.from_store_id},
     )
 
-    return {"message": f"Transfert inversÃ© : {data.quantity} unitÃ©(s) retournÃ©es"}
+    return {"message": f"Transfert inversé : {data.quantity} unité(s) retournées"}
 
 # ===================== CATEGORY ROUTES =====================
 
@@ -21363,7 +21518,7 @@ async def update_category(category_id: str, cat_data: CategoryCreate, user: User
         raise HTTPException(status_code=400, detail="Nom de categorie requis")
     current = await db.categories.find_one({"category_id": category_id, "user_id": owner_id}, {"_id": 0})
     if not current:
-        raise HTTPException(status_code=404, detail="CatÃ©gorie non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
     ensure_scoped_document_access(user, current, detail="Acces refuse pour cette categorie")
     name_query = apply_store_scope({"user_id": owner_id, "category_id": {"$ne": category_id}}, user, current.get("store_id"))
     name_query["name"] = {"$regex": f"^{re.escape(clean_name)}$", "$options": "i"}
@@ -21378,7 +21533,7 @@ async def update_category(category_id: str, cat_data: CategoryCreate, user: User
         return_document=True
     )
     if not result:
-        raise HTTPException(status_code=404, detail="CatÃ©gorie non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
     result.pop("_id", None)
     return Category(**result)
 
@@ -21387,17 +21542,17 @@ async def delete_category(category_id: str, user: User = Depends(require_permiss
     owner_id = get_owner_id(user)
     current = await db.categories.find_one({"category_id": category_id, "user_id": owner_id}, {"_id": 0})
     if not current:
-        raise HTTPException(status_code=404, detail="CatÃ©gorie non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
     ensure_scoped_document_access(user, current, detail="Acces refuse pour cette categorie")
     result = await db.categories.delete_one({"category_id": category_id, "user_id": owner_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="CatÃ©gorie non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
     # Update products with this category
     await db.products.update_many(
         {"category_id": category_id, "user_id": owner_id},
         {"$set": {"category_id": None}}
     )
-    return {"message": "CatÃ©gorie supprimÃ©e"}
+    return {"message": "Catégorie supprimée"}
 
 # ===================== PRODUCT ROUTES =====================
 
@@ -21590,7 +21745,7 @@ async def get_product(product_id: str, user: User = Depends(require_any_read("st
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
     return _product_response_for_user(user, product)
 
 def normalize_product_sku(value: Any) -> Optional[str]:
@@ -21688,7 +21843,7 @@ async def create_product(prod_data: ProductCreate, user: User = Depends(require_
     )
     await db.products.insert_one(product.model_dump())
 
-    await log_activity(user, "product_created", "stock", f"Produit '{product.name}' crÃ©Ã©", {"product_id": product.product_id})
+    await log_activity(user, "product_created", "stock", f"Produit '{product.name}' créé", {"product_id": product.product_id})
 
     # Log initial price
     await db.price_history.insert_one(PriceHistory(
@@ -21741,7 +21896,7 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
     current_product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     ensure_scoped_document_access(user, current_product, detail="Acces refuse pour ce produit")
     if not current_product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     if "sku" in update_dict:
         await ensure_unique_product_sku(
@@ -21818,7 +21973,7 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
                 selling_price=new_selling if new_selling is not None else old_selling
             ).model_dump())
     if not result:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     if abs(stock_delta) > 1e-9:
         await create_stock_movement(StockMovementCreate(
@@ -21834,7 +21989,7 @@ async def update_product(product_id: str, prod_data: ProductUpdate, user: User =
     result.pop("_id", None)
     product = _product_response_for_user(user, result)
 
-    await log_activity(user, "product_updated", "stock", f"Produit '{product.name}' modifiÃ©", {"product_id": product_id})
+    await log_activity(user, "product_updated", "stock", f"Produit '{product.name}' modifié", {"product_id": product_id})
 
     # Check and create alerts if needed
     await check_and_create_alerts(product, owner_id, store_id=user.active_store_id)
@@ -21941,14 +22096,14 @@ async def transfer_product_location(
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     to_location_id = data.to_location_id or None
     if to_location_id:
         loc_query = apply_store_scope({"location_id": to_location_id, "user_id": owner_id}, user, None)
         location = await db.locations.find_one(loc_query, {"_id": 0})
         if not location:
-            raise HTTPException(status_code=404, detail="Emplacement non trouvÃ©")
+            raise HTTPException(status_code=404, detail="Emplacement non trouvé")
 
     from_location_id = product.get("location_id")
     if from_location_id == to_location_id:
@@ -21984,7 +22139,7 @@ async def get_product_price_history(product_id: str, user: User = Depends(requir
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0, "store_id": 1})
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
     history = await db.price_history.find(
         {"product_id": product_id, "user_id": owner_id},
         {"_id": 0}
@@ -21996,7 +22151,7 @@ async def adjust_product_stock(product_id: str, adj_data: StockAdjustmentRequest
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     product = normalize_product_measurement_fields(product)
@@ -22266,7 +22421,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
     product_query = apply_store_scope(product_query, user)
     product = await db.products.find_one(product_query, {"_id": 0})
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     previous_quantity = product["quantity"]
@@ -22335,7 +22490,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
                 selling_price=float(product.get("selling_price") or 0),
             ).model_dump())
     else: # OUT
-        # Atomic decrement with floor at 0 â€” prevents negative stock
+        # Atomic decrement with floor at 0 — prevents negative stock
         updated_product = await db.products.find_one_and_update(
             {
                 "product_id": mov_data.product_id,
@@ -22402,7 +22557,7 @@ async def create_stock_movement(mov_data: StockMovementCreate, user: User = Depe
         user=user,
         action="stock_movement",
         module="stock",
-        description=f"{'EntrÃ©e' if mov_data.type == 'in' else 'Sortie'} de {format_quantity(mov_data.quantity, product.get('unit', 'unitÃ©s'))} pour {product['name']}",
+        description=f"{'Entrée' if mov_data.type == 'in' else 'Sortie'} de {format_quantity(mov_data.quantity, product.get('unit', 'unités'))} pour {product['name']}",
         details={"product_id": mov_data.product_id, "type": mov_data.type, "quantity": mov_data.quantity}
     )
 
@@ -22420,7 +22575,7 @@ async def reverse_stock_movement(movement_id: str, user: User = Depends(require_
 
     original = await db.stock_movements.find_one({"movement_id": movement_id, "user_id": owner_id})
     if not original:
-        raise HTTPException(status_code=404, detail="Mouvement non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Mouvement non trouvé")
 
     # Check not already reversed
     already_reversed = await db.stock_movements.find_one({
@@ -22428,7 +22583,7 @@ async def reverse_stock_movement(movement_id: str, user: User = Depends(require_
         "reason": {"$regex": f"^Annulation de {movement_id}"},
     })
     if already_reversed:
-        raise HTTPException(status_code=400, detail="Ce mouvement a dÃ©jÃ  Ã©tÃ© annulÃ©")
+        raise HTTPException(status_code=400, detail="Ce mouvement a déjà été annulé")
 
     reverse_type = "out" if original["type"] == "in" else "in"
     reverse_reason = f"Annulation de {movement_id}" + (f" ({original.get('reason', '')})" if original.get("reason") else "")
@@ -22449,7 +22604,7 @@ async def reverse_stock_movement(movement_id: str, user: User = Depends(require_
         user=user,
         action="stock_movement_reversed",
         module="stock",
-        description=f"Mouvement {movement_id} annulÃ© ({original['type']} {original['quantity']}x {original.get('product_name', '')})",
+        description=f"Mouvement {movement_id} annulé ({original['type']} {original['quantity']}x {original.get('product_name', '')})",
         details={"original_movement_id": movement_id, "reverse_movement_id": reverse_movement.movement_id},
     )
 
@@ -22642,7 +22797,7 @@ async def update_location(location_id: str, data: LocationUpdate, user: User = D
     owner_id = get_owner_id(user)
     update = data.model_dump(exclude_unset=True)
     if update.get("parent_id") == location_id:
-        raise HTTPException(400, "Un emplacement ne peut pas Ãªtre son propre parent")
+        raise HTTPException(400, "Un emplacement ne peut pas être son propre parent")
     if "parent_id" in update and update["parent_id"]:
         parent_query = apply_store_scope({"location_id": update["parent_id"], "user_id": owner_id}, user, None)
         parent = await db.locations.find_one(parent_query, {"_id": 0})
@@ -22654,7 +22809,7 @@ async def update_location(location_id: str, data: LocationUpdate, user: User = D
         await db.locations.update_one(scoped_query, {"$set": update})
     loc = await db.locations.find_one(apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None), {"_id": 0})
     if not loc:
-        raise HTTPException(404, "Emplacement non trouvÃ©")
+        raise HTTPException(404, "Emplacement non trouvé")
     return Location(**loc)
 
 @api_router.delete("/locations/{location_id}")
@@ -22664,14 +22819,14 @@ async def delete_location(location_id: str, user: User = Depends(require_permiss
     scoped_query = apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None)
     loc = await db.locations.find_one(scoped_query, {"_id": 0})
     if not loc:
-        raise HTTPException(404, "Emplacement non trouvÃ©")
+        raise HTTPException(404, "Emplacement non trouvé")
     # Unlink products from this location before deleting
     await db.products.update_many(apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None), {"$unset": {"location_id": ""}})
     await db.batches.update_many(apply_store_scope({"location_id": location_id, "user_id": owner_id}, user, None), {"$unset": {"location_id": ""}})
     await db.locations.delete_one(scoped_query)
-    return {"message": "Emplacement supprimÃ©"}
+    return {"message": "Emplacement supprimé"}
 
-# Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ TABLES (Restaurant) Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+# ─── TABLES (Restaurant) ────────────────────────────────────────────────────
 
 @api_router.get("/tables")
 async def list_tables(user: User = Depends(get_current_user)):
@@ -22696,7 +22851,7 @@ async def update_table(table_id: str, data: Any = Body(...), user: User = Depend
     store_id = user.active_store_id
     existing = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     if not existing:
-        raise HTTPException(status_code=404, detail="Table non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Table non trouvée")
     allowed = {"name", "capacity"}
     updates = {k: v for k, v in data.items() if k in allowed}
     if updates:
@@ -22711,7 +22866,7 @@ async def table_action(table_id: str, action: str, data: dict = Body(default={})
     store_id = user.active_store_id
     table = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     if not table:
-        raise HTTPException(status_code=404, detail="Table non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Table non trouvée")
 
     open_sale = None
     if table.get("current_sale_id"):
@@ -22726,7 +22881,7 @@ async def table_action(table_id: str, action: str, data: dict = Body(default={})
 
     if action == "reserve":
         if open_sale or table.get("status") == "occupied":
-            raise HTTPException(status_code=409, detail="Impossible de rÃ©server une table occupÃ©e ou liÃ©e Ã  une commande ouverte")
+            raise HTTPException(status_code=409, detail="Impossible de réserver une table occupée ou liée à une commande ouverte")
         updates = {
             "status": "reserved",
             "current_sale_id": None,
@@ -22745,7 +22900,7 @@ async def table_action(table_id: str, action: str, data: dict = Body(default={})
             updates["current_amount"] = 0
     elif action == "clean":
         if open_sale:
-            raise HTTPException(status_code=409, detail="Finalisez ou libÃ©rez d'abord la commande ouverte avant de passer la table en nettoyage")
+            raise HTTPException(status_code=409, detail="Finalisez ou libérez d'abord la commande ouverte avant de passer la table en nettoyage")
         updates = {
             "status": "cleaning",
             "current_sale_id": None,
@@ -22755,7 +22910,7 @@ async def table_action(table_id: str, action: str, data: dict = Body(default={})
         }
     elif action == "free":
         if open_sale:
-            raise HTTPException(status_code=409, detail="Finalisez ou libÃ©rez d'abord la commande ouverte avant de libÃ©rer la table")
+            raise HTTPException(status_code=409, detail="Finalisez ou libérez d'abord la commande ouverte avant de libérer la table")
         updates = {
             "status": "free",
             "current_sale_id": None,
@@ -22779,8 +22934,8 @@ async def table_action(table_id: str, action: str, data: dict = Body(default={})
     if result.matched_count == 0:
         latest = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
         if not latest:
-            raise HTTPException(status_code=404, detail="Table non trouvÃ©e")
-        raise HTTPException(status_code=409, detail="La table a Ã©tÃ© modifiÃ©e par une autre action. Rechargez avant de rÃ©essayer.")
+            raise HTTPException(status_code=404, detail="Table non trouvée")
+        raise HTTPException(status_code=409, detail="La table a été modifiée par une autre action. Rechargez avant de réessayer.")
 
     updated = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     updated.pop("_id", None)
@@ -22792,10 +22947,10 @@ async def delete_table(table_id: str, user: User = Depends(require_permission("s
     store_id = user.active_store_id
     result = await db.tables.delete_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Table non trouvÃ©e")
-    return {"message": "Table supprimÃ©e"}
+        raise HTTPException(status_code=404, detail="Table non trouvée")
+    return {"message": "Table supprimée"}
 
-# Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ RESERVATIONS Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+# ─── RESERVATIONS ────────────────────────────────────────────────────────────
 
 @api_router.get("/reservations")
 async def list_reservations(date: Optional[str] = None, user: User = Depends(get_current_user)):
@@ -22828,7 +22983,7 @@ async def update_reservation(reservation_id: str, data: Any = Body(...), user: U
     store_id = user.active_store_id
     existing = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id})
     if not existing:
-        raise HTTPException(status_code=404, detail="RÃ©servation non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
     allowed = {"customer_name", "phone", "date", "time", "covers", "table_id", "notes", "status"}
     updates = {k: v for k, v in data.items() if k in allowed}
     if updates:
@@ -22843,10 +22998,10 @@ async def delete_reservation(reservation_id: str, user: User = Depends(get_curre
     store_id = user.active_store_id
     result = await db.reservations.delete_one({"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="RÃ©servation non trouvÃ©e")
-    return {"message": "RÃ©servation supprimÃ©e"}
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    return {"message": "Réservation supprimée"}
 
-# Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ KITCHEN TICKET Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+# ─── KITCHEN TICKET ──────────────────────────────────────────────────────────
 
 @api_router.post("/sales/{sale_id}/send-kitchen")
 async def send_to_kitchen(sale_id: str, user: User = Depends(get_current_user)):
@@ -22855,7 +23010,7 @@ async def send_to_kitchen(sale_id: str, user: User = Depends(get_current_user)):
     store_id = user.active_store_id
     sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id})
     if not sale:
-        raise HTTPException(status_code=404, detail="Vente non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Vente non trouvée")
     items = sale.get("items", [])
     all_ready = all(it.get("ready", False) for it in items) if items else False
     await db.sales.update_one(
@@ -22867,7 +23022,7 @@ async def send_to_kitchen(sale_id: str, user: User = Depends(get_current_user)):
             "served_at": None if not all_ready else sale.get("served_at"),
         }}
     )
-    return {"message": "Commande envoyÃ©e en cuisine", "sale_id": sale_id}
+    return {"message": "Commande envoyée en cuisine", "sale_id": sale_id}
 
 @api_router.get("/kitchen/pending")
 async def get_kitchen_pending(station: Optional[str] = None, user: User = Depends(get_current_user)):
@@ -22886,7 +23041,7 @@ async def get_kitchen_pending(station: Optional[str] = None, user: User = Depend
     result = []
     for s in sales:
         s.pop("_id", None)
-        # Filtre par station cÃ´tÃ© serveur
+        # Filtre par station côté serveur
         if station:
             s["items"] = [it for it in s.get("items", []) if it.get("station") == station]
             if not s["items"]:
@@ -22894,11 +23049,11 @@ async def get_kitchen_pending(station: Optional[str] = None, user: User = Depend
         result.append(s)
     return result
 
-# Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ RESTAURANT STATS Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+# ─── RESTAURANT STATS ────────────────────────────────────────────────────────
 
 @api_router.get("/restaurant/stats")
 async def get_restaurant_stats(user: User = Depends(get_current_user)):
-    """KPIs spÃ©cifiques restaurant : couverts, ticket moyen, tables occupÃ©es, cuisine."""
+    """KPIs spécifiques restaurant : couverts, ticket moyen, tables occupées, cuisine."""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -22930,7 +23085,7 @@ async def get_restaurant_stats(user: User = Depends(get_current_user)):
         "all_items_ready": {"$ne": True},
     })
 
-    # Prochaines rÃ©servations (aujourd'hui)
+    # Prochaines réservations (aujourd'hui)
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     reservations = await db.reservations.find({
         "user_id": owner_id, "store_id": store_id,
@@ -22967,16 +23122,16 @@ async def get_restaurant_stats(user: User = Depends(get_current_user)):
     }
 
 
-# Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ RESTAURANT: Commande ouverte par table Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+# ─── RESTAURANT: Commande ouverte par table ────────────────────────────────────
 
 @api_router.get("/tables/{table_id}/order")
 async def get_table_order(table_id: str, user: User = Depends(get_current_user)):
-    """RÃ©cupÃ¨re la commande ouverte pour une table."""
+    """Récupère la commande ouverte pour une table."""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
     table = await db.tables.find_one({"table_id": table_id, "user_id": owner_id, "store_id": store_id})
     if not table:
-        raise HTTPException(status_code=404, detail="Table non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Table non trouvée")
     if not table.get("current_sale_id"):
         return None
     sale = await db.sales.find_one({"sale_id": table["current_sale_id"], "user_id": owner_id, "store_id": store_id, "status": "open"})
@@ -23112,7 +23267,7 @@ async def remove_item_from_order(sale_id: str, item_idx: int, user: User = Depen
     store_id = user.active_store_id
     sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "open"})
     if not sale:
-        raise HTTPException(status_code=404, detail="Commande ouverte non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande ouverte non trouvée")
     items = sale.get("items", [])
     if item_idx < 0 or item_idx >= len(items):
         raise HTTPException(status_code=400, detail="Index invalide")
@@ -23282,7 +23437,8 @@ async def cancel_sale(
     now = datetime.now(timezone.utc)
 
     locked_sale = await db.sales.find_one_and_update(
-        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "completed"},
+        {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id, "status": "completed",
+         "source": {"$ne": data_migration.IMPORT_SOURCE}},
         {"$set": {"status": "cancelling", "cancelling_at": now}},
         return_document=True,
     )
@@ -23292,6 +23448,8 @@ async def cancel_sale(
             raise HTTPException(status_code=404, detail="Vente introuvable")
         if current_sale.get("status") == "cancelled":
             return Sale(**current_sale)
+        if current_sale.get("source") == data_migration.IMPORT_SOURCE:
+            raise HTTPException(status_code=400, detail="Vente reprise d'un ancien logiciel : elle ne peut pas être annulée. Pour la retirer, annulez l'import entier dans Produits > Ajouter > Reprendre mes données.")
         if current_sale.get("status") == "cancelling":
             raise HTTPException(status_code=409, detail="Cette vente est deja en cours d'annulation")
         raise HTTPException(status_code=400, detail="Seules les ventes completees peuvent etre annulees")
@@ -23391,13 +23549,13 @@ async def cancel_sale(
 
 @api_router.post("/sales/{sale_id}/serve")
 async def serve_order(sale_id: str, user: User = Depends(get_current_user)):
-    """Marquer une commande comme servie (plats livrÃ©s Ã  la table). DisparaÃ®t du KDS, table reste occupÃ©e."""
+    """Marquer une commande comme servie (plats livrés à la table). Disparaît du KDS, table reste occupée."""
     ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
     sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id})
     if not sale:
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
     await db.sales.update_one(
         {"sale_id": sale_id, "user_id": owner_id, "store_id": store_id},
         {"$set": {"all_items_ready": True, "served_at": datetime.now(timezone.utc)}}
@@ -23407,13 +23565,13 @@ async def serve_order(sale_id: str, user: User = Depends(get_current_user)):
 
 @api_router.put("/kitchen/{sale_id}/items/{item_idx}/ready")
 async def mark_kitchen_item_ready(sale_id: str, item_idx: int, user: User = Depends(get_current_user)):
-    """Marquer un article d'une commande comme prÃªt en cuisine."""
+    """Marquer un article d'une commande comme prêt en cuisine."""
     ensure_subscription_write_allowed(user)
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
     sale = await db.sales.find_one({"sale_id": sale_id, "user_id": owner_id, "store_id": store_id})
     if not sale:
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
     items = sale.get("items", [])
     if item_idx < 0 or item_idx >= len(items):
         raise HTTPException(status_code=400, detail="Index invalide")
@@ -23430,17 +23588,17 @@ async def mark_kitchen_item_ready(sale_id: str, item_idx: int, user: User = Depe
 
 @api_router.put("/reservations/{reservation_id}/arrive")
 async def reservation_arrive(reservation_id: str, data: dict = Body(default={}), user: User = Depends(get_current_user)):
-    """Marquer une rÃ©servation comme arrivÃ©e et optionnellement occuper la table."""
+    """Marquer une réservation comme arrivée et optionnellement occuper la table."""
     owner_id = get_owner_id(user)
     store_id = user.active_store_id
     reservation = await db.reservations.find_one({"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id})
     if not reservation:
-        raise HTTPException(status_code=404, detail="RÃ©servation non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
     await db.reservations.update_one(
         {"reservation_id": reservation_id, "user_id": owner_id, "store_id": store_id},
         {"$set": {"status": "arrived"}}
     )
-    # Si une table est assignÃ©e â†’ la passer en "reserved" visuellement
+    # Si une table est assignée → la passer en "reserved" visuellement
     table_id = reservation.get("table_id") or data.get("table_id")
     if table_id:
         await db.tables.update_one(
@@ -23474,7 +23632,7 @@ async def generate_inventory_tasks(user: User = Depends(require_permission("stoc
     user_id = get_owner_id(user)
     store_id = user.active_store_id
 
-    # Build product query â€” store_id may be None for single-store users
+    # Build product query — store_id may be None for single-store users
     product_query: dict = {"user_id": user_id, "is_active": True}
     if store_id:
         product_query["store_id"] = store_id
@@ -23530,7 +23688,7 @@ async def generate_inventory_tasks(user: User = Depends(require_permission("stoc
     if docs_to_insert:
         await db.inventory_tasks.insert_many(docs_to_insert)
 
-    return {"message": f"{len(new_tasks)} tÃ¢ches d'inventaire gÃ©nÃ©rÃ©es", "tasks": new_tasks}
+    return {"message": f"{len(new_tasks)} tâches d'inventaire générées", "tasks": new_tasks}
 
 @api_router.put("/inventory/tasks/{task_id}", response_model=InventoryTask)
 async def submit_inventory_result(
@@ -24240,11 +24398,11 @@ async def create_campaign(data: CampaignCreate, user: User = Depends(require_per
         user=user,
         action="campaign",
         module="crm",
-        description=f"Campagne {data.channel} envoyÃ©e Ã  {len(data.customer_ids)} clients",
+        description=f"Campagne {data.channel} envoyée à {len(data.customer_ids)} clients",
         details={"campaign_id": campaign["campaign_id"], "recipients": len(data.customer_ids)}
     )
 
-    return {"message": f"Campagne enregistrÃ©e ({len(data.customer_ids)} destinataires)"}
+    return {"message": f"Campagne enregistrée ({len(data.customer_ids)} destinataires)"}
 
 @api_router.get("/customers/{customer_id}/sales")
 async def get_customer_sales(customer_id: str, user: User = Depends(require_permission("crm", "read"))):
@@ -24252,7 +24410,7 @@ async def get_customer_sales(customer_id: str, user: User = Depends(require_perm
     owner_id = get_owner_id(user)
     cust = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
     if not cust:
-        raise HTTPException(status_code=404, detail="Client non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Client non trouvé")
     cust = await backfill_legacy_store_field(
         db.customers,
         {"customer_id": customer_id, "user_id": owner_id},
@@ -24344,7 +24502,7 @@ async def create_customer(customer_data: CustomerCreate, user: User = Depends(re
         user=user,
         action="create_customer",
         module="crm",
-        description=f"Nouveau client crÃ©Ã© : {customer.name}",
+        description=f"Nouveau client créé : {customer.name}",
         details={"customer_id": customer.customer_id}
     )
 
@@ -24355,7 +24513,7 @@ async def get_customer(customer_id: str, user: User = Depends(require_permission
     owner_id = get_owner_id(user)
     cust = await db.customers.find_one({"customer_id": customer_id, "user_id": owner_id})
     if not cust:
-        raise HTTPException(status_code=404, detail="Client non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Client non trouvé")
     cust = await backfill_legacy_store_field(
         db.customers,
         {"customer_id": customer_id, "user_id": owner_id},
@@ -24406,7 +24564,7 @@ async def update_customer(customer_id: str, customer_data: CustomerCreate, user:
         return_document=True
     )
     if not result:
-        raise HTTPException(status_code=404, detail="Client non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Client non trouvé")
     result.pop("_id", None)
     return Customer(**result)
 
@@ -24501,9 +24659,9 @@ async def delete_customer(customer_id: str, user: User = Depends(require_permiss
         delete_query["store_id"] = cust["store_id"]
     result = await db.customers.delete_one(delete_query)
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Client non trouvÃ©")
-    await log_activity(user, "customer_deleted", "crm", f"Client '{cust.get('name', customer_id)}' supprimÃ©", {"customer_id": customer_id})
-    return {"message": "Client supprimÃ©"}
+        raise HTTPException(status_code=404, detail="Client non trouvé")
+    await log_activity(user, "customer_deleted", "crm", f"Client '{cust.get('name', customer_id)}' supprimé", {"customer_id": customer_id})
+    return {"message": "Client supprimé"}
 
 @api_router.get("/promotions", response_model=List[Promotion])
 async def get_promotions(user: User = Depends(require_permission("crm", "read"))):
@@ -24544,7 +24702,7 @@ async def update_promotion(promotion_id: str, data: PromotionCreate, user: User 
         return_document=True
     )
     if not result:
-        raise HTTPException(status_code=404, detail="Promotion non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Promotion non trouvée")
     result.pop("_id", None)
     return Promotion(**result)
 
@@ -24564,8 +24722,8 @@ async def delete_promotion(promotion_id: str, user: User = Depends(require_permi
         delete_query["store_id"] = existing["store_id"]
     result = await db.promotions.delete_one(delete_query)
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Promotion non trouvÃ©e")
-    return {"message": "Promotion supprimÃ©e"}
+        raise HTTPException(status_code=404, detail="Promotion non trouvée")
+    return {"message": "Promotion supprimée"}
 
 async def _get_service_recipe_for_product(store_id: Optional[str], product: dict) -> Optional[dict]:
     if not store_id:
@@ -25022,7 +25180,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     )
     sale_items = [SaleItem(**item) for item in totals["items"]]
 
-    # 2. Stock deduction â€” uniquement pour les ventes complÃ¨tes
+    # 2. Stock deduction — uniquement pour les ventes complètes
     if not is_open_order:
         for si in sale_items:
             product_doc = await db.products.find_one({"product_id": si.product_id, "user_id": owner_id})
@@ -25036,7 +25194,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     tip = totals["tip_amount"]
     actual_total = totals["total_amount"]
 
-    # 4. Paiements (seulement pour ventes complÃ¨tes)
+    # 4. Paiements (seulement pour ventes complètes)
     payments: List[dict] = []
     primary_method = sale_data.payment_method
     if not is_open_order and sale_data.payments:
@@ -25059,7 +25217,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
             user,
         )
         if not customer_doc:
-            raise HTTPException(status_code=404, detail="Client non trouvÃ© pour la boutique active")
+            raise HTTPException(status_code=404, detail="Client non trouvé pour la boutique active")
     customer_effects = await _compute_sale_customer_effects(
         owner_id,
         sale_data.customer_id,
@@ -25068,7 +25226,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
         payments,
     )
 
-    # 5. CrÃ©er la vente
+    # 5. Créer la vente
     sale = Sale(
         user_id=owner_id,
         store_id=store_id,
@@ -25131,7 +25289,7 @@ async def create_sale(sale_data: SaleCreate, user: User = Depends(require_permis
     if not is_open_order:
         await log_activity(
             user=user, action="sale", module="pos",
-            description=f"Vente de {actual_total:,} FCFA ({len(sale_items)} articles)" + (f" â€” remise {discount:,}" if discount > 0 else ""),
+            description=f"Vente de {actual_total:,} FCFA ({len(sale_items)} articles)" + (f" — remise {discount:,}" if discount > 0 else ""),
             details={"sale_id": sale.sale_id, "total": actual_total, "discount": discount, "customer_id": sale_data.customer_id}
         )
 
@@ -25163,7 +25321,7 @@ async def create_expense(expense_data: ExpenseCreate, user: User = Depends(requi
         user=user,
         action="expense",
         module="accounting",
-        description=f"Nouvelle dÃ©pense : {expense.amount:,} FCFA ({expense.category})",
+        description=f"Nouvelle dépense : {expense.amount:,} FCFA ({expense.category})",
         details={"expense_id": expense.expense_id, "amount": expense.amount, "category": expense.category}
     )
 
@@ -25213,7 +25371,7 @@ async def update_expense(expense_id: str, expense_data: ExpenseCreate, user: Use
     await db.expenses.update_one({"expense_id": expense_id, "user_id": owner_id}, {"$set": update})
     doc = await db.expenses.find_one({"expense_id": expense_id, "user_id": owner_id}, {"_id": 0})
     if not doc:
-        raise HTTPException(404, "DÃ©pense non trouvÃ©e")
+        raise HTTPException(404, "Dépense non trouvée")
     ensure_scoped_document_access(user, doc, detail="Acces refuse pour cette depense")
     return Expense(**doc)
 
@@ -25771,6 +25929,8 @@ async def create_customer_invoice_from_sale(
     ensure_scoped_document_access(user, sale_doc, detail="Acces refuse pour cette vente")
     if sale_doc.get("status") == "cancelled":
         raise HTTPException(status_code=400, detail="Impossible de creer une facture pour une vente annulee")
+    if sale_doc.get("source") == data_migration.IMPORT_SOURCE:
+        raise HTTPException(status_code=400, detail="Vente reprise d'un ancien logiciel : la facture doit être faite dans le logiciel d'origine.")
     return await _create_or_get_invoice_from_sale_doc(sale_doc, user)
 
 
@@ -26720,8 +26880,8 @@ async def mark_alert_read(alert_id: str, user: User = Depends(require_permission
         {"$set": {"is_read": True}}
     )
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Alerte non trouvÃ©e")
-    return {"message": "Alerte marquÃ©e comme lue"}
+        raise HTTPException(status_code=404, detail="Alerte non trouvée")
+    return {"message": "Alerte marquée comme lue"}
 
 @api_router.put("/alerts/{alert_id}/dismiss")
 async def dismiss_alert(alert_id: str, user: User = Depends(require_permission("stock", "write"))):
@@ -26730,13 +26890,13 @@ async def dismiss_alert(alert_id: str, user: User = Depends(require_permission("
         {"$set": {"is_dismissed": True}}
     )
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Alerte non trouvÃ©e")
-    return {"message": "Alerte ignorÃ©e"}
+        raise HTTPException(status_code=404, detail="Alerte non trouvée")
+    return {"message": "Alerte ignorée"}
 
 @api_router.delete("/alerts/dismissed")
 async def clear_dismissed_alerts(user: User = Depends(require_permission("stock", "write"))):
     result = await db.alerts.delete_many({"user_id": get_owner_id(user), "is_dismissed": True})
-    return {"message": f"{result.deleted_count} alertes supprimÃ©es"}
+    return {"message": f"{result.deleted_count} alertes supprimées"}
 
 # ===================== ALERT RULES ROUTES =====================
 
@@ -26753,7 +26913,7 @@ async def create_alert_rule(rule_data: AlertRuleCreate, user: User = Depends(req
     if payload["scope"] == "store":
         target_store_id = payload.get("store_id") or user.active_store_id
         if not target_store_id:
-            raise HTTPException(status_code=400, detail="Aucun magasin actif pour cette rÃ¨gle")
+            raise HTTPException(status_code=400, detail="Aucun magasin actif pour cette règle")
         ensure_user_store_access(user, target_store_id)
         payload["store_id"] = target_store_id
     rule = AlertRule(**payload, user_id=owner_id, account_id=user.account_id)
@@ -26767,7 +26927,7 @@ async def update_alert_rule(rule_id: str, rule_data: AlertRuleCreate, user: User
     if payload["scope"] == "store":
         target_store_id = payload.get("store_id") or user.active_store_id
         if not target_store_id:
-            raise HTTPException(status_code=400, detail="Aucun magasin actif pour cette rÃ¨gle")
+            raise HTTPException(status_code=400, detail="Aucun magasin actif pour cette règle")
         ensure_user_store_access(user, target_store_id)
         payload["store_id"] = target_store_id
     result = await db.alert_rules.find_one_and_update(
@@ -26776,7 +26936,7 @@ async def update_alert_rule(rule_id: str, rule_data: AlertRuleCreate, user: User
         return_document=True
     )
     if not result:
-        raise HTTPException(status_code=404, detail="RÃ¨gle non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Règle non trouvée")
     result.pop("_id", None)
     return AlertRule(**normalize_alert_rule_document(result, owner_id, user.account_id))
 
@@ -26784,8 +26944,8 @@ async def update_alert_rule(rule_id: str, rule_data: AlertRuleCreate, user: User
 async def delete_alert_rule(rule_id: str, user: User = Depends(require_permission("stock", "write"))):
     result = await db.alert_rules.delete_one({"rule_id": rule_id, "user_id": get_owner_id(user)})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="RÃ¨gle non trouvÃ©e")
-    return {"message": "RÃ¨gle supprimÃ©e"}
+        raise HTTPException(status_code=404, detail="Règle non trouvée")
+    return {"message": "Règle supprimée"}
 
 # ===================== SETTINGS ROUTES =====================
 
@@ -26858,7 +27018,7 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
     if sections["unknown"]:
         raise HTTPException(
             status_code=400,
-            detail=f"Champs de paramÃ¨tres non supportÃ©s: {', '.join(sections['unknown'])}",
+            detail=f"Champs de paramètres non supportés: {', '.join(sections['unknown'])}",
         )
     now = datetime.now(timezone.utc)
     account_updates = {}
@@ -26903,7 +27063,7 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
 
     if sections["account"]:
         if not is_org_admin_user(user):
-            raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rationnels peuvent modifier les modules partagÃ©s")
+            raise HTTPException(status_code=403, detail="Seuls les administrateurs opérationnels peuvent modifier les modules partagés")
         if "modules" in settings_update:
             account_updates["modules"] = settings_update.pop("modules") or default_modules()
             user_updates["modules"] = account_updates["modules"]
@@ -26921,11 +27081,11 @@ async def update_settings(settings_update: dict, user: User = Depends(require_au
     if sections["org_admin"] and not is_org_admin_user(user):
         disallowed_org_fields = [field for field in sections["org_admin"] if field != "reminder_rules"]
         if disallowed_org_fields:
-            raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rationnels peuvent modifier ces paramÃ¨tres")
+            raise HTTPException(status_code=403, detail="Seuls les administrateurs opérationnels peuvent modifier ces paramètres")
 
     if sections["store"]:
         if not is_org_admin_user(user):
-            raise HTTPException(status_code=403, detail="Seuls les administrateurs opÃ©rationnels peuvent modifier les paramÃ¨tres du magasin")
+            raise HTTPException(status_code=403, detail="Seuls les administrateurs opérationnels peuvent modifier les paramètres du magasin")
         if not user.active_store_id:
             raise HTTPException(status_code=400, detail="Aucun magasin actif")
         for key in STORE_SCOPED_SETTING_FIELDS:
@@ -27127,30 +27287,30 @@ def build_analytics_recommendations(
     recommendations: List[str] = []
     if summary_metrics.get("out_of_stock_count", 0) > 0:
         recommendations.append(
-            f"Traiter en prioritÃ© les {summary_metrics['out_of_stock_count']} ruptures pour ne pas freiner le chiffre."
+            f"Traiter en priorité les {summary_metrics['out_of_stock_count']} ruptures pour ne pas freiner le chiffre."
         )
     if summary_metrics.get("low_stock_count", 0) > 0:
         recommendations.append(
-            f"Lancer un rÃ©assort ciblÃ© sur les {summary_metrics['low_stock_count']} produits sous minimum."
+            f"Lancer un réassort ciblé sur les {summary_metrics['low_stock_count']} produits sous minimum."
         )
     if summary_metrics.get("dormant_products_count", 0) > 0:
         recommendations.append(
-            f"Animer ou dÃ©stocker les {summary_metrics['dormant_products_count']} rÃ©fÃ©rences dormantes pour libÃ©rer de la trÃ©sorerie."
+            f"Animer ou déstocker les {summary_metrics['dormant_products_count']} références dormantes pour libérer de la trésorerie."
         )
     if rotation_ratio < 0.35 and summary_metrics.get("stock_value", 0) > 0:
         recommendations.append(
-            "La rotation du stock reste lente : rÃ©duire le surstock et pousser les meilleures rÃ©fÃ©rences."
+            "La rotation du stock reste lente : réduire le surstock et pousser les meilleures références."
         )
     elif rotation_ratio > 1:
         recommendations.append(
-            "La rotation est saine : sÃ©curiser les meilleures ventes pour Ã©viter les ruptures."
+            "La rotation est saine : sécuriser les meilleures ventes pour éviter les ruptures."
         )
     if gross_profit_delta < -0.05:
-        recommendations.append("La marge recule : vÃ©rifier les remises, coÃ»ts d'achat et rÃ©fÃ©rences peu rentables.")
+        recommendations.append("La marge recule : vérifier les remises, coûts d'achat et références peu rentables.")
     elif average_ticket_delta < -0.05:
         recommendations.append("Le panier moyen baisse : travailler les ventes additionnelles et les formats premium.")
     elif revenue_delta > 0.08:
-        recommendations.append("La dynamique est bonne : renforcer les familles qui tirent la croissance pendant cette pÃ©riode.")
+        recommendations.append("La dynamique est bonne : renforcer les familles qui tirent la croissance pendant cette période.")
 
     return recommendations[:4]
 
@@ -28228,7 +28388,7 @@ async def get_dashboard(user: User = Depends(require_operational_access)):
     # Run slow checks in background (fire-and-forget, don't block dashboard response)
     asyncio.ensure_future(_safe_background_checks(owner_id))
 
-    # Fetch ALL user products (no is_active filter at DB level â€” handle in memory)
+    # Fetch ALL user products (no is_active filter at DB level — handle in memory)
     product_query: dict = {"user_id": owner_id}
     if user.active_store_id:
         product_query["store_id"] = user.active_store_id
@@ -28364,7 +28524,7 @@ async def get_dashboard(user: User = Depends(require_operational_access)):
     today_revenue = sum(s.get("total_amount", 0) for s in today_sales)
     yesterday_revenue = sum(s.get("total_amount", 0) for s in yesterday_sales)
     month_revenue = sum(s.get("total_amount", 0) for s in month_sales)
-    # TVA collectÃ©e
+    # TVA collectée
     today_tax = sum(s.get("tax_total", 0) for s in today_sales)
     month_tax = sum(s.get("tax_total", 0) for s in month_sales)
 
@@ -28452,7 +28612,7 @@ async def get_supplier(supplier_id: str, user: User = Depends(require_permission
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     supplier = await backfill_legacy_store_field(
         db.suppliers,
         {"supplier_id": supplier_id, "user_id": owner_id},
@@ -28460,7 +28620,7 @@ async def get_supplier(supplier_id: str, user: User = Depends(require_permission
         user,
     )
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     return Supplier(**supplier)
 
@@ -28485,16 +28645,16 @@ async def create_supplier(sup_data: SupplierCreate, user: User = Depends(require
                 </div>
                 <h2 style="color: #1E293B;">Bonjour{(' ' + supplier.contact_name) if supplier.contact_name else (' ' + supplier.name)},</h2>
                 <p style="color: #475569; font-size: 16px; line-height: 1.6;">
-                    <strong>{user.name}</strong> ({store_name}) vous a ajoutÃ© comme fournisseur sur <strong>Stockman</strong>,
-                    une application de gestion commerciale utilisÃ©e par des commerÃ§ants pour gÃ©rer leur stock, leurs ventes et leurs commandes fournisseurs.
+                    <strong>{user.name}</strong> ({store_name}) vous a ajouté comme fournisseur sur <strong>Stockman</strong>,
+                    une application de gestion commerciale utilisée par des commerçants pour gérer leur stock, leurs ventes et leurs commandes fournisseurs.
                 </p>
                 <p style="color: #475569; font-size: 16px; line-height: 1.6;">
                     En rejoignant Stockman en tant que fournisseur, vous pourrez :
                 </p>
                 <ul style="color: #475569; font-size: 15px; line-height: 1.8;">
                     <li>Recevoir des bons de commande directement dans l'application</li>
-                    <li>GÃ©rer et confirmer vos commandes en temps rÃ©el</li>
-                    <li>Communiquer avec vos clients via la messagerie intÃ©grÃ©e</li>
+                    <li>Gérer et confirmer vos commandes en temps réel</li>
+                    <li>Communiquer avec vos clients via la messagerie intégrée</li>
                     <li>Proposer votre catalogue sur la marketplace Stockman</li>
                 </ul>
                 <div style="text-align: center; margin: 30px 0;">
@@ -28503,18 +28663,18 @@ async def create_supplier(sup_data: SupplierCreate, user: User = Depends(require
                     </a>
                 </div>
                 <p style="color: #94A3B8; font-size: 13px; text-align: center;">
-                    Stockman est gratuit Ã  tÃ©lÃ©charger. Vous pouvez aussi tÃ©lÃ©charger l'application directement sur
+                    Stockman est gratuit à télécharger. Vous pouvez aussi télécharger l'application directement sur
                     <a href="https://play.google.com/store/apps/details?id=com.youssouphasba.stockman" style="color: #3B82F6;">Google Play</a>.
                 </p>
             </div>
             """
             text_body = (
                 f"Bonjour {supplier.contact_name or supplier.name},\n\n"
-                f"{user.name} ({store_name}) vous a ajoutÃ© comme fournisseur sur Stockman.\n\n"
-                f"Rejoignez Stockman pour recevoir des commandes, gÃ©rer votre catalogue "
+                f"{user.name} ({store_name}) vous a ajouté comme fournisseur sur Stockman.\n\n"
+                f"Rejoignez Stockman pour recevoir des commandes, gérer votre catalogue "
                 f"et communiquer avec vos clients.\n\n"
                 f"Lien d'inscription : {invite_link}\n\n"
-                f"Ou tÃ©lÃ©chargez l'application : https://play.google.com/store/apps/details?id=com.youssouphasba.stockman"
+                f"Ou téléchargez l'application : https://play.google.com/store/apps/details?id=com.youssouphasba.stockman"
             )
             await notification_service.send_email_notification([supplier.email], subject, html_body, text_body=text_body)
             await db.suppliers.update_one(
@@ -28559,16 +28719,16 @@ async def resend_supplier_invitation(supplier_id: str, user: User = Depends(requ
         </div>
         <h2 style="color: #1E293B;">Bonjour {supplier.get('contact_name') or supplier.get('name')},</h2>
         <p style="color: #475569; font-size: 16px; line-height: 1.6;">
-            <strong>{user.name}</strong> ({store_name}) vous a ajoutÃ© comme fournisseur sur <strong>Stockman</strong>,
-            une application de gestion commerciale utilisÃ©e par des commerÃ§ants pour gÃ©rer leur stock, leurs ventes et leurs commandes fournisseurs.
+            <strong>{user.name}</strong> ({store_name}) vous a ajouté comme fournisseur sur <strong>Stockman</strong>,
+            une application de gestion commerciale utilisée par des commerçants pour gérer leur stock, leurs ventes et leurs commandes fournisseurs.
         </p>
         <p style="color: #475569; font-size: 16px; line-height: 1.6;">
             En rejoignant Stockman en tant que fournisseur, vous pourrez :
         </p>
         <ul style="color: #475569; font-size: 15px; line-height: 1.8;">
             <li>Recevoir des bons de commande directement dans l'application</li>
-            <li>GÃ©rer et confirmer vos commandes en temps rÃ©el</li>
-            <li>Communiquer avec vos clients via la messagerie intÃ©grÃ©e</li>
+            <li>Gérer et confirmer vos commandes en temps réel</li>
+            <li>Communiquer avec vos clients via la messagerie intégrée</li>
             <li>Proposer votre catalogue sur la marketplace Stockman</li>
         </ul>
         <div style="text-align: center; margin: 30px 0;">
@@ -28577,7 +28737,7 @@ async def resend_supplier_invitation(supplier_id: str, user: User = Depends(requ
             </a>
         </div>
         <p style="color: #94A3B8; font-size: 13px; text-align: center;">
-            Stockman est gratuit Ã  tÃ©lÃ©charger. Vous pouvez aussi tÃ©lÃ©charger l'application directement sur
+            Stockman est gratuit à télécharger. Vous pouvez aussi télécharger l'application directement sur
             <a href="https://play.google.com/store/apps/details?id=com.youssouphasba.stockman" style="color: #3B82F6;">Google Play</a>.
         </p>
     </div>
@@ -28608,7 +28768,7 @@ async def update_supplier(supplier_id: str, sup_data: SupplierCreate, user: User
         return_document=True
     )
     if not result:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     result.pop("_id", None)
     return Supplier(**result)
 
@@ -28631,8 +28791,8 @@ async def delete_supplier(supplier_id: str, user: User = Depends(require_permiss
         {"$set": {"is_active": False}}
     )
     if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
-    return {"message": "Fournisseur supprimÃ©"}
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
+    return {"message": "Fournisseur supprimé"}
 
 # Supplier-Product links
 @api_router.get("/suppliers/{supplier_id}/products", dependencies=[Depends(require_suppliers_module)])
@@ -28646,7 +28806,7 @@ async def get_supplier_products(supplier_id: str, user: User = Depends(require_p
         user,
     )
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     links = await db.supplier_products.find(
         {"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0}
@@ -28883,14 +29043,14 @@ async def get_supplier_stats(supplier_id: str, user: User = Depends(require_perm
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     return await _build_supplier_stats_payload(supplier_id, owner_id, user)
 
     # Verify supplier
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id})
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
 
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
 
@@ -28938,7 +29098,7 @@ async def get_supplier_price_history(supplier_id: str, user: User = Depends(requ
     owner_id = get_owner_id(user)
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0})
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
 
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
 
@@ -29089,7 +29249,7 @@ async def get_supplier_invoices(supplier_id: str, user: User = Depends(require_p
         user,
     )
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     invoices = await db.supplier_invoices.find(
         {"supplier_id": supplier_id, "user_id": owner_id}, {"_id": 0}
@@ -29107,7 +29267,7 @@ async def create_supplier_invoice(supplier_id: str, inv_data: dict, user: User =
         user,
     )
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     invoice = SupplierInvoice(**inv_data, supplier_id=supplier_id, user_id=owner_id)
     await db.supplier_invoices.insert_one(invoice.model_dump())
@@ -29182,7 +29342,7 @@ async def link_supplier_product(link_data: SupplierProductCreate, user: User = D
         user,
     )
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     # Check if link already exists
     existing = await db.supplier_products.find_one({
@@ -29192,7 +29352,7 @@ async def link_supplier_product(link_data: SupplierProductCreate, user: User = D
     }, {"_id": 0})
 
     if existing:
-        raise HTTPException(status_code=400, detail="Ce produit est dÃ©jÃ  liÃ© Ã  ce fournisseur")
+        raise HTTPException(status_code=400, detail="Ce produit est déjà lié à ce fournisseur")
 
     link = SupplierProduct(**link_data.model_dump(), user_id=owner_id)
     await db.supplier_products.insert_one(link.model_dump())
@@ -29253,7 +29413,7 @@ async def unlink_supplier_product(link_id: str, user: User = Depends(require_per
     owner_id = get_owner_id(user)
     link = await db.supplier_products.find_one({"link_id": link_id, "user_id": owner_id}, {"_id": 0})
     if not link:
-        raise HTTPException(status_code=404, detail="Lien non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Lien non trouvé")
     supplier = await db.suppliers.find_one({"supplier_id": link.get("supplier_id"), "user_id": owner_id}, {"_id": 0})
     supplier = await backfill_legacy_store_field(
         db.suppliers,
@@ -29262,12 +29422,12 @@ async def unlink_supplier_product(link_id: str, user: User = Depends(require_per
         user,
     )
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     ensure_scoped_document_access(user, supplier, detail="Acces refuse pour ce fournisseur")
     result = await db.supplier_products.delete_one({"link_id": link_id, "user_id": owner_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Lien non trouvÃ©")
-    return {"message": "Lien supprimÃ©"}
+        raise HTTPException(status_code=404, detail="Lien non trouvé")
+    return {"message": "Lien supprimé"}
 
 # ===================== ORDER ROUTES =====================
 
@@ -29437,7 +29597,7 @@ async def get_order(order_id: str, user: User = Depends(require_procurement_acce
     )
     ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order:
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
 
     # Get supplier (manual or marketplace)
     if order.get("is_connected") and order.get("supplier_user_id"):
@@ -29581,8 +29741,8 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_pro
                 for it in items_list:
                     items_html += f"<tr><td style='padding:8px;border-bottom:1px solid #E2E8F0;'>{it['product_name']}</td><td style='padding:8px;border-bottom:1px solid #E2E8F0;text-align:center;'>{it['quantity']}</td><td style='padding:8px;border-bottom:1px solid #E2E8F0;text-align:right;'>{it['unit_price']:,.0f}</td><td style='padding:8px;border-bottom:1px solid #E2E8F0;text-align:right;'>{it['total_price']:,.0f}</td></tr>"
                 supplier_name = (supplier_doc or {}).get("contact_name") or (supplier_doc or {}).get("name", "")
-                delivery_str = order.expected_delivery.strftime("%d/%m/%Y") if order.expected_delivery else "Non prÃ©cisÃ©e"
-                subject = f"Bon de commande de {store_name} â€” {order.order_id}"
+                delivery_str = order.expected_delivery.strftime("%d/%m/%Y") if order.expected_delivery else "Non précisée"
+                subject = f"Bon de commande de {store_name} — {order.order_id}"
                 html_body = f"""
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="background: linear-gradient(135deg, #0F172A, #1E293B); padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
@@ -29591,13 +29751,13 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_pro
                     </div>
                     <h2 style="color: #1E293B;">Bonjour {supplier_name},</h2>
                     <p style="color: #475569; font-size: 16px; line-height: 1.6;">
-                        <strong>{user.name}</strong> ({store_name}) vous a passÃ© une commande via Stockman.
+                        <strong>{user.name}</strong> ({store_name}) vous a passé une commande via Stockman.
                     </p>
                     <table style="width:100%;border-collapse:collapse;margin:20px 0;">
                         <thead>
                             <tr style="background:#F1F5F9;">
                                 <th style="padding:10px;text-align:left;font-size:14px;">Produit</th>
-                                <th style="padding:10px;text-align:center;font-size:14px;">QtÃ©</th>
+                                <th style="padding:10px;text-align:center;font-size:14px;">Qté</th>
                                 <th style="padding:10px;text-align:right;font-size:14px;">Prix unit.</th>
                                 <th style="padding:10px;text-align:right;font-size:14px;">Total</th>
                             </tr>
@@ -29612,11 +29772,11 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_pro
                     </table>
                     <p style="color: #475569; font-size: 14px;"><strong>Livraison attendue :</strong> {delivery_str}</p>
                     {"<p style='color: #475569; font-size: 14px;'><strong>Notes :</strong> " + order.notes + "</p>" if order.notes else ""}
-                    <p style="color: #475569; font-size: 14px;"><strong>Contact :</strong> {user.name} â€” {user.email}</p>
+                    <p style="color: #475569; font-size: 14px;"><strong>Contact :</strong> {user.name} — {user.email}</p>
                     <div style="margin-top: 24px; padding: 16px; background: #F8FAFC; border-radius: 8px; text-align: center;">
                         <p style="color: #64748B; font-size: 13px; margin: 0;">
-                            Ce bon de commande a Ã©tÃ© envoyÃ© via <strong>Stockman</strong>.<br>
-                            <a href="https://play.google.com/store/apps/details?id=com.youssouphasba.stockman" style="color: #3B82F6;">TÃ©lÃ©chargez l'application</a> pour gÃ©rer vos commandes en temps rÃ©el.
+                            Ce bon de commande a été envoyé via <strong>Stockman</strong>.<br>
+                            <a href="https://play.google.com/store/apps/details?id=com.youssouphasba.stockman" style="color: #3B82F6;">Téléchargez l'application</a> pour gérer vos commandes en temps réel.
                         </p>
                     </div>
                 </div>
@@ -29625,7 +29785,7 @@ async def create_order(order_data: OrderCreate, user: User = Depends(require_pro
             except Exception as e:
                 logger.warning(f"Failed to send order email to supplier: {e}")
 
-    return {"message": "Commande crÃ©Ã©e", "order_id": order.order_id}
+    return {"message": "Commande créée", "order_id": order.order_id}
 
 @api_router.put("/orders/{order_id}/status", dependencies=[Depends(require_suppliers_module)])
 async def update_order_status(order_id: str, status_data: OrderStatusUpdate, user: User = Depends(require_procurement_access("write"))):
@@ -29651,9 +29811,9 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
     )
 
     if not result:
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
 
-    # If delivered, update stock (only for manual orders â€” marketplace uses confirm-delivery)
+    # If delivered, update stock (only for manual orders — marketplace uses confirm-delivery)
     if status_data.status == "delivered" and not result.get("is_connected"):
         items = await db.order_items.find({"order_id": order_id}, {"_id": 0}).to_list(100)
         for item in items:
@@ -29672,7 +29832,7 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
                     store_id=result.get("store_id") or user.active_store_id,
                     type="in",
                     quantity=item["quantity"],
-                    reason=f"Commande {order_id} livrÃ©e",
+                    reason=f"Commande {order_id} livrée",
                     previous_quantity=product["quantity"],
                     new_quantity=new_quantity
                 )
@@ -29682,7 +29842,7 @@ async def update_order_status(order_id: str, status_data: OrderStatusUpdate, use
                 product["quantity"] = new_quantity
                 await check_and_create_alerts(Product(**product), user.user_id, store_id=result.get("store_id") or user.active_store_id)
 
-    return {"message": f"Statut mis Ã  jour: {status_data.status}"}
+    return {"message": f"Statut mis à jour: {status_data.status}"}
 
 class PartialDeliveryItem(BaseModel):
     item_id: str
@@ -29769,11 +29929,11 @@ async def receive_partial_delivery(
         user,
     )
     if not order:
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
     ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
 
     if order["status"] not in ["confirmed", "shipped", "partially_delivered"]:
-        raise HTTPException(status_code=400, detail="La commande doit Ãªtre confirmÃ©e ou expÃ©diÃ©e pour recevoir une livraison")
+        raise HTTPException(status_code=400, detail="La commande doit être confirmée ou expédiée pour recevoir une livraison")
 
     # Get all order items
     order_items = await db.order_items.find({"order_id": order_id}, {"_id": 0}).to_list(100)
@@ -29844,7 +30004,7 @@ async def receive_partial_delivery(
                 store_id=order.get("store_id") or user.active_store_id,
                 type="in",
                 quantity=qty_delta,
-                reason=f"RÃ©ception partielle - Commande {order_id}" + (f" - {data.notes}" if data.notes else ""),
+                reason=f"Réception partielle - Commande {order_id}" + (f" - {data.notes}" if data.notes else ""),
                 previous_quantity=old_qty,
                 new_quantity=new_qty,
                 purchase_price=incoming_price if incoming_price > 0 else None,
@@ -29877,10 +30037,10 @@ async def receive_partial_delivery(
         }}
     )
 
-    await log_activity(user, "partial_delivery", "orders", f"RÃ©ception {'complÃ¨te' if all_fully_received else 'partielle'} - Commande {order_id}")
+    await log_activity(user, "partial_delivery", "orders", f"Réception {'complète' if all_fully_received else 'partielle'} - Commande {order_id}")
 
     response_data = {
-        "message": f"RÃ©ception {'complÃ¨te' if all_fully_received else 'partielle'} enregistrÃ©e",
+        "message": f"Réception {'complète' if all_fully_received else 'partielle'} enregistrée",
         "status": new_status,
         "received_items": received_so_far
     }
@@ -29908,18 +30068,18 @@ async def update_supplier_order_status(order_id: str, status_data: OrderStatusUp
     )
 
     if not result:
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
 
     # Notify shopkeeper of status change
     await notification_service.notify_user(
         db,
         result["user_id"],
-        "Mise Ã  jour Marketplace",
-        f"Votre commande {order_id} est passÃ©e au statut: {status_data.status}",
+        "Mise à jour Marketplace",
+        f"Votre commande {order_id} est passée au statut: {status_data.status}",
         caller_owner_id=get_owner_id(user)
     )
 
-    return {"message": "Statut mis Ã  jour"}
+    return {"message": "Statut mis à jour"}
 
 @api_router.delete("/orders/{order_id}", dependencies=[Depends(require_suppliers_module)])
 async def delete_order(order_id: str, user: User = Depends(require_procurement_access("write"))):
@@ -29933,7 +30093,7 @@ async def delete_order(order_id: str, user: User = Depends(require_procurement_a
     )
     ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order:
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
 
     if order["status"] not in ["pending", "cancelled"]:
         raise HTTPException(status_code=400, detail="Impossible de supprimer une commande en cours")
@@ -29943,7 +30103,7 @@ async def delete_order(order_id: str, user: User = Depends(require_procurement_a
         delete_query["store_id"] = order["store_id"]
     await db.orders.delete_one(delete_query)
     await db.order_items.delete_many({"order_id": order_id})
-    return {"message": "Commande supprimÃ©e"}
+    return {"message": "Commande supprimée"}
 
 # ===================== DASHBOARD ROUTE =====================
 # DUPLICATE REMOVED: a simpler version of GET /dashboard was here (used require_permission("stock","read"),
@@ -29985,7 +30145,7 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
     stock_by_category = {}
     for product in products:
         cat_id = product.get("category_id")
-        cat_name = category_map.get(cat_id, "Sans catÃ©gorie") if cat_id else "Sans catÃ©gorie"
+        cat_name = category_map.get(cat_id, "Sans catégorie") if cat_id else "Sans catégorie"
         if cat_name not in stock_by_category:
             stock_by_category[cat_name] = {"count": 0, "value": 0}
         stock_by_category[cat_name]["count"] += 1
@@ -30115,7 +30275,7 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
     # Top products by value (Stock Value)
     products_by_value = sorted(products, key=lambda p: p.get("quantity", 0) * p.get("purchase_price", 0), reverse=True)[:5]
 
-    # Profit by category (last 30 days) â€” merged from duplicate endpoint
+    # Profit by category (last 30 days) — merged from duplicate endpoint
     profit_pipeline = [
         {"$match": {"user_id": user_id, "created_at": {"$gte": thirty_days_ago}}},
         {"$unwind": "$items"},
@@ -30128,7 +30288,7 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
         {"$group": {"_id": "$category_id", "total_profit": {"$sum": "$profit"}}},
         {"$lookup": {"from": "categories", "localField": "_id", "foreignField": "category_id", "as": "cat_info"}},
         {"$unwind": {"path": "$cat_info", "preserveNullAndEmptyArrays": True}},
-        {"$project": {"_id": 0, "name": {"$ifNull": ["$cat_info.name", "Non classÃ©"]}, "value": "$total_profit"}},
+        {"$project": {"_id": 0, "name": {"$ifNull": ["$cat_info.name", "Non classé"]}, "value": "$total_profit"}},
         {"$sort": {"value": -1}}
     ]
     profit_by_category = await db.sales.aggregate(profit_pipeline).to_list(10)
@@ -30284,7 +30444,7 @@ async def get_statistics(user: User = Depends(require_permission("stock", "read"
         "profit_by_category": profit_by_category
     }
 
-# (Duplicate accounting endpoint removed â€” using the one above at /accounting/stats)
+# (Duplicate accounting endpoint removed — using the one above at /accounting/stats)
 
 # ===================== GRAND LIVRE (GENERAL LEDGER) =====================
 
@@ -30364,10 +30524,10 @@ async def get_grand_livre(
         amount = e.get("amount", 0) or 0
         entries.append({
             "date": e.get("created_at", now).isoformat() if hasattr(e.get("created_at", now), "isoformat") else str(e.get("created_at", "")),
-            "type": "DÃ©pense",
+            "type": "Dépense",
             "type_code": "expense",
             "reference": ("DEP-" + e.get("expense_id", "")[-6:].upper()) if e.get("expense_id") else "DEP-???",
-            "description": f"{e.get('category','').capitalize()} â€” {e.get('description','') or ''}".strip(" â€”"),
+            "description": f"{e.get('category','').capitalize()} — {e.get('description','') or ''}".strip(" —"),
             "payment_method": "",
             "amount_in": 0,
             "amount_out": round(amount, 2),
@@ -30389,10 +30549,10 @@ async def get_grand_livre(
         loss_val = round(unit_price * qty, 2)
         entries.append({
             "date": m.get("created_at", now).isoformat() if hasattr(m.get("created_at", now), "isoformat") else str(m.get("created_at", "")),
-            "type": "Perte / DÃ©marque",
+            "type": "Perte / Démarque",
             "type_code": "loss",
             "reference": ("MOV-" + m.get("movement_id", "")[-6:].upper()) if m.get("movement_id") else "MOV-???",
-            "description": f"{p.get('name','?')} x{qty} â€” {m.get('reason','?')}",
+            "description": f"{p.get('name','?')} x{qty} — {m.get('reason','?')}",
             "payment_method": "",
             "amount_in": 0,
             "amount_out": loss_val,
@@ -30411,7 +30571,7 @@ async def get_grand_livre(
             "type": "Achat Fournisseur",
             "type_code": "purchase",
             "reference": ("ACH-" + o.get("order_id", "")[-6:].upper()) if o.get("order_id") else "ACH-???",
-            "description": f"Commande â€” {o.get('supplier_name', o.get('notes', 'Fournisseur')[:30] if o.get('notes') else 'Fournisseur')}",
+            "description": f"Commande — {o.get('supplier_name', o.get('notes', 'Fournisseur')[:30] if o.get('notes') else 'Fournisseur')}",
             "payment_method": "",
             "amount_in": 0,
             "amount_out": round(amount, 2),
@@ -30446,14 +30606,14 @@ async def get_grand_livre(
 async def get_supplier_profile(user: User = Depends(require_supplier)):
     profile = await db.supplier_profiles.find_one({"user_id": user.user_id}, {"_id": 0})
     if not profile:
-        raise HTTPException(status_code=404, detail="Profil non trouvÃ©. CrÃ©ez votre profil fournisseur.")
+        raise HTTPException(status_code=404, detail="Profil non trouvé. Créez votre profil fournisseur.")
     return SupplierProfile(**profile)
 
 @api_router.post("/supplier/profile", response_model=SupplierProfile)
 async def create_supplier_profile(data: SupplierProfileCreate, user: User = Depends(require_supplier)):
     existing = await db.supplier_profiles.find_one({"user_id": user.user_id}, {"_id": 0})
     if existing:
-        raise HTTPException(status_code=400, detail="Profil dÃ©jÃ  existant. Utilisez PUT pour modifier.")
+        raise HTTPException(status_code=400, detail="Profil déjà existant. Utilisez PUT pour modifier.")
     profile = SupplierProfile(**data.model_dump(), user_id=user.user_id)
     await db.supplier_profiles.insert_one(profile.model_dump())
     return profile
@@ -30468,7 +30628,7 @@ async def update_supplier_profile(data: SupplierProfileCreate, user: User = Depe
         return_document=True
     )
     if not result:
-        raise HTTPException(status_code=404, detail="Profil non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
     result.pop("_id", None)
     return SupplierProfile(**result)
 
@@ -30497,7 +30657,7 @@ async def bulk_create_catalog_products(
     user: User = Depends(require_supplier),
 ):
     if not data.items:
-        raise HTTPException(status_code=400, detail="Aucun produit Ã  crÃ©er")
+        raise HTTPException(status_code=400, detail="Aucun produit à créer")
 
     now = datetime.now(timezone.utc)
     documents: List[Dict[str, Any]] = []
@@ -30515,7 +30675,7 @@ async def bulk_create_catalog_products(
         documents.append(document.model_dump())
 
     if not documents:
-        raise HTTPException(status_code=400, detail="Aucun produit valide Ã  crÃ©er")
+        raise HTTPException(status_code=400, detail="Aucun produit valide à créer")
 
     await db.catalog_products.insert_many(documents)
     return {"count": len(documents), "errors": errors}
@@ -30531,7 +30691,7 @@ async def update_catalog_product(catalog_id: str, data: CatalogProductCreate, us
         return_document=True
     )
     if not result:
-        raise HTTPException(status_code=404, detail="Produit catalogue non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit catalogue non trouvé")
     result.pop("_id", None)
     return CatalogProduct(**result)
 
@@ -30542,7 +30702,7 @@ async def bulk_update_catalog_products(
     user: User = Depends(require_supplier),
 ):
     if not data.items:
-        raise HTTPException(status_code=400, detail="Aucune modification Ã  appliquer")
+        raise HTTPException(status_code=400, detail="Aucune modification à appliquer")
 
     updated = 0
     errors: List[Dict[str, Any]] = []
@@ -30571,7 +30731,7 @@ async def bulk_update_catalog_products(
           {"$set": update_fields},
       )
       if result.matched_count == 0:
-          errors.append({"catalog_id": item.catalog_id, "error": "Produit catalogue non trouvÃ©"})
+          errors.append({"catalog_id": item.catalog_id, "error": "Produit catalogue non trouvé"})
           continue
       updated += 1
 
@@ -30585,7 +30745,7 @@ async def duplicate_catalog_product(catalog_id: str, user: User = Depends(requir
         {"_id": 0},
     )
     if not source:
-        raise HTTPException(status_code=404, detail="Produit catalogue non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit catalogue non trouvé")
 
     source.pop("catalog_id", None)
     source.pop("created_at", None)
@@ -30601,8 +30761,8 @@ async def duplicate_catalog_product(catalog_id: str, user: User = Depends(requir
 async def delete_catalog_product(catalog_id: str, user: User = Depends(require_supplier)):
     result = await db.catalog_products.delete_one({"catalog_id": catalog_id, "supplier_user_id": user.user_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Produit catalogue non trouvÃ©")
-    return {"message": "Produit supprimÃ© du catalogue"}
+        raise HTTPException(status_code=404, detail="Produit catalogue non trouvé")
+    return {"message": "Produit supprimé du catalogue"}
 
 
 @api_router.post("/supplier/catalog/bulk-delete")
@@ -30612,7 +30772,7 @@ async def bulk_delete_catalog_products(
 ):
     catalog_ids = [catalog_id for catalog_id in data.catalog_ids if catalog_id]
     if not catalog_ids:
-        raise HTTPException(status_code=400, detail="Aucun produit Ã  supprimer")
+        raise HTTPException(status_code=400, detail="Aucun produit à supprimer")
 
     result = await db.catalog_products.delete_many(
         {"catalog_id": {"$in": catalog_ids}, "supplier_user_id": user.user_id}
@@ -30635,7 +30795,7 @@ async def parse_supplier_catalog_import_file(
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/octet-stream",
     ]:
-        raise HTTPException(status_code=400, detail="Type de fichier non autorisÃ©. CSV ou Excel uniquement.")
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé. CSV ou Excel uniquement.")
 
     try:
         parsed = await import_service.parse_csv(content)
@@ -30657,7 +30817,7 @@ async def confirm_supplier_catalog_import(
     mapping = data.get("mapping") or {}
     default_status = normalize_catalog_publication_status(data.get("publicationStatus"))
     if not import_data or not mapping:
-        raise HTTPException(status_code=400, detail="DonnÃ©es d'importation ou mappage manquants")
+        raise HTTPException(status_code=400, detail="Données d'importation ou mappage manquants")
 
     now = datetime.now(timezone.utc)
     documents: List[Dict[str, Any]] = []
@@ -30688,7 +30848,7 @@ async def confirm_supplier_catalog_import(
             category=str(mapped_row.get("category") or "").strip(),
             subcategory=str(mapped_row.get("subcategory") or "").strip(),
             price=max(0.0, price),
-            unit=str(mapped_row.get("unit") or "piÃ¨ce").strip() or "piÃ¨ce",
+            unit=str(mapped_row.get("unit") or "pièce").strip() or "pièce",
             min_order_quantity=min_order_quantity,
             stock_available=max(0, stock_available),
             available=publication_status == "published",
@@ -30704,13 +30864,13 @@ async def confirm_supplier_catalog_import(
         documents.append(document.model_dump())
 
     if not documents and errors:
-        raise HTTPException(status_code=400, detail="Aucun produit valide Ã  importer")
+        raise HTTPException(status_code=400, detail="Aucun produit valide à importer")
 
     if documents:
         await db.catalog_products.insert_many(documents)
 
     return {
-        "message": f"{len(documents)} produits catalogue importÃ©s avec succÃ¨s",
+        "message": f"{len(documents)} produits catalogue importés avec succès",
         "count": len(documents),
         "errors": errors,
     }
@@ -30923,11 +31083,11 @@ async def supplier_update_order_status(order_id: str, status_data: OrderStatusUp
     order = await db.orders.find_one({"order_id": order_id, "supplier_user_id": user.user_id, "is_connected": True}, {"_id": 0})
     if not order:
         logger.warning(f"Order {order_id} not found for supplier {user.user_id}")
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
 
     allowed = valid_transitions.get(order["status"], [])
     if status_data.status not in allowed:
-        raise HTTPException(status_code=400, detail=f"Transition invalide pour le fournisseur: {order['status']} -> {status_data.status}. Le commerÃ§ant doit valider la livraison.")
+        raise HTTPException(status_code=400, detail=f"Transition invalide pour le fournisseur: {order['status']} -> {status_data.status}. Le commerçant doit valider la livraison.")
 
     await db.orders.update_one(
         {"order_id": order_id},
@@ -30938,15 +31098,15 @@ async def supplier_update_order_status(order_id: str, status_data: OrderStatusUp
     await notification_service.notify_user(
         db,
         order["user_id"],
-        "Commande mise Ã  jour",
+        "Commande mise à jour",
         f"Votre commande {order_id} est maintenant: {status_data.status}",
         caller_owner_id=get_owner_id(user)
     )
 
-    return {"message": f"Statut mis Ã  jour par le fournisseur: {status_data.status}"}
+    return {"message": f"Statut mis à jour par le fournisseur: {status_data.status}"}
 
 
-# Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ Supplier Invoices Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+# ── Supplier Invoices ──────────────────────────────────────────────
 
 class SupplierInvoiceCreate(BaseModel):
     order_id: Optional[str] = None
@@ -31202,7 +31362,7 @@ async def search_marketplace_suppliers(
 async def get_marketplace_supplier(supplier_user_id: str, user: User = Depends(require_auth)):
     profile = await db.supplier_profiles.find_one({"user_id": supplier_user_id}, {"_id": 0})
     if not profile:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
 
     catalog = await db.catalog_products.find(
         published_catalog_query({"supplier_user_id": supplier_user_id}),
@@ -31238,7 +31398,7 @@ async def connect_marketplace_supplier(
 
     profile = await db.supplier_profiles.find_one({"user_id": supplier_user_id}, {"_id": 0})
     if not profile:
-        raise HTTPException(status_code=404, detail="Fournisseur marketplace non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur marketplace non trouvé")
 
     supplier = Supplier(
         user_id=owner_id,
@@ -31251,7 +31411,7 @@ async def connect_marketplace_supplier(
         notes=profile.get("description") or None,
         products_supplied=", ".join(profile.get("categories") or []),
         delivery_delay=f"{int(profile.get('average_delivery_days') or 0)} jour(s)" if profile.get("average_delivery_days") is not None else "",
-        payment_conditions="Ã€ confirmer avec le fournisseur",
+        payment_conditions="À confirmer avec le fournisseur",
     )
     supplier_doc = supplier.model_dump()
     supplier_doc["linked_user_id"] = supplier_user_id
@@ -31313,7 +31473,7 @@ async def invite_supplier(supplier_id: str, data: SupplierInvitationCreate, user
     # Verify manual supplier exists
     supplier = await db.suppliers.find_one({"supplier_id": supplier_id, "user_id": user.user_id}, {"_id": 0})
     if not supplier:
-        raise HTTPException(status_code=404, detail="Fournisseur non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
 
     # Check for existing pending invitation
     existing = await db.supplier_invitations.find_one({
@@ -31321,7 +31481,7 @@ async def invite_supplier(supplier_id: str, data: SupplierInvitationCreate, user
         "status": "pending"
     })
     if existing:
-        raise HTTPException(status_code=400, detail="Une invitation est dÃ©jÃ  en attente pour ce fournisseur")
+        raise HTTPException(status_code=400, detail="Une invitation est déjà en attente pour ce fournisseur")
 
     invitation = SupplierInvitation(
         shopkeeper_user_id=user.user_id,
@@ -31330,7 +31490,7 @@ async def invite_supplier(supplier_id: str, data: SupplierInvitationCreate, user
     )
     await db.supplier_invitations.insert_one(invitation.model_dump())
 
-    return {"message": "Invitation envoyÃ©e", "invitation_id": invitation.invitation_id, "token": invitation.token}
+    return {"message": "Invitation envoyée", "invitation_id": invitation.invitation_id, "token": invitation.token}
 
 @api_router.post("/auth/register-from-invitation")
 async def register_from_invitation(request: Request, response: Response, user_data: UserCreate, token: str):
@@ -31338,16 +31498,16 @@ async def register_from_invitation(request: Request, response: Response, user_da
     await require_supplier_registration_enabled()
     invitation = await db.supplier_invitations.find_one({"token": token, "status": "pending"}, {"_id": 0})
     if not invitation:
-        raise HTTPException(status_code=404, detail="Invitation invalide ou expirÃ©e")
+        raise HTTPException(status_code=404, detail="Invitation invalide ou expirée")
 
     if datetime.now(timezone.utc) > invitation["expires_at"]:
         await db.supplier_invitations.update_one({"token": token}, {"$set": {"status": "expired"}})
-        raise HTTPException(status_code=400, detail="Invitation expirÃ©e")
+        raise HTTPException(status_code=400, detail="Invitation expirée")
 
     # Check email not taken
     existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
     if existing:
-        raise HTTPException(status_code=400, detail="Cet email est dÃ©jÃ  utilisÃ©")
+        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
 
     # Create supplier user
     user_id = f"user_{uuid.uuid4().hex[:12]}"
@@ -31407,7 +31567,7 @@ async def register_from_invitation(request: Request, response: Response, user_da
 @api_router.post("/suppliers/{supplier_user_id}/rate", dependencies=[Depends(require_suppliers_module)])
 async def rate_supplier(supplier_user_id: str, data: SupplierRatingCreate, user: User = Depends(require_auth)):
     if data.score < 1 or data.score > 5:
-        raise HTTPException(status_code=400, detail="Le score doit Ãªtre entre 1 et 5")
+        raise HTTPException(status_code=400, detail="Le score doit être entre 1 et 5")
 
     # Verify the order exists and is delivered
     order = await db.orders.find_one({
@@ -31417,7 +31577,7 @@ async def rate_supplier(supplier_user_id: str, data: SupplierRatingCreate, user:
         "status": "delivered"
     }, {"_id": 0})
     if not order:
-        raise HTTPException(status_code=404, detail="Commande livrÃ©e non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande livrée non trouvée")
 
     # Check if already rated
     existing = await db.supplier_ratings.find_one({
@@ -31425,7 +31585,7 @@ async def rate_supplier(supplier_user_id: str, data: SupplierRatingCreate, user:
         "shopkeeper_user_id": user.user_id
     })
     if existing:
-        raise HTTPException(status_code=400, detail="Vous avez dÃ©jÃ  notÃ© cette commande")
+        raise HTTPException(status_code=400, detail="Vous avez déjà noté cette commande")
 
     rating = SupplierRating(
         supplier_user_id=supplier_user_id,
@@ -31444,7 +31604,7 @@ async def rate_supplier(supplier_user_id: str, data: SupplierRatingCreate, user:
         {"$set": {"rating_average": round(avg, 1), "rating_count": len(all_ratings)}}
     )
 
-    return {"message": "Notation enregistrÃ©e", "rating_average": round(avg, 1)}
+    return {"message": "Notation enregistrée", "rating_average": round(avg, 1)}
 
 # Removed helper send_push_notification shadow
 
@@ -31483,7 +31643,7 @@ async def check_late_deliveries_internal(user_id: str):
                 store_id=order.get("store_id"),
                 type="late_delivery",
                 title="reminders.late_deliveries_label",
-                message=f"Commande {order['order_id']} ({supplier_name}) aurait dÃ» Ãªtre livrÃ©e le {str(order['expected_delivery'])[:10]}",
+                message=f"Commande {order['order_id']} ({supplier_name}) aurait dû être livrée le {str(order['expected_delivery'])[:10]}",
                 severity="warning"
             )
             await db.alerts.insert_one(alert.model_dump())
@@ -31498,7 +31658,7 @@ async def check_late_deliveries_internal(user_id: str):
 @api_router.post("/check-late-deliveries")
 async def check_late_deliveries(user: User = Depends(require_auth)):
     await check_late_deliveries_internal(user.user_id)
-    return {"message": "VÃ©rification des livraisons en retard effectuÃ©e"}
+    return {"message": "Vérification des livraisons en retard effectuée"}
 
 
 async def check_late_deliveries_loop():
@@ -31526,7 +31686,7 @@ async def export_products_csv(user: User = Depends(require_auth)):
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Nom", "SKU", "CatÃ©gorie", "QuantitÃ©", "UnitÃ©", "Prix achat", "Prix vente", "Stock min", "Stock max", "CrÃ©Ã© le"])
+    writer.writerow(["Nom", "SKU", "Catégorie", "Quantité", "Unité", "Prix achat", "Prix vente", "Stock min", "Stock max", "Créé le"])
     for p in products:
         writer.writerow([
             p.get("name", ""),
@@ -31579,12 +31739,12 @@ async def export_movements_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Date", "Produit", "Type", "QuantitÃ©", "Avant", "AprÃ¨s", "Raison"])
+    writer.writerow(["Date", "Produit", "Type", "Quantité", "Avant", "Après", "Raison"])
     for m in movements:
         writer.writerow([
             str(m.get("created_at", ""))[:19],
             prod_map.get(m.get("product_id"), "Inconnu"),
-            "EntrÃ©e" if m.get("type") == "in" else "Sortie",
+            "Entrée" if m.get("type") == "in" else "Sortie",
             m.get("quantity", 0),
             m.get("previous_quantity", 0),
             m.get("new_quantity", 0),
@@ -31638,7 +31798,7 @@ async def export_accounting_csv(
 
     # Section: Sales
     writer.writerow(["=== VENTES ==="])
-    writer.writerow(["Date", "RÃ©f", "Articles", "Mode paiement", "Montant"])
+    writer.writerow(["Date", "Réf", "Articles", "Mode paiement", "Montant"])
     for s in sales:
         writer.writerow([
             str(s.get("created_at", ""))[:19],
@@ -31650,7 +31810,7 @@ async def export_accounting_csv(
 
     writer.writerow([])
     writer.writerow(["=== PERTES / DEMARQUE ==="])
-    writer.writerow(["Date", "Produit", "QuantitÃ©", "CoÃ»t unitaire", "Perte totale", "Raison"])
+    writer.writerow(["Date", "Produit", "Quantité", "Coût unitaire", "Perte totale", "Raison"])
     for m in loss_movements:
         p = prod_map.get(m.get("product_id"))
         price = p.get("purchase_price", 0) if p else 0
@@ -31665,7 +31825,7 @@ async def export_accounting_csv(
 
     writer.writerow([])
     writer.writerow(["=== ACHATS FOURNISSEURS ==="])
-    writer.writerow(["Date livraison", "RÃ©f commande", "Fournisseur", "Montant"])
+    writer.writerow(["Date livraison", "Réf commande", "Fournisseur", "Montant"])
     for o in orders:
         writer.writerow([
             str(o.get("updated_at", ""))[:19],
@@ -31682,7 +31842,7 @@ async def export_accounting_csv(
     writer.writerow(["Chiffre d'affaires", total_rev])
     writer.writerow(["Pertes", total_loss])
     writer.writerow(["Achats fournisseurs", total_purch])
-    writer.writerow(["PÃ©riode", f"Derniers {days} jours"])
+    writer.writerow(["Période", f"Derniers {days} jours"])
 
     output.seek(0)
     return StreamingResponse(
@@ -31708,7 +31868,7 @@ async def check_db():
         return {"status": "connected", "database": db.name}
     except Exception as e:
         logger.error(f"DB Check failed: {e}")
-        raise HTTPException(status_code=500, detail="Erreur de connexion Ã  la base de donnÃ©es")
+        raise HTTPException(status_code=500, detail="Erreur de connexion à la base de données")
 
 # ===================== AI TOOLS =====================
 
@@ -31978,7 +32138,7 @@ class AiTools:
         def has_any(*keywords: str) -> bool:
             return any(keyword in raw_metric for keyword in keywords)
 
-        if has_any("sante", "santÃ©", "business health", "health score", "score sante"):
+        if has_any("sante", "santé", "business health", "health score", "score sante"):
             return {
                 "metric": "sante_du_business",
                 "type": "algorithme_metier",
@@ -32034,7 +32194,7 @@ class AiTools:
                 },
             }
 
-        if has_any("prevision ventes", "prÃ©vision ventes", "forecast", "j+7", "j+30"):
+        if has_any("prevision ventes", "prévision ventes", "forecast", "j+7", "j+30"):
             return {
                 "metric": "prevision_ventes",
                 "type": "algorithme_metier",
@@ -32545,7 +32705,7 @@ class AiTools:
                     rev += item_rev
                     cost += item_cost
                     pid = item.get("product_id") or ""
-                    cat = item.get("category") or "Sans catÃ©gorie"
+                    cat = item.get("category") or "Sans catégorie"
                     if pid:
                         if pid not in product_sales:
                             product_sales[pid] = {"name": item.get("name") or pid, "revenue": 0.0, "cost": 0.0, "qty": 0.0, "category": cat}
@@ -32724,7 +32884,7 @@ class AiTools:
 
         def _winner(va, vb, higher_is_better=True):
             if va == vb:
-                return "Ã©gal"
+                return "égal"
             if higher_is_better:
                 return "A" if va > vb else "B"
             return "A" if va < vb else "B"
@@ -32783,7 +32943,7 @@ class AiTools:
         can_stock = ru is None or _user_has_module_access(ru, "stock")
 
         if not can_sales and not can_stock:
-            return {"error": "AccÃ¨s insuffisant. Les modules ventes et/ou stock sont requis pour cette analyse."}
+            return {"error": "Accès insuffisant. Les modules ventes et/ou stock sont requis pour cette analyse."}
 
         uid = self.user_id
         sid = self.store_id
@@ -32831,7 +32991,7 @@ class AiTools:
             enriched.append({
                 "product_id": pid,
                 "name": data["name"],
-                "category": p_info.get("category") or "â€”",
+                "category": p_info.get("category") or "—",
                 "revenue": round(data["revenue"]),
                 "revenue_share_pct": round(data["revenue"] / total_rev * 100, 1),
                 "qty_sold": round(data["qty"]),
@@ -32972,27 +33132,27 @@ class AiTools:
         def _actions(component: str, val: float) -> list:
             if component == "margin":
                 if val < 20:
-                    return ["RenÃ©gocier les prix d'achat fournisseurs (prioritÃ© absolue)", "Identifier les produits vendus en dessous de leur prix de revient", "Augmenter les prix sur les produits peu concurrentiels"]
+                    return ["Renégocier les prix d'achat fournisseurs (priorité absolue)", "Identifier les produits vendus en dessous de leur prix de revient", "Augmenter les prix sur les produits peu concurrentiels"]
                 if val < 40:
-                    return ["Revoir la grille tarifaire sur les catÃ©gories Ã  faible marge", "Proposer des bundles pour augmenter le panier moyen", "Identifier les 20% de produits qui font 80% de la marge"]
-                return ["Maintenir la stratÃ©gie tarifaire actuelle", "Surveiller les hausses de prix d'achat fournisseurs"]
+                    return ["Revoir la grille tarifaire sur les catégories à faible marge", "Proposer des bundles pour augmenter le panier moyen", "Identifier les 20% de produits qui font 80% de la marge"]
+                return ["Maintenir la stratégie tarifaire actuelle", "Surveiller les hausses de prix d'achat fournisseurs"]
             if component == "rotation":
                 if val < 0.5:
-                    return ["Identifier les produits dormants (>60 jours sans vente)", "Lancer une promotion de dÃ©stockage sur les rÃ©fÃ©rences lentes", "RÃ©duire les quantitÃ©s commandÃ©es sur les produits peu vendus"]
+                    return ["Identifier les produits dormants (>60 jours sans vente)", "Lancer une promotion de déstockage sur les références lentes", "Réduire les quantités commandées sur les produits peu vendus"]
                 if val < 1.0:
-                    return ["Optimiser les niveaux de stock min/max", "Aligner les quantitÃ©s commandÃ©es sur la vÃ©locitÃ© rÃ©elle"]
-                return ["Rotation saine, maintenir le niveau de rÃ©approvisionnement actuel"]
+                    return ["Optimiser les niveaux de stock min/max", "Aligner les quantités commandées sur la vélocité réelle"]
+                return ["Rotation saine, maintenir le niveau de réapprovisionnement actuel"]
             if component == "debt":
                 if val > 0.3:
-                    return ["Relancer immÃ©diatement les clients avec des dettes > 30 jours", "Instaurer un plafond de crÃ©dit par client", "Exiger un acompte sur les prochaines commandes des mauvais payeurs"]
+                    return ["Relancer immédiatement les clients avec des dettes > 30 jours", "Instaurer un plafond de crédit par client", "Exiger un acompte sur les prochaines commandes des mauvais payeurs"]
                 if val > 0.1:
-                    return ["Envoyer des rappels de paiement aux clients en retard", "VÃ©rifier les conditions de paiement dans les fiches clients"]
-                return ["Recouvrement sain, continuer le suivi rÃ©gulier"]
+                    return ["Envoyer des rappels de paiement aux clients en retard", "Vérifier les conditions de paiement dans les fiches clients"]
+                return ["Recouvrement sain, continuer le suivi régulier"]
             if component == "trend":
                 if val < -20:
-                    return ["Analyser les causes de la baisse (saisonnalitÃ©, concurrence, stock ?)", "Relancer les clients inactifs avec une offre promotionnelle", "VÃ©rifier si des ruptures de stock ont freinÃ© les ventes"]
+                    return ["Analyser les causes de la baisse (saisonnalité, concurrence, stock ?)", "Relancer les clients inactifs avec une offre promotionnelle", "Vérifier si des ruptures de stock ont freiné les ventes"]
                 if val < 0:
-                    return ["Surveiller la tendance semaine par semaine", "Identifier les catÃ©gories en baisse vs celles en hausse"]
+                    return ["Surveiller la tendance semaine par semaine", "Identifier les catégories en baisse vs celles en hausse"]
                 return ["CA en progression, capitaliser sur les produits qui tirent la croissance"]
             return []
 
@@ -33006,7 +33166,7 @@ class AiTools:
                 "margin": {
                     "label": "Marge brute", "weight_pct": 30,
                     "score": round(margin_score), "value": round(margin_pct, 1), "unit": "%",
-                    "interpretation": f"Marge de {round(margin_pct,1)}% sur {days} jours. Cible recommandÃ©e : >30%.",
+                    "interpretation": f"Marge de {round(margin_pct,1)}% sur {days} jours. Cible recommandée : >30%.",
                     "actions": _actions("margin", margin_pct),
                 },
                 "rotation": {
@@ -33026,14 +33186,14 @@ class AiTools:
                     "label": "Tendance CA", "weight_pct": 30,
                     "score": round(trend_score), "value": round(trend_pct, 1), "unit": "%",
                     "revenue_current": round(revenue_cur), "revenue_previous": round(revenue_prev),
-                    "interpretation": f"CA {'+' if trend_pct >= 0 else ''}{round(trend_pct,1)}% vs pÃ©riode prÃ©cÃ©dente ({round(revenue_prev)} â†’ {round(revenue_cur)} {currency}).",
+                    "interpretation": f"CA {'+' if trend_pct >= 0 else ''}{round(trend_pct,1)}% vs période précédente ({round(revenue_prev)} → {round(revenue_cur)} {currency}).",
                     "actions": _actions("trend", trend_pct),
                 },
             },
-            "summary": f"Score de santÃ© : {score}/100 ({grade}). " + (
-                "Les points forts sont Ã  maintenir. " if score >= 70 else
-                "Des amÃ©liorations ciblÃ©es peuvent rapidement faire progresser le score. " if score >= 40 else
-                "Situation critique â€” actions immÃ©diates recommandÃ©es. "
+            "summary": f"Score de santé : {score}/100 ({grade}). " + (
+                "Les points forts sont à maintenir. " if score >= 70 else
+                "Des améliorations ciblées peuvent rapidement faire progresser le score. " if score >= 40 else
+                "Situation critique — actions immédiates recommandées. "
             ),
         }
 
@@ -33221,7 +33381,7 @@ class AiTools:
             "avg_monthly_sales": round(avg_monthly, 1),
             "trend": trend,
             "forecast_next_month": forecast_qty,
-            "analysis": f"BasÃ© sur {total_qty} ventes ces 3 derniers mois. Tendance {trend}."
+            "analysis": f"Basé sur {total_qty} ventes ces 3 derniers mois. Tendance {trend}."
         }
 
 # ===================== AI SUPPORT =====================
@@ -33627,7 +33787,7 @@ async def get_replenishment_suggestions(user: User = Depends(require_permission(
                             suggested_quantity=suggested_qty,
                             priority=priority,
                             supplier_id=supplier_id,
-                            supplier_name=supplier_names.get(supplier_id) if supplier_id else "Non assignÃ©"
+                            supplier_name=supplier_names.get(supplier_id) if supplier_id else "Non assigné"
                         ))
             except Exception as e:
                 logger.error(f"Error processing replenishment suggestion for product {p.get('product_id')}: {e}")
@@ -33657,7 +33817,7 @@ async def automate_replenishment(user: User = Depends(require_procurement_access
     to_reorder = [s for s in suggestions if s.priority in ["critical", "warning"] and s.supplier_id]
 
     if not to_reorder:
-        return {"message": "Aucun rÃ©approvisionnement nÃ©cessaire pour le moment.", "created_count": 0}
+        return {"message": "Aucun réapprovisionnement nécessaire pour le moment.", "created_count": 0}
 
     # Group by supplier
     by_supplier = defaultdict(list)
@@ -33700,7 +33860,7 @@ async def automate_replenishment(user: User = Depends(require_procurement_access
                 "supplier_id": supplier_id,
                 "status": "pending",
                 "total_amount": 0.0,
-                "notes": "GÃ©nÃ©rÃ© automatiquement (RÃ©approvisionnement)",
+                "notes": "Généré automatiquement (Réapprovisionnement)",
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc)
             }
@@ -33717,7 +33877,7 @@ async def automate_replenishment(user: User = Depends(require_procurement_access
             created_orders.append(order_id)
 
     return {
-        "message": f"{len(created_orders)} brouillon(s) de commande crÃ©Ã©(s) ou mis Ã  jour.",
+        "message": f"{len(created_orders)} brouillon(s) de commande créé(s) ou mis à jour.",
         "created_count": len(created_orders),
         "order_ids": created_orders
     }
@@ -34109,7 +34269,7 @@ async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(requir
                 "store_id": target.get("store_id") or store_id,
                 "type": "in" if data.increment > 0 else "out",
                 "quantity": abs(data.increment),
-                "reason": "Mise Ã  jour collective (Scanner)",
+                "reason": "Mise à jour collective (Scanner)",
                 "created_at": datetime.now(timezone.utc)
             })
             updated_count += 1
@@ -34117,7 +34277,7 @@ async def batch_stock_update(data: BatchStockUpdate, user: User = Depends(requir
             not_found.append(code)
 
     return {
-        "message": f"{updated_count} articles mis Ã  jour.",
+        "message": f"{updated_count} articles mis à jour.",
         "updated_count": updated_count,
         "not_found_count": len(not_found),
         "not_found": not_found
@@ -34149,10 +34309,10 @@ async def batch_associate_rfid(data: BatchRFIDAssociation, user: User = Depends(
             )
             associated_count += 1
 
-    return {"message": f"{associated_count} tags RFID associÃ©s.", "associated_count": associated_count}
+    return {"message": f"{associated_count} tags RFID associés.", "associated_count": associated_count}
 
 
-## Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬ Delivery Reconciliation (Gemini matching) Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬Ã¢â€Ã¢â€šÂ¬
+## ── Delivery Reconciliation (Gemini matching) ──────────────────────
 
 class DeliveryMappingItem(BaseModel):
     catalog_id: str
@@ -34179,7 +34339,7 @@ async def get_catalog_suggestions(order_id: str, user: User = Depends(require_pe
         user,
     )
     if not order:
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
     ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order.get("is_connected"):
         raise HTTPException(status_code=400, detail="Cette commande n'est pas une commande marketplace")
@@ -34232,7 +34392,7 @@ async def get_catalog_suggestions(order_id: str, user: User = Depends(require_pe
                 "quantity": item["quantity"],
                 "unit_price": item["unit_price"],
                 "matched_product_id": mapped[cid],
-                "matched_product_name": mapped_prod["name"] if mapped_prod else "Produit supprimÃ©",
+                "matched_product_name": mapped_prod["name"] if mapped_prod else "Produit supprimé",
                 "confidence": 1.0,
                 "reason": "Association existante",
                 "source": "mapping"
@@ -34265,21 +34425,21 @@ async def get_catalog_suggestions(order_id: str, user: User = Depends(require_pe
                         "unit": p.get("unit", ""),
                     })
 
-                prompt = f"""Tu es un assistant de gestion de stock. Un commerÃ§ant reÃ§oit une livraison de son fournisseur.
-Tu dois associer chaque produit du fournisseur au produit correspondant dans l'inventaire du commerÃ§ant.
+                prompt = f"""Tu es un assistant de gestion de stock. Un commerçant reçoit une livraison de son fournisseur.
+Tu dois associer chaque produit du fournisseur au produit correspondant dans l'inventaire du commerçant.
 
-INVENTAIRE DU COMMERÃ‡ANT:
+INVENTAIRE DU COMMERÇANT:
 {json.dumps(inv_list, ensure_ascii=False)}
 
-PRODUITS REÃ‡US DU FOURNISSEUR:
+PRODUITS REÇUS DU FOURNISSEUR:
 {json.dumps([{"catalog_id": i["catalog_id"], "name": i["catalog_name"], "category": i["catalog_category"], "subcategory": i["catalog_subcategory"]} for i in items_for_gemini], ensure_ascii=False)}
 
-Pour chaque produit reÃ§u, trouve le meilleur match dans l'inventaire du commerÃ§ant.
-ConsidÃ¨re les noms (mÃªme avec des variantes), les catÃ©gories et sous-catÃ©gories.
-Par exemple "Riz brisÃ© 25kg" et "Riz cassÃ© sac 25" sont le mÃªme produit.
+Pour chaque produit reçu, trouve le meilleur match dans l'inventaire du commerçant.
+Considère les noms (même avec des variantes), les catégories et sous-catégories.
+Par exemple "Riz brisé 25kg" et "Riz cassé sac 25" sont le même produit.
 
-RÃ©ponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour), format:
-[{{"catalog_id": "...", "matched_product_id": "..." ou null si aucun match, "confidence": 0.0 Ã  1.0, "reason": "explication courte"}}]"""
+Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour), format:
+[{{"catalog_id": "...", "matched_product_id": "..." ou null si aucun match, "confidence": 0.0 à 1.0, "reason": "explication courte"}}]"""
 
                 model = build_gemini_model()
                 response = model.generate_content(prompt)
@@ -34327,11 +34487,11 @@ RÃ©ponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour)
                         "matched_product_id": None,
                         "matched_product_name": None,
                         "confidence": 0,
-                        "reason": "Erreur IA â€” association manuelle requise",
+                        "reason": "Erreur IA — association manuelle requise",
                         "source": "error"
                     })
         else:
-            # No API key â€” return items without matches
+            # No API key — return items without matches
             for item in items_for_gemini:
                 suggestions.append({
                     "catalog_id": item["catalog_id"],
@@ -34343,11 +34503,11 @@ RÃ©ponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour)
                     "matched_product_id": None,
                     "matched_product_name": None,
                     "confidence": 0,
-                    "reason": "ClÃ© API Gemini non configurÃ©e",
+                    "reason": "Clé API Gemini non configurée",
                     "source": "none"
                 })
     elif items_for_gemini and not inventory:
-        # Empty inventory â€” all items will need new products
+        # Empty inventory — all items will need new products
         for item in items_for_gemini:
             suggestions.append({
                 "catalog_id": item["catalog_id"],
@@ -34359,7 +34519,7 @@ RÃ©ponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour)
                 "matched_product_id": None,
                 "matched_product_name": None,
                 "confidence": 0,
-                "reason": "Inventaire vide â€” nouveau produit requis",
+                "reason": "Inventaire vide — nouveau produit requis",
                 "source": "empty_inventory"
             })
 
@@ -34378,12 +34538,12 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
         user,
     )
     if not order:
-        raise HTTPException(status_code=404, detail="Commande non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
     ensure_scoped_document_access(user, order, detail="Acces refuse pour cette commande")
     if not order.get("is_connected"):
         raise HTTPException(status_code=400, detail="Cette commande n'est pas une commande marketplace")
     if order.get("status") == "delivered":
-        raise HTTPException(status_code=400, detail="Cette commande a dÃ©jÃ  Ã©tÃ© livrÃ©e")
+        raise HTTPException(status_code=400, detail="Cette commande a déjà été livrée")
 
     items = await db.order_items.find({"order_id": order_id}, {"_id": 0}).to_list(100)
     items_map = {i["product_id"]: i for i in items}
@@ -34422,7 +34582,7 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
                 category_id=category_id,
                 subcategory=cat_prod.get("subcategory", ""),
                 quantity=item["quantity"],
-                unit=cat_prod.get("unit", "piÃ¨ce"),
+                unit=cat_prod.get("unit", "pièce"),
                 purchase_price=item["unit_price"],
                 selling_price=round(item["unit_price"] * 1.3, 2),  # 30% margin by default
                 source_catalog_id=mapping.catalog_id,
@@ -34439,7 +34599,7 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
                 store_id=order.get("store_id") or user.active_store_id,
                 type="in",
                 quantity=item["quantity"],
-                reason=f"Commande {order_id} â€” nouveau produit crÃ©Ã©",
+                reason=f"Commande {order_id} — nouveau produit créé",
                 previous_quantity=0,
                 new_quantity=item["quantity"]
             )
@@ -34471,7 +34631,7 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
                         store_id=order.get("store_id") or user.active_store_id,
                         type="in",
                         quantity=item["quantity"],
-                        reason=f"Commande {order_id} livrÃ©e",
+                        reason=f"Commande {order_id} livrée",
                         previous_quantity=product["quantity"],
                         new_quantity=new_qty
                     )
@@ -34505,7 +34665,7 @@ async def confirm_delivery(order_id: str, data: ConfirmDeliveryRequest, user: Us
         {"$set": {"status": "delivered", "updated_at": datetime.now(timezone.utc)}}
     )
 
-    return {"message": "Livraison confirmÃ©e", "results": results}
+    return {"message": "Livraison confirmée", "results": results}
 
 
 @api_router.post("/orders/map-product", dependencies=[Depends(require_suppliers_module)])
@@ -34517,12 +34677,12 @@ async def map_catalog_product(mapping: CatalogProductMappingCreate, user: User =
     product = await db.products.find_one({"product_id": mapping.product_id, "user_id": owner_id})
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ© dans votre inventaire")
+        raise HTTPException(status_code=404, detail="Produit non trouvé dans votre inventaire")
 
     # Verify the catalog product exists
     catalog_prod = await db.catalog_products.find_one({"catalog_id": mapping.catalog_id})
     if not catalog_prod:
-        raise HTTPException(status_code=404, detail="Produit catalogue non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit catalogue non trouvé")
 
     # Upsert mapping
     await db.catalog_product_mappings.update_one(
@@ -34538,7 +34698,7 @@ async def map_catalog_product(mapping: CatalogProductMappingCreate, user: User =
     )
 
     return {
-        "message": "Association enregistrÃ©e",
+        "message": "Association enregistrée",
         "catalog_id": mapping.catalog_id,
         "product_id": mapping.product_id,
     }
@@ -34552,7 +34712,7 @@ async def add_product_variant(product_id: str, variant: ProductVariant, user: Us
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     variants = product.get("variants", [])
@@ -34572,15 +34732,15 @@ async def add_product_variant(product_id: str, variant: ProductVariant, user: Us
         }}
     )
 
-    await log_activity(user, "create", "stock", f"Variante '{variant.name}' ajoutÃ©e Ã  {product['name']}")
-    return {"message": "Variante ajoutÃ©e", "variant": new_variant, "total_quantity": total_qty}
+    await log_activity(user, "create", "stock", f"Variante '{variant.name}' ajoutée à {product['name']}")
+    return {"message": "Variante ajoutée", "variant": new_variant, "total_quantity": total_qty}
 
 @api_router.put("/products/{product_id}/variants/{variant_id}")
 async def update_product_variant(product_id: str, variant_id: str, variant: ProductVariant, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     variants = product.get("variants", [])
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
@@ -34594,7 +34754,7 @@ async def update_product_variant(product_id: str, variant_id: str, variant: Prod
             break
 
     if not found:
-        raise HTTPException(status_code=404, detail="Variante non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Variante non trouvée")
 
     total_qty = sum(v.get("quantity", 0) for v in variants)
 
@@ -34607,21 +34767,21 @@ async def update_product_variant(product_id: str, variant_id: str, variant: Prod
         }}
     )
 
-    return {"message": "Variante mise Ã  jour", "total_quantity": total_qty}
+    return {"message": "Variante mise à jour", "total_quantity": total_qty}
 
 @api_router.delete("/products/{product_id}/variants/{variant_id}")
 async def delete_product_variant(product_id: str, variant_id: str, user: User = Depends(require_permission("stock", "write"))):
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id})
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     variants = product.get("variants", [])
     ensure_scoped_document_access(user, product, detail="Acces refuse pour ce produit")
     new_variants = [v for v in variants if v.get("variant_id") != variant_id]
 
     if len(new_variants) == len(variants):
-        raise HTTPException(status_code=404, detail="Variante non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Variante non trouvée")
 
     total_qty = sum(v.get("quantity", 0) for v in new_variants)
     has_variants = len(new_variants) > 0
@@ -34636,8 +34796,8 @@ async def delete_product_variant(product_id: str, variant_id: str, user: User = 
         }}
     )
 
-    await log_activity(user, "delete", "stock", f"Variante supprimÃ©e du produit {product['name']}")
-    return {"message": "Variante supprimÃ©e", "total_quantity": total_qty}
+    await log_activity(user, "delete", "stock", f"Variante supprimée du produit {product['name']}")
+    return {"message": "Variante supprimée", "total_quantity": total_qty}
 
 # ===================== SALES FORECAST (GEMINI) =====================
 
@@ -34842,11 +35002,11 @@ async def get_sales_forecast(
             warning_count = len([fp for fp in forecast_products if fp.risk_level == "warning"])
 
 
-            prompt_text = f"""Analyse ces prÃ©visions de ventes et donne un rÃ©sumÃ© en 3-4 phrases concises en franÃ§ais.
+            prompt_text = f"""Analyse ces prévisions de ventes et donne un résumé en 3-4 phrases concises en français.
 Mentionne les produits critiques, les tendances importantes et une recommandation.
 
-CA prÃ©vu 7 jours: {total_rev_7d:,.0f} {currency}
-CA prÃ©vu 30 jours: {total_rev_30d:,.0f} {currency}
+CA prévu 7 jours: {total_rev_7d:,.0f} {currency}
+CA prévu 30 jours: {total_rev_30d:,.0f} {currency}
 Produits critiques: {critical_count} | Attention: {warning_count}
 
 Top produits:
@@ -34876,7 +35036,7 @@ async def get_product_sales_forecast(product_id: str, user: User = Depends(requi
     owner_id = get_owner_id(user)
     product = await db.products.find_one({"product_id": product_id, "user_id": owner_id}, {"_id": 0})
     if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
 
     now = datetime.now(timezone.utc)
     thirty_days_ago = now - timedelta(days=30)
@@ -35010,7 +35170,7 @@ async def create_return(data: ReturnCreate, user: User = Depends(require_procure
     )
 
     await db.returns.insert_one(ret.model_dump())
-    await log_activity(user, "create", "returns", f"Retour crÃ©Ã© - {ret.total_amount:.0f} FCFA" + (f" - {supplier_name}" if supplier_name else ""))
+    await log_activity(user, "create", "returns", f"Retour créé - {ret.total_amount:.0f} FCFA" + (f" - {supplier_name}" if supplier_name else ""))
 
     return ret.model_dump()
 
@@ -35033,7 +35193,7 @@ async def get_return(return_id: str, user: User = Depends(require_procurement_ac
     owner_id = get_owner_id(user)
     ret = await db.returns.find_one({"return_id": return_id, "user_id": owner_id}, {"_id": 0})
     if not ret:
-        raise HTTPException(status_code=404, detail="Retour non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Retour non trouvé")
     ensure_scoped_document_access(user, ret, detail="Acces refuse pour ce retour")
     return ret
 
@@ -35043,11 +35203,11 @@ async def complete_return(return_id: str, user: User = Depends(require_procureme
     owner_id = get_owner_id(user)
     ret = await db.returns.find_one({"return_id": return_id, "user_id": owner_id}, {"_id": 0})
     if not ret:
-        raise HTTPException(status_code=404, detail="Retour non trouvÃ©")
+        raise HTTPException(status_code=404, detail="Retour non trouvé")
 
     ensure_scoped_document_access(user, ret, detail="Acces refuse pour ce retour")
     if ret["status"] == "completed":
-        raise HTTPException(status_code=400, detail="Ce retour est dÃ©jÃ  complÃ©tÃ©")
+        raise HTTPException(status_code=400, detail="Ce retour est déjà complété")
 
     # Reintegrate stock for supplier returns (products go back to supplier, so OUT of stock)
     # For customer returns (customer brings back), products go IN to stock
@@ -35096,7 +35256,7 @@ async def complete_return(return_id: str, user: User = Depends(require_procureme
         tax_total=ret.get("tax_total", 0.0),
         tax_mode=ret.get("tax_mode", "ttc"),
         subtotal_ht=ret.get("subtotal_ht", max(0.0, ret.get("total_amount", 0.0) - ret.get("tax_total", 0.0))),
-        notes=f"Avoir gÃ©nÃ©rÃ© pour retour {return_id}",
+        notes=f"Avoir généré pour retour {return_id}",
     )
     await db.credit_notes.insert_one(credit_note.model_dump())
 
@@ -35110,10 +35270,10 @@ async def complete_return(return_id: str, user: User = Depends(require_procureme
         }}
     )
 
-    await log_activity(user, "complete", "returns", f"Retour complÃ©tÃ© + avoir {credit_note.credit_note_id} - {ret['total_amount']:.0f} FCFA")
+    await log_activity(user, "complete", "returns", f"Retour complété + avoir {credit_note.credit_note_id} - {ret['total_amount']:.0f} FCFA")
 
     return {
-        "message": "Retour complÃ©tÃ© et avoir gÃ©nÃ©rÃ©",
+        "message": "Retour complété et avoir généré",
         "credit_note": credit_note.model_dump(),
     }
 
@@ -35204,7 +35364,7 @@ async def get_messages(conversation_id: str, skip: int = 0, limit: int = 50, use
         "$or": [{"shopkeeper_id": user.user_id}, {"supplier_id": user.user_id}]
     })
     if not convo:
-        raise HTTPException(status_code=404, detail="Conversation non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
 
     # Mark messages as read
     is_supplier = user.user_id == convo.get("supplier_id")
@@ -35234,7 +35394,7 @@ async def send_message(conversation_id: str, msg: ChatMessageCreate, user: User 
         "$or": [{"shopkeeper_id": user.user_id}, {"supplier_id": user.user_id}]
     })
     if not convo:
-        raise HTTPException(status_code=404, detail="Conversation non trouvÃ©e")
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
 
     is_supplier = user.user_id == convo.get("supplier_id")
 
@@ -35333,8 +35493,8 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                     reminders.append(SmartReminder(
                         category="stock",
                         type="inventory_check",
-                        title="VÃ©rification d'inventaire",
-                        message=f"'{product['name']}' n'a pas Ã©tÃ© comptÃ© depuis {(now - completed_at).days} jours",
+                        title="Vérification d'inventaire",
+                        message=f"'{product['name']}' n'a pas été compté depuis {(now - completed_at).days} jours",
                         severity="info",
                         icon="clipboard-outline",
                         action_label="Lancer un inventaire",
@@ -35347,8 +35507,8 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                     reminders.append(SmartReminder(
                         category="stock",
                         type="inventory_check",
-                        title="Inventaire jamais rÃ©alisÃ©",
-                        message=f"'{product['name']}' n'a jamais Ã©tÃ© inventoriÃ© physiquement",
+                        title="Inventaire jamais réalisé",
+                        message=f"'{product['name']}' n'a jamais été inventorié physiquement",
                         severity="warning",
                         icon="clipboard-outline",
                         action_label="Lancer un inventaire",
@@ -35385,7 +35545,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                 category="stock",
                 type="dormant_product",
                 title="reminders.dormant_products_label",
-                message=f"'{product['name']}' â€” {product['quantity']} en stock, aucune vente depuis {dorm_days}j. Valeur immobilisÃ©e: {int(stock_value):,} F",
+                message=f"'{product['name']}' — {product['quantity']} en stock, aucune vente depuis {dorm_days}j. Valeur immobilisée: {int(stock_value):,} F",
                 severity="warning",
                 icon="moon-outline",
                 action_label="Voir le produit",
@@ -35436,7 +35596,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                 category="orders",
                 type="late_delivery",
                 title="Livraison en retard",
-                message=f"Commande {supplier_name} â€” {days_late}j de retard (prÃ©vue le {expected_str})",
+                message=f"Commande {supplier_name} — {days_late}j de retard (prévue le {expected_str})",
                 severity="critical" if days_late > late_crit_days else "warning",
                 icon="alert-circle",
                 action_label="Voir la commande",
@@ -35469,7 +35629,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                     category="orders",
                     type="replenishment",
                     title="reminders.replenishment_label",
-                    message=f"'{product['name']}' â€” stock {product['quantity']}/{product['min_stock']} (seuil min). Aucune commande en cours.",
+                    message=f"'{product['name']}' — stock {product['quantity']}/{product['min_stock']} (seuil min). Aucune commande en cours.",
                     severity="warning",
                     icon="cart-outline",
                     action_label="Commander",
@@ -35497,7 +35657,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                 category="orders",
                 type="pending_invitation",
                 title="Invitation en attente",
-                message=f"L'invitation envoyÃ©e Ã  {inv.get('email', '?')} est sans rÃ©ponse depuis {days_pending}j",
+                message=f"L'invitation envoyée à {inv.get('email', '?')} est sans réponse depuis {days_pending}j",
                 severity="info",
                 icon="mail-unread-outline",
                 action_label="Voir les fournisseurs",
@@ -35548,7 +35708,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
 
             if debt >= debt_critical:
                 should_alert = True
-                reason = f"dette Ã©levÃ©e de {int(debt):,} F"
+                reason = f"dette élevée de {int(debt):,} F"
                 sev = "critical"
             elif days_since_credit and days_since_credit > 15 and (days_since_payment is None or days_since_payment > 15):
                 should_alert = True
@@ -35568,7 +35728,7 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                 category="crm",
                 type="debt_recovery",
                 title="Recouvrement de dette",
-                message=f"{customer['name']} â€” {reason}",
+                message=f"{customer['name']} — {reason}",
                 severity=sev,
                 icon="wallet-outline",
                 action_label="Voir le client",
@@ -35598,8 +35758,8 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                     reminders.append(SmartReminder(
                         category="crm",
                         type="client_reactivation",
-                        title="Client fidÃ¨le inactif",
-                        message=f"{customer['name']} ({tier}) â€” aucun achat depuis {days_inactive}j. CA total: {int(customer.get('total_spent', 0)):,} F",
+                        title="Client fidèle inactif",
+                        message=f"{customer['name']} ({tier}) — aucun achat depuis {days_inactive}j. CA total: {int(customer.get('total_spent', 0)):,} F",
                         severity="warning",
                         icon="person-outline",
                         action_label="Contacter",
@@ -35652,8 +35812,8 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                     reminders.append(SmartReminder(
                         category="crm",
                         type="birthday",
-                        title="Anniversaire bientÃ´t",
-                        message=f"L'anniversaire de {customer['name']} est dans {days_until}j. PrÃ©parez une offre spÃ©ciale !",
+                        title="Anniversaire bientôt",
+                        message=f"L'anniversaire de {customer['name']} est dans {days_until}j. Préparez une offre spéciale !",
                         severity="info",
                         icon="gift-outline",
                         action_label="Voir le client",
@@ -35687,10 +35847,10 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                     category="accounting",
                     type="monthly_report",
                     title="Bilan mensuel",
-                    message=f"Fin de mois dans {days_in_month - now.day + 1}j. Pensez Ã  exporter votre bilan comptable.",
+                    message=f"Fin de mois dans {days_in_month - now.day + 1}j. Pensez à exporter votre bilan comptable.",
                     severity="info",
                     icon="document-text-outline",
-                    action_label="Voir la comptabilitÃ©",
+                    action_label="Voir la comptabilité",
                     action_route="/(tabs)/accounting",
                 ).model_dump())
       except Exception as e:
@@ -35730,11 +35890,11 @@ async def get_smart_reminders(user: User = Depends(require_auth)):
                 reminders.append(SmartReminder(
                     category="accounting",
                     type="expense_spike",
-                    title="Pic de dÃ©penses",
-                    message=f"Projection de dÃ©penses ce mois: {int(projected):,} F (+{pct_increase}% vs mois dernier: {int(last_total):,} F)",
+                    title="Pic de dépenses",
+                    message=f"Projection de dépenses ce mois: {int(projected):,} F (+{pct_increase}% vs mois dernier: {int(last_total):,} F)",
                     severity="warning",
                     icon="trending-up",
-                    action_label="Voir les dÃ©penses",
+                    action_label="Voir les dépenses",
                     action_route="/(tabs)/accounting",
                     data={"current": current_total, "last": last_total, "projected": projected}
                 ).model_dump())
@@ -35928,7 +36088,7 @@ async def create_demo_session_endpoint(
     if await find_existing_non_demo_user_by_email(str(payload.email) if payload.email else None):
         raise HTTPException(
             status_code=409,
-            detail="Cet email est dÃ©jÃ  associÃ© Ã  un compte Stockman. Connectez-vous Ã  votre compte pour continuer.",
+            detail="Cet email est déjà associé à un compte Stockman. Connectez-vous à votre compte pour continuer.",
         )
     password_hash = get_password_hash(uuid.uuid4().hex)
     demo_payload = await create_demo_session_data(
@@ -36000,7 +36160,7 @@ async def capture_current_demo_session_contact(
     if await find_existing_non_demo_user_by_email(str(payload.email)):
         raise HTTPException(
             status_code=409,
-            detail="Cet email est dÃ©jÃ  associÃ© Ã  un compte Stockman. Connectez-vous Ã  votre compte pour continuer.",
+            detail="Cet email est déjà associé à un compte Stockman. Connectez-vous à votre compte pour continuer.",
         )
     try:
         session_doc = await capture_demo_session_contact(
@@ -36127,7 +36287,7 @@ from services.payment import (
     create_stripe_session,
     verify_stripe_event,
     verify_revenuecat_webhook,
-    FLUTTERWAVE_CURRENCIES,  # alias rÃ©trocompat
+    FLUTTERWAVE_CURRENCIES,  # alias rétrocompat
     FLW_HASH,
     STRIPE_PRICES,
 )
@@ -36158,7 +36318,7 @@ async def revenuecat_webhook(request: Request):
     deactivate_events = {"EXPIRATION", "BILLING_ISSUE"}
     cancel_events = {"CANCELLATION"}
 
-    # DÃ©duit le plan depuis le product_id RevenueCat
+    # Déduit le plan depuis le product_id RevenueCat
     product_id = (event.get("product_id") or "").lower()
     if "enterprise" in product_id:
         plan = "enterprise"
@@ -36489,7 +36649,7 @@ async def payment_success():
     return HTMLResponse(content="""
         <html>
             <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #0d0e12; color: white;">
-                <h1 style="color: #34C759;">Paiement RÃ©ussi !</h1>
+                <h1 style="color: #34C759;">Paiement Réussi !</h1>
                 <p>Votre abonnement est maintenant actif.</p>
                 <p style="color: #888;">Vous pouvez fermer cette page et retourner dans l'application.</p>
                 <script>setTimeout(function() { window.close(); }, 3000);</script>
@@ -36503,8 +36663,8 @@ async def payment_cancel():
     return HTMLResponse(content="""
         <html>
             <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #0d0e12; color: white;">
-                <h1 style="color: #FF3B30;">Paiement AnnulÃ©</h1>
-                <p>Aucun montant n'a Ã©tÃ© dÃ©bitÃ©.</p>
+                <h1 style="color: #FF3B30;">Paiement Annulé</h1>
+                <p>Aucun montant n'a été débité.</p>
                 <script>setTimeout(function() { window.close(); }, 3000);</script>
             </body>
         </html>
@@ -36536,7 +36696,7 @@ _localhost_origins = [
 _allowed_origins = list(set(_allowed_origins + _localhost_origins))
 
 if not _is_production:
-    # DÃ©veloppement : permissif pour Expo (localhost, LAN, etc.)
+    # Développement : permissif pour Expo (localhost, LAN, etc.)
     _allowed_origins = ["*"]
     logger.info("CORS Policy: PERMISSIVE (Development/Testing)")
 else:

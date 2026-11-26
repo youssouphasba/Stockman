@@ -7,6 +7,7 @@ import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { ecommerce } from '../services/api';
 import { mediaUploadError, parseThemeError, type ThemeMediaItem } from '../utils/ecommerceAppearance';
 import { useTranslation } from 'react-i18next';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type Props = {
   kind: 'logo' | 'image';
@@ -129,7 +130,7 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
 
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: colors.bgDark, paddingTop: Spacing.lg }}>
+      <KeyboardOverlay style={{ flex: 1, backgroundColor: colors.bgDark, paddingTop: Spacing.lg }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, gap: Spacing.sm }}>
           <Text style={{ flex: 1, color: colors.text, fontSize: FontSize.lg, fontWeight: '800' }} accessibilityRole="header">{title}</Text>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('ecommerce_media.fermer')} onPress={onClose} style={{ padding: Spacing.sm, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
@@ -209,7 +210,7 @@ export default function EcommerceMediaPicker({ kind, siteSlug, title, selectedId
           })}
           {usage && <Text style={styles.settingDesc}>{t('ecommerce_media.library_usage', { count: usage.total, limit: usage.limit })}</Text>}
         </ScrollView>
-      </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

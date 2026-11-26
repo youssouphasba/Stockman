@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 export default function DataExplorer() {
     const { t } = useTranslation();
@@ -233,7 +234,7 @@ export default function DataExplorer() {
 
             {/* JSON Viewer Modal */}
             {!!selectedDocument && <Modal visible={!!selectedDocument} transparent animationType="fade">
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+                <KeyboardOverlay style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
                     <View style={{ width: '90%', maxWidth: 600, maxHeight: '85%', backgroundColor: modalSurface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: colors.glassBorder }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                             <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>📄 Document JSON</Text>
@@ -247,7 +248,7 @@ export default function DataExplorer() {
                             </Text>
                         </ScrollView>
                     </View>
-                </View>
+                </KeyboardOverlay>
             </Modal>}
         </View>
     );

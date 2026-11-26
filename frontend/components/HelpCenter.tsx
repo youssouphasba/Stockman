@@ -15,6 +15,7 @@ import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTranslation } from 'react-i18next';
 import { HELP_MODULES, FAQ, HelpModule, HelpFeature, FAQItem } from '../constants/helpContent';
 import { filterGuideContent } from '../utils/ecommerceGuideFeatures';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type Props = {
   visible: boolean;
@@ -93,7 +94,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
+      <KeyboardOverlay style={[styles.container, { backgroundColor: colors.bgDark }]}>
         {/* Header */}
         <View style={styles.header}>
           <View style={[styles.headerIconWrap, { backgroundColor: colors.primary + '20' }]}>
@@ -259,7 +260,7 @@ export default function HelpCenter({ visible, onClose, onLaunchGuide, userRole =
             </>
           )}
         </ScrollView>
-      </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

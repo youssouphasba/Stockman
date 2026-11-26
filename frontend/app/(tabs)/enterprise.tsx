@@ -24,6 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { analytics, AnalyticsStoreComparison, stores as storesApi, Store } from '../../services/api';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { formatCurrency, formatNumber } from '../../utils/format';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 type QuickAction = {
   id: string;
@@ -407,7 +408,7 @@ export default function EnterpriseScreen() {
       </LinearGradient>
 
       {showCreateModal && <Modal visible={showCreateModal} transparent animationType="fade" onRequestClose={() => setShowCreateModal(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('enterprise.new_store_modal_title')}</Text>
@@ -445,7 +446,7 @@ export default function EnterpriseScreen() {
               />
             </View>
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>}
     </View>
   );

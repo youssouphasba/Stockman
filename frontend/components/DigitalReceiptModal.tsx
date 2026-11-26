@@ -11,6 +11,7 @@ import { generateSalePdf } from '../utils/pdfReports';
 import { useAuth } from '../contexts/AuthContext';
 import GuideTarget from '../onboarding/GuideTarget';
 import GuideHost from '../onboarding/GuideHost';
+import KeyboardOverlay from './KeyboardOverlay';
 
 interface DigitalReceiptModalProps {
     visible: boolean;
@@ -60,7 +61,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
 
     return (
         <Modal visible={visible} animationType="fade" transparent>
-            <View style={styles.modalOverlay}>
+            <KeyboardOverlay style={styles.modalOverlay}>
                 <View style={[styles.modalContent, { backgroundColor: colors.bgMid, borderColor: colors.glassBorder }]}>
                     <View style={styles.modalHeader}>
                         <Text style={[styles.modalTitle, { color: colors.text }]}>{t('modals.receipt')}</Text>
@@ -126,7 +127,7 @@ export default function DigitalReceiptModal({ visible, onClose, sale, store }: D
                         </TouchableOpacity>
                     </GuideTarget>
                 </View>
-            </View>
+            </KeyboardOverlay>
             {visible && <GuideHost id="receipt" />}
         </Modal>
     );

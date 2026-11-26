@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import KeyboardOverlay from './KeyboardOverlay';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -69,7 +70,7 @@ const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({ visible, onCl
             animationType="slide"
             onRequestClose={onClose}
         >
-            <View style={styles.overlay}>
+            <KeyboardOverlay style={styles.overlay}>
                 <View style={[styles.content, { backgroundColor: colors.bgMid }]}>
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: colors.text }]}>
@@ -104,7 +105,7 @@ const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({ visible, onCl
                         ))}
                     </ScrollView>
                 </View>
-            </View>
+            </KeyboardOverlay>
         </Modal>
     );
 };

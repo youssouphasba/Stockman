@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
+import KeyboardOverlay from './KeyboardOverlay';
 
 const PRODUCT_BARCODE_TYPES = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'code93', 'itf14'] as const;
 
@@ -97,9 +98,9 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
     if (!permission || permissionLoading) {
         return (
             <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-                <View style={styles.permissionContainer}>
+                <KeyboardOverlay style={styles.permissionContainer}>
                     <ActivityIndicator color={colors.primary} />
-                </View>
+                </KeyboardOverlay>
             </Modal>
         );
     }
@@ -107,7 +108,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
     if (!hasPermission) {
         return (
             <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-                <View style={styles.permissionContainer}>
+                <KeyboardOverlay style={styles.permissionContainer}>
                     <Ionicons name="camera-outline" size={64} color={colors.textMuted} />
                     <Text style={styles.permissionText}>
                         {t('scanner.permission_text', "L'accès à la caméra est nécessaire pour scanner les codes-barres.")}
@@ -126,7 +127,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
                     <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                         <Text style={styles.closeButtonText}>{t('common.cancel', 'Annuler')}</Text>
                     </TouchableOpacity>
-                </View>
+                </KeyboardOverlay>
             </Modal>
         );
     }
@@ -138,7 +139,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
             transparent={false}
             onRequestClose={onClose}
         >
-            <View style={styles.container}>
+            <KeyboardOverlay style={styles.container}>
                 <CameraView
                     style={StyleSheet.absoluteFillObject}
                     facing="back"
@@ -174,7 +175,7 @@ export default function BarcodeScanner({ visible, onClose, onScanned, continuous
                         </View>
                     </View>
                 </CameraView>
-            </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

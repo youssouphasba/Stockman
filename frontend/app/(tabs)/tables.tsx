@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 import { tables } from '../../services/api';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 type TableItem = {
   table_id: string;
@@ -126,7 +127,7 @@ export default function TablesScreen() {
       </ScrollView>
 
       {showCreate && <Modal visible={showCreate} transparent animationType="slide" onRequestClose={() => setShowCreate(false)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardOverlay style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{t('restaurant.tables.new_table', 'Nouvelle table')}</Text>
             <TextInput value={name} onChangeText={setName} placeholder={t('restaurant.tables.name', 'Nom de table')} placeholderTextColor={colors.textMuted} style={styles.input} />
@@ -143,7 +144,7 @@ export default function TablesScreen() {
               />
             </View>
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>}
     </LinearGradient>
   );

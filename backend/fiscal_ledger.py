@@ -253,10 +253,15 @@ async def _append(
     return entry
 
 
+# Les ventes reprises d'un ancien logiciel (source « import ») n'ont pas été encaissées avec
+# Stockman : elles n'entrent pas au registre et la vérification ne les réclame pas.
+RECORDED_SALES = {"source": {"$ne": "import"}}
+
+
 async def _backfill(db, owner_id: str, timezone_name: Optional[str], skip_sale_id: Optional[str] = None) -> int:
     """Première utilisation : inscrit les ventes déjà présentes, dans l'ordre chronologique."""
     sales = await db.sales.find(
-        {"user_id": owner_id, "status": {"$in": ["completed", "cancelled"]}}, {"_id": 0},
+        {"user_id": owner_id, "status": {"$in": ["completed", "cancelled"]}, **RECORDED_SALES}, {"_id": 0},
     ).to_list(None)
     events = []
     for sale in sales:
@@ -313,6 +318,8 @@ async def record_sale(
     actor_id: Optional[str] = None, training: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """Inscrit une vente terminée."""
+    if sale.get("source") == RECORDED_SALES["source"]["$ne"]:
+        return None
     await _prepare(db, owner_id, timezone_name, skip_sale_id=sale.get("sale_id"))
     entry = await _append(
         db, owner_id, ENTRY_SALE, sale,
@@ -538,7 +545,7 @@ async def verify(db, owner_id: str, max_problems: int = 50) -> Dict[str, Any]:
 
     # Concordance avec les ventes : une vente modifiée ou supprimée en base se voit ici.
     sales = await db.sales.find(
-        {"user_id": owner_id, "status": {"$in": ["completed", "cancelled"]}}, {"_id": 0},
+        {"user_id": owner_id, "status": {"$in": ["completed", "cancelled"]}, **RECORDED_SALES}, {"_id": 0},
     ).to_list(None)
     seen = set()
     for sale in sales:

@@ -11,6 +11,7 @@ import {
   hasAdminMessageDestination,
   useOpenAdminMessageDestination,
 } from './AdminMessagesButton';
+import KeyboardOverlay from './KeyboardOverlay';
 
 // Délai après l'arrivée sur les onglets, une fois les transitions terminées : juste après la connexion,
 // une fenêtre ouverte pendant le passage de l'écran de connexion aux onglets peut n'afficher que son voile.
@@ -77,7 +78,7 @@ export default function AdminMessagePopup({ enabled }: { enabled: boolean }) {
   return (
     // Animation native de la fenêtre seulement : une animation maison sur le voile pouvait laisser un écran gris sans contenu.
     <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={dismissCurrent}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: Spacing.lg }}>
+      <KeyboardOverlay style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', padding: Spacing.lg }}>
         <Pressable style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} onPress={dismissCurrent} />
         <View
           style={{
@@ -141,7 +142,7 @@ export default function AdminMessagePopup({ enabled }: { enabled: boolean }) {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

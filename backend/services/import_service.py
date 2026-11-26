@@ -2,6 +2,7 @@ import csv
 import io
 import json
 import logging
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
@@ -10,6 +11,34 @@ from pymongo import UpdateOne
 
 logger = logging.getLogger(__name__)
 IMPORT_JOB_CHUNK_SIZE = 200
+
+
+def clean_float(val: Any, default: float = 0.0) -> float:
+    """Nombre écrit à la française (1 234,56), à l'anglaise (1,234.56) ou avec une devise."""
+    if val is None or val == "" or isinstance(val, bool):
+        return default
+    if isinstance(val, (int, float)):
+        return float(val)
+    text = re.sub(r"[^0-9,.\-]", "", str(val).replace(" ", "").replace(" ", "").replace(" ", ""))
+    if not re.search(r"\d", text):
+        return default
+    if "," in text and "." in text:
+        decimal = "," if text.rfind(",") > text.rfind(".") else "."
+        text = text.replace("." if decimal == "," else ",", "").replace(decimal, ".")
+    elif "," in text:
+        text = text.replace(",", "") if re.fullmatch(r"-?\d{1,3}(,\d{3})+", text) else text.replace(",", ".")
+    elif re.fullmatch(r"-?\d{1,3}(\.\d{3})+", text):
+        text = text.replace(".", "")
+    try:
+        return float(text)
+    except ValueError:
+        return default
+
+
+def clean_int(val: Any, default: int = 0) -> int:
+    if val is None or val == "":
+        return default
+    return int(clean_float(val, float(default)))
 
 
 def _normalize_text(value: Any) -> str:

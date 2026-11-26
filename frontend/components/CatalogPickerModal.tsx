@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { catalog as catalogApi } from '../services/api';
+import KeyboardOverlay from './KeyboardOverlay';
 
 const PAGE_SIZE = 50;
 
@@ -134,7 +135,7 @@ export default function CatalogPickerModal({ sector, countryCode, onClose, onImp
 
     return (
         <Modal visible animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}>
-            <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? Spacing.md : insets.top + Spacing.sm }]}>
+            <KeyboardOverlay style={[styles.container, { paddingTop: Platform.OS === 'ios' ? Spacing.md : insets.top + Spacing.sm }]}>
                 <View style={styles.header}>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.title}>{t('products.catalog_picker.title')}</Text>
@@ -195,7 +196,7 @@ export default function CatalogPickerModal({ sector, countryCode, onClose, onImp
                             : <Text style={styles.submitText}>{t('products.catalog_picker.submit', { count: selected.size })}</Text>}
                     </TouchableOpacity>
                 </View>
-            </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

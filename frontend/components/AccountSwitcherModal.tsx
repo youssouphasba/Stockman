@@ -18,6 +18,7 @@ import i18n from '../services/i18n';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getDefaultRouteForUser } from '../utils/accountRouting';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type AccountSwitcherModalProps = {
   visible: boolean;
@@ -125,7 +126,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardOverlay style={styles.overlay}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View style={styles.headerCopy}>
@@ -239,7 +240,7 @@ export default function AccountSwitcherModal({ visible, onClose }: AccountSwitch
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

@@ -44,7 +44,7 @@ Lorsqu’un utilisateur authentifié ouvre l’application mobile, celle-ci tran
 - Le guide est guidé pas à pas et animé : un voile léger couvre l'écran, qui reste visible, sauf la zone à toucher (onglet, bouton ou champ). Un cadre lumineux glisse d'une zone à la suivante pour montrer où toucher, une bulle explique l'élément et la consigne sans jamais masquer la zone, et une barre indique la progression (Produits, Caisse, Compta, Clients). Quand le clavier s'ouvre, le champ à remplir remonte automatiquement à l'écran. Une saisie incorrecte fait trembler la bulle avec un message, et l'utilisateur réessaie.
 - Étapes : présenter la barre des onglets en bas de l'écran, puis créer un produit d'exercice un par un (nom, prix d'achat, prix de vente, quantité), créer d'autres produits par import de texte, voir le scan en lot, l'import CSV et l'import catalogue, faire une vente en Caisse (produit au panier, client créé depuis la Caisse, encaissement en espèces, reçu), lire le chiffre d'affaires, la marge et les ventes récentes dans la Compta, puis la fiche du client et ses achats dans l'onglet Clients.
 - Les produits, le client et la vente créés pendant le guide sont des données d'exercice : ils ne sont jamais envoyés au catalogue partagé et sont supprimés à la fin, avec leurs mouvements de stock, l'historique de prix, les alertes et le journal d'activité. Le commerçant peut garder le produit créé un par un s'il est réel : son stock est alors rétabli.
-- À la fin, deux choix : « Ajouter mes vrais produits » ou « Je veux de l'aide pour créer mes produits », qui ouvre une demande d'assistance déjà remplie. Le lien « Passer » permet de quitter le guide après confirmation ; les données d'exercice sont aussi supprimées.
+- À la fin, trois choix : « Ajouter mes vrais produits », « Reprendre mes données (ancien logiciel, Excel, cahier) », qui ouvre la reprise des données décrite à la section 1 bis, ou « Je veux de l'aide pour créer mes produits », qui ouvre une demande d'assistance déjà remplie. La carte d'accueil du guide annonce cette reprise. Le lien « Passer » permet de quitter le guide après confirmation ; les données d'exercice sont aussi supprimées.
 - Si l'application est fermée pendant le guide, il reprend à la dernière étape enregistrée. À l'étape « Ajouter au panier », la Caisse rouvre automatiquement la liste Produits.
 - Suivi par l'équipe Stockman (tableau de bord admin web) : la Vue d'ensemble montre combien de commerçants ont le guide à faire, en cours, terminé ou passé, le taux de réussite, la durée médiane et les étapes où ils s'arrêtent. La fiche d'un client affiche l'état de son guide et sa dernière étape, avec un bouton « Relancer le guide » : le commerçant le refait depuis le début à sa prochaine ouverture de l'application. Dans le Support, un filtre isole les demandes d'aide envoyées depuis la fin du guide.
 
@@ -74,7 +74,7 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 9. Cliquer sur **Lancer l'importation**
 10. Un résumé affiche le nombre de produits importés et les erreurs éventuelles
 
-**Formats acceptés :** CSV (virgule `,` ou point-virgule `;`), Excel (.xls, .xlsx)
+**Formats acceptés :** CSV (virgule `,` ou point-virgule `;`). Pour un fichier Excel (.xlsx), un PDF ou une photo, utilisez **Reprendre mes données** (section 1 bis).
 **Encodages supportés :** UTF-8, UTF-8 BOM, Latin-1, CP1252 (les accents français sont gérés automatiquement)
 
 **Migrations sans mapping manuel :**
@@ -106,6 +106,50 @@ L'importation permet d'ajouter des centaines de produits en masse depuis un fich
 - "Type de fichier non autorisé" → utiliser uniquement CSV ou Excel
 - "Code-barres déjà utilisé dans cette boutique" → corriger le SKU dans le fichier ou dans la fiche produit existante
 - Caractères spéciaux (é, à, ç) mal affichés → sauvegarder le fichier en UTF-8 depuis Excel
+
+---
+
+## 1 bis. Reprendre ses données d'un ancien logiciel ou d'un cahier
+
+Un commerçant qui arrive d'un autre logiciel, d'un fichier Excel ou d'un cahier ne repart pas de zéro : il reprend ses **produits** et son **historique de ventes**. Les finances, puis les clients et leurs dettes, viendront ensuite.
+
+### Où se trouve la reprise des données ?
+- Application mobile : onglet **Produits** > **Ajouter** > **Reprendre mes données**, ou dans le menu latéral de l'écran Produits.
+- À la fin du guide de démarrage : bouton **Reprendre mes données (ancien logiciel, Excel, cahier)**.
+- Seul le **propriétaire du compte** peut lancer une reprise ; les membres de l'équipe ne voient pas l'entrée. La reprise se fait dans la boutique active.
+
+### Quels fichiers sont acceptés ?
+- Excel **.xlsx** (chaque feuille est lue comme un tableau séparé), **CSV** (virgule, point-virgule ou tabulation, accents gérés), **PDF** et **photos** (page de cahier, état imprimé). 10 Mo au maximum par fichier.
+- L'ancien format Excel **.xls** n'est pas lu : ouvrir le fichier et l'enregistrer au format .xlsx.
+- Un titre au-dessus du tableau ne gêne pas : Stockman repère la ligne des intitulés de colonnes.
+- Un fichier trop gros pour un seul import doit être découpé (par année, par exemple) et importé en plusieurs fois.
+
+### Comment se déroule une reprise ?
+1. Choisir un fichier, prendre une photo ou choisir une photo.
+2. Stockman analyse le fichier : les intitulés de colonnes courants (Désignation, Prix de vente, Stock, Date, N° ticket, Montant, Mode de paiement…) sont reconnus directement ; sinon l'IA reconnaît le type du tableau et associe les colonnes. Les PDF et les photos sont recopiés en tableau par l'IA.
+3. Pour chaque tableau, l'écran indique s'il contient **des produits**, **des ventes** ou s'il est **à ignorer** (modifiable), et montre un aperçu : produits à créer, ventes à reprendre avec la période et le total, lignes rejetées avec leur raison. **Vérifier les colonnes** permet de corriger l'association d'une colonne.
+4. Toucher **Importer**. Les produits sont créés d'abord, puis les ventes, qui sont rattachées aux produits par leur nom (même écrit un peu différemment) ou leur code-barres.
+5. Un compte rendu affiche ce qui a été créé, les lignes non reprises et les articles vendus absents du catalogue.
+Rien n'est enregistré avant **Importer**.
+
+### Comment sont repris les produits ?
+- Champs reconnus : nom (obligatoire), code-barres ou référence, quantité en stock, prix d'achat, prix de vente, catégorie (créée si besoin), unité, stock minimum, description. Montants écrits « 1 500 », « 1.500 », « 2,5 » ou avec la devise acceptés.
+- Un produit déjà présent dans la boutique (même nom, nom très proche ou même code-barres) ou en double dans le fichier n'est pas recréé. Une ligne « Total » est ignorée.
+- Le stock indiqué dans le fichier devient le stock de départ, avec un mouvement d'entrée « Importation initiale ».
+
+### Comment sont reprises les ventes ?
+- Champs reconnus : date (obligatoire, jour/mois/année ou format ISO, avec ou sans heure, heure dans une colonne séparée acceptée), numéro de ticket ou de facture, article, quantité, prix unitaire, montant, coût, mode de paiement (espèces, Mobile Money, carte, virement, crédit), client.
+- Les lignes d'un même ticket forment une seule vente. Sans numéro de ticket, les lignes de la même minute et du même client forment une vente ; sans heure, chaque ligne est une vente. Un cahier de recettes par jour (date + montant) donne une vente « Ventes reprises » par jour.
+- Les ventes gardent leur date d'origine et comptent dans le **tableau de bord**, la **Compta** (chiffre d'affaires, marge, avec le prix d'achat du produit rattaché), les statistiques et les **prévisions de l'IA**. Elles portent la mention « Reprise » dans la liste des ventes.
+- Elles **ne modifient pas le stock** (le stock de départ vient du fichier produits), **ne peuvent être ni annulées ni facturées**, n'ont **pas de ticket** et **n'entrent pas dans le registre de caisse** : elles n'ont pas été encaissées avec Stockman.
+- Sont rejetées avec leur raison : date absente, illisible ou dans le futur, montant absent, montant ou quantité négatifs (retours et avoirs ne sont pas repris). Les lignes de total sont ignorées.
+- Une vente déjà reprise par un import précédent n'est pas créée une deuxième fois : réimporter le même fichier est sans risque.
+- Une vente dont l'article n'existe pas dans le catalogue compte dans le chiffre d'affaires mais pas dans les statistiques par produit.
+
+### Peut-on annuler une reprise ?
+- Oui, en entier, pendant **30 jours** : **Reprendre mes données** > **Mes imports** > **Annuler**. Les ventes et les produits créés par cet import sont retirés.
+- Un produit importé qui a été vendu en caisse depuis est gardé, pour ne pas casser l'historique de ses ventes.
+- Une vente reprise ne peut pas être annulée seule : il faut annuler l'import entier.
 
 ---
 
@@ -228,6 +272,7 @@ Sur mobile, pour un commerce, le bouton **Ajouter un produit** de l'écran **Auc
 ### Comment annuler ou retourner une vente ?
 - Chercher la vente dans **Activité** ou **Comptabilité**
 - Utiliser la fonction de retour/annulation disponible sur la vente
+- Une vente marquée « Reprise » (reprise d'un ancien logiciel) ne s'annule pas seule : on annule l'import entier depuis **Produits > Ajouter > Reprendre mes données** (section 1 bis).
 
 ### Quels modes de paiement sont disponibles ?
 - Espèces
@@ -253,6 +298,7 @@ Sur mobile, pour un commerce, le bouton **Ajouter un produit** de l'écran **Auc
 - Le registre se consulte en bas de l'écran **Comptabilité** (application mobile et web) : nombre d'inscriptions, total cumulé, bouton **Vérifier l'intégrité**, liste des clôtures par jour, mois ou année et bouton **Archive** pour télécharger une période close.
 - Une **vérification** contrôle à tout moment que la série ne présente aucun trou, que le chaînage est intact et que chaque vente correspond à son inscription.
 - Les ventes d'entraînement du guide de démarrage sont inscrites à part et ne comptent pas dans les totaux.
+- Les ventes reprises d'un ancien logiciel (section 1 bis) ne sont pas inscrites au registre : elles n'ont pas été encaissées avec Stockman. La vérification d'intégrité ne les réclame pas.
 - Si le compte est supprimé, le registre des ventes est conservé 6 ans (durée légale de conservation), sans donnée personnelle de client.
 - Le registre démarre à la première vente qui suit sa mise en service ; les ventes plus anciennes y sont reprises et marquées comme telles, leur intégrité n'étant garantie qu'à partir de cette date.
 

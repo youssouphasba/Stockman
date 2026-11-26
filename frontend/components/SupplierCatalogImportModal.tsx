@@ -7,6 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useTheme } from '../contexts/ThemeContext';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import { supplierCatalog } from '../services/api';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type Props = {
   visible: boolean;
@@ -255,7 +256,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <View style={styles.overlay}>
+      <KeyboardOverlay style={styles.overlay}>
         <View style={styles.modal}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{t('supplier_catalog_import.title')}</Text>
@@ -268,7 +269,7 @@ export default function SupplierCatalogImportModal({ visible, onClose, onSuccess
           {step === 2 && renderPreview()}
           {step === 3 && renderDone()}
         </View>
-      </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

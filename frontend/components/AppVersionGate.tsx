@@ -6,6 +6,7 @@ import { AppState, Modal, Platform, Pressable, StyleSheet, Text, View } from 're
 import { useTranslation } from 'react-i18next';
 import { appVersion, AppVersionSettings } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type VersionState = {
   blocking: boolean;
@@ -174,7 +175,7 @@ export default function AppVersionGate({ children }: { children: ReactNode }) {
       {children}
       {state.suggested && (
       <Modal transparent visible animationType="fade" onRequestClose={dismissSuggestion}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardOverlay style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('app_update.available_title')}</Text>
             <Text style={[styles.message, { color: colors.textSecondary }]}>
@@ -191,7 +192,7 @@ export default function AppVersionGate({ children }: { children: ReactNode }) {
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>
       )}
     </>

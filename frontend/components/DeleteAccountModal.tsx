@@ -12,6 +12,7 @@ interface DeleteAccountModalProps {
 }
 
 import { useTranslation } from 'react-i18next';
+import KeyboardOverlay from './KeyboardOverlay';
 
 export default function DeleteAccountModal({ visible, onClose }: DeleteAccountModalProps) {
     const { t } = useTranslation();
@@ -60,7 +61,7 @@ export default function DeleteAccountModal({ visible, onClose }: DeleteAccountMo
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={styles.overlay}>
+            <KeyboardOverlay style={styles.overlay}>
                 <View style={styles.modalContainer}>
                     <View style={styles.header}>
                         <Text style={styles.title}>{t('modals.deleteAccount.dangerZone')}</Text>
@@ -103,7 +104,7 @@ export default function DeleteAccountModal({ visible, onClose }: DeleteAccountMo
                         </TouchableOpacity>
                     </View>
                 </View>
-            </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

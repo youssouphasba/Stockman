@@ -6,6 +6,7 @@ import { onboardingGuide } from '../services/api';
 import ContactSupportModal from '../components/ContactSupportModal';
 import { GUIDE_STEPS, STEP_INDEX, resolveTarget, type GuideContextData, type GuideStep } from './steps';
 import { GUIDE_SIGNAL_EVENT, sendGuideCommand, setGuideRunState } from './guideStore';
+import { requestDataMigration } from '../utils/dataMigrationLauncher';
 
 export type GuideRect = { x: number; y: number; width: number; height: number };
 
@@ -29,7 +30,7 @@ type GuideContextValue = {
   hasTarget: (id: string) => boolean;
   next: () => void;
   validateField: () => string | null;
-  finish: (keepProductIds: string[], then?: 'products' | 'help') => Promise<void>;
+  finish: (keepProductIds: string[], then?: 'products' | 'help' | 'migration') => Promise<void>;
   skip: () => void;
   finishing: boolean;
 };
@@ -254,7 +255,7 @@ export default function GuideProvider({ children, userId, canRun, currentRoute }
     return () => clearTimeout(timer);
   }, [hasTarget, mountVersion, next, step, targetId]);
 
-  const finish = useCallback(async (keepProductIds: string[], then?: 'products' | 'help') => {
+  const finish = useCallback(async (keepProductIds: string[], then?: 'products' | 'help' | 'migration') => {
     setFinishing(true);
     try {
       await onboardingGuide.finish('completed', keepProductIds);
@@ -265,6 +266,8 @@ export default function GuideProvider({ children, userId, canRun, currentRoute }
       DeviceEventEmitter.emit('onboarding:finished');
       router.navigate('/(tabs)/products' as any);
       if (then === 'help') setTimeout(() => setHelpOpen(true), 400);
+      // Reprise des données : la fenêtre s'ouvre sur l'écran Produits (components/DataMigrationModal).
+      if (then === 'migration') setTimeout(requestDataMigration, 400);
     } catch (error: any) {
       Alert.alert('Connexion impossible', error?.message || 'Vérifiez votre connexion puis réessayez.');
     } finally {

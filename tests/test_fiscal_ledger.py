@@ -53,6 +53,15 @@ class FiscalLedgerTest(unittest.TestCase):
         self.assertNotIn("customer_name", second["sale"])
         self.assertTrue(run(ledger.verify(self.db, OWNER))["ok"])
 
+    def test_imported_sales_stay_out_of_the_ledger(self):
+        # Ventes reprises d'un ancien logiciel : déjà en base avant la première vente en caisse.
+        run(self.db.sales.insert_one({**sale("old1", 9000, self.now - timedelta(days=200)), "source": "import"}))
+        self.assertIsNone(run(ledger.record_sale(self.db, OWNER, {**sale("old2", 100, self.now), "source": "import"})))
+        first = run(add_sale(self.db, sale("s1", 1500, self.now)))
+        self.assertEqual(first["seq"], 1)
+        self.assertEqual(first["cumulative_total"], 1500)
+        self.assertTrue(run(ledger.verify(self.db, OWNER))["ok"])
+
     def test_a_sale_is_recorded_only_once(self):
         document = sale("s1", 1500, self.now)
         run(add_sale(self.db, document))

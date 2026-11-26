@@ -16,6 +16,7 @@ import { formatCurrency, formatNumber } from '../utils/format';
 import { useTheme } from '../contexts/ThemeContext';
 import { orders, products as productsApi, MatchSuggestion, DeliveryMappingItem, Product } from '../services/api';
 import { Spacing, FontSize, BorderRadius } from '../constants/theme';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type Props = {
   visible: boolean;
@@ -174,7 +175,7 @@ export default function DeliveryConfirmationModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
+      <KeyboardOverlay style={[styles.container, { backgroundColor: colors.bgDark }]}>
 
         {/* ─── Product Selector View ─── */}
         {searchingFor ? (
@@ -349,7 +350,7 @@ export default function DeliveryConfirmationModal({
             )}
           </>
         )}
-      </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

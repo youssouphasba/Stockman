@@ -27,6 +27,7 @@ import {
     FeasibilityResult,
     Product,
 } from '../services/api';
+import KeyboardOverlay from './KeyboardOverlay';
 
 const { width } = Dimensions.get('window');
 
@@ -555,7 +556,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
 
             {/* Create Recipe Modal */}
             {showRecipeModal && <Modal visible={showRecipeModal} animationType="slide" transparent onRequestClose={() => setShowRecipeModal(false)}>
-                <View style={s.modalOverlay}>
+                <KeyboardOverlay style={s.modalOverlay}>
                     <View style={[s.modalContent, { backgroundColor: colors.bgDark }]}>
                         <View style={s.modalHeader}>
                             <Text style={[s.modalTitle, { color: colors.text }]}>{t('production.new_recipe', 'Nouvelle recette')}</Text>
@@ -632,12 +633,12 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                             <Text style={s.submitBtnText}>{t('production.create_recipe', 'Créer la recette')}</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </KeyboardOverlay>
             </Modal>}
 
             {/* Produce Modal */}
             {showProduceModal && <Modal visible={showProduceModal} animationType="slide" transparent onRequestClose={() => setShowProduceModal(false)}>
-                <View style={s.modalOverlay}>
+                <KeyboardOverlay style={s.modalOverlay}>
                     <View style={[s.modalContent, { backgroundColor: colors.bgDark, maxHeight: '50%' }]}>
                         <View style={s.modalHeader}>
                             <Text style={[s.modalTitle, { color: colors.text }]}>
@@ -677,12 +678,12 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                             <Text style={s.submitBtnText}>{t('production.create_order', 'Lancer la production')}</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </KeyboardOverlay>
             </Modal>}
 
             {/* Complete Modal */}
             {showCompleteModal && <Modal visible={showCompleteModal} animationType="slide" transparent onRequestClose={() => setShowCompleteModal(false)}>
-                <View style={s.modalOverlay}>
+                <KeyboardOverlay style={s.modalOverlay}>
                     <View style={[s.modalContent, { backgroundColor: colors.bgDark, maxHeight: '50%' }]}>
                         <View style={s.modalHeader}>
                             <Text style={[s.modalTitle, { color: colors.text }]}>
@@ -716,7 +717,7 @@ export default function ProductionView({ currency = 'FCFA' }: { currency?: strin
                             <Text style={s.submitBtnText}>{t('production.mark_complete', 'Marquer comme terminé')}</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </KeyboardOverlay>
             </Modal>}
         </View>
     );

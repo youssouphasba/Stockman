@@ -758,7 +758,7 @@ export default function CRM({ user }: CRMProps) {
                         }}
                         className="text-xs font-black text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl hover:bg-amber-500/20 transition-all shrink-0"
                     >
-                        Envoyer vÅ“ux
+                        Envoyer vœux
                     </button>
                 </div>
             )}

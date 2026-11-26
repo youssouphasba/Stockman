@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     StyleSheet,
     TextInput,
-    KeyboardAvoidingView,
     Platform,
     ScrollView,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
+import KeyboardOverlay from './KeyboardOverlay';
 
 interface LineDiscountModalProps {
     visible: boolean;
@@ -50,11 +50,8 @@ export default function LineDiscountModal({
 
     return (
         <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-            <View style={styles.modalOverlay}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    style={styles.keyboardWrapper}
-                >
+            <KeyboardOverlay style={styles.modalOverlay}>
+                <View style={styles.keyboardWrapper}>
                     <View style={[styles.modalContent, { backgroundColor: colors.bgMid }]}>
                         <View style={styles.header}>
                             <Text style={[styles.title, { color: colors.text }]}>{t('pos.apply_discount')}</Text>
@@ -129,8 +126,8 @@ export default function LineDiscountModal({
                             </TouchableOpacity>
                         </ScrollView>
                     </View>
-                </KeyboardAvoidingView>
-            </View>
+                </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

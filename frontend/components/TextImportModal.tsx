@@ -3,14 +3,11 @@ import {
     View,
     Text,
     StyleSheet,
-    Modal,
     TouchableOpacity,
     ActivityIndicator,
     TextInput,
     Alert,
-    KeyboardAvoidingView,
     Platform,
-    ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +15,7 @@ import { products as productsApi } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import GuideTarget from '../onboarding/GuideTarget';
-import GuideHost from '../onboarding/GuideHost';
+import KeyboardAwareModal from './KeyboardAwareModal';
 import { getGuideRunState, guideSignal } from '../onboarding/guideStore';
 
 interface TextImportModalProps {
@@ -95,72 +92,55 @@ export default function TextImportModal({ visible, onClose, onSuccess }: TextImp
 
 
     return (
-        <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-            <View style={styles.modalOverlay}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={styles.modalContent}
-                >
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{t('products.import_text_title')}</Text>
-                        <TouchableOpacity onPress={handleClose}>
-                            <Ionicons name="close" size={24} color={colors.text} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-                        <Text style={styles.helpText}>{t('products.import_text_help')}</Text>
-
-                        <GuideTarget id="textImport.input" value={text}>
-                            <TextInput
-                                style={styles.textInput}
-                                multiline
-                                numberOfLines={10}
-                                placeholder={t('products.import_text_placeholder')}
-                                placeholderTextColor={colors.textMuted}
-                                value={text}
-                                onChangeText={setText}
-                                textAlignVertical="top"
-                            />
-                        </GuideTarget>
-
-                        <GuideTarget id="textImport.submit">
-                        <TouchableOpacity
-                            style={[styles.importBtn, (!text.trim() || loading) && styles.btnDisabled]}
-                            onPress={handleImport}
-                            disabled={!text.trim() || loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <>
-                                    <Ionicons name="sparkles" size={20} color="#fff" style={{ marginRight: 8 }} />
-                                    <Text style={styles.btnText}>{t('products.import_text_btn')}</Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
-                        </GuideTarget>
-                    </ScrollView>
-                </KeyboardAvoidingView>
+        <KeyboardAwareModal
+            visible={visible}
+            onClose={handleClose}
+            backgroundColor={colors.bgMid}
+            guideHost="textImport"
+        >
+            <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('products.import_text_title')}</Text>
+                <TouchableOpacity onPress={handleClose}>
+                    <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
             </View>
-            <GuideHost id="textImport" />
-        </Modal>
+
+            <Text style={styles.helpText}>{t('products.import_text_help')}</Text>
+
+            <GuideTarget id="textImport.input" value={text}>
+                <TextInput
+                    style={styles.textInput}
+                    multiline
+                    numberOfLines={10}
+                    placeholder={t('products.import_text_placeholder')}
+                    placeholderTextColor={colors.textMuted}
+                    value={text}
+                    onChangeText={setText}
+                    textAlignVertical="top"
+                />
+            </GuideTarget>
+
+            <GuideTarget id="textImport.submit">
+            <TouchableOpacity
+                style={[styles.importBtn, (!text.trim() || loading) && styles.btnDisabled]}
+                onPress={handleImport}
+                disabled={!text.trim() || loading}
+            >
+                {loading ? (
+                    <ActivityIndicator color="#fff" />
+                ) : (
+                    <>
+                        <Ionicons name="sparkles" size={20} color="#fff" style={{ marginRight: 8 }} />
+                        <Text style={styles.btnText}>{t('products.import_text_btn')}</Text>
+                    </>
+                )}
+            </TouchableOpacity>
+            </GuideTarget>
+        </KeyboardAwareModal>
     );
 }
 
 const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: colors.bgMid,
-        borderTopLeftRadius: BorderRadius.xl,
-        borderTopRightRadius: BorderRadius.xl,
-        maxHeight: '80%',
-        padding: Spacing.lg,
-    },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -184,7 +164,8 @@ const getStyles = (colors: any, glassStyle: any) => StyleSheet.create({
         borderRadius: BorderRadius.md,
         padding: Spacing.md,
         fontSize: FontSize.md,
-        minHeight: 200,
+        minHeight: 160,
+        maxHeight: 260,
         borderWidth: 1,
         borderColor: colors.divider,
         marginBottom: Spacing.lg,

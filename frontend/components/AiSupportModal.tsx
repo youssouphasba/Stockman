@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     TextInput,
     FlatList,
-    KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
 } from 'react-native';
@@ -20,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Spacing, BorderRadius, FontSize } from '../constants/theme';
 import { ai } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type Message = {
     id: string;
@@ -281,7 +281,7 @@ export default function AiSupportModal({ visible, onClose, onOpenHelpCenter, onO
 
     return (
         <Modal visible={visible} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
+            <KeyboardOverlay style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
                     <View style={styles.modalHeader}>
                         <View style={styles.headerTitleRow}>
@@ -316,10 +316,7 @@ export default function AiSupportModal({ visible, onClose, onOpenHelpCenter, onO
                         </View>
                     )}
 
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-                    >
+                    <View>
                         <View style={styles.inputArea}>
                             <TextInput
                                 style={styles.input}
@@ -361,9 +358,9 @@ export default function AiSupportModal({ visible, onClose, onOpenHelpCenter, onO
                                 <Ionicons name="send" size={20} color="#fff" />
                             </TouchableOpacity>
                         </View>
-                    </KeyboardAvoidingView>
+                    </View>
                 </View>
-            </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

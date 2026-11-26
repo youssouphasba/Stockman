@@ -25,6 +25,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { Location, locations as locationsApi } from '../../services/api';
 import i18n from '../../services/i18n';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 type LevelDraft = {
   id: string;
@@ -778,7 +779,7 @@ export default function LocationsScreen() {
       </LinearGradient>
 
       {!!editing && <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.cardTitle}>{t('locations_screen.modifier_l_emplacement')}</Text>
             <TextInput
@@ -830,7 +831,7 @@ export default function LocationsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>}
     </View>
   );

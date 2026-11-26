@@ -54,6 +54,7 @@ import PremiumGate from '../../components/PremiumGate';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCurrency, formatUserCurrency, getCurrencySymbol } from '../../utils/format';
 import { mergeSuppliersOfflineState } from '../../services/offlineState';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 
 export default function SuppliersScreen() {
@@ -1572,7 +1573,7 @@ export default function SuppliersScreen() {
 
         {/* Detail Modal */}
         {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={[styles.modalContent, styles.detailModalContent]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{detailSupplier?.name}</Text>
@@ -2217,11 +2218,11 @@ export default function SuppliersScreen() {
                 </View>
               )}
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
         {showSuggestionLinkModal && <Modal visible={showSuggestionLinkModal} animationType="fade" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '75%' }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('suppliers.link_supplier_action')}</Text>
@@ -2286,12 +2287,12 @@ export default function SuppliersScreen() {
                 style={{ marginTop: Spacing.sm }}
               />
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
         {/* Link Product Modal */}
         {showLinkModal && <Modal visible={showLinkModal} animationType="fade" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '70%' }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('suppliers.link_product')}</Text>
@@ -2348,11 +2349,11 @@ export default function SuppliersScreen() {
                 style={{ marginTop: Spacing.sm }}
               />
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
         {/* Marketplace Filter Modal */}
         {showMpFilters && <Modal visible={showMpFilters} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '80%' }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('marketplace.filters')}</Text>
@@ -2550,12 +2551,12 @@ export default function SuppliersScreen() {
                 </View>
               </ScrollView>
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
         {/* Invite Modal */}
         {showInviteModal && <Modal visible={showInviteModal} animationType="fade" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxHeight: '60%' }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('suppliers.invite_to_register')}</Text>
@@ -2610,12 +2611,12 @@ export default function SuppliersScreen() {
                 ) : null}
               </ScrollView>
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
         {/* Marketplace Detail Modal */}
         {showMpDetail && <Modal visible={showMpDetail} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
@@ -2816,7 +2817,7 @@ export default function SuppliersScreen() {
                 </ScrollView>
               ) : null}
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
         {/* Order Creation Modal (3-step flow) */}

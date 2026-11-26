@@ -2,7 +2,6 @@ import Button from '../../components/ui/Button';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -22,6 +21,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDrawer } from '../../contexts/DrawerContext';
 import { openStockmanWebLogin } from '../../utils/openStockmanWebLogin';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 type PlannerFilter = 'active' | 'completed' | 'all';
 
@@ -621,10 +621,7 @@ export default function PlannerScreen() {
       </ScrollView>
 
       <Modal visible={showComposer} animationType="slide" transparent onRequestClose={closeComposer}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
+        <KeyboardOverlay style={styles.modalOverlay}>
           <Pressable style={styles.modalBackdrop} onPress={closeComposer} />
           <View style={[styles.modalSheet, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
             <View style={styles.modalHeader}>
@@ -797,11 +794,11 @@ export default function PlannerScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardOverlay>
       </Modal>
 
       <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={() => setShowDatePicker(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <Pressable style={styles.modalBackdrop} onPress={() => setShowDatePicker(false)} />
           <View style={[styles.datePickerSheet, { backgroundColor: colors.card, borderColor: colors.glassBorder }]}>
             <View style={styles.modalHeader}>
@@ -871,7 +868,7 @@ export default function PlannerScreen() {
               })}
             </View>
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>
     </View>
   );

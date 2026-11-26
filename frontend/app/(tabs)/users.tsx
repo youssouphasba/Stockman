@@ -25,6 +25,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { subUsers as subUsersApi, User, UserPermissions, stores as storesApi, Store, StorePermissions } from '../../services/api';
 import { Spacing, BorderRadius, FontSize } from '../../constants/theme';
 import { useTranslation } from 'react-i18next';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 const getDefaultPermissions = () => ({
     dashboard: 'read' as const,
@@ -432,7 +433,7 @@ export default function UsersScreen() {
 
             {/* modal create/edit */}
             {modalVisible && <Modal visible={modalVisible} animationType="slide" transparent>
-                    <View style={styles.modalOverlay}>
+                    <KeyboardOverlay style={styles.modalOverlay}>
                         <LinearGradient colors={[colors.bgDark, colors.bgMid]} style={styles.modalContent}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>{editingUser ? t('users.edit_access_title') : t('users.new_employee_title')}</Text>
@@ -578,7 +579,7 @@ export default function UsersScreen() {
                                 <View style={{ height: 40 }} />
                             </ScrollView>
                         </LinearGradient>
-                    </View>
+                    </KeyboardOverlay>
                 </Modal>}
 
         </LinearGradient>

@@ -7,6 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { userNotifications, type UserNotification } from '../services/api';
 import { BorderRadius, FontSize, Spacing } from '../constants/theme';
 import AdminMessageLinkButton from './AdminMessageLinkButton';
+import KeyboardOverlay from './KeyboardOverlay';
 
 const ROUTES: Record<string, string> = {
   home: '/(tabs)',
@@ -124,7 +125,7 @@ export default function AdminMessagesButton({ compact = false }: { compact?: boo
 
       {visible && (
         <Modal visible transparent animationType="fade" onRequestClose={() => setVisible(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
+          <KeyboardOverlay style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
             <View style={{ backgroundColor: colors.bgMid, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, padding: Spacing.lg, height: '60%' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md }}>
                 <View style={{ flex: 1, paddingRight: Spacing.sm }}>
@@ -197,7 +198,7 @@ export default function AdminMessagesButton({ compact = false }: { compact?: boo
                 <View style={{ height: 40 }} />
               </ScrollView>
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>
       )}
     </>

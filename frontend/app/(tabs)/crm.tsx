@@ -114,6 +114,7 @@ const CATEGORIES: { key: CategoryOption; labelKey: string }[] = [
 
 import { useAuth } from '../../contexts/AuthContext';
 import { createScreenRefresh } from '../../utils/screenRefresh';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 export default function CRMScreen() {
     const { user } = useAuth();
@@ -1393,7 +1394,7 @@ function CRMWorkspace() {
 
                 {/* Customer Detail Modal (with tabs) */}
                 {showDetailModal && <Modal visible={showDetailModal} animationType="slide" transparent>
-                    <View style={styles.modalOverlay}>
+                    <KeyboardOverlay style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { flex: 1, maxHeight: '95%', paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + Spacing.md }]}>
                             {detailCustomer && (
                                 <>
@@ -1859,7 +1860,7 @@ function CRMWorkspace() {
                                 </>
                             )}
                         </View>
-                    </View>
+                    </KeyboardOverlay>
                     <GuideHost id="customerDetail" />
                 </Modal>}
 

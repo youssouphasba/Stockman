@@ -1,6 +1,6 @@
 ﻿import React, { useState } from 'react';
 import Button from './ui/Button';
-import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { auth } from '../services/api';
@@ -13,6 +13,7 @@ interface ChangePasswordModalProps {
 }
 
 import { useTranslation } from 'react-i18next';
+import KeyboardOverlay from './KeyboardOverlay';
 
 export default function ChangePasswordModal({ visible, onClose, mode = 'change' }: ChangePasswordModalProps) {
     const { t } = useTranslation();
@@ -79,11 +80,8 @@ export default function ChangePasswordModal({ visible, onClose, mode = 'change' 
 
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-            <View style={styles.overlay}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={[styles.container, { backgroundColor: colors.bgDark }]}
-                >
+            <KeyboardOverlay style={styles.overlay}>
+                <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: colors.text }]}>
                             {isSetMode ? t('modals.setPassword.title', 'Definir un mot de passe') : t('modals.changePassword.title')}
@@ -161,8 +159,8 @@ export default function ChangePasswordModal({ visible, onClose, mode = 'change' 
                           style={{ marginTop: 10 }}
                         />
                     </View>
-                </KeyboardAvoidingView>
-            </View>
+                </View>
+            </KeyboardOverlay>
         </Modal>
     );
 }

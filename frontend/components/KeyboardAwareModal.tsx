@@ -1,7 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Keyboard,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -14,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Spacing } from '../constants/theme';
 import GuideHost from '../onboarding/GuideHost';
+import KeyboardOverlay from './KeyboardOverlay';
 
 type Props = {
   visible: boolean;
@@ -43,34 +42,17 @@ export default function KeyboardAwareModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  // Hauteur de la fenêtre recouverte par le clavier : la fenêtre remonte d'autant (KeyboardOverlay).
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const visibleHeight = height - insets.top - insets.bottom - keyboardHeight - Spacing.lg;
-  const maxHeight = Math.max(280, visibleHeight * maxHeightRatio);
+  const keyboardOpen = keyboardHeight > 0;
+  const visibleHeight = height - (keyboardOpen ? keyboardHeight : insets.bottom) - insets.top - Spacing.lg;
+  const maxHeight = Math.max(Math.min(280, visibleHeight), visibleHeight * maxHeightRatio);
   const fixedContentHeight = scroll ? undefined : maxHeight;
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSubscription = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(event.endCoordinates.height);
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={[styles.overlay, align === 'center' && styles.overlayCenter]}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(8, insets.top / 2) : 0}
-          style={styles.keyboard}
-        >
+      <KeyboardOverlay style={[styles.overlay, align === 'center' && styles.overlayCenter]} onKeyboardOverlap={setKeyboardHeight}>
+        <View style={styles.keyboard}>
           <View
             style={[
               styles.content,
@@ -79,7 +61,7 @@ export default function KeyboardAwareModal({
                 borderColor: borderColor || 'transparent',
                 height: fixedContentHeight,
                 maxHeight,
-                paddingBottom: Math.max(Spacing.md, insets.bottom + Spacing.sm),
+                paddingBottom: keyboardOpen ? Spacing.md : Math.max(Spacing.md, insets.bottom + Spacing.sm),
               },
               contentStyle,
             ]}
@@ -92,15 +74,15 @@ export default function KeyboardAwareModal({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
                   styles.scrollContent,
-                  keyboardHeight > 0 && { paddingBottom: Spacing.xxl },
+                  keyboardOpen && { paddingBottom: Spacing.xxl },
                 ]}
               >
                 {children}
               </ScrollView>
             ) : children}
           </View>
-        </KeyboardAvoidingView>
-      </View>
+        </View>
+      </KeyboardOverlay>
       {!!guideHost && visible && <GuideHost id={guideHost} />}
     </Modal>
   );

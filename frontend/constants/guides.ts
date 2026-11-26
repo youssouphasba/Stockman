@@ -85,6 +85,11 @@ export const GUIDES: Record<string, { title: string; steps: GuideStep[] }> = {
                 description: "Chaque carte ou ligne vous aide à repérer l'urgence : rupture si la quantité est à zéro, stock bas sous le seuil, surstock si la quantité devient trop élevée, stock normal si tout est équilibré."
             },
             {
+                icon: "swap-horizontal-outline",
+                title: "Reprendre vos données",
+                description: "Vous venez d'un autre logiciel, d'un fichier Excel ou d'un cahier ? Ouvrez Ajouter > Reprendre mes données : l'IA lit votre fichier (Excel, CSV, PDF ou photo), retrouve vos produits et votre historique de ventes, et vous montre un aperçu avant tout enregistrement. Un import peut être annulé pendant 30 jours."
+            },
+            {
                 icon: "create-outline",
                 title: "Créer ou modifier une fiche produit",
                 description: "Ouvrez la fiche pour renseigner le nom, le SKU, la quantité initiale, l'unité, les prix, les seuils, la catégorie, les fournisseurs liés et les informations utiles au suivi. Depuis une réception fournisseur, le nom, le prix d'achat et la quantité peuvent déjà être préremplis : vérifiez-les puis concentrez l'édition manuelle sur le prix de vente. Le coût d'achat affiché sur une fiche existante correspond au CMP et ne se modifie plus directement : utilisez une entrée de stock pour le recalculer. Si vous retirez une photo, enregistrez la fiche pour supprimer aussi l'image du produit."

@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { reservations, tables } from '../../services/api';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 type ReservationItem = {
   reservation_id: string;
@@ -161,7 +162,7 @@ export default function ReservationsScreen() {
       </ScrollView>
 
       {showCreate && <Modal visible={showCreate} transparent animationType="slide" onRequestClose={() => setShowCreate(false)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardOverlay style={styles.modalBackdrop}>
           <ScrollView contentContainerStyle={styles.modalScroll}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>{t('restaurant.reservations.new', 'Nouvelle réservation')}</Text>
@@ -185,7 +186,7 @@ export default function ReservationsScreen() {
               </View>
             </View>
           </ScrollView>
-        </View>
+        </KeyboardOverlay>
       </Modal>}
     </LinearGradient>
   );

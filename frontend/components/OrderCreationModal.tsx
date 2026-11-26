@@ -11,8 +11,7 @@ import {
   ActivityIndicator,
   Alert as RNAlert,
   Platform,
-  KeyboardAvoidingView,
-} from 'react-native';
+  } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { formatCurrency, formatNumber } from '../utils/format';
@@ -29,6 +28,7 @@ import {
   CatalogProductData,
   OrderCreate,
 } from '../services/api';
+import KeyboardOverlay from './KeyboardOverlay';
 
 // ── Types ──────────────────────────────────────────────
 type SelectedSupplier = {
@@ -371,12 +371,8 @@ export default function OrderCreationModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={requestClose}>
-      <View style={s.overlay}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
-          style={s.modalWrapper}
-        >
+      <KeyboardOverlay style={s.overlay}>
+        <View style={s.modalWrapper}>
           <View style={s.modal}>
             {/* Header */}
             <View style={s.header}>
@@ -647,8 +643,8 @@ export default function OrderCreationModal({
               />
             )}
           </View>
-        </KeyboardAvoidingView>
-      </View>
+        </View>
+      </KeyboardOverlay>
     </Modal>
   );
 }

@@ -23,6 +23,7 @@ import { formatNumber } from '../../utils/format';
 import PeriodSelector, { Period } from '../../components/PeriodSelector';
 import i18n from '../../services/i18n';
 import ChatModal from '../../components/ChatModal';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 const FILTERS = ['all', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'] as const;
 
@@ -523,7 +524,7 @@ export default function SupplierOrdersScreen() {
 
       {/* Detail Modal */}
       {showDetail && <Modal visible={showDetail} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('orders.order_detail')}</Text>
@@ -643,7 +644,7 @@ export default function SupplierOrdersScreen() {
               </ScrollView>
             )}
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>}
 
       {selectedOrder && (
@@ -657,7 +658,7 @@ export default function SupplierOrdersScreen() {
 
       {/* Invoice Create Modal */}
       {showInvoiceCreate && <Modal visible={showInvoiceCreate} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('supplier.create_invoice')}</Text>
@@ -827,12 +828,12 @@ export default function SupplierOrdersScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>}
 
       {/* Invoice Detail Modal */}
       {showInvoiceDetail && <Modal visible={showInvoiceDetail} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{selectedInvoice?.invoice_number}</Text>
@@ -961,7 +962,7 @@ export default function SupplierOrdersScreen() {
               </ScrollView>
             )}
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>}
     </LinearGradient>
   );

@@ -76,6 +76,7 @@ import { isStarterShopkeeper } from '../../utils/accountRouting';
 import { ADMIN_MESSAGES_CHANGED_EVENT } from '../../components/AdminMessagesButton';import AdminMessageLinkButton from '../../components/AdminMessageLinkButton';
 
 import { hasPlatformModule } from '../../utils/access';
+import KeyboardOverlay from '../../components/KeyboardOverlay';
 
 // screenWidth is now read via useWindowDimensions() inside the component
 
@@ -1840,7 +1841,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
 
       {/* History Modal */}
       {showHistoryModal && <Modal visible={showHistoryModal} animationType="slide" transparent onRequestClose={() => closeDashboardModal('history')}>
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('dashboard.movement_history')}</Text>
@@ -1917,12 +1918,12 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
               </ScrollView>
             )}
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>}
 
       {/* Statistics Modal */}
       {showStatsModal && <Modal visible={showStatsModal} animationType="slide" transparent onRequestClose={() => closeDashboardModal('statistics')}>
-        <View style={styles.modalOverlay}>
+        <KeyboardOverlay style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: '90%' }]}>
             <View style={styles.header}>
               <View>
@@ -2104,7 +2105,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
               <Text style={styles.emptyText}>{statsError || t('common.generic_error')}</Text>
             )}
           </View>
-        </View>
+        </KeyboardOverlay>
       </Modal>}
       {dashboardGuideSteps.length > 0 && (
         <ScreenGuide
@@ -2117,7 +2118,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
 
       {/* Notifications Modal */}
       {showNotifModal && <Modal visible={showNotifModal} animationType="fade" transparent>
-          <View style={styles.modalOverlay}>
+          <KeyboardOverlay style={styles.modalOverlay}>
             <View style={[styles.modalContent, { height: '60%', marginTop: 'auto' }]}>
               <View style={styles.modalHeader}>
                 <View style={{ flex: 1, paddingRight: Spacing.sm }}>
@@ -2228,7 +2229,7 @@ function DashboardWorkspace({ dashboardScope }: { dashboardScope: string }) {
                 <View style={{ height: 40 }} />
               </ScrollView>
             </View>
-          </View>
+          </KeyboardOverlay>
         </Modal>}
 
       <DashboardSettingsModal

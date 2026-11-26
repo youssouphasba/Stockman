@@ -456,6 +456,15 @@ function GuideCard() {
             <TouchableOpacity
               accessibilityRole="button"
               disabled={guide.finishing}
+              onPress={() => void guide.finish(keepIds, 'migration')}
+              style={[styles.cardSecondary, { borderColor: colors.primary }]}
+            >
+              <Ionicons name="swap-horizontal-outline" size={18} color={colors.primary} />
+              <Text style={[styles.cardSecondaryText, { color: colors.primary }]}>Reprendre mes données (ancien logiciel, Excel, cahier)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              disabled={guide.finishing}
               onPress={() => void guide.finish(keepIds, 'help')}
               style={[styles.cardSecondary, { borderColor: colors.primary }]}
             >
