@@ -50,7 +50,9 @@ test('One next step is put forward at each stage of an order', () => {
   assert.equal(p.nextStep({ status: 'pending' }).action, 'confirm');
   // Le client dit avoir payé : vérifier le paiement passe avant tout, même sur une commande déjà confirmée.
   assert.equal(p.nextStep({ status: 'confirmed', payment: { method: 'wave', status: 'declared' } }).action, 'payment');
-  assert.equal(p.nextStep({ status: 'confirmed', payment: { method: 'wave', status: 'paid' } }).action, 'ready');
+  // Une étape après l'autre : confirmée, puis en préparation, puis prête.
+  assert.equal(p.nextStep({ status: 'confirmed', payment: { method: 'wave', status: 'paid' } }).action, 'prepare');
+  assert.equal(p.nextStep({ status: 'preparing', payment: { method: 'wave', status: 'paid' } }).action, 'ready');
   assert.match(p.nextStep({ status: 'preparing', delivery: denkma }).hint, /livreur Denkma/);
   assert.equal(p.nextStep({ status: 'ready' }).action, 'deliver');
   // Denkma livre : la commande passera à « Livrée » toute seule, aucun geste n'est demandé.

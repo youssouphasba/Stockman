@@ -4274,7 +4274,9 @@
     "unpaid_ready": "客户尚未通过 {{wallet}} 付款。仍要将订单标为已备好吗？",
     "unpaid_ready_denkma": "客户尚未通过 {{wallet}} 付款。仍要呼叫 Denkma 骑手吗？",
     "wallet_expected": "待 {{wallet}} 付款",
-    "wallet_expected_hint": "客户已看到您的 {{wallet}} 号码和应付金额。"
+    "wallet_expected_hint": "客户已看到您的 {{wallet}} 号码和应付金额。",
+    "step_prepare": "开始备货",
+    "step_prepare_hint": "开始准备订单时，点击“开始备货”。"
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "放弃草稿？",

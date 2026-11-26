@@ -4480,7 +4480,9 @@
     "unpaid_ready": "The customer hasn’t paid with {{wallet}} yet. Mark the order as ready anyway?",
     "unpaid_ready_denkma": "The customer hasn’t paid with {{wallet}} yet. Request the Denkma courier anyway?",
     "wallet_expected": "{{wallet}} payment expected",
-    "wallet_expected_hint": "The customer saw your {{wallet}} number and the amount to pay."
+    "wallet_expected_hint": "The customer saw your {{wallet}} number and the amount to pay.",
+    "step_prepare": "Start preparing",
+    "step_prepare_hint": "When you start preparing the order, tap \"Start preparing\"."
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "Discard the draft?",

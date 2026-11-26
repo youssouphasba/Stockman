@@ -4355,7 +4355,9 @@
     "unpaid_ready": "Der Kunde hat noch nicht mit {{wallet}} bezahlt. Bestellung trotzdem als bereit markieren?",
     "unpaid_ready_denkma": "Der Kunde hat noch nicht mit {{wallet}} bezahlt. Denkma-Kurier trotzdem anfordern?",
     "wallet_expected": "{{wallet}}-Zahlung erwartet",
-    "wallet_expected_hint": "Der Kunde hat Ihre {{wallet}}-Nummer und den Betrag gesehen."
+    "wallet_expected_hint": "Der Kunde hat Ihre {{wallet}}-Nummer und den Betrag gesehen.",
+    "step_prepare": "In Vorbereitung",
+    "step_prepare_hint": "Wenn Sie mit der Vorbereitung der Bestellung beginnen, tippen Sie auf „In Vorbereitung“."
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "Entwurf verwerfen?",

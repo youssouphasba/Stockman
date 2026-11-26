@@ -10,7 +10,7 @@ import { ecommerce as ecommerceApi } from '../services/api';
 import Modal from './Modal';
 import DenkmaShipDialog from './DenkmaShipDialog';
 import { amountDue, canShipWithDenkma, collectionCode, denkmaDelivery, denkmaDestination, denkmaState } from '../lib/denkmaShipping';
-import { canConfirmPayment, canUndoPayment, deliveryPaymentQuestion, nextStep, orderStatusLabel, paymentState, unpaidReadyWarning } from '../lib/orderPayment';
+import { canUndoPayment, deliveryPaymentQuestion, nextStep, orderStatusLabel, paymentState, unpaidReadyWarning } from '../lib/orderPayment';
 import ScreenGuide, { GuideStep } from './ScreenGuide';
 
 const PAYMENT_TONES: Record<string, string> = {
@@ -96,6 +96,7 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
     const runWebOrderStep = (order: any, action: string | null) => {
         if (action === 'payment') return updateWebOrderPayment(order.order_id, true);
         if (action === 'confirm') return updateWebOrderStatus(order.order_id, 'confirmed');
+        if (action === 'prepare') return updateWebOrderStatus(order.order_id, 'preparing');
         if (action === 'ready') return markWebOrderReady(order);
         if (action === 'deliver') return deliverWebOrderNow(order);
     };
@@ -108,7 +109,7 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
         },
         {
             title: t('guide.orders.online_steps_title', "Traiter une commande"),
-            content: t('guide.orders.online_steps_content', "Chaque carte met en avant la prochaine étape : confirmer le paiement, préparer, marquer prête, puis livrer."),
+            content: t('guide.orders.online_steps_content', "Chaque carte met en avant une seule prochaine étape, dans l'ordre : confirmer le paiement, confirmer la commande, mettre en préparation, marquer prête, puis livrer."),
             details: [
                 { label: t('guide.orders.online_payment', "Paiement reçu"), description: t('guide.orders.online_payment_desc', "À utiliser quand le client vous a payé. Le stock de la commande est alors réservé."), type: 'button' },
                 { label: t('guide.orders.online_deliver', "Livrer et créer la vente"), description: t('guide.orders.online_deliver_desc', "Enregistre la vente. Si le paiement n'est pas confirmé, vous indiquez si le client a payé à la réception ; sinon, la vente est enregistrée à crédit."), type: 'button' },
@@ -221,14 +222,11 @@ export default function Orders({ ecommerceSetup = null }: { ecommerceSetup?: Rea
                                         </div>
                                     )}
                                     <p className="text-xs leading-5 text-slate-500">Paiement : {payment.hint}</p>
+                                    {/* Une seule action d'avancement à la fois (l'étape ci-dessus). Restent les corrections et l'annulation. */}
                                     <div className="flex flex-wrap gap-2">
-                                        {canConfirmPayment(order) && step?.action !== 'payment' && <button onClick={() => void updateWebOrderPayment(order.order_id, true)} className={secondary}>Paiement reçu</button>}
+                                        {!step?.action && canShipWithDenkma(order) && <button onClick={() => setDenkmaShipOrder(order)} className={secondary}>Livrer avec Denkma en joignant une photo</button>}
+                                        {step?.action === 'payment' && order.status === 'pending' && <button onClick={() => updateWebOrderStatus(order.order_id, 'confirmed')} className={secondary}>Confirmer sans attendre le paiement</button>}
                                         {canUndoPayment(order) && <button onClick={async () => { if ((await confirmDialog('Annuler la confirmation du paiement de cette commande ?'))) void updateWebOrderPayment(order.order_id, false); }} className={secondary}>Paiement confirmé par erreur</button>}
-                                        {order.status === 'pending' && step?.action !== 'confirm' && <button onClick={() => updateWebOrderStatus(order.order_id, 'confirmed')} className={secondary}>Confirmer sans attendre le paiement</button>}
-                                        {['pending', 'confirmed'].includes(order.status) && <button onClick={() => updateWebOrderStatus(order.order_id, 'preparing')} className={secondary}>En préparation</button>}
-                                        {['confirmed', 'preparing'].includes(order.status) && step?.action !== 'ready' && <button onClick={() => void markWebOrderReady(order)} className={secondary}>Prête</button>}
-                                        {canShipWithDenkma(order) && <button onClick={() => setDenkmaShipOrder(order)} className={secondary}>Livrer avec Denkma en joignant une photo</button>}
-                                        {['confirmed', 'preparing', 'ready'].includes(order.status) && step?.action !== 'deliver' && <button onClick={() => deliverWebOrderNow(order)} className={secondary}>Livrer et créer la vente</button>}
                                         {['pending', 'confirmed'].includes(order.status) && <button onClick={async () => { if ((await confirmDialog('Annuler cette commande ?'))) void updateWebOrderStatus(order.order_id, 'cancelled'); }} className="rounded-xl border border-rose-400/50 bg-rose-500/10 px-4 py-2.5 text-sm font-bold text-rose-200 transition hover:bg-rose-500/20">Annuler la commande</button>}
                                     </div>
                                 </div>

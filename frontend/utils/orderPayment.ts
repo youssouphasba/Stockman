@@ -27,7 +27,7 @@ export function setOrderPaymentTranslator(fn: Translator): void {
   translate = fn;
 }
 const tr = (key: string, fallback: string, vars?: Record<string, string>) => translate(`order_payment.${key}`, fallback, vars);
-export type NextStep = { action: 'payment' | 'confirm' | 'ready' | 'deliver' | null; label: string; hint: string };
+export type NextStep = { action: 'payment' | 'confirm' | 'prepare' | 'ready' | 'deliver' | null; label: string; hint: string };
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Nouvelle',
@@ -117,7 +117,11 @@ export function nextStep(order: OrderLike | null | undefined): NextStep | null {
     }
     return { action: 'confirm', label: tr('step_confirm', 'Confirmer la commande'), hint: order.payment?.method === 'on_delivery' ? tr('step_confirm_on_delivery_hint', 'Le client paiera à la livraison. Confirmez si vous acceptez la commande.') : tr('step_confirm_hint', 'Confirmez la commande pour commencer à la préparer.') };
   }
-  if ((status === 'confirmed' || status === 'preparing') && !denkmaLaunched(order)) {
+  // Ordre des étapes : confirmée, puis « En préparation », puis « Prête », puis livrée.
+  if (status === 'confirmed' && !denkmaLaunched(order)) {
+    return { action: 'prepare', label: tr('step_prepare', 'En préparation'), hint: tr('step_prepare_hint', 'Quand vous commencez à préparer la commande, touchez « En préparation ».') };
+  }
+  if (status === 'preparing' && !denkmaLaunched(order)) {
     return { action: 'ready', label: tr('step_ready', 'Prête'), hint: usesDenkma(order) ? tr('step_ready_denkma_hint', 'Quand le colis est emballé, touchez « Prête » : un livreur Denkma viendra le chercher.') : tr('step_ready_hint', 'Quand la commande est emballée, touchez « Prête ».') };
   }
   if (usesDenkma(order)) {

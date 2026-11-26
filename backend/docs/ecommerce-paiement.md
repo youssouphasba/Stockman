@@ -34,7 +34,7 @@ Chaque commande en ligne affiche l'état de son paiement :
 
 Le commerçant vérifie sur son compte Wave ou Orange Money que l'argent est arrivé, puis touche « Paiement reçu ». Une commande nouvelle est confirmée du même geste, et le client qui a laissé son e-mail est prévenu. Si le client a choisi la livraison Denkma, le transport est réservé à ce moment ; l'enlèvement n'est demandé qu'au geste « Prête ». Une confirmation faite par erreur s'annule avec « Paiement confirmé par erreur », tant que la commande n'est pas livrée.
 
-La commande met en avant une seule « Prochaine étape » : confirmer le paiement, confirmer la commande, la marquer « Prête », puis la livrer. Les autres gestes restent disponibles en dessous. Si le client devait payer avant la livraison et ne l'a pas fait, Stockman le signale au moment de marquer la commande « Prête ».
+La commande suit les étapes dans l'ordre et ne propose qu'un seul geste à la fois : confirmer le paiement, confirmer la commande, la mettre « En préparation », la marquer « Prête », puis la livrer. Seules restent à côté les corrections (« Paiement confirmé par erreur ») et l'annulation. Si le client devait payer avant la livraison et ne l'a pas fait, Stockman le signale au moment de marquer la commande « Prête ».
 
 ## Questions fréquentes
 

@@ -4355,7 +4355,9 @@
     "unpaid_ready": "El cliente aún no ha pagado con {{wallet}}. ¿Marcar el pedido como listo de todos modos?",
     "unpaid_ready_denkma": "El cliente aún no ha pagado con {{wallet}}. ¿Pedir el repartidor de Denkma de todos modos?",
     "wallet_expected": "Pago {{wallet}} pendiente",
-    "wallet_expected_hint": "El cliente vio su número {{wallet}} y el importe a pagar."
+    "wallet_expected_hint": "El cliente vio su número {{wallet}} y el importe a pagar.",
+    "step_prepare": "En preparación",
+    "step_prepare_hint": "Cuando empiece a preparar el pedido, toque «En preparación»."
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "¿Descartar el borrador?",

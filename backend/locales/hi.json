@@ -4355,7 +4355,9 @@
     "unpaid_ready": "ग्राहक ने अभी {{wallet}} से भुगतान नहीं किया। फिर भी ऑर्डर तैयार चिह्नित करें?",
     "unpaid_ready_denkma": "ग्राहक ने अभी {{wallet}} से भुगतान नहीं किया। फिर भी Denkma कूरियर बुलाएँ?",
     "wallet_expected": "{{wallet}} भुगतान अपेक्षित",
-    "wallet_expected_hint": "ग्राहक ने आपका {{wallet}} नंबर और देय राशि देखी।"
+    "wallet_expected_hint": "ग्राहक ने आपका {{wallet}} नंबर और देय राशि देखी।",
+    "step_prepare": "तैयारी शुरू",
+    "step_prepare_hint": "जब आप ऑर्डर की तैयारी शुरू करें, तब «तैयारी शुरू» दबाएँ।"
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "ड्राफ़्ट छोड़ें?",

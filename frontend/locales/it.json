@@ -4355,7 +4355,9 @@
     "unpaid_ready": "Il cliente non ha ancora pagato con {{wallet}}. Segnare comunque l’ordine come pronto?",
     "unpaid_ready_denkma": "Il cliente non ha ancora pagato con {{wallet}}. Chiamare comunque il corriere Denkma?",
     "wallet_expected": "Pagamento {{wallet}} atteso",
-    "wallet_expected_hint": "Il cliente ha visto il tuo numero {{wallet}} e l’importo da pagare."
+    "wallet_expected_hint": "Il cliente ha visto il tuo numero {{wallet}} e l’importo da pagare.",
+    "step_prepare": "In preparazione",
+    "step_prepare_hint": "Quando inizi a preparare l'ordine, tocca «In preparazione»."
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "Eliminare la bozza?",

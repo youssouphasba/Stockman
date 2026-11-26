@@ -508,6 +508,9 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
     if (action === 'confirm') {
       void updateWebOrderStatus(order.order_id, 'confirmed').then(() => done?.());
     }
+    if (action === 'prepare') {
+      void updateWebOrderStatus(order.order_id, 'preparing').then(() => done?.());
+    }
   };
 
   const paymentToneColor = (tone: string) => (tone === 'success' ? colors.success : tone === 'warning' ? colors.warning : tone === 'progress' ? colors.primary : colors.textMuted);
@@ -1344,9 +1347,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                   <Text style={[styles.orderDate, { marginTop: Spacing.xs }]}>{t('orders_screen.appuyez_pour_voir_les_details')}</Text>
                   <View style={styles.orderActions}>
                     {step?.action === 'payment' && <OrderActionButton variant="primary" color={colors.success} icon="checkmark-circle-outline" label={t('orders_screen.paiement_recu')} onPress={() => updateWebOrderPayment(order.order_id, true)} />}
-                    {order.status === 'pending' && step?.action !== 'payment' && <OrderActionButton variant={step?.action === 'confirm' ? 'primary' : 'secondary'} icon="checkmark-outline" label={t('orders_screen.confirmer')} onPress={() => updateWebOrderStatus(order.order_id, 'confirmed')} />}
-                    {['confirmed', 'preparing'].includes(order.status) && <OrderActionButton variant={step?.action === 'ready' ? 'primary' : 'secondary'} color={colors.warning} icon="cube-outline" label={t('orders_screen.prete')} onPress={() => markWebOrderReady(order)} />}
-                    {['confirmed', 'preparing', 'ready'].includes(order.status) && <OrderActionButton variant={step?.action === 'deliver' ? 'primary' : 'secondary'} color={colors.success} icon="bicycle-outline" label={t('orders_screen.livrer')} onPress={() => deliverWebOrder(order)} />}
+                    {step?.action && step.action !== 'payment' && <OrderActionButton variant="primary" color={colors.primary} icon="arrow-forward-circle-outline" label={step.label} onPress={() => runWebOrderStep(order, step.action)} />}
                     {['pending', 'confirmed'].includes(order.status) && <OrderActionButton color={colors.danger} icon="close-outline" label={t('orders_screen.annuler')} onPress={() => updateWebOrderStatus(order.order_id, 'cancelled')} />}
                   </View>
                 </TouchableOpacity>
@@ -1955,10 +1956,7 @@ export default function OrdersScreen({ ecommerceWorkspace: requestedEcommerceWor
                   );
                 })()}
                 <View style={[styles.orderActions, { marginTop: Spacing.lg }]}>
-                  {canShipWithDenkma(selectedWebOrder) && <OrderActionButton color="#2563EB" icon="bicycle-outline" label={t('orders_screen.livrer_avec_denkma')} onPress={() => setDenkmaShipOrder(selectedWebOrder)} />}
-                  {selectedWebOrder.status === 'pending' && nextStep(selectedWebOrder)?.action !== 'confirm' && <OrderActionButton icon="checkmark-outline" label={t('orders_screen.confirmer_sans_attendre_le_paiement')} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'confirmed'); setShowWebOrderDetailModal(false); }} />}
-                  {['confirmed', 'preparing'].includes(selectedWebOrder.status) && nextStep(selectedWebOrder)?.action !== 'ready' && <OrderActionButton color={colors.warning} icon="cube-outline" label={t('orders_screen.prete')} onPress={() => markWebOrderReady(selectedWebOrder, () => setShowWebOrderDetailModal(false))} />}
-                  {['confirmed', 'preparing', 'ready'].includes(selectedWebOrder.status) && nextStep(selectedWebOrder)?.action !== 'deliver' && <OrderActionButton color={colors.success} icon="bicycle-outline" label={t('orders_screen.livrer')} onPress={() => deliverWebOrder(selectedWebOrder, () => setShowWebOrderDetailModal(false))} />}
+                  {!nextStep(selectedWebOrder)?.action && canShipWithDenkma(selectedWebOrder) && <OrderActionButton color="#2563EB" icon="bicycle-outline" label={t('orders_screen.livrer_avec_denkma')} onPress={() => setDenkmaShipOrder(selectedWebOrder)} />}
                   {['pending', 'confirmed'].includes(selectedWebOrder.status) && <OrderActionButton color={colors.danger} icon="close-outline" label={t('orders_screen.annuler')} onPress={async () => { await updateWebOrderStatus(selectedWebOrder.order_id, 'cancelled'); setShowWebOrderDetailModal(false); }} />}
                 </View>
               </ScrollView>

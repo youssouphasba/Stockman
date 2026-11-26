@@ -4355,7 +4355,9 @@
     "unpaid_ready": "Müşteri henüz {{wallet}} ile ödemedi. Sipariş yine de hazır olarak işaretlensin mi?",
     "unpaid_ready_denkma": "Müşteri henüz {{wallet}} ile ödemedi. Denkma kuryesi yine de çağrılsın mı?",
     "wallet_expected": "{{wallet}} ödemesi bekleniyor",
-    "wallet_expected_hint": "Müşteri {{wallet}} numaranızı ve ödenecek tutarı gördü."
+    "wallet_expected_hint": "Müşteri {{wallet}} numaranızı ve ödenecek tutarı gördü.",
+    "step_prepare": "Hazırlanıyor",
+    "step_prepare_hint": "Siparişi hazırlamaya başladığınızda «Hazırlanıyor» seçeneğine dokunun."
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "Taslak atılsın mı?",

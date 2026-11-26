@@ -4355,7 +4355,9 @@
     "unpaid_ready": "Klient jeszcze nie zapłacił przez {{wallet}}. Oznaczyć zamówienie jako gotowe mimo to?",
     "unpaid_ready_denkma": "Klient jeszcze nie zapłacił przez {{wallet}}. Wezwać mimo to kuriera Denkma?",
     "wallet_expected": "Oczekiwana płatność {{wallet}}",
-    "wallet_expected_hint": "Klient widział Twój numer {{wallet}} i kwotę do zapłaty."
+    "wallet_expected_hint": "Klient widział Twój numer {{wallet}} i kwotę do zapłaty.",
+    "step_prepare": "W przygotowaniu",
+    "step_prepare_hint": "Gdy zaczniesz przygotowywać zamówienie, dotknij „W przygotowaniu”."
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "Odrzucić wersję roboczą?",

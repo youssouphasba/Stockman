@@ -4355,7 +4355,9 @@
     "unpaid_ready": "Clientul nu a plătit încă cu {{wallet}}. Marcați totuși comanda ca gata?",
     "unpaid_ready_denkma": "Clientul nu a plătit încă cu {{wallet}}. Solicitați totuși curierul Denkma?",
     "wallet_expected": "Plată {{wallet}} așteptată",
-    "wallet_expected_hint": "Clientul a văzut numărul dvs. {{wallet}} și suma de plată."
+    "wallet_expected_hint": "Clientul a văzut numărul dvs. {{wallet}} și suma de plată.",
+    "step_prepare": "În pregătire",
+    "step_prepare_hint": "Când începeți să pregătiți comanda, atingeți „În pregătire”."
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "Renunțați la ciornă?",

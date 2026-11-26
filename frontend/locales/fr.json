@@ -4461,7 +4461,9 @@
     "status_ready": "Prête",
     "status_delivered": "Livrée",
     "status_cancelled": "Annulée",
-    "status_rejected": "Refusée"
+    "status_rejected": "Refusée",
+    "step_prepare": "En préparation",
+    "step_prepare_hint": "Quand vous commencez à préparer la commande, touchez « En préparation »."
   },
   "orders_screen": {
     "historique_complet": "Historique complet",

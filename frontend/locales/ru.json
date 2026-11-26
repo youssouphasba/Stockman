@@ -4274,7 +4274,9 @@
     "unpaid_ready": "Клиент ещё не оплатил через {{wallet}}. Всё равно отметить заказ готовым?",
     "unpaid_ready_denkma": "Клиент ещё не оплатил через {{wallet}}. Всё равно вызвать курьера Denkma?",
     "wallet_expected": "Ожидается оплата {{wallet}}",
-    "wallet_expected_hint": "Клиент видел ваш номер {{wallet}} и сумму к оплате."
+    "wallet_expected_hint": "Клиент видел ваш номер {{wallet}} и сумму к оплате.",
+    "step_prepare": "Начать сборку",
+    "step_prepare_hint": "Когда вы начнёте собирать заказ, нажмите «Начать сборку»."
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "Удалить черновик?",

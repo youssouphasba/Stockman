@@ -4275,7 +4275,9 @@
     "unpaid_ready": "لم يدفع العميل بعد عبر {{wallet}}. هل تعلّم الطلب كجاهز رغم ذلك؟",
     "unpaid_ready_denkma": "لم يدفع العميل بعد عبر {{wallet}}. هل تطلب مندوب Denkma رغم ذلك؟",
     "wallet_expected": "دفع {{wallet}} متوقع",
-    "wallet_expected_hint": "رأى العميل رقم {{wallet}} الخاص بك والمبلغ المطلوب."
+    "wallet_expected_hint": "رأى العميل رقم {{wallet}} الخاص بك والمبلغ المطلوب.",
+    "step_prepare": "قيد التحضير",
+    "step_prepare_hint": "عند بدء تحضير الطلب، اضغط على «قيد التحضير»."
   },
   "ecommerce_appearance": {
     "abandonner_le_brouillon": "تجاهل المسودة؟",
